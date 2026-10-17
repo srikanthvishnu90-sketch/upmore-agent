@@ -171,7 +171,7 @@ const CareerPortalBrowser = (() => {
     // DIFFERENT machine names (country / country_2, school / school_0)
     // for the same human question. Slug-derived question_keys are
     // unstable across duplicates, so only canonical keys count.
-    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "work_authorization_other_region", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "reside_near_posting", "graduation_year_or_later", "relocate_bay_area", "relocate_new_york", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "work_authorization_other_region", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "reside_near_posting", "graduation_year_or_later", "relocate_bay_area", "relocate_new_york", "relocation_required", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
@@ -338,6 +338,15 @@ const CareerPortalBrowser = (() => {
     if (/reside in the location|within commutable distance|commutable distance|commuting distance/.test(eff)) return { kind: "screening", question_key: "reside_near_posting" };
     if (/expected graduation date in \d{4} or later|graduation date in \d{4} or later/.test(eff)) return { kind: "screening", question_key: "graduation_year_or_later" };
     if (/office location preference/.test(eff)) return { kind: "screening", question_key: "office_location_preference" };
+    // Coordinator ruling 2026-10-17 (P0b): the generic relocation-
+    // requirement question (Justworks' verbatim "Do you require
+    // relocation?") is its own key, answered from the bank's F-082
+    // under the owner's answer-all delegation — his relocation
+    // pattern is Yes on every place-named sibling key below. The
+    // rule requires the REQUIREMENT wording: place-named willingness
+    // questions keep their own keys, and a bare preference phrasing
+    // never lands here.
+    if (/require relocation|relocation is required|relocation required|requires relocation|need to relocate/.test(eff)) return { kind: "screening", question_key: "relocation_required" };
     if (/relocate to the bay area|relocate to or commute|based in or willing to relocate/.test(eff) && /bay area/.test(eff)) return { kind: "screening", question_key: "relocate_bay_area" };
     if (/relocate to new york/.test(eff)) return { kind: "screening", question_key: "relocate_new_york" };
     if (/onsite in our (san francisco|new york)|open to working.*onsite|relocate to work onsite/.test(eff)) return { kind: "screening", question_key: "onsite_sf_ny" };
@@ -449,11 +458,19 @@ const CareerPortalBrowser = (() => {
     // select__input search box is a widget whose value is a chosen
     // option, never its text — the helper drives it as one.
     const widget = f && /select__input/.test(f.cls || "") ? "react-select" : null;
-    if (f.tag === "select") return { field_id: null, inputType: "select", profile_key: pk, widget, selector: f.selector, options: f.options || [] };
-    if (f.inputType === "file") return { field_id: null, inputType: "file", profile_key: pk, widget, selector: f.selector };
-    if (f.inputType === "checkbox") return { field_id: null, inputType: "checkbox", profile_key: pk, widget, selector: f.selector };
-    if (f.inputType === "radio") return { field_id: null, inputType: "radio_group", profile_key: pk, widget, options: [{ selector: f.selector, label: f.label || "" }] };
-    return { field_id: null, inputType: "text", profile_key: pk, widget, selector: f.selector };
+    // R3-D3: the board's length cap (from discovery) rides the binding
+    // so the helper writes and expects the capped rendering. R3-D1:
+    // the discovered element's id/name ride along so the helper's
+    // attach ladder can identify THIS file slot by identity and by
+    // its upload section — never by document order.
+    const cap = f && f.maxLength > 0 ? f.maxLength : null;
+    const slotId = (f && f.id) || null;
+    const slotName = (f && f.name) || null;
+    if (f.tag === "select") return { field_id: null, inputType: "select", profile_key: pk, widget, selector: f.selector, options: f.options || [], maxLength: cap, slotId, slotName };
+    if (f.inputType === "file") return { field_id: null, inputType: "file", profile_key: pk, widget, selector: f.selector, maxLength: cap, slotId, slotName };
+    if (f.inputType === "checkbox") return { field_id: null, inputType: "checkbox", profile_key: pk, widget, selector: f.selector, maxLength: cap, slotId, slotName };
+    if (f.inputType === "radio") return { field_id: null, inputType: "radio_group", profile_key: pk, widget, options: [{ selector: f.selector, label: f.label || "" }], maxLength: cap, slotId, slotName };
+    return { field_id: null, inputType: "text", profile_key: pk, widget, selector: f.selector, maxLength: cap, slotId, slotName };
   }
 
   // ---------- the sync bridge to the helper process ----------
@@ -637,8 +654,17 @@ const CareerPortalBrowser = (() => {
       fill(fieldId, value) {
         refuseIfRedirected();
         if (!state.bindings) board.form();
-        const binding = state.bindings[fieldId];
+        // R3-Gusto: a board that retires a field from discovery after
+        // it was filled (Greenhouse removes the resume input once the
+        // upload registers, leaving only the chip) drops the field's
+        // binding from the CURRENT map — the doorstep repair then died
+        // UNKNOWN_FIELD on a field the board demonstrably has. The
+        // binding history keeps every binding this board has ever
+        // exposed; the helper's slot-faithful ladder re-finds the
+        // live input (or reports the honest not-mounted) from it.
+        const binding = state.bindings[fieldId] || state.bindingHistory[fieldId];
         if (!binding) throw coded("UNKNOWN_FIELD", `no such field on this board: ${fieldId}`);
+        if (!state.bindings[fieldId]) log("fill_binding_from_history", { field_id: fieldId });
         calls.fill += 1;
         if (binding.inputType === "file") {
           if (!o.resumePath) throw coded("RESUME_FILE_MISSING", "the board was built without a local resume file to upload");
@@ -657,11 +683,11 @@ const CareerPortalBrowser = (() => {
           // never a filledValues entry the doorstep would trust.
           if (fr && fr.filled === false) {
             state.fillFailures.push({ field_id: fieldId, reason: fr.reason || "fill_failed", wanted: value.filename });
-            log("fill_failed", { field_id: fieldId, reason: fr.reason || "fill_failed", source: "file_upload" });
+            log("fill_failed", { field_id: fieldId, reason: fr.reason || "fill_failed", source: "file_upload", stages: (fr && fr.stages) || null });
             return undefined;
           }
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
-          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null });
+          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null, via: (fr && fr.via) || null });
           return value;
         }
         // Non-file fills DEGRADE, never abort: a widget that times out or
@@ -697,7 +723,7 @@ const CareerPortalBrowser = (() => {
         }
         state.filledValues[fieldId] = value;
         if (r && r.rendered !== undefined) state.renderedValues[fieldId] = r.rendered;
-        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null });
+        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null, capped: (r && r.capped) || null });
         return value;
       },
       answers() {
@@ -731,6 +757,12 @@ const CareerPortalBrowser = (() => {
         let r;
         try { r = call(boardId, { type: "review", observationVersion: state.observation.version, knownSelectors: Object.values(state.bindings || {}).flatMap((b) => b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector))).filter(Boolean) }, 90000); }
         catch (e) { if (e.code === "STALE_OBSERVATION") { board.form(); return { needsFields: true }; } throw e; }
+        // The review re-observes in the helper (boards remount their
+        // controls as the form completes); adopt its fresh observation
+        // so the versioned follow-ups (the armed payload check) stay
+        // in sync instead of going stale against the helper's newer
+        // version (R3-Gusto).
+        if (r.observation) state.observation = r.observation;
         // §6.3 hop gate at review (BUG-060): the Next/Continue clicks
         // inside the review step navigate too — wherever they landed
         // must still be on the allowlist before anything submits.
@@ -744,10 +776,10 @@ const CareerPortalBrowser = (() => {
           }
           state.finalUrl = landed;
         }
-        if (r.code) return { code: r.code, finalUrl: r.finalUrl };
+        if (r.code) return { code: r.code, finalUrl: r.finalUrl, invalidFields: r.invalidFields || null };
         if (r.captcha) { log("captcha_detected", { at: "review" }); return { ok: true, captcha: "challenge", screenshotRef: captureStopScreenshot("review") }; }
         log("at_review", {});
-        return { ok: true, captcha: null, needsFields: !!r.needsFields, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };
+        return { ok: true, captcha: null, needsFields: !!r.needsFields, needsFieldsDetail: r.needsFieldsDetail || null, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };
       },
       screenshot(filePath) {
         const r = call(boardId, { type: "screenshot", path: filePath }, 30000);

@@ -240,6 +240,13 @@ function fnDiscoverFields(includeHidden) {
     // has no <label>, and its heading is the only human label there is.
     const gl = clean(groupLabelFor(el));
     if (gl) f.groupLabel = gl;
+    // R3-D3: the board's own length cap rides discovery. Boards cap
+    // single-line essay inputs (maxlength=255 on the live Workshop
+    // and Gemini boards; a raw probe landed exactly the 255-char
+    // prefix against both fill() and keyboard typing) and hold only
+    // the capped prefix — a fill that does not know the cap writes a
+    // value the board cannot hold and can never verify honestly.
+    if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.maxLength > 0) f.maxLength = el.maxLength;
     if (el.tagName === "SELECT") {
       f.options = Array.from(el.options).map((o) => ({ value: o.value, label: clean(o.textContent) }));
     }
@@ -406,6 +413,20 @@ function matchOption(options, value) {
     hit = options.find((o) => isDeclineText(o.label) || isDeclineText(o.value));
     if (hit) return hit;
   }
+  // R3-Gusto: a board names its own-website how-heard option for its
+  // brand ("Gusto Website") where the confirmed fact carries the
+  // generic name ("Company Website") — the same referent in the
+  // board's own wording, and the exact matches above always win, so
+  // this class fires only when the board offers no literally-named
+  // option. A bare "Website" option is ambiguous and never matches.
+  const websiteClass = (s) => /^[a-z0-9 ]+ website$/.test(s) && s !== "website";
+  if (v === "company website") {
+    hit = options.find((o) => websiteClass(normOpt(o.label)) || websiteClass(normOpt(o.value)));
+    if (hit) return hit;
+  } else if (websiteClass(v)) {
+    hit = options.find((o) => normOpt(o.label) === "company website" || normOpt(o.value) === "company website");
+    if (hit) return hit;
+  }
   hit = options.find((o) => normOpt(o.label).startsWith(v) || v.startsWith(normOpt(o.label)) && normOpt(o.label).length > 1);
   return hit || null;
 }
@@ -444,9 +465,16 @@ function fnWidgetValue(sel) {
   const el = document.querySelector(sel);
   if (!el) return null;
   const root = el.closest('[class*="select__control"]') || el.closest('[class*="select__container"], [class*="-container"]') || el.parentElement;
-  const sv = root && root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
+  if (!root) return null;
+  const sv = root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
   const t = sv ? (sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-  return t || null;
+  if (t) return t;
+  // Multi-select widgets render each pick as a chip, never a
+  // single-value — a readback that only knows the single-value reads
+  // a landed multi pick as empty (R3: Gusto's how-heard multi-select).
+  const chips = Array.from(root.querySelectorAll('[class*="multi-value__label"], [class*="multiValue__label"]'))
+    .map((n) => (n.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+  return chips.length ? chips.join(", ") : null;
 }
 /* Read ONE binding's current value as the board renders it (undefined
  * when the field carries no value). For a react-select widget that is
@@ -459,9 +487,13 @@ async function readbackBinding(board, b) {
   if (b.widget === "react-select") {
     value = await nodes[0].evaluate((el) => {
       const root = el.closest('[class*="select__control"]') || el.closest('[class*="select__container"], [class*="-container"]') || el.parentElement;
-      const sv = root && root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
+      if (!root) return null;
+      const sv = root.querySelector('[class*="select__single-value"], [class*="-singleValue"]');
       const t = sv ? (sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-      return t || null;
+      if (t) return t;
+      const chips = Array.from(root.querySelectorAll('[class*="multi-value__label"], [class*="multiValue__label"]'))
+        .map((n) => (n.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+      return chips.length ? chips.join(", ") : null;
     });
   }
   else if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
@@ -513,8 +545,20 @@ async function fillOnceHandles(board, cmd) {
     if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
     return { filled: true, expect: value === true || value === "true" ? true : "__absent__" };
   }
-  await nodes[0].fill(String(value));
-  return { filled: true, expect: String(value) };
+  // R3-D3: a board-capped field (maxLength carried from discovery on
+  // the binding) can only ever hold the capped prefix — write exactly
+  // what the board can hold and expect exactly that back. The
+  // exact-equality verification is unchanged; the expectation is the
+  // board's own rendering of the value, and the cap is reported so
+  // module 150 can record it — module 149's FR-395 comparison then
+  // judges the doorstep readback against this verified rendering.
+  const raw = String(value);
+  const cap = b.maxLength > 0 ? b.maxLength : null;
+  const capped = cap && raw.length > cap ? raw.slice(0, cap) : raw;
+  await nodes[0].fill(capped);
+  const out = { filled: true, expect: capped };
+  if (capped !== raw) out.capped = cap;
+  return out;
 }
 
 /* The react-select widget drive (BUG-207/BUG-237, ported): the visible
@@ -599,9 +643,13 @@ async function driveWidget(board, cmd) {
       // normalized PREFIX of the wanted value. Weaker hits are used
       // only when nothing stronger exists anywhere in the list.
       const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
-      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
+      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, websiteHit = null;
       const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
       const wantedDecline = isDecline(full);
+      // R3-Gusto: the board's own-website option is brand-named
+      // ("Gusto Website") for the generic confirmed fact ("Company
+      // Website") — same referent, weakest tier, exact wins above.
+      const websiteClass = (s) => /^[a-z0-9 ]+ website$/.test(s) && s !== "website";
       for (const sel of pools) {
         for (const el of Array.from(document.querySelectorAll(sel))) {
           if (!vis(el)) continue;
@@ -612,9 +660,10 @@ async function driveWidget(board, cmd) {
           if (!declineHit && wantedDecline && isDecline(t)) declineHit = { el, t };
           if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
           if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
+          if (!websiteHit && ((norm(full) === "company website" && websiteClass(norm(t))) || (websiteClass(norm(full)) && norm(t) === "company website"))) websiteHit = { el, t };
         }
       }
-      const hit = segHit || declineHit || tokenHit || prefixHit;
+      const hit = segHit || declineHit || tokenHit || prefixHit || websiteHit;
       if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
       return null;
     }, { tok, full: wanted }).catch(() => null);
@@ -674,75 +723,203 @@ function widgetPersisted(got, driven) {
     || (normPersist(got).length >= 4 && normPersist(driven.chosenText).startsWith(normPersist(got)));
 }
 
-/* Re-discover the form's live file input and return a selector for
- * it: prefer its id; otherwise mark the element itself — a positional
- * selector breaks whenever the board remounts siblings around it. */
-async function rediscoverFileSelector(page) {
-  return await page.evaluate(() => {
-    const inp = document.querySelector('input[type="file"]');
-    if (!inp) return null;
-    if (inp.id) return "#" + inp.id;
-    inp.setAttribute("data-upmore-file", "1");
-    return '[data-upmore-file="1"]';
-  }).catch(() => null);
+/* R3-D1: a file slot is identified, never guessed. The binding's
+ * slot class comes from its profile key (module 150's classifier:
+ * cover/transcript inputs never classify as resume). An input is
+ * accepted as the slot's own only by (a) the binding's selector,
+ * (b) the discovered element's id/name, or (c) the upload section
+ * that names THIS slot class — the nearest ancestor whose text names
+ * exactly one slot class decides, so a form-level ancestor naming
+ * every slot decides nothing. The pre-fix ladder took the first
+ * input[type=file] in the document and its attach-control search the
+ * first visible Attach control page-wide; on the live boards that
+ * filed the resume packet into cover-letter slots (Ginkgo, ID.me,
+ * Justworks, Gemini) and a transcript slot (Sezzle). The ladder below
+ * never touches another slot's input or control: when the slot's own
+ * input cannot be found, the honest verdict is not-mounted FOR THAT
+ * SLOT, and cmdFill's verification says what the slot actually holds. */
+function slotClassOf(binding) {
+  const key = String((binding && (binding.profile_key || binding.field_id)) || "").toLowerCase();
+  if (/cover/.test(key)) return "cover";
+  if (/transcript/.test(key)) return "transcript";
+  if (/resume|cv|curriculum/.test(key)) return "resume";
+  return null;
+}
+/* In-page: find THIS slot's live file input. Self-contained (it is
+ * serialized into the page). Returns { selector, via } or null. */
+function fnFindSlotFileInput(args) {
+  const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'));
+  const SLOT_RES = { resume: /\bresume\b|\bcv\b|curriculum/i, cover: /\bcover\b/i, transcript: /\btranscript\b/i };
+  const classifySection = (el) => {
+    let node = el;
+    for (let i = 0; i < 8 && node; i++) {
+      const t = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 400);
+      const hits = Object.keys(SLOT_RES).filter((k) => SLOT_RES[k].test(t));
+      if (hits.length === 1) return hits[0];
+      node = node.parentElement;
+    }
+    return null;
+  };
+  const isFile = (el) => !!el && el.tagName === "INPUT" && (el.getAttribute("type") || "").toLowerCase() === "file";
+  const mark = (el, via) => { el.setAttribute("data-upmore-slotfile", "1"); return { selector: '[data-upmore-slotfile="1"]', via }; };
+  if (args.selector) { const el = document.querySelector(args.selector); if (isFile(el)) return { selector: args.selector, via: "binding_selector" }; }
+  if (args.slotId) { const el = document.getElementById(args.slotId); if (isFile(el)) return { selector: "#" + esc(args.slotId), via: "slot_id" }; }
+  if (args.slotName) { const el = document.querySelector('input[type="file"][name="' + String(args.slotName).replace(/"/g, '\\"') + '"]'); if (el) return mark(el, "slot_name"); }
+  if (!args.slotClass) return null;
+  for (const el of Array.from(document.querySelectorAll('input[type="file"]'))) {
+    if (classifySection(el) === args.slotClass) return mark(el, "slot_section");
+  }
+  return null;
+}
+/* In-page: mark the attach control that belongs to THIS slot's
+ * section — and no other slot's. Self-contained. */
+function fnMarkSlotAttachControl(args) {
+  const SLOT_RES = { resume: /\bresume\b|\bcv\b|curriculum/i, cover: /\bcover\b/i, transcript: /\btranscript\b/i };
+  const classifySection = (el) => {
+    let node = el;
+    for (let i = 0; i < 8 && node; i++) {
+      const t = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 400);
+      const hits = Object.keys(SLOT_RES).filter((k) => SLOT_RES[k].test(t));
+      if (hits.length === 1) return hits[0];
+      node = node.parentElement;
+    }
+    return null;
+  };
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const textOf = (el) => ((el.innerText || el.textContent || "") + " " + (el.getAttribute("aria-label") || "")).replace(/\s+/g, " ").trim();
+  const pools = ['button, label, [role="button"]', 'a, div, span'];
+  for (const pool of pools) {
+    for (const el of Array.from(document.querySelectorAll(pool))) {
+      if (!vis(el)) continue;
+      const t = textOf(el);
+      if (!/attach|upload|add resume|add file|browse|choose file|drag/i.test(t) || t.length >= 90) continue;
+      if (classifySection(el) !== args.slotClass) continue;
+      el.setAttribute("data-upmore-attach", "1");
+      return true;
+    }
+  }
+  return false;
+}
+/* In-page: the slot section's rendered truth — whether it shows the
+ * attached file's name chip (the board registered the upload in its
+ * own state, whatever its input currently holds) and whether it
+ * shows an upload error (the board's handler rejected/crashed the
+ * registration — the live boards render "Cannot read properties of
+ * undefined (reading 'uploadFile')" under the section when a
+ * programmatic attach lands before the upload widget initializes).
+ * Self-contained. */
+function fnSlotFileState(args) {
+  const SLOT_RES = { resume: /\bresume\b|\bcv\b|curriculum/i, cover: /\bcover\b/i, transcript: /\btranscript\b/i };
+  const classifySection = (el) => {
+    let node = el;
+    for (let i = 0; i < 8 && node; i++) {
+      const t = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 400);
+      const hits = Object.keys(SLOT_RES).filter((k) => SLOT_RES[k].test(t));
+      if (hits.length === 1) return hits[0];
+      node = node.parentElement;
+    }
+    return null;
+  };
+  const sectionNodeOf = (el) => {
+    let node = el;
+    for (let i = 0; i < 8 && node; i++) {
+      const t = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 400);
+      const hits = Object.keys(SLOT_RES).filter((k) => SLOT_RES[k].test(t));
+      if (hits.length === 1) return node;
+      node = node.parentElement;
+    }
+    return el ? el.parentElement : null;
+  };
+  let section = null;
+  let holdsFile = false;
+  if (args.selector) {
+    const el = document.querySelector(args.selector);
+    if (el) {
+      section = sectionNodeOf(el);
+      // The input the attach actually used still holding the named
+      // file is direct evidence (the bytes were sha-verified by the
+      // caller before the attach) — the channel that covers boards
+      // which remount the input under a fresh id, where no
+      // selector-keyed readback can follow it (BUG-207 addendum).
+      holdsFile = el.tagName === "INPUT" && (el.getAttribute("type") || "").toLowerCase() === "file"
+        && !!(el.files && el.files.length > 0 && args.filename && el.files[0].name === args.filename);
+    }
+  }
+  if (!section && args.slotClass) {
+    for (const el of Array.from(document.querySelectorAll('input[type="file"], button, label, [role="button"], span, div'))) {
+      if (classifySection(el) === args.slotClass) { section = sectionNodeOf(el); if (section) break; }
+    }
+  }
+  if (!section) return { chip: false, error: false, holdsFile };
+  const t = (section.innerText || section.textContent || "").replace(/\s+/g, " ");
+  return {
+    chip: !!args.filename && t.includes(args.filename),
+    error: /cannot read properties|upload(ing)? (failed|error)|an error occurred/i.test(t),
+    holdsFile,
+  };
 }
 /* Page-level file attach for when the discovered handle cannot be
  * used — the current boards mount their file inputs late, hide them
  * behind a styled dropzone, lazy-mount them when the upload section
  * nears the viewport, or mount them only once the board's own Attach
  * control is engaged (BUG-207 addendum + BUG-237: file_input_not_
- * mounted on 18 of 24 boards in Drive Pass 2). Engages the board's
- * own controls, re-discovers the live input, and sets the files —
- * through CDP when the standard call cannot complete (the same
- * mechanism the browser's own file picker uses). Returns
- * { ok, selectorUsed } — only a board that still shows no input after
- * all of that earns a not-mounted report. */
+ * mounted on 18 of 24 boards in Drive Pass 2). Slot-faithful since
+ * R3-D1: it polls for THIS slot's input, engages only THIS slot's
+ * own Attach control, and sets the files — through CDP when the
+ * standard call cannot complete (the same mechanism the browser's
+ * own file picker uses). Returns { ok, selectorUsed, stages } — only
+ * a board that still shows no input for this slot after all of that
+ * earns a not-mounted report. */
 async function attachFilePageLevel(board, cmd) {
   const page = board.page;
   const b = cmd.binding;
-  let selector = b.selector;
-  await page.evaluate(() => {
-    const l = document.querySelector('[class*="file-upload"], label[for="resume"], [data-testid*="resume" i]');
-    if (l) l.scrollIntoView({ block: "center" });
-  }).catch(() => {});
-  await page.waitForTimeout(400);
-  let attached = await page.waitForSelector(selector, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
-  if (!attached) {
-    const fresh = await rediscoverFileSelector(page);
-    if (fresh && fresh !== selector) {
-      attached = await page.waitForSelector(fresh, { state: "attached", timeout: 5000 }).then(() => true).catch(() => false);
-      if (attached) selector = fresh;
-    }
-  }
-  if (!attached) {
-    const marked = await page.evaluate(() => {
-      const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
-      const textOf = (el) => ((el.innerText || el.textContent || "") + " " + (el.getAttribute("aria-label") || "")).replace(/\s+/g, " ").trim();
-      const pools = ['button, label, [role="button"]', 'a, div, span'];
-      for (const pool of pools) {
-        const cand = Array.from(document.querySelectorAll(pool))
-          .find((el) => vis(el) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
-        if (cand) { cand.setAttribute("data-upmore-attach", "1"); return true; }
+  const slotArgs = { selector: b.selector || null, slotId: b.slotId || null, slotName: b.slotName || null, slotClass: slotClassOf(b) };
+  const stages = [];
+  const findSlot = () => page.evaluate(fnFindSlotFileInput, slotArgs).catch(() => null);
+  const pollSlot = async (ms) => {
+    const deadline = Date.now() + ms;
+    let hit = await findSlot();
+    while (!hit && Date.now() < deadline) { await page.waitForTimeout(500); hit = await findSlot(); }
+    return hit;
+  };
+  // Bring the slot's own section into view (boards lazy-mount the
+  // input as its section nears the viewport).
+  if (slotArgs.slotClass) {
+    await page.evaluate((slotClass) => {
+      const SLOT_RES = { resume: /\bresume\b|\bcv\b|curriculum/i, cover: /\bcover\b/i, transcript: /\btranscript\b/i };
+      for (const el of Array.from(document.querySelectorAll('input[type="file"], button, label, span, div'))) {
+        let node = el, cls = null;
+        for (let i = 0; i < 8 && node; i++) {
+          const t = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 400);
+          const hits = Object.keys(SLOT_RES).filter((k) => SLOT_RES[k].test(t));
+          if (hits.length === 1) { cls = hits[0]; break; }
+          node = node.parentElement;
+        }
+        if (cls === slotClass) { el.scrollIntoView({ block: "center" }); return true; }
       }
       return false;
-    }).catch(() => false);
+    }, slotArgs.slotClass).catch(() => {});
+  } else {
+    await page.evaluate(() => {
+      const l = document.querySelector('[class*="file-upload"], [data-testid*="resume" i]');
+      if (l) l.scrollIntoView({ block: "center" });
+    }).catch(() => {});
+  }
+  await page.waitForTimeout(400);
+  let found = await pollSlot(4000);
+  if (found) stages.push("slot_input:" + found.via);
+  if (!found && slotArgs.slotClass) {
+    const marked = await page.evaluate(fnMarkSlotAttachControl, slotArgs).catch(() => false);
     if (marked) {
+      stages.push("slot_control_engaged");
       await page.click('[data-upmore-attach="1"]', { timeout: 8000 }).catch(() => {});
-      for (let t = 0; t < 10 && !attached; t++) {
-        await page.waitForTimeout(600);
-        const fresh2 = await rediscoverFileSelector(page);
-        if (fresh2) {
-          attached = await page.waitForSelector(fresh2, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
-          if (attached) selector = fresh2;
-        }
-      }
+      found = await pollSlot(8000);
+      if (found) stages.push("slot_input_after_control:" + found.via);
     }
   }
-  // Tail wait for a slow mount: the attach-control poll above already
-  // waited ~21s; 12s here keeps the whole ladder inside the caller's
-  // 60s ceiling (the ladder runs once per call — see cmdFill).
-  if (!attached) attached = await page.waitForSelector(b.selector, { state: "attached", timeout: 12000 }).then(() => true).catch(() => false);
-  if (!attached) return { ok: false, selectorUsed: selector };
+  if (!found) found = await pollSlot(4000);
+  if (!found) return { ok: false, selectorUsed: b.selector, stages };
+  const selector = found.selector;
   try {
     await page.setInputFiles(selector, cmd.filePath, { timeout: 20000 });
   } catch (e) {
@@ -754,7 +931,34 @@ async function attachFilePageLevel(board, cmd) {
       await cdp.send("DOM.setFileInputFiles", { nodeId: node.nodeId, files: [cmd.filePath] });
     } finally { await cdp.detach().catch(() => {}); }
   }
-  return { ok: true, selectorUsed: selector };
+  return { ok: true, selectorUsed: selector, stages };
+}
+
+/* The post-drive widget verify (R3-D2): boards remount the control
+ * after a pick and re-render the value on their own commit — the
+ * one-shot read at +450ms judged the gap, not the fill (Ginkgo and
+ * ID.me how-heard fills reported value_did_not_persist while their
+ * final screenshots showed the values present as chips). Poll the
+ * rendered value until it persists AND is stable: two consecutive
+ * equal reads, so a board that canonicalizes the pick after first
+ * rendering it (a location typeahead settling on "Chicago, Illinois,
+ * United States") is recorded at its settled rendering — the text
+ * module 149 compares the doorstep readback against. Returns the
+ * verified rendered text, or undefined when the window closes. */
+async function pollWidgetVerified(board, b, driven) {
+  const page = board.page;
+  let last;
+  const deadline = Date.now() + 3600;
+  while (Date.now() < deadline) {
+    const rendered = await page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+    const got = rendered === null ? undefined : rendered;
+    if (got !== undefined && widgetPersisted(got, driven)) {
+      if (got === last) return got;
+      last = got;
+    } else last = undefined;
+    await page.waitForTimeout(300);
+  }
+  return undefined;
 }
 
 async function cmdFill(board, cmd) {
@@ -762,79 +966,149 @@ async function cmdFill(board, cmd) {
   const settleMs = [450, 650, 1000];
   if (b.widget === "react-select") {
     // A widget fill is ONE complete drive (click, type, option poll,
-    // pick). Re-driving it verbatim when the board's option service
-    // never answered does not change the answer — and repeated drives
-    // degrade the page until later fields' inputs leave the DOM
-    // (probe-bisected 2026-10-15). Single drive; the readback verdict
-    // stands as reported.
+    // pick) plus its verify. The verify polls the board's rendered
+    // truth until it stabilizes (R3-D2 above) — it never re-judges a
+    // landed pick from a single read in the board's remount gap.
     const driven = await driveWidget(board, cmd);
-    await board.page.waitForTimeout(settleMs[0]);
-    const rendered = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
-    if (widgetPersisted(rendered === null ? undefined : rendered, driven)) {
-      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined, rendered: driven.expect };
+    const verified = await pollWidgetVerified(board, b, driven);
+    if (verified !== undefined) {
+      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined, rendered: verified };
+    }
+    // One bounded repair, only when the drive never landed a pick at
+    // all (its option service never answered in time): a re-drive
+    // cannot degrade a pick that does not exist. When a pick DID land
+    // and the board still dropped it past the verify window, the
+    // honest failure stands — module 149's doorstep readback and
+    // repair loop judge the page's final state there, and repeated
+    // verbatim drives degrade the page (probe-bisected 2026-10-15).
+    if (!driven.chosenText) {
+      const redriven = await driveWidget(board, cmd);
+      const reverified = await pollWidgetVerified(board, b, redriven);
+      if (reverified !== undefined) {
+        return { filled: true, verified: true, attempts: 2, via: redriven.via || undefined, rendered: reverified };
+      }
     }
     return { filled: false, reason: "value_did_not_persist", wanted: String(value) };
   }
   if (b.inputType === "file") {
     const bytes = fs.readFileSync(cmd.filePath);
     if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    const slotArgs = { selector: b.selector || null, slotId: b.slotId || null, slotName: b.slotName || null, slotClass: slotClassOf(b) };
+    // Every verified attach is remembered for this board: the
+    // doorstep readback may need it when the board retires the file
+    // input and holds the upload as a chip only (see cmdReadback).
+    const recordFill = (r) => {
+      board.fileFills = board.fileFills || new Map();
+      board.fileFills.set(b.field_id, { filename: value.filename, sha256: value.sha256 });
+      return r;
+    };
+    /* The slot's own truth, polled (R3-D1/D2): the live input's bytes
+     * via fresh re-resolution (the discovery node may be a remounted
+     * husk — the pre-fix one-shot readback through the stale handle
+     * judged registered uploads as not-mounted), or the filename
+     * chip the board renders in the slot's section when it registers
+     * the upload in its own state. A rendered upload error ends the
+     * poll early: the board's handler rejected this registration and
+     * only a re-attach (which re-engages the slot's control — also
+     * how an uninitialized upload widget wakes up) can change it. */
+    const verifyAttach = async (selectorUsed) => {
+      const deadline = Date.now() + 3500;
+      while (true) {
+        let got;
+        try { got = await readbackBindingFresh(board, b); } catch (e) { got = undefined; }
+        if (got && got.sha256 === value.sha256) return { ok: true, via: "input_bytes" };
+        const st = await board.page.evaluate(fnSlotFileState, Object.assign({}, slotArgs, { selector: selectorUsed || slotArgs.selector, filename: value.filename })).catch(() => ({ chip: false, error: false }));
+        if (st.holdsFile) return { ok: true, via: "input_files" };
+        if (st.chip) return { ok: true, via: "section_chip" };
+        if (st.error) return { ok: false, boardError: true };
+        if (Date.now() >= deadline) return { ok: false };
+        await board.page.waitForTimeout(400);
+      }
+    };
+    let slotSeen = false;
+    for (let attempt = 1; attempt <= 2; attempt++) {
       let attached = false;
-      let selectorUsed = b.selector;
       try {
         const nodes = [];
         for (const ref of b.elementRefs) nodes.push(await connected(board, ref));
         if (nodes.length) {
           await nodes[0].setInputFiles({ name: value.filename, mimeType: "application/octet-stream", buffer: bytes });
-          attached = true;
+          attached = true; slotSeen = true;
         }
       } catch (e) { if (e.code !== "STALE_OBSERVATION") throw e; }
+      if (attached) {
+        const v = await verifyAttach(b.selector);
+        if (v.ok) return recordFill({ filled: true, verified: true, attempts: attempt, via: v.via });
+        // Not registered (or the board's handler crashed it): the
+        // slot-faithful ladder below is the recovery — once per
+        // attempt, never a verbatim re-run past the caller's ceiling.
+        attached = false;
+      }
       if (!attached) {
         const rec = await attachFilePageLevel(board, cmd);
-        attached = rec.ok; selectorUsed = rec.selectorUsed;
-        // The ladder IS the recovery budget (scroll into view,
-        // re-discovery, attach-control engagement, mount poll, long
-        // wait). Re-running it verbatim inside the same call cannot
-        // change the answer and stacks past the caller's 60s ceiling —
-        // which would surface as a driver timeout instead of the
-        // truthful not-mounted verdict (BUG-207's "the run does not
-        // die" guard). Its negative verdict returns at once.
-        if (!attached) return { filled: false, reason: "file_input_not_mounted" };
-      }
-      await board.page.waitForTimeout(settleMs[attempt - 1]);
-      // Verified = the live input still holds the file. When the
-      // discovered node is still the board's input, the handle
-      // readback (name + sha256 of the attached bytes) decides. When
-      // the board replaced the node (so the handle readback cannot
-      // speak), the file's presence under the selector the recovery
-      // actually used is the evidence — the bytes themselves were
-      // sha-verified above before any upload.
-      let got;
-      try { got = await readbackBinding(board, b); } catch (e) { got = undefined; }
-      if (got && got.sha256 === value.sha256) return { filled: true, verified: true, attempts: attempt };
-      if (got === undefined) {
-        const present = await board.page.evaluate((sel) => {
-          const el = document.querySelector(sel);
-          return !!(el && el.files && el.files.length > 0);
-        }, selectorUsed).catch(() => false);
-        if (present) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
+        if (!rec.ok) {
+          // Before the honest not-mounted verdict, one last look at
+          // the slot's rendered state: an earlier attach in this same
+          // call may have registered with the board even though its
+          // input has since unmounted.
+          const st = await board.page.evaluate(fnSlotFileState, Object.assign({}, slotArgs, { filename: value.filename })).catch(() => ({ chip: false }));
+          if (st.chip) return recordFill({ filled: true, verified: true, attempts: attempt, via: "section_chip" });
+          return { filled: false, reason: slotSeen ? "value_did_not_persist" : "file_input_not_mounted", stages: rec.stages };
+        }
+        slotSeen = true;
+        const v = await verifyAttach(rec.selectorUsed);
+        if (v.ok) return recordFill({ filled: true, verified: true, attempts: attempt, via: v.via });
       }
     }
     return { filled: false, reason: "value_did_not_persist", wanted: value.filename };
   }
   let last = null;
+  let attemptBinding = b;
   for (let attempt = 1; attempt <= 3; attempt++) {
-    last = await fillOnceHandles(board, cmd);
+    if (attempt > 1) {
+      // Retries act on live nodes, not the husks the board remounted
+      // away during the previous attempt.
+      const fresh = await reresolveBinding(board, b).catch(() => null);
+      if (fresh) attemptBinding = fresh;
+    }
+    try {
+      last = await fillOnceHandles(board, Object.assign({}, cmd, { binding: attemptBinding }));
+    } catch (e) {
+      if (e.code === "STALE_OBSERVATION") throw e;
+      // R3-D2: a board remount can throw mid-fill (the live name_pair
+      // fill that died DRIVER_ERROR in the R3 probes) — that is a
+      // failed ATTEMPT, not a dead field. The loop re-resolves and
+      // retries; only a field that fails every attempt earns the
+      // failure verdict below.
+      last = null;
+      if (attempt === 3) return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value) };
+      continue;
+    }
     if (!last.filled) return last; // e.g. option_not_found — retrying cannot invent an option
+    // Settle, then poll the verification readback (R3-D2): the first
+    // read waits out the settle (a value read inside the board's
+    // remount window proves nothing — the BUG-207 discipline), and
+    // later reads poll across the gap a one-shot read would judge.
+    // The verification readback re-observes on stale
+    // (readbackBindingFresh): a node the board remounted mid-drive
+    // reads as its CURRENT value — on a never-persist board that is
+    // "absent", which is the truth this loop exists to judge, not an
+    // error that aborts the fill. The recorded rendering is the
+    // value the verify actually read off the page.
     await board.page.waitForTimeout(settleMs[attempt - 1]);
+    const deadline = Date.now() + 1800;
     let got;
-    // The verification readback re-observes on stale (readbackBindingFresh):
-    // a node the board remounted mid-drive reads as its CURRENT value —
-    // on a never-persist board that is "absent", which is the truth this
-    // loop exists to judge, not an error that aborts the fill.
-    try { got = await readbackBindingFresh(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
-    if (persistedMatches(got, last.expect, b.inputType)) {
-      return { filled: true, verified: true, attempts: attempt, rendered: last.expect };
+    let matched = false;
+    while (true) {
+      try { got = await readbackBindingFresh(board, attemptBinding); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
+      if (persistedMatches(got, last.expect, b.inputType)) { matched = true; break; }
+      if (Date.now() >= deadline) break;
+      await board.page.waitForTimeout(300);
+    }
+    if (matched) {
+      const out = { filled: true, verified: true, attempts: attempt, rendered: got !== undefined ? got : last.expect };
+      if (last.capped) out.capped = last.capped;
+      return out;
     }
   }
   return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value) };
@@ -899,7 +1173,22 @@ async function readbackBindingFresh(board, b) {
 async function cmdReadback(board, cmd) {
   const answers = {};
   for (const b of cmd.bindings) {
-    const value = await readbackBindingFresh(board, b);
+    let value = await readbackBindingFresh(board, b);
+    if (value === undefined && b.inputType === "file" && board.fileFills && board.fileFills.has(b.field_id)) {
+      // R3-Gusto: after a successful attach the board may remove the
+      // file input entirely — the upload survives only as the
+      // filename chip in the slot's section, and every selector-keyed
+      // readback reads the field as absent (the live Gusto run's
+      // payload gate then reported its verified resume missing and
+      // the repair died UNKNOWN_FIELD). The chip on the LIVE page,
+      // naming the exact file this board verified at fill time, is
+      // the board's own proof it still holds that upload; the sha is
+      // the fill-time-verified sha of those bytes, never a guess.
+      const rec = board.fileFills.get(b.field_id);
+      const slotArgs = { selector: b.selector || null, slotId: b.slotId || null, slotName: b.slotName || null, slotClass: slotClassOf(b) };
+      const st = await board.page.evaluate(fnSlotFileState, Object.assign({}, slotArgs, { filename: rec.filename })).catch(() => ({ chip: false }));
+      if (st.chip) value = { filename: rec.filename, sha256: rec.sha256 };
+    }
     if (value !== undefined) answers[b.field_id] = value;
   }
   return { answers };
@@ -909,22 +1198,54 @@ async function cmdReview(board, cmd) {
   const page = board.page;
   const captcha = await page.evaluate(fnDetectChallenge);
   if (captcha) return { captcha: "challenge", finalUrl: page.url() };
-  const fields = await page.evaluate(fnDiscoverFields);
-  if (fields.some((f) => !(cmd.knownSelectors || []).includes(f.selector))) return { needsFields: true, finalUrl: page.url() };
-  const invalid = fields.filter((f) => !f.disabled && f.required && !f.valid);
-  if (invalid.length) return { code: "FORM_VALIDATION_FAILED", finalUrl: page.url() };
+  // The review re-observes before it judges (R3-Gusto): boards
+  // remount their controls when the form completes (Greenhouse
+  // re-renders its footer on the last fills), so the observation's
+  // control refs point at disconnected nodes and the drift check
+  // below threw STALE_OBSERVATION — which module 150 maps to
+  // needsFields, sending a live run around eight identical re-fill
+  // rounds against a form that was never going to sit still. The
+  // field checks already ran on a fresh discovery; the controls now
+  // do too, and the fresh observation rides the result back so the
+  // caller's versioned follow-ups stay in sync.
+  await cmdDiscover(board);
+  const fields = board.observation.fields;
+  const unknownSelectors = fields.filter((f) => !(cmd.knownSelectors || []).includes(f.selector)).map((f) => f.selector);
+  // needsFields carries its evidence too (R3-Gusto): a bare flag sent
+  // the run around eight identical re-fill rounds with nothing naming
+  // what the review actually saw.
+  if (unknownSelectors.length) return { needsFields: true, needsFieldsDetail: { unknownSelectors }, observation: board.observation, finalUrl: page.url() };
+  // Group semantics (R3-Gusto): boards mark EVERY box of a required
+  // checkbox group `required` (the live Gusto how-heard fieldset),
+  // and HTML5 validity is per-box — the ten unchecked options read
+  // invalid forever although the group is satisfied by the one
+  // checked box, which is how the board itself judges it at submit.
+  // A required checkbox whose named group has a checked member is
+  // satisfied; a lone required checkbox (unique name, unchecked)
+  // still flags, as does a group with nothing checked.
+  const checkedGroupNames = await page.evaluate(() => {
+    const names = new Set();
+    for (const el of Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))) if (el.name) names.add(el.name);
+    return Array.from(names);
+  }).catch(() => []);
+  const invalid = fields.filter((f) => !f.disabled && f.required && !f.valid
+    && !(f.inputType === "checkbox" && f.name && checkedGroupNames.includes(f.name)));
+  // The verdict carries its evidence (R3-Gusto): which fields the
+  // board's own validity flags reject — a bare code left the stop
+  // unactionable when every fill had verified.
+  if (invalid.length) return { code: "FORM_VALIDATION_FAILED", invalidFields: invalid.map((f) => ({ selector: f.selector, id: f.id || null, name: f.name || null, inputType: f.inputType, label: f.label || null, validationMessage: f.validationMessage || null })), observation: board.observation, finalUrl: page.url() };
   for (const control of board.observation.controls) {
     const handle = await connected(board, control.ref);
-    if (control.disabled === await handle.isEnabled()) return { needsFields: true, finalUrl: page.url() };
+    if (control.disabled === await handle.isEnabled()) return { needsFields: true, needsFieldsDetail: { controlDrift: control.label || control.kind || "control" }, observation: board.observation, finalUrl: page.url() };
   }
   const next = board.observation.controls.find((c) => c.kind === "next" && !c.disabled);
   if (next) {
     await (await connected(board, next.ref)).click({ timeout: 20000 });
     await page.waitForLoadState("domcontentloaded", { timeout: 2000 }).catch(() => {});
-    return { advanced: true, finalUrl: board.blockedNav || page.url(), blockedNavigation: board.blockedNav };
+    return { advanced: true, observation: board.observation, finalUrl: board.blockedNav || page.url(), blockedNavigation: board.blockedNav };
   }
   const submit = board.observation.controls.find((c) => c.kind === "submit" && !c.disabled);
-  return { atFinalReview: !!submit, finalUrl: page.url() };
+  return { atFinalReview: !!submit, observation: board.observation, finalUrl: page.url() };
 }
 
 /* The one submit click in this process — reachable only from an armed

@@ -46536,6 +46536,8 @@ const CareerPortalApply = (() => {
     graduation_year_or_later: ["education"], // fill-time resolution: the label's year against the education fact's graduation year (the mirror of full_time_readiness — "graduating in YEAR or later" is Yes when gradYear >= the label's year)
     relocate_bay_area: ["application_answer"],
     relocate_new_york: ["application_answer"],
+    relocation_required: ["application_answer"], // coordinator ruling 2026-10-17 (P0b): the generic "Do you require relocation?" takes the bank's F-082 Yes — his delegated relocation pattern (every place-named sibling is Yes)
+    work_authorization_other_region: ["application_answer"], // coordinator ruling 2026-10-17 (P0b): the ONLY source is the absence-of-grant fact F-083 (No) — work authorization is affirmative and the record grants the U.S. only (F-020, U.S.-scoped); nothing derives this key from the U.S. grant, and module 150 never routes a region-named question to the U.S. key
     onsite_sf_ny: ["application_answer"],
     austin_onsite: ["application_answer"],
     twelve_week_availability: ["application_answer"],
@@ -47250,7 +47252,7 @@ const CareerPortalApply = (() => {
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
           || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, observed: actual, expected, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled
@@ -47329,6 +47331,10 @@ const CareerPortalApply = (() => {
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     if (review.needsFields || review.advanced) {
+      // The review's reason rides the step log (R3-Gusto): a bare
+      // needsFields sent a live run around eight identical re-fill
+      // rounds with nothing naming what the review actually saw.
+      logStep("review_needs_fields", { round, detail: review.needsFieldsDetail || null, advanced: !!review.advanced });
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
@@ -47384,8 +47390,8 @@ const CareerPortalApply = (() => {
     if (reviewValidationPending) {
       const recheck = board.atReview();
       if (recheck && recheck.code) {
-        logStep("review_validation_failed_after_repair", { code: recheck.code });
-        return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", formAnalysis, asks });
+        logStep("review_validation_failed_after_repair", { code: recheck.code, invalidFields: recheck.invalidFields || null });
+        return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", invalidFields: recheck.invalidFields || null, formAnalysis, asks });
       }
       if (recheck && recheck.captcha) {
         logStep("captcha_stop", { at: "review_recheck" });

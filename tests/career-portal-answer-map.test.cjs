@@ -765,3 +765,54 @@ test("R3 follow-on classification: the acknowledgment class canonicalizes on a r
   const essay = defs.find((d) => /data privacy/i.test(d.label || ""));
   assert.notEqual(essay.kind, "attestation", "a free-text field that merely mentions privacy is never an attestation");
 });
+
+// ---------- P0b coordinator rulings (2026-10-17): the last two R3 asks ----------
+// The owner delegated all answers (2026-10-17); the coordinator ruled the
+// final two from his record, and they entered the bank as F-082/F-083:
+//   - Justworks "Do you require relocation?" -> Yes. Basis: his delegated
+//     relocation pattern is Yes on every place-named sibling (relocate_bay_
+//     area, relocate_new_york, onsite_sf_ny, austin_onsite, omaha_requirement).
+//   - Sezzle "Are you authorized to work lawfully in Latin America?" -> No.
+//     Basis: work authorization is AFFIRMATIVE — the record grants U.S.
+//     authorization only (F-020, U.S.-scoped); no grant for any other
+//     region exists. This is the absence-of-grant answer, NOT a derivation
+//     from F-020: the region-named class keeps no positive derivation, and
+//     the pins below hold BOTH directions (the key derives only from its
+//     own fact; the U.S. key is untouched; without the fact, silence).
+const P0B_BANK = JSON.parse(JSON.stringify(R3_BANK));
+P0B_BANK.facts.push(
+  { id: "F-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
+  { id: "F-082", kind: "application_answer", status: "confirmed", question_key: "relocation_required", value: "Yes" },
+  { id: "F-083", kind: "application_answer", status: "confirmed", question_key: "work_authorization_other_region", value: "No" }
+);
+
+test("P0b classification: Justworks' verbatim label routes to relocation_required — place-named willingness keeps its own keys", () => {
+  const def = clsR3("Do you require relocation?");
+  assert.equal(def.kind, "screening");
+  assert.equal(def.question_key, "relocation_required");
+  assert.equal(clsR3("Are you willing to relocate to the Bay Area?").question_key, "relocate_bay_area", "the place-named willingness question is not swept into the generic key");
+  assert.equal(clsR3("Will you require sponsorship?").question_key, "sponsorship", "the requirement wording alone does not trigger the relocation key");
+});
+
+test("P0b derivation: both rulings derive from their own facts, traced, with the U.S. answer untouched", () => {
+  const d = Portal.deriveAnswers(P0B_BANK, NOW);
+  assert.equal(d.answers.relocation_required.value, "Yes");
+  assert.equal(d.answers.relocation_required.factId, "F-082");
+  assert.equal(d.answers.work_authorization_other_region.value, "No");
+  assert.equal(d.answers.work_authorization_other_region.factId, "F-083");
+  assert.equal(d.answers.work_authorization.value, "Yes", "the U.S. question keeps the F-020 answer");
+  assert.equal(d.answers.work_authorization.factId, "F-020");
+  const cov = Portal.answerMapCoverage(P0B_BANK);
+  assert.deepEqual(cov.uncovered, [], "both ruling keys are declared sources, never uncovered");
+});
+
+test("P0b pin: without the absence-of-grant fact, the region key derives NOTHING — F-020 never leaks across regions", () => {
+  const noF83 = JSON.parse(JSON.stringify(P0B_BANK));
+  noF83.facts = noF83.facts.filter((f) => f.id !== "F-083");
+  const d = Portal.deriveAnswers(noF83, NOW);
+  assert.equal(d.answers.work_authorization_other_region, undefined, "no fact, no answer — the field stays an ask (the pre-ruling Sezzle state)");
+  assert.equal(d.answers.work_authorization.value, "Yes", "the U.S. grant stands on its own fact");
+  const noF82 = JSON.parse(JSON.stringify(P0B_BANK));
+  noF82.facts = noF82.facts.filter((f) => f.id !== "F-082");
+  assert.equal(Portal.deriveAnswers(noF82, NOW).answers.relocation_required, undefined, "the relocation answer likewise exists only from its own fact");
+});

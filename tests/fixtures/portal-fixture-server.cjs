@@ -424,7 +424,277 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// R3 fixture (portal-driver defects, 2026-10-17): a form with THREE
+// file slots — transcript FIRST in DOM order, cover letter second,
+// resume third — whose resume input UNMOUNTS as soon as filling
+// starts (the live boards' mount churn) and returns only when the
+// resume section's OWN Attach control is engaged. Every file attach
+// beacons the slot it landed in to /__attach: the wrong-slot evidence
+// the product itself cannot see (module 150 reads back only the slot
+// it aimed at — the misfile was caught by screenshots in R3). The
+// pre-fix attach ladder, told to find "a file input", takes the
+// transcript input (first in DOM) and files the packet there.
+const GH_MULTIFILE = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" type="email" required></div>
+  <div class="upload-section"><span class="slot-heading">Transcript</span>
+    <button type="button" data-attach-btn="transcript">Attach</button>
+    <input id="transcript" type="file"></div>
+  <div class="upload-section"><span class="slot-heading">Cover Letter</span>
+    <button type="button" data-attach-btn="cover">Attach</button>
+    <input id="cover_letter" type="file"></div>
+  <div class="upload-section" id="resume-section"><span class="slot-heading">Resume/CV *</span>
+    <button type="button" data-attach-btn="resume">Attach</button>
+    <input id="resume" type="file" required></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && t.type === 'file') {
+    const name = t.files && t.files[0] ? t.files[0].name : '';
+    fetch('/__attach?slot=' + encodeURIComponent(t.id || t.name || '?') + '&name=' + encodeURIComponent(name)).catch(() => {});
+  }
+}, true);
+document.addEventListener('input', () => {
+  const r = document.getElementById('resume'); if (r) r.remove();
+}, { capture: true, once: true });
+document.querySelector('[data-attach-btn="resume"]').addEventListener('click', () => {
+  if (!document.getElementById('resume')) {
+    const inp = document.createElement('input');
+    inp.id = 'resume'; inp.type = 'file'; inp.required = true;
+    document.getElementById('resume-section').appendChild(inp);
+  }
+});
+</script></body></html>`;
+
+// R3 fixture (Defect 3): the why-essay is a SINGLE-LINE text input
+// whose board caps the value at 255 chars — the live Workshop/Gemini
+// shape (raw probe 2026-10-17: the real board held exactly 255 chars
+// against both fill() and keyboard typing; the input carries
+// maxlength=255). A plain maxlength attribute does not cap scripted
+// value sets, so the page enforces the cap the way the board's React
+// state does: on every input event the held value is the capped
+// prefix. A driver that writes the full 449-char draft and demands
+// exact-equality readback fails deterministically; the doorstep then
+// compares the capped page value against the full draft and stops
+// ANSWER_OBSERVATION_MISMATCH.
+const GH_CAPPED_ESSAY = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" type="tel"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" type="file" required></div>
+  <div><label for="why_us">Why do you want to join us? *</label><input id="why_us" type="text" maxlength="255" required></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+const why = document.getElementById('why_us');
+why.addEventListener('input', () => { if (why.value.length > 255) why.value = why.value.slice(0, 255); });
+</script></body></html>`;
+
+// R3 fixture (Defect 2): a react-select widget whose pick LANDS (the
+// single-value renders at once, the drive's own poll sees it) — then
+// the board remounts the control ~0.7s later, wiping the rendered
+// value, and its state commit re-renders the picked value at ~2.1s.
+// The R3 Ginkgo/ID.me shape exactly: the fill reported
+// value_did_not_persist at the post-drive verify (+450ms, inside the
+// gap) while the final screenshot showed the value present as a chip.
+const GH_WIDGET_LATE_RENDER = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div class="ghx-field"><label id="question_how_heard-label" for="question_how_heard">How did you hear about this job?</label>
+  <div><div class="select__control" id="how-control"><div class="select__value-container">
+    <div class="select__placeholder">Select...</div>
+    <div class="select__input-container" data-value=""><input class="select__input" id="question_how_heard" type="text" role="combobox" aria-expanded="false" autocomplete="off" value=""></div>
+  </div><div class="select__indicators"><button type="button" tabindex="-1">v</button></div></div>
+  <div class="select__menu" style="display:none"><div class="select__menu-list">
+    <div class="select__option">Company Website</div>
+    <div class="select__option">LinkedIn</div>
+    <div class="select__option">Referral</div>
+  </div></div></div></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" type="file" required></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+const menu = document.querySelector('.select__menu');
+let picked = null;
+let pristine = null;
+function renderSv() {
+  const c = document.querySelector('.select__control'); if (!c || !picked) return;
+  const vc = c.querySelector('.select__value-container');
+  let sv = vc.querySelector('.select__single-value');
+  if (!sv) { sv = document.createElement('div'); sv.className = 'select__single-value'; vc.insertBefore(sv, vc.querySelector('.select__input-container')); }
+  sv.textContent = picked; sv.style.display = 'block';
+  const ph = vc.querySelector('.select__placeholder'); if (ph) ph.style.display = 'none';
+}
+function wire() {
+  const inp = document.querySelector('.select__input');
+  const open = () => { menu.style.display = 'block'; inp.setAttribute('aria-expanded', 'true'); };
+  const close = () => { menu.style.display = 'none'; inp.setAttribute('aria-expanded', 'false'); };
+  inp.addEventListener('click', open);
+  inp.addEventListener('input', open);
+  inp.addEventListener('blur', () => setTimeout(close, 0));
+  if (!pristine) pristine = document.querySelector('.select__control').cloneNode(true);
+}
+menu.querySelectorAll('.select__option').forEach((o) => o.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  picked = o.textContent;
+  renderSv();
+  menu.style.display = 'none';
+  setTimeout(() => {
+    const c = document.querySelector('.select__control');
+    if (c) { const fresh = pristine.cloneNode(true); c.replaceWith(fresh); wire(); }
+  }, 700);
+  setTimeout(renderSv, 2100);
+}));
+wire();
+</script></body></html>`;
+
+// R3-Gusto fixtures (2026-10-17, shapes captured live from the Gusto
+// Greenhouse board, job 8257115): (1) the how-heard question is a
+// checkbox fieldset whose own-website option is BRAND-named ("Acme
+// Website" here, "Gusto Website" live) while the confirmed fact says
+// "Company Website" — the pre-fix matcher returned option_not_found
+// and the required field stopped the run INCOMPLETE_PAYLOAD; (2) the
+// EEO race/ethnicity question is a react-select MULTI widget ("mark
+// all that apply") whose picks render as multi-value CHIPS, never a
+// single-value — the pre-fix widget readback saw no value and the
+// decline fill reported value_did_not_persist (live: fields 605-607,
+// 609, 610 are the single-select siblings and persisted; only the
+// multi failed). The negative page offers only a bare "Website" and
+// "Acme Blog": neither may ever match "Company Website".
+function gustoShapesPage(howOptions) {
+  // Live shape: Greenhouse marks every box of the required group
+  // `required` in the DOM — HTML5 validity is per-box, so the review
+  // step must judge the GROUP, not each unchecked option.
+  const boxes = howOptions.map((t, i) => `<div><label for="qh_${i}"><input id="qh_${i}" type="checkbox" name="question_how[]" value="${100 + i}" required> ${t}</label></div>`).join("");
+  return `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Finance Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" type="email" required></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" type="file" required></div>
+  <fieldset class="checkbox"><legend>How did you hear about this opportunity? (select all that apply) *</legend>${boxes}</fieldset>
+  <div class="ghx-field"><label id="eeo_race-label" for="eeo_race">I identify my race/ethnicity as (mark all that apply):*</label>
+  <div><div class="select__control"><div class="select__value-container">
+    <div class="select__placeholder">Select...</div>
+    <div class="select__input-container" data-value=""><input class="select__input" id="eeo_race" type="text" role="combobox" aria-expanded="false" autocomplete="off" value=""></div>
+  </div><div class="select__indicators"><button type="button" tabindex="-1">v</button></div></div>
+  <div class="select__menu" style="display:none"><div class="select__menu-list">
+    <div class="select__option">Asian</div>
+    <div class="select__option">White</div>
+    <div class="select__option">Decline to self-identify</div>
+  </div></div></div></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+const wrap = document.querySelector('.ghx-field');
+const inp = wrap.querySelector('.select__input');
+const menu = wrap.querySelector('.select__menu');
+const vc = wrap.querySelector('.select__value-container');
+inp.addEventListener('click', () => { menu.style.display = 'block'; inp.setAttribute('aria-expanded', 'true'); });
+inp.addEventListener('input', () => { menu.style.display = 'block'; });
+menu.querySelectorAll('.select__option').forEach((o) => o.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  const t = o.textContent;
+  if (!Array.from(vc.querySelectorAll('.select__multi-value__label')).some((n) => n.textContent === t)) {
+    const chip = document.createElement('div'); chip.className = 'select__multi-value';
+    const lab = document.createElement('span'); lab.className = 'select__multi-value__label'; lab.textContent = t;
+    chip.appendChild(lab); vc.insertBefore(chip, vc.querySelector('.select__input-container'));
+    const ph = vc.querySelector('.select__placeholder'); if (ph) ph.style.display = 'none';
+  }
+}));
+</script></body></html>`;
+}
+const GH_GUSTO_SHAPES = gustoShapesPage(["LinkedIn", "Acme Website", "Other"]);
+const GH_GUSTO_SHAPES_NEG = gustoShapesPage(["Website", "Acme Blog"]);
+
+// R3-Gusto fixture: the board RETIRES the resume input the moment
+// the upload registers — the input leaves the DOM and the upload
+// survives only as a filename chip (the live Gusto end state). Every
+// selector-keyed readback then reads the resume as absent, and a
+// repair re-fill has no current binding to aim at: the live run
+// stopped FORM_VALIDATION_FAILED with the repair dying UNKNOWN_FIELD
+// over a resume the board demonstrably held.
+const GH_FILE_CHIP = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Finance Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" type="email" required></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form>
+<script>
+document.getElementById('resume').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  const chip = document.createElement('div');
+  chip.className = 'file-chip';
+  chip.textContent = f ? f.name : '';
+  e.target.replaceWith(chip);
+});
+</script></body></html>`;
+
+// R3-Gusto fixture: the board RE-RENDERS its footer as the form
+// fills — the submit button node is replaced after changes (the
+// live Greenhouse behavior that left the review's observed control
+// refs pointing at disconnected nodes: STALE_OBSERVATION at every
+// review, needsFields forever, FORM_STEP_LIMIT over a complete
+// form). The review must judge the live page, not the corpse of
+// the pre-fill button.
+const GH_REVIEW_REMOUNT = `<!doctype html><html><head><title>Job Application (TEST fixture)</title></head><body>
+<h1>Finance Intern</h1>
+<form id="application" method="post" action="/never-submit">
+${GH_FORM}
+</form>
+<script>
+let rt = null;
+document.getElementById('application').addEventListener('change', () => {
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    const b = document.getElementById('submit-btn');
+    if (b) b.replaceWith(b.cloneNode(true));
+  }, 350);
+});
+</script></body></html>`;
+
+const attachLog = [];
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/gh-multifile": GH_MULTIFILE, "/gh-capped-essay": GH_CAPPED_ESSAY, "/gh-widget-late-render": GH_WIDGET_LATE_RENDER, "/gh-gusto-shapes": GH_GUSTO_SHAPES, "/gh-gusto-shapes-neg": GH_GUSTO_SHAPES_NEG, "/gh-file-chip": GH_FILE_CHIP, "/gh-review-remount": GH_REVIEW_REMOUNT };const server = http.createServer((req, res) => {
+  // R3 attach evidence (see GH_MULTIFILE): the page beacons every
+  // file-input change here; the guard reads the log back and proves
+  // which SLOT received the file.
+  if (req.url.startsWith("/__attach?")) {
+    const q = new URL(req.url, "http://fixture.invalid").searchParams;
+    attachLog.push({ slot: q.get("slot"), name: q.get("name") });
+    res.writeHead(204); res.end(); return;
+  }
+  if (req.url === "/__attach-log") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(attachLog)); return;
+  }
+  if (req.url === "/__attach-reset") { attachLog.length = 0; res.writeHead(204); res.end(); return; }
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

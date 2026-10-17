@@ -17,3 +17,16 @@ The source repair and eight local PostgreSQL controls are documented in
 Missing observation text still prohibits generated publication. Live model
 quality, operational readiness and original archival release evidence remain
 unestablished; the original archive gate remains release-blocking.
+
+Independent review at `486fccfb` additionally found that commit-time saved replay
+could bypass the protected replay RPC after an intervening owner pause or
+correction. Frozen delayed-duplicate tests reproduce both failures, and the
+native turn-commit wrapper now calls the same owner-locked protected readback.
+Unchanged replay remains free and byte-identical; observation recovery is kept.
+
+The earlier broad statement of zero hosting/deployments was too broad for the
+repository's automatic Git integration. GitHub reports completed Vercel
+deployments and a `Vercel Preview Comments` check for the pushed commits. No
+executor deployment command ran. Direct owner metadata inspection was denied
+403, so the authoritative target/production promotion state is unverified;
+exact URLs and commit IDs are recorded without credentials.

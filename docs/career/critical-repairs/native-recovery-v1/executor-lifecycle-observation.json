@@ -1,0 +1,35 @@
+{
+  "observedAt": "2026-10-17T04:57:08.232708+00:00",
+  "commandSucceededAt": "2026-10-17T04:56:49Z",
+  "publishedHead": "486fccfb9b6bb235d914d47f4c2a098cf8dbab4e",
+  "frozenTestSha256": "f4eadf42e01b52e2e42ed8069c81cda01d80600a3b4770313a56d920f8bae785",
+  "changes": "Only new delayed-duplicate test and evidence; published repair unchanged.",
+  "lifecycleLogAvailable": true,
+  "lifecycleLog": {
+    "path": "/tmp/codex-environment-executor.log",
+    "bytes": 2259,
+    "modifiedAt": "2026-10-17T04:55:58.095807+00:00",
+    "lines": 8,
+    "keywordCounts": {
+      "disconnect": 1,
+      "reconnect": 0,
+      "shutdown": 0,
+      "restart": 0,
+      "heartbeat": 0,
+      "terminated": 0,
+      "connection reset": 0,
+      "broken pipe": 0,
+      "timeout": 0
+    },
+    "recentEventTokens": [
+      {
+        "line": 4,
+        "events": [
+          "disconnect"
+        ],
+        "timestamp": "2026-10-17T04:55:51.830157"
+      }
+    ]
+  },
+  "conclusion": "Command channel works. Keyword-only lifecycle inspection does not establish a root cause for the parent-reported disconnect; no settings, credentials or security controls changed."
+}

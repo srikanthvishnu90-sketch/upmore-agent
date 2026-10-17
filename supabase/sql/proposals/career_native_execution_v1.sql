@@ -191,7 +191,7 @@ returns jsonb language plpgsql security invoker set search_path=public,pg_temp a
 declare u uuid:=(p_base->>'p_user')::uuid;t uuid:=(p_base->>'p_thread')::uuid;e jsonb;saved jsonb;p jsonb;
 begin
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
- saved:=career_host_load(u,t,p_base->>'p_key',p_base->>'p_hash');if saved?'error'then return saved;end if;if saved?'replay'then return jsonb_build_object('response',saved->'replay','replay',true);end if;
+ saved:=career_host_load(u,t,p_base->>'p_key',p_base->>'p_hash');if saved?'error'then return saved;end if;if saved?'replay'then return career_native_replay_v1(u,t,p_base->>'p_key',p_base->>'p_hash')||jsonb_build_object('replay',true);end if;
  select value into e from career_watch_kv where user_id=u and key='career:native-execution:'||t||':'||(p_base->>'p_key');
  if e is not null and((p_base->>'p_revision')::bigint is distinct from(e#>>'{intent,expected_binding,thread_revision}')::bigint or(p_base->>'p_account_version')::bigint is distinct from(e#>>'{intent,expected_binding,account_version}')::bigint)then return jsonb_build_object('error','revision_conflict');end if;
  if e is null or e->>'request_hash'is distinct from p_base->>'p_hash'or e->'result'is null or p_base->'p_snapshot'is distinct from e#>'{spec,host_snapshot}'or coalesce(p_base->'p_patch','{}'::jsonb)<>'{}'::jsonb

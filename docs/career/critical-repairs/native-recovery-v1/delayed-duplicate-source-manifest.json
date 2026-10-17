@@ -1,0 +1,27 @@
+{
+  "publishedPredecessor": "486fccfb9b6bb235d914d47f4c2a098cf8dbab4e",
+  "baseline": {
+    "passed": 1,
+    "failed": 2
+  },
+  "after": {
+    "passed": 3,
+    "failed": 0
+  },
+  "sourceSha256": {
+    "supabase/functions/_shared/career_native_reasoner.ts": "a5ca7981bd12d0fdb2f5d63936e12d3979db8ee9ab90d2eabd2056f1247650a4",
+    "supabase/functions/agent-chat/handler-career.ts": "6668cc78f81fd7bb063e352108010152b5105941ab05e3454b3b1e2ffe99f7da",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "21bc9997661374aa2e5a25a8bd9958ae253bd6a92bd69d9446495b08279cf119",
+    "tests/career-critical-repairs/native-delayed-duplicate-postgres.test.cjs": "f4eadf42e01b52e2e42ed8069c81cda01d80600a3b4770313a56d920f8bae785"
+  },
+  "evidenceSha256": {
+    "delayed-duplicate-after-summary.json": "fbe77a2f82987b9ffd5c3a8c47489e28a3d5f7f495c14de2de53ac69e78b6471",
+    "delayed-duplicate-after.log": "39d72cde9d48753d329e0ce22902e17dd66ce8e417413fc230a956ab6dfc1ba5",
+    "delayed-duplicate-before-summary.json": "6f266eeaf76076059cdd69263f06aa49f419862a45e44b3ac4e36ab527ba4899",
+    "delayed-duplicate-before.log": "d8d1549496a7d101b33e31f72304826bccc8a742fac756b8e2d3eb64179ac51f",
+    "delayed-duplicate-frozen-tests.patch.txt": "9712710a770ce0ab5d7c0ae043ccf4b94173e6fa16b3ece443a98413fb645799"
+  },
+  "paidCalls": 0,
+  "modelQuality": "NOT_EVALUATED"
+}

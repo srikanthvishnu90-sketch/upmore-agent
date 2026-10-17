@@ -1,0 +1,49 @@
+{
+  "scope": "Prepared source-only integration handoff; no listed deployment, migration, enablement or live check was executed by this lane.",
+  "reviewed_predecessor": "486fccfb9b6bb235d914d47f4c2a098cf8dbab4e",
+  "runtime_pin": "Use the published delayed-duplicate repair checkpoint and delayed-duplicate-source-manifest.json; do not pin the superseded 2935f057 runtime for the final integration.",
+  "ordinary_input": {"fields": ["thread_id", "turn_key", "message"], "authentication": "Existing verified owner bearer identity; never client-supplied owner, intent, provider, verifier, receipt or grant."},
+  "upgrade_if_prior_native_schema_exists": {
+    "transactional_forward_migration": [
+      {"operation": "CREATE OR REPLACE FUNCTION", "signature": "public.career_model_pair_read_v2(uuid,uuid)", "source": "supabase/sql/proposals/career_model_pair_budget_v2.sql", "purpose": "Expose authoritative recorded raw_usage_receipt, provider_response_id and settled_at."},
+      {"operation": "CREATE OR REPLACE FUNCTION", "signature": "public.career_native_outcome_v1(uuid,uuid,text,uuid,jsonb)", "source": "supabase/sql/proposals/career_native_execution_v1.sql", "purpose": "Validate truthful accounting and both observation receipts before generated publication."},
+      {"operation": "CREATE FUNCTION with service-role-only execute", "signature": "public.career_native_replay_v1(uuid,uuid,text,text)", "source": "supabase/sql/proposals/career_native_execution_v1.sql", "purpose": "Owner/hash/epoch/pause/dialogue-protected read-only reconciliation. Revoke PUBLIC, anon and authenticated; grant only service_role."},
+      {"operation": "CREATE OR REPLACE FUNCTION", "signature": "public.career_native_turn_commit_v1(jsonb)", "source": "supabase/sql/proposals/career_native_execution_v1.sql", "purpose": "Route commit-time saved replay through career_native_replay_v1 under the same owner transaction lock, including delayed duplicates."}
+    ],
+    "existing_columns_required": ["career_model_pair_legs_v2.raw_usage_receipt", "career_model_pair_legs_v2.provider_response_id", "career_model_pair_legs_v2.settled_at", "career_model_pair_legs_v2.dispatched_payload", "career_model_pair_legs_v2.config_digest"],
+    "new_table_or_column_required_for_this_upgrade": false,
+    "warning": "The proposal files contain CREATE TABLE / CREATE FUNCTION for clean installs. Do not rerun whole proposals blindly over installed objects. Muse must scaffold a reviewed forward migration using the exact function bodies and grants. Preserve existing rows, holds, receipts, policies and RLS; no campaign reset or resettlement."
+  },
+  "minimal_fresh_native_dependency_order": [
+    {"prerequisite": "Existing auth.users, agent_threads, agent_messages, agent_flow_state, agent_usage and normal career owner authentication/host foundations."},
+    {"source": "supabase/migrations/20261015020000_career_watch_kv.sql", "provides": "career_watch_kv, owner version/epoch and career_host_load/commit."},
+    {"source": "supabase/migrations/20261010110000_model_call_budget.sql", "provides": "agent_model_calls plus agent_model_call_reserve/record and agent_usage.call_id."},
+    {"source": "supabase/sql/proposals/career_model_budget_v1.sql", "provides": "campaign/reservations, global holds and career_model_context_current_v1."},
+    {"source": "supabase/sql/proposals/career_model_context_v2.sql", "provides": "owner dialogue barrier, context read and career_model_replay_check_v2."},
+    {"source": "supabase/sql/proposals/career_model_pair_budget_v2.sql", "provides": "policy, pairs, legs and pair reserve/read/consume/settle."},
+    {"source": "supabase/sql/proposals/career_native_execution_v1.sql", "provides": "native claim/observation/fence/outcome/readback and atomic native commit."}
+  ],
+  "fresh_install_notes": [
+    "The native SQL path does not depend on the interview action RPCs or public-research RPCs; those remain companion product dependencies for their own routes.",
+    "The whole CI fixture also applies task, research and interview proposals in scripts/career/critical-repairs/ci-node.cjs order. Do not apply tests/fixtures/career-persistence-schema.sql, monthly-schema.sql, test funding or controlled provider fixtures to a real project.",
+    "This lane has not inspected installed production schema. Muse must determine fresh-install versus upgrade state without assuming proposals were already applied."
+  ],
+  "source_to_integrate_after_matching_sql": ["supabase/functions/_shared/career_native_reasoner.ts", "supabase/functions/agent-chat/handler-career.ts"],
+  "default_off": {
+    "keep": "CAREER_MODEL_ENABLED unset or not exactly true until all gates and owner authorization are satisfied.",
+    "eventual_native_contract": "CAREER_MODEL_CONTRACT=native_pair_v1",
+    "eventual_policy": "CAREER_NATIVE_PAIR_POLICY_DIGEST must equal the explicitly approved active policy, including exact generation/checker configuration and price identity.",
+    "provider_configuration": "Existing secure OpenAI gpt-5-nano configuration only. Reasoning effort (default minimal), prompt versions career_native_generation/v1 and career_native_checker/v1 must match both approved digests. Do not create, print, rotate or copy credentials.",
+    "whole_turn_bound_microUSD": {"generation": 25000, "checker": 25000, "other": 0}
+  },
+  "before_enablement_no_paid_calls": [
+    "Require terminal functional Node, Deno and database checks for the final source; the genuine original-archive gate remains mandatory and missing assets cannot be waived or fabricated.",
+    "Verify matching SQL RPC signatures, exact source bodies/receipt columns, security-invoker owner checks, service-role-only native execute grants and preserved RLS before enabling handler source.",
+    "Reconcile the existing original allowance and all unknown/started liabilities, expiry, exact provider/model/price, both full leg holds and both monthly slots. Do not seed, reset, rename or top up owner-shared-5usd.",
+    "Confirm the old-campaign/worker fence and a parent-verified secure pinned invocation. No operational attestation exists from this lane.",
+    "A read-only trusted readiness invocation must report provider_calls:0, native_text_implemented:true, native_pair_contract:native_pair_v1 and the exact invocation_id, host_id, published source_sha and full bounds_micros. A local fixture, key presence or Vercel build is not readiness proof.",
+    "Preserve owner authentication, stale CAS, pause, correction/dialogue and erasure barriers at both entry replay and commit-time replay. Missing observations permit billing fallback only, never reconstructed candidate text or generated advice."
+  ],
+  "validation_scope": "Controlled provider plumbing/accounting and isolated PostgreSQL only. Actual model quality NOT_EVALUATED; this lane has zero paid-call allocation.",
+  "release_owner": "Muse; no merge, production migration, hosting or deployment command authorized for this executor."
+}

@@ -1,0 +1,71 @@
+{
+  "observedAt": "2026-10-17 04:59:12 UTC",
+  "scope": "Read-only status and deployment-target inspection; no hosting command",
+  "commits": [
+    {
+      "sha": "2935f057b7183e06fb463d43fd180488f25049c2",
+      "statuses": [
+        {
+          "id": 56581329739,
+          "context": "Vercel",
+          "state": "success",
+          "target_url": "https://vercel.com/srikanthvishnu90-sketchs-projects/upmore/73Bo7HZjtzAscEprR8BChxghm8pB",
+          "description": "Deployment has completed",
+          "created_at": "2026-10-17T04:49:06Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": 117312552725,
+          "name": "Vercel Preview Comments",
+          "head_sha": "2935f057b7183e06fb463d43fd180488f25049c2",
+          "status": "completed",
+          "conclusion": "success",
+          "summary": "💬 0 unresolved, 0 resolved. [Go to feedback](https://vercel.live/open-feedback/upmore-git-codex-nativ-74ce7e-srikanthvishnu90-sketchs-projects.vercel.app?via=pr-comment-feedback-link)",
+          "details_url": "https://vercel.com/github",
+          "completed_at": "2026-10-17T04:49:07Z"
+        }
+      ]
+    },
+    {
+      "sha": "486fccfb9b6bb235d914d47f4c2a098cf8dbab4e",
+      "statuses": [
+        {
+          "id": 56581417343,
+          "context": "Vercel",
+          "state": "success",
+          "target_url": "https://vercel.com/srikanthvishnu90-sketchs-projects/upmore/2RAfgr4nBZgLpuEA7npN6PpJKYMi",
+          "description": "Deployment has completed",
+          "created_at": "2026-10-17T04:52:41Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": 117313198764,
+          "name": "Vercel Preview Comments",
+          "head_sha": "486fccfb9b6bb235d914d47f4c2a098cf8dbab4e",
+          "status": "completed",
+          "conclusion": "success",
+          "summary": "💬 0 unresolved, 0 resolved. [Go to feedback](https://vercel.live/open-feedback/upmore-git-codex-nativ-74ce7e-srikanthvishnu90-sketchs-projects.vercel.app?via=pr-comment-feedback-link)",
+          "details_url": "https://vercel.com/github",
+          "completed_at": "2026-10-17T04:52:41Z"
+        }
+      ]
+    }
+  ],
+  "ownerInspection": {
+    "operation": "GET /v13/deployments/dpl_2RAfgr4nBZgLpuEA7npN6PpJKYMi",
+    "scope": "srikanthvishnu90-sketchs-projects",
+    "status": "DENIED",
+    "httpStatus": 403,
+    "reason": "Connected Vercel credential lacks owning-team access.",
+    "cliAvailable": false,
+    "credentialsChanged": false,
+    "retried": false
+  },
+  "conclusion": "GitHub explicitly associates both commits with a completed deployment and Vercel Preview Comments pointing to the branch preview URL. This is more than a build-only success. Vercel's authoritative target/production promotion and alias state could not be confirmed because owner inspection is denied; no production claim is made.",
+  "previewUrl": "https://upmore-git-codex-nativ-74ce7e-srikanthvishnu90-sketchs-projects.vercel.app",
+  "previewUrlIsMutableBranchAlias": true,
+  "paidCalls": 0,
+  "deploymentCommands": 0
+}

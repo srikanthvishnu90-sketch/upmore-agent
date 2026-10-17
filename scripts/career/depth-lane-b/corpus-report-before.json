@@ -1,0 +1,1225 @@
+{
+  "generated_at": "2026-10-16T22:41:28.403Z",
+  "turns": 77,
+  "byFamily": {
+    "negotiation": {
+      "turns": 26,
+      "fallback": 17,
+      "pass": 4,
+      "fallbackPct": 65.4,
+      "passPct": 15.4
+    },
+    "career-os": {
+      "turns": 23,
+      "fallback": 12,
+      "pass": 6,
+      "fallbackPct": 52.2,
+      "passPct": 26.1
+    },
+    "prep": {
+      "turns": 28,
+      "fallback": 19,
+      "pass": 4,
+      "fallbackPct": 67.9,
+      "passPct": 14.3
+    }
+  },
+  "byBand": {
+    "M1": {
+      "turns": 52,
+      "fallback": 35,
+      "pass": 9,
+      "fallbackPct": 67.3,
+      "passPct": 17.3
+    },
+    "M2": {
+      "turns": 14,
+      "fallback": 8,
+      "pass": 2,
+      "fallbackPct": 57.1,
+      "passPct": 14.3
+    },
+    "M3": {
+      "turns": 11,
+      "fallback": 5,
+      "pass": 3,
+      "fallbackPct": 45.5,
+      "passPct": 27.3
+    }
+  },
+  "byFamilyBand": {
+    "negotiation/M1": {
+      "turns": 14,
+      "fallback": 10,
+      "pass": 2,
+      "fallbackPct": 71.4,
+      "passPct": 14.3
+    },
+    "negotiation/M2": {
+      "turns": 6,
+      "fallback": 4,
+      "pass": 0,
+      "fallbackPct": 66.7,
+      "passPct": 0
+    },
+    "negotiation/M3": {
+      "turns": 6,
+      "fallback": 3,
+      "pass": 2,
+      "fallbackPct": 50,
+      "passPct": 33.3
+    },
+    "career-os/M1": {
+      "turns": 16,
+      "fallback": 8,
+      "pass": 5,
+      "fallbackPct": 50,
+      "passPct": 31.3
+    },
+    "career-os/M2": {
+      "turns": 5,
+      "fallback": 3,
+      "pass": 1,
+      "fallbackPct": 60,
+      "passPct": 20
+    },
+    "career-os/M3": {
+      "turns": 2,
+      "fallback": 1,
+      "pass": 0,
+      "fallbackPct": 50,
+      "passPct": 0
+    },
+    "prep/M1": {
+      "turns": 22,
+      "fallback": 17,
+      "pass": 2,
+      "fallbackPct": 77.3,
+      "passPct": 9.1
+    },
+    "prep/M2": {
+      "turns": 3,
+      "fallback": 1,
+      "pass": 1,
+      "fallbackPct": 33.3,
+      "passPct": 33.3
+    },
+    "prep/M3": {
+      "turns": 3,
+      "fallback": 1,
+      "pass": 1,
+      "fallbackPct": 33.3,
+      "passPct": 33.3
+    }
+  },
+  "chains": {
+    "N1": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 5,
+      "complete": false,
+      "fallbackTurns": 4
+    },
+    "N2": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "N3": {
+      "family": "negotiation",
+      "band": "M2",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "N4": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 3
+    },
+    "N5": {
+      "family": "negotiation",
+      "band": "M3",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "N6": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "N7": {
+      "family": "negotiation",
+      "band": "M2",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "N8": {
+      "family": "negotiation",
+      "band": "M3",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "C1": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 4,
+      "complete": false,
+      "fallbackTurns": 3
+    },
+    "C2": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 3
+    },
+    "C3": {
+      "family": "career-os",
+      "band": "M2",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "C4": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 0
+    },
+    "C5": {
+      "family": "career-os",
+      "band": "M3",
+      "turns": 2,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "C6": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "C7": {
+      "family": "career-os",
+      "band": "M2",
+      "turns": 2,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "C8": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 0
+    },
+    "P-A": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 4,
+      "complete": false,
+      "fallbackTurns": 4
+    },
+    "P-B": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 5,
+      "complete": false,
+      "fallbackTurns": 4
+    },
+    "P-C": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 4,
+      "complete": false,
+      "fallbackTurns": 3
+    },
+    "P-D": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "P-E": {
+      "family": "prep",
+      "band": "M2",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "P-F": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    },
+    "P-G": {
+      "family": "prep",
+      "band": "M3",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 1
+    },
+    "P-H": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": false,
+      "fallbackTurns": 2
+    }
+  },
+  "chainAgg": {
+    "negotiation": {
+      "chains": 8,
+      "complete": 0
+    },
+    "career-os": {
+      "chains": 8,
+      "complete": 0
+    },
+    "prep": {
+      "chains": 8,
+      "complete": 0
+    }
+  },
+  "rows": [
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "I just got an offer from a SaaS company — $92k base, they need my answer by Friday",
+      "handler": "142-career-router.handleChat",
+      "intent": "tracking_status",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Noted — a offer landed. The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it. Name the company and the row moves in the same turn, from your words."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "Can I get until Tuesday instead? I don't want to look difficult",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Write the email asking for that",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 4,
+      "say": "And if they say no to Tuesday, what's my counter on the base?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 5,
+      "say": "OK draft the counter too, keep it friendly",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have two offers now — one at 78k from a bank, one at 84k from an insurer. What math should I run?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Two offers, one math: both letters through the same total-comp table. The comparison scores base, bonus, signing, equity per year, the year-one total, and the annualized total for each — side by side, with the delta on every row. Equity with no stated price stays unvalued in both columns; a delta is never computed against a guessed value.\nSource class: the total-comp product run on your two offer letters, checked as of 2026-10-13. Paste both offer letters and the table builds from them — no numbers from memory."
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "The bank one also has a $5k signing bonus, does that change the picture?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Base will not move — so the signing-bonus script carries the ask. If base cannot move, ask for a signing-bonus increase to close the year-1 gap (one-time cost to them, real money to you) — that lever is the whole script when base is truly fixed. The email, word for word: \"Thank you for the offer — I am ready to sign at the base as it stands.\nThe call version, word for word: \"If the base is set, I understand — the lever that gets me to yes today is the signing bonus: cover the year-one gap there, and I will sign on this call.\" Both versions are held for your approval — nothing is sent without your yes. Source class: the counter-strategy product and the company file's compensation notes, checked as of 2026-10-13. Paste the offer and the script is cut to its actual base and signing figures."
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Help me decline the insurer one gracefully",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 1,
+      "say": "soo i got an offer its like 64k?? from a logistics co and theyr kinda rushing me, want an anser by thursday i think",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Negotiation runs on sourced numbers, one written counter, and no bluffing. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-13.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it."
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 2,
+      "say": "can i ask for more tiem without it being weird",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 3,
+      "say": "wright the email pls, the short one",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "The recruiter just called — my offer expires in 48 hours, it's 110k, what do I do first?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "Draft the extension ask",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "While I wait on that, what's the counter strategy if they hold firm on 110?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 1,
+      "say": "I got an offer at 88k from a healthtech startup, answer by Monday — also, should I tell my current boss yet?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Negotiation runs on sourced numbers, one written counter, and no bluffing. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-13.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it."
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 2,
+      "say": "OK just the deadline part for now: write the extension email",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension email, written out — the real words, held for your approval. The extension email itself, composed from your offer record — held on its card, nothing sent: Subject: Request for a short extension — offer Hi Recruiter name, Thank you for the offer — I'm very excited about the team and I'm taking it seriously. Approve it as written, or tell me the exact change."
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 3,
+      "say": "Now the money part — is 88k low for this kind of role, and what would you counter at?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "My offer is 95k base plus stock options — 4,000 shares over four years. What are the options actually worth?",
+      "handler": "142-career-router.handleChat",
+      "intent": "honest_unavailable",
+      "fallback": false,
+      "pass": false,
+      "delivered": "That part is the money product — and this build is the career agent. The finance side of Upmore is shelved in this build: spending questions, budgets, and investing are not answered here, and I will not guess at your bank data from a career thread. What is live, and fully staffed, is the career loop: find roles, apply at the doorstep, track, outreach, prep, negotiate.\nAsk me for any part of the career loop and it runs now."
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "What should I ask them about the grant before I sign?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Draft a reply asking for those details",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 1,
+      "say": "recruiter asked what salary i expect before any offer lol, i panicked and said 70-80k. no offer yet",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 2,
+      "say": "they came back at 72k. can i still negotiate or did i cap myself",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Negotiation runs on sourced numbers, one written counter, and no bluffing. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-13.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it."
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 3,
+      "say": "what do i say on the call tomorow",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 1,
+      "say": "Offer letter's here: base $120k, signing $10k, starts June 1, expires Wednesday. Also my lease ends in May lol",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Negotiation runs on sourced numbers, one written counter, and no bluffing. The number on the table is $120,000 — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.\nNo company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-13. Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it."
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 2,
+      "say": "Parse it properly — what's missing from the letter?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 3,
+      "say": "Counter at 130 — draft it",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a junior accountant. I want to be a CFO one day — what should my next two moves be?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Which skills do I build first?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Does the CPA matter on that path, and when should I get it?",
+      "handler": "142-career-router.handleChat",
+      "intent": "path_plan",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Two plausible paths, and a cheap way to tell them apart. Two plausible paths to test; the record supports hypotheses, not a qualification verdict. Location scope: Austin, TX / Remote; no local demand ranking is known.\nSource: your own profile record and the career guidance knowledge base, as of 2026-10-15. Which work sample would you like to try first?"
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 4,
+      "say": "What does the step after senior accountant look like?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a customer support rep and I want to move into product management eventually",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "What's the rung between here and PM?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "What evidence should I be collecting in this job for that move?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_fallback",
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 1,
+      "say": "been a bank teller 2 yrs, kinda stuck, wanna end up in corperate finance someday — wheres my next step?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The ladder, and the two moves that climb it: The ladder from analyst to associate is climbed on evidence, not tenure: staffing on visible deals, a manager who will say your name in the room, and a wins record that exists before review season — that record starts now, not the semester before reviews. Move one: build the evidence file.\nMove two: build the sponsorship. Quitting is the counterfactual, priced the same way: it beats staying only when the evidence file is strong and the ladder is demonstrably closed — a stuck FEELING is fixed by the two moves above first, for one review cycle, before it is priced as a stuck FACT. Grounded in your own log and record, as of October 2026.\nWant move one started — the wins log opened on this thread's record?"
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 2,
+      "say": "skills?? what do i learn first",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 3,
+      "say": "how long does each step usualy take",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm an analyst — what's the ladder to associate actually made of?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_status",
+      "fallback": false,
+      "pass": false,
+      "delivered": "That lives in your career OS — here is the honest state of it. The OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only. Grounded in your own log and record, as of October 2026.\nAsk for the timeline or the goals check-in and I will show it in full."
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Log a win: I built the model the VP presented to the client",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_wins_log",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your wins log is live: 0 wins on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. Grounded in your own log and record, as of October 2026.\nWant to dictate your first win now?"
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Show me my wins log",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_wins_log",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your wins log is live: 0 wins on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. Grounded in your own log and record, as of October 2026.\nWant to dictate your first win now?"
+    },
+    {
+      "conv": "C5",
+      "family": "career-os",
+      "band": "M3",
+      "turn": 1,
+      "say": "I want a promotion this year and honestly my pay feels low for the market — what am I worth, and what's the plan?",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_market_value",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Your market value, from sourced figures only: $55,000–$210,000 a year across 23 sourced figures, with a median midpoint of $96,500. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands. Grounded in the postings' own stated ranges and the comp notes on file, as of October 2026.\nWant the skill-gap read against the higher-paying postings next?"
+    },
+    {
+      "conv": "C5",
+      "family": "career-os",
+      "band": "M3",
+      "turn": 2,
+      "say": "Start the plan — what's move one?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a nurse and I'm thinking about moving into hospital administration one day",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "What's the first move?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Any credentials that actually matter on that path?",
+      "handler": "142-career-router.handleChat",
+      "intent": "path_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Two plausible paths, and a cheap way to tell them apart. Two plausible paths to test; the record supports hypotheses, not a qualification verdict. Location scope: Austin, TX / Remote; no local demand ranking is known.\nSource: your own profile record and the career guidance knowledge base, as of 2026-10-15. Which work sample would you like to try first?"
+    },
+    {
+      "conv": "C7",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 1,
+      "say": "so I'm in retail management right now, it's fine but I keep thinking about HR, like eventually running people ops somewhere — is that even a real path from here?",
+      "handler": "142-career-router.handleChat",
+      "intent": "outreach_clarification",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Building the list now: investment bankers — sized by what the sources yield, not by a number invented here. You named no firms, so the plan proposes a starting set instead of choosing for you: the bulge bracket set — Goldman Sachs, Morgan Stanley, JPMorgan, Bank of America, Citi, and 4 more — held as a proposal: the build runs on it now, and you can re-point it before any draft exists. Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.\nThe caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield. The build runs on the proposed set now — the found, trustworthy, and sendable counts come back here first, and drafting starts only when you approve the whole plan."
+    },
+    {
+      "conv": "C7",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 2,
+      "say": "ok what's first then",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "Honestly I'm stuck and thinking of quitting — how does anyone get from analyst to associate around here?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The ladder, and the two moves that climb it: The ladder from analyst to associate is climbed on evidence, not tenure: staffing on visible deals, a manager who will say your name in the room, and a wins record that exists before review season — that record starts now, not the semester before reviews. Move one: build the evidence file.\nMove two: build the sponsorship. Quitting is the counterfactual, priced the same way: it beats staying only when the evidence file is strong and the ladder is demonstrably closed — a stuck FEELING is fixed by the two moves above first, for one review cycle, before it is priced as a stuck FACT. Grounded in your own log and record, as of October 2026.\nWant move one started — the wins log opened on this thread's record?"
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Price the quit option for me — when does leaving actually beat staying?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_status",
+      "fallback": false,
+      "pass": false,
+      "delivered": "That lives in your career OS — here is the honest state of it. The OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only. Grounded in your own log and record, as of October 2026.\nAsk for the timeline or the goals check-in and I will show it in full."
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "OK, staying one cycle — what's the plan?",
+      "handler": "142-career-router.handleChat",
+      "intent": "outreach_clarification",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Here is where things stand. No campaign plan is on record in this conversation yet — nothing has been planned, queued, or sent. Name the goal — a networking plan, a search, a tracker — and it gets built in this conversation."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have a consulting interview next week — help me practice cases",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_fallback",
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a case",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "harder one, and I'm weakest on profitability cases",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "One more — market entry this time",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Prep me for a banking interview — technicals",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_fallback",
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Hit me with the DCF question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Here is your question: Walk me through a DCF. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "What is the model answer supposed to hit?",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "Now the three statements one",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 5,
+      "say": "The income statement, balance sheet, and cash flow statement — net income flows into retained earnings and the cash flow statement starts from net income",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have a data analyst interview Thursday — drill me",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Another one",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "I'm weakest on SQL — focus there",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "One more",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Law firm interview coming up — what do they ask?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_fallback",
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "Another",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 1,
+      "say": "med school interview nxt week, kinda nervous — can we practise?",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "You have a plan for tonight — and it ends early, on purpose. Tonight is for light reps, not cramming: one pass over your story, one question out loud, then stop — sleep is a scored input tomorrow, and a tired brain drops more points than one un-drilled question ever would. The logistics, settled tonight so tomorrow is only the interview: When: not supplied yet — flagged, not invented; Company: not supplied yet — flagged, not invented; Location/joining: not supplied yet — flagged, not invented.\nYour one out-loud rep: Tell me about yourself and why this role. Answer that one question out loud now; I will score it, and then we stop for the night."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 2,
+      "say": "hit me with a question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 3,
+      "say": "an ethics one pls",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Quant trading interview — drill me on probability",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Another",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "A market-making one",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 1,
+      "say": "I have a Netflix SWE interview Friday — prep me",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your interview brief. No company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.\nLikely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it. Want to run it as a mock, one question at a time?"
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 2,
+      "say": "Walk me through the three financial statements",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 3,
+      "say": "Back to Netflix — give me a coding question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "PM interview loop next week — help me prep",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_fallback",
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a product sense question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Here is your question: Tell me about yourself and why this role. Answer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep.\nGive me your answer and I will score it."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "Another one — execution this time",
+      "handler": null,
+      "intent": null,
+      "fallback": true,
+      "pass": false,
+      "delivered": "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    }
+  ]
+}

@@ -1,0 +1,1225 @@
+{
+  "generated_at": "2026-10-16T23:59:12.403Z",
+  "turns": 77,
+  "byFamily": {
+    "negotiation": {
+      "turns": 26,
+      "fallback": 0,
+      "pass": 26,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "career-os": {
+      "turns": 23,
+      "fallback": 0,
+      "pass": 22,
+      "fallbackPct": 0,
+      "passPct": 95.7
+    },
+    "prep": {
+      "turns": 28,
+      "fallback": 0,
+      "pass": 28,
+      "fallbackPct": 0,
+      "passPct": 100
+    }
+  },
+  "byBand": {
+    "M1": {
+      "turns": 52,
+      "fallback": 0,
+      "pass": 52,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "M2": {
+      "turns": 14,
+      "fallback": 0,
+      "pass": 14,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "M3": {
+      "turns": 11,
+      "fallback": 0,
+      "pass": 10,
+      "fallbackPct": 0,
+      "passPct": 90.9
+    }
+  },
+  "byFamilyBand": {
+    "negotiation/M1": {
+      "turns": 14,
+      "fallback": 0,
+      "pass": 14,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "negotiation/M2": {
+      "turns": 6,
+      "fallback": 0,
+      "pass": 6,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "negotiation/M3": {
+      "turns": 6,
+      "fallback": 0,
+      "pass": 6,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "career-os/M1": {
+      "turns": 16,
+      "fallback": 0,
+      "pass": 16,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "career-os/M2": {
+      "turns": 5,
+      "fallback": 0,
+      "pass": 5,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "career-os/M3": {
+      "turns": 2,
+      "fallback": 0,
+      "pass": 1,
+      "fallbackPct": 0,
+      "passPct": 50
+    },
+    "prep/M1": {
+      "turns": 22,
+      "fallback": 0,
+      "pass": 22,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "prep/M2": {
+      "turns": 3,
+      "fallback": 0,
+      "pass": 3,
+      "fallbackPct": 0,
+      "passPct": 100
+    },
+    "prep/M3": {
+      "turns": 3,
+      "fallback": 0,
+      "pass": 3,
+      "fallbackPct": 0,
+      "passPct": 100
+    }
+  },
+  "chains": {
+    "N1": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 5,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N2": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N3": {
+      "family": "negotiation",
+      "band": "M2",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N4": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N5": {
+      "family": "negotiation",
+      "band": "M3",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N6": {
+      "family": "negotiation",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N7": {
+      "family": "negotiation",
+      "band": "M2",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "N8": {
+      "family": "negotiation",
+      "band": "M3",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C1": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 4,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C2": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C3": {
+      "family": "career-os",
+      "band": "M2",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C4": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C5": {
+      "family": "career-os",
+      "band": "M3",
+      "turns": 2,
+      "complete": false,
+      "fallbackTurns": 0
+    },
+    "C6": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C7": {
+      "family": "career-os",
+      "band": "M2",
+      "turns": 2,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "C8": {
+      "family": "career-os",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-A": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 4,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-B": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 5,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-C": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 4,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-D": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-E": {
+      "family": "prep",
+      "band": "M2",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-F": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-G": {
+      "family": "prep",
+      "band": "M3",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    },
+    "P-H": {
+      "family": "prep",
+      "band": "M1",
+      "turns": 3,
+      "complete": true,
+      "fallbackTurns": 0
+    }
+  },
+  "chainAgg": {
+    "negotiation": {
+      "chains": 8,
+      "complete": 8
+    },
+    "career-os": {
+      "chains": 8,
+      "complete": 7
+    },
+    "prep": {
+      "chains": 8,
+      "complete": 8
+    }
+  },
+  "rows": [
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "I just got an offer from a SaaS company — $92k base, they need my answer by Friday",
+      "handler": "142-career-router.handleChat",
+      "intent": "tracking_status",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Noted — a offer landed. The offer as you stated it: $92,000 base from SaaS company, answer by friday — that record is on this thread now, and the negotiation plan runs on it whenever you ask. The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it.\nName the company and the row moves in the same turn, from your words."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "Can I get until Tuesday instead? I don't want to look difficult",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension request is a drafted product — not a paragraph to improvise. The ask, in your words: move the answer from friday to tuesday. It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.\nSource class: the extension-draft product and your offer record, checked as of 2026-10-13. Want the extension email written out — the real words, held for your approval?"
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Write the email asking for that",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $92,000 base, decide by friday. It asks for the day you named: tuesday — the draft's date is confirmed on its card before anything moves.\nThe actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — offer Hi Recruiter name, Thank you for the offer — I'm very excited about the team and I'm taking it seriously. Approve it as written, or tell me the exact change."
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 4,
+      "say": "And if they say no to Tuesday, what's my counter on the base?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The counter on $92,000 — anchored on evidence, not on a vibe. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed. Counter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number.\nNo sourced benchmark figure exists for this company — anchor the ask on your competing offer / floor instead of an invented market number. If base cannot move, ask for a signing-bonus increase to close the year-1 gap (one-time cost to them, real money to you). Ask for a 6-month comp review in writing if neither cash lever moves.\nSource class: the counter-strategy product and the company file's compensation notes, checked as of 2026-10-13. Want the counter email written out — the real words, held for your approval?"
+    },
+    {
+      "conv": "N1",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 5,
+      "say": "OK draft the counter too, keep it friendly",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The counter email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $92,000 base, decide by friday. The actual email, verbatim — held on its card, nothing sent: Subject: Offer — your company Hi Recruiter name, Thank you — I'm genuinely excited about the role and the team.\nApprove it as written, or tell me the figure or the tone to change."
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have two offers now — one at 78k from a bank, one at 84k from an insurer. What math should I run?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Two offers, one math: both letters through the same total-comp table. The comparison scores base, bonus, signing, equity per year, the year-one total, and the annualized total for each — side by side, with the delta on every row. Equity with no stated price stays unvalued in both columns; a delta is never computed against a guessed value.\nSource class: the total-comp product run on your two offer letters, checked as of 2026-10-13. Paste both offer letters and the table builds from them — no numbers from memory."
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "The bank one also has a $5k signing bonus, does that change the picture?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Offer updated — the advice now runs on your actual numbers. Recorded on the offer, in your words: the firm as you described it. And yes — it changes the picture, on your numbers only: year one is offer one at $78,000 ($78,000 base) against offer two at $84,000 — but the signing bonus lands once while the base gap repeats and compounds every year, so weigh base first and the bonus as a one-year patch.\nNothing about the offer is shared or acted on from this record — it exists so the advice you get is about YOUR offer, not a generic one. Want the counter drafted against this deadline, or the interview prep scheduled inside the window first?"
+    },
+    {
+      "conv": "N2",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Help me decline the insurer one gracefully",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The insurer decline — drafted warm, held for your yes. Declining the insurer offer — gracefully means: thanks first, fit (never money) as the reason, the door left open, and nothing you would not want read back to you in two years. The decline draft itself, held on its card — nothing sent: Subject: Thank you — role decision Hi Recruiter name, Thank you so much for the offer and for everything the team shared with me through the process.\nIt goes out only on your yes, from its own card — nothing sends in bulk, and nothing sends from this answer. Source class: the decline-draft product and your offer record, checked as of 2026-10-13. Approve it as written, or tell me the line to soften?"
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 1,
+      "say": "soo i got an offer its like 64k?? from a logistics co and theyr kinda rushing me, want an anser by thursday i think",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your offer, parsed from your words — here is the plan. On the record from your words: an offer at $64,000 base, with an answer wanted by thursday. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed.\nCounter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number. The sequence from here: the extension first if the deadline is tight, one written counter second, and no bridges burned with your other processes until you sign. Want the extension drafted first, or the counter?"
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 2,
+      "say": "can i ask for more tiem without it being weird",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension request is a drafted product — not a paragraph to improvise. The draft asks for 7 days by default and computes the new date from the offer's own expiry; on your yes it goes to the recruiter named on the offer, and the new deadline is written into the log. It goes out only from its approval card, addressed to the recruiter on the offer — nothing is sent by this answer.\nSource class: the extension-draft product and your offer record, checked as of 2026-10-13. Paste the offer letter — want me to compute the new date from its expiry, the one field the draft cannot invent?"
+    },
+    {
+      "conv": "N3",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 3,
+      "say": "wright the email pls, the short one",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $64,000 base, decide by thursday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — offer Hi Recruiter name, Thank you for the offer — I'm very excited about the team and I'm taking it seriously.\nApprove it as written, or tell me the exact change."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "The recruiter just called — my offer expires in 48 hours, it's 110k, what do I do first?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Exploding offer: extension first, counter second, panic never. The clock you named — 48 hours — is met with a sequence, not a scramble: the extension request goes out first because it is drafted, card-gated, and buys the days the counter needs. Pressure never invents a number: the counter still runs on the company file's sourced range or on your own floor, exactly as it would with a month to decide.\nSource class: the deadline-sequencing product and the company file's compensation notes, checked as of 2026-10-13. Paste the offer and I will parse its expiry and draft the extension today."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "Draft the extension ask",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $110,000 base, decide by in 48 hours. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — offer Hi Recruiter name, Thank you for the offer — I'm very excited about the team and I'm taking it seriously.\nApprove it as written, or tell me the exact change."
+    },
+    {
+      "conv": "N4",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "While I wait on that, what's the counter strategy if they hold firm on 110?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The counter on $110,000 — anchored on evidence, not on a vibe. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed. Counter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number.\nNo sourced benchmark figure exists for this company — anchor the ask on your competing offer / floor instead of an invented market number. If base cannot move, ask for a signing-bonus increase to close the year-1 gap (one-time cost to them, real money to you). Ask for a 6-month comp review in writing if neither cash lever moves.\nSource class: the counter-strategy product and the company file's compensation notes, checked as of 2026-10-13. Want the counter email written out — the real words, held for your approval?"
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 1,
+      "say": "I got an offer at 88k from a healthtech startup, answer by Monday — also, should I tell my current boss yet?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your offer, parsed from your words — here is the plan. On the record from your words: an offer from healthtech startup at $88,000 base, with an answer wanted by monday. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed.\nCounter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number. The sequence from here: the extension first if the deadline is tight, one written counter second, and no bridges burned with your other processes until you sign. Want the extension drafted first, or the counter?"
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 2,
+      "say": "OK just the deadline part for now: write the extension email",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The extension email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $88,000 base, decide by monday. The actual email, verbatim — held on its card, nothing sent: Subject: Request for a short extension — offer Hi Recruiter name, Thank you for the offer — I'm very excited about the team and I'm taking it seriously.\nApprove it as written, or tell me the exact change."
+    },
+    {
+      "conv": "N5",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 3,
+      "say": "Now the money part — is 88k low for this kind of role, and what would you counter at?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The counter on $88,000 — anchored on evidence, not on a vibe. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed. Counter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number.\nNo sourced benchmark figure exists for this company — anchor the ask on your competing offer / floor instead of an invented market number. If base cannot move, ask for a signing-bonus increase to close the year-1 gap (one-time cost to them, real money to you). Ask for a 6-month comp review in writing if neither cash lever moves.\nSource class: the counter-strategy product and the company file's compensation notes, checked as of 2026-10-13. Want the counter email written out — the real words, held for your approval?"
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 1,
+      "say": "My offer is 95k base plus stock options — 4,000 shares over four years. What are the options actually worth?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Equity, valued the honest way: scenarios, not a single invented number. A grant is worth what its shares are worth when they vest — so the honest answer is scenarios: priced if the letter states a value or price, spread over the vesting years, and flagged unvalued when neither exists. Your grant as stated: 000 shares alongside $95,000 base — four-year vesting on the shape you described.\nEquity: options has NO stated grant value and NO share price in the letter — it is valued at $0 in this math and flagged unvalued. Total-comp math only — not a valuation promise. Source class: the total-comp product and your offer record, checked as of 2026-10-13.\nTell me the grant terms — paste the letter or list the shares, price or grant value, and vesting — and I will run the scenarios on your actual numbers."
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 2,
+      "say": "What should I ask them about the grant before I sign?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The five questions that price the grant — ask them before you sign. Ask these before you sign — each one prices the grant or removes a surprise (your stated grant: 000 shares alongside $95,000 base, honestly unvalued until questions 1 and 4 are answered): 1) The strike price and the last 409A valuation — what the shares are valued at today, and when that valuation was set; 2) the vesting schedule and the cliff — four years with a one-year cliff is the common shape, but yours is what the letter says. 3) The exercise window if you leave — 90 days is the trap to look for; 4) your shares as a percentage of the fully diluted total — a count alone means nothing; 5) any liquidity path — secondaries, tender offers, or none until an exit.\nSource class: the total-comp product's equity doctrine and your offer record, checked as of 2026-10-13. Want a reply drafted that asks exactly these?"
+    },
+    {
+      "conv": "N6",
+      "family": "negotiation",
+      "band": "M1",
+      "turn": 3,
+      "say": "Draft a reply asking for those details",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The reply asking for the grant details — the real words, held for your approval. The figure it runs on is the one from your letter: $95,000 base. Subject: A few questions on the offer — role Hi Recruiter name, Thank you for the offer — base $95,000 with 000 shares.\nApprove it as written, or tell me which question to drop."
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 1,
+      "say": "recruiter asked what salary i expect before any offer lol, i panicked and said 70-80k. no offer yet",
+      "handler": "142-career-router.handleChat",
+      "intent": "outreach_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your comp-expectation reply is drafted and held on its card. The draft sits on its approval card: you see the exact text and approve before anything moves — nothing is sent silently, ever. It invents no number: until a sourced band exists, the honest move is to ask for the band, not to anchor on air.\nApprove the draft, or tell me the range you want named if you have one sourced?"
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 2,
+      "say": "they came back at 72k. can i still negotiate or did i cap myself",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Not capped — the range you blurted is an anchor, and the package still negotiates. Yes — you can still negotiate: an offer inside the range you named does not cap you. They came back at $72,000, inside the 70-80k you stated — that range was a first answer under pressure, not a signed floor.\nWhat actually moves now: the counter goes to the package, not just base — a modest base ask toward the top of your range, framed on the role's scope, with signing bonus, a written 6-month review, and start date as the trade levers if base is firm. What not to do: re-anchor wildly above the range you named (that reads as bad faith) or apologize for the first number (that invites a hold). Source class: the counter-strategy product and your stated range, checked as of 2026-10-13.\nWant the exact words for the call — the counter, word for word?"
+    },
+    {
+      "conv": "N7",
+      "family": "negotiation",
+      "band": "M2",
+      "turn": 3,
+      "say": "what do i say on the call tomorow",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your words for the call — the counter script, verbatim. The call script, word for word — held for your approval, spoken by you, sent by nobody: OPEN: \"Thanks for the offer — I'm excited, and I want to find a version I can say yes to today.\" ANCHOR: \"Looking at the sourced range for this role — I was hoping base could land closer to the top of your stated range.\" IF PUSHED BACK: \"I understand bands are real. Counter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number.\nSource class: the counter-strategy product and your offer record, checked as of 2026-10-13. Want to roleplay it?"
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 1,
+      "say": "Offer letter's here: base $120k, signing $10k, starts June 1, expires Wednesday. Also my lease ends in May lol",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your offer, parsed from your words — here is the plan. On the record from your words: an offer at $120,000 base, with an answer wanted by wednesday, plus a $10,000 signing bonus. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed.\nCounter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number. The sequence from here: the extension first if the deadline is tight, one written counter second, and no bridges burned with your other processes until you sign. Want the extension drafted first, or the counter?"
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 2,
+      "say": "Parse it properly — what's missing from the letter?",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_advice",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Parsed from what you stated — here is what the record holds, and what it does not. On the record from your words: base $120,000; signing $10,000; starts June 1; expires wednesday. Not stated in what you gave me: equity terms (share count, strike or valuation basis, vesting schedule); annual bonus target (percent or figure); benefits specifics (health, 401(k) match, PTO) — absence here means unstated, not absent from the letter; paste the letter and the parse reads its own lines.\nSource class: the offer record built from your stated facts, checked as of 2026-10-13. Want the counter drafted on the stated fields, or paste the letter first for the full parse?"
+    },
+    {
+      "conv": "N8",
+      "family": "negotiation",
+      "band": "M3",
+      "turn": 3,
+      "say": "Counter at 130 — draft it",
+      "handler": "142-career-router.handleChat",
+      "intent": "negotiation_draft",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The counter email, written out — the real words, held for your approval. The figure it runs on is the one from your letter: $120,000 base, decide by wednesday. Your target, as you named it: $130 — the draft is written to land the counter at that figure.\nThe actual email, verbatim — held on its card, nothing sent: Subject: Offer — your company Hi Recruiter name, Thank you — I'm genuinely excited about the role and the team. Approve it as written, or tell me the figure or the tone to change."
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a junior accountant. I want to be a CFO one day — what should my next two moves be?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from junior accountant to cfo — the ladder and your next two moves. The typical ladder: junior accountant → accountant → senior accountant → accounting manager / controller → VP finance → CFO — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: own a visible close — take the hardest reconciliation or the audit relationship in your current seat and log the outcome in your wins record the week it lands.\nMove two: get one forward-looking rep — a budget cycle, a forecast, a business review — because every rung above senior accountant is interviewed as a business partner, not as a preparer. First skills, in order: Close and statements fluency first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Which skills do I build first?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Skills first on junior accountant → cfo — in the order the ladder pays for them. Close and statements fluency first — own a full monthly close and read all three statements cold; then FP&A (budgets, variance, forecasts), because the rungs above senior accountant pay for forward-looking judgment, not cleaner history. On junior accountant → cfo, the order matters more than the volume: the next rung's skills are the interview for the rung after it.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want those turned into a this-quarter practice list?"
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Does the CPA matter on that path, and when should I get it?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Credentials on the junior accountant → cfo path — what actually gates, and when. The CPA is the common credibility marker on this path: usually earned in the first few years, it gates many controller seats and is the floor most CFO searches assume — the alternative pedigree is FP&A and treasury depth in industry, but if you take one credential on this path, the CPA is it, and early is when it costs least. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung next?"
+    },
+    {
+      "conv": "C1",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 4,
+      "say": "What does the step after senior accountant look like?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The step after senior accountant: accounting manager / controller. After senior accountant comes accounting manager / controller — the seat where scope widens from your own work to a team's or a function's, and the interview for it tests judgment about the business, not technique. Close and statements fluency first — own a full monthly close and read all three statements cold; then FP&A (budgets, variance, forecasts), because the rungs above senior accountant pay for forward-looking judgment, not cleaner history.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want what to build in your current seat to be ready for it?"
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a customer support rep and I want to move into product management eventually",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from customer support rep to product management — the ladder and your next two moves. The typical ladder: customer support rep → support lead / customer operations → associate product manager → product manager → senior product manager — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: start the evidence file now — every week, one support pattern written up as a problem statement with numbers, kept in your wins log.\nMove two: spec one fix for the loudest pattern and get it in front of the PM who owns that surface; an internal transfer is earned on shipped specs, not on applications. First skills, in order: Ticket-pattern analysis first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "What's the rung between here and PM?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Between customer support rep and product management: support lead / customer operations. The rung between is support lead / customer operations — the seat where you stop being only an individual contributor: a team's queue, a unit's numbers, or a surface's problem list becomes partly yours. A file of customer problems you personally quantified, plus at least one fix you spec'd and saw shipped with its measured effect — that file is the entire interview for the associate seat.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want the evidence list for that rung — what to collect in this job?"
+    },
+    {
+      "conv": "C2",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "What evidence should I be collecting in this job for that move?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The evidence to collect on customer support rep → product management. A file of customer problems you personally quantified, plus at least one fix you spec'd and saw shipped with its measured effect — that file is the entire interview for the associate seat. The log is the product feature built for exactly this: say \"log a win\" with the outcome and it is kept, dated, in your own words — the review packet assembles itself from it.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want to log the first win now — name one outcome from this quarter?"
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 1,
+      "say": "been a bank teller 2 yrs, kinda stuck, wanna end up in corperate finance someday — wheres my next step?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from where you are to corporate finance — the ladder and your next two moves. The typical ladder: bank teller → credit analyst / financial analyst → senior financial analyst → finance manager → VP finance — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: build the modeling proof — one full three-statement model of a real public company, kept current, that you can defend line by line.\nMove two: get onto one visible analysis — a credit file, a branch-business review — and present it yourself once; the analyst seat is staffed from people whose work has been seen. First skills, in order: Excel modeling first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 2,
+      "say": "skills?? what do i learn first",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Skills first on where you are → corporate finance — in the order the ladder pays for them. Excel modeling first — three-statement fluency until it is boring; then analysis writing (a credit memo or an investment note a stranger can follow); then one domain depth — treasury, FP&A, or corporate development support. On where you are → corporate finance, the order matters more than the volume: the next rung's skills are the interview for the rung after it.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want those turned into a this-quarter practice list?"
+    },
+    {
+      "conv": "C3",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 3,
+      "say": "how long does each step usualy take",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The pace on where you are → corporate finance — typical ranges, honestly labeled. Commonly two to three years per rung; the analyst-to-manager step is the stall, because it is the first seat that manages people and presents to executives instead of producing analysis. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the first rung's timeline turned into this quarter's checklist?"
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm an analyst — what's the ladder to associate actually made of?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from analyst to associate — the ladder and your next two moves. The typical ladder: analyst → senior analyst → associate → vice president — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: build the evidence file — log every win and piece of feedback in your wins log the day it happens, and take one visible piece of work per month.\nMove two: build the sponsorship — one senior person who has seen your work and will say your name in the room, earned by staffed work and follow-through; then time the case to the firm's actual promotion window. First skills, in order: Deal fluency first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Log a win: I built the model the VP presented to the client",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_wins_log",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your wins log is live: 0 wins on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. Grounded in your own log and record, as of October 2026.\nWant to dictate your first win now?"
+    },
+    {
+      "conv": "C4",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Show me my wins log",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_wins_log",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your wins log is live: 0 wins on it so far, each dated and in your own words, feeding the living resume and the review packet. Text wins as they happen and they land in that packet — nothing is back-filled or invented. Grounded in your own log and record, as of October 2026.\nWant to dictate your first win now?"
+    },
+    {
+      "conv": "C5",
+      "family": "career-os",
+      "band": "M3",
+      "turn": 1,
+      "say": "I want a promotion this year and honestly my pay feels low for the market — what am I worth, and what's the plan?",
+      "handler": "130-career-onboarding.handleChat",
+      "intent": "career_os_market_value",
+      "fallback": false,
+      "pass": false,
+      "delivered": "Your market value, from sourced figures only: $55,000–$210,000 a year across 23 sourced figures, with a median midpoint of $96,500. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands. Grounded in the postings' own stated ranges and the comp notes on file, as of October 2026.\nWant the skill-gap read against the higher-paying postings next?"
+    },
+    {
+      "conv": "C5",
+      "family": "career-os",
+      "band": "M3",
+      "turn": 2,
+      "say": "Start the plan — what's move one?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The plan on where you are → promotion — move one first. Move one: build the evidence file — log every win and piece of feedback the day it happens, and take one visible piece of work per month; the promotion case is assembled from that file, not from memory. Move two: build the sponsorship — one senior person who has seen your work and will advocate, earned by staffed work and follow-through, and time the case to the review window.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want move one started now — the wins log opened on this thread?"
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "I'm a nurse and I'm thinking about moving into hospital administration one day",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from nurse to hospital administration — the ladder and your next two moves. The typical ladder: nurse → charge nurse / nurse manager → director of nursing / service-line director → VP nursing / hospital administrator — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: own one unit metric end to end (throughput, falls, agency hours) and be the person who reports it; administrators are hired from nurses who already speak in system numbers.\nMove two: take a budget line — volunteer for the unit's staffing or supply budget and learn to explain its variances; that fluency is the actual interview for the manager seat. First skills, in order: Operations fluency first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "What's the first move?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The plan on nurse → hospital administration — move one first. Move one: own one unit metric end to end (throughput, falls, agency hours) and be the person who reports it; administrators are hired from nurses who already speak in system numbers. Move two: take a budget line — volunteer for the unit's staffing or supply budget and learn to explain its variances; that fluency is the actual interview for the manager seat.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want move one started now — the wins log opened on this thread?"
+    },
+    {
+      "conv": "C6",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "Any credentials that actually matter on that path?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Credentials on the nurse → hospital administration path — what actually gates, and when. An MHA (or an MSN in leadership) is the common credential at the director step — usually earned while working as a nurse manager; your RN license is the entry ticket you already hold, and the administration seats ask for the management degree plus a budget you have actually run. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung next?"
+    },
+    {
+      "conv": "C7",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 1,
+      "say": "so I'm in retail management right now, it's fine but I keep thinking about HR, like eventually running people ops somewhere — is that even a real path from here?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from retail management to people ops — the ladder and your next two moves. The typical ladder: retail manager → HR coordinator / generalist → HR manager / HR business partner → director of HR → VP people operations — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: document your people record now — the hires, the retention numbers, the hard conversations handled well; that record is your HR portfolio, and it already exists in your store.\nMove two: take the first HR-titled seat you can reach (coordinator, generalist, recruiting) even sideways — the ladder above it is climbed from inside the function. First skills, in order: Employment-practice fluency first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C7",
+      "family": "career-os",
+      "band": "M2",
+      "turn": 2,
+      "say": "ok what's first then",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The plan on retail management → people ops — move one first. Move one: document your people record now — the hires, the retention numbers, the hard conversations handled well; that record is your HR portfolio, and it already exists in your store. Move two: take the first HR-titled seat you can reach (coordinator, generalist, recruiting) even sideways — the ladder above it is climbed from inside the function.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want move one started now — the wins log opened on this thread?"
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 1,
+      "say": "Honestly I'm stuck and thinking of quitting — how does anyone get from analyst to associate around here?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The path from analyst to associate around here — the ladder and your next two moves. The typical ladder: analyst → senior analyst → associate → vice president — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: build the evidence file — log every win and piece of feedback in your wins log the day it happens, and take one visible piece of work per month.\nMove two: build the sponsorship — one senior person who has seen your work and will say your name in the room, earned by staffed work and follow-through; then time the case to the firm's actual promotion window. First skills, in order: Deal fluency first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company.\nWant the skills order for the first rung, the credential picture, or the typical pace per rung?"
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 2,
+      "say": "Price the quit option for me — when does leaving actually beat staying?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The quit option, priced against the stay option — same evidence standard for both. Priced honestly, leaving beats staying only when three things are all true: your evidence file is strong enough to be hired a rung up elsewhere, the ladder here is demonstrably closed (not just slow), and the outside seat is a rung up — a sideways exit restarts the clock at the same level. A stuck feeling is not one of the three: it is priced after one full review cycle of the two moves (evidence file + sponsorship), because a cycle is the unit the ladder actually decides on.\nIf you do price an exit, the number is never invented here: it is the outside offer's own figure against this seat's record — bring the offer and the math runs on it. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want the stay-one-cycle plan written out — the two moves with dates?"
+    },
+    {
+      "conv": "C8",
+      "family": "career-os",
+      "band": "M1",
+      "turn": 3,
+      "say": "OK, staying one cycle — what's the plan?",
+      "handler": "142-career-router.handleChat",
+      "intent": "career_os_plan",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The plan on analyst → associate around here — move one first. Move one: build the evidence file — log every win and piece of feedback in your wins log the day it happens, and take one visible piece of work per month. Move two: build the sponsorship — one senior person who has seen your work and will say your name in the room, earned by staffed work and follow-through; then time the case to the firm's actual promotion window.\nGrounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want move one started now — the wins log opened on this thread?"
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have a consulting interview next week — help me practice cases",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your case: Why this firm / why consulting + your questions for the interviewer The prompt: Bain states it looks, in all cases, for people who can explain why they want to join Bain specifically; BCG's own prep advice stresses the closing Q&A as part of the assessment of fit. From the product's researched consulting interview bank (consulting.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nWork it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch. Tell me what you'd like to do next."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a case",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your case: Clarify the objective The prompt: restate the problem, confirm what success means, ask about constraints before solving. From the product's researched consulting interview bank (consulting.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nWork it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch. Tell me what you'd like to do next."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "harder one, and I'm weakest on profitability cases",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your case: Profitability The prompt: profits/revenue are falling; isolate revenue vs. Served first because it drills your stated weakness: profitability — the bank's focus ordering puts the weak spot at the front of the session, not the end. From the product's researched consulting interview bank (consulting.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nWork it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch. Tell me what you'd like to do next."
+    },
+    {
+      "conv": "P-A",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "One more — market entry this time",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your case: Market entry The prompt: should the client enter a new market/product, and how (build, buy, partner)? From the product's researched consulting interview bank (consulting.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nWork it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch. Tell me what you'd like to do next."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Prep me for a banking interview — technicals",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your finance question: Why investment banking? From the product's researched finance interview bank (ib-finance.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Hit me with the DCF question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your finance question: Walk me through a DCF. Widely attested, described by WSP as almost guaranteed in some form. From the product's researched finance interview bank — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "What is the model answer supposed to hit?",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The model answer — what it is supposed to hit. The model answer for \"Walk me through a DCF.\" — from the bank item itself, word for word in structure: State first: \"I'll do an unlevered DCF — the most common version — which values the firm to all capital providers.\" Project unlevered free cash flow (UFCF / FCFF), typically 5–10 years. Source: the product's researched finance interview bank (ib-finance.md) — the same item, not a paraphrase of it.\nSay it back in your own words and I will score the attempt against it."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "Now the three statements one",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your finance question: Walk me through the three financial statements and how they link. From the product's researched finance interview bank — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-B",
+      "family": "prep",
+      "band": "M1",
+      "turn": 5,
+      "say": "The income statement, balance sheet, and cash flow statement — net income flows into retained earnings and the cash flow statement starts from net income",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your finance question: What is net working capital? From the product's researched finance interview bank (ib-finance.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "I have a data analyst interview Thursday — drill me",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your data question: Data Science Skills (LinkedIn) candidates having all of a required skill set: filter + GROUP BY … HAVING COUNT(DISTINCT skill) = 3. From the product's researched data interview bank (data.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Another one",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your data question: Histogram of Tweets (Twitter) count tweets per user in a year, then bucket users by that count (nested aggregation). From the product's researched data interview bank (data.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "I'm weakest on SQL — focus there",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your data question: Funnel analysis in SQL & in words step conversion, where the drop is, which segment drives it. From the product's researched data interview bank (data.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-C",
+      "family": "prep",
+      "band": "M1",
+      "turn": 4,
+      "say": "One more",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your data question: Second Highest Salary (FAANG) distinct salary ranking; handle duplicates (show once). From the product's researched data interview bank (data.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Law firm interview coming up — what do they ask?",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your law question: Ask what a successful summer associate does well here / about mentoring and professional development. Source: National Jurist — https://nationaljurist.com/the-interview-questions-law-students-should-be-ready-to-answer/ From the product's researched law interview bank (law.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your law question: Introduce yourself a short narrative that lands on why you are applying for *this* position. From the product's researched law interview bank (law.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-D",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "Another",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your law question: Why did you go to law school / why did you choose law? Sources: Harvard OPIA (above); National Jurist (above) From the product's researched law interview bank (law.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 1,
+      "say": "med school interview nxt week, kinda nervous — can we practise?",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your medicine question: What will you find most difficult about medical school / balancing life as a physician-scientist or physician? Source: AAMC MD/PhD Guide — https://students-residents.ptest.aamc.org/media/10651/download From the product's researched medicine interview bank (medicine.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 2,
+      "say": "hit me with a question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your medicine question: Ethical scenario station a dilemma with social/policy implications (e.g., competing principles: patient autonomy vs. From the product's researched medicine interview bank (medicine.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-E",
+      "family": "prep",
+      "band": "M2",
+      "turn": 3,
+      "say": "an ethics one pls",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your medicine question: Competencies sampled across scenarios collaboration, communication, empathy, equity/fairness, ethics, motivation, problem-solving, professionalism, resilience, self-awareness (Acuity's own list as reproduced in its rater job postings). From the product's researched medicine interview bank (medicine.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "Quant trading interview — drill me on probability",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your quant question: Conditional probability with dice/coins e.g. Served first because it drills your stated weakness: probability — the bank's focus ordering puts the weak spot at the front of the session, not the end. From the product's researched quant interview bank (quant-trading.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Another",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your quant question: How many flips do you expect before a fair coin lands two heads in a row? From the product's researched quant interview bank — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-F",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "A market-making one",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your quant question: Trading simulation / market-making game (final round) multi-player or simulated-market exercise at Optiver-style finals; graded on quote discipline, position limits and P&L, not on one price. From the product's researched quant interview bank (quant-trading.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 1,
+      "say": "I have a Netflix SWE interview Friday — prep me",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your warm-up question: Tell me about yourself / Why this firm? Source: IGotAnOffer Meta SWE commercial — https://igotanoffer.com/blogs/tech/facebook-software-engineer-interview From the product's researched software engineering interview bank (swe.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 2,
+      "say": "Walk me through the three financial statements",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "The three financial statements, walked through — statements, linkages, and the flow-through. Different thread, answered on its own terms: that is a finance technical, so it is served from the finance bank — your software engineering prep thread stays exactly where it was. The three are the income statement (revenue down to net income for a period), the balance sheet (assets = liabilities + shareholders' equity at a point in time), and the cash flow statement (the period's real cash movement across operating, investing, and financing).\nThey link at net income: the income statement's bottom line flows into retained earnings on the balance sheet, and it is the first line of the cash flow statement, which adjusts it for non-cash items and working-capital changes to reach actual cash. The follow-up the interviewer always asks is the flow-through: a $10 rise in depreciation at a 40% tax rate cuts net income by $6, the cash flow statement adds the $10 back and nets +$4 of cash after the tax shield, and the balance sheet still balances. Grounded in the finance drill bank's own answer keys — the same ground truth (fin-1) your practice answers are graded against, not a paraphrase invented for this reply.\nNow say it back as your own answer — I will grade it against the drill key (fin-1). Tell me what you'd like to do next."
+    },
+    {
+      "conv": "P-G",
+      "family": "prep",
+      "band": "M3",
+      "turn": 3,
+      "say": "Back to Netflix — give me a coding question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your coding question: Backtracking — Subsets, Permutations, Combination Sum From the product's researched software engineering interview bank (swe.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 1,
+      "say": "PM interview loop next week — help me prep",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your product management question: Pick a product you use every day: how would you improve it, and how would you know the improvement worked? From the product's researched product management interview bank — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 2,
+      "say": "Give me a product sense question",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your product management question: Product-sense timing/structure inside the round Lenny's guide breaks a strong answer into timed blocks (problem identification ~8–10 min, solution development ~8–10 min) with explicit \"waypointing\" between sections. From the product's researched product management interview bank (pm.md) — paraphrased prompt types from the firms' own published prep material, never invented items.\nAnswer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    },
+    {
+      "conv": "P-H",
+      "family": "prep",
+      "band": "M1",
+      "turn": 3,
+      "say": "Another one — execution this time",
+      "handler": "142-career-router.handleChat",
+      "intent": "prep_brief",
+      "fallback": false,
+      "pass": true,
+      "delivered": "Your product management question: Analytical thinking = goals + analysis + prioritisation in one round (Meta's definition of the Execution round). Source: IGotAnOffer Meta PM (fetched) — https://igotanoffer.com/blogs/product-manager/facebook-product-manager-interview From the product's researched product management interview bank (pm.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+    }
+  ]
+}

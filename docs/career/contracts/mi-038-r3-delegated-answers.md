@@ -82,3 +82,20 @@ every R2 label in scope, the federal-pair pins, attestation
 canonicalization, why-essay widening, and four end-to-end fills with
 fact-removal reversals). Fail-first: 17 red on the pre-R3 tree
 (incl. the one bank-aware assertion update) → 40/40 green.
+
+## Follow-ons from the live re-drive (same day)
+
+The R3 drives surfaced four more defects of the same family, fixed the
+same day with verbatim-label guards (answer-map suite at 45/45): the
+location rule's bare substrings (`city` in "capacity", `location` in
+"relocation") word-boundaried; the prior-employment pattern extended to
+the "currently working at" shape; `reside_near_posting` (posting-relative,
+company-scoped facts only) and `graduation_year_or_later` (a readiness
+mirror) added; region-named work-authorization questions
+(`work_authorization_other_region`) given NO derivation — the bank's
+authorization fact is U.S.-scoped and no other region's answer exists
+in the record; essay free-text patterns widened; attestation
+canonicalization made label-keyed across widget shapes. Two helper-side
+defects (attach ladder filling cover-letter/transcript slots with the
+packet; react-select single-drive persistence) are named in the run
+summary for the helper's owner, not fixed here.

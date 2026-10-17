@@ -1,0 +1,31 @@
+(node:544127) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:544127) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ explicit classification versions remain reducer dependencies (85.793202ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 157.325744
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/interview-context-compat.test.cjs:23:1
+✖ explicit classification versions remain reducer dependencies (85.793202ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(state.dependencies.some(r=>r.id==='target-family-1'))
+  
+      at TestContext.<anonymous> (/tmp/upmore-context-controls-yuvhWJ/tests/career-critical-repairs/interview-context-compat.test.cjs:23:410)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

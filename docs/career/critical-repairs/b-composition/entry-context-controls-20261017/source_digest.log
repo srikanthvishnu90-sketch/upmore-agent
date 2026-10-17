@@ -1,0 +1,28 @@
+(node:543876) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:543876) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ actual source bytes must match the declared source digest (77.349249ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.462924
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/interview-context-compat.test.cjs:19:1
+✖ actual source bytes must match the declared source digest (77.349249ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/tmp/upmore-context-controls-yuvhWJ/tests/career-critical-repairs/interview-context-compat.test.cjs:19:151)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /source_digest/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

@@ -1,0 +1,33 @@
+(node:544039) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:544039) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ a software-looking title alone never supplies role family or level (96.169692ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.536698
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/interview-context-compat.test.cjs:13:1
+✖ a software-looking title alone never supplies role family or level (96.169692ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'software_engineering'
+  - null
+  
+      at TestContext.<anonymous> (/tmp/upmore-context-controls-yuvhWJ/tests/career-critical-repairs/interview-context-compat.test.cjs:13:315)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'software_engineering',
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

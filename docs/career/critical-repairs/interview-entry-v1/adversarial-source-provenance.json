@@ -1,0 +1,11 @@
+{
+  "runtime_commit": "dbac58ab54f19d9daea79b1cf3fc1b53baea5780",
+  "frozen_test_commit": "2372fcf081eca220c7b579372d6007033f0a605c",
+  "test_sha256": "bed4062457d55be80ea5f98fe2bf7df13d37d64708274de7e051a46aa2ad04af",
+  "actual_entry_tests": 10,
+  "provider_calls": 0,
+  "pair_records": 0,
+  "campaign_records": 0,
+  "model_quality": "NOT_RUN",
+  "live_browser_outcomes": 0
+}

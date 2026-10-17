@@ -1,0 +1,95 @@
+{
+  "source": "2372fcf081eca220c7b579372d6007033f0a605c",
+  "runtime_sha256": "64bfa8bc52472d7b18219346726156124e7a25eb5f8f87e738099427c7d01228",
+  "tier": "MOCK_CONTRACT",
+  "baseline_all_green": true,
+  "results": [
+    {
+      "id": "version_zero",
+      "pattern": "canonical version zero survives",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "094f8bfd69a51b1e51ccf17961726c8acd191fb242c56bff26910538b298bf18"
+    },
+    {
+      "id": "owner",
+      "pattern": "changed context bytes and foreign evidence",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "1d0bd433d2acc79685800e68724adbdea78cb9b44d70187ed32716060b31c3b7"
+    },
+    {
+      "id": "context_digest",
+      "pattern": "changed context bytes and foreign evidence",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "5b706508bd8f79de5747bbc3c361b6f1739196f951e24fada9d5e1b5ed8ce486"
+    },
+    {
+      "id": "source_digest",
+      "pattern": "actual source bytes must match",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "187ddfd6f399aa70e69ffd41d64f942980f438d8a89f9b2753a0f6cffc40b03b"
+    },
+    {
+      "id": "source_to_person",
+      "pattern": "public-source provenance",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "1a4df793a68f249a1786dc6ef65802fe6db6a9b2f22a8969d3533640d21a4861"
+    },
+    {
+      "id": "role_inference",
+      "pattern": "software-looking title alone",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "34cf5a14dadc85fcd09b20e04ca5ff06ae3acd429bd04a7aa7bfcc0158d6db57"
+    },
+    {
+      "id": "classification_dependency",
+      "pattern": "explicit classification versions",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "8cbc107ee32adffbf84fdc322ca649b821cf3f6ef9faedd4fa4204d701512463"
+    },
+    {
+      "id": "ambiguous_target",
+      "pattern": "multiple targets require",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "2857fe25006073cb9ab10f75d2cc89ca9fa22258360c39008bc31af6b170a360"
+    },
+    {
+      "id": "unrelated_goal",
+      "pattern": "unrelated goal changes",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "a7e3605c2895aa957eefb3106da358dbabea5973ccf7dc8e66b308ee7c6289ef"
+    },
+    {
+      "id": "source_classification",
+      "pattern": "source supersession is resume replacement",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "f91ce815309cd500fc438ee9bd092c605538d87fc9dc377e4c5446137c5ecfc6"
+    },
+    {
+      "id": "resume_version",
+      "pattern": "new resume source version",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "cbdb53b1774bcd0ecea484e0f2f34a8bf0ff26c2ade1037a6626e85f46e6d845"
+    },
+    {
+      "id": "missing_proof",
+      "pattern": "available canonical capability",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "d81ae1912c032a9c7e9d8d50c167e65b794402d74c7f54c9b8d8ff3820b55954"
+    }
+  ],
+  "provider_quality": "NOT_RUN",
+  "provider_calls": 0,
+  "browser_outcomes": 0
+}

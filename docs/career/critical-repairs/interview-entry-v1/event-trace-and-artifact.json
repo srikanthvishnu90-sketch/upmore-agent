@@ -1,0 +1,266 @@
+{
+  "evidence": "ACTUAL_STAGED_ENTRY_LOCAL_SQL_PROVIDER_DISABLED",
+  "events": [
+    {
+      "type": "start",
+      "key": "start",
+      "message": "Interview preparation",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "awaiting_answer",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 1,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "88fb5012bf6856c445f78d2a3847092e2e4f92a2dfcfe2ac67bb8dfc83e78313",
+              "account_version": 1,
+              "thread_revision": 1
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Let’s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+        "action": null,
+        "turn_key": "start",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "submit_answer",
+      "key": "answer",
+      "message": "I built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "awaiting_answer",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 2,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "231bf5ed2d0a41b09d055186be04d120c8d672f52bc5cff5d62b3c43c6971caf",
+              "account_version": 2,
+              "thread_revision": 2
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Your exact answer is saved without an assessment. Generation and independent checking are not wired on this host.",
+        "action": null,
+        "turn_key": "answer",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "submit_answer",
+      "key": "answer",
+      "message": "I built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "awaiting_answer",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 2,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "231bf5ed2d0a41b09d055186be04d120c8d672f52bc5cff5d62b3c43c6971caf",
+              "account_version": 2,
+              "thread_revision": 2
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Your exact answer is saved without an assessment. Generation and independent checking are not wired on this host.",
+        "action": null,
+        "turn_key": "answer",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "pause",
+      "key": "pause",
+      "message": "Interview preparation",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "awaiting_answer",
+            "status": "paused",
+            "version": "career_interview_entry/v1",
+            "revision": 3,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "474f37efc1678fcd2d22aab4213952c212c3b5acbfe5dc1ab138a6b330ae4084",
+              "account_version": 3,
+              "thread_revision": 3
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.",
+        "action": null,
+        "turn_key": "pause",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "resume",
+      "key": "resume",
+      "message": "Interview preparation",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "awaiting_answer",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 4,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "53e5d515792a2f4c1360ea1553df473ed5fdb77f3f16399e81c9b81e4534bd03",
+              "account_version": 4,
+              "thread_revision": 4
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Resuming the saved question and latest valid draft.\nChoose one project from your experience. What problem mattered, what did you personally do, why that approach, and what did you actually observe?",
+        "action": null,
+        "turn_key": "resume",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "build_pack",
+      "key": "pack",
+      "message": "Interview preparation",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "pack_ready",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 5,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "4ad98f5913d0f5523530352f902e729ff1470f53ccbbce49940478131b0644ca",
+              "account_version": 5,
+              "thread_revision": 5
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Preparation pack content assembled. Delivery is pending host persistence and readable authorized readback.",
+        "action": null,
+        "artifact": {
+          "id": "4bc7af66-1b01-4198-a88d-183edab8ee81",
+          "sha256": "1243a023c6871138eebd96272fd938ba505a95a642c5fe603b75718543a5da47",
+          "partial": true,
+          "byte_length": 5023,
+          "download_path": "/career/artifacts/4bc7af66-1b01-4198-a88d-183edab8ee81"
+        },
+        "turn_key": "pack",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "artifact_readback",
+      "key": "readback",
+      "message": "I opened the partial pack",
+      "response": {
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "stage": "pack_ready",
+            "status": "active",
+            "version": "career_interview_entry/v1",
+            "revision": 6,
+            "context_binding": {
+              "epoch": 0,
+              "context_sha256": "3757b2a6ea65b3c72c40f4a94b48fb91295624ad54945d34a2c31fe1b646f1d8",
+              "account_version": 6,
+              "thread_revision": 6
+            },
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        },
+        "reply": "Your partial pack was reopened and verified; its remaining gaps are explicit.",
+        "action": null,
+        "turn_key": "readback",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-0000000000b1"
+      },
+      "status": 200
+    },
+    {
+      "type": "status",
+      "key": "status",
+      "message": "Interview preparation",
+      "response": {
+        "thread_id": "00000000-0000-4000-8000-0000000000b1",
+        "turn_key": "status",
+        "reply": "Your saved interview checkpoint is available. Assessment is not wired on this host.",
+        "action": null,
+        "reminders": [],
+        "read_only": true,
+        "meta": {
+          "career": true,
+          "career_journey": {
+            "version": "career_interview_entry/v1",
+            "stage": "pack_ready",
+            "status": "active",
+            "revision": 6,
+            "assessment_status": "not_wired",
+            "actual_model_quality": "NOT_RUN"
+          }
+        }
+      },
+      "status": 200
+    }
+  ],
+  "artifact": {
+    "id": "4bc7af66-1b01-4198-a88d-183edab8ee81",
+    "sha256": "1243a023c6871138eebd96272fd938ba505a95a642c5fe603b75718543a5da47",
+    "partial": true,
+    "byte_length": 5023,
+    "download_path": "/career/artifacts/4bc7af66-1b01-4198-a88d-183edab8ee81",
+    "download_sha256": "1243a023c6871138eebd96272fd938ba505a95a642c5fe603b75718543a5da47",
+    "readback_receipt": "3be2db5f-fdb5-4919-af8d-ea350e86b196",
+    "utf8": "# Interview preparation pack\n\nStatus: partial\n\n## Target and constraints\n\nRole: Software engineer intern; company: unknown; level: early-career; stage: unknown\n\nResume: resume-1@1\n\nAvailable minutes: 30\n\nInterview timing: not supplied\n\nDaily study minutes: null\n\nUnknowns: company; interview stage\n\n## Role and company brief\n\nResearch limited. No verified current capture. Supplied material is identified in the evidence appendix; interview questions below are representative practice.\n\n## Prioritized preparation plan\n\nproject: 8 minutes. Ground a truthful narrative in actual experience. Evidence: \\[\\{\"id\":\"fact-1\",\"version\":1\\},\\{\"id\":\"target-1\",\"version\":1\\},\\{\"id\":\"target-family-1\",\"version\":1\\},\\{\"id\":\"target-level-1\",\"version\":1\\},\\{\"id\":\"resume-1\",\"version\":1\\}\\]\n\ntechnical: 10 minutes. Practice role-relevant correctness and recovery reasoning. Evidence: \\[\\{\"id\":\"fact-1\",\"version\":1\\},\\{\"id\":\"target-1\",\"version\":1\\},\\{\"id\":\"target-family-1\",\"version\":1\\},\\{\"id\":\"target-level-1\",\"version\":1\\},\\{\"id\":\"resume-1\",\"version\":1\\}\\]\n\nbehavioral: 6 minutes. Separate personal contribution, team decisions and evidence. Evidence: \\[\\{\"id\":\"fact-1\",\"version\":1\\},\\{\"id\":\"target-1\",\"version\":1\\},\\{\"id\":\"target-family-1\",\"version\":1\\},\\{\"id\":\"target-level-1\",\"version\":1\\},\\{\"id\":\"resume-1\",\"version\":1\\}\\]\n\npack: 6 minutes. Review and save current evidence with unassessed gaps explicit. Evidence: \\[\\{\"id\":\"fact-1\",\"version\":1\\},\\{\"id\":\"target-1\",\"version\":1\\},\\{\"id\":\"target-family-1\",\"version\":1\\},\\{\"id\":\"target-level-1\",\"version\":1\\},\\{\"id\":\"resume-1\",\"version\":1\\}\\]\n\n## Truthful story bank\n\nfact-1@1: Built a synthetic class calculator. — source \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"synthetic-report-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\n## Original and revised answers\n\ninterview-e2689d4f-6166-4b4f-918d-8e178026257e:attempt:answer / project-narrative / initial; assistance: none; parent: none\nI built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.\nSHA-256: 8b47299407f853bdacf0abb172edf7603027cf2027dfc993c43ec4c6627a13b4\n\n## Feedback, practice and transfer\n\nNot yet supplied or assessed.\n\n## Remaining preparation and deferrals\n\nRemaining declared time: 30 minutes. Time spent is user/host reported, never inferred.\n\nproject: extended work deferred to fit the declared remaining time.\n\ntechnical: extended work deferred to fit the declared remaining time.\n\nbehavioral: extended work deferred to fit the declared remaining time.\n\npack: extended work deferred to fit the declared remaining time.\n\nCurrent company research requires an approved source/capture; missing research does not block experience practice.\n\nCompany not supplied; role-only preparation\n\nResearch limited: no verified role/company capture\n\nSource-backed role/company synthesis not assessed\n\nproject answer not assessed\n\ntechnical answer not assessed\n\nbehavioral answer not assessed\n\npractice not assessed\n\nrevision not assessed\n\nUnassisted transfer not assessed\n\nNo current evidence-linked answer draft\n\n## Questions to ask the interviewer\n\nGeneric, not company-specific: What would a successful first project look like for someone at this level?\n\nGeneric, not company-specific: How does the team review design choices and validate changes?\n\n## Day-of checklist\n\nAppointment time, meeting link, interviewer and location have not been supplied. Confirm them from your own invitation.\n\n## Evidence and version appendix\n\nJourney interview-e2689d4f-6166-4b4f-918d-8e178026257e, revision 5; context 53e5d515792a2f4c1360ea1553df473ed5fdb77f3f16399e81c9b81e4534bd03; epoch 0.\n\nfact-1@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"synthetic-report-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget-1@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"target-report-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget-family-1@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"target-report-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\ntarget-level-1@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"target-report-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nresume-1@1; user\\_reported; provenance \\{\"kind\":\"user\\_report\",\"observed\\_at\":\"2026-10-16T23:00:00.000Z\",\"record\\_id\":\"resume-source-1\",\"reference\":\"synthetic committed profile\",\"revision\":1,\"trust\":\"user\\_reported\"\\}\n\nAssisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.\n"
+  },
+  "paidCalls": 0,
+  "actualModelQuality": "NOT_RUN",
+  "tested_runtime_commit": "dbac58ab54f19d9daea79b1cf3fc1b53baea5780",
+  "tested_oracle_commit": "2372fcf081eca220c7b579372d6007033f0a605c",
+  "evidence_limits": [
+    "Provider-disabled, no assessment quality",
+    "Server delivery and readback, no client disk-save proof",
+    "No browser task completed"
+  ]
+}

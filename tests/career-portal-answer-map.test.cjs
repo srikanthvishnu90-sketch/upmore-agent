@@ -712,3 +712,30 @@ test("R3 follow-on derivation: a company-scoped application_answer fact never em
   assert.equal(d.answers.reside_near_posting, undefined, "posting-relative answers are host-merged per company, never generic (a generic No would be wrong for a same-city posting)");
   assert.ok(Portal.ANSWER_KEY_SOURCES.reside_near_posting, "the key is declared, so a host-merged answer is lawful");
 });
+
+test("R3 follow-on classification: ID.me's verbatim compound labels route to their keys", () => {
+  const onsite = clsR3("This role requires working onsite 5 days per week at one of our hub offices (Mountain View, CA or McLean, VA). Do you currently live within commuting distance of one of these locations, or are you willing to relocate?");
+  assert.equal(onsite.question_key, "reside_near_posting", "the reside/commuting/relocate compound is the posting-relative key, not the city value and not the SF/NY onsite key");
+  const grad = clsR3("Is your expected graduation date in 2028 or later?");
+  assert.equal(grad.question_key, "graduation_year_or_later", "the graduation-eligibility question is not the end-date year value");
+});
+
+test("R3 follow-on end to end: graduation_year_or_later resolves against the education fact's year (mirror of readiness)", () => {
+  const mk = (label) => {
+    const { defs } = BrowserBoard.classifyFields([
+      { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+      { label, name: "q_gy", id: "q_gy", inputType: "text", tag: "input", cls: "select__input", selector: "#q_gy", required: true },
+    ]);
+    const board = stubBoard(defs);
+    const session = Portal.createPortalSession({ userId: "u-test", board });
+    Portal.runApply(session, { posting: POSTING, profile: profileFromBank(SYNTH_BANK), log: { records: [] } });
+    return { defs, board };
+  };
+  const yes = mk("Is your expected graduation date in 2028 or later?");
+  const yesDef = yes.defs.find((d) => d.question_key === "graduation_year_or_later");
+  assert.ok(yesDef, "classified graduation_year_or_later");
+  assert.equal(yes.board.held[yesDef.field_id], "Yes", "graduation year 2029 is in 2028 or later");
+  const no = mk("Is your expected graduation date in 2030 or later?");
+  const noDef = no.defs.find((d) => d.question_key === "graduation_year_or_later");
+  assert.equal(no.board.held[noDef.field_id], "No", "graduation year 2029 is not in 2030 or later");
+});

@@ -230,6 +230,7 @@ const CareerPortalApply = (() => {
     winternship_interest: ["application_answer"],
     office_location_preference: ["application_answer"],
     reside_near_posting: ["application_answer"], // company-scoped facts ONLY (the answer is posting-relative: his Chicago residence vs the posting's city, per board) — deriveAnswers never emits a company-scoped fact; the drive host merges it for its company, the application_text pattern
+    graduation_year_or_later: ["education"], // fill-time resolution: the label's year against the education fact's graduation year (the mirror of full_time_readiness — "graduating in YEAR or later" is Yes when gradYear >= the label's year)
     relocate_bay_area: ["application_answer"],
     relocate_new_york: ["application_answer"],
     onsite_sf_ny: ["application_answer"],
@@ -754,6 +755,18 @@ const CareerPortalApply = (() => {
       const askedYear = parseInt(m[1], 10);
       if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
       return { value: gradYear <= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's year ${askedYear}` };
+    }
+    if (key === "graduation_year_or_later") {
+      // R3 follow-on (ID.me, verbatim): "Is your expected graduation
+      // date in 2028 or later?" — the mirror comparison: Yes when the
+      // education fact's graduation year is the label's year or later.
+      const m = String((f && f.label) || "").match(/\b(20\d{2})\b/);
+      const gy = profileValue(profile, "education_graduation_year");
+      if (!m || !gy) return null;
+      const gradYear = parseInt(String(gy), 10);
+      const askedYear = parseInt(m[1], 10);
+      if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
+      return { value: gradYear >= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's "in ${askedYear} or later"` };
     }
     return null;
   }

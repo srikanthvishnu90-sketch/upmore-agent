@@ -231,7 +231,7 @@ export async function deliverReminder(reminder, deps) {
     if (!prior.leaseToken || !["claimed","uncertain"].includes(prior.status)) return {delivered:false,pending:true,status:prior.status,reminder_id:id};
     claim = {...prior,reminder:prior.reminder,claimed:true};
   }
-  const record = deliveredRecordFor(claim.reminder || reminder,{now:d.now,channel:"product_inbox"});
+  const record = d.record || deliveredRecordFor(claim.reminder || reminder,{now:d.now,channel:"product_inbox"});
   let acknowledged;
   try {acknowledged = await api.ack(userId,id,claim.leaseToken,record);}
   catch (error) {
@@ -245,6 +245,31 @@ export async function deliverReminder(reminder, deps) {
   // A local diagnostic log is observation, not the delivery acknowledgement.
   if (d.deliveredLogPath) fs.appendFileSync(d.deliveredLogPath,JSON.stringify(acknowledged.record)+"\n");
   return {delivered:true,duplicate:false,reminder_id:id,record:acknowledged.record};
+}
+
+// The delivered record for a multi-reminder unit (MI-117 batch / digest):
+// every member is claimed and acked individually (exactly-once per reminder
+// is untouched), but each ack carries THIS unit record, so the product
+// inbox presents one batched/digest alert — with every member's own
+// deadline and apply link on it — instead of N near-identical pings.
+export function unitRecordFor(unit, now) {
+  const members = unit.reminders || [];
+  return {
+    type: "career_job_reminder_delivered",
+    presentation: unit.kind, // "batch" | "digest"
+    reminder_id: members.length ? members[0].reminder_id : null,
+    member_reminder_ids: members.map((r) => r.reminder_id),
+    user_id: members.length ? members[0].user_id : null,
+    company: unit.company || null,
+    batch_size: members.length,
+    speak_line: unit.speak_line,
+    members: members.map((r) => ({ reminder_id: r.reminder_id, job_id: r.job_id, title: r.title, company: r.company, deadline: r.deadline || null, url: r.url })),
+    fit_lines: [...new Set(members.flatMap((r) => (r.fit && r.fit.lines) || []))],
+    matched_fact_ids: [...new Set(members.flatMap((r) => (r.fit && r.fit.matched_fact_ids) || []))],
+    ...(unit.notice ? { notice: unit.notice } : {}),
+    channel: "product_inbox",
+    delivered_at: new Date(now || Date.now()).toISOString(),
+  };
 }
 
 // ---- the per-user cycle -------------------------------------------------------
@@ -288,6 +313,7 @@ export async function runUserAlertCycle(userId, deps) {
   let store = d.store;
   if (!store || typeof store.get !== "function" || typeof store.set !== "function")
     throw new Error("runUserAlertCycle requires an injected store {get,set}");
+  const rootStore = d.store; // the caller's store: delivery-state writes (MI-117) persist through it after the cycle transaction commits
   if(typeof store.beginCycle!=="function")throw Object.assign(new Error("Atomic career cycle is NOT_WIRED"),{code:"NOT_WIRED"});
   const transaction=store.beginCycle();store=transaction.store;
   const now = d.now == null ? Date.now() : d.now;
@@ -352,12 +378,46 @@ export async function runUserAlertCycle(userId, deps) {
   await transaction.commit(queued); // snapshots + history + queue + outbox, one transaction
   const pending = await store.delivery.pending(userId);
   const drained = pending.reminders || [];
+
+  // MI-117: 152's fatigue policy plans delivery BEFORE anything is claimed.
+  // Quiet hours hold, the daily instant budget folds overflow into the
+  // morning digest, same-company bursts batch into one unit record. Held
+  // and folded reminders are never claimed this cycle — they stay pending
+  // in the outbox and are re-planned next cycle. State persists through the
+  // ROOT store (the cycle buffer's writes closed at commit). A policy-layer
+  // failure must never eat a delivery: on any throw the cycle falls back to
+  // the unplanned per-reminder path below.
+  let fatigue = null;
+  let units = drained.map((r) => ({ kind: "instant", company: r.company || null, reminders: [r], speak_line: Assign.speakLine(r) }));
+  if (typeof Assign.planDeliveries === "function") {
+    try {
+      const prior = await Assign.loadDeliveryState(rootStore, userId).catch(() => null);
+      const plan = Assign.planDeliveries(drained, prior || Assign.defaultDeliveryState(userId), {
+        now, userId,
+        tzOffsetMinutes: d.tzOffsetMinutes || 0,
+        nightOptIn: !!d.nightAlertsOptIn,
+        instantCap: d.instantCapPerDay || null,
+      });
+      await Assign.saveDeliveryState(rootStore, plan.state).catch(() => {});
+      units = plan.units;
+      fatigue = { units: plan.units.length, digested: plan.digested.length, held: plan.held.length, notice: plan.notice };
+    } catch { fatigue = { error: "fatigue planning failed; delivered unplanned" }; }
+  }
+
   const delivered = [];
-  for (const reminder of drained) {
-    const res = await deliverReminder(reminder, { store, now, channel: d.channel, deliveredLogPath: d.deliveredLogPath, sink: d.sink, reconcile: true });
-    if (res.delivered) delivered.push(res.record);
-    else if(res.pending)errors.push({stage:"deliver",reminder_id:reminder.reminder_id,error:"owned inbox delivery pending reconciliation"});
-    else errors.push({ stage: "deliver", reminder_id: reminder.reminder_id, error: "duplicate delivery suppressed by ledger" });
+  for (const unit of units) {
+    const record = unit.kind !== "instant" ? unitRecordFor(unit, now)
+      : unit.notice ? Object.assign(deliveredRecordFor(unit.reminders[0], { now, channel: "product_inbox" }), { notice: unit.notice })
+      : null;
+    let satisfied = unit.reminders.length > 0, lastRecord = null;
+    for (const reminder of unit.reminders) {
+      const res = await deliverReminder(reminder, { store, now, channel: d.channel, deliveredLogPath: d.deliveredLogPath, sink: d.sink, reconcile: true, ...(record ? { record } : {}) });
+      if (res.delivered) lastRecord = res.record;
+      else if (res.duplicate && unit.kind !== "instant") lastRecord = res.record || lastRecord; // member already in the inbox under this unit's record
+      else if (res.pending) { satisfied = false; errors.push({stage:"deliver",reminder_id:reminder.reminder_id,error:"owned inbox delivery pending reconciliation"}); }
+      else { satisfied = false; errors.push({ stage: "deliver", reminder_id: reminder.reminder_id, error: "duplicate delivery suppressed by ledger" }); }
+    }
+    if (satisfied && (record || lastRecord)) delivered.push(record || lastRecord);
   }
 
   return {
@@ -366,7 +426,7 @@ export async function runUserAlertCycle(userId, deps) {
     boards_polled: selected.length, boards_seeded: seededBoards,
     alerts: alerts.length, alert_records: alerts,
     reminders_queued: assign.reminders.length, queue_depth: await queue.size(),
-    delivered, suppressed: assign.suppressed, rejected_count: assign.rejected.length,
+    delivered, fatigue, suppressed: assign.suppressed, rejected_count: assign.rejected.length,
     errors,
   };
 }

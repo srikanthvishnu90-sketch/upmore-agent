@@ -1,0 +1,11 @@
+{
+  "runtime_before": "8d102907649ceb7712a384ad512089a748210d9d",
+  "test": "tests/combined-effect-admission-postgres.test.cjs",
+  "sha256": "9775357f7d6c1dd064f84104254bb931a4ccf297d31f618f6f21c3be5a1cccc6",
+  "baseline": {
+    "pass": 3,
+    "fail": 2
+  },
+  "physicalEffects": 0,
+  "paidCalls": 0
+}

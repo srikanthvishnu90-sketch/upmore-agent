@@ -76,14 +76,17 @@ begin
 end $$;
 
 -- Existing reserve/consume functions already hold the account owner lock.
--- Fence an expired owned lease before reservation or physical admission.
+-- Every claim must meet absolute intent expiry at new-effect admission.
+-- Owned claims additionally require a current owned lease. Receipt settlement
+-- after dispatch is deliberately outside this admission-only effect branch.
 create function public.career_task_owned_lease_fence_v1() returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
 declare i career_task_intents_v1;
 begin
  if TG_TABLE_NAME='career_task_effects_v1' then
   if TG_OP='INSERT' or (NEW.state='started' and OLD.state is distinct from NEW.state) then
    select * into i from career_task_intents_v1 where user_id=NEW.user_id and intent_id=NEW.intent_id;
-   if i.claim_worker is not null and (i.claim_lease_until is null or i.claim_lease_until<=clock_timestamp() or i.expires_at<=clock_timestamp()) then raise exception 'task owned lease revoked';end if;
+   if i.expires_at is null or i.expires_at<=clock_timestamp() then raise exception 'task intent expired';end if;
+   if i.claim_worker is not null and (i.claim_lease_until is null or i.claim_lease_until<=clock_timestamp()) then raise exception 'task owned lease revoked';end if;
   end if;
  elsif NEW.state='completed' and OLD.state is distinct from NEW.state and OLD.claim_worker is not null and (OLD.claim_lease_until is null or OLD.claim_lease_until<=clock_timestamp() or OLD.expires_at<=clock_timestamp()) then raise exception 'task owned lease revoked';
  end if;return NEW;

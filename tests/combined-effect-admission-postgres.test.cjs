@@ -48,4 +48,34 @@ if(!process.env.CAREER_TEST_CONTAINER){test('owned claim recovery real PostgreSQ
    assert.match(outcome.error||'',/task owned lease revoked/,'expired admission must be refused');assert.equal(state,'reserved','expired attempt must not consume reservation');
   }finally{if(holder.exitCode===null){holder.stdin.end('rollback;\n');await closed;}}
  });
+ for(const operation of ['reserve','consume'])test('legacy '+operation+' rechecks absolute intent expiry after a real owner-lock wait',async()=>{
+  const legacy=createTaskAuthority(db),i=commit(),g=claim(legacy,i),ticket=operation==='consume'?legacy.begin(g,'open',hash('legacy-consume')):null;
+  const {spawn}=require('node:child_process'),container=process.env.CAREER_TEST_CONTAINER,database=process.env.CAREER_TEST_DATABASE;
+  const holder=spawn('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d',database,'-v','ON_ERROR_STOP=1']);let output='',holderError='';holder.stderr.on('data',x=>holderError+=x);
+  const closed=new Promise((resolve,reject)=>{holder.on('close',code=>code?reject(Error(holderError)):resolve());holder.on('error',reject);});
+  const locked=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('owner lock holder did not start')),5000);holder.stdout.on('data',x=>{output+=x;if(output.includes('OWNER_LOCK_HELD')){clearTimeout(timer);resolve();}});});
+  holder.stdin.write("begin;select pg_advisory_xact_lock(hashtextextended('"+U+"',0));\n\\echo OWNER_LOCK_HELD\n");
+  try{
+   await locked;db.sql("update career_task_intents_v1 set expires_at=clock_timestamp()+interval '1200 milliseconds' where user_id='"+U+"';");
+   const fn=operation==='consume'?'career_task_consume_effect_v1':'career_task_begin_effect_v1',args=operation==='consume'?{p_user:U,p_token:ticket.token}:{p_user:U,p_intent:i.intent_id,p_lease:g.leaseToken,p_task:g.taskId,p_operation:'open',p_effect_key:hash('legacy-reserve'),p_bindings:g.binding};
+   const pending=db.callAsync(fn,args).then(value=>({value}),error=>({error:String(error)}));let waiting=[];
+   for(let n=0;n<100;n++){
+    waiting=JSON.parse(db.sql("select coalesce(jsonb_agg(jsonb_build_object('blocked',true,'legacyClaim',i.claim_worker is null,'transactionStartedBeforeExpiry',a.xact_start<i.expires_at,'expires',i.expires_at,'xactStart',a.xact_start)), '[]') from pg_stat_activity a cross join career_task_intents_v1 i where a.datname=current_database() and a.wait_event_type='Lock' and a.query like 'select public."+fn+"%' and i.user_id='"+U+"';"));
+    if(waiting.length)break;await new Promise(r=>setTimeout(r,20));
+   }
+   assert.equal(waiting.length,1);assert.equal(waiting[0].legacyClaim,true);assert.equal(waiting[0].transactionStartedBeforeExpiry,true);
+   for(let n=0;n<150;n++){if(db.sql("select clock_timestamp()>=expires_at from career_task_intents_v1 where user_id='"+U+"';")==='t')break;await new Promise(r=>setTimeout(r,20));}
+   assert.equal(db.sql("select clock_timestamp()>=expires_at from career_task_intents_v1 where user_id='"+U+"';"),'t');holder.stdin.end('commit;\n');await closed;
+   const outcome=await pending,effects=JSON.parse(db.sql("select coalesce(jsonb_agg(jsonb_build_object('state',state)),'[]')from career_task_effects_v1 where user_id='"+U+"';"));
+   console.log(JSON.stringify({probe:'LEGACY_ABSOLUTE_EXPIRY_AFTER_LOCK_WAIT',operation,waiting,outcome,effects,physicalEffects:0}));
+   assert.match(outcome.error||'',/task intent expired/,'absolute expiry must fence legacy admission');assert.deepEqual(effects,operation==='consume'?[{state:'reserved'}]:[]);
+  }finally{if(holder.exitCode===null){holder.stdin.end('rollback;\n');await closed;}}
+ });
+ for(const outcome of ['completed','uncertain'])test('legacy '+outcome+' post-dispatch receipt still settles exactly once after absolute expiry',()=>{
+  const legacy=createTaskAuthority(db),i=commit(),g=claim(legacy,i),ticket=legacy.begin(g,'open',hash('legacy-settle-'+outcome));legacy.consume(g,ticket);
+  db.sql("update career_task_intents_v1 set expires_at=clock_timestamp()-interval '1 second' where user_id='"+U+"';");
+  const before=hash('synthetic-before'),after=outcome==='completed'?hash('synthetic-after'):null;legacy.settle(g,ticket,outcome,before,after);legacy.settle(g,ticket,outcome,before,after);
+  assert.equal(db.sql("select state from career_task_effects_v1 where token='"+ticket.token+"';"),outcome);assert.equal(db.sql("select spent||':'||reserved from career_task_intents_v1 where intent_id='"+i.intent_id+"';"),'1:0');assert.throws(()=>legacy.consume(g,ticket));
+ });
+
 }

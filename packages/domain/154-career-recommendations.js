@@ -169,6 +169,16 @@ const CareerRecommendations = (() => {
     // and a bare resume x role co-occurrence no longer claims resume_roles
     // without a recommendation signal (fit/recommend/suit/qualified/match).
     if (/\b(apply|submit|send|email|watch|watches|watching|alerts?|pause|stop|delete|tailor|tailored|packet)\b/.test(t)) return null;
+    // LF-02 (v223 live regression, lane A): a question about the user's OWN
+    // tracked applications — their status, what is out, the pipeline — is
+    // tracker state, never a current-openings recommendation. The probe
+    // "What job applications do I have out right now, and what is their
+    // status?" matched the current_openings branch on "job" + "right now"
+    // and the tracker never saw the turn (receipt intent proved it).
+    // First-person possession of applications + a state word (status /
+    // out / pipeline / tracker) excludes the turn here so 142's tracker
+    // family owns it; a genuine openings ask carries no such possession.
+    if (/\btracker\b|\bmy pipeline\b|\bmy applications?\b[^.?!]*\b(status|stage|state|out|open|pending|progress)\b|\bapplications?\b[^.?!]*\bdo i have out\b|\bhave out\b[^.?!]*\b(applications?|apps?)\b|\bstatus of my\b[^.?!]*\bapplications?\b/.test(t)) return null;
     if (/\b(resume|résumé|cv|background|profile)\b/.test(t) && /\b(fit|recommend|recommendations?|suit|suited|qualified|match)\b/.test(t)) return "resume_roles";
     if (/\b(skill gaps?|missing skills?)\b/.test(t)) return "skill_gaps";
     if (/\b(current|fresh|live|today|right now)\b/.test(t) && /\b(openings?|jobs?|roles?|hiring)\b/.test(t)) return "current_openings";

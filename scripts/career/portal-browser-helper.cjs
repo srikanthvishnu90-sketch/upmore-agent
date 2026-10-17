@@ -454,14 +454,14 @@ async function cmdReadback(board, cmd) {
       const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
       return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
     });
-    else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
+    else if (b.inputType === "select") value = await nodes[0].evaluate((el) => { const option=el.options[el.selectedIndex]; return option && option.value!=="" ? option.textContent.trim() : null; });
     else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
     else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
       const chosen = [];
       for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
       value = b.inputType === "radio_group" ? chosen[0] : chosen;
     } else value = await nodes[0].inputValue();
-    if (value !== null && value !== undefined && value !== "" && !/^select/i.test(String(value))) answers[b.field_id] = value;
+    if (value !== null && value !== undefined && value !== "") answers[b.field_id] = value;
   }
   return { answers };
 }

@@ -66,7 +66,7 @@ function admitMultipart(manifest,contentType,body,payload){
  if(!payload||Object.keys(payload).some(x=>!allowed.has(x)))throw fail('NATIVE_PAYLOAD_MISMATCH');
  for(const f of m.fields){const p=parts.find(x=>x.name===f.name),value=payload[f.field_id];
   if(f.inputType==='file'){
-   if(!p||p.filename!==value?.filename||!p.bytes.length||hash(p.bytes)!==value.sha256||payload.resume_sha256!==value.sha256||resumeType(p.bytes,p.filename)!==p.contentType)throw fail('NATIVE_UPLOAD_MISMATCH');
+   if(!p||typeof value?.filename!=='string'||!/^[^\x00-\x1f\x7f/\\]{1,180}$/.test(value.filename)||['.','..'].includes(value.filename)||p.filename!==value.filename.replace(/"/g,'%22')||!p.bytes.length||hash(p.bytes)!==value.sha256||payload.resume_sha256!==value.sha256||resumeType(p.bytes,value.filename)!==p.contentType)throw fail('NATIVE_UPLOAD_MISMATCH');
   }else{
    if(p?.filename!==undefined)throw fail('NATIVE_PAYLOAD_MISMATCH');
    let expected=value===undefined?'':String(value);
@@ -83,7 +83,7 @@ function admitMultipart(manifest,contentType,body,payload){
  if(parts.some(x=>!m.fields.some(f=>f.name===x.name)))throw fail('NATIVE_PAYLOAD_MISMATCH');
  const file=parts.find(x=>x.filename!==undefined);
  // These are locally observed outbound bytes, never claimed ATS-received hashes.
- return {source:'owned_chromium_outbound_multipart',requestSha256:hash(body),resumeSha256:hash(file.bytes),fileBytes:file.bytes.length,contentType:file.contentType,filename:file.filename,fieldNames:parts.map(x=>x.name)};
+ return {source:'owned_chromium_outbound_multipart',requestSha256:hash(body),resumeSha256:hash(file.bytes),fileBytes:file.bytes.length,contentType:file.contentType,filename:payload.resume.filename,multipartFilename:file.filename,fieldNames:parts.map(x=>x.name)};
 }
 function captureReceipt(manifest,observation,request){
  const m=validateManifest(manifest);

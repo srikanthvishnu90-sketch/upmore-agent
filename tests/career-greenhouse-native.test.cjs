@@ -79,3 +79,14 @@ test('pre-dispatch refusal is diagnostic; any admitted transmission stays uncert
  assert.equal(h.count().effects,0);assert.deepEqual(Native.dispatchObservation(h.board),{source:'owned_chromium_route_gate',state:'refused_before_dispatch',admittedMutations:0,code:'NATIVE_PAYLOAD_MISMATCH'});
  h.board.mutationSent=true;assert.equal(Native.dispatchObservation(h.board).state,'admitted_outcome_unconfirmed');
 });
+test('multipart quoted filenames preserve exact original identity and bytes (platform encoding, no network)',async()=>{
+ const m=manifest(),file={...doc(),filename:'Synthetic "Resume".pdf'},w=await multipart(m,file);assert.ok(w.body.includes(Buffer.from('filename="Synthetic %22Resume%22.pdf"')));assert.doesNotThrow(()=>Native.admitMultipart(m,w.type,w.body,w.payload));
+ assert.throws(()=>Native.admitMultipart(m,w.type,w.body,{...w.payload,resume:{...w.payload.resume,filename:'Synthetic Other.pdf'}}),{code:'NATIVE_UPLOAD_MISMATCH'});
+ for(const filename of ['../Synthetic.pdf','unsafe\\Synthetic.pdf','Synthetic\nResume.pdf'])assert.throws(()=>Native.admitMultipart(m,w.type,w.body,{...w.payload,resume:{...w.payload.resume,filename}}),{code:'NATIVE_UPLOAD_MISMATCH'});
+});
+test('actual helper readback preserves Selecta and Select-prefixed prose; only empty select options are placeholders',async()=>{
+ const vm=require('node:vm'),source=fs.readFileSync(path.join(__dirname,'../scripts/career/portal-browser-helper.cjs'),'utf8'),start=source.indexOf('async function cmdReadback('),end=source.indexOf('\nasync function cmdReview(',start),nodes={name:{inputValue:async()=> 'Selecta'},note:{inputValue:async()=> 'Selected my project because it helped users.'},select:{evaluate:async fn=>fn({selectedIndex:0,options:[{value:'selective',textContent:'Selective research'}]})},placeholder:{evaluate:async fn=>fn({selectedIndex:0,options:[{value:'',textContent:'Select a choice'}]})}};
+ const read=vm.runInNewContext('('+source.slice(start,end)+')',{assertNativeForm:async()=>{},connected:async(_,ref)=>nodes[ref]});
+ const result=await read({}, {bindings:[{field_id:'first_name',inputType:'text',elementRefs:['name']},{field_id:'cover_note',inputType:'textarea',elementRefs:['note']},{field_id:'preference',inputType:'select',elementRefs:['select']},{field_id:'empty_choice',inputType:'select',elementRefs:['placeholder']}]});
+ assert.equal(result.answers.first_name,'Selecta');assert.equal(result.answers.cover_note,'Selected my project because it helped users.');assert.equal(result.answers.preference,'Selective research');assert.equal(result.answers.empty_choice,undefined);
+});

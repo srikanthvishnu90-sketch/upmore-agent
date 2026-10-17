@@ -124,3 +124,16 @@ fences, and return proof per application. Do not turn a broad text request into
 unbounded submissions or auto-refresh changed approvals. Multi-host execution,
 multi-tenant session persistence and employer receipt semantics are not proven
 by this structural-only branch.
+
+## Recorded source verification
+
+At source `3f073d7f2c54a906ac4515ce0b99f719ef0ee217`, 247 structural
+tests pass, including 58 real isolated PostgreSQL contracts. The four frozen
+entry assertions remain unchanged. Deterministic packaging produced 21 source
+files, archive SHA-256
+`994b77a273cf8b43794e1ac08f73bc49f5b88c4c136c15a7a16ecb5e6a8a1159`.
+The hosted image, target process, real browser frames and employer outcome
+remain NOT_RUN. Exact commands, source digests, test names, log hashes and
+remaining authorizations are in
+`docs/testing/runs/career-hosted-worker-20261017/results.json`.
+Local test container and wire listener were removed afterward.

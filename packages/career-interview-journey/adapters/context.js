@@ -14,7 +14,8 @@ const InterviewJourneyContext = (() => {
     for(const item of [...snapshot.facts,...snapshot.sources]){
       assert(typeof item.id==='string'&&!ids.has(item.id),'duplicate/missing canonical evidence id');ids.add(item.id);
       assert(scope(item,snapshot),'foreign evidence owner/scope');
-      assert(Number.isSafeInteger(item.version)&&item.version>0&&item.provenance&&item.trust&&item.validity,'missing evidence lineage');
+      // Canonical A item_version starts at zero; preserve it without coercion.
+      assert(Number.isSafeInteger(item.version)&&item.version>=0&&item.provenance&&item.trust&&item.validity,'missing evidence lineage');
       assert(item.validity.status==='active','inactive payload must be omitted, use value-free invalidations');
       assert(item.validity.epoch===snapshot.binding.epoch,'old epoch evidence');
     }

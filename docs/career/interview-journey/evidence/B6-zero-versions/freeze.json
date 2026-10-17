@@ -1,0 +1,46 @@
+{
+  "source_commit": "01cfb24d97dde5301cee842818d945d827d35f0a",
+  "files_sha256": {
+    "tests/career-interview-journey/context-versions.test.cjs": "407677b2597f2024249403e6a13dace1b23af541a3bfef22d3c7d24fdf25d5e9",
+    "scripts/career/interview-journey/projected-context-compatibility.cjs": "4f5313acad1ab2d2dc54c52e0834ce3dea4e048ee63887560af79a970ca0a621"
+  },
+  "checks": [
+    {
+      "name": "before-unit",
+      "command": [
+        "node",
+        "--test",
+        "tests/career-interview-journey/context-versions.test.cjs"
+      ],
+      "exit_code": 1,
+      "log": "before-unit.log",
+      "sha256": "9ff7dcdeca3d67321e035ca64d1cc996bde1c9089482392552bf1ee3f4eefbd0",
+      "counts": {
+        "tests": 27,
+        "pass": 22,
+        "fail": 5,
+        "skipped": 0
+      },
+      "temporary_baseline": "git archive 01cfb24d; copy current frozen tests only"
+    },
+    {
+      "name": "before-projected-A",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/interview-journey/projected-context-compatibility.cjs",
+        "--producer-ref",
+        "315158f5314360417266270ec6e6e9e71aad0af8"
+      ],
+      "exit_code": 1,
+      "log": "before-projected-A.log",
+      "sha256": "39b62f810a070c97dbbb225e1f405bfe8c01931d30525cecf90f07f84463b3a7",
+      "counts": {
+        "pass": 16,
+        "total": 23
+      }
+    }
+  ],
+  "provider_calls": 0,
+  "quality": "NOT_RUN"
+}

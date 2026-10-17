@@ -16,7 +16,9 @@ const cases=[
   {id:'retain_stale_practice_checkpoint',file:core,from:'invalidGuide=guided&&!guidedValid(s,checkpoint,checkpoint.stage)',to:'invalidGuide=false',test:'recovery-checkpoints',pattern:'company correction sanitizes a paused practice'},
   {id:'retry_with_foreign_question',file:core,from:'s.stage=phase;s.checkpoint.active_question=frame.active_question;',to:'s.stage=phase;/* planted: keep another question */',test:'recovery-checkpoints',pattern:'retrying a failed saved project answer'},
   {id:'discard_outstanding_on_cancel',file:core,from:'trackOutstanding(s,s.checkpoint.pending_reasoning,true);',to:'s.checkpoint.outstanding_reasoning=[];',test:'recovery-checkpoints',pattern:'first unknown after control'},
-  {id:'reopen_terminal_settlement',file:reasoning,from:"previous?.budget_state==='uncertain'&&previous.request?.action_id===event.action_id",to:'previous?.request?.action_id===event.action_id',test:'recovery-settlement',pattern:'detached settlement authenticates'}
+  {id:'reopen_terminal_settlement',file:reasoning,from:"previous?.budget_state==='uncertain'&&previous.request?.action_id===event.action_id",to:'previous?.request?.action_id===event.action_id',test:'recovery-settlement',pattern:'detached settlement authenticates'},
+  {id:'reject_canonical_zero_version',file:context,from:'Number.isSafeInteger(item.version)&&item.version>=0',to:'Number.isSafeInteger(item.version)&&item.version>0',test:'context-versions',pattern:'facts preserve canonical nonnegative safe version 0'},
+  {id:'accept_negative_fractional_version',file:context,from:'Number.isSafeInteger(item.version)&&item.version>=0',to:"typeof item.version==='number'",test:'context-versions',pattern:'facts reject invalid evidence version (-1|0.5)'}
 ];
 function run(output){
   fs.mkdirSync(output,{recursive:false});const temp=fs.mkdtempSync(path.join(os.tmpdir(),'interview-negative-'));const records=[];

@@ -19,6 +19,7 @@ const InterviewJourneyPack = (() => {
     const captures=state.research.filter(r=>r.status==='succeeded'&&refs.some(ref=>ref.id===r.source_ref.id&&ref.version===r.source_ref.version));
     const families=['project','technical','behavioral'];
     const missing=[];
+    if(state.checkpoint.outstanding_reasoning?.length||state.checkpoint.reasoning_recovery?.budget_state==='uncertain')missing.push('Reasoning action remains unsettled');
     if(state.role_support!=='early_career_software')missing.push('Full early-career software scope not confirmed');
     if(typeof state.target?.role!=='string'||!state.target.role.trim())missing.push('Target role not supplied');
     if(state.target&&!state.target.company)missing.push('Company not supplied; role-only preparation');

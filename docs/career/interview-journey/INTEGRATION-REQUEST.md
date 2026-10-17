@@ -1,5 +1,12 @@
 # Spec A / Muse integration request — blocked consumer boundary
 
+Latest B source and recovery protocol: [RECOVERY-20261017.md](RECOVERY-20261017.md).
+Use its exact tested source and preserve `checkpoint.outstanding_reasoning`
+through atomic persistence. A's current context-only projection has 20 passing
+cases against this runtime; execution proof profiles, version-zero compatibility,
+nested CI discovery and registration remain A-owned work. The historical absence
+at B's base and the direct-canonical failure below remain historical evidence.
+
 B's pure module is implemented. It is **not called by the actual career entry**.
 No handler, gateway, existing module, SQL, bundle or shared evidence file changed.
 `node scripts/career/interview-journey/check-integration.cjs` exits 2 and names

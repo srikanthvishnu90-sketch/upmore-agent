@@ -1,0 +1,132 @@
+✖ company correction sanitizes a paused practice whose supporting assessment became stale (76.122815ms)
+✖ retrying a failed saved project answer restores its matching question and rubric after an exercise switch (51.767834ms)
+✖ pause: first unknown after control keeps the detached action fenced through restart (23.987705ms)
+✔ pause: first unknown before control keeps the detached action fenced through restart (60.59532ms)
+✖ stop: first unknown after control keeps the detached action fenced through restart (15.619698ms)
+✔ stop: first unknown before control keeps the detached action fenced through restart (63.119514ms)
+✖ a detached request blocks a fresh pair even before the first outcome exists (35.366513ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 455.298371
+
+✖ failing tests:
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:9:1
+✖ company correction sanitizes a paused practice whose supporting assessment became stale (76.122815ms)
+  AssertionError [ERR_ASSERTION]: stale practice must reject before dereferencing an exercise
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:13:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of undefined (reading 'text')
+        at Object.planInterviewTurn (/workspace/upmore-spec-b/packages/domain/interview-journey/index.js:133:158)
+        at Object.turn (/workspace/upmore-spec-b/tests/career-interview-journey/scripted-host.cjs:12:133)
+        at /workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:13:23
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:13:10)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.start (node:internal/test_runner/test:1242:17)
+        at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:17:1
+✖ retrying a failed saved project answer restores its matching question and rubric after an exercise switch (51.767834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'retry-design'
+  - 'project-narrative'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:20:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'retry-design',
+    expected: 'project-narrative',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:23:78
+✖ pause: first unknown after control keeps the detached action fenced through restart (23.987705ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'stale_context'
+  - 'unknown'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:26:81)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'stale_context',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:23:78
+✖ stop: first unknown after control keeps the detached action fenced through restart (15.619698ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'stale_context'
+  - 'unknown'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:26:81)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'stale_context',
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/recovery-checkpoints.test.cjs:32:1
+✖ a detached request blocks a fresh pair even before the first outcome exists (35.366513ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/recovery-checkpoints.test.cjs:34:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

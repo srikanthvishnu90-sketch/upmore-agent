@@ -18,6 +18,10 @@ test('audit: pause technical -> role correction -> restart -> resume never resto
   assert.equal(s.state.status,'paused','a correction must not implicitly resume a paused journey');
   s.state=JSON.parse(JSON.stringify(s.state));s.turn('resume');assert.equal(s.state.checkpoint.active_question.family,'project');
   const late=s.turn('model_candidate',{action_id:oldPending.action_id,candidate:oldCandidate,receipt_id:'old'});assert.equal(late.reply_plan.status,'stale_context');
+  // Cancelling the UI checkpoint does not settle the host's paired accounting.
+  // Supply the explicit synthetic terminal outcome before proposing another pair.
+  s.snapshot.receipts.push({id:'cancelled-technical-settled',type:'reasoning_outcome',owner_id:s.snapshot.owner_id,thread_id:s.snapshot.thread_id,epoch:s.snapshot.binding.epoch,action_id:oldPending.action_id,input_digest:oldPending.input_digest,request_digest:oldPending.request_digest,request_binding:F.copy(oldPending.expected_binding),validated_binding:require('../../packages/career-interview-journey/adapters/context.js').binding(s.snapshot,s.state.revision),outcome_status:'stale_context',failure_kind:'stale_context',budget_state:'settled',reservation_ref:'synthetic-cancelled-pair',usage_receipt_refs:['synthetic-terminal-accounting']});
+  s.turn('reasoning_result',{action_id:oldPending.action_id,receipt_id:'cancelled-technical-settled'});
   const answer=s.answer('A truthful general project account.');assert.equal(answer.proposed_actions[0].args.request.question.family,'project');assert.equal(s.state.checkpoint.interruption_stack.length,0);
 });
 test('audit: all-abstention assessments cannot satisfy family, practice, revision or transfer completion',()=>{

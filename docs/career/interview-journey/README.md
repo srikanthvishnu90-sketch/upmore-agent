@@ -5,9 +5,15 @@ The new pure journey and its offline adapters are implemented on
 All changes are new files inside the six B-owned namespaces.
 The frozen Library inputs and ownership boundary are in [OWNERSHIP.md](OWNERSHIP.md).
 
-**Current result: 92/92 internal module contracts pass. Actual A canonical
-compatibility: FAIL. Product integration: BLOCKED. Actual coaching quality:
+**Current result: 104/104 internal module contracts pass. Historical direct A
+canonical compatibility: FAIL; current versioned context projection: 20/20
+tested cases pass. Product integration: BLOCKED. Actual coaching quality:
 NOT_RUN. Overall live readiness: NOT_READY.**
+
+The [recovery repair](RECOVERY-20261017.md) fixes stale paused practice, mixed
+question retries and lost action settlement after pause/stop. Its baseline,
+runtime checks, 14 intentional defects and A-owned integration requests are
+recorded together; broader B4 CI evidence remains historical.
 
 The first slice covers early-career software preparation: truthful project
 narrative, static technical reasoning and evidence-based behavioral work. It

@@ -1,0 +1,13 @@
+{
+  "source_commit": "a5f7557d64ea6ad1c69221b64777a1aa56924922",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+  ],
+  "exit_code": 1,
+  "test_sha256": "fcc3df546a43e303f0933067f83d3be30a63a4f4b292abe80f1afd9c1137490c",
+  "log_sha256": "36b69b1dcbfef9321bd18fbfe0bda3d7c61c3b0be0139e306b6e7e6718249674",
+  "provider_calls": 0,
+  "quality": "NOT_RUN"
+}

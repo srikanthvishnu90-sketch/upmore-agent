@@ -59,14 +59,15 @@ const InterviewJourneyReasoning = (() => {
   function isAssessed(assessment,dimension=null){return Array.isArray(assessment?.dimensions)&&assessment.dimensions.some(d=>(dimension===null||d.id===dimension)&&Number.isInteger(d.score)&&d.score>=0&&d.score<=4&&(d.spans?.length>0||typeof d.missing_criterion==='string'&&d.missing_criterion.length>0));}
   function hasCoverage(assessment,attempt){const q=R.questions[attempt?.question_id];if(!q)return false;const focus=attempt.kind==='practice'?R.exercises[attempt.exercise_id]?.competency:attempt.kind==='transfer'?attempt.transfer_competency:null;const required=focus?[focus]:q.rubric.coverage_dimensions;return required.every(d=>isAssessed(assessment,d));}
   function outcome(snapshot,state,event){
-    const pending=state.checkpoint.pending_reasoning||state.checkpoint.reasoning_recovery?.request;
-    if(!pending||pending.action_id!==event.action_id)return {status:'stale_context'};
+    const outstanding=(state.checkpoint.outstanding_reasoning||[]).find(e=>e.request.action_id===event.action_id),active=state.checkpoint.pending_reasoning,previous=state.checkpoint.reasoning_recovery;
+    const pending=active?.action_id===event.action_id?active:outstanding?.request|| (previous?.budget_state==='uncertain'&&previous.request?.action_id===event.action_id?previous.request:null);
+    if(!pending)return {status:'stale_context'};
     const receipt=C.receipt(snapshot,event.receipt_id,'reasoning_outcome');
     C.assert(receipt.action_id===pending.action_id&&receipt.input_digest===pending.input_digest&&receipt.request_digest===pending.request_digest&&C.sameBinding(receipt.request_binding,pending.expected_binding)&&C.sameBinding(receipt.validated_binding,C.binding(snapshot,state.revision-1)),'reasoning outcome receipt binding mismatch');
     C.assert(['failed','unknown','unavailable','blocked','stale_context'].includes(receipt.outcome_status)&&['generation_failed','checker_failed','checker_rejected','generation_timeout','checker_timeout','provider_unavailable','stale_context'].includes(receipt.failure_kind),'unsupported reasoning outcome');
     C.assert(['settled','uncertain'].includes(receipt.budget_state)&&typeof receipt.reservation_ref==='string'&&receipt.reservation_ref.length>0&&Array.isArray(receipt.usage_receipt_refs),'outcome requires host paired-accounting references');
     C.assert(receipt.outcome_status!=='unknown'||receipt.budget_state==='uncertain','unknown call outcome cannot imply settled accounting');
-    return {status:receipt.budget_state==='uncertain'?'unknown':receipt.outcome_status,outcome_status:receipt.outcome_status,failure_kind:receipt.failure_kind,budget_state:receipt.budget_state,receipt_id:receipt.id,reservation_ref:receipt.reservation_ref,usage_receipt_refs:H.clone(receipt.usage_receipt_refs),request:H.clone(pending),at:event.at};
+    return {status:receipt.budget_state==='uncertain'?'unknown':receipt.outcome_status,outcome_status:receipt.outcome_status,failure_kind:receipt.failure_kind,budget_state:receipt.budget_state,receipt_id:receipt.id,reservation_ref:receipt.reservation_ref,usage_receipt_refs:H.clone(receipt.usage_receipt_refs),request:H.clone(pending),detached:outstanding?.detached===true||previous?.request?.action_id===event.action_id&&previous.detached===true,at:event.at};
   }
   return {request,validateCandidate,isAssessed,hasCoverage,outcome,coveragePolicy:'interview-coverage/v2',prompt:P};
 })();

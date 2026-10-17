@@ -1,0 +1,34 @@
+✔ only modeled loopback manifests are registrable; relabeling cannot activate employer (3.249978ms)
+✔ manifest rejects duplicate name (0.287413ms)
+✔ manifest rejects duplicate selector (0.22749ms)
+✔ manifest rejects off-origin resources (0.362855ms)
+✔ manifest rejects resume masquerading as cover letter (0.27614ms)
+✔ exact bindings keep first and last names independent and preserve question identity (0.977124ms)
+✔ binding refuses renamed DOM field (0.367768ms)
+✔ binding refuses changed question (0.316145ms)
+✔ binding refuses changed options (0.369183ms)
+✔ binding refuses new required field (0.338266ms)
+✔ binding refuses duplicate DOM selector (0.200946ms)
+✔ binding refuses disabled resume (0.346196ms)
+✔ actual PDF bytes survive platform multipart encoding and native admission (LOCAL HTTP format) (38.160955ms)
+✔ actual DOCX bytes survive platform multipart encoding and native admission (LOCAL HTTP format) (3.531818ms)
+✔ outbound admission refuses wrong answer (2.347352ms)
+✔ outbound admission refuses extra hidden field (1.901041ms)
+✔ outbound admission refuses duplicate field (1.605091ms)
+✔ outbound admission refuses wrong bytes (1.592004ms)
+✔ truncated multipart never reaches destination admission (1.39084ms)
+✔ native receipt requires exact scoped markup, an admitted successful request, and stays nonauthoritative (0.705357ms)
+✔ native board never promotes generic thanks text into accepted and refuses second submit (MODELED command transport) (2.56743ms)
+✔ route sends one real pdf multipart to modeled loopback server, strips internal headers and prevents replay (146.036521ms)
+✔ route sends one real docx multipart to modeled loopback server, strips internal headers and prevents replay (82.612549ms)
+✔ invalid outbound bytes, absent arming, wrong endpoint and frames cause zero network effects (2.117663ms)
+✔ transport uncertainty consumes mutation allowance before fetch; a later command cannot retry (1.988268ms)
+✔ redirect is not followed and cannot become a receipt (1.744672ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 385.823322

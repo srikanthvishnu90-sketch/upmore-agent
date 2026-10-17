@@ -10,8 +10,8 @@ const bindingHash = value => hash(canonical(value));
 // Receive -> Equip -> Execute -> Check. No model/provider call. Production
 // employer execution remains disabled. Applications use registered loopback
 // portals; public research has a separate read-only origin policy.
-function createWorker({ store, resolveEquipment, authority, controlledPortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, retentionClock=Date.now, retentionSchedule=setTimeout, privateRetentionMs=900000, maxActions = 120, timeoutMs = 30000 }) {
-  if (!store || (controlledPortals.length && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
+function createWorker({ store, resolveEquipment, authority, controlledPortals = [], nativePortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, retentionClock=Date.now, retentionSchedule=setTimeout, privateRetentionMs=900000, maxActions = 120, timeoutMs = 30000 }) {
+  if (!store || ((controlledPortals.length || nativePortals.length) && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
   for (const method of ["current", "claim", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
   if (!Number.isInteger(maxActions) || maxActions < 1 || maxActions > 1000 || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw fail("BUDGET_CONFIGURATION_INVALID");
   const portals = new Map(controlledPortals.map((p) => {
@@ -19,6 +19,13 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     if (u.protocol !== "http:" || !["localhost", "127.0.0.1"].includes(u.hostname) || submit.origin !== u.origin) throw fail("CONTROLLED_LOCAL_PORTAL_REQUIRED");
     return [u.href, { url: u.href, submitUrl: submit.href, seatKey: p.canonicalKey || u.href }];
   }));
+  // Separate native registration leaves the global controlled-loopback gate
+  // unchanged. Native validation currently refuses every employer URL.
+  for(const input of nativePortals){
+    const m=require('./greenhouse-native.cjs').validateManifest(input);
+    if(portals.has(m.url))throw fail('DESTINATION_REGISTRATION_CONFLICT');
+    portals.set(m.url,{url:m.url,submitUrl:m.submitUrl,seatKey:m.canonicalKey,nativeManifest:m});
+  }
   const {publicResearchURL,normalizeResearchRequest} = require('../../supabase/functions/_shared/career_research_policy.js');
   const publicOrigins = new Set(researchOrigins.map(origin => {
     if (new URL(publicResearchURL(origin + '/')).origin !== origin) throw fail('RESEARCH_ORIGIN_CONFIGURATION_INVALID');
@@ -116,11 +123,12 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       || typeof input.artifactId !== "string" || !/^[a-zA-Z0-9_-]{1,160}$/.test(input.artifactId)
       || !/^[a-f0-9]{64}$/.test(input.resumeSha256 || "")) throw fail("TASK_INPUT_REQUIRED");
     if (!portals.has(input.posting.url)) throw fail("DESTINATION_NOT_REGISTERED");
+    if(portals.get(input.posting.url).nativeManifest && input.posting.canonicalKey!==portals.get(input.posting.url).seatKey)throw fail("NATIVE_POSTING_BINDING_MISMATCH");
     // One identity per user and seat, independent of webhook ID. A replay
     // with altered facts cannot silently mutate an already reviewed task.
     const id = hash([userId, portals.get(input.posting.url).seatKey]).slice(0, 32);
     return store.withLock(id, () => {
-      const specification = { posting: input.posting, artifactId: input.artifactId, resumeSha256: input.resumeSha256 };
+      const specification = { posting: input.posting, artifactId: input.artifactId, resumeSha256: input.resumeSha256, ...(portals.get(input.posting.url).nativeManifest?{nativeManifestSha256:bindingHash(portals.get(input.posting.url).nativeManifest)}:{}) };
       const existing = store.get(id);
       if(existing&&retention.expired(existing)){if(existing.privateExpiredAt===undefined)retention.expire(existing);throw fail('PRIVATE_RETENTION_EXPIRED');}
       const grant = authority.claim({ userId, intentId: input.intentId, taskId: id,
@@ -209,7 +217,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   }
   function executeBoard(t, e, deadline) {
     const registered = portals.get(t.spec.posting.url);
+    if(registered.nativeManifest && t.spec.nativeManifestSha256!==bindingHash(registered.nativeManifest))throw fail("NATIVE_MANIFEST_CHANGED");
     const board = boardFactory({ url: registered.url, userId: t.userId, resumePath: e.resumePath,
+      resumeContentType:e.profile.resume.contentType, nativeManifest:registered.nativeManifest || null,
       commandTimeoutMs: Math.max(1, deadline - now()), deadlineMs: deadline,
       ...(evidenceRoot?{evidenceRoot,evidenceDir:require("node:path").join(evidenceRoot,t.id)}:{}),
       scope: { origin: new URL(registered.url).origin, submitUrl: registered.submitUrl, taskId: t.id,
@@ -258,8 +268,8 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       }
       t.review = { kind: "career_browser_review", taskId: t.id, userId: t.userId,
         authority: { intentId: t.authority.intentId, accountVersion: t.authority.accountVersion, privacyEpoch: t.privacyEpoch },
-        postingKey: t.spec.posting.canonicalKey, destination: portals.get(t.spec.posting.url).submitUrl,
-        resumeSha256: t.spec.resumeSha256, profileHash: e.profileHash,
+        postingKey: t.spec.posting.canonicalKey, nativeManifestSha256:t.spec.nativeManifestSha256 || null, destination: portals.get(t.spec.posting.url).submitUrl,
+        resumeSha256: t.spec.resumeSha256, artifactVersion:e.artifactVersion || null, profileHash: e.profileHash,
         bindings: prepared.stepLog.filter((s) => s.action === "fill").map((s) => ({ fieldId: s.field_id, source: s.source, profileKey: s.profile_key || null, questionKey: s.question_key || null, profileHash: e.profileHash })),
         observation: run.board.lastObservation || null,
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256,

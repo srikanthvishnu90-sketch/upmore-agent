@@ -326,6 +326,8 @@ const CareerPortalBrowser = (() => {
   let boardSeq = 0;
   function createBrowserBoard(opts) {
     const o = opts || {};
+    const native = o.nativeManifest ? require("../../workers/career-browser/greenhouse-native.cjs").validateManifest(o.nativeManifest) : null;
+    if(native && (native.url!==o.url || o.scope?.submitUrl!==native.submitUrl))throw coded("NATIVE_SCOPE_MISMATCH", "native adapter must match the registered posting and destination");
     // Trusted constructor seam only, never accepted from a chat/task payload.
     const command = typeof o.commandTransport === "function" ? o.commandTransport : call;
     if (!o.url) throw coded("BOARD_URL_REQUIRED", "createBrowserBoard: the posting url is required — a browser board is bound to one posting");
@@ -399,7 +401,7 @@ const CareerPortalBrowser = (() => {
       open() {
         if (state.closed) throw coded("BOARD_CLOSED", "this browser board is closed");
         if (!gate.allowed) throw coded("DRIVER_HOST_REFUSED", `driver refuses to open ${o.url} — only tested ATS families and localhost test pages may be driven (§6.3)`);
-        const r = command(boardId, { type: "open", url: o.url, scope: o.scope || null, evidenceDir:o.evidenceDir||null,evidenceRoot:o.evidenceRoot||null }, 240000);
+        const r = command(boardId, { type: "open", url: o.url, scope: o.scope || null, nativeManifest:native, evidenceDir:o.evidenceDir||null,evidenceRoot:o.evidenceRoot||null }, 240000);
         calls.open += 1;
         state.opened = true;
         state.finalUrl = r.finalUrl; state.captchaTech = r.captchaTech || []; state.navSteps = r.navSteps || [];
@@ -423,7 +425,7 @@ const CareerPortalBrowser = (() => {
         if (!state.opened) board.open();
         refuseIfRedirected();
         const r = command(boardId, { type: "discover" }, 30000);
-        const { defs, bindings } = classifyFields(r.fields || []);
+        const { defs, bindings } = native ? require("../../workers/career-browser/greenhouse-native.cjs").exactFields(native,r.fields||[]) : classifyFields(r.fields || []);
         state.observation = r.observation;
         const refOf = (selector) => (r.fields || []).find((f) => f.selector === selector)?.ref;
         for (const b of Object.values(bindings)) {
@@ -449,7 +451,7 @@ const CareerPortalBrowser = (() => {
           if (!value || value.sha256 !== state.resumeShaChecked) {
             throw coded("RESUME_SHA_MISMATCH", "the local resume file's bytes do not hash to the profile's resume sha256 — refused, never uploaded");
           }
-          command(boardId, { type: "fill", observationVersion: state.observation.version, binding, value, filePath: o.resumePath }, 30000);
+          command(boardId, { type: "fill", observationVersion: state.observation.version, binding, value, filePath: o.resumePath, contentType: o.resumeContentType || null }, 30000);
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
           log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename });
           return value;
@@ -551,6 +553,11 @@ const CareerPortalBrowser = (() => {
         const shotPath = path.join(o.evidenceDir || helperDir || os.tmpdir(), `submit-confirmation-${boardId}.png`);
         if (o.evidenceDir) { try { fs.mkdirSync(o.evidenceDir, { recursive: true, mode: 0o700 }); } catch (e) {} }
         const r = command(boardId, { type: "submit_and_capture", observationVersion: state.observation.version, screenshotPath: shotPath }, 90000);
+        if(native){
+          const cap=r.nativeCapture?.status==="receipt_observed" ? r.nativeCapture : {status:"unknown_outcome",confirmationId:null,authoritative:false};
+          state.submitCapture=Object.freeze({text:String(r.text||""),finalUrl:r.finalUrl||null,screenshotRef:r.screenshot||null,screenshotError:r.screenshotError||null,confirmationId:cap.confirmationId,successText:false,nativeCapture:cap});
+          return {outcome:"unknown",confirmationId:cap.confirmationId,confirmationText:String(r.text||""),screenshotRef:r.screenshot||null,nativeCapture:cap};
+        }
         if (r.captcha) {
           // A challenge at the moment of submit: nothing was clicked
           // through it. 149 reads the non-accepted outcome as unknown —
@@ -579,7 +586,7 @@ const CareerPortalBrowser = (() => {
       },
       submissionState() {
         const cap = state.submitCapture;
-        if (cap && (cap.confirmationId || cap.successText)) {
+        if (cap && !cap.nativeCapture && (cap.confirmationId || cap.successText)) {
           return { submitted: true, confirmationId: cap.confirmationId, confirmationText: cap.text, screenshotRef: cap.screenshotRef };
         }
         if (cap) {

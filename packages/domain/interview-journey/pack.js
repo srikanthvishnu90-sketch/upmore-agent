@@ -45,7 +45,7 @@ const InterviewJourneyPack = (() => {
       {id:'evidence',title:'Evidence and version appendix',content:[`Journey ${state.journey_id}, revision ${state.revision}; context ${snapshot.binding.context_sha256}; epoch ${state.epoch}.`,...refs.map(r=>{const item=C.resolve(snapshot,r);return `${r.id}@${r.version}; ${item.trust}; provenance ${text(item.provenance)}`;}),'Assisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.']}
     ];
     for(const s of sections)if(!s.content.length)s.content=['Not yet supplied or assessed.'];
-    const pack={schema_version:'interview_prep_pack/v1',owner_id:state.owner_id,thread_id:state.thread_id,journey_id:state.journey_id,journey_revision:state.revision,epoch:state.epoch,target_ref:state.target_ref,resume_ref:state.resume_ref,context_binding:C.binding(snapshot,state.revision),status:missing.length?'partial':'complete',unmet_conditions:missing,source_refs:refs,sections};
+    const pack={schema_version:'interview_prep_pack/v1',coverage_policy_version:M.coveragePolicy,owner_id:state.owner_id,thread_id:state.thread_id,journey_id:state.journey_id,journey_revision:state.revision,epoch:state.epoch,target_ref:state.target_ref,resume_ref:state.resume_ref,context_binding:C.binding(snapshot,state.revision),status:missing.length?'partial':'complete',unmet_conditions:missing,source_refs:refs,sections};
     const markdown='# Interview preparation pack\n\nStatus: '+pack.status+'\n\n'+sections.map(s=>'## '+s.title+'\n\n'+s.content.map(safe).join('\n\n')).join('\n\n')+'\n';
     return {pack,markdown,manifest:{mime_type:'text/markdown; charset=utf-8',encoding:'utf-8',byte_length:new TextEncoder().encode(markdown).length,sha256:H.sha256(markdown),structured_sha256:H.sha256(pack),filename:'interview-preparation.md'}};
   }
@@ -58,7 +58,10 @@ const InterviewJourneyPack = (() => {
     C.assert(r.journey_revision===pending.journey_revision&&state.revision-1===pending.journey_revision&&C.sameBinding(r.validated_binding,C.binding(snapshot,state.revision-1))&&H.canonical(r.target_ref)===H.canonical(state.target_ref)&&H.canonical(r.resume_ref)===H.canonical(state.resume_ref),'stale artifact target/resume/revision');
     C.assert(typeof artifact.content==='string'&&artifact.content.length>0&&artifact.mime_type==='text/markdown; charset=utf-8'&&artifact.encoding==='utf-8','artifact must be readable UTF-8 Markdown bytes');
     C.assert(H.sha256(artifact.content)===pending.sha256&&r.sha256===pending.sha256&&artifact.sha256===pending.sha256&&artifact.byte_length===new TextEncoder().encode(artifact.content).length&&artifact.byte_length===pending.byte_length,'artifact content mismatch');
-    return {id:artifact.id,version:artifact.version,sha256:pending.sha256,receipt_id:r.id,readback_status:'verified',partial:pending.partial};
+    // A previously serialized full flag cannot grandfather an old coverage bug.
+    // Recheck current progress eligibility independently of byte/hash readback.
+    if(!pending.partial)C.assert(build(snapshot,{...state,revision:pending.journey_revision}).pack.status==='complete','current progress does not satisfy full-pack coverage eligibility');
+    return {id:artifact.id,version:artifact.version,sha256:pending.sha256,receipt_id:r.id,readback_status:'verified',coverage_policy_version:M.coveragePolicy,partial:pending.partial};
   }
   return {build,validateReadback};
 })();

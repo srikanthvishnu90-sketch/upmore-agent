@@ -2,5 +2,5 @@
   "name": "upmore-interview-contract-tools",
   "private": true,
   "description": "Offline canonical-schema consumer checks only; no runtime or provider dependency",
-  "devDependencies": {"ajv": "8.17.1"}
+  "devDependencies": {"ajv": "8.17.1", "ajv-formats": "3.0.1"}
 }

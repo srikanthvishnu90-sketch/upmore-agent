@@ -1,0 +1,14 @@
+{
+  "producer_source": "53ae74b30b4dc5567be845ae3ba602927a9b74ed",
+  "fixture": "tests/career-interview-journey/legacy-abstention-pack.json",
+  "fixture_sha256": "c6be78e3b03199cea29e55e53c7cf62da09949f3b8c993a844cc994b7ec9541a",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/legacy-readback.test.cjs"
+  ],
+  "before_exit_code": 1,
+  "log_sha256": "8090389bd7c32a493731b1a32fa4c067e17dd472632629f150d9e7aec159e891",
+  "synthetic_abstention_candidates": true,
+  "actual_quality": "NOT_RUN"
+}

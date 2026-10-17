@@ -237,7 +237,8 @@ The runner accepts inputs only from A's actual `packages/career-contracts`
 directory; B's synthetic development fixtures and state schema are refused.
 There is no fabricated positive fixture in this runner. Missing A files report
 BLOCKED with zero canonical cases executed. Ajv 8.17.1 is pinned solely as a
-development schema validator, with coercion/defaults/removal disabled and no
+development schema validator (standard formats via pinned `ajv-formats` 3.0.1),
+with coercion/defaults/removal disabled, format validation preserved and no
 remote reference fetching.
 
 A's fixture bundle identifies `canonical_schema_sha256`, `pointers` for its

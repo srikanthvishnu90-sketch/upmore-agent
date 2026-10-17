@@ -16,9 +16,9 @@ function run(options={}){
   const schemaBytes=fs.readFileSync(schemaPath),fixturesBytes=fs.readFileSync(fixturesPath),schema=JSON.parse(schemaBytes),fixtures=JSON.parse(fixturesBytes);
   assert.equal(fixtures.canonical_schema_sha256,digest(schemaBytes),'A fixture bundle must bind the exact canonical schema bytes');
   assert.ok(Array.isArray(fixtures.cases)&&fixtures.cases.length>0,'A must supply producer cases');
-  for(const kind of ['snapshot','transition','action'])assert.match(fixtures.pointers?.[kind]||'',/^#(?:\/(?:\$defs|definitions)\/[A-Za-z0-9_/-]+)?$/,'A must identify each canonical definition pointer');
+  for(const kind of ['snapshot','transition','action'])assert.ok(typeof fixtures.pointers?.[kind]==='string'&&fixtures.pointers[kind].startsWith('#'),'A must identify each local canonical definition reference');
   const Ajv=schema.$schema?.includes('2020-12')?require('ajv/dist/2020'):require('ajv');
-  const validator=new Ajv({allErrors:true,strict:true,coerceTypes:false,useDefaults:false,removeAdditional:false,validateFormats:false});
+  const validator=new Ajv({allErrors:true,strict:true,coerceTypes:false,useDefaults:false,removeAdditional:false});require('ajv-formats')(validator);
   const id=schema.$id||'urn:upmore:a-journey-contract:'+digest(schemaBytes);validator.addSchema({...schema,$id:id});
   const compiled=Object.fromEntries(Object.entries(fixtures.pointers).map(([kind,pointer])=>[kind,validator.compile({$ref:id.replace(/#$/,'')+pointer})]));
   const results=[];

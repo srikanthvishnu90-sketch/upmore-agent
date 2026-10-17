@@ -68,6 +68,6 @@ const InterviewJourneyReasoning = (() => {
     C.assert(receipt.outcome_status!=='unknown'||receipt.budget_state==='uncertain','unknown call outcome cannot imply settled accounting');
     return {status:receipt.budget_state==='uncertain'?'unknown':receipt.outcome_status,outcome_status:receipt.outcome_status,failure_kind:receipt.failure_kind,budget_state:receipt.budget_state,receipt_id:receipt.id,reservation_ref:receipt.reservation_ref,usage_receipt_refs:H.clone(receipt.usage_receipt_refs),request:H.clone(pending),at:event.at};
   }
-  return {request,validateCandidate,isAssessed,hasCoverage,outcome,prompt:P};
+  return {request,validateCandidate,isAssessed,hasCoverage,outcome,coveragePolicy:'interview-coverage/v2',prompt:P};
 })();
 if(typeof module!=='undefined')module.exports=InterviewJourneyReasoning;

@@ -63374,6 +63374,16 @@
    "skipped": 40,
    "failed": 0,
    "evidence": "docs/career/mass-applications-20261017/evidence/conversation-33219612-full-source-summary.json"
+  },
+  {
+   "id": "career-applications-final-parser-and-bundle-20261017",
+   "observed_at": "2026-10-17T17:53:21.334444+00:00",
+   "commit": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+   "status": "pass",
+   "passed": 23,
+   "failed": 0,
+   "scope": "focused source/parser/bundle contracts; exact broad checks pending",
+   "evidence": "docs/career/mass-applications-20261017/evidence/conversation-parser-after.log"
   }
  ],
  "limitations": [

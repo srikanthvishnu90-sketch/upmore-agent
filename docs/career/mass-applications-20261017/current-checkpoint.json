@@ -1,87 +1,86 @@
 {
-  "observedAt": "2026-10-17T17:27:11.368506+00:00",
+  "observedAt": "2026-10-17T17:52:41.019284+00:00",
   "branch": "codex/mass-applications-20261017",
-  "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
-  "sourcePublishedVerified": true,
+  "runtime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+  "workingTree": "/workspace/upmore-review-final",
+  "localBranch": "codex/application-review-final-20261017",
+  "frozenFullSQLWorktree": "/workspace/upmore-mass",
   "features": [
-    "ordinary text -> observed public ATS shortlist with cited fit",
-    "explicit application facts review/confirmation; no residence to authorization inference",
-    "exact selected roles -> existing durable batch authority",
-    "actual cards for review, role answers, UNKNOWN readback and status",
-    "owned claimed-intent profile/source equipment and private RPC closure"
+    "ordinary text to sourced shortlist and exact selected batch",
+    "explicit original resume and factual profile reviews; no invented facts",
+    "bound city/remote/publication filters and necessary date/negative-location clarification",
+    "bounded finance-first registry plus existing verified directory; Greenhouse content=true",
+    "stale-source refresh requires fresh preparation/answers/exact review; changed source held",
+    "status and UNKNOWN readback never grant resend"
   ],
   "completed": {
-    "currentDomainController": {
-      "passed": 9,
+    "currentRuntime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+    "focusedParserSourceBundle": {
+      "passed": 23,
       "failed": 0,
-      "log": "evidence/upmore-application-final-unit.log"
+      "log": "evidence/conversation-parser-after.log"
     },
-    "earlierFocused": {
-      "passed": 78,
-      "failed": 0,
-      "log": "evidence/upmore-application-focused-final.log"
-    },
-    "earlierActualControllerEdgeSQLWorker": {
+    "actualSourceCollector": {
       "passed": 1,
       "failed": 0,
-      "log": "evidence/upmore-application-conversation-full-path3.log",
-      "scope": "before final actual UI/negative coverage and facts-review replay refinement; not exact-head broad proof"
+      "log": "evidence/conversation-directory-source.log"
     },
-    "compatibilityPrecommit": {
-      "passed": 13,
-      "failed": 1,
-      "failure": "source package correctly refuses dirty allowlist; rerun after source commit",
-      "log": "evidence/upmore-application-compatibility.log"
+    "stage": {
+      "bytes": 4087453,
+      "ceiling": 4200000,
+      "log": "evidence/stage-e3c5ac58.json"
     },
-    "activeFinalUI_SQL": {
-      "session": 91592,
-      "summaryDirectory": "/tmp/upmore-ci-node-4W7DgW",
-      "testHashAtStart": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
-      "laterNegativeTestExtension": "pending separate run"
+    "lastFullSource": {
+      "head": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+      "passed": 4797,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/conversation-33219612-full-source-summary.json"
     },
-    "finalActualUIEdgeSQLWorker": {
+    "lastActualSQL": {
+      "head": "086ef37603cb81b7f85a1ec1f28e051278b65a59",
       "passed": 1,
       "failed": 0,
-      "summary": "evidence/conversation-final-ui-sql-summary.json",
-      "log": "evidence/conversation-final-ui-sql.log",
       "fixtureRemoved": true,
-      "testHash": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
-      "scope": "actual cards/controller, final facts-review refinement and actual Edge/SQL/pull-runner; expanded negative assertions run separately"
+      "summary": "evidence/conversation-086ef376-actual-sql-summary.json"
     },
-    "workerBuild": {
-      "files": 41,
-      "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
-      "metadata": "evidence/worker-5b670524-build.json"
+    "active": {
+      "fullSourceSession": 27277,
+      "actualSQLSession": 1174,
+      "full40SQLSession": 48943,
+      "full40SQLHead": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+      "runtimeCI": 39055588590
     }
   },
-  "active": {
-    "fullSource": {
-      "session": 23101,
-      "log": "/tmp/upmore-5b670524-full-source.log",
-      "head": "5b6705248dbad869ef8350b6ba861fa8221e29bb"
+  "CI": {
+    "33219612": {
+      "run": 39054841616,
+      "deno": "success including actual typecheck",
+      "database": "success",
+      "node": "in_progress",
+      "archives": "failure"
     },
-    "expandedConversationSQL": {
-      "session": 62404,
-      "log": "/tmp/upmore-5b670524-conversation-sql.log",
-      "head": "5b6705248dbad869ef8350b6ba861fa8221e29bb"
+    "eeaedda9": {
+      "run": 39053821947,
+      "state": "terminalfailure",
+      "sourcePassed": 4788,
+      "sourceFailed": 4,
+      "SQLFilesPassed": 40,
+      "deno": "TS2322",
+      "archives": "failure"
     },
-    "ci": 39053778940
-  },
-  "previousExactHeadCI": {
-    "head": "92dde8a8996e73fcccdbc43407fb882e316c2e17",
-    "run": 39050141942,
-    "node": "success",
-    "deno": "success",
-    "database": "success",
-    "archives": "failure"
+    "e3c5ac58": {
+      "run": 39055588590,
+      "state": "in_progress"
+    }
   },
   "remaining": [
-    "final expanded UI/Edge/SQL denial run",
-    "full clean source and40-file SQL",
-    "exact-head CI",
-    "normal sandbox browser blocked; existing Vercel403 stopped",
-    "Muse published source/ref and integration",
-    "missing original archives gate remains failed"
+    "complete exact e3c5ac58 full source and actual composed SQL; full40 local SQL frozen33219612 and exact CI",
+    "explicit reselection/versioning of changed postings or replaced resume remains a safe hold; no silent overwrite",
+    "genuine country/employer-specific requirements must be supplied; no inferred qualification or acceptance",
+    "normal-sandbox runtime handoff unavailable; exact Vercel403 and local sandbox failure remain stopped",
+    "Muse final coordinated forward migration/function/client/worker integration",
+    "genuine original archives required; no waiver"
   ],
   "paidCalls": 0,
   "liveDatabaseMutations": 0,

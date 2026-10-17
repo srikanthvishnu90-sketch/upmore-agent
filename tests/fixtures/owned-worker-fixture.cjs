@@ -34,8 +34,10 @@ function fixture(root, options = {}) {
       submit() {
         if (!armed) throw new Error("unarmed");
         bump("clicks");
-        const proof = { source: "controlled_portal_readback", taskId: opts.scope.taskId, userId: opts.scope.userId,
-          destination: opts.scope.submitUrl, payloadSha256: opts.scope.payloadSha256, resumeSha256: opts.scope.resumeSha256, confirmationId: "TEST-RECEIPT-1" };
+        const proof = { source: "controlled_portal_readback", outcome: "accepted", taskId: opts.scope.taskId, userId: opts.scope.userId,
+          destination: opts.scope.submitUrl, payloadSha256: opts.scope.payloadSha256, resumeSha256: opts.scope.resumeSha256, confirmationId: "TEST-RECEIPT-1",
+          receivedPayloadSha256: hash({ ...values, resume_sha256: values.resume.sha256 }),
+          receivedResumeSha256: hash(fs.readFileSync(opts.resumePath)), receivedFileBytes: fs.statSync(opts.resumePath).size };
         fs.writeFileSync(receiptPath(opts.scope.taskId), JSON.stringify(proof));
         if (options.crashProcess) process.exit(72); // real process death after destination write
         if (options.throwAfterClick) throw Object.assign(new Error("crashed after click"), { code: "CRASH_AFTER_CLICK" });
@@ -48,10 +50,11 @@ function fixture(root, options = {}) {
     if (options.noReadback || !fs.existsSync(receiptPath(task.id))) return null;
     const proof = JSON.parse(fs.readFileSync(receiptPath(task.id), "utf8"));
     if (options.wrongProof) proof.userId = "other-user";
+    if (options.proofPatch) Object.assign(proof, options.proofPatch); // explicitly MOCK corrupt/negative destination records
     return proof;
   };
   const authority = options.authority || mockAuthority(root);
-  const rawWorker = createWorker({ store, authority, resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {},
+  const rawWorker = createWorker({ store, authority, evidenceRoot:options.evidenceRoot,evidenceRequired:options.evidenceRequired,resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {},
     accountVersion: authority.current(options.userId||"user-a").version, privacyEpoch: authority.current(options.userId||"user-a").epoch }),
     controlledPortals: [{ url: posting.url, submitUrl: "http://localhost:8123/submit" }],
     boardFactory: options.boardFactory || boardFactory, readReceipt, now: () => clock.value,

@@ -3,13 +3,14 @@ const fs = require("node:fs");
 const Portal = require("../../packages/domain/149-career-portal-apply.js");
 const Browser = require("../../packages/domain/150-career-portal-browser.js");
 const { hash, fail, clone } = require("./store.cjs");
+const { validControlledReceipt } = require('./receipt.cjs');
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
 const bindingHash = value => hash(canonical(value));
 
 // Receive -> Equip -> Execute -> Check. No model/provider call. Production
 // employer execution remains disabled. Applications use registered loopback
 // portals; public research has a separate read-only origin policy.
-function createWorker({ store, resolveEquipment, authority, controlledPortals = [], researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, maxActions = 120, timeoutMs = 30000 }) {
+function createWorker({ store, resolveEquipment, authority, controlledPortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, maxActions = 120, timeoutMs = 30000 }) {
   if (!store || (controlledPortals.length && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
   for (const method of ["current", "claim", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
   if (!Number.isInteger(maxActions) || maxActions < 1 || maxActions > 1000 || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw fail("BUDGET_CONFIGURATION_INVALID");
@@ -23,6 +24,8 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     if (new URL(publicResearchURL(origin + '/')).origin !== origin) throw fail('RESEARCH_ORIGIN_CONFIGURATION_INVALID');
     return origin;
   }));
+  if(evidenceRequired && !evidenceRoot)throw fail("EVIDENCE_ROOT_REQUIRED");
+  const evidenceCapture=evidenceRoot?require("./evidence.cjs").createEvidenceCapture(evidenceRoot):null;
   const save = (t, phase, detail = {}) => {
     t.phase = phase;
     t.checkpoints.push({ sequence: t.checkpoints.length + 1, phase, at: new Date(now()).toISOString(), ...detail });
@@ -33,6 +36,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const current = authority.current(t.userId);
     if (!current.exists || current.epoch !== t.privacyEpoch) {
       t.spec = null; t.review = null; t.result = null; t.asks = []; t.authority = null;
+      t.evidence={};evidenceCapture?.erase(t.id);
       if (t.attempt) t.attempt = { fenced: true, receiptKey: hash([t.id, "submit"]), unknown: true };
       t.status = t.attempt ? "unknown_outcome" : "cancelled"; t.blocker = "PRIVACY_EPOCH_REVOKED";
       save(t, "check"); throw fail("PRIVACY_EPOCH_REVOKED");
@@ -59,12 +63,25 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       e.effectUncertain = true; throw e;
     }
   }
-  const validProof = (t, proof) => proof?.taskId === t.id && proof.userId === t.userId && proof.destination === t.attempt?.destination && proof.payloadSha256 === t.attempt?.payloadSha256 && proof.resumeSha256 === t.attempt?.resumeSha256 && proof.confirmationId && proof.source === "controlled_portal_readback";
-  function destinationProof(t) {
+  const validProof = validControlledReceipt;
+  function captureEvidence(t,board,stage) {
+    if(!evidenceCapture)return;
+    const descriptor=evidenceCapture.capture(t,board,stage);t.evidence ||= {};t.evidence[stage]=descriptor;
+    save(t,"check",{evidenceStage:stage,evidenceStatus:descriptor.status});
+    if(evidenceRequired && stage!=="confirmed-receipt" && descriptor.status!=="CAPTURED")throw fail("REQUIRED_BROWSER_EVIDENCE_MISSING");
+  }
+  function destinationProof(t,board) {
     if (typeof readReceipt !== "function") return null;
     if (t.budget.spentActions + t.budget.reservedActions >= t.budget.limitActions) { t.blocker = "READBACK_BUDGET_EXHAUSTED"; return null; }
     t.budget.reservedActions++; save(t, "execute", { action: "destination_readback", actionState: "reserved" });
-    try { return effect(t, "destination_readback", () => readReceipt(clone(t))); }
+    try { return effect(t, "destination_readback", () => {
+      const proof=readReceipt(clone(t));
+      if(evidenceCapture && validProof(t,proof)) {
+        if(board?.lastCapture?.confirmationId===proof.confirmationId)captureEvidence(t,board,"confirmed-receipt");
+        else {t.evidence ||= {};t.evidence["confirmed-receipt"]={status:"NOT_VERIFIED",stage:"confirmed-receipt"};save(t,"check");}
+      }
+      return proof;
+    }); }
     finally {
       t.budget.reservedActions--; t.budget.spentActions++;
       save(t, "check", { action: "destination_readback", actionState: "settled" });
@@ -72,7 +89,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   }
   function publicTask(t) {
     return clone({ version: "career_task/v1", kind: t.kind || "career_application", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
-      review: t.review || null, result: t.result || null, asks: t.asks || [],
+      review: t.review || null, result: t.result || null, evidence:t.evidence||{}, asks: t.asks || [],
       blocker: t.blocker || null, budget: t.budget,
       authority: t.authority ? { intentId: t.authority.intentId, accountVersion: t.authority.accountVersion, privacyEpoch: t.authority.privacyEpoch } : null,
       capabilities: { browser: t.kind === "public_research/v1" ? "PUBLIC_READ_ONLY" : "CONTROLLED_LOCAL_ONLY", employer_submission: "NOT_WIRED" } });
@@ -170,6 +187,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const registered = portals.get(t.spec.posting.url);
     const board = boardFactory({ url: registered.url, userId: t.userId, resumePath: e.resumePath,
       commandTimeoutMs: Math.max(1, deadline - now()), deadlineMs: deadline,
+      ...(evidenceRoot?{evidenceDir:require("node:path").join(evidenceRoot,t.id)}:{}),
       scope: { origin: new URL(registered.url).origin, submitUrl: registered.submitUrl, taskId: t.id,
         userId: t.userId, payloadSha256: t.review?.payloadSha256 || null, resumeSha256: t.spec.resumeSha256 } });
     // Every browser command reserves before the effect and settles afterwards.
@@ -183,7 +201,12 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
         t.budget.reservedActions++;
         save(t, "execute", { action: method, actionState: "reserved" });
         try {
-          const result = effect(t, method, () => board[method](...args));
+          const result = effect(t, method, () => {
+            const observed=board[method](...args);
+            if(method==="open" && observed?.ok)captureEvidence(t,board,"form-read");
+            if(method==="atReview" && observed?.atFinalReview)captureEvidence(t,board,"filled-review");
+            return observed;
+          });
           if (result && typeof result.then === "function") throw fail("SYNC_BOARD_REQUIRED");
           save(t, "check", { action: method, observationSha256: hash(result === undefined ? null : result) });
           return result;
@@ -237,7 +260,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       // refuses the hashless approval (APPROVAL_PAYLOAD_MISMATCH) before the
       // arming wire and no click ever happens.
       const outcome = Portal.submitDoorstep(session, { approvedByUser: true, approvalRef: approval.approvalRef, payloadSha256: approval.payloadSha256 }, { posting: t.spec.posting, log: { records: [] }, now: new Date(now()).toISOString() });
-      const proof = destinationProof(t);
+      const proof = destinationProof(t,run.board);
       t.status = validProof(t, proof) ? "completed" : "unknown_outcome";
       t.result = { kind: "career_browser_result", taskId: t.id, status: t.status, approvalRef: approval.approvalRef,
         destination: t.review.destination, payloadSha256: t.review.payloadSha256, resumeSha256: t.review.resumeSha256,
@@ -315,9 +338,10 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     });
   }
   return { receive, prepare, approve, reconcile, research, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
-    runPending: () => {
+    runPending: ({limit=50}={}) => {
+      if(!Number.isInteger(limit)||limit<1||limit>50)throw fail("TASK_BATCH_LIMIT_INVALID");
       const results=[];
-      for(const intent of authority.pending()) {
+      for(const intent of authority.pending().slice(0,limit)) {
         try {
           const b=intent.binding;
           if(b.action==="research") { const task=receive(intent.userId,{action:"research",eventId:b.event_id,...b.research,intentId:intent.intentId});results.push(research(intent.userId,task.id)); }
@@ -326,7 +350,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
           else if(b.action==="reconcile") results.push(reconcile(intent.userId,b.task_id,{intentId:intent.intentId}));
         } catch(e) { results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"}); }
       }
-      for(const id of store.list()) {const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
+      for(const id of store.list()) {if(results.length>=limit)break;const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
       return results;
     } };
 }

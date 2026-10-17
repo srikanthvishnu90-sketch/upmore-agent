@@ -1,0 +1,60 @@
+{
+  "observedAt": "2026-10-17T15:32:56.846384+00:00",
+  "base": "a9157c4ec4e5581e9aee6d6f56af68f888674324",
+  "sourceSha256": {
+    "workers/career-browser/batch-context.cjs": "acf1fb8e9871c9f5839628e248fe493d0952c77e011df3f9ca0dca99692c2dfb",
+    "workers/career-browser/authority.cjs": "b61646eb69c9eea664fa34647c47e28e01400fe103d9443b168d557574caccf7",
+    "workers/career-browser/service.cjs": "1b7d3293072254ea14ba61fa0eafe847252637347daca0cbc40a2c9d0fc04843",
+    "supabase/functions/career-batch/index.ts": "3a73242598e23b51a8764e5d818a2d09a7f995eefaaa874cc692a94f591da934",
+    "supabase/functions/_shared/career_application_batch.js": "56020cc33283b54be90bbacf5d31ca1fec4787dab00f27e045770242c9daa625",
+    "supabase/sql/proposals/career_application_batch_v1.sql": "d02f86ac132020d8ec34cf6f0b96897f9ba47f4978cd0b8681be0a83ee814fe4",
+    "tests/helpers/application-batch-entry.cjs": "a465c4f8aff639c65590e862d8d4691238aab94e76c37718b4309a38ef7ac533",
+    "tests/career-application-batch.test.cjs": "f94f66f48cf260b9939ce42840c45fe65f253d1caac0259bb59a54c9d10697c4",
+    "tests/career-critical-repairs/application-batch-postgres.test.cjs": "0cdbb86355996c24272c4b178b8f3608da5c1ea5b741ab903e9774cb04b29a73",
+    "scripts/career/build-owned-worker.cjs": "a3252e77673520e3fa2db0c781199a6f0b42acf8a5d3a7b02ada0f65f77b7b19",
+    "scripts/career/critical-repairs/ci-node.cjs": "40b410315624f0104a742afe4162a6df294f20299f9ca63cd7486d504bab09e2",
+    ".github/workflows/ci.yml": "fedcf00b0d345ba00c373196c5368c813fbbf5ef96c0e07add85230bd6981019",
+    "supabase/functions/_shared/career_applicant_ingress.js": "bac8ba867af8ede6530a74e47699b459772ffdd5bb229561a8a637a1e0c72e53",
+    "tests/career-applicant-cors.test.cjs": "a13623c0ffff468f6e50756d23851a9044fe3382b7fd4e2b715a3760b8d0952a"
+  },
+  "checks": {
+    "batchSourceFocused": {
+      "passed": 43,
+      "failed": 0,
+      "log": "evidence/batch-source-focused.log"
+    },
+    "batchActualEntrySQLWorker": {
+      "passed": 6,
+      "failed": 0,
+      "log": "evidence/batch-six-local-postgres.log"
+    },
+    "fullCommittedSource": "PENDING",
+    "fullPostgres": "PENDING",
+    "original38SuiteBaseline": {
+      "passed": 344,
+      "failed": 1,
+      "fixtureCorrection": "a9157c4e setup corrected; focused10/10 PASS, original no-resubmit assertions retained",
+      "remoteRun": 39042786880,
+      "remoteNode": "terminal failure, all38 SQL files completed; no hang or timeout"
+    },
+    "failureEvidence": [
+      "evidence/batch-first-failed.log",
+      "evidence/batch-ambiguous-key-failed.log"
+    ],
+    "priorFixtureFixCI": {
+      "head": "a9157c4ec4e5581e9aee6d6f56af68f888674324",
+      "run": 39043650555,
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "sqlFiles": 38,
+      "sourcePlusSqlRuns": 39,
+      "requiredOriginalArchives": "failure",
+      "summary": "evidence/a915-ci-node-summary.json"
+    }
+  },
+  "proofScope": "Actual authenticated Edge source, real local SQL and existing worker with explicitly synthetic UNKNOWN-only board. No employer receipt is manufactured.",
+  "paidCalls": 0,
+  "employerSubmissions": 0,
+  "employerReceipts": 0
+}

@@ -62964,6 +62964,43 @@
     "Missing original prepare anchor in one old synthetic fixture; 37 other suites pass.",
     "Not employer or live model quality evidence."
    ]
+  },
+  {
+   "id": "mass-exact-batch-and-continuation-20261017",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only",
+    "--sql-file=career-critical-repairs/application-batch-postgres.test.cjs"
+   ],
+   "source_hashes": "docs/career/mass-applications-20261017/batch-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 6,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/batch-six-local-postgres.log",
+   "log_sha256": "e7958198d807454306edeed66b446440dfe4eaf20d12b101a06657991dd863d2",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Actual Edge/SQL/worker, synthetic board only.",
+    "No browser, employer receipt, model quality or deployment claim."
+   ]
+  },
+  {
+   "id": "mass-corrected-exact-ci-20261017",
+   "commit": "a9157c4ec4e5581e9aee6d6f56af68f888674324",
+   "workflow_run": 39043650555,
+   "job_id": 117427959574,
+   "result": "PASS",
+   "verification_level": "CI_FUNCTIONAL",
+   "sql_suite_count": 38,
+   "log_summary": "docs/career/mass-applications-20261017/evidence/a915-ci-node-summary.json",
+   "limitations": [
+    "Required original-archive gate still failed.",
+    "Controlled source tests do not prove employer acceptance or live model quality."
+   ]
   }
  ],
  "limitations": [

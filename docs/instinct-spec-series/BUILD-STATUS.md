@@ -88,6 +88,10 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Codex owns the applicant-ingress CORS header list only and a new actual-entry preflight contract: the shipped resume client sends the existing public `apikey` header, so configured origins must allow that header. Preserve authentication, origin allowlists and all document validation unchanged.
+
+- 2026-10-17 Codex batch packaging/type checks also own `scripts/career/build-owned-worker.cjs` explicit pure-module dependencies, `.github/workflows/ci.yml` career-batch typecheck entry and CI-node proposal order. Source-only packaging; no deployment, credential or runtime setting changes.
+
 - 2026-10-17 Codex batch continuation owns new `career_application_batch_v1.sql`, batch ingress/control/worker-answer seams and tests/docs, with existing task authority/effect ledger as the sole execution path. Also own the narrow `tests/career-claim-recovery-postgres.test.cjs` unknown-submit fixture setup (retain every assertion), actual cross-thread quota fixture and constructor history wiring. Batch workflow actions must not mutate shared profile context or invalidate healthy roles; changed payloads require a new exact approval.
 
 - 2026-10-17 Codex owns generated evaluator freshness outputs `docs/testing/agent-report.md`, `docs/capability-list/flow-evidence.md`, `evals/agent/results/latest.json` for the app-source change only; run the actual existing evaluator, preserve all assertions, NOT_RUNs and release gates.

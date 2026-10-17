@@ -56,6 +56,11 @@ function createTaskAuthority({ call, workerId }) {
       if(!Array.isArray(data.records)||data.records.some(r=>r.userId!==grant.userId||r.status!=='submission_admitted'||!Number.isFinite(Date.parse(r.timestamp))||typeof r.company!=='string'||!r.company||typeof r.vendor!=='string'||!r.vendor))throw fail('TASK_SUBMISSION_HISTORY_INCOMPLETE');
       return {records:data.records};
     },
+    answers(grant) {
+      const data=rpc('career_application_batch_answers_v1',{p_user:grant.userId,p_intent:grant.intentId,p_lease:grant.leaseToken,p_task:grant.taskId});
+      if(!Array.isArray(data.answers)||!Number.isSafeInteger(data.answerRevision))throw fail('TASK_ANSWER_CONTEXT_UNAVAILABLE');
+      return data.answers;
+    },
     consume(grant, ticket) {
       const data = rpc("career_task_consume_effect_v1", { p_user: grant.userId, p_token: ticket.token });
       if (data.consumed !== true || data.token !== ticket.token) throw fail("TASK_AUTHORITY_REVOKED");

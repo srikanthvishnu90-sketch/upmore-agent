@@ -63,7 +63,18 @@
     },
     "claimRecoveryFixtureRepair": "10/10 PASS: real prepare then real approve; every no-resubmit assertion retained",
     "actualCrossThreadQuota": "7/7 PASS: two distinct owned threads observed in admitted effect rows",
-    "constructionHistory": "5/5 mass-readiness contracts PASS"
+    "constructionHistory": "5/5 mass-readiness contracts PASS",
+    "exactCorrectedCI": {
+      "head": "a9157c4ec4e5581e9aee6d6f56af68f888674324",
+      "run": 39043650555,
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "sqlFiles": 38,
+      "requiredOriginalArchives": "failure",
+      "ownedFixtureRemoved": true,
+      "summary": "evidence/a915-ci-node-summary.json"
+    }
   },
   "paidCalls": 0,
   "employerSubmissions": 0,

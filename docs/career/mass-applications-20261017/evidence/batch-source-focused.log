@@ -1,0 +1,57 @@
+(node:393527) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:393527) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual applicant entry permits the shipped client public apikey preflight only for configured origins (160.364324ms)
+(node:393528) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:393528) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual batch entry authenticates owner and excludes injected profile, owner and posting data (94.548919ms)
+✔ lost batch acknowledgement asks for the same request ID; explicit role answers cannot contain identity digits (7.54249ms)
+✔ changed question wording refuses a scoped answer; missing eligibility is not invented (7.927641ms)
+✔ native worker binds exact confirmed names/resume/manifest and keeps receipt-only outcome unknown with a durable fence (63.232072ms)
+✔ latest confirmed artifact correction before approval blocks before a modeled click (16.980296ms)
+✔ changed native manifest after restart invalidates prepared task before opening browser (15.180479ms)
+✔ posting identity and specific approval hash are independently enforced (11.614087ms)
+✔ verified route refusal is reported as diagnostic without clearing the durable submit fence (MODELED transport) (31.906008ms)
+✔ batch triage holds only the unresolved role and preserves its essential question (10.515823ms)
+✔ worker rejects a missing durable history transport at construction (1.17055ms)
+✔ durable cap history stops a role before opening a browser, without claiming a receipt (7.889239ms)
+✔ unavailable durable history never becomes an empty application log (2.022734ms)
+✔ a transactional quota refusal at the final race boundary proves no click; uncertainty stays fenced (25.724244ms)
+✔ Receive deduplicates duplicate webhooks and the same seat across different event IDs (10.255776ms)
+✔ Equip checks actual file bytes and artifact owner before a browser opens (4.679214ms)
+✔ Execute/Check checkpoints persist and each action reserves then settles its budget (11.502639ms)
+✔ action schema and observation references reject unknown tools, stale nodes, disabled fields and wrong origin/frame (1.029627ms)
+✔ wrong-user read, prepare, approval and reconciliation are refused without browser actions (8.62726ms)
+✔ explicit approval binds exact review, resume bytes, destination and expiration (9.344902ms)
+✔ duplicate approval after restart returns the checked receipt with exactly one click (22.117637ms)
+✔ changed confirmed profile after review creates a new review and spends no approval (14.398176ms)
+✔ timeouts and exhausted budgets stop before submission and settle attempted actions (4.997579ms)
+✔ a captured success without destination proof remains unknown and never retries (25.891546ms)
+✔ real worker-process death after the click recovers the lease and reconciles without a second click (79.060763ms)
+✔ wrong-user destination proof cannot turn an uncertain write into a receipt (21.56902ms)
+✔ HTTP task endpoint authenticates existing identity, rejects service role and body impersonation (24.064659ms)
+✔ worker refuses employer destinations even if the older driver recognizes their ATS (1.372878ms)
+✔ 149 repeatedly observes conditional fields and page transitions before final review (0.610833ms)
+✔ 149 stops at newly revealed unknown required fields and refuses unobserved or altered answers (0.552233ms)
+✔ controlled local portal reads real multipart file bytes, checks the approved hash and refuses duplicate receipts (42.879466ms)
+✔ explicit conversation command and typed research request normalize identically without a profile (3.353213ms)
+✔ research host gate enforces account controls without invoking onboarding or career actions (2.024828ms)
+✔ public URL gate rejects private hosts, unsafe protocols, credentials, actions and query credentials (0.847275ms)
+✔ DNS gate rejects mixed public/private and special addresses (5.042182ms)
+✔ public GET pins the validated address, sends no identity headers and refuses redirects before a second request (2.608059ms)
+✔ research preflight returns correlated untrusted evidence, never marks the question answered and replays without another read (10.090868ms)
+✔ unsupported sandbox is a blocker with no fabricated artifact or success (2.439173ms)
+✔ capture with wrong task correlation or screenshot hash is rejected (8.840328ms)
+✔ STOP prevents queued research without reading or resolving equipment (1.952994ms)
+✔ erase prevents queued research without reading or resolving equipment (1.364543ms)
+✔ research origin registration and typed helper schema do not expose arbitrary browser tools (1.22385ms)
+✔ 15 public acceptance cases have supported chat commands and preserve zero live-outcome claims (1.36314ms)
+ℹ tests 43
+ℹ suites 0
+ℹ pass 43
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 586.211334

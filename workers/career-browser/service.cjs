@@ -113,7 +113,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     // confirmed, expose the exact immutable central receipt on every read.
     if(t.kind==='public_research/v1'&&t.publicationReceipt&&!t.publicationPending&&t.status===t.publicationReceipt.status&&t.blocker===t.publicationReceipt.blocker&&bindingHash(t.result)===bindingHash(t.publicationReceipt.result))return clone(t.publicationReceipt);
     return clone({ version: "career_task/v1", kind: t.kind || "career_application", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
-      review: t.review || null, result: t.result || null, evidence:t.evidence||{}, asks: t.asks || [],
+      review: t.review || null, result: t.result || null, evidence:t.evidence||{}, asks: t.asks || [],questionsSha256:t.questionsSha256||null,
       blocker: t.blocker || null, budget: t.budget,
       privateDataExpiresAt:Number.isFinite(t.privateExpiresAt)?new Date(t.privateExpiresAt).toISOString():null,
       privateDataExpiredAt:Number.isFinite(t.privateExpiredAt)?new Date(t.privateExpiredAt).toISOString():null,
@@ -144,7 +144,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       if (existing) {
         checkAuthority(existing, true);
         if (existing.specHash !== bindingHash(specification)) throw fail("TASK_SPEC_CONFLICT");
-        if (!existing.attempt && existing.authority?.accountVersion !== grant.accountVersion) { existing.authority = grant; existing.status = "queued"; save(existing, "receive"); }
+        if (!existing.attempt && (existing.authority?.accountVersion !== grant.accountVersion || (grant.request?.batch && existing.authority?.intentId!==grant.intentId))) { existing.authority = grant; existing.status = "queued"; save(existing, "receive"); }
         else if(!existing.attempt&&existing.authority?.intentId===grant.intentId&&existing.authority?.leaseToken!==grant.leaseToken){existing.authority=grant;save(existing,"receive");}
         return publicTask(existing);
       }
@@ -253,6 +253,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
             return observed;
           });
           if (result && typeof result.then === "function") throw fail("SYNC_BOARD_REQUIRED");
+          if(method==='form'&&e.batchAnswers)require('./batch-context.cjs').applyAnswers(e,result.fields||[],e.batchAnswers);
           save(t, "check", { action: method, observationSha256: hash(result === undefined ? null : result) });
           return result;
         } finally {
@@ -275,25 +276,35 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       const caps=Portal.capCheck(log,t.userId,t.spec.posting,new Date(now()).toISOString());
       if(!caps.ok){t.status='blocked';t.blocker='CAP_REACHED';save(t,'check');return publicTask(t);}
       const e = equipment = equip(t);
+      let eligibility=null;
+      if(t.authority.request?.batch){
+        const batch=require('./batch-context.cjs');
+        eligibility=batch.eligibility(t,e,log,now());
+        if(eligibility.status!=='eligible'){t.status=eligibility.status;t.blocker=eligibility.code;t.asks=eligibility.asks||[];save(t,'check');return publicTask(t);}
+        e.batchAnswers=authority.answers(t.authority);e.attestations ||= {};
+      }
       run = executeBoard(t, e, deadline);
       const session = Portal.createPortalSession({ userId: t.userId, board: run.board });
       const prepared = Portal.runApply(session, { userId: t.userId, posting: t.spec.posting, profile: e.profile, attestations: e.attestations || {}, log, now: new Date(now()).toISOString() });
       if (prepared.resultStatus !== "prepared") {
-        t.status = prepared.resultStatus; t.asks = prepared.asks || []; t.blocker = prepared.code || null;
+        t.status = prepared.resultStatus; t.asks = require('./batch-context.cjs').questions(session,prepared.asks); t.questionsSha256=require('./batch-context.cjs').digest(t.asks);t.blocker = prepared.code || null;
         save(t, "check"); return publicTask(t);
       }
-      t.review = { kind: "career_browser_review", taskId: t.id, userId: t.userId,
+      e.profileHash=hash(e.profile);
+      t.review = { kind: "career_browser_review", taskId: t.id, userId: t.userId,eligibility,
         authority: { intentId: t.authority.intentId, accountVersion: t.authority.accountVersion, privacyEpoch: t.privacyEpoch },
         postingKey: t.spec.posting.canonicalKey, nativeManifestSha256:t.spec.nativeManifestSha256 || null, destination: portals.get(t.spec.posting.url).submitUrl,
         resumeSha256: t.spec.resumeSha256, artifactVersion:e.artifactVersion || null, profileHash: e.profileHash,
         bindings: prepared.stepLog.filter((s) => s.action === "fill").map((s) => ({ fieldId: s.field_id, source: s.source, profileKey: s.profile_key || null, questionKey: s.question_key || null, profileHash: e.profileHash })),
+        questions:(session.preparationFields||[]).map(f=>({fieldId:f.field_id,label:f.label||f.field_id,kind:f.kind,required:!!f.required,questionSha256:bindingHash(f)})),
+        answerBindings:(e.batchAnswers||[]).map(a=>({fieldId:a.fieldId,questionSha256:a.questionSha256,source:a.source})),
         observation: run.board.lastObservation || null,
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256,
         observedAt: new Date(now()).toISOString(), expiresAt: new Date(now() + 600000).toISOString() };
       t.status = "review_ready"; t.blocker = null; t.asks = [];
       save(t, "check", { reviewSha256: t.review.payloadSha256 });
       if (!approval) return publicTask(t);
-      if (!oldReview || oldReview.payloadSha256 !== t.review.payloadSha256 || oldReview.profileHash !== t.review.profileHash) {
+      if (!oldReview || oldReview.payloadSha256 !== t.review.payloadSha256 || oldReview.profileHash !== t.review.profileHash || bindingHash(oldReview.questions||null)!==bindingHash(t.review.questions)) {
         t.blocker = "REVIEW_CHANGED_REAPPROVAL_REQUIRED"; save(t, "check"); return publicTask(t);
       }
       if (now() >= Date.parse(oldReview.expiresAt)) throw fail("APPROVAL_EXPIRED");
@@ -434,7 +445,18 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
           else if(b.action==="prepare") { const task=receive(intent.userId,{...intent.request,intentId:intent.intentId});results.push(prepare(intent.userId,task.id)); }
           else if(b.action==="approve") results.push(approve(intent.userId,b.task_id,{approvedByUser:true,approvalRef:b.event_id,intentId:intent.intentId,payloadSha256:b.payload_sha256,resumeSha256:b.resume_sha256,destination:b.destination,profileSha256:b.profile_sha256}));
           else if(b.action==="reconcile") results.push(reconcile(intent.userId,b.task_id,{intentId:intent.intentId}));
-        } catch(e) { results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"}); }
+        } catch(e) {
+          // A destination refusal happens before receive admits any browser
+          // effect. Persist that role's blocker through the existing authority;
+          // other kinds of uncertainty never receive this definite treatment.
+          if(e.code==='DESTINATION_NOT_REGISTERED'&&intent.binding?.action==='prepare'&&intent.request?.batch){
+            try{
+              const grant=authority.claim({userId:intent.userId,intentId:intent.intentId,taskId:intent.binding.task_id,expected:{action:'prepare',event_id:intent.binding.event_id,destination:intent.binding.destination}});
+              authority.finish(grant,{version:'career_task/v1',id:grant.taskId,userId:intent.userId,status:'blocked',phase:'check',review:null,result:null,asks:[],blocker:e.code});
+            }catch(_){}
+          }
+          results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"});
+        }
       }
       for(const id of store.list()) {if(results.length>=limit)break;if(taskId&&id!==taskId)continue;const t=store.get(id);if(t.status==="queued"||(t.kind==='public_research/v1'&&t.publicationPending))results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
       return results;

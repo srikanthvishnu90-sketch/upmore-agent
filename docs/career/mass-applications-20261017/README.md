@@ -24,3 +24,8 @@ CI0337c815 run39042525270 passed713 Edge tests, type checks,12/12 planted mutati
 
 
 Review follow-up: constructor now requires durable history. The quota fixture now seeds two actual owned threads and verifies both occur in admitted effects. The one failing full-SQL fixture now creates a genuine prepare followed by approve instead of rewriting its preparation away; all10 original claim-recovery assertions pass, all7 quota contracts pass, and5 focused worker/readiness checks pass. The retained full selection remains344/345 until a fresh full run completes. Direct preparation still needs full scoreFit/current-posting composition; resume confirmation remains contact-only and the panel cannot restore confirmed metadata after reload or in another thread. These are explicit remaining source gaps, not live capability claims.
+
+
+## Exact batch and per-role continuation backend
+
+[Batch contract and rollout](BATCH-CONTROL.md) implements an authenticated source endpoint, immutable server-derived review/approval, per-role explicit answers, durable progress and readback through existing task intents. Six actual Edge→SQL→worker contracts pass;43 focused source contracts pass. A missing answer does not advance shared account version or revoke healthy approvals. Changed wording re-asks; changed included reviews roll back the whole approval; uncertain dispatch cannot requeue submit even after local checkpoint loss. Employer receipts were not modeled or fabricated. Full committed batch source and39-suite SQL selections are pending. Corrected admissions runtime a9157c4e has terminal CI39043650555 Node/Deno/database success, including all38 SQL files; the archive gate remains failed. Exact hashes and retained failures: [batch-evidence.json](batch-evidence.json).

@@ -21,7 +21,7 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=/** @typ
  const persistence=createCareerPersistence({rpc});
  return async function handle(req){
   const origin=req.headers.get('origin'),headers={'content-type':'application/json','cache-control':'no-store','vary':'Origin'};
-  if(origin&&allowedOrigins.includes(origin)){headers['access-control-allow-origin']=origin;headers['access-control-allow-headers']='authorization,content-type';headers['access-control-allow-methods']='POST,OPTIONS';}
+  if(origin&&allowedOrigins.includes(origin)){headers['access-control-allow-origin']=origin;headers['access-control-allow-headers']='authorization,content-type,apikey';headers['access-control-allow-methods']='POST,OPTIONS';}
   const respond=(status,data)=>new Response(status===204?null:JSON.stringify(data),{status,headers});
   if(origin&&!allowedOrigins.includes(origin))return respond(403,{error:'ORIGIN_NOT_ALLOWED'});
   if(req.method==='OPTIONS')return respond(204,null);

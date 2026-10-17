@@ -26412,7 +26412,7 @@ const CareerPortalApply = (() => {
   // start_date, end_date, gpa, graduation_year } — with a flat
   // profile["education_<key>"] accepted as a fallback. A key that
   // resolves nowhere is an ask (no_confirmed_fact), never invented.
-  const EDUCATION_KEYS = ["school", "degree", "discipline", "start_date", "end_date", "gpa", "graduation_year"];
+  const EDUCATION_KEYS = ["school", "degree", "discipline", "start_date", "end_date", "start_month", "end_month", "gpa", "graduation_year"];
   function profileValue(profile, key) {
     if (!profile || !key) return undefined;
     if (key === "resume") return profile.resume;
@@ -26448,6 +26448,50 @@ const CareerPortalApply = (() => {
     years_of_experience: ["experience"], // the span of the experience facts, in completed years
     experience_3mo_plus: ["experience"], // the same span against a 3-month threshold
     outside_activities: ["experience"], // R2 audit: a confirmed experience fact with end "present" IS a current outside activity (the Yes direction only — no current activity on file derives nothing, never a guessed No)
+    // R3 delegated answers (2026-10-17): the owner answered the 47-fact
+    // ask sheet under his answer-all delegation; the answers live in the
+    // bank as confirmed facts and derive here like every other answer.
+    citizenship_status: ["profile"],   // the citizenship fact's own status text, verbatim
+    student_visa_holder: ["profile"],  // derived ONLY from an affirmative U.S.-citizen fact (a citizen is not an F-1/CPT/OPT holder); any other status derives nothing
+    us_person_status: ["profile"],     // the same affirmative fact (a U.S. citizen IS a U.S. Person under EAR 734.13 / ITAR 120.15)
+    deemed_export_affects_employment: ["profile"], // the same fact, the question's own direction (No)
+    education_level_completed: ["profile"], // ONLY an explicitly completed credential fact — an in-progress enrollment never answers this (BUG-238 law)
+    how_heard: ["profile"],            // the bank's standard how-heard fact, verbatim
+    restrictive_agreements: ["application_answer"], // the owner's own delegated confirmation (R2 held this owner-only until he answered; the answer-all delegation answered it)
+    acknowledgment_receipt: ["application_answer"], // the owner's class approval for receipt-acknowledgment checkboxes (Fact 5)
+    military_service: ["application_answer"],
+    languages_fluent_other: ["application_answer"],
+    first_generation_professional: ["application_answer"],
+    gender_identity: ["application_answer"],
+    relatives_at_posting_firm: ["application_answer"],
+    federal_employment_history: ["application_answer"],
+    federal_relatives: ["application_answer"],
+    sql_python_strength: ["application_answer"],
+    english_proficiency: ["application_answer"],
+    outstanding_offers: ["application_answer"],
+    winternship_interest: ["application_answer"],
+    office_location_preference: ["application_answer"],
+    reside_near_posting: ["application_answer"], // company-scoped facts ONLY (the answer is posting-relative: his Chicago residence vs the posting's city, per board) — deriveAnswers never emits a company-scoped fact; the drive host merges it for its company, the application_text pattern
+    graduation_year_or_later: ["education"], // fill-time resolution: the label's year against the education fact's graduation year (the mirror of full_time_readiness — "graduating in YEAR or later" is Yes when gradYear >= the label's year)
+    relocate_bay_area: ["application_answer"],
+    relocate_new_york: ["application_answer"],
+    onsite_sf_ny: ["application_answer"],
+    austin_onsite: ["application_answer"],
+    twelve_week_availability: ["application_answer"],
+    available_terms: ["application_answer"],
+    full_time_start_timing: ["application_answer"],
+    swe_area_interest: ["application_answer"],
+    areas_of_interest: ["application_answer"],
+    flexwork_acceptance: ["application_answer"],
+    documentation_ability: ["application_answer"],
+    cohort_availability: ["application_answer"],
+    fixed_dates_acknowledgment: ["application_answer"],
+    omaha_requirement: ["application_answer"],
+    comp_expectations: ["application_answer"],
+    comp_monthly_expectation: ["application_answer"],
+    grosvenor_relationships: ["application_answer"],
+    figma_area_first_choice: ["application_answer"],
+    figma_area_second_choice: ["application_answer"],
   };
   // Fact kinds that are profile MATERIAL (documents, tailoring,
   // research) rather than portal screening answers — exempt from
@@ -26460,6 +26504,7 @@ const CareerPortalApply = (() => {
     skill: "skill inventory — tailoring material, not a screening answer",
     research: "research record — fellowship/essay material, not a portal screening answer",
     metric: "company metrics — essay/profile material, not a screening answer",
+    application_text: "per-company application texts (essays, details paragraphs) — host-supplied confirmed drafts (draft:true, company-scoped, keyed by the exact question slug), never derived into the generic answer map; the drive harness merges them for their company only, like attestations and the manual-applications set",
   };
   const US_STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia" };
   // City -> IANA zone for the bank's own residence only. A residence
@@ -26549,6 +26594,34 @@ const CareerPortalApply = (() => {
       const first = String(basics.name).trim().split(/\s+/)[0];
       if (first) { out.profileFields.preferred_name = first; out.traces.preferred_name = { factId: "basics.name", how: "first token of the bank's full name (no separate preferred-name fact on file)" }; }
     }
+    // R3 delegated answers (2026-10-17): profile facts the owner
+    // supplied under his answer-all delegation. Citizenship: the
+    // status text always derives verbatim; the three derived
+    // directions (not a student-visa holder / IS a U.S. Person /
+    // deemed-export does not affect) follow ONLY from an affirmative
+    // U.S.-citizen-or-national fact — any other status leaves those
+    // fields as asks, never an inference.
+    const cit = byKindName("profile", /citizenship/i);
+    if (confirmed(cit) && cit.value) {
+      put("citizenship_status", cit.value, cit.id, "citizenship fact value, verbatim");
+      if (/^u\.?s\.? (citizen|national)$/i.test(String(cit.value).trim())) {
+        put("student_visa_holder", "No", cit.id, "a U.S. citizen/national is not an F-1 student-visa holder using CPT/OPT");
+        put("us_person_status", "Yes", cit.id, "a U.S. citizen is a U.S. Person under the Deemed Export Rule (EAR 734.13 / ITAR 120.15)");
+        put("deemed_export_affects_employment", "No", cit.id, "the deemed export rule does not restrict a U.S. Person's own employment");
+      }
+    }
+    // Completed education: ONLY an explicitly completed credential
+    // fact answers this class — F-001's in-progress enrollment never
+    // does (BUG-238 law, pinned by the answer-map suite).
+    const completedEdu = byKindName("profile", /completed education/i);
+    if (confirmed(completedEdu) && completedEdu.value) put("education_level_completed", completedEdu.value, completedEdu.id, "explicitly completed credential fact value");
+    const howHeard = byKindName("profile", /how heard/i);
+    if (confirmed(howHeard) && howHeard.value) put("how_heard", howHeard.value, howHeard.id, "the bank's standard how-heard fact, verbatim");
+    const zip = byKindName("profile", /zip|postal/i);
+    if (confirmed(zip) && zip.value) {
+      out.profileFields.zip_code = String(zip.value);
+      out.traces.zip_code = { factId: zip.id, how: "current ZIP fact value" };
+    }
     // education facts (F-001 shape): the level token + the education block
     const edu = bank.facts.find((f) => f.kind === "education");
     if (confirmed(edu)) {
@@ -26562,6 +26635,13 @@ const CareerPortalApply = (() => {
       if (block.degree) { const disc = block.degree.replace(/^(bachelors?|masters?|ph\.?d)\s+(in\s+)?/i, "").trim(); if (disc && disc !== block.degree) block.discipline = disc; }
       if (edu.start) block.start_date = String(edu.start);
       if (edu.end) { block.end_date = String(edu.end); block.graduation_year = String(edu.end); }
+      // R3: the month halves of the same dates (boards split the
+      // education block into year and month fields; the years alone
+      // left the month fields as asks — LionTree/Affirm, R2).
+      const startMonth = byKindName("profile", /education start month/i);
+      if (confirmed(startMonth) && startMonth.value) block.start_month = String(startMonth.value);
+      const endMonth = byKindName("profile", /education end month/i);
+      if (confirmed(endMonth) && endMonth.value) block.end_month = String(endMonth.value);
       if (bank.defaults && bank.defaults.gpa) block.gpa = String(bank.defaults.gpa);
       if (Object.keys(block).length) { out.profileFields.education = block; out.traces.education = { factId: edu.id, how: "education block from the education fact's structured fields" }; }
     }
@@ -26619,6 +26699,19 @@ const CareerPortalApply = (() => {
         out.profileFields.certifications = titles.join("; ");
         out.traces.certifications = { factId: certs.map((f) => f.id).join(","), how: "titles of the confirmed certification facts" };
       }
+    }
+    // R3: owner-delegated application answers. Each fact carries its
+    // question_key explicitly; a key is emitted ONLY when it is
+    // declared in ANSWER_KEY_SOURCES (the declared-source law — an
+    // undeclared key emits nothing, and the answer-map suite names
+    // the omission). Values ride verbatim, traces name the fact.
+    for (const f of bank.facts) {
+      if (!f || f.kind !== "application_answer" || !confirmed(f)) continue;
+      if (f.company) continue; // company-scoped: host-merged for its company only (see ANSWER_KEY_SOURCES reside_near_posting) — never a generic answer
+      const key = f.question_key;
+      if (!key || !ANSWER_KEY_SOURCES[key] || f.value === undefined) continue;
+      if (out.answers[key]) continue; // first confirmed fact wins; never overwritten
+      put(key, f.value, f.id, "owner-delegated application answer fact, verbatim");
     }
     return out;
   }
@@ -26905,6 +26998,18 @@ const CareerPortalApply = (() => {
       if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
       return { value: gradYear <= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's year ${askedYear}` };
     }
+    if (key === "graduation_year_or_later") {
+      // R3 follow-on (ID.me, verbatim): "Is your expected graduation
+      // date in 2028 or later?" — the mirror comparison: Yes when the
+      // education fact's graduation year is the label's year or later.
+      const m = String((f && f.label) || "").match(/\b(20\d{2})\b/);
+      const gy = profileValue(profile, "education_graduation_year");
+      if (!m || !gy) return null;
+      const gradYear = parseInt(String(gy), 10);
+      const askedYear = parseInt(m[1], 10);
+      if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
+      return { value: gradYear >= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's "in ${askedYear} or later"` };
+    }
     return null;
   }
 
@@ -27029,11 +27134,26 @@ const CareerPortalApply = (() => {
         filled[f.field_id] = { value, source: chosen ? "user_eeo_choice" : "eeo_default_decline" };
         logStep("fill", Object.assign({}, entry, { source: chosen ? "user_eeo_choice" : "eeo_default_decline" }));
       } else if (f.kind === "attestation") {
-        const att = (inp.attestations || {})[f.field_id];
+        // An explicit attestation may be addressed by the board's
+        // field_id OR by the field's canonical question_key (R3: the
+        // certify class canonicalizes to certify_true in module 150,
+        // so the owner's D10 confirmation reaches the checkbox
+        // whatever DOM id the board gave it).
+        const att = (inp.attestations || {})[f.field_id] || (inp.attestations || {})[f.question_key];
         if (att && att.explicit === true && att.value !== undefined) {
           board.fill(f.field_id, att.value); filled[f.field_id] = { value: att.value, source: "user_explicit_attestation" };
           logStep("fill", Object.assign({}, entry, { source: "user_explicit_attestation" }));
-        } else { asks.push({ field_id: f.field_id, reason: "attestation_requires_explicit_confirmation" }); }
+        } else {
+          // R3: a confirmed answer under the attestation's canonical
+          // key is the same explicit confirmation in answer form —
+          // the owner's acknowledgment-class approval (Fact 5) lives
+          // in the bank as exactly that. Anything else stays an ask.
+          const a = answers[f.question_key];
+          if (a && a.confirmed === true && a.value !== undefined) {
+            board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+            logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          } else { asks.push({ field_id: f.field_id, reason: "attestation_requires_explicit_confirmation" }); }
+        }
       } else {
         asks.push({ field_id: f.field_id, reason: "unknown_field_category" });
       }

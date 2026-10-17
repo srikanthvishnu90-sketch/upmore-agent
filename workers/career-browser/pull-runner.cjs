@@ -4,6 +4,7 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
   if(typeof worker?.runPending!=='function'||typeof store?.list!=='function'||!Number.isInteger(intervalMs)||intervalMs<1000||intervalMs>60000||!Number.isInteger(maxTasks)||maxTasks<1||maxTasks>50||!Number.isInteger(maxRunMs)||maxRunMs<1000||maxRunMs>3600000||!Number.isInteger(maxErrors)||maxErrors<1||maxErrors>10)throw fail('RUNNER_CONFIGURATION_INVALID');
   if(!Number.isInteger(idleTimeoutMs)||idleTimeoutMs<1000||idleTimeoutMs>3600000||!Number.isInteger(uncertainTimeoutMs)||uncertainTimeoutMs<1000||uncertainTimeoutMs>3600000||!Number.isInteger(maxTransitions)||maxTransitions<1||maxTransitions>1000)throw fail('RUNNER_CONFIGURATION_INVALID');
   const started=now();let timer,stopped=false,busy=false,tasks=0,completed=0,evidenceReady=0,handoffs=0,errors=0,activeTaskId,activeStatus,lastProgress=started,uncertainSince,transitions=0;
+  const publicationPending=t=>t?.kind==='public_research/v1'&&t.publicationPending===true;
   function event(type,result={}){
     const value={event:type,at:new Date(now()).toISOString(),tasks,errors};
     if(/^[a-f0-9]{32}$/.test(result.id||''))value.taskId=result.id;
@@ -26,10 +27,11 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
         if(!activeTaskId&&/^[a-f0-9]{32}$/.test(result.id||''))activeTaskId=result.id;
         transitions++;
         if(result.status!==activeStatus){lastProgress=now();activeStatus=result.status;}
-        if(result.status==='unknown_outcome')uncertainSince??=now();else uncertainSince=undefined;
+        const publishing=result.kind==='public_research/v1'&&(result.blocker==='TASK_RESULT_UNCONFIRMED'||publicationPending(store.get?.(result.id)));
+        if(result.status==='unknown_outcome'||publishing)uncertainSince??=now();else uncertainSince=undefined;
         event('task_result',result);
         const expired=result.blocker==='PRIVATE_RETENTION_EXPIRED';
-        if(expired||['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status)){
+        if(expired||(!publishing&&['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status))){
           if(expired)handoffs++;else if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
           tasks++;activeTaskId=undefined;activeStatus=undefined;uncertainSince=undefined;
           if(expired)stop('private_expiry_handoff');
@@ -44,9 +46,9 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
     event('worker_start');
     const checkpoints=store.list().map(id=>store.get(id));
     for(const t of checkpoints)if(t?.privateExpiredAt!==undefined)event('checkpoint_expired_handoff',{id:t.id,status:t.status,blocker:'PRIVATE_RETENTION_EXPIRED'});
-    const active=checkpoints.filter(t=>t&&t.privateExpiredAt===undefined&&['queued','preparing','reading','review_ready','unknown_outcome'].includes(t.status));
+    const active=checkpoints.filter(t=>t&&t.privateExpiredAt===undefined&&(publicationPending(t)||['queued','preparing','reading','review_ready','unknown_outcome'].includes(t.status)));
     if(active.length>1){stop('multiple_active_checkpoints');return api;}
-    if(active.length){const task=active[0];activeTaskId=task.id;activeStatus=task.status;if(task.status==='unknown_outcome')uncertainSince=now();event('checkpoint_requires_review',{id:task.id,status:task.status,authority:task.authority});}
+    if(active.length){const task=active[0];activeTaskId=task.id;activeStatus=task.status;if(task.status==='unknown_outcome'||publicationPending(task))uncertainSince=now();event('checkpoint_requires_review',{id:task.id,status:task.status,authority:task.authority});}
     // Restore checkpoints, never force a stalled/uncertain task to queued.
     tick();if(!stopped)timer=setInterval(tick,intervalMs);return api;
   }

@@ -10,7 +10,14 @@ function crc(bytes){let n=0xffffffff;for(const b of bytes)n=crcTable[(n^b)&255]^
 function pdf(bytes){
  const text=bytes.toString('latin1');
  if(!/^%PDF-[12]\.\d/.test(text)||!/%%EOF\s*$/.test(text))fail('PDF_CONTAINER_INVALID');
- if(/\/(?:Encrypt|JavaScript|JS|Launch|EmbeddedFile|OpenAction|AA|XFA)\b/.test(text))fail('PDF_DIALECT_UNSUPPORTED');
+ // Decode name escapes for policy inspection only; original bytes and xref
+ // offsets stay intact. Compressed object dialects are outside this policy.
+ const prohibited=new Set(['Encrypt','JavaScript','JS','Launch','EmbeddedFile','OpenAction','AA','XFA','ObjStm','XRef']);
+ for(const [token]of text.matchAll(/\/[^\x00\x09\x0a\x0c\x0d ()<>\[\]{}/%]+/g)){
+  if(/#(?![a-f\d]{2})/i.test(token))fail('PDF_DIALECT_UNSUPPORTED');
+  const name=token.slice(1).replace(/#([a-f\d]{2})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)));
+  if(prohibited.has(name))fail('PDF_DIALECT_UNSUPPORTED');
+ }
  const end=/startxref\s+(\d+)\s+%%EOF\s*$/.exec(text);if(!end)fail('PDF_CONTAINER_INVALID');
  const start=Number(end[1]);if(!Number.isSafeInteger(start)||text.slice(start,start+4)!=='xref')fail('PDF_DIALECT_UNSUPPORTED');
  const trailer=text.slice(start);if(!/trailer\s*<<[\s\S]*?\/Root\s+\d+\s+\d+\s+R/.test(trailer)||!/\/Type\s*\/Catalog\b/.test(text)||!/\/Type\s*\/Pages\b/.test(text)||!/\/Type\s*\/Page\b/.test(text))fail('PDF_CONTAINER_INVALID');
@@ -37,7 +44,13 @@ function docx(bytes){
   if(bytes.toString('utf8',local+30,local+30+localName)!==name||data+compressed>start||ranges.some(([a,b])=>local<b&&data+compressed>a))fail('DOCX_CONTAINER_INVALID');ranges.push([local,data+compressed]);
   let result;try{result=method===8?inflateRawSync(bytes.subarray(data,data+compressed),{maxOutputLength:2097152}):bytes.subarray(data,data+compressed);}catch(_){fail('DOCX_CONTAINER_INVALID');}
   if(result.length!==expanded||crc(result)!==sum)fail('DOCX_CONTAINER_INVALID');
-  if(/\.xml$|\.rels$/.test(name)&&/<!DOCTYPE|<!ENTITY|macroEnabled|vbaProject|oleObject|attachedTemplate/i.test(result.toString('utf8')))fail('DOCX_DIALECT_UNSUPPORTED');
+  if(/\.(?:xml|rels)$/i.test(name)){
+   // Only UTF-8/ASCII XML is supported. A fatal decode and NUL refusal prevent
+   // UTF-16/32 or legacy encodings from hiding active dialect markers.
+   let xml;try{xml=new TextDecoder('utf-8',{fatal:true}).decode(result);}catch(_){fail('DOCX_DIALECT_UNSUPPORTED');}
+   const encoding=/<\?xml\s[^?]*\bencoding\s*=\s*['"]([^'"]+)['"]/i.exec(xml)?.[1];
+   if(xml.includes('\0')||(encoding&&!/^(?:utf-8|us-ascii)$/i.test(encoding))||/<!DOCTYPE|<!ENTITY|macroEnabled|vbaProject|oleObject|attachedTemplate/i.test(xml))fail('DOCX_DIALECT_UNSUPPORTED');
+  }
   parts.set(name,result);p+=46+len+extra+comment;
  }
  if(p!==end||!parts.has('[Content_Types].xml')||!parts.has('_rels/.rels')||!parts.has('word/document.xml')||!/wordprocessingml\.document\.main\+xml/.test(parts.get('[Content_Types].xml').toString())||!/<(?:\w+:)?document\b/.test(parts.get('word/document.xml').toString())||!/<\/(?:\w+:)?document>/.test(parts.get('word/document.xml').toString()))fail('DOCX_CONTAINER_INVALID');

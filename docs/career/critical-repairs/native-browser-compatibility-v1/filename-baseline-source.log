@@ -1,0 +1,40 @@
+✔ format validates actual original pdf container without changing bytes or extracting facts (12.66231ms)
+(node:548580) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:548580) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ format validates actual original docx container without changing bytes or extracting facts (9.812405ms)
+✔ format rejects signature-only, corrupt, mismatched, traversal and oversized documents (8.432649ms)
+✔ PDF active/encrypted dialects are refused before storage (1.261082ms)
+✔ actual source entry rejects unauthenticated requests and blocked origins with zero backend effects (174.906998ms)
+✔ use-this-resume text without owned artifact/review and arbitrary page text do not confirm (73.502764ms)
+✔ unreviewed secret/eligibility fields and implicit field confirmation are refused (75.123179ms)
+✔ request body is bounded before JSON parsing or file storage, including no Content-Length (96.058789ms)
+✔ existing identity redactor refuses secrets in explicit field values while preserving ordinary phone numbers (104.994318ms)
+✖ filename metadata uses the existing identity policy before any storage RPC (90.017378ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 759.675227
+
+✖ failing tests:
+
+test at tests/career-applicant-ingress.test.cjs:23:1
+✖ filename metadata uses the existing identity policy before any storage RPC (90.017378ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 400
+  
+      at TestContext.<anonymous> (/tmp/upmore-integration-fixes/tests/career-applicant-ingress.test.cjs:27:59)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

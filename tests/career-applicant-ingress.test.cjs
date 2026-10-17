@@ -18,3 +18,12 @@ test('existing identity redactor refuses secrets in explicit field values while 
  for(const value of ['123-45-6789','otp: 482913','password: SYNTHETIC_secret']){const r=await a.request(request('review',JSON.stringify({...base,fields:{name:value}}),{'content-type':'application/json'}));assert.equal(r.status,400);}assert.equal(n,0);
  const r=await a.request(request('review',JSON.stringify({...base,fields:{phone:'312-555-0100'}}),{'content-type':'application/json'}));assert.equal(r.status,200);assert.equal(n,2);
 });
+
+// Synthetic policy shapes only; no real identity or secret data.
+test('filename metadata uses the existing identity policy before any storage RPC',async()=>{
+ let n=0;const a=await app(async()=>{n++;return {data:{},error:null};});
+ for(const name of ['123-45-6789.pdf','otp: 482913.pdf','password: SYNTHETIC_secret.pdf']){
+  const form=new FormData();form.set('threadId','00000000-0000-4000-8000-000000000003');form.set('requestId','unsafe-file');form.set('file',new Blob([input('pdf')],{type:'application/pdf'}),name);form.set('filename',name);
+  const r=await a.request(request('uploads',form));assert.equal(r.status,400);assert.equal(n,0);
+ }
+});

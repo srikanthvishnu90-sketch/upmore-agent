@@ -1,0 +1,16 @@
+'use strict';
+// Synthetic inert containers only. No document execution or external requests.
+const B=Buffer;
+function pdf(name){
+ const objects=['<< /Type /Catalog /Pages 2 0 R '+name+' >>','<< /Type /Pages /Count 1 /Kids [3 0 R] >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>'];
+ let text='%PDF-1.4\n',offsets=[0];for(const [i,body]of objects.entries()){offsets.push(B.byteLength(text));text+=(i+1)+' 0 obj\n'+body+'\nendobj\n';}
+ const at=B.byteLength(text);text+='xref\n0 4\n0000000000 65535 f \n'+offsets.slice(1).map(x=>String(x).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n'+at+'\n%%EOF\n';return B.from(text);
+}
+function crc(bytes){let n=0xffffffff;for(const b of bytes){n^=b;for(let k=0;k<8;k++)n=n&1?0xedb88320^(n>>>1):n>>>1;}return (n^0xffffffff)>>>0;}
+function zip(parts){const locals=[],central=[];let at=0;for(const [name,input]of Object.entries(parts)){const key=B.from(name),bytes=B.from(input),sum=crc(bytes),l=B.alloc(30),c=B.alloc(46);l.writeUInt32LE(0x04034b50);l.writeUInt16LE(20,4);l.writeUInt32LE(sum,14);l.writeUInt32LE(bytes.length,18);l.writeUInt32LE(bytes.length,22);l.writeUInt16LE(key.length,26);c.writeUInt32LE(0x02014b50);c.writeUInt16LE(20,4);c.writeUInt16LE(20,6);c.writeUInt32LE(sum,16);c.writeUInt32LE(bytes.length,20);c.writeUInt32LE(bytes.length,24);c.writeUInt16LE(key.length,28);c.writeUInt32LE(at,42);locals.push(l,key,bytes);central.push(c,key);at+=l.length+key.length+bytes.length;}const directory=B.concat(central),end=B.alloc(22);end.writeUInt32LE(0x06054b50);end.writeUInt16LE(central.length/2,8);end.writeUInt16LE(central.length/2,10);end.writeUInt32LE(directory.length,12);end.writeUInt32LE(at,16);return B.concat([...locals,directory,end]);}
+function docx(encoding,active){const xml='<?xml version="1.0" encoding="'+encoding+'"?>'+active,bytes=encoding==='UTF-16'?B.concat([B.from([255,254]),B.from(xml,'utf16le')]):B.from(xml);return zip({'[Content_Types].xml':'<Types><Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>','_rels/.rels':'<Relationships/>','word/document.xml':'<w:document xmlns:w="urn:synthetic"><w:body/></w:document>','word/settings.xml':bytes});}
+module.exports={pdf,docx,cases:[
+ {label:'escaped-PDF-action',name:'synthetic.pdf',type:'application/pdf',bytes:pdf('/#4fpenAction << /S /Java#53cript /J#53 (SYNTHETIC INERT TEXT) >>')},
+ {label:'UTF16-DOCX-DTD',name:'synthetic.docx',type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',bytes:docx('UTF-16','<!DOCTYPE settings [<!ENTITY synthetic "SYNTHETIC INERT">]><settings/>')},
+ {label:'UTF16-DOCX-template',name:'synthetic.docx',type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',bytes:docx('UTF-16','<settings><attachedTemplate/></settings>')}
+]};

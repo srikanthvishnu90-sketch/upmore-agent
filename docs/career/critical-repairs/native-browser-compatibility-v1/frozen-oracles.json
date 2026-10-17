@@ -1,0 +1,15 @@
+{
+  "native": "a708123346e70a19a7787b0f60144b071f10ef15",
+  "browser": "00f0178f9a36c8848233a2eb0bb04be3349b9168",
+  "combinedUnrepaired": "0395abd4997d69c1294c8fec4181a1ebdbca4d65",
+  "files": {
+    "tests/combined-effect-admission-postgres.test.cjs": "949c43e2641dc7260595c63e14776fc216b6e3a329ea71f1583a2b56f90ad3f8",
+    "tests/combined-applicant-filename-postgres.test.cjs": "607bd8c6a4397d1ac055395a5849c385c0886f04c67cd57ea92560c9827a3d0e",
+    "tests/combined-applicant-document-policy.test.cjs": "b70648cadc1d5d81e982f280a145869128f8b2f7ef5044accb21de61350997f4",
+    "tests/combined-applicant-document-postgres.test.cjs": "3086b5edf99b7d9d448a77826d78a49e0fc0ae804917c6fa6271081732b7b55f",
+    "tests/helpers/applicant-policy-fixtures.cjs": "d6eab884d0f1e5fcd0afd51e7230c929ef8c9d41bfe4191953dfeb894b2d1dcf",
+    "tests/combined-research-pull-publication.test.cjs": "3b0d7217765e1e53b9bbcbe7b02a3c95254b2b77d49a9c4ecf05e3c7b4bc8e49",
+    "tests/career-critical-repairs/combined-pull-publication-postgres.test.cjs": "6aa1a71f7d029d7b41590c536e8b19b3f681b6cab00c1198acc6e46d69e1b71a"
+  },
+  "paidCalls": 0
+}

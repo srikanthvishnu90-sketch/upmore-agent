@@ -16,7 +16,7 @@ async function bodyBytes(req,limit){
  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>limit){await reader.cancel();throw error('REQUEST_SIZE_LIMIT',413);}chunks.push(value);}}finally{reader.releaseLock();}
  return Buffer.concat(chunks,size);
 }
-export function createApplicantIngress({authenticate,rpc,allowedOrigins=[]}){
+export function createApplicantIngress({authenticate,rpc,allowedOrigins=/** @type {string[]} */([])}){
  if(typeof authenticate!=='function'||typeof rpc!=='function')throw error('APPLICANT_INGRESS_NOT_WIRED',503);
  const persistence=createCareerPersistence({rpc});
  return async function handle(req){
@@ -39,7 +39,9 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=[]}){
     threadId=parsed.get('threadId');requestId=parsed.get('requestId');const file=parsed.get('file');
     if(!UUID.test(threadId||'')||!KEY.test(requestId||'')||!file||typeof file.arrayBuffer!=='function')throw error('INVALID_UPLOAD_FIELDS');threadId=threadId.toLowerCase();
     const declared=parsed.get('filename');if(parsed.getAll('filename').length>1||(declared!==null&&(typeof declared!=='string'||(file.name!==declared&&file.name!==declared.replace(/"/g,'%22')))))throw error('UPLOAD_FILENAME_MISMATCH');
-    const original=await file.arrayBuffer();validation=await validateResume(original,declared===null?file.name:declared,file.type);encoded=Buffer.from(original).toString('base64');
+    const filename=declared===null?file.name:declared;
+    if(redactIdentity(filename).removed.length)throw error('RESUME_FILENAME_INVALID');
+    const original=await file.arrayBuffer();validation=await validateResume(original,filename,file.type);encoded=Buffer.from(original).toString('base64');
     requestHash=await applicantRequestHash({version:'career_applicant_upload/v1',threadId,requestId,filename:validation.filename,contentType:validation.contentType,sha256:validation.sha256,bytes:validation.bytes});
    }else{
     if(!/^application\/json(?:;|$)/i.test(req.headers.get('content-type')||''))throw error('JSON_REQUIRED');

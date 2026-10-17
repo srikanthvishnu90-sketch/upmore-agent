@@ -1,0 +1,17 @@
+'use strict';
+// Offline verification of captured actual-handler/SQL evidence; no dispatch.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const out=path.resolve(process.argv[2]),read=name=>JSON.parse(fs.readFileSync(path.join(out,name))),hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const summary=read('summary.json'),before=read('before.trace.json'),after=read('after.trace.json'),reopen=read('reopen.trace.json'),journal=read('controlled-provider-journal.json'),artifact=read('artifact.json');
+assert.equal(summary.target_commit,'5c8c83263e19970e9c7a1485c0249769d453b5d7');assert.equal(summary.outcome,'completed');assert.equal(summary.owned_fixture_removed,true);assert.equal(summary.A_worktree_after,'');
+for(const phase of [before,after,reopen])assert.equal(phase.outcome,'completed');assert.equal(new Set([before.pid,after.pid,reopen.pid]).size,3,'three actual Node processes');
+const unknown=before.accounting.find(x=>x.label==='unknown-obligation-held'),cash=reopen.accounting.at(-1),known=cash.legs.filter(x=>x.raw_usage_receipt);
+assert.equal(unknown.cash.filter(x=>x.state==='started').length,1);assert.ok(unknown.cash.find(x=>x.state==='started').bound_micros>0);assert.equal(unknown.cash.find(x=>x.state==='started').cost_micros,null,'unknown is not a zero charge');assert.equal(unknown.usage.length,0);
+assert.equal(journal.length,3);assert.equal(known.length,3);assert.equal(cash.pairs.length,2);assert.equal(cash.legs.length,4);assert.equal(cash.cash.filter(x=>x.state==='not_sent').length,1);assert.equal(cash.cash.reduce((n,r)=>n+r.cost_micros,0),48);assert.ok(cash.cash.every(r=>['recorded','not_sent'].includes(r.state)));
+for(const call of journal){
+ const leg=known.find(l=>l.provider_response_id===call.receipt.response_id);assert.ok(leg);assert.equal(leg.dispatched_payload,hash(call.wire));assert.deepEqual(leg.raw_usage_receipt,call.receipt);assert.equal(leg.config_digest,call.receipt.config_digest);assert.equal(hash(call.raw),call.receipt.response_body_sha256);assert.equal(hash(call.wire),call.receipt.request_body_sha256);assert.deepEqual(JSON.parse(call.raw).usage,call.receipt.usage);
+}
+assert.equal(cash.usage.length,3);assert.equal(cash.monthly.length,3);for(const u of cash.usage){assert.equal(u.input_tokens,66);assert.equal(u.cache_read_tokens,7);assert.equal(u.output_tokens,31);}
+assert.equal(hash(fs.readFileSync(path.join(out,'partial-pack.md'))),artifact.sha256);assert.equal(Buffer.byteLength(artifact.utf8),artifact.byte_length);assert.equal(artifact.partial,true);assert.equal(reopen.turns[0].response.text,artifact.utf8);assert.equal(reopen.turns[0].state.content_sha256,artifact.expected_state_sha256);assert.equal(reopen.turns[0].state.checkpoint.outstanding_reasoning.length,0);
+const result={label:'INDEPENDENT_ACTUAL_ENTRY_EVIDENCE_VERIFIED',target_commit:summary.target_commit,B_runtime_source:summary.B_source,case12_outcome:'completed',http_turns:[before,after,reopen].reduce((n,p)=>n+p.turns.length,0),distinct_node_pids:[before.pid,after.pid,reopen.pid],controlled_provider_replies:3,actual_paid_requests:0,synthetic_cost_micros:48,known_pairs:2,known_billed_legs:3,not_sent_legs:1,final_uncertain_legs:0,artifact:{sha256:artifact.sha256,byte_length:artifact.byte_length,partial:true,exact_reopen:true},A_owned_findings:after.observations,model_quality:'NOT_RUN'};
+console.log(JSON.stringify(result,null,2));

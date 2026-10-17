@@ -1,0 +1,38 @@
+TAP version 13
+# (node:421150) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:421150) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: T02 unavailable verifier refuses before generation or cash admission
+not ok 1 - T02 unavailable verifier refuses before generation or cash admission
+  ---
+  duration_ms: 228.246664
+  type: 'test'
+  location: '/tmp/upmore-grounded-mutations-Z0L7CU/repo/tests/career-flexible-grounding.test.cjs:6:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'semantic_or_contract_rejected'
+    - 'semantic_verifier_unavailable'
+                ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'semantic_verifier_unavailable'
+  actual: 'semantic_or_contract_rejected'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-grounded-mutations-Z0L7CU/repo/tests/career-flexible-grounding.test.cjs:6:280)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 279.696752

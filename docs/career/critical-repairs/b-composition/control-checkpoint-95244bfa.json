@@ -1,0 +1,14 @@
+{
+  "source": "95244bfaa2dad081b38700dd561c480340ae27e5",
+  "tier": "MOCK_CONTRACT",
+  "contextBaseline": {"pass": 19, "fail": 0},
+  "contextIndependentDefects": {"killed": 11, "total": 11, "evidence": "context-controls-95244bfa/results.json"},
+  "flexibleBaseline": {"pass": 52, "fail": 0},
+  "flexibleIndependentDefects": {"killed": 15, "total": 15, "evidence": "docs/testing/runs/career-flexible-grounding-20261016/spec-a-context-final-95244bfa/results.json"},
+  "providerCalls": 0,
+  "browserOutcomes": 0,
+  "actualProviderQuality": "NOT_RUN",
+  "defaultEntryRegistration": "NOT_WIRED",
+  "specAEngineeringComplete": false,
+  "nextCommitScope": "results and evidence only; implementation and oracles unchanged"
+}

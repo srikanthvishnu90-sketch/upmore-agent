@@ -1,0 +1,244 @@
+{
+ "capability": "CAREER-BATCH",
+ "run_at": "2026-10-17T02:32:15.084Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 21,
+ "proven": 21,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Digit-count parse",
+   "defect": "the family text is read from the unit group",
+   "test": "apply to 15 investment banking intern roles",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Spelled counts",
+   "defect": "fifteen resolves to 14",
+   "test": "fifteen resolves to 15",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "Unclaimed asks stay unclaimed",
+   "defect": "a non-matching ask fabricates a batch",
+   "test": "count-less asks return null",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "New run state",
+   "defect": "a new run starts already approved",
+   "test": "a new run starts in the new state",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Duplicates counted",
+   "defect": "duplicates are removed but never counted",
+   "test": "a cross-board duplicate counts as removed",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "Closed screens out",
+   "defect": "closed postings stay eligible",
+   "test": "a closed posting is JOB_CLOSED",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "Knockouts screen out",
+   "defect": "knockout results are discarded",
+   "test": "an unmet license knockout is KNOCKOUT_UNMET",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Current employer screens out",
+   "defect": "the current-employer block never fires",
+   "test": "the user's own employer is CURRENT_EMPLOYER",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "Count deferral",
+   "defect": "every eligible posting is selected regardless of count",
+   "test": "eligible beyond the count are COUNT_DEFERRED",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "The approval card",
+   "defect": "the batch card is never built",
+   "test": "doorstep applications get a batch_approval card",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "ApprovalRef binding",
+   "defect": "the approvalRef is not bound to the card set hash",
+   "test": "the ref includes the card set hash",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Changed set refused",
+   "defect": "the card set hash is never re-checked at approval",
+   "test": "a tampered payload refuses approval",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "The yes is required",
+   "defect": "an approval without the user's yes still mints",
+   "test": "approvedByUser false mints nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "Execution needs approval",
+   "defect": "execution runs without an approval",
+   "test": "an unapproved run submits nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "Submissions land",
+   "defect": "a completed submit is recorded as still at the doorstep",
+   "test": "an approved clean batch submits 3 with confirmations",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S18",
+    "S21"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Uncovered question named",
+   "defect": "the uncovered-question stop is renamed",
+   "test": "an uncovered required field stops as UNCOVERED_QUESTION",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Captcha is a handoff",
+   "defect": "the captcha stop is recorded as solved",
+   "test": "a captcha at open stops as CAPTCHA_HANDOFF",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "Cap deferral at click",
+   "defect": "click-time cap deferrals are recorded under another code",
+   "test": "cap overflow defers as CAP_REACHED with a resume day",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "Drive errors named",
+   "defect": "drive errors are recorded as EXECUTION_OK",
+   "test": "a throwing drive stops as EXECUTION_ERROR",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "Restore round-trips",
+   "defect": "restore always returns null",
+   "test": "a serialized run restores and approves",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Report names submissions",
+   "defect": "the spoken summary omits the submissions line",
+   "test": "the spoken summary names the submitted count",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

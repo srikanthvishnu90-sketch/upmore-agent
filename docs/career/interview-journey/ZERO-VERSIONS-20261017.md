@@ -78,6 +78,12 @@ rerun the probe above before registration. The historical direct-canonical probe
 at `3a41cd45` remains a failure; this repair establishes consumption through the
 explicit versioned projection, not direct schema equivalence.
 
+Exact tested B source: `8730040dbe3426ea45f430e8f95c27046c2bbf3c`.
+Use that coherent runtime and its tests with A producer
+`315158f5314360417266270ec6e6e9e71aad0af8`; do not apply only the zero-version
+diff onto A's embedded `53ae74b3` and omit the intervening B4/B5 repairs. The
+following publication commit adds evidence and this source pointer only.
+
 Proof profiles, shared paired accounting, atomic journey persistence, CI
 discovery and actual entry registration remain A-owned. In particular, preserve
 `checkpoint.outstanding_reasoning` across pause/stop and require trusted terminal

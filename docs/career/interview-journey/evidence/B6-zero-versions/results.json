@@ -1,0 +1,613 @@
+{
+  "checked_at": "2026-10-17T00:56:46.868969+00:00",
+  "tested_source_commit": "8730040dbe3426ea45f430e8f95c27046c2bbf3c",
+  "baseline_commit": "01cfb24d97dde5301cee842818d945d827d35f0a",
+  "producer_ref": "315158f5314360417266270ec6e6e9e71aad0af8",
+  "baseline": {
+    "source_commit": "01cfb24d97dde5301cee842818d945d827d35f0a",
+    "files_sha256": {
+      "tests/career-interview-journey/context-versions.test.cjs": "407677b2597f2024249403e6a13dace1b23af541a3bfef22d3c7d24fdf25d5e9",
+      "scripts/career/interview-journey/projected-context-compatibility.cjs": "4f5313acad1ab2d2dc54c52e0834ce3dea4e048ee63887560af79a970ca0a621"
+    },
+    "checks": [
+      {
+        "name": "before-unit",
+        "command": [
+          "node",
+          "--test",
+          "tests/career-interview-journey/context-versions.test.cjs"
+        ],
+        "exit_code": 1,
+        "log": "before-unit.log",
+        "sha256": "9ff7dcdeca3d67321e035ca64d1cc996bde1c9089482392552bf1ee3f4eefbd0",
+        "counts": {
+          "tests": 27,
+          "pass": 22,
+          "fail": 5,
+          "skipped": 0
+        },
+        "temporary_baseline": "git archive 01cfb24d; copy current frozen tests only"
+      },
+      {
+        "name": "before-projected-A",
+        "command": [
+          "node",
+          "--experimental-vm-modules",
+          "scripts/career/interview-journey/projected-context-compatibility.cjs",
+          "--producer-ref",
+          "315158f5314360417266270ec6e6e9e71aad0af8"
+        ],
+        "exit_code": 1,
+        "log": "before-projected-A.log",
+        "sha256": "39b62f810a070c97dbbb225e1f405bfe8c01931d30525cecf90f07f84463b3a7",
+        "counts": {
+          "pass": 16,
+          "total": 23
+        }
+      }
+    ],
+    "provider_calls": 0,
+    "quality": "NOT_RUN"
+  },
+  "final_checks": [
+    {
+      "name": "node24-contracts",
+      "command": [
+        "node",
+        "scripts/career/interview-journey/check-contracts.cjs"
+      ],
+      "exit_code": 0,
+      "log": "node24-contracts.log",
+      "sha256": "061cdf83b02a2a58e51ab59b63dcd830ffaf55bba3aa14917c2ef198946d44d9",
+      "counts": {
+        "tests": 131,
+        "pass": 131,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "name": "node22-contracts",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/check-contracts.cjs"
+      ],
+      "exit_code": 0,
+      "log": "node22-contracts.log",
+      "sha256": "a1670e1e6264d5ca3c61fe37d39b30fb6856d6a59d5f4b5f94ebdd15516931d7",
+      "counts": {
+        "tests": 131,
+        "pass": 131,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "name": "node24-projected-A",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "scripts/career/interview-journey/projected-context-compatibility.cjs",
+        "--producer-ref",
+        "315158f5314360417266270ec6e6e9e71aad0af8"
+      ],
+      "exit_code": 0,
+      "log": "node24-projected-A.log",
+      "sha256": "6abf80d441c4510b33989baba9df57d442a5615c4ef276ac0510b8183d478cbd",
+      "counts": {
+        "pass": 23,
+        "total": 23
+      },
+      "A_blobs_sha256": {
+        "packages/career-contracts/journey-contract-v1.ts": "146b3de3d875062256c5e2995e3b8a485df748a409d7a0e97c2e28d98325b04c",
+        "packages/career-contracts/journey-contract-v1.schema.json": "e9d67853dc0476391c49b7d5140031a04e64a5a47f69f9fe073f5f013b93b022",
+        "packages/career-contracts/fixtures/journey-contract-v1/freeze.json": "367c77f3abba65dbcf5836165ba654e729d07973a815b4b1dd90f64863558bf5",
+        "packages/career-contracts/interview-context-compat-v1.ts": "64bfa8bc52472d7b18219346726156124e7a25eb5f8f87e738099427c7d01228",
+        "tests/fixtures/career-critical-repairs/interview-context-v1/snapshot.json": "8a92cef36b45aab43936860653a89c004332700245d9b5a62a1d5cfc4a2e5269",
+        "tests/fixtures/career-critical-repairs/interview-context-v1/freeze.json": "a962c5cb9f4a9d4ad741654ffc551f33ebdb871de2abbadf35c8eed786ad3be9"
+      }
+    },
+    {
+      "name": "node22-projected-A",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "--experimental-vm-modules",
+        "scripts/career/interview-journey/projected-context-compatibility.cjs",
+        "--producer-ref",
+        "315158f5314360417266270ec6e6e9e71aad0af8"
+      ],
+      "exit_code": 0,
+      "log": "node22-projected-A.log",
+      "sha256": "84646257ee8991b34e7ad115a75ed9f8c380652192cbce03a00ee9ada8538e32",
+      "counts": {
+        "pass": 23,
+        "total": 23
+      },
+      "A_blobs_sha256": {
+        "packages/career-contracts/journey-contract-v1.ts": "146b3de3d875062256c5e2995e3b8a485df748a409d7a0e97c2e28d98325b04c",
+        "packages/career-contracts/journey-contract-v1.schema.json": "e9d67853dc0476391c49b7d5140031a04e64a5a47f69f9fe073f5f013b93b022",
+        "packages/career-contracts/fixtures/journey-contract-v1/freeze.json": "367c77f3abba65dbcf5836165ba654e729d07973a815b4b1dd90f64863558bf5",
+        "packages/career-contracts/interview-context-compat-v1.ts": "64bfa8bc52472d7b18219346726156124e7a25eb5f8f87e738099427c7d01228",
+        "tests/fixtures/career-critical-repairs/interview-context-v1/snapshot.json": "8a92cef36b45aab43936860653a89c004332700245d9b5a62a1d5cfc4a2e5269",
+        "tests/fixtures/career-critical-repairs/interview-context-v1/freeze.json": "a962c5cb9f4a9d4ad741654ffc551f33ebdb871de2abbadf35c8eed786ad3be9"
+      }
+    }
+  ],
+  "negative_controls": {
+    "label": "OFFLINE_SCRIPTED_NEGATIVE_CONTROLS",
+    "controls": [
+      {
+        "id": "foreign_fact",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "foreign fact is refused",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "a9f192afa43043282b585f9727446afd56501c25254420a112edfddd39f3e1f7",
+        "log_sha256": "ab2787dbd0b57aab83d0b8165e7fb82da8f2162bff60a6d962ccac1283d25a77",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "foreign fact is refused",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "revive_invalidated_answer",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "ownership correction invalidates only",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "839ebaa410c5bd66d0f223fe44ec95cddf0cb2afe4d67d656d0e21ce02c09bd3",
+        "log_sha256": "a7249a639e5a61bf7b3b3197f200c4d1cf3108df8f82f0eb9db17264a3fad7ad",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "ownership correction invalidates only",
+          "tests/career-interview-journey/invalidation.test.cjs"
+        ]
+      },
+      {
+        "id": "fabricate_tool_success",
+        "file": "packages/career-interview-journey/adapters/research.js",
+        "pattern": "fabricated success and altered source bytes",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "d92676403e0234af2608bf7a7c4055589c6ff07e1ac98efe8efbbafae18b3c71",
+        "log_sha256": "d3efa7652a5567b0ff94e345380e74b4c65e027d377095fe3aeb1e3e4a2b8d4c",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "fabricated success and altered source bytes",
+          "tests/career-interview-journey/research.test.cjs"
+        ]
+      },
+      {
+        "id": "posting_becomes_personal_skill",
+        "file": "packages/career-interview-journey/adapters/reasoning.js",
+        "pattern": "posting requirements cannot become personal skills",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "8f042a587f79971e0e65dfb9d577406d7fcda7a04c638e0e1f04fb266638a335",
+        "log_sha256": "61a0aba2ce239541046fd61b1cce259d23ff057361ea5cad3dd98ea40ef397fd",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "posting requirements cannot become personal skills",
+          "tests/career-interview-journey/research.test.cjs"
+        ]
+      },
+      {
+        "id": "change_answer_after_grading",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "changing an answer after grading",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "958bdf21cc8ed672b723942c34f34dd7f69d32026d51c3e8b5562938c841f4dc",
+        "log_sha256": "0d429f0bd05358298a3a4865c326029a6078c14382068abb44284d20bb57ec57",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "changing an answer after grading",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "drop_interruption_checkpoint",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "pause stores unresolved side question",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "54cd57bc7cbcd69ac8ca8ce0c8b733a4017797980945f85b87b72b6403aa7a2b",
+        "log_sha256": "190a6093998ec541245f3816e0d1a3fdfb076b022f58f025b018db56264609f9",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "pause stores unresolved side question",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "keyword_wrong_answer_correct",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "keyword-stuffed wrong answer",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "3d56e80b972fb7470c6935c121444d6ae76e852bd9773b6abd047714a3c567f3",
+        "log_sha256": "628725f972457d75d890cd60561ae29d2cd6070c1cccef7723cffbd99f336ba7",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "keyword-stuffed wrong answer",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "reuse_stale_pack",
+        "file": "packages/domain/interview-journey/pack.js",
+        "pattern": "readable partial pack stays partial and stale pack",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "33d9121cc36e113d74060f60d3a561ec9c9abaa1c7a6b0767a5a01a1fe0297cb",
+        "log_sha256": "e9942cc21d92683e18fd95f6c6b4fc3b825a0d0964d3ca4e649fc784c2b3709a",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "readable partial pack stays partial and stale pack",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "sum_coached_and_transfer_into_improvement",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "complete scripted practice loop",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "642082703671ecd1f421bc53af6ed1db277c16a379a1573a80e25e61648ab860",
+        "log_sha256": "73844d01bf0104752f133d5ff4b9cf1f1ffc26bf845054a6dfd7de221d8a52b8",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "complete scripted practice loop",
+          "tests/career-interview-journey/journey.test.cjs"
+        ]
+      },
+      {
+        "id": "skip_artifact_readback",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "artifact cannot complete on assembly",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "3bc0cf21c5dda1bc4ac862281e0a06a969b4ff31545f3e3fa2501483ebf45974",
+        "log_sha256": "3049c563749f4432c9590b338e922ea76cb72824dd28645dc98c39b6e0f3d50c",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "artifact cannot complete on assembly",
+          "tests/career-interview-journey/boundaries.test.cjs"
+        ]
+      },
+      {
+        "id": "retain_stale_practice_checkpoint",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "company correction sanitizes a paused practice",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "d1dd8375c2d1a114c6355a761ca3c8bbaf06d84a4e596e9cd11fa67c29774f23",
+        "log_sha256": "6eec4552033a9cdf6c7d9db84d01ad4a9f7c1ddaae58931f1f2af53843ef4ec0",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "company correction sanitizes a paused practice",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "retry_with_foreign_question",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "retrying a failed saved project answer",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "56517df2bdb7f3885be5ccdd739065d2bc857c517c64ba4be4d758f8cd6c8eb0",
+        "log_sha256": "f47297df61432e9a7f952d3f94784a71c0fd42106b23cd16961c272fa421b61b",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "retrying a failed saved project answer",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "discard_outstanding_on_cancel",
+        "file": "packages/domain/interview-journey/index.js",
+        "pattern": "first unknown after control",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "e1c7ee8cae9026ab17bc0edf729675b00661ae712655b17b011cf9d40da37a58",
+        "log_sha256": "c824551726848a592044a56b2e3443c5ceaa7148350b28ed7325522eaad1d938",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "first unknown after control",
+          "tests/career-interview-journey/recovery-checkpoints.test.cjs"
+        ]
+      },
+      {
+        "id": "reopen_terminal_settlement",
+        "file": "packages/career-interview-journey/adapters/reasoning.js",
+        "pattern": "detached settlement authenticates",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "c68b1e7e61624fe2e79bdda657345760d31475406ad526a8b690bd10b01a4c41",
+        "log_sha256": "0353315b29dc3bddaa9781891698102c7abd0a57b9719bc791b75e7e177573ea",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "detached settlement authenticates",
+          "tests/career-interview-journey/recovery-settlement.test.cjs"
+        ]
+      },
+      {
+        "id": "reject_canonical_zero_version",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "facts preserve canonical nonnegative safe version 0",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "cc3909be663fe0d7812da6cc0f2465f229015fd6bb1f908c60c4c23adcec2e57",
+        "log_sha256": "917d795f5ae88478a9f8f5f6fa1bb4b3d78b2db27375560b9641e1943de060f3",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "facts preserve canonical nonnegative safe version 0",
+          "tests/career-interview-journey/context-versions.test.cjs"
+        ]
+      },
+      {
+        "id": "accept_negative_fractional_version",
+        "file": "packages/career-interview-journey/adapters/context.js",
+        "pattern": "facts reject invalid evidence version (-1|0.5)",
+        "baseline_exit": 0,
+        "mutant_exit": 1,
+        "caught": true,
+        "mutant_source_sha256": "21ba0a38f450c657cb2a0a0b9f3b66f9cc9a4e131b92b6d9990a6f5158fda582",
+        "log_sha256": "22c97727ec308e9c434d1a14f29babba4332185aa1b162e4639276dac01394fe",
+        "command": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "--test",
+          "--test-name-pattern",
+          "facts reject invalid evidence version (-1|0.5)",
+          "tests/career-interview-journey/context-versions.test.cjs"
+        ]
+      }
+    ],
+    "total": 16,
+    "caught": 16,
+    "semantic_accuracy": "NOT_MEASURED",
+    "provider_calls": 0
+  },
+  "source_files_sha256": {
+    "packages/career-interview-journey/adapters/context.js": "e267f4157ba051c9f78dd389f20e1a8019d7cad9f3c7068c33ccf89746ffa127",
+    "scripts/career/interview-journey/negative-controls.cjs": "8b13ab5641bb7e4100013deb26107725144224da68f986b50a63dc63df09d7d0",
+    "scripts/career/interview-journey/projected-context-compatibility.cjs": "4f5313acad1ab2d2dc54c52e0834ce3dea4e048ee63887560af79a970ca0a621",
+    "tests/career-interview-journey/context-versions.test.cjs": "407677b2597f2024249403e6a13dace1b23af541a3bfef22d3c7d24fdf25d5e9"
+  },
+  "archive": {
+    "file": "logs.tar.gz",
+    "sha256": "35e8888466d7e9e3f63a781aebbe2f6f22d7c4c2218e5d3de755dda8dd87bca9",
+    "members": {
+      "initial-mutation-oracle-run/change_answer_after_grading.log": {
+        "bytes": 1049,
+        "sha256": "65f93d31635b4eb92ff30a13c5a7d030da2a63418da9cbe3aebaf49ae4ea4805"
+      },
+      "initial-mutation-oracle-run/discard_outstanding_on_cancel.log": {
+        "bytes": 2298,
+        "sha256": "f14f5889c7516fdfe6d538360bb368de51825b366fae4336cab956b8a448275e"
+      },
+      "initial-mutation-oracle-run/drop_interruption_checkpoint.log": {
+        "bytes": 1012,
+        "sha256": "7a1fbaf8b5f87f69b0eaf856cc82d33a4b09419f1d1f8de8de2a36c96656b87a"
+      },
+      "initial-mutation-oracle-run/fabricate_tool_success.log": {
+        "bytes": 1003,
+        "sha256": "ee38387be548818e637b4ff6c727d60fa61d6d1f9c0e3953d65521cbfe4b466f"
+      },
+      "initial-mutation-oracle-run/foreign_fact.log": {
+        "bytes": 993,
+        "sha256": "4cc64daeb1d3f7651d19add18c333a21fea1c1efc15d6e46b87151d2777bd1cd"
+      },
+      "initial-mutation-oracle-run/keyword_wrong_answer_correct.log": {
+        "bytes": 1036,
+        "sha256": "de96e09e97ba82238f4d60a4e5b95a4c6929c7c06053a2cce83faaef68f3b788"
+      },
+      "initial-mutation-oracle-run/posting_becomes_personal_skill.log": {
+        "bytes": 988,
+        "sha256": "386114e5ee8ffaec6bc59f2733a1098292f189bc85b83607b61dfd575629e159"
+      },
+      "initial-mutation-oracle-run/reject_canonical_zero_version.log": {
+        "bytes": 987,
+        "sha256": "c0dcc397ef0845c7f70145c030d17c91aff99c19716dfce4ba92906b87b780e0"
+      },
+      "initial-mutation-oracle-run/reopen_terminal_settlement.log": {
+        "bytes": 1105,
+        "sha256": "59d634b47e4a48abfc03d918193302bee587e92c75d2d168bae46bcb6042eb88"
+      },
+      "initial-mutation-oracle-run/results.json": {
+        "bytes": 10732,
+        "sha256": "3c5d179aa64b1053f19fe1906197e5a7091d6afd73045c7bc115c3354e328814"
+      },
+      "initial-mutation-oracle-run/retain_stale_practice_checkpoint.log": {
+        "bytes": 1132,
+        "sha256": "80c598e9969355942e12ab65d09f6b0214a1503e871929bc38cd5315289de070"
+      },
+      "initial-mutation-oracle-run/retry_with_foreign_question.log": {
+        "bytes": 1161,
+        "sha256": "b4f69fbdb804b02599c50b3c094bdb4a0671e71bae45513c6508c30c3d2b19df"
+      },
+      "initial-mutation-oracle-run/reuse_stale_pack.log": {
+        "bytes": 987,
+        "sha256": "2ce5548f6382d37f2e4d343c2b17b5a9a7c89d10d7bd5988518c5fd8b4e5dce2"
+      },
+      "initial-mutation-oracle-run/revive_invalidated_answer.log": {
+        "bytes": 1070,
+        "sha256": "c92dc823a91bab8ab9b27dbaff9059d62f93a60be5b15bb17cdb327709ea8f8d"
+      },
+      "initial-mutation-oracle-run/skip_artifact_readback.log": {
+        "bytes": 2021,
+        "sha256": "97542617d22fdd953d2f9cb32dcfa4e5d3a4ea74555b2ecffa3c5395fe4db435"
+      },
+      "initial-mutation-oracle-run/sum_coached_and_transfer_into_improvement.log": {
+        "bytes": 1062,
+        "sha256": "e61cea31e4127180c36359aa3f71e0b26556cec86939b3620d3d0c4296a60052"
+      },
+      "initial-probe-setup/initial-setup-projected-A.log": {
+        "bytes": 3551,
+        "sha256": "51c5e8d6b76338466d6976c6ddf5d2fea7aa2f6d492e6f1053a4632301854ce0"
+      },
+      "initial-probe-setup/initial-setup-unit.log": {
+        "bytes": 15711,
+        "sha256": "b4692ee0f92b528bdb91821de7f64805020e1bddd0f946688c83c98ef341ba46"
+      },
+      "initial-probe-setup/initial-setup.json": {
+        "bytes": 1503,
+        "sha256": "906851237827dee3c55a695af97a7f4b83e3cee85babffac3eb32310aacefcce"
+      },
+      "initial-probe-setup/pre-assertion-wrapper-projected-A.log": {
+        "bytes": 17904,
+        "sha256": "39b62f810a070c97dbbb225e1f405bfe8c01931d30525cecf90f07f84463b3a7"
+      },
+      "initial-probe-setup/pre-assertion-wrapper-unit.log": {
+        "bytes": 8567,
+        "sha256": "06344ec1cb9a8b5e046e03048b2e35106cc1846e7801ddf28e8602f4370e1ad0"
+      },
+      "initial-probe-setup/pre-assertion-wrapper.json": {
+        "bytes": 1345,
+        "sha256": "03298086d14db50402f45416e74f57d90320f7d4c84c00d6eaaec5700e52021e"
+      },
+      "negative-controls/accept_negative_fractional_version.log": {
+        "bytes": 1924,
+        "sha256": "22c97727ec308e9c434d1a14f29babba4332185aa1b162e4639276dac01394fe"
+      },
+      "negative-controls/change_answer_after_grading.log": {
+        "bytes": 1049,
+        "sha256": "0d429f0bd05358298a3a4865c326029a6078c14382068abb44284d20bb57ec57"
+      },
+      "negative-controls/discard_outstanding_on_cancel.log": {
+        "bytes": 2303,
+        "sha256": "c824551726848a592044a56b2e3443c5ceaa7148350b28ed7325522eaad1d938"
+      },
+      "negative-controls/drop_interruption_checkpoint.log": {
+        "bytes": 1011,
+        "sha256": "190a6093998ec541245f3816e0d1a3fdfb076b022f58f025b018db56264609f9"
+      },
+      "negative-controls/fabricate_tool_success.log": {
+        "bytes": 1001,
+        "sha256": "d3efa7652a5567b0ff94e345380e74b4c65e027d377095fe3aeb1e3e4a2b8d4c"
+      },
+      "negative-controls/foreign_fact.log": {
+        "bytes": 991,
+        "sha256": "ab2787dbd0b57aab83d0b8165e7fb82da8f2162bff60a6d962ccac1283d25a77"
+      },
+      "negative-controls/keyword_wrong_answer_correct.log": {
+        "bytes": 1036,
+        "sha256": "628725f972457d75d890cd60561ae29d2cd6070c1cccef7723cffbd99f336ba7"
+      },
+      "negative-controls/posting_becomes_personal_skill.log": {
+        "bytes": 988,
+        "sha256": "61a0aba2ce239541046fd61b1cce259d23ff057361ea5cad3dd98ea40ef397fd"
+      },
+      "negative-controls/reject_canonical_zero_version.log": {
+        "bytes": 1832,
+        "sha256": "917d795f5ae88478a9f8f5f6fa1bb4b3d78b2db27375560b9641e1943de060f3"
+      },
+      "negative-controls/reopen_terminal_settlement.log": {
+        "bytes": 1105,
+        "sha256": "0353315b29dc3bddaa9781891698102c7abd0a57b9719bc791b75e7e177573ea"
+      },
+      "negative-controls/results.json": {
+        "bytes": 11471,
+        "sha256": "f3e1b2a3816913cee509893e9cf7fcceebd7af8d2737561d22b220da30e9599c"
+      },
+      "negative-controls/retain_stale_practice_checkpoint.log": {
+        "bytes": 1130,
+        "sha256": "6eec4552033a9cdf6c7d9db84d01ad4a9f7c1ddaae58931f1f2af53843ef4ec0"
+      },
+      "negative-controls/retry_with_foreign_question.log": {
+        "bytes": 1161,
+        "sha256": "f47297df61432e9a7f952d3f94784a71c0fd42106b23cd16961c272fa421b61b"
+      },
+      "negative-controls/reuse_stale_pack.log": {
+        "bytes": 987,
+        "sha256": "e9942cc21d92683e18fd95f6c6b4fc3b825a0d0964d3ca4e649fc784c2b3709a"
+      },
+      "negative-controls/revive_invalidated_answer.log": {
+        "bytes": 1068,
+        "sha256": "a7249a639e5a61bf7b3b3197f200c4d1cf3108df8f82f0eb9db17264a3fad7ad"
+      },
+      "negative-controls/skip_artifact_readback.log": {
+        "bytes": 2021,
+        "sha256": "3049c563749f4432c9590b338e922ea76cb72824dd28645dc98c39b6e0f3d50c"
+      },
+      "negative-controls/sum_coached_and_transfer_into_improvement.log": {
+        "bytes": 1062,
+        "sha256": "73844d01bf0104752f133d5ff4b9cf1f1ffc26bf845054a6dfd7de221d8a52b8"
+      },
+      "node22-contracts.log": {
+        "bytes": 28010,
+        "sha256": "a1670e1e6264d5ca3c61fe37d39b30fb6856d6a59d5f4b5f94ebdd15516931d7"
+      },
+      "node22-projected-A.log": {
+        "bytes": 60723,
+        "sha256": "84646257ee8991b34e7ad115a75ed9f8c380652192cbce03a00ee9ada8538e32"
+      },
+      "node24-contracts.log": {
+        "bytes": 11874,
+        "sha256": "061cdf83b02a2a58e51ab59b63dcd830ffaf55bba3aa14917c2ef198946d44d9"
+      },
+      "node24-projected-A.log": {
+        "bytes": 60723,
+        "sha256": "6abf80d441c4510b33989baba9df57d442a5615c4ef276ac0510b8183d478cbd"
+      }
+    }
+  },
+  "scope": "B namespaces only; A-owned files unchanged",
+  "version_change": "facts and sources: positive safe integer -> nonnegative safe integer; no coercion or renumbering",
+  "provider_calls": 0,
+  "quality": "NOT_RUN",
+  "actual_entry": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "notes": [
+    "Initial source-fixture/VM-transfer setup logs are retained separately and are not claimed release defects.",
+    "The first mutation run detected zero rejection as an Error; the final positive-acceptance test uses assert.doesNotThrow so the runner correctly recognizes its AssertionError. Earlier logs are retained.",
+    "No full repository CI rerun is claimed; prior B4/B5 evidence remains unchanged.",
+    "A proof profiles, accounting, atomic persistence, CI discovery and registration remain A-owned."
+  ]
+}

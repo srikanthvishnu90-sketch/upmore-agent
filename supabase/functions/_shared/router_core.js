@@ -46532,6 +46532,7 @@ const CareerPortalApply = (() => {
     outstanding_offers: ["application_answer"],
     winternship_interest: ["application_answer"],
     office_location_preference: ["application_answer"],
+    reside_near_posting: ["application_answer"], // company-scoped facts ONLY (the answer is posting-relative: his Chicago residence vs the posting's city, per board) — deriveAnswers never emits a company-scoped fact; the drive host merges it for its company, the application_text pattern
     relocate_bay_area: ["application_answer"],
     relocate_new_york: ["application_answer"],
     onsite_sf_ny: ["application_answer"],
@@ -46766,6 +46767,7 @@ const CareerPortalApply = (() => {
     // the omission). Values ride verbatim, traces name the fact.
     for (const f of bank.facts) {
       if (!f || f.kind !== "application_answer" || !confirmed(f)) continue;
+      if (f.company) continue; // company-scoped: host-merged for its company only (see ANSWER_KEY_SOURCES reside_near_posting) — never a generic answer
       const key = f.question_key;
       if (!key || !ANSWER_KEY_SOURCES[key] || f.value === undefined) continue;
       if (out.answers[key]) continue; // first confirmed fact wins; never overwritten

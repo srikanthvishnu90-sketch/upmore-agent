@@ -171,7 +171,7 @@ const CareerPortalBrowser = (() => {
     // DIFFERENT machine names (country / country_2, school / school_0)
     // for the same human question. Slug-derived question_keys are
     // unstable across duplicates, so only canonical keys count.
-    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "relocate_bay_area", "relocate_new_york", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "work_authorization_other_region", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "reside_near_posting", "relocate_bay_area", "relocate_new_york", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
@@ -272,6 +272,14 @@ const CareerPortalBrowser = (() => {
       if (/acknowledg|privacy/.test(eff) && !/certif|attest/.test(eff)) return { kind: "attestation", question_key: "acknowledgment_receipt" };
       if (inputType === "checkbox" && /certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
     }
+    // R3 follow-on (2026-10-17, live-drive evidence): a work-authorization
+    // question that names a DIFFERENT region than the bank's authorized
+    // country never takes the U.S. answer — Sezzle's board asked about
+    // Latin America and the U.S.-scoped F-020 derivation filled "Yes",
+    // a statement his record does not make. Region-named authorization
+    // questions classify to their own key with NO derivation (an honest
+    // ask), exactly like the federal carve-out discipline.
+    if (/authori[sz]ed to work|legally authori[sz]ed|right to work|eligible to work|legally eligible/.test(eff) && /latin america|latam|canada|canadian|united kingdom|\buk\b|europe|european union|\beu\b|india|australia|singapore|brazil|mexico|germany|france|netherlands|ireland|spain|japan|china|hong kong|emirates|\buae\b|switzerland|sweden|norway|denmark|finland|poland|israel|south africa|new zealand|philippines|vietnam|indonesia|malaysia|thailand|argentina|chile|colombia|peru|apac|emea/.test(eff) && !/united states|\bu\.s\.|usa\b/.test(eff)) return { kind: "screening", question_key: "work_authorization_other_region" };
     if (/authori[sz]ed to work|legally authori[sz]ed|right to work|eligible to work|legally eligible/.test(eff)) return { kind: "screening", question_key: "work_authorization" };
     if (/sponsor/.test(eff)) return { kind: "screening", question_key: "sponsorship" };
     // R2 binding audit (2026-10-17; Lane E re-drive record,
@@ -290,7 +298,7 @@ const CareerPortalBrowser = (() => {
     // carve-out is load-bearing: "have you ever been employed by the
     // U.S. Federal Government..." asks about government work, not the
     // firm, and must never take the employer-set resolution.
-    if (/have you (ever |previously )?(been employed by|been employed at|worked for|worked at|consulted for|performed services for)/.test(eff) && !/federal|government|military/.test(eff)) return { kind: "screening", question_key: "prior_employment" };
+    if (/(have you (ever |previously )?(been employed by|been employed at|worked for|worked at|consulted for|performed services for)|have you ever,? or are you currently (working|employed)|are you currently (working|employed) (at|by|for))/.test(eff) && !/federal|government|military/.test(eff)) return { kind: "screening", question_key: "prior_employment" };
     if (/previously applied|have you applied/.test(eff)) return { kind: "screening", question_key: "prior_application" };
     if (/ready for full-?time employment/.test(eff)) return { kind: "screening", question_key: "full_time_readiness" };
     if (/outside business activities|outside activities|other outside employment/.test(eff)) return { kind: "screening", question_key: "outside_activities" };
@@ -319,6 +327,7 @@ const CareerPortalBrowser = (() => {
     if (/english level|level of proficiency in english|english proficiency|proficiency in english/.test(eff)) return { kind: "screening", question_key: "english_proficiency" };
     if (/outstanding offers|offer deadlines|upcoming deadlines/.test(eff)) return { kind: "screening", question_key: "outstanding_offers" };
     if (/winternship/.test(eff)) return { kind: "screening", question_key: "winternship_interest" };
+    if (/reside in the location|within commutable distance|commutable distance/.test(eff)) return { kind: "screening", question_key: "reside_near_posting" };
     if (/office location preference/.test(eff)) return { kind: "screening", question_key: "office_location_preference" };
     if (/relocate to the bay area|relocate to or commute|based in or willing to relocate/.test(eff) && /bay area/.test(eff)) return { kind: "screening", question_key: "relocate_bay_area" };
     if (/relocate to new york/.test(eff)) return { kind: "screening", question_key: "relocate_new_york" };
@@ -409,13 +418,13 @@ const CareerPortalBrowser = (() => {
     if (/github/.test(eff)) return { kind: "standard", profile_key: "github" };
     if (/portfolio|website|web site|personal site/.test(eff)) return { kind: "standard", profile_key: "website" };
     if (/current company|current employer|present company/.test(eff)) return { kind: "standard", profile_key: "current_company" };
-    if (/location|city|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7)
+    if (/\blocation\b|\bcity\b|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7). R3 follow-on: word boundaries — the bare substring matched "capa-city" (Gusto's "...in any capacity...") and stole a prior-employment question for the city value.
     // R3: why-essays and their kin are free text WHATEVER element the
     // board renders (several boards use a plain text input, which left
     // them "unknown" in R2 — Workshop's why-essay among them). Their
     // drafts key by the label slug, the same key the bank's
     // application_text facts carry.
-    if (/why do you want|why are you interested|tell us a little bit about yourself|describe a past project|best resonates with you|conferences, gatherings/.test(eff)) return { kind: "free_text", question_key: slug(eff).slice(0, 40) || "free_text" };
+    if (/why do you want|why are you interested|tell us a little bit about yourself|describe a past project|best resonates with you|conferences, gatherings|explaining your interest|share \d+\s*[-–]\s*\d+ sentences|what interests you about/.test(eff)) return { kind: "free_text", question_key: slug(eff).slice(0, 40) || "free_text" };
     if (inputType === "textarea" || /cover letter|additional information|anything else/.test(eff)) return { kind: "free_text", question_key: /cover letter/.test(eff) ? "cover_note" : (slug(eff).slice(0, 40) || "free_text") };
     if (inputType === "checkbox" && /confirm|agree/.test(eff)) return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
     return { kind: "unknown" };

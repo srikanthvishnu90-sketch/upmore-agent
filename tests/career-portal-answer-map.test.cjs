@@ -680,3 +680,35 @@ test("R3 end to end: education month fields fill from the month facts (the LionT
   assert.equal(board.held[sm.field_id], "September");
   assert.equal(board.held[em.field_id], "May");
 });
+
+// ---------- R3 follow-on (2026-10-17, live-drive evidence) ----------
+// Four defects the R3 drives exposed, each pinned with its verbatim
+// live label: (1) Gusto's prior-employment phrasing ("...currently
+// working at... in any capacity") was stolen by the location rule via
+// the bare "city" substring inside "capa-city"; (2) Ginkgo's
+// reside/commutable question took the city value into a Yes/No select;
+// (3) Sezzle's Latin-America authorization question took the U.S.
+// answer (F-020 is U.S.-scoped — a statement his record does not make
+// for other regions); (4) Gemini's essay label matched no free-text
+// pattern although its draft was banked under the exact slug.
+
+test("R3 follow-on classification: the substring-collision labels route to their true keys", () => {
+  assert.equal(clsR3("Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?").question_key, "prior_employment");
+  assert.equal(clsR3("Do you reside in the location for this job posting or within commutable distance?").question_key, "reside_near_posting");
+  assert.equal(clsR3("What city are you currently residing in?").profile_key, "location", "a genuine city question still takes the location value");
+  assert.equal(clsR3("Which U.S. State or Canadian Province do you reside in?").profile_key, "state_of_residence", "Affirm's state-of-residence question is NOT the reside-near-posting key");
+  assert.equal(clsR3("Are you authorized to work lawfully in Latin America?").question_key, "work_authorization_other_region");
+  assert.equal(clsR3("Are you authorized to work in the United States?").question_key, "work_authorization", "the U.S.-named question keeps the F-020 path");
+  assert.equal(clsR3("Are you legally authorized to work in the country where the job is open?").question_key, "work_authorization", "a region-free authorization question keeps the F-020 path");
+  const gem = clsR3("Please share 3-5 sentences explaining your interest in the Blockchain/Web3 industry.", "textarea");
+  assert.equal(gem.kind, "free_text");
+  assert.equal(gem.question_key, "please_share_3_5_sentences_explaining_yo", "the essay's slug is the key its banked draft (F-067) carries");
+});
+
+test("R3 follow-on derivation: a company-scoped application_answer fact never emits generically", () => {
+  const b = JSON.parse(JSON.stringify(R3_BANK));
+  b.facts.push({ id: "F-080", kind: "application_answer", status: "confirmed", company: "ginkgo", question_key: "reside_near_posting", value: "No" });
+  const d = Portal.deriveAnswers(b, NOW);
+  assert.equal(d.answers.reside_near_posting, undefined, "posting-relative answers are host-merged per company, never generic (a generic No would be wrong for a same-city posting)");
+  assert.ok(Portal.ANSWER_KEY_SOURCES.reside_near_posting, "the key is declared, so a host-merged answer is lawful");
+});

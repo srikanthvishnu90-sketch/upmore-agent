@@ -63215,6 +63215,41 @@
     "Actual client/Edge and isolated SQL; no live browser, employer or model-quality proof.",
     "No live schema change or deployment."
    ]
+  },
+  {
+   "id": "mass-resume-metadata-full-source-20261017",
+   "commit": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 4778,
+    "failed": 0,
+    "skipped": 40
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/91811-full-source.log",
+   "log_sha256": "88740ab232a4c0e217f90234faaea5b7ce7cc70a11afe5049436944687fad6aa",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Local source and controlled SQL only; no live browser or deployment."
+   ]
+  },
+  {
+   "id": "mass-runner-exact-ci-20261017",
+   "commit": "f74812b3dda211edbada9a5be604b65af2e09e50",
+   "workflow_run": 39047577375,
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 5125,
+    "failed": 0,
+    "skipped": 40,
+    "sourceAndSqlRuns": 40
+   },
+   "summary": "docs/career/mass-applications-20261017/evidence/f748-ci-node-summary.json",
+   "verification_level": "CI_FUNCTIONAL",
+   "limitations": [
+    "Required original archive gate failed.",
+    "Controlled fixtures do not prove live model or employer quality."
+   ]
   }
  ],
  "limitations": [

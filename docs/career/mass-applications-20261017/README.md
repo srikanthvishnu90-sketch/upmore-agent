@@ -38,3 +38,6 @@ Dockerfile COPY runtime9a7027c4 closes the reproduced missing-module defect and 
 
 
 Confirmed-resume restoration adds authenticated POST `/career-applicant/status` with only `{threadId}`. Its new service-only SQL read checks the existing account, owner/thread/epoch and immutable confirmation receipt, returns only current artifact/version/hash/file metadata, and distinguishes authoritative absence from unavailable proof/storage. It mutates no conversation, confirmation, account or usage record. Client tickets reject late owner/thread replies, and retained upload/review/uncertain-confirmation nonces cannot be overwritten by this read.33 focused contracts and the actual client→Edge→PostgreSQL contract pass. [Source hashes and retained before/after evidence](resume-restoration-evidence.json). No employer or browser outcome is claimed.
+
+
+Published metadata runtime91811a34 full clean source4778/40skip/0fail. Prior runner runtimef74812b3 now has terminal CI39047577375 Node/Deno/database success across all40 source/SQL runs (5125 passes,40 skips), original archives failed. The exact manifest and coordinated handoff now pin91811a34, retaining prior-runtime test identities.

@@ -54,10 +54,18 @@
       ],
       "runtime": "actual existing evaluator via retained Node24 offline Deno API compatibility shim; actual Deno absent; no browser proof"
     },
-    "fullCommittedSource": "PENDING"
+    "fullCommittedSource": {
+      "head": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
+      "passed": 4778,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/91811-full-source-summary.json",
+      "log": "evidence/91811-full-source.log"
+    }
   },
   "paidCalls": 0,
   "modelCalls": 0,
   "employerSubmissions": 0,
-  "liveDatabaseMutations": 0
+  "liveDatabaseMutations": 0,
+  "runtime": "91811a341fefe98d541bd90c94ed0dca168f3cfc"
 }

@@ -107,3 +107,6 @@ Dockerfile COPY closure reproduced a missing121 module under its actual staged f
 
 
 Resume metadata restoration was missing after reload/new owned thread. New authenticated status read uses the existing owner account/epoch and immutable confirmation receipt; missing proof is unavailable, not empty or success. The panel restores only filename/bytes/hash/artifact version, never document bytes/contact facts. Pending confirmations keep their original nonce.33 focused source contracts pass; the actual client/Edge/SQL scenario proves reload/new-thread restoration, current-version advancement, bad proof, foreign/pause/erase and client-role denial with unchanged account/history/usage. Build succeeds; actual offline evaluator stays91/91 with3 gaps and3 NOT_RUN, no fabricated visual fingerprint.
+
+
+Metadata runtime91811a34 full committed source passes4778/40skip/0fail. Frozen runner f74812b3 exact CI39047577375 completed all40 source/SQL selections successfully (5125 passes,40 skips), Deno/database success; original archive gate still fails. Exact source summaries retained; new status RPC requires its own reviewed forward SQL/function/client change and was not deployed.

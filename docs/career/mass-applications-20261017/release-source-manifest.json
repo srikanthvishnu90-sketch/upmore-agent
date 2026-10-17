@@ -1,6 +1,6 @@
 {
-  "runtime": "9a7027c49076fc310bb56c882790f5887b50d106",
-  "observedAt": "2026-10-17T16:10:17.500414+00:00",
+  "runtime": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
+  "observedAt": "2026-10-17T16:21:59.580497+00:00",
   "status": "BLOCKED_SOURCE_HANDOFF_NOT_DEPLOYED",
   "branch": "codex/mass-applications-20261017",
   "project": {
@@ -77,7 +77,7 @@
       "entry": "supabase/functions/career-applicant/index.ts",
       "filesSha256": {
         "supabase/functions/_shared/career_applicant_format.js": "3703ddc6b8b02a0f44ed248189b29565f6385af0828daac8d28b936bebc4dd52",
-        "supabase/functions/_shared/career_applicant_ingress.js": "bac8ba867af8ede6530a74e47699b459772ffdd5bb229561a8a637a1e0c72e53",
+        "supabase/functions/_shared/career_applicant_ingress.js": "96d06b30222a33ada68b42052ded1a6fd988fa334e1e88c10e36371c29e25b3e",
         "supabase/functions/_shared/career_persistence.js": "e38f82a283a5e0eb7014564fba684f1c8d66959d96a913151d9ee1a6613952f1",
         "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
         "supabase/functions/_shared/router_core.career.js": "acafeebcf0f9b8df0ce589d807dbc7e3373862fb4999568bd85614a62a905f82",
@@ -178,18 +178,18 @@
     },
     {
       "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
-      "sha256": "6518ea1ecee58ef45a4df2b77cc160c7a584bff72ab9c14960bf3b9fa2f9b50b",
+      "sha256": "7d90839e9c4ec5b6252875b33198b1b98b8f53e26fc4e8a547a38c49dca7b85f",
       "mode": "Review installed state; forward migration only; clean-install source is not idempotent"
     }
   ],
   "frontendSha256": {
     "src/upmore-app-template.html": "3a9930237b2372d0f0f215d41b545e9e15592948713e3086289eb82ce82c5380",
-    "src/career-applicant-controller.js": "17c0036609754c5f9cf16ce3d3dee4cef8eb27364daeb540d9dd727473e21d7a",
-    "src/career-applicant-ui.js": "540098fc10d593fba852a4c4b65ca17e80409240f7ecc0aac501a692c3639504",
-    "src/upmore-app.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
-    "index.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
+    "src/career-applicant-controller.js": "d93b67f8419fb0df2679ea6287e2ab41a22587941665f72372e920f501579d2a",
+    "src/career-applicant-ui.js": "5d5ef4fa5d1b79856ce01fef9817d50f4648363cf2a741ebd6355819c2269473",
+    "src/upmore-app.html": "1a570b8eb9288512b08349a702d95d7dbef267d181b4eeae56588d41a4b4dbae",
+    "index.html": "1a570b8eb9288512b08349a702d95d7dbef267d181b4eeae56588d41a4b4dbae",
     "src/sw.js": "700fd76f51087a443eb130952e02cab43f91361212e34513bae0acd28ed1553d",
-    "sw.js": "8a511b1abd81428a1d61e67e70edcffc96ffb4d4b6131ecdb254f056c9bf9e21",
+    "sw.js": "dd592d05594dff2225dba38aba6959ff2dee64186a084ff3388f8a626c1f608d",
     "vercel.json": "094f27e9c51310c5f04b986c7ae8cbfa21292a4a42c9ac53540a4ede370cfe1e"
   },
   "externalStaticImports": [
@@ -200,14 +200,14 @@
   ],
   "staticInventoryLimitation": "Literal ESM import/export declarations only; bundled CommonJS require calls resolve internally and are not treated as filesystem imports; runtime config, installed schema, external dependencies and Auth/origins require operator verification. No credential values read.",
   "workerBuild": {
-    "output": "/tmp/upmore-worker-9a7027c4-source.tgz",
-    "sha256": "db391c5a385bc0cf2afbf4cc7692317795f59f7d32485721e6982d298149e52f",
+    "output": "/tmp/upmore-worker-91811a34-source.tgz",
+    "sha256": "685a5f95c5bed58c7318e433091c107c6effe10c0e8150da73b2bc5772f43093",
     "files": 39,
-    "codeSha": "9a7027c49076fc310bb56c882790f5887b50d106"
+    "codeSha": "91811a341fefe98d541bd90c94ed0dca168f3cfc"
   },
   "workerManifest": {
     "version": "upmore_owned_worker_source/v1",
-    "codeSha": "9a7027c49076fc310bb56c882790f5887b50d106",
+    "codeSha": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
     "verification": "SOURCE_ONLY_NOT_DEPLOYED",
     "files": [
       {
@@ -437,6 +437,31 @@
       "failed": 0,
       "log": "evidence/image-copy-after.log",
       "scope": "Actual COPY filesystem staging, dependency module loads and complete controlled preflight sources. No image built or browser run."
+    },
+    "priorRuntimeExactCI": {
+      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "run": 39047577375,
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "archiveGate": "failure",
+      "sourceAndSqlRuns": 40,
+      "passed": 5125,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/f748-ci-node-summary.json"
+    },
+    "currentRuntimeFullSource": {
+      "head": "91811a341fefe98d541bd90c94ed0dca168f3cfc",
+      "passed": 4778,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/91811-full-source-summary.json"
+    },
+    "resumeMetadata": {
+      "passed": 1,
+      "failed": 0,
+      "summary": "evidence/resume-restore-postgres-summary.json"
     }
   },
   "paidCalls": 0,

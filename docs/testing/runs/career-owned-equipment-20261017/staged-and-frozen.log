@@ -1,0 +1,35 @@
+(node:117680) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:117680) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ staging reaches the safe modules, with Node browser code excluded (544.571911ms)
+✔ actual staged chat gives guidance from 144, never the fallback or a template substitute (430.629296ms)
+✔ actual staged chat saves, restores and manages a watch without claiming delivery (234.569383ms)
+✔ actual staged watch ask without a profile requests facts and saves no watch (177.405683ms)
+✔ actual staged apply ask names the missing browser worker and submits nothing (210.8521ms)
+✔ bundled 151 -> 152 executes with no require: seed suppresses, new job queues once without delivery (214.169601ms)
+✔ actual staged chat commits a typed task intent before any worker can execute (348.764291ms)
+(node:117683) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:117683) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ failed state load is unavailable with no messages (600.727416ms)
+✔ failed state commit cannot acknowledge saved watch (515.999792ms)
+✔ failed assistant write cannot return success or partial turn (215.126461ms)
+✔ same turn key replays exactly one saved message pair (186.324237ms)
+✔ changed payload under same key is rejected (180.596704ms)
+✔ malformed storage response cannot become a false HTTP success (138.082182ms)
+✔ lost commit receipt returns unavailable and a stable-key retry reads the committed pair (160.059494ms)
+(node:117689) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:117689) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ pause must gate a career_task before worker dispatch (391.369996ms)
+✔ failed durable commit must not follow a new worker side effect (199.452096ms)
+✔ changed career_task binding under same turn key must conflict (158.222365ms)
+✔ committed browser reply must retain structured task evidence (183.940402ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2583.964009

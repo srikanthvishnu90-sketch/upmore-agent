@@ -405,7 +405,34 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-098 fixture: a Constellation-shaped fellowship form (the Anthropic
+// Fellows shape staged from the census §1 / packet topics — fields are
+// read at drive time by module 150 in the real product; this fixture is
+// the captured-form replay guard). Availability + research statement are
+// textareas: owner-decision / owner-writing, never filled from facts.
+const CONSTELLATION_FORM = `<!doctype html><html><head><title>Anthropic Fellows Application (TEST fixture)</title></head><body>
+<h1>Anthropic Fellows Program</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="linkedin">LinkedIn</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="wa">Are you authorized to work in the US, UK, or Canada? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require visa sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="availability">Availability for the full-time 4-month cohort</label><textarea id="availability" name="availability"></textarea></div>
+  <div><label for="research_statement">Research statement</label><textarea id="research_statement" name="research_statement"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/constellation-form": CONSTELLATION_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

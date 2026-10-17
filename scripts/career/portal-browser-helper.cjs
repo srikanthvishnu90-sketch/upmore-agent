@@ -69,7 +69,7 @@ async function getBrowser() {
 // requests are gated — subresources (scripts, trackers, CDNs) pass
 // untouched, and the one armed submit's own landing navigation is
 // checked during submission too; controlled tasks reject every redirect.
-const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];
+const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com", "constellation.jobs", "constellation.com", "constellation.io"];
 function navAllowed(url) {
   let u;
   try { u = new URL(String(url)); } catch (e) { return false; }

@@ -74,6 +74,26 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+### Constellation — constellation.jobs / constellation.com / constellation.io (MI-098)
+- What it is: Anthropic's recruiting partner for the Fellows Program
+  (fellowship census 2026-10-15 §1). The Greenhouse posting for the
+  Fellows Program is a POINTER, not the application — its own text says
+  applicants "will not be considered" without the separate Constellation
+  form. Module 149 enforces that as code: a pointer posting stops
+  CONSTELLATION_FORM_REQUIRED unless it carries the Constellation form
+  URL, in which case the run drives THAT form, never the shell.
+- Account required to apply? Not observed in any published material
+  [census]; the exact tenant host and field list are NOT published (the
+  only published link is a shortlink), so fields are read at drive time
+  through module 150 — nothing about the live form is assumed here.
+- Driver posture: **allowed** (MI-098, branch work/mi098-constellation) —
+  host gate in 149 + 150 + the helper's navigation gate; doorstep proven
+  tier-2 over a captured-form fixture (tests/career-constellation-portal
+  .test.cjs 9/9 + tests/career-constellation-browser.test.cjs). No live
+  Constellation form has been driven and nothing has been submitted
+  through this family; the Anthropic Fellows application itself remains
+  the owner's self-submit (deadline Oct 18, 2026).
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

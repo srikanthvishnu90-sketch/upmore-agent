@@ -44790,6 +44790,15 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-098: Constellation — Anthropic's recruiting partner for the
+    // Fellows Program (census 2026-10-15 §1). The form is partner-hosted
+    // under Constellation's own domains; the census could not publish an
+    // exact tenant host (the only published link is a shortlink), so the
+    // family matches Constellation's own registrable domains and the
+    // exact host is read at drive time. Lookalikes (constellation.* on
+    // someone else's registrable domain) do NOT match: the pattern is
+    // anchored to the END of the hostname.
+    { re: /(^|\.)constellation\.(jobs|com|io)$/, family: "constellation" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -44814,7 +44823,25 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Constellation) and registered sandbox boards may be driven (§6.3)" };
+  }
+
+  // ---------- MI-098: the Constellation pointer law ----------
+  // The Anthropic Fellows Greenhouse posting is a POINTER, not the
+  // application (census 2026-10-15 §1): its own text says applicants
+  // "will not be considered" without the separate Constellation form.
+  // A posting is a Constellation pointer when it carries an explicit
+  // constellationFormUrl, or when a Greenhouse posting's own text names
+  // Constellation as the required application. runApply never doorsteps
+  // or submits the pointer shell: with the form URL it drives THAT;
+  // without it the run stops CONSTELLATION_FORM_REQUIRED.
+  function isConstellationPointer(posting) {
+    const p = posting || {};
+    if (p.constellationFormUrl) return true;
+    const t = classifyTarget(p.url || "");
+    if (!t.allowed || t.atsFamily !== "greenhouse") return false;
+    const text = String(p.description || p.jd_text || p.text || "");
+    return /constellation/i.test(text) && /(will not be considered|complete the constellation|constellation application form)/i.test(text);
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -44866,6 +44893,66 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-098: the Constellation sandbox board (TEST only) ----------
+  // Constellation-shaped field set, staged from the Anthropic Fellows
+  // packet topics (~/workspace/your_files/real-apply/fellowships/ —
+  // never in this repo): identity/contact + eligibility fill from
+  // confirmed facts; availability and the research statement are
+  // owner-decision / owner-writing fields (Anthropic's candidate
+  // AI-usage policy) — free_text, never invented, always asks. The live
+  // form's fields are read at drive time by module 150; this board is
+  // the faithful local seam for the pipeline, like the Greenhouse one.
+  const CONSTELLATION_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US, UK, or Canada?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require visa sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "availability", label: "Availability for the full-time 4-month cohort", kind: "free_text", question_key: "availability", required: false },
+    { field_id: "research_statement", label: "Research statement", kind: "free_text", question_key: "research_statement", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createConstellationSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "constellation",
+      host: "sandbox.constellation-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: CONSTELLATION_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-C-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -45249,9 +45336,26 @@ const CareerPortalApply = (() => {
     }
     const board = session.board;
     // target rules (§6.3): aggregators and untested hosts refused before any open
-    const target = classifyTarget(posting.url || "");
-    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
-    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    // MI-098 pointer routing: a Constellation pointer posting (the
+    // Anthropic Fellows Greenhouse shell) is never itself driven — the
+    // run drives the Constellation form URL when the posting carries
+    // one, and stops CONSTELLATION_FORM_REQUIRED when it does not.
+    // Submitting the shell alone is not an application (census §1).
+    let target = classifyTarget(posting.url || "");
+    let effectiveUrl = posting.url || "";
+    if (isConstellationPointer(posting)) {
+      if (!posting.constellationFormUrl) {
+        logStep("constellation_pointer_stop", { url: posting.url || null });
+        return blocked("CONSTELLATION_FORM_REQUIRED", { reason: "this posting is only a pointer — the application is the separate Constellation form, and submitting the Greenhouse shell alone does not count as applying; the Constellation form URL is required to drive it" });
+      }
+      target = classifyTarget(posting.constellationFormUrl);
+      effectiveUrl = posting.constellationFormUrl;
+      logStep("constellation_pointer_route", { from: posting.url || null, to: effectiveUrl, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    } else {
+      logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    }
     if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
       // The real-browser seam (module 150) HAS landed: an attested
       // browser board may be driven, and may transmit ONLY through the
@@ -45285,7 +45389,7 @@ const CareerPortalApply = (() => {
     }
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
     }
     // §11(F): the name on the board account must be the person applying
     if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
@@ -45437,7 +45541,7 @@ const CareerPortalApply = (() => {
     }
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -45500,7 +45604,7 @@ const CareerPortalApply = (() => {
       }
       if (recheck && recheck.captcha) {
         logStep("captcha_stop", { at: "review_recheck" });
-        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
       }
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -45755,7 +45859,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createConstellationSandboxBoard, isConstellationPointer, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, CONSTELLATION_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

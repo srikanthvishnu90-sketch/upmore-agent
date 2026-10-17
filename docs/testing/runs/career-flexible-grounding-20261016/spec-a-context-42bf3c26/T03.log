@@ -1,0 +1,37 @@
+TAP version 13
+# (node:419793) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:419793) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: T03 known IDs are insufficient: semantic rejection of a degree claim with a valid project ID
+not ok 1 - T03 known IDs are insufficient: semantic rejection of a degree claim with a valid project ID
+  ---
+  duration_ms: 247.615201
+  type: 'test'
+  location: '/tmp/upmore-grounded-mutations-oMm1PT/repo/tests/career-flexible-grounding.test.cjs:8:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'generated'
+    - 'semantic_or_contract_rejected'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'semantic_or_contract_rejected'
+  actual: 'generated'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-grounded-mutations-oMm1PT/repo/tests/career-flexible-grounding.test.cjs:8:517)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 306.376515

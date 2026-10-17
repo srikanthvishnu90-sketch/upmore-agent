@@ -52,6 +52,9 @@ jobs:
       - name: Published interview workflow negative controls (offline contracts only)
         if: always()
         run: node scripts/career/interview-journey/negative-controls.cjs --output "$RUNNER_TEMP/upmore-interview-negative-controls"
+      - name: Canonical context adapter negative controls (offline contracts only)
+        if: always()
+        run: node scripts/career/critical-repairs/context-negative-controls.cjs ci-context-controls
   deno:
     runs-on: ubuntu-24.04
     steps:
@@ -63,6 +66,9 @@ jobs:
       - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)
         if: always()
         run: deno run -A evals/agent/run.ts --check
+      - name: Typecheck shared journey contracts and context adapter
+        if: always()
+        run: deno check packages/career-contracts/*.ts
       - name: Testing agent self-test (12 planted defects, each must turn its check red)
         if: always()
         run: deno run -A evals/agent/mutations.ts

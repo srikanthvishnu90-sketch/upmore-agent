@@ -1,0 +1,18 @@
+{
+  "source_version_reconstruction": true,
+  "execution_results_regenerated": false,
+  "records": [
+    {
+      "file": "context-prototype-before-scope.ts.txt",
+      "sha256": "d42801715b68c60f0a17ac985d9447c6f00b263f90425b7a488c52bb9de12b5a",
+      "origin": "reconstructed by reversing the recorded local prototype patches; verified against SHA-256 observed before the corresponding repair",
+      "original_runtime_state": "uncommitted prototype, not a historical product commit"
+    },
+    {
+      "file": "context-prototype-before-resume.ts.txt",
+      "sha256": "508c6cdf3e6a6faff7eb3f235de7ca48d7e1109d4aa8c5a649b757280a12a4dd",
+      "origin": "reconstructed by reversing the recorded local prototype patches; verified against SHA-256 observed before the corresponding repair",
+      "original_runtime_state": "uncommitted prototype, not a historical product commit"
+    }
+  ]
+}

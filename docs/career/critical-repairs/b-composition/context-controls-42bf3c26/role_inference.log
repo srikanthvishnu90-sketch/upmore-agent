@@ -1,0 +1,37 @@
+TAP version 13
+# (node:419073) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:419073) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: a software-looking title alone never supplies role family or level
+not ok 1 - a software-looking title alone never supplies role family or level
+  ---
+  duration_ms: 92.174452
+  type: 'test'
+  location: '/tmp/upmore-context-controls-D5evXf/tests/career-critical-repairs/interview-context-compat.test.cjs:13:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'software_engineering'
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 'software_engineering'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-context-controls-D5evXf/tests/career-critical-repairs/interview-context-compat.test.cjs:13:315)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 164.073689

@@ -1,0 +1,88 @@
+{
+  "source": "42bf3c26f566ae929d31e878435cc5255aa975af",
+  "runtime_sha256": "97df28a8631c6f19019e4f398f4ab5e3151aa8626dee2c321f34be512719564d",
+  "tier": "MOCK_CONTRACT",
+  "baseline_all_green": true,
+  "results": [
+    {
+      "id": "owner",
+      "pattern": "changed context bytes and foreign evidence",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "6f28cf1e2aa019ea34436dea7f6835e70bb2ae27d9ee253ba6ea154cf652837f"
+    },
+    {
+      "id": "context_digest",
+      "pattern": "changed context bytes and foreign evidence",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "0d37b2fa44663ace5ac08dbbe3050e4e4dac5e919268ccb3e3094351ec2ddd60"
+    },
+    {
+      "id": "source_digest",
+      "pattern": "actual source bytes must match",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "910b70aa2c75253a87de87820c5c1c4793c3b57700f658c33f4198aa5e9c7df0"
+    },
+    {
+      "id": "source_to_person",
+      "pattern": "public-source provenance",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "a81fd442829712eab176d6d7bd451b18d511479be5204264ccbc3fa38df258fa"
+    },
+    {
+      "id": "role_inference",
+      "pattern": "software-looking title alone",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "74133fee116d3e1a4e37e3777bc362714f159df74042a6fa2f56f1848de0f2d3"
+    },
+    {
+      "id": "classification_dependency",
+      "pattern": "explicit classification versions",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "985b3ed4960f892bba4a624b8b1602effa2ecedb1d0cc9d37f63163ddf3288fa"
+    },
+    {
+      "id": "ambiguous_target",
+      "pattern": "multiple targets require",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "5142412b3c5a3ee6317de658e5e25caf1b1217fd78764bb4eeecaf94a0716050"
+    },
+    {
+      "id": "unrelated_goal",
+      "pattern": "unrelated goal changes",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "208ef8f6c59cb3a4d66ba69dbcf61218196043741a5f94310eddf3788afaa967"
+    },
+    {
+      "id": "source_classification",
+      "pattern": "source supersession is resume replacement",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "177592b45ebc941ec694e383c4d8b4d72873223f66747c5768a273b63d5e31cd"
+    },
+    {
+      "id": "resume_version",
+      "pattern": "new resume source version",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "afdfe81b9a9cddd3607a7e50977547d5c6a76f64d9b83e311c3d3e22482fb04d"
+    },
+    {
+      "id": "missing_proof",
+      "pattern": "available canonical capability",
+      "killed": true,
+      "exit_code": 1,
+      "log_sha256": "4a76e166f0ba6b6b0983f9138ace95a4dd1ab2f51385f34e6eaf633f1f91a43b"
+    }
+  ],
+  "provider_quality": "NOT_RUN",
+  "provider_calls": 0,
+  "browser_outcomes": 0
+}

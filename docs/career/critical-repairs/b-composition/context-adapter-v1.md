@@ -12,8 +12,11 @@ were the Node test realms' incompatible plain-object prototypes. The test-only
 serialization adjustment at `09ee1419` retains every assertion and fixture byte,
 matching B's existing JSON portability boundary. Its original log is retained.
 Additional scoped goal/source and resume-lineage failures were frozen before
-their prototype repairs, with the uncommitted prototype hashes in their logs.
-These are local prototype iterations, not fabricated prior runtime commits.
+their prototype repairs. `prototype-source-provenance.json` records the hashes
+observed during those runs. The corresponding source bytes were reconstructed
+by reversing the recorded patches and match both earlier hashes exactly; no
+execution result was regenerated. These are local prototype iterations, not
+prior product runtime commits.
 
 The adapter verifies the canonical context digest and actual UTF-8 source
 digests, filters stale/disputed/withdrawn facts, and preserves explicit lineage.
@@ -45,3 +48,11 @@ Actions/events/transitions, trusted result receipts, production registration,
 paired accounting/verifier, context-v3 SQL, persisted journey and downloadable
 artifact readback still require implementation. No production or paid call,
 browser, external account action, or change to a B-owned file occurred.
+
+Runtime `42bf3c26f566ae929d31e878435cc5255aa975af` passes a green 19-case
+context baseline and kills all 11 independently planted owner, digest, source,
+classification, scope, lineage and unavailable-proof defects. Raw controls live
+in `context-controls-42bf3c26/`. The unchanged 52-case flexible baseline passes
+and all 15 existing defects are killed on that same runtime; the earlier B
+composition run at `2fb0bbe5` is also retained. CI now discovers the B tests,
+runs both control suites and typechecks the shared TypeScript modules.

@@ -1,0 +1,36 @@
+✖ counterfactual correction and new time remove only the unknowns that now have supplied evidence (26.481649ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 143.334542
+
+✖ failing tests:
+
+test at tests/career-interview-journey/audit-knownness.test.cjs:4:1
+✖ counterfactual correction and new time remove only the unknowns that now have supplied evidence (26.481649ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'minutes available now',
+  +   'company',
+  +   'interview stage'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-knownness.test.cjs:8:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'minutes available now', 'company', 'interview stage' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

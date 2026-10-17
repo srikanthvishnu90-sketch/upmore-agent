@@ -1,0 +1,179 @@
+{
+  "label": "OFFLINE_SCRIPTED_NEGATIVE_CONTROLS",
+  "controls": [
+    {
+      "id": "foreign_fact",
+      "file": "packages/career-interview-journey/adapters/context.js",
+      "pattern": "foreign fact is refused",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "426069959dfa076816cd160952ced8ec5a25c8f5fc72b9c2f4b6d1b1c2717f5f",
+      "log_sha256": "46a4c30e10c0d39b644e1660f33b12d483aa67e19e5a76201759f3b203be3aba",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "foreign fact is refused",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "revive_invalidated_answer",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "ownership correction invalidates only",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "ce6b7f8ccc9c7eddeab2bf0e4e923e461d764e7198d6f5dc13c64d312db24eec",
+      "log_sha256": "5813254f6519cdc6cb04110eb1d171b022cc3b1c0088d0f26565450c2f5e463a",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "ownership correction invalidates only",
+        "tests/career-interview-journey/invalidation.test.cjs"
+      ]
+    },
+    {
+      "id": "fabricate_tool_success",
+      "file": "packages/career-interview-journey/adapters/research.js",
+      "pattern": "fabricated success and altered source bytes",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "d92676403e0234af2608bf7a7c4055589c6ff07e1ac98efe8efbbafae18b3c71",
+      "log_sha256": "64b3e2376cc790abe07a39a07751b20ffde4c2dbc692be52518200fbb5f95281",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "fabricated success and altered source bytes",
+        "tests/career-interview-journey/research.test.cjs"
+      ]
+    },
+    {
+      "id": "posting_becomes_personal_skill",
+      "file": "packages/career-interview-journey/adapters/reasoning.js",
+      "pattern": "posting requirements cannot become personal skills",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "e70a756572e852c051c9fba0e9df0f1853f9f94ee2cef6dc1a59a48c2915de78",
+      "log_sha256": "6d5b25515e8798356001d7953583e9bc7c6252bfcd1d41f74fefe44c0f27103a",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "posting requirements cannot become personal skills",
+        "tests/career-interview-journey/research.test.cjs"
+      ]
+    },
+    {
+      "id": "change_answer_after_grading",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "changing an answer after grading",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "f3b97dfee671f73bfc7f3e0269fa3d0a428cdeecb16cf652126d942ae5a0b9f6",
+      "log_sha256": "aab4d623e39228c74c279d72fddfb62313c66293f92fe7e7cb7537c2f7e8768f",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "changing an answer after grading",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "drop_interruption_checkpoint",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "pause stores unresolved side question",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "9c57879bb02fd5516aff030a40b2afb7d5cc02a988b1ef2275774964d11e7ca9",
+      "log_sha256": "470a6f6496f0b9c4384c2f17544d13edb9bd07880b92a1924f0d838976405240",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "pause stores unresolved side question",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "keyword_wrong_answer_correct",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "keyword-stuffed wrong answer",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "fe8cac4e22c165b29615b428da62599bf69c907f30b86b0c5a922a1bdf8b727d",
+      "log_sha256": "f47cd22c211b5e34b9a5173bdbb734781d119e480db966d211ee1c65592c20c2",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "keyword-stuffed wrong answer",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "reuse_stale_pack",
+      "file": "packages/domain/interview-journey/pack.js",
+      "pattern": "readable partial pack stays partial and stale pack",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "edf56c5c05eb493e7a37477f2c1d57111580220c1febbc2b7e30cf51c4193148",
+      "log_sha256": "46eb5b0bb5cc53c3fd929765ea81a39972cb6cd68b08d0f50ed7895893813029",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "readable partial pack stays partial and stale pack",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "sum_coached_and_transfer_into_improvement",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "complete scripted practice loop",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "f1f2f6b3c6a62f6036ee59a3bef56b04c1cd9f2bfcbfa4792d992e4e656c4b01",
+      "log_sha256": "91bd1579f297193d0f5a862160fa0f657769d5131aed20615523a9d125a9311d",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "complete scripted practice loop",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "skip_artifact_readback",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "artifact cannot complete on assembly",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "4e16a5663c6c175763bf6c5a6e293b1b115e6281508a4d1930d88d59de02c3f4",
+      "log_sha256": "5fe72ebfbf395c8b58a24ceb58c4d37c488c203c8f7c3e8b59a0ec1590efdd96",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "artifact cannot complete on assembly",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    }
+  ],
+  "total": 10,
+  "caught": 10,
+  "semantic_accuracy": "NOT_MEASURED",
+  "provider_calls": 0
+}

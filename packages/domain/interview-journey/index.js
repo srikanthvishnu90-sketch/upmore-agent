@@ -9,8 +9,34 @@ const CareerInterviewJourney = (() => {
   const VERSION='interview_journey_state/v1';
   const stages=['intake','research_pending','plan_ready','awaiting_answer','feedback_ready','targeted_practice','awaiting_revision','transfer_check','pack_ready','completed'];
   function roleSupport(target){return target?.role_family==='software_engineering'&&target?.level==='early-career'?'early_career_software':target?.role_family&&target.role_family!=='software_engineering'||target?.level&&target.level!=='early-career'?'unsupported_full_slice':'generic_project_only';}
+  function refreshUnknowns(s){const derived=['target role','selected resume','minutes available now','company','interview stage'];const unknowns=[...(typeof s.target?.role!=='string'||!s.target.role.trim()?['target role']:[]),...(!s.resume_ref?['selected resume']:[]),...(s.constraints.available_minutes===null?['minutes available now']:[]),...(!s.target?.company?['company']:[]),...(!s.target?.stage?['interview stage']:[])];s.constraints.unknowns=[...new Set([...(s.constraints.unknowns||[]).filter(u=>!derived.includes(u)),...unknowns])];}
   function contentHash(s){const copy=H.clone(s);delete copy.content_sha256;return H.sha256(copy);}
   function recordHash(record){const copy=H.clone(record);delete copy.content_sha256;return H.sha256(copy);}
+  function guidedValid(s,checkpoint,stage){
+    const drill=checkpoint.next_exercise,assessment=s.assessments.find(a=>a.id===drill?.assessment_id&&a.status==='active'),question=checkpoint.active_question;
+    if(!drill||!R.exercises[drill.id]||!assessment||assessment.exercise_id!==drill.id||!question)return false;
+    if(stage==='transfer_check')return assessment.next_question_id===question.id&&checkpoint.transfer_competency===drill.competency&&s.attempts.some(a=>a.id===assessment.attempt_id&&a.kind==='revision'&&a.status==='active'&&!a.context_outdated);
+    const attempt=s.attempts.find(a=>a.id===checkpoint.active_attempt_id);
+    return assessment.question_id===question.id&&assessment.rubric_id===question.rubric?.id&&attempt?.status==='active'&&!attempt.context_outdated&&(assessment.attempt_id===attempt.id||((attempt.kind==='practice'&&attempt.exercise_id===drill.id)||attempt.kind==='revision')&&attempt.parent_attempt_id===assessment.attempt_id);
+  }
+  function sanitizeCheckpoint(s,checkpoint){
+    const attempt=s.attempts.find(a=>a.id===checkpoint.active_attempt_id),invalidAttempt=attempt&&(attempt.context_outdated||attempt.status==='withdrawn'),unsupported=checkpoint.active_question?.family==='technical'&&s.role_support!=='early_career_software';
+    if(unsupported)checkpoint.active_question=H.clone(R.questions['project-narrative']);
+    const guided=['feedback_ready','targeted_practice','awaiting_revision','transfer_check'].includes(checkpoint.stage),invalidGuide=guided&&!guidedValid(s,checkpoint,checkpoint.stage);
+    if(invalidAttempt||unsupported||invalidGuide){checkpoint.stage='awaiting_answer';if(invalidAttempt||unsupported)checkpoint.active_attempt_id=null;delete checkpoint.next_exercise;delete checkpoint.next_transfer_question_id;delete checkpoint.transfer_competency;}
+    return checkpoint;
+  }
+  function trackOutstanding(s,pending,detached=false){
+    if(!pending)return null;
+    const list=s.checkpoint.outstanding_reasoning||(s.checkpoint.outstanding_reasoning=[]);let entry=list.find(e=>e.request.action_id===pending.action_id);
+    if(!entry){const request={};for(const key of ['kind','action_id','input_digest','request_digest','attempt_id','expected_binding','task','turn_id','resume_stage','question_id','rubric_id','support_assessment_id','support_exercise_id','transfer_competency','selected_draft_id'])if(pending[key]!==undefined)request[key]=H.clone(pending[key]);request.source_refs=(pending.source_refs||[]).map(r=>({id:r.id,version:r.version}));entry={request,budget_state:'unresolved',detached};list.push(entry);}
+    if(detached)entry.detached=true;return entry;
+  }
+  function detachReasoning(s,reason,at){
+    trackOutstanding(s,s.checkpoint.pending_reasoning,true);
+    for(const entry of s.checkpoint.outstanding_reasoning||[]){entry.detached=true;entry.detached_reason=reason;entry.detached_at=at;}
+    s.checkpoint.pending_reasoning=null;
+  }
   function validateState(s){
     C.assert(s?.schema_version===VERSION&&stages.includes(s.stage),'invalid journey schema/stage');
     C.assert(s.content_sha256===contentHash(s),'journey state integrity mismatch');
@@ -20,12 +46,14 @@ const CareerInterviewJourney = (() => {
     for(const a of s.attempts)if(a.status!=='withdrawn')C.assert(a.answer_sha256===H.sha256(a.text),'attempt integrity mismatch');
     for(const a of s.assessments)if(a.status==='active')C.assert(s.attempts.some(t=>t.id===a.attempt_id&&t.answer_sha256===a.answer_sha256&&t.question_id===a.question_id&&t.rubric_id===a.rubric_id),'assessment no longer binds immutable attempt');
     for(const r of [...s.attempts,...s.assessments,...s.drafts,...s.observations,...s.briefs])C.assert(r.owner_id===s.owner_id&&r.thread_id===s.thread_id&&r.journey_id===s.journey_id&&r.epoch===s.epoch&&r.content_sha256===recordHash(r),'record owner/epoch/integrity mismatch');
+    const outstanding=s.checkpoint.outstanding_reasoning||[];C.assert(Array.isArray(outstanding)&&new Set(outstanding.map(e=>e.request.action_id)).size===outstanding.length,'invalid outstanding reasoning records');
+    for(const entry of outstanding){const b=entry.request.expected_binding;C.assert(b.owner_id===s.owner_id&&b.thread_id===s.thread_id&&b.epoch===s.epoch&&['unresolved','uncertain'].includes(entry.budget_state),'outstanding reasoning owner/epoch/state mismatch');C.assert(entry.request.source_refs.every(r=>Object.keys(r).every(k=>k==='id'||k==='version')),'outstanding request must retain references only');}
     C.assert(s.plan.items.every(i=>Number.isInteger(i.minutes)&&i.minutes>0),'invalid plan duration');
     if(s.plan.remaining_minutes!==null)C.assert(s.plan.items.reduce((n,i)=>n+i.minutes,0)<=s.plan.remaining_minutes,'plan exceeds declared budget');
     return s;
   }
   function allocate(s){
-    const total=s.constraints.available_minutes, remaining=total===null?null:Math.max(0,total-s.constraints.spent_minutes);
+    const total=s.constraints.available_minutes, remaining=total===null?null:Math.max(0,total-(s.constraints.spent_minutes-(s.constraints.budget_anchor_spent_minutes||0)));
     const template=[['project',20,'Ground a truthful narrative in actual experience.'],['technical',35,'Practice role-relevant correctness and recovery reasoning.'],['behavioral',20,'Separate personal contribution, team decisions and evidence.'],['pack',10,'Review and save current evidence with unassessed gaps explicit.']];
     if(s.role_support!=='early_career_software')template.splice(1,1);
     const priorities=s.plan_priorities||[];template.sort((a,b)=>{const ai=priorities.findIndex(p=>p.competency===a[0]),bi=priorities.findIndex(p=>p.competency===b[0]);return (ai<0?100:ai)-(bi<0?100:bi);});
@@ -49,8 +77,8 @@ const CareerInterviewJourney = (() => {
     C.assert(['coaching','mock'].includes(event.mode||'coaching'),'invalid interview mode');
     const dependencies=snapshot.facts.filter(f=>['target','resume','project','experience','interview_guidance'].includes(f.kind)).map(C.ref);
     const s={schema_version:VERSION,owner_id:snapshot.owner_id,thread_id:snapshot.thread_id,journey_id:event.journey_id,epoch:snapshot.binding.epoch,revision:0,created_at:event.at,updated_at:event.at,status:'active',stage:'intake',context_binding:H.clone(snapshot.binding),target_ref:event.target_ref||null,target:target?H.clone(target.value):null,role_support:roleSupport(target?.value),resume_ref:event.resume_ref||null,mode:event.mode||'coaching',dependencies,
-      constraints:{available_minutes:minutes,spent_minutes:0,interview_at:event.interview_at||null,daily_study_minutes:event.daily_study_minutes??null,logistics:[],unknowns:[...(!target?['target role']:[]),...(!resume?['selected resume']:[]),...(minutes===null?['minutes available now']:[]),...(!target?.value?.company?['company']:[]),...(!target?.value?.stage?['interview stage']:[])]},
-      checkpoint:{active_question:null,active_attempt_id:null,pending_reasoning:null,pending_research:null,pending_artifact:null,interruption_stack:[],unresolved_asks:[],selected_draft_id:null},plan:null,plan_priorities:[],briefs:[],attempts:[],assessments:[],drafts:[],observations:[],hints:[],research:[],invalidations:[],processed_events:[],completion:{artifact:null,unmet_conditions:['No saved/readable artifact']}};
+      constraints:{available_minutes:minutes,spent_minutes:0,budget_anchor_spent_minutes:0,interview_at:event.interview_at||null,daily_study_minutes:event.daily_study_minutes??null,logistics:[],unknowns:[...(!target?['target role']:[]),...(!resume?['selected resume']:[]),...(minutes===null?['minutes available now']:[]),...(!target?.value?.company?['company']:[]),...(!target?.value?.stage?['interview stage']:[])]},
+      checkpoint:{active_question:null,active_attempt_id:null,pending_reasoning:null,reasoning_recovery:null,outstanding_reasoning:[],pending_research:null,pending_artifact:null,interruption_stack:[],unresolved_asks:[],selected_draft_id:null},plan:null,plan_priorities:[],briefs:[],attempts:[],assessments:[],drafts:[],observations:[],hints:[],research:[],invalidations:[],processed_events:[],completion:{artifact:null,unmet_conditions:['No saved/readable artifact']}};
     C.assert(typeof s.journey_id==='string'&&s.journey_id.length>0,'journey id required');s.plan=allocate(s);return s;
   }
   function action(snapshot,s,event,type,args,source_refs=[],capability_id=null){
@@ -66,12 +94,16 @@ const CareerInterviewJourney = (() => {
       if(state.last_event?.id===event.id&&state.epoch===snapshot.binding.epoch&&C.sameBinding(state.context_binding,snapshot.binding)){C.assert(state.last_event.input_digest===digest,'same event key changed input');return {expected_binding:H.clone(state.last_event.expected_binding),next_state:H.clone(state),reply_plan:H.clone(state.last_event.reply_plan),proposed_actions:H.clone(state.last_event.proposed_actions)};}}
     let s=state?H.clone(state):initial(snapshot,event);
     C.assert(state||event.type==='start','start event required');
+    s.checkpoint.outstanding_reasoning=s.checkpoint.outstanding_reasoning||[];trackOutstanding(s,s.checkpoint.pending_reasoning);
+    if(s.checkpoint.reasoning_recovery?.budget_state==='uncertain'){const entry=trackOutstanding(s,s.checkpoint.reasoning_recovery.request,s.status!=='active'||s.checkpoint.reasoning_recovery.detached===true);entry.budget_state='uncertain';}
     const expected=C.binding(snapshot,s.revision),actions=[];let reply={status:'planned',text:'',unresolved_asks:[]};
+    const askRecord=(kind,text)=>({id:s.journey_id+':ask:'+event.id+':'+kind,kind,text,source_event_id:event.id});
+    s.checkpoint.unresolved_asks=s.checkpoint.unresolved_asks.map((a,i)=>typeof a==='string'?{id:s.journey_id+':legacy-ask:'+i,kind:'legacy',text:a}:a);
     const emit=(type,args,refs=[],cap=null)=>{const a=action(snapshot,s,event,type,args,refs,cap);if(a.blocked){reply={...reply,...a.blocked};return null;}actions.push(a.proposal);return a.proposal;};
     const ask=(id,stage='awaiting_answer')=>{const q=R.questions[id];C.assert(q,'unknown question');s.stage=stage;s.checkpoint.active_question=H.clone(q);emit('ask_question',{question_id:q.id,text:q.text,representative_practice:true,rubric_id:q.rubric.id});};
-    const reasoning=(attempt,task,extra={})=>{Object.assign(attempt,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});attempt.content_sha256=recordHash(attempt);const req=M.request(snapshot,s,attempt,task,extra);if(req.status==='blocked'){reply={status:'blocked',reason:req.reason,text:'The complete answer does not fit the admitted request. Your exact attempt is retained; provide a shorter version or request a separately admitted evidence read.',request:req};return;}
+    const reasoning=(attempt,task,extra={})=>{if(s.checkpoint.outstanding_reasoning.length||s.checkpoint.reasoning_recovery?.budget_state==='uncertain'){reply={status:'blocked',reason:'unsettled_previous_admission',text:'Your answer is saved. An earlier reasoning action has no terminal host settlement; no new pair can be proposed yet.'};return;}Object.assign(attempt,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch,retrieved_source_refs:H.clone(s.dependencies)});attempt.content_sha256=recordHash(attempt);const req=M.request(snapshot,s,attempt,task,extra);if(req.status==='blocked'){reply={status:'blocked',reason:req.reason,text:'The complete answer does not fit the admitted request. Your exact attempt is retained; provide a shorter version or request a separately admitted evidence read.',request:req};return;}
       const a=emit('coach_answer',{request:req.body,prompt_sha256:req.prompt_sha256,max_output_tokens:req.max_output_tokens},s.dependencies,'interview.coach.v1');
-      if(a)s.checkpoint.pending_reasoning={kind:'reasoning',action_id:a.action_id,input_digest:a.input_digest,request_digest:req.input_digest,attempt_id:attempt.id,source_refs:H.clone(s.dependencies),expected_binding:a.expected_binding,task,turn_id:event.id};};
+      if(a){s.checkpoint.pending_reasoning={kind:'reasoning',action_id:a.action_id,input_digest:a.input_digest,request_digest:req.input_digest,attempt_id:attempt.id,source_refs:H.clone(s.dependencies),expected_binding:a.expected_binding,task,turn_id:event.id,resume_stage:s.stage,question_id:attempt.question_id,rubric_id:attempt.rubric_id,support_assessment_id:s.checkpoint.next_exercise?.assessment_id||null,support_exercise_id:s.checkpoint.next_exercise?.id||null,transfer_competency:s.checkpoint.transfer_competency||null,selected_draft_id:s.checkpoint.selected_draft_id};trackOutstanding(s,s.checkpoint.pending_reasoning);}};
     s.revision++;s.updated_at=event.at;s.context_binding=H.clone(snapshot.binding);
     const changesContent=['time_change','context_changed','submit_answer','style_edit','select_question','read_source'].includes(event.type)||(event.type==='model_candidate'&&s.checkpoint.pending_reasoning&&event.action_id===s.checkpoint.pending_reasoning.action_id)||(event.type==='tool_result'&&s.checkpoint.pending_research);
     if(changesContent&&s.completion.artifact){s.completion={artifact:null,unmet_conditions:['Journey changed; build and reopen a current pack']};if(s.stage==='completed'||s.stage==='pack_ready')s.stage='plan_ready';}
@@ -79,24 +111,28 @@ const CareerInterviewJourney = (() => {
       C.assert(snapshot.binding.epoch>state.epoch,'context epoch moved backward');
       s=initial(snapshot,{...event,journey_id:state.journey_id,available_minutes:null,mode:state.mode});s.revision=state.revision+1;s.epoch=snapshot.binding.epoch;s.status='cancelled';s.stage='intake';reply={status:'stale_context',text:'Previous journey data belongs to an erased epoch. Start again from current authorized evidence.'};
     }else if(event.type!=='context_changed'&&s.dependencies.some(r=>{try{C.resolve(snapshot,r);return false;}catch{return true;}})){
-      s.checkpoint.pending_reasoning=null;s.checkpoint.pending_artifact=null;s.completion={artifact:null,unmet_conditions:['Evidence changed; apply typed invalidations and reopen a current pack']};if(s.stage==='completed')s.stage='plan_ready';reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
+      detachReasoning(s,'stale_context',event.at);s.checkpoint.pending_artifact=null;s.completion={artifact:null,unmet_conditions:['Evidence changed; apply typed invalidations and reopen a current pack']};if(s.stage==='completed')s.stage='plan_ready';reply={status:'stale_context',text:'Evidence versions changed. Apply the host typed invalidation before continuing or creating an artifact.'};
     }else if(state?.processed_events.some(e=>e.id===event.id)){
       const old=state.processed_events.find(e=>e.id===event.id);C.assert(old.input_digest===digest,'same event key changed input');reply={status:'blocked',reason:'already_processed',text:'This event was already processed. Use the host committed replay receipt.'};
     }else if(event.type==='start'){
       C.assert(!state,'journey already started');ask('project-narrative');reply.text='Let’s begin with one real project. These are representative practice questions; company/stage gaps remain explicit.';
-      if(s.constraints.available_minutes===null)s.checkpoint.unresolved_asks.push('How many minutes do you have now?');
+      if(s.constraints.available_minutes===null)s.checkpoint.unresolved_asks.push(askRecord('time_budget','How many minutes do you have now?'));
       if(s.role_support!=='early_career_software'){reply.status=s.role_support==='unsupported_full_slice'?'unsupported':'needs_clarification';reply.text='We can practice your real project. Full role-specific coverage requires a confirmed early-career software target; this module does not infer a role family from a title.';}
     }else if(event.type==='pause'){
-      s.checkpoint.interruption_stack.push({stage:s.stage,active_question:s.checkpoint.active_question,active_attempt_id:s.checkpoint.active_attempt_id,unresolved_asks:H.clone(s.checkpoint.unresolved_asks)});s.status='paused';s.checkpoint.pending_reasoning=null;reply.text='Paused. Your question, attempts and unfinished asks are saved.';
+      s.checkpoint.interruption_stack.push({stage:s.stage,active_question:s.checkpoint.active_question,active_attempt_id:s.checkpoint.active_attempt_id,unresolved_asks:H.clone(s.checkpoint.unresolved_asks)});
+      const frame=s.checkpoint.interruption_stack.at(-1);if(frame)for(const key of ['next_exercise','next_transfer_question_id','transfer_competency'])if(s.checkpoint[key]!==undefined)frame[key]=H.clone(s.checkpoint[key]);
+      s.status='paused';detachReasoning(s,'pause',event.at);reply.text='Paused. Your question, attempts and unfinished asks are saved; outstanding call settlement remains separate.';
     }else if(event.type==='resume'){
       const prior=s.checkpoint.interruption_stack.pop();if(prior)Object.assign(s.checkpoint,prior); // stage belongs to state, not checkpoint
       if(prior){s.stage=prior.stage;delete s.checkpoint.stage;}s.status='active';reply.text='Resuming the saved question and latest valid draft.';
+      s.checkpoint.stage=s.stage;sanitizeCheckpoint(s,s.checkpoint);s.stage=s.checkpoint.stage;delete s.checkpoint.stage;
       if(s.checkpoint.active_question)emit('ask_question',{question_id:s.checkpoint.active_question.id,text:s.checkpoint.active_question.text,representative_practice:true});
     }else if(event.type==='stop'){
-      s.status='partial_at_user_stop';s.checkpoint.pending_reasoning=null;s.checkpoint.pending_research=null;reply.text='Stopped. Progress is retained; a requested pack will label unfinished work.';
+      s.status='partial_at_user_stop';detachReasoning(s,'stop',event.at);s.checkpoint.pending_research=null;reply.text='Stopped. Progress is retained; outstanding actions still require host settlement and a requested pack will label unfinished work.';
     }else if(event.type==='time_change'){
-      C.assert(Number.isInteger(event.available_minutes)&&event.available_minutes>=0&&event.available_minutes<=1440,'invalid minutes now');s.constraints.available_minutes=event.available_minutes;s.plan=allocate(s);reply.text='Future preparation has been reallocated; completed work is retained.';
+      C.assert(Number.isInteger(event.available_minutes)&&event.available_minutes>=0&&event.available_minutes<=1440,'invalid minutes now');s.constraints.available_minutes=event.available_minutes;s.constraints.budget_anchor_spent_minutes=s.constraints.spent_minutes;s.plan=allocate(s);s.checkpoint.unresolved_asks=s.checkpoint.unresolved_asks.filter(a=>a.kind!=='time_budget');reply.text='Future preparation has been reallocated from your stated minutes remaining; completed work is retained.';
     }else if(event.type==='context_changed'){
+      const priorStatus=s.status,priorStage=s.stage;
       const ids=event.invalidation_ids||[];C.assert(ids.length>0&&ids.every(id=>snapshot.invalidations.some(i=>i.id===id)),'correction must refer to host typed invalidations');
       const invalidations=snapshot.invalidations.filter(i=>ids.includes(i.id));
       const affected=new Set(invalidations.map(i=>i.evidence_id));C.assert(invalidations.every(i=>['correction','withdrawal','resume_replaced','target_changed'].includes(i.kind)),'unsupported invalidation kind');
@@ -111,22 +147,45 @@ const CareerInterviewJourney = (() => {
       if(event.target_ref){s.target_ref=H.clone(event.target_ref);s.target=H.clone(C.resolve(snapshot,event.target_ref).value);}else if(s.target_ref&&affected.has(s.target_ref.id)){s.target=null;s.target_ref=null;}
       if(event.resume_ref)s.resume_ref=C.ref(C.resolve(snapshot,event.resume_ref));else if(s.resume_ref&&affected.has(s.resume_ref.id))s.resume_ref=null;
       s.checkpoint.selected_draft_id=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id&&d.status==='active')?.id||null;
-      s.checkpoint.pending_reasoning=null;s.checkpoint.pending_artifact=null;delete s.checkpoint.next_exercise;delete s.checkpoint.next_transfer_question_id;
-      if(invalidations.some(i=>i.kind==='withdrawal')){s.checkpoint.unresolved_asks=[];s.checkpoint.interruption_stack=[];}
-      s.role_support=roleSupport(s.target);if(s.role_support!=='early_career_software'&&s.checkpoint.active_question?.family==='technical')s.checkpoint.active_question=H.clone(R.questions['project-narrative']);s.completion={artifact:null,unmet_conditions:['Context changed; build and reopen a current pack']};s.invalidations.push(...H.clone(invalidations));s.plan=allocate(s);s.status='active';s.stage='awaiting_answer';reply.text='Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.';
+      detachReasoning(s,'context_changed',event.at);s.checkpoint.pending_artifact=null;if(!s.assessments.some(a=>a.id===s.checkpoint.next_exercise?.assessment_id&&a.status==='active')){delete s.checkpoint.next_exercise;delete s.checkpoint.next_transfer_question_id;}
+      const withdrawn=invalidations.some(i=>i.kind==='withdrawal');if(withdrawn)s.checkpoint.unresolved_asks=[];
+      s.role_support=roleSupport(s.target);
+      const sanitize=checkpoint=>{sanitizeCheckpoint(s,checkpoint);if(withdrawn)checkpoint.unresolved_asks=[];return checkpoint;};
+      const live=sanitize({...s.checkpoint,stage:priorStage});for(const key of ['active_question','active_attempt_id','next_exercise','next_transfer_question_id','transfer_competency']){if(live[key]!==undefined)s.checkpoint[key]=live[key];else delete s.checkpoint[key];}s.checkpoint.interruption_stack=s.checkpoint.interruption_stack.map(frame=>sanitize(frame));
+      s.completion={artifact:null,unmet_conditions:['Context changed; build and reopen a current pack']};s.invalidations.push(...H.clone(invalidations));s.plan=allocate(s);s.status=priorStatus==='paused'?'paused':priorStatus==='partial_at_user_stop'?'partial_at_user_stop':'active';s.stage=live.stage==='completed'||live.stage==='pack_ready'?'awaiting_answer':live.stage;reply.text='Dependent feedback and drafts are stale. Independent research, time and original non-withdrawn attempts remain available as historical records.';
     }else if(event.type==='submit_answer'){
       C.assert(s.status==='active'&&s.checkpoint.active_question,'no active question');C.assert(!s.checkpoint.pending_reasoning,'one admitted assessment already pending');
       C.assert(typeof event.text==='string'&&event.text.trim().length>0&&['initial','practice','revision','transfer'].includes(event.kind||'initial'),'an explicit answer submission is required');
+      if(event.kind==='practice')C.assert(s.stage==='targeted_practice'&&guidedValid(s,s.checkpoint,s.stage),'practice requires a current question-bound assessment and exercise checkpoint');
       if(!event.kind||event.kind==='initial')C.assert(s.stage==='awaiting_answer','initial answer requires awaiting_answer');
       const question=s.checkpoint.active_question;const parent=s.checkpoint.active_attempt_id;
-      const attempt={id:s.journey_id+':attempt:'+event.id,version:1,question_id:question.id,question_text:event.kind==='practice'?s.checkpoint.next_exercise.text:question.text,exercise_id:event.kind==='practice'?s.checkpoint.next_exercise.id:null,rubric_id:question.rubric.id,rubric_version:1,kind:event.kind||'initial',text:event.text,answer_sha256:H.sha256(event.text),at:event.at,index:s.attempts.filter(a=>a.question_id===question.id).length+1,parent_attempt_id:parent,assistance:(event.kind==='transfer'||s.mode==='mock'&&!parent)?'none':s.hints.length||event.kind==='revision'||event.kind==='practice'?'coached':'none',source_refs:H.clone(s.dependencies),context_revision:snapshot.binding.thread_revision,scripted:event.scripted===true,status:'active',context_outdated:false};
+      C.assert(question.family!=='technical'||s.role_support==='early_career_software','technical answer requires current software role eligibility');
+      const answerRefs=event.source_refs||s.dependencies;C.assert(Array.isArray(answerRefs),'answer evidence refs must be a list');for(const r of answerRefs){C.resolve(snapshot,r);C.assert(s.dependencies.some(d=>d.id===r.id&&d.version===r.version),'answer evidence not in journey context');}
+      const assisted=s.hints.some(h=>h.question_id===question.id)||s.assessments.some(a=>a.question_id===question.id&&a.status==='active');
+      const attempt={id:s.journey_id+':attempt:'+event.id,version:1,question_id:question.id,question_text:event.kind==='practice'?s.checkpoint.next_exercise.text:question.text,exercise_id:event.kind==='practice'?s.checkpoint.next_exercise.id:null,rubric_id:question.rubric.id,rubric_version:1,kind:event.kind||'initial',text:event.text,answer_sha256:H.sha256(event.text),at:event.at,index:s.attempts.filter(a=>a.question_id===question.id).length+1,parent_attempt_id:parent,assistance:(event.kind==='transfer'||s.mode==='mock'&&!parent)?'none':assisted||event.kind==='revision'||event.kind==='practice'?'coached':'none',source_refs:H.clone(answerRefs),dependency_basis:event.source_refs?'host_declared_answer_refs':'conservative_context_refs',context_revision:snapshot.binding.thread_revision,scripted:event.scripted===true,status:'active',context_outdated:false};
+      if(event.kind==='transfer')attempt.transfer_competency=s.checkpoint.transfer_competency||null;
       if(event.kind==='transfer')C.assert(s.stage==='transfer_check','transfer submission requires a transfer question');
       if(event.kind==='revision')C.assert(s.stage==='awaiting_revision','revision requires an active revision checkpoint');
       if(event.kind==='practice')C.assert(s.stage==='targeted_practice','practice requires a targeted exercise');
       s.attempts.push(attempt);s.checkpoint.active_attempt_id=attempt.id;
-      if(event.side_question)s.checkpoint.unresolved_asks.push(event.side_question);
+      if(event.side_question)s.checkpoint.unresolved_asks.push(askRecord('side_question',event.side_question));
       if(event.minutes_spent!==undefined){C.assert(Number.isInteger(event.minutes_spent)&&event.minutes_spent>=0,'invalid reported time spent');s.constraints.spent_minutes+=event.minutes_spent;s.plan=allocate(s);}
-      reasoning(attempt,event.kind==='revision'?'revision':event.kind==='transfer'?'transfer':'initial',{side_question:event.side_question});reply.text='Your exact answer is retained. Assessment awaits the admitted generation/checker pair.';
+      reasoning(attempt,event.kind==='revision'?'revision':event.kind==='transfer'?'transfer':'initial',{side_question:event.side_question});if(reply.status==='planned')reply.text='Your exact answer is retained. Assessment awaits the admitted generation/checker pair.';
+    }else if(event.type==='reasoning_result'){
+      const recovery=M.outcome(snapshot,s,event);
+      if(!recovery.request)reply={status:'stale_context',text:'This outcome does not settle the current pending assessment.'};
+      else{const current=s.checkpoint.pending_reasoning?.action_id===recovery.request.action_id;if(current)s.checkpoint.pending_reasoning=null;
+        if(recovery.budget_state==='uncertain'){const entry=trackOutstanding(s,recovery.request,recovery.detached);entry.budget_state='uncertain';entry.receipt_id=recovery.receipt_id;}else s.checkpoint.outstanding_reasoning=s.checkpoint.outstanding_reasoning.filter(e=>e.request.action_id!==recovery.request.action_id);
+        if(!s.checkpoint.pending_reasoning)s.checkpoint.reasoning_recovery=recovery;if(current&&!recovery.detached&&s.status==='active')s.stage=recovery.request.resume_stage||s.stage;
+        reply={status:recovery.status,reason:recovery.failure_kind,text:recovery.status==='unknown'?'The earlier action remains uncertain. The answer and current checkpoint are preserved; no new pair is allowed before terminal host settlement.':'The host settled the earlier unsuccessful action. Your answer and current checkpoint are preserved; a retry requires an explicit new turn and admission.'};if(current&&!recovery.detached&&recovery.status==='unknown'&&s.status==='active')emit('read_action_status',{action_id:recovery.request.action_id},[]);}
+    }else if(event.type==='retry_assessment'){
+      const recovery=s.checkpoint.reasoning_recovery;C.assert(recovery&&!s.checkpoint.pending_reasoning,'no settled failed assessment to retry');C.assert(recovery.budget_state==='settled'&&!s.checkpoint.outstanding_reasoning.length,'previous admission remains uncertain');C.assert(event.outcome_receipt_id===recovery.receipt_id,'retry must identify the terminal host outcome');C.receipt(snapshot,recovery.receipt_id,'reasoning_outcome');const attempt=s.attempts.find(a=>a.id===(event.attempt_id||recovery.request.attempt_id)&&a.status==='active'&&!a.context_outdated);C.assert(attempt&&attempt.id===recovery.request.attempt_id,'retry answer is missing, changed or stale');C.assert(s.status==='active','resume the journey before retry');
+      const q=R.questions[attempt.question_id];C.assert(q&&q.rubric.id===attempt.rubric_id&&q.version===1,'retry question/rubric mismatch');C.assert(q.family!=='technical'||s.role_support==='early_career_software','retry question is outside current role eligibility');
+      if(recovery.request.task==='style'){const selected=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id&&d.status==='active');C.assert(selected&&selected.source_attempt_ids.includes(attempt.id)&&(!recovery.request.selected_draft_id||selected.id===recovery.request.selected_draft_id),'style retry draft selection changed');}
+      else{const phase={initial:'awaiting_answer',practice:'targeted_practice',revision:'awaiting_revision',transfer:'transfer_check'}[attempt.kind],frame={stage:phase,active_question:H.clone(q),active_attempt_id:attempt.id};C.assert(phase,'retry attempt kind mismatch');
+        if(phase!=='awaiting_answer'){const id=recovery.request.support_assessment_id||s.checkpoint.next_exercise?.assessment_id,support=s.assessments.find(a=>a.id===id&&a.status==='active');C.assert(support&&R.exercises[support.exercise_id],'retry supporting assessment is stale');frame.next_exercise={...H.clone(R.exercises[support.exercise_id]),rationale:support.rationale,assessment_id:support.id};frame.next_transfer_question_id=support.next_question_id;frame.transfer_competency=attempt.transfer_competency||recovery.request.transfer_competency||null;C.assert(guidedValid(s,frame,phase),'retry guided checkpoint is stale or belongs to another question');}
+        s.stage=phase;s.checkpoint.active_question=frame.active_question;s.checkpoint.active_attempt_id=attempt.id;for(const key of ['next_exercise','next_transfer_question_id','transfer_competency']){if(frame[key]!==undefined)s.checkpoint[key]=frame[key];else delete s.checkpoint[key];}}
+      reasoning(attempt,recovery.request.task);if(reply.status==='planned')reply.text='Restored the saved answer’s matching checkpoint and requested a separately admitted assessment.';
     }else if(event.type==='model_candidate'){
       const pending=s.checkpoint.pending_reasoning;
       if(!pending||event.action_id!==pending.action_id){reply={status:'stale_context',text:'Late or cancelled assessment ignored.'};}
@@ -135,26 +194,30 @@ const CareerInterviewJourney = (() => {
         C.assert(receipt.action_id===pending.action_id&&receipt.input_digest===pending.input_digest&&receipt.request_digest===pending.request_digest&&receipt.candidate_sha256===H.sha256(event.candidate)&&receipt.verdict==='accepted'&&C.sameBinding(receipt.request_binding,pending.expected_binding)&&C.sameBinding(receipt.validated_binding,C.binding(snapshot,s.revision-1)),'semantic host receipt mismatch');
         for(const ref of pending.source_refs)C.resolve(snapshot,ref);
         const {attempt,question}=M.validateCandidate(snapshot,s,event.candidate,pending),candidate=event.candidate;
-        const assessment={...H.clone(candidate),id:s.journey_id+':assessment:'+event.id,version:1,status:'active',family:question.family,source_refs:H.clone(pending.source_refs),generator:receipt.generator,validation_receipt:receipt.id,judgment:'provisional practice inference',at:event.at};delete assessment.draft;s.assessments.push(assessment);
-        if(candidate.brief)s.briefs.push({id:assessment.id+':brief',version:1,...H.clone(candidate.brief),status:'active',validation_receipt:receipt.id});
-        if(candidate.plan_updates){s.plan_priorities=H.clone(candidate.plan_updates);s.plan=allocate(s);}
-        if(candidate.draft){const draft={id:s.journey_id+':draft:'+event.id,version:1,text:candidate.draft.text,source_attempt_ids:[attempt.id],fact_refs:H.clone(candidate.draft.fact_refs),source_refs:H.clone(pending.source_refs),edits:pending.task==='style'?[{purpose:'user requested style revision'}]:[],status:'active',context_revision:snapshot.binding.thread_revision};s.drafts.push(draft);s.checkpoint.selected_draft_id=draft.id;}
-        s.checkpoint.pending_reasoning=null;s.checkpoint.unresolved_asks=[];
+        const dependencies=[...new Map([...candidate.evidence_refs,...attempt.source_refs,s.target_ref,s.resume_ref].filter(Boolean).map(r=>[r.id+'@'+r.version,r])).values()];
+        const assessment={...H.clone(candidate),id:s.journey_id+':assessment:'+event.id,version:1,status:'active',assessment_kind:'answer_feedback',family:question.family,source_refs:H.clone(dependencies),retrieved_source_refs:H.clone(pending.source_refs),use_evidence_status:'admitted reference declaration; actual semantic use quality NOT_RUN',generator:receipt.generator,validation_receipt:receipt.id,judgment:'provisional practice inference',at:event.at};delete assessment.draft;if(pending.task!=='style')s.assessments.push(assessment);
+        const contextualRefs=refs=>[...new Map([...refs,s.target_ref,s.resume_ref].filter(Boolean).map(r=>[r.id+'@'+r.version,r])).values()];
+        if(candidate.brief)s.briefs.push({id:assessment.id+':brief',version:1,...H.clone(candidate.brief),source_refs:contextualRefs(candidate.brief.source_refs),status:'active',validation_receipt:receipt.id});
+        if(candidate.plan_updates){s.plan_priorities=H.clone(candidate.plan_updates).map(p=>({...p,source_refs:contextualRefs(p.source_refs)}));s.plan=allocate(s);}
+        if(candidate.draft){const prior=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id);if(prior&&prior.status==='active')prior.status='superseded';const draft={id:s.journey_id+':draft:'+event.id,version:1,text:candidate.draft.text,source_attempt_ids:[attempt.id],fact_refs:H.clone(candidate.draft.fact_refs),source_refs:H.clone(dependencies),retrieved_source_refs:H.clone(pending.source_refs),validation_receipt:receipt.id,edits:pending.task==='style'?[{purpose:'user requested style revision'}]:[],status:'active',context_revision:snapshot.binding.thread_revision};s.drafts.push(draft);s.checkpoint.selected_draft_id=draft.id;}
+        const responses=candidate.ask_responses||[],answered=new Set(responses.map(a=>a.ask_id));s.checkpoint.pending_reasoning=null;s.checkpoint.reasoning_recovery=null;s.checkpoint.outstanding_reasoning=s.checkpoint.outstanding_reasoning.filter(e=>e.request.action_id!==pending.action_id);s.checkpoint.unresolved_asks=s.checkpoint.unresolved_asks.filter(a=>!answered.has(a.id)&&!(pending.task==='style'&&a.id===pending.instruction_ask_id));
         if(pending.task==='style'){reply.text=candidate.feedback;}
         else{
           s.stage='feedback_ready';s.checkpoint.next_exercise={...H.clone(R.exercises[candidate.exercise_id]),rationale:candidate.rationale,assessment_id:assessment.id};s.checkpoint.next_transfer_question_id=candidate.next_question_id;
-          s.observations.push({id:assessment.id+':observation',kind:attempt.kind==='transfer'?'transfer':attempt.kind==='revision'?'same_question_revision':'initial',competency:candidate.priority_fix.dimension,assistance:attempt.assistance,status:'observed',outcome:'uncertain',attempt_id:attempt.id,assessment_id:assessment.id,source_refs:H.clone(pending.source_refs),uncertainty:candidate.uncertainty,at:event.at});
+          const competency=attempt.kind==='transfer'?attempt.transfer_competency||candidate.priority_fix.dimension:attempt.kind==='practice'?R.exercises[attempt.exercise_id].competency:candidate.priority_fix.dimension;
+          s.observations.push({id:assessment.id+':observation',kind:attempt.kind==='transfer'?'transfer':attempt.kind==='revision'?'same_question_revision':attempt.kind==='practice'?'targeted_practice':'initial',competency,assistance:attempt.assistance,status:M.isAssessed(assessment,competency)?'observed':'not_assessed',outcome:'uncertain',attempt_id:attempt.id,assessment_id:assessment.id,source_refs:H.clone(dependencies),uncertainty:candidate.uncertainty,at:event.at});
           reply.text=candidate.feedback;
         }
+        if(responses.length)reply.text+='\n\n'+responses.map(a=>a.text).join('\n\n');reply.unresolved_asks=H.clone(s.checkpoint.unresolved_asks);
       }
     }else if(event.type==='begin_practice'){
-      C.assert(s.stage==='feedback_ready'&&s.checkpoint.next_exercise,'feedback required before practice');const drill=s.checkpoint.next_exercise;
+      C.assert(s.stage==='feedback_ready'&&guidedValid(s,s.checkpoint,s.stage),'current question-bound feedback required before practice');const drill=s.checkpoint.next_exercise;
       if(s.plan.remaining_minutes!==null&&drill.minutes>s.plan.remaining_minutes){reply={status:'blocked',reason:'insufficient_time',text:'This drill exceeds your remaining time. Save a partial pack or change the time budget.'};}
-      else{s.stage='targeted_practice';s.hints.push({id:event.id,text:drill.text,exercise_id:drill.id,at:event.at});reply.text=drill.text;emit('ask_question',{question_id:s.checkpoint.active_question.id,exercise_id:drill.id,text:drill.text,representative_practice:true});}
+      else{s.stage='targeted_practice';s.hints.push({id:event.id,text:drill.text,exercise_id:drill.id,question_id:s.checkpoint.active_question.id,at:event.at});reply.text=drill.text;emit('ask_question',{question_id:s.checkpoint.active_question.id,exercise_id:drill.id,text:drill.text,representative_practice:true});}
     }else if(event.type==='begin_revision'){
-      C.assert(['feedback_ready','targeted_practice'].includes(s.stage)&&!s.checkpoint.pending_reasoning,'practice feedback must settle first');s.stage='awaiting_revision';reply.text='Revise your answer to the original question, addressing the priority gap. Your earlier attempt remains separate.';emit('ask_question',{question_id:s.checkpoint.active_question.id,text:reply.text,representative_practice:true});
+      C.assert(['feedback_ready','targeted_practice'].includes(s.stage)&&!s.checkpoint.pending_reasoning&&guidedValid(s,s.checkpoint,s.stage),'current practice feedback must settle first');s.stage='awaiting_revision';reply.text='Revise your answer to the original question, addressing the priority gap. Your earlier attempt remains separate.';emit('ask_question',{question_id:s.checkpoint.active_question.id,text:reply.text,representative_practice:true});
     }else if(event.type==='begin_transfer'){
-      C.assert(s.stage==='feedback_ready'&&s.attempts.some(a=>a.id===s.checkpoint.active_attempt_id&&a.kind==='revision'),'assessed revision required before transfer');ask(s.checkpoint.next_transfer_question_id,'transfer_check');s.checkpoint.active_attempt_id=null;reply.text='Try a different situation without the rewrite. This checks transfer separately from coached revision.';
+      C.assert(s.stage==='feedback_ready'&&guidedValid(s,s.checkpoint,s.stage)&&s.attempts.some(a=>a.id===s.checkpoint.active_attempt_id&&a.kind==='revision'),'current assessed revision required before transfer');s.checkpoint.transfer_competency=s.checkpoint.next_exercise.competency;ask(s.checkpoint.next_transfer_question_id,'transfer_check');s.checkpoint.active_attempt_id=null;reply.text='Try a different situation without the rewrite. This checks transfer separately from coached revision.';
     }else if(event.type==='select_question'){
       C.assert(!s.checkpoint.pending_reasoning,'settle/cancel pending assessment first');C.assert(['project-narrative','retry-design','team-decision'].includes(event.question_id),'unknown slice question');
       if(event.question_id==='retry-design'&&s.role_support!=='early_career_software')reply={status:'unsupported',text:'The software reasoning drill requires a confirmed early-career software target. General project practice remains available.'};
@@ -162,7 +225,7 @@ const CareerInterviewJourney = (() => {
     }else if(event.type==='style_edit'){
       const draft=s.drafts.find(d=>d.id===s.checkpoint.selected_draft_id&&d.status==='active');C.assert(draft&&!s.checkpoint.pending_reasoning,'select a current draft before editing');
       const attempt=s.attempts.find(a=>draft.source_attempt_ids.includes(a.id));C.assert(attempt&&attempt.status==='active'&&!attempt.context_outdated,'draft attempt stale');C.assert(typeof event.instruction==='string'&&event.instruction.length>0,'style instruction required');
-      s.checkpoint.unresolved_asks.push(event.instruction);reasoning(attempt,'style',{side_question:event.instruction});reply.text='The selected draft is retained while its style edit awaits validation.';
+      const instruction=askRecord('style_instruction',event.instruction);s.checkpoint.unresolved_asks.push(instruction);reasoning(attempt,'style',{side_question:event.instruction});if(s.checkpoint.pending_reasoning)s.checkpoint.pending_reasoning.instruction_ask_id=instruction.id;if(reply.status==='planned')reply.text='The selected draft is retained while its style edit awaits validation.';
     }else if(event.type==='read_source'){
       C.assert(!s.checkpoint.pending_research,'research already pending');const source=C.resolve(snapshot,event.source_ref);
       C.assert(source.kind==='source'&&source.value?.approved_url&&/^https:\/\//.test(source.value.approved_url),'host-approved source URL required');
@@ -184,6 +247,7 @@ const CareerInterviewJourney = (() => {
       reply={status:'needs_confirmation',text:'Interpret this turn through the host into an explicit answer, style edit, task switch or control event. It has not been graded or used to reset evidence.'};
     }else{reply={status:'unsupported',text:'This journey supports interview preparation only. The preparation checkpoint is preserved.'};}
     s.processed_events.push({id:event.id,input_digest:digest});
+    refreshUnknowns(s);
     for(const record of [...s.attempts,...s.assessments,...s.drafts,...s.observations,...s.briefs]){Object.assign(record,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});record.content_sha256=recordHash(record);}
     s.last_event={id:event.id,input_digest:digest,expected_binding:expected,reply_plan:H.clone(reply),proposed_actions:H.clone(actions)};
     s.content_sha256=contentHash(s);validateState(s);

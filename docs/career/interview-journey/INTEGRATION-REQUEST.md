@@ -1,5 +1,12 @@
 # Spec A / Muse integration request — blocked consumer boundary
 
+Latest B source and recovery protocol: [RECOVERY-20261017.md](RECOVERY-20261017.md).
+Use its exact tested source and preserve `checkpoint.outstanding_reasoning`
+through atomic persistence. A's current context-only projection has 20 passing
+cases against this runtime; execution proof profiles, version-zero compatibility,
+nested CI discovery and registration remain A-owned work. The historical absence
+at B's base and the direct-canonical failure below remain historical evidence.
+
 B's pure module is implemented. It is **not called by the actual career entry**.
 No handler, gateway, existing module, SQL, bundle or shared evidence file changed.
 `node scripts/career/interview-journey/check-integration.cjs` exits 2 and names
@@ -160,3 +167,106 @@ Current blockers are missing A schemas/registration/store/artifact proof, not an
 approval denial. No dependent integration was attempted through another route.
 No credentials, SQL, production changes or provider calls are required from B
 to hand off this concrete source and consumer evidence.
+
+## Depth-audit additions to agree against A's canonical contract
+
+The follow-up at `AUDIT-20261016.md` changes B records and closes reproduced
+completion/continuity gaps. These remain **consumer proposals** until the actual
+A schema and producer examples pass the compatibility runner. B does not create
+or replace `packages/career-contracts` files.
+
+### Admitted generation/checker failure and reconciliation
+
+Success is not the only terminal path. A delivers `reasoning_result` with the
+owned action ID and a trusted `reasoning_outcome` receipt ID. The snapshot receipt
+contains owner/thread/epoch, original action/input/request digests,
+`request_binding`, current `validated_binding`, `outcome_status`, `failure_kind`,
+`budget_state`, paired `reservation_ref` and `usage_receipt_refs`.
+
+- Outcome status: `failed`, `unknown`, `unavailable`, `blocked`, `stale_context`.
+- Failure kind: `generation_failed`, `checker_failed`, `checker_rejected`,
+  `generation_timeout`, `checker_timeout`, `provider_unavailable`, `stale_context`.
+- Budget state: `settled` or `uncertain`. `unknown` cannot claim settlement.
+
+A must derive these fields from actual admissions, usage/timeout reconciliation
+and its durable receipts. A failed checker may still incur generation and
+checker costs. A cancellation or B checkpoint change never releases a
+reservation. A must reconcile/account outcomes even when B ignores an old reply.
+No model/user field can settle a call or reset the original shared allowance.
+
+B retains the exact answer and failure record, clears the active pending slot,
+and proposes no automatic generation retry. Definite settled failure permits an
+explicit new-turn `retry_assessment` citing the terminal outcome receipt and,
+optionally, the saved attempt ID. A admits that separately under the paired
+budget policy. Retry does not fabricate an assessment or mutate the answer.
+
+Uncertain outcome proposes only `read_action_status` for the original owned
+action. New answer text can be stored, but new pairs remain blocked. A terminal
+host reconciliation receipt is required before retry. Late results for the old
+action cannot overwrite a newer pending assessment or selected draft. Direct
+promotion of an uncertain late success is not implemented: A must first expose
+an explicit reconciled outcome/consumption contract rather than silently revive
+a cancelled slot. The actual budget/accounting tests still belong to A.
+
+### Dependencies, asks and completion
+
+`submit_answer.source_refs`, if supplied, must be host-bound canonical refs for
+that answer. Without them, B retains a conservative dependency set. Retrieved
+refs are stored separately from answer refs and admitted candidate reference
+declarations. A must not call those declarations independently measured semantic
+use. Source/target/resume binding remains mandatory for context-specific output.
+
+B-local unresolved asks now have stable ID/kind/text/source-event metadata.
+Candidate `ask_responses` contains matching ask ID, actual answer text and
+eligible evidence refs; only explicit responses resolve those asks. Style edits
+consume their own instruction, supersede the selected wording and create no new
+competency grade. A should map canonical ask IDs explicitly when its schema is
+published rather than treating prompt-local aliases as durable identities.
+
+Coverage requires question-specific core dimensions, or the targeted practice
+dimension. Transfer checks retain the originally probed competency separately
+from the model's next suggested gap. `not_assessed` provides no coverage. Scores
+remain practice inferences; a supported score of zero records a judged gap and
+never implies readiness. Timing changes mean **minutes remaining now**, anchored
+to the lifetime elapsed counter. Corrections retain pause/stop status and sanitize
+both current and saved questions; resume/submission recheck current role scope.
+
+### Actual canonical-schema consumer check (A publication now available)
+
+A published its actual canonical files at
+`3a41cd456cbdbe53639275ae83096b9fb91aa33d`. B does not copy or edit them.
+Run the check directly against that exact fetched Git object:
+
+```sh
+npm ci --prefix scripts/career/interview-journey --ignore-scripts
+git fetch origin 3a41cd456cbdbe53639275ae83096b9fb91aa33d
+node scripts/career/interview-journey/canonical-compatibility.cjs --producer-ref 3a41cd456cbdbe53639275ae83096b9fb91aa33d
+```
+
+The runner reads A's exact schema, TypeScript validator, `freeze.json`,
+`valid.json` and `invalid.json` from `packages/career-contracts`. It verifies A's
+frozen hashes, checks the TypeScript validator's embedded schema against the
+schema bytes, runs the actual A validator plus pinned Ajv/formats, and passes
+A's frozen context unchanged to the B consumer. No B-authored positive fixture,
+shadow schema, field coercion, repaired producer example or weaker validator is
+substituted. A metadata/authority negative that JSON Schema alone cannot reject
+must still be rejected by A's own runtime validator.
+
+Observed result: A's **3 valid and 9 invalid examples pass their 12 expected
+checks**. B rejects the **one genuine A context** with `foreign evidence
+owner/scope`, because its provisional row DTO differs. **Canonical compatibility
+FAIL; zero B canonical transitions executed.** A files are available; the
+remaining blocker is incompatibility, not their absence.
+
+See `CANONICAL-COMPATIBILITY-3a41cd45.md` for exact differences and proof-profile
+requirements. Spec B section 15 says to stop dependent work when A's contract
+is incompatible. B therefore does not register the provisional reducer, invent
+receipt encodings, or weaken A's schema to manufacture a pass. A/B must agree the
+versioned event/proof projection, then B can build the pure DTO adapter and rerun
+these same producer examples plus genuine A journey cases.
+
+The existing CI Node glob is `tests/*.cjs`; it does not discover the nested B
+directory. A/Muse must add the explicit B contract command to CI during actual
+registration, then add the canonical consumer command. B runs its own contracts
+separately and does not count the old CI glob as execution of the new module or
+as interview-quality evidence.

@@ -2,6 +2,7 @@
 const InterviewJourneyPack = (() => {
   const H=typeof InterviewJourneyHash!=='undefined'?InterviewJourneyHash:require('./hash.js');
   const C=typeof InterviewJourneyContext!=='undefined'?InterviewJourneyContext:require('../../career-interview-journey/adapters/context.js');
+  const M=typeof InterviewJourneyReasoning!=='undefined'?InterviewJourneyReasoning:require('../../career-interview-journey/adapters/reasoning.js');
   const text = x => typeof x==='string'?x:H.canonical(x);
   const label=x=>String(x).replace(/_/g,' ');
   const references=refs=>refs.map(r=>r.id+'@'+r.version).join(', ')||'none';
@@ -12,22 +13,24 @@ const InterviewJourneyPack = (() => {
     const refs=state.dependencies.filter(r=>{try{C.resolve(snapshot,r);return true;}catch{return false;}});
     const facts=refs.map(r=>C.resolve(snapshot,r)).filter(r=>snapshot.facts.includes(r));
     const attempts=state.attempts.filter(a=>a.status==='active'&&!a.context_outdated);
-    const assessments=state.assessments.filter(a=>a.status==='active'&&attempts.some(t=>t.id===a.attempt_id));
+    const assessments=state.assessments.filter(a=>a.status==='active'&&a.assessment_kind!=='style_admission'&&attempts.some(t=>t.id===a.attempt_id));
+    const coverage=assessments.filter(a=>M.hasCoverage(a,attempts.find(t=>t.id===a.attempt_id)));
     const drafts=state.drafts.filter(d=>d.status==='active');
     const captures=state.research.filter(r=>r.status==='succeeded'&&refs.some(ref=>ref.id===r.source_ref.id&&ref.version===r.source_ref.version));
     const families=['project','technical','behavioral'];
     const missing=[];
+    if(state.checkpoint.outstanding_reasoning?.length||state.checkpoint.reasoning_recovery?.budget_state==='uncertain')missing.push('Reasoning action remains unsettled');
     if(state.role_support!=='early_career_software')missing.push('Full early-career software scope not confirmed');
-    if(!state.target)missing.push('Target role not supplied');
+    if(typeof state.target?.role!=='string'||!state.target.role.trim())missing.push('Target role not supplied');
     if(state.target&&!state.target.company)missing.push('Company not supplied; role-only preparation');
     if(!state.resume_ref)missing.push('Selected resume not supplied');
     if(state.constraints.available_minutes===null)missing.push('Preparation time not supplied');
     if(captures.length===0)missing.push('Research limited: no verified role/company capture');
     const briefs=state.briefs.filter(b=>b.status==='active'&&b.source_refs.every(r=>refs.some(x=>x.id===r.id&&x.version===r.version)));
     if(!briefs.length)missing.push('Source-backed role/company synthesis not assessed');
-    for(const family of families)if(!assessments.some(a=>a.family===family))missing.push(family+' answer not assessed');
-    for(const kind of ['practice','revision'])if(!attempts.some(t=>t.kind===kind&&assessments.some(a=>a.attempt_id===t.id)))missing.push(kind+' not assessed');
-    if(!state.observations.some(o=>o.kind==='transfer'&&o.assistance==='none'&&o.status==='observed'))missing.push('Unassisted transfer not assessed');
+    for(const family of families)if(!coverage.some(a=>a.family===family))missing.push(family+' answer not assessed');
+    for(const kind of ['practice','revision'])if(!attempts.some(t=>t.kind===kind&&coverage.some(a=>a.attempt_id===t.id)))missing.push(kind+' not assessed');
+    if(!state.observations.some(o=>o.kind==='transfer'&&o.assistance==='none'&&o.status==='observed'&&coverage.some(a=>a.id===o.assessment_id&&M.isAssessed(a,o.competency))))missing.push('Unassisted transfer not assessed');
     if(!drafts.length)missing.push('No current evidence-linked answer draft');
     if(state.status==='partial_at_user_stop')missing.push('User stopped before full completion');
     const sections=[
@@ -43,7 +46,7 @@ const InterviewJourneyPack = (() => {
       {id:'evidence',title:'Evidence and version appendix',content:[`Journey ${state.journey_id}, revision ${state.revision}; context ${snapshot.binding.context_sha256}; epoch ${state.epoch}.`,...refs.map(r=>{const item=C.resolve(snapshot,r);return `${r.id}@${r.version}; ${item.trust}; provenance ${text(item.provenance)}`;}),'Assisted revision and unassisted transfer are separate observations. No aggregate mastery or hiring score is calculated.']}
     ];
     for(const s of sections)if(!s.content.length)s.content=['Not yet supplied or assessed.'];
-    const pack={schema_version:'interview_prep_pack/v1',owner_id:state.owner_id,thread_id:state.thread_id,journey_id:state.journey_id,journey_revision:state.revision,epoch:state.epoch,target_ref:state.target_ref,resume_ref:state.resume_ref,context_binding:C.binding(snapshot,state.revision),status:missing.length?'partial':'complete',unmet_conditions:missing,source_refs:refs,sections};
+    const pack={schema_version:'interview_prep_pack/v1',coverage_policy_version:M.coveragePolicy,owner_id:state.owner_id,thread_id:state.thread_id,journey_id:state.journey_id,journey_revision:state.revision,epoch:state.epoch,target_ref:state.target_ref,resume_ref:state.resume_ref,context_binding:C.binding(snapshot,state.revision),status:missing.length?'partial':'complete',unmet_conditions:missing,source_refs:refs,sections};
     const markdown='# Interview preparation pack\n\nStatus: '+pack.status+'\n\n'+sections.map(s=>'## '+s.title+'\n\n'+s.content.map(safe).join('\n\n')).join('\n\n')+'\n';
     return {pack,markdown,manifest:{mime_type:'text/markdown; charset=utf-8',encoding:'utf-8',byte_length:new TextEncoder().encode(markdown).length,sha256:H.sha256(markdown),structured_sha256:H.sha256(pack),filename:'interview-preparation.md'}};
   }
@@ -56,7 +59,10 @@ const InterviewJourneyPack = (() => {
     C.assert(r.journey_revision===pending.journey_revision&&state.revision-1===pending.journey_revision&&C.sameBinding(r.validated_binding,C.binding(snapshot,state.revision-1))&&H.canonical(r.target_ref)===H.canonical(state.target_ref)&&H.canonical(r.resume_ref)===H.canonical(state.resume_ref),'stale artifact target/resume/revision');
     C.assert(typeof artifact.content==='string'&&artifact.content.length>0&&artifact.mime_type==='text/markdown; charset=utf-8'&&artifact.encoding==='utf-8','artifact must be readable UTF-8 Markdown bytes');
     C.assert(H.sha256(artifact.content)===pending.sha256&&r.sha256===pending.sha256&&artifact.sha256===pending.sha256&&artifact.byte_length===new TextEncoder().encode(artifact.content).length&&artifact.byte_length===pending.byte_length,'artifact content mismatch');
-    return {id:artifact.id,version:artifact.version,sha256:pending.sha256,receipt_id:r.id,readback_status:'verified',partial:pending.partial};
+    // A previously serialized full flag cannot grandfather an old coverage bug.
+    // Recheck current progress eligibility independently of byte/hash readback.
+    if(!pending.partial)C.assert(build(snapshot,{...state,revision:pending.journey_revision}).pack.status==='complete','current progress does not satisfy full-pack coverage eligibility');
+    return {id:artifact.id,version:artifact.version,sha256:pending.sha256,receipt_id:r.id,readback_status:'verified',coverage_policy_version:M.coveragePolicy,partial:pending.partial};
   }
   return {build,validateReadback};
 })();

@@ -1,0 +1,16 @@
+{
+  "status": "AUDIT_MODULE_FIXES_VERIFIED",
+  "node": "22.23.3",
+  "new_fail_first_regressions": 14,
+  "after_pass": 14,
+  "all_B_tests_pass": 89,
+  "semantic_quality": "NOT_RUN",
+  "CI": "base and pre-audit comparison collected; repaired-branch rerun pending",
+  "provider_calls": 0,
+  "source_sha256": {
+    "packages/domain/interview-journey/index.js": "36df2a5a48be059ce636b5b6a4fd883c0ecf0cfb9884680f0b4096769e8d71e7",
+    "packages/domain/interview-journey/pack.js": "2c702770f851362095d67f1e0f0981a8f4ca8bb693f4f81a85a666bf5cf8ab71",
+    "packages/career-interview-journey/adapters/reasoning.js": "ef5ff9e0e70f8547ef811f83088c490f279d9540b2c9da0bab5a2e298f011c3d",
+    "packages/career-interview-journey/rubrics/index.js": "93e2cdfedff2500ab660387827baca5c7eef1668dd6ae34c4c549f10609ffb6a"
+  }
+}

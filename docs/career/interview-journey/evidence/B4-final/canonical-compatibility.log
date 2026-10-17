@@ -1,0 +1,10 @@
+{
+  "status": "BLOCKED",
+  "reason": "A canonical schema/producer fixtures absent",
+  "missing": [
+    "packages/career-contracts/journey-contract-v1.schema.json",
+    "packages/career-contracts/journey-contract-v1.fixtures.json"
+  ],
+  "canonical_cases_executed": 0,
+  "actual_entry": "NOT_RUN"
+}

@@ -37,3 +37,11 @@ schema. Compatibility and actual-entry integration remain BLOCKED pending A.
 Provider quality, semantic-checker accuracy, real database durability, deployment,
 and the fifteen browser outcomes are NOT_RUN. No paid calls, credentials,
 Browserbase, production changes or external sends are authorized here.
+
+
+Follow-up: A's canonical package was later published at `3a41cd45`. The current
+consumer probe uses its exact frozen bytes and actual validator. A's examples
+meet their expectations, while B's provisional context consumer fails. The
+current handoff records that incompatibility; the earlier absence observation
+above remains the B0 historical record. No A schema/fixture file was copied into
+or modified by this branch.

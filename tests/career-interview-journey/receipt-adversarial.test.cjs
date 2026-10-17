@@ -1,0 +1,9 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const F=require('./fixtures.cjs'),{session}=require('./scripted-host.cjs'),C=require('../../packages/career-interview-journey/adapters/context.js');
+const canonical=require('../../scripts/career/interview-journey/canonical-compatibility.cjs');
+test('adversarial host receipts cannot admit rejected, foreign, mismatched or stale semantic candidates',()=>{
+  const changes=[r=>r.verdict='rejected',r=>r.owner_id='foreign',r=>r.thread_id='foreign-thread',r=>r.epoch++,r=>r.action_id='other-action',r=>r.candidate_sha256='0'.repeat(64),r=>r.request_digest='f'.repeat(64),r=>r.validated_binding.context_sha256='f'.repeat(64)];
+  for(const mutate of changes){const s=session();s.start();s.answer();const p=s.state.checkpoint.pending_reasoning,candidate=s.candidate();const receipt={id:'host-rejected',type:'semantic_candidate',owner_id:s.snapshot.owner_id,thread_id:s.snapshot.thread_id,epoch:s.snapshot.binding.epoch,action_id:p.action_id,input_digest:p.input_digest,request_digest:p.request_digest,candidate_sha256:F.hash(candidate),verdict:'accepted',request_binding:F.copy(p.expected_binding),validated_binding:C.binding(s.snapshot,s.state.revision),generator:'SCRIPTED_CONTRACT_ONLY'};mutate(receipt);s.snapshot.receipts.push(receipt);assert.throws(()=>s.turn('model_candidate',{action_id:p.action_id,receipt_id:receipt.id,candidate}));assert.equal(s.state.assessments.length,0);assert.equal(s.state.checkpoint.pending_reasoning.action_id,p.action_id);}
+});
+test('canonical compatibility harness refuses B fixtures or a B shadow schema',()=>{assert.throws(()=>canonical.run({fixtures:'tests/career-interview-journey/fixtures.cjs'}),/A-owned/);assert.throws(()=>canonical.run({schema:'packages/domain/interview-journey/state.schema.json'}),/A-owned/);});

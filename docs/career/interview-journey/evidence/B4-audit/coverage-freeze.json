@@ -1,0 +1,15 @@
+{
+  "command": [
+    "node",
+    "--test",
+    "tests/career-interview-journey/audit-coverage.test.cjs"
+  ],
+  "exit_code": 1,
+  "test_sha256": "c985990b124414bbd1dd846a9e3c38e4d0829b639528e64cf4fcd15349e71da1",
+  "prior_source_sha256": {
+    "packages/domain/interview-journey/index.js": "fb009b2b41a56a3f91c9d59552f37e30157474f8393a7e7a76f009a9a73737da",
+    "packages/domain/interview-journey/pack.js": "89e2311412e33157d8b533ba927001e5dbdc17df6a806329ce9318be2261cb14",
+    "packages/career-interview-journey/adapters/reasoning.js": "5173f37263670425e573b70576c9c62b562bb429136fed97c4f54880eaca2f03"
+  },
+  "log_sha256": "f55174e75fe1859c69e03b1e7591baf37174a705859705192217b23d7e3ff8a3"
+}

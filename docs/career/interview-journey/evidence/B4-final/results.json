@@ -1,0 +1,173 @@
+{
+  "tested_source_commit": "ff34d8aeec743d2807ef4535f0d10ba8835fabe1",
+  "checked_at": "2026-10-17T00:08:36.256433+00:00",
+  "node": "v22.23.3",
+  "checks": [
+    {
+      "id": "module-contracts-node22",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/evaluate.cjs",
+        "--mode",
+        "scripted-contract",
+        "--manifest",
+        "evals/career-interview-journey/development-manifest.json"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "module-contracts-node22.log",
+      "sha256": "08dbfea50716e6a146e1e23328c1500a24ce3291a7975b28dcb711405532ed12"
+    },
+    {
+      "id": "negative-controls-node22",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/negative-controls.cjs",
+        "--output",
+        "docs/career/interview-journey/evidence/B4-final/negative-controls"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "negative-controls-node22.log",
+      "sha256": "e64bc0e36079ca35a64be7dc76a91dbe5ef1b267b446eccf506e921e591d1dde"
+    },
+    {
+      "id": "artifact-node22",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/artifact-demo.cjs",
+        "--output",
+        "docs/career/interview-journey/evidence/B4-final/artifact"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "artifact-node22.log",
+      "sha256": "cdc6f4e9513fd87789fa9e9bcb212eced633510ebfb0000eeb9c3aa8dc288816"
+    },
+    {
+      "id": "canonical-compatibility",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/canonical-compatibility.cjs"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "log": "canonical-compatibility.log",
+      "sha256": "4a0de42c411b802cb23e0486be7d69148da946b9024cd2263ac78827bafd71b2"
+    },
+    {
+      "id": "integration-blocker",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/check-integration.cjs"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "log": "integration-blocker.log",
+      "sha256": "23a641a6842c424f60c2d5831418020f72da233c4ee3b167df076f60e3d137f0"
+    },
+    {
+      "id": "real-provider-refusal",
+      "command": [
+        "/tmp/upmore-spec-b-ci-tools/node_modules/.bin/node",
+        "scripts/career/interview-journey/evaluate.cjs",
+        "--mode",
+        "real-provider",
+        "--manifest",
+        "evals/career-interview-journey/protocol.json"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "log": "real-provider-refusal.log",
+      "sha256": "bfd191284736fdc6ee5346244d06c7c9f637580347be0f5a47104f43cffc4eb0"
+    },
+    {
+      "id": "source-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "123943e1..HEAD",
+        "--",
+        "packages/domain/interview-journey",
+        "packages/career-interview-journey",
+        "tests/career-interview-journey",
+        "scripts/career/interview-journey",
+        "evals/career-interview-journey"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "source-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "module_contracts": {
+    "pass": 91,
+    "total": 91,
+    "new_fail_first_regressions": 16,
+    "scripted_development_episodes": 1,
+    "answer_submissions_in_development_episode": 6
+  },
+  "negative_controls": {
+    "caught": 10,
+    "total": 10
+  },
+  "canonical_producer_cases": {
+    "executed": 0,
+    "status": "BLOCKED_A_SCHEMA_AND_PRODUCER_FIXTURES_ABSENT"
+  },
+  "provider_calls": 0,
+  "quality": "NOT_RUN",
+  "files_sha256": {
+    "evals/career-interview-journey/development-manifest.json": "36a265bc5da24692d2df2d831a6c125e255f7125f6e5e3113053e834c5d372a6",
+    "evals/career-interview-journey/protocol.json": "d49907660b15ed3e98ece127b2085a1900daf6d0f664acbde11be8dece7e916e",
+    "evals/career-interview-journey/reserve-contract-cases.json": "7995c9bbc7e5783deb96722079308d78f750e0a95a9bb280114ebb979f4e177b",
+    "evals/career-interview-journey/result.schema.json": "ced9c7a9072f7ec8856427925678e5f2e9837e38a6a7c85f50d35b3a94bbad43",
+    "packages/career-interview-journey/adapters/artifact.js": "57b10bf0cf542dde7b815670d0e5ee7ce718ec37bc57490899c1f8eda006e9ab",
+    "packages/career-interview-journey/adapters/context.js": "eede5bbc5b8784850289dce39f5702ea45a6d11d92eb621091319fc1af47d05b",
+    "packages/career-interview-journey/adapters/legacy.js": "0466a5c23f6613779b06af8a90bdf9c5976a4918534879f2bd138eb1b40b9daf",
+    "packages/career-interview-journey/adapters/reasoning.js": "179e8878504b92eb2a120619a9eed7365daf9d48803c9ab8666cb1efad021762",
+    "packages/career-interview-journey/adapters/research.js": "cee80154ebe970aa6039ea5f1b70a443b5c27b1c455125e4e5388925231b13cb",
+    "packages/career-interview-journey/prompts/assessment-v1.js": "aca986d115c11270c8ea3e827038751a7294b6b4eb7f1e5c8c2fc98fe26a4223",
+    "packages/career-interview-journey/rubrics/index.js": "93e2cdfedff2500ab660387827baca5c7eef1668dd6ae34c4c549f10609ffb6a",
+    "packages/domain/interview-journey/hash.js": "8ae1de6bdfc77f644084240fe608e8ac45257a6afc64562e4ffc86b6cdc52439",
+    "packages/domain/interview-journey/index.js": "9f5eedffd6400b6b6e937476835c9be8aabe9f824865ce12190badc609bf30ed",
+    "packages/domain/interview-journey/pack.js": "1fd61b2d1a10cbe8298e4a118bc29f9943fbfd5a138066ba41b7945bb8aa137e",
+    "packages/domain/interview-journey/state.schema.json": "becc442ff2dea1a655552892c02e67c9d76e561f3607c296e9b53e9315b35e5c",
+    "scripts/career/interview-journey/.gitignore": "ca1838cde9e4cfb493f3ea87a08bf973a9d6102aac688fc8828107d5586042aa",
+    "scripts/career/interview-journey/artifact-demo.cjs": "4b72941f9472852baeb4e40123155556bb5b7f248b02ad25fb78af3904dd53a2",
+    "scripts/career/interview-journey/canonical-compatibility.cjs": "a5d45a0ffb5cf7faa1d451e003def9b3a37078c745048954f410d5431493ad67",
+    "scripts/career/interview-journey/check-contracts.cjs": "38e127e1c8239b53ae0ae2e417bc15f3c1d21ed6dac6406044b981c7d42706a0",
+    "scripts/career/interview-journey/check-integration.cjs": "b5fb45c836ec8e2f82e5b52dd001ea4936f58e346352fa8a45a298a79e85d767",
+    "scripts/career/interview-journey/evaluate.cjs": "3842d3b5709c393c9ec86672410e825fd64aaaec510aa3412cefc46c90d57baa",
+    "scripts/career/interview-journey/negative-controls.cjs": "97adeb8f7d8f2eba3b567df14f5917acab412dd281c2682e8eae42d8a687631f",
+    "scripts/career/interview-journey/package-lock.json": "b46b1fcc91b3db6cee9c82b50d6664227e59736aa3e56b31d11a7fbc4ed296f1",
+    "scripts/career/interview-journey/package.json": "1d69819ef0a24dfbce7fe174cf0ec8ced89ce886df0a991b1e61a92183cce4bf",
+    "scripts/career/interview-journey/reopen.cjs": "94142a2289b87a1e0a9e8c011bf2a0b67abbe2c39e1868b7aa71ed8999029a8e",
+    "scripts/career/interview-journey/scripted-scenario.cjs": "23ed5dfcc8745deae14630255385285bbc5d16dc917eac764bb29fc3852ebf6f",
+    "tests/career-interview-journey/audit-coverage.test.cjs": "c985990b124414bbd1dd846a9e3c38e4d0829b639528e64cf4fcd15349e71da1",
+    "tests/career-interview-journey/audit-knownness.test.cjs": "a7ea51691d969b916fa129644a02d34d08e858d07007bc8d7b9bd9b066de3b0c",
+    "tests/career-interview-journey/audit-messy.test.cjs": "77f23ca350371c4e53cbbc85dd89dc86669d6177d7eac755391577a6c71c4536",
+    "tests/career-interview-journey/audit-recovery.test.cjs": "94a6e1ac99b1b2e2b552a61fbbb92d6ad7ebe69792a38f9bb73a28a0ac8ef87c",
+    "tests/career-interview-journey/boundaries.test.cjs": "70054415415a55af98ae93ff89493968c3baa384891b03fd0cdf96a08f4b156e",
+    "tests/career-interview-journey/fixtures.cjs": "a3170ee93bbb0a033aea4dba80dc2d5e6ce457fdcdedacf2c933907a1afc205f",
+    "tests/career-interview-journey/frozen-contract.test.cjs": "d6ee699961cd53ef7d2fbc56feb6a847915f845ba0af894cc48557680672f881",
+    "tests/career-interview-journey/invalidation.test.cjs": "83792ac31210bfcb9fa1b85acf9ca07ade156e77e9b1c6e82986c6c3bec14889",
+    "tests/career-interview-journey/journey.test.cjs": "e6435092ce1b461e0bc2891060aa0d45ae183615cfc11a229a4911cbd358b437",
+    "tests/career-interview-journey/legacy-abstention-pack.json": "c6be78e3b03199cea29e55e53c7cf62da09949f3b8c993a844cc994b7ec9541a",
+    "tests/career-interview-journey/legacy-readback.test.cjs": "994ac0c1a4dbb8e5a6e0cb761536045aa2546924f8802fbdc8474768d6bb624e",
+    "tests/career-interview-journey/portable.test.cjs": "6b7acf2572aeb682bccc62afd3b0ab1286c3296cb4594eebab2b623ad1089e67",
+    "tests/career-interview-journey/receipt-adversarial.test.cjs": "1208cd63e26dfc5286dacfd011aad059a9da54cda85ad503d581023a6d918c1b",
+    "tests/career-interview-journey/research-fixture.cjs": "9b7ffa33ba5eca48c36da707badb781cff974d1e802d57eb6556b6d6c0597cf9",
+    "tests/career-interview-journey/research.test.cjs": "93c1faea8faf68da2703e3ea30117fd34a236a7e4950d3637cffc8381603714a",
+    "tests/career-interview-journey/reserve.test.cjs": "9ae05ee27d05b50316bfbdae707fd459842f0d16885a6d85f8ce51ecc38eecaa",
+    "tests/career-interview-journey/scripted-host.cjs": "59512b42d84ec0d03104d0457f6161bd7b8e4e6c957847256a02bedb2c2f0394"
+  },
+  "whole_ci_comparison": "ci-comparison.json (collected separately after final run)",
+  "actual_journey_durability": "NOT_RUN_A_HOST_INTEGRATION",
+  "protected_quality_episodes": {
+    "required": 24,
+    "executed": 0,
+    "not_run": 24
+  }
+}

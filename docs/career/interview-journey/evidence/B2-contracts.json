@@ -1,0 +1,20 @@
+{
+  "command": [
+    "node",
+    "scripts/career/interview-journey/check-contracts.cjs"
+  ],
+  "exit_code": 0,
+  "tests": 46,
+  "log_sha256": "21a753e28f203c534fccc4e79b7dfe98c237c3fbd18eba9feeec2d82a8b67549",
+  "source_status": "PURE_MODULE_CONTRACTS_BUILT",
+  "shared_contract": "BLOCKED_A_CONTRACT_MISSING",
+  "actual_entry": "NOT_RUN",
+  "provider_quality": "NOT_RUN",
+  "negative_controls": "B2-negative-controls/results.json",
+  "artifact": "B2-artifact/result.json",
+  "changes_since_initial_failure": [
+    "Corrected a test assertion that assumed an evidence array index.",
+    "Bound immutable attempt metadata before building the request digest, so reorder/rebuild remains stable."
+  ],
+  "failure_log": "B2-initial-invalidation-failures.log"
+}

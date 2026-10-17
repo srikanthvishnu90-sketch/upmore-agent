@@ -1,0 +1,50 @@
+✖ ownership correction invalidates only dependent feedback/drafts; independent research and time survive (45.80703ms)
+✔ withdrawal scrubs nested drafts, assessment spans and unresolved asks from subsequent active state/request/pack (36.099441ms)
+✔ epoch fence precedes duplicate-event replay and removes all old attempts and candidate payload (18.459278ms)
+✔ late model response after correction cannot replace the selected current draft (13.166766ms)
+✔ new target preserves historical stories but cancels fit, brief, draft and pack bindings (18.918003ms)
+✔ changed snapshot without typed invalidation blocks old-pack creation instead of silently dropping dependencies (3.989218ms)
+✔ fake typed correction and value-bearing tombstone cannot acquire host authority (2.998166ms)
+✖ reordered evidence retains canonical references and request meaning (10.675314ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 272.92292
+
+✖ failing tests:
+
+test at tests/career-interview-journey/invalidation.test.cjs:14:1
+✖ ownership correction invalidates only dependent feedback/drafts; independent research and time survive (45.80703ms)
+  TypeError: body.evidence[0].value.includes is not a function
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/invalidation.test.cjs:14:903)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at tests/career-interview-journey/invalidation.test.cjs:22:1
+✖ reordered evidence retains canonical references and request meaning (10.675314ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '21f1dff4253f3733b460ecf6d4b3a8eabdd2773d2f6585e900af3be5a994d7b3'
+  - '13aeb4e91d7659cb63c9ff396ff764be19a98327f49bf6d7236446e994662096'
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/invalidation.test.cjs:22:274)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '21f1dff4253f3733b460ecf6d4b3a8eabdd2773d2f6585e900af3be5a994d7b3',
+    expected: '13aeb4e91d7659cb63c9ff396ff764be19a98327f49bf6d7236446e994662096',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

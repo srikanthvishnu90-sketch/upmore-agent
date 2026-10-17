@@ -1,0 +1,34 @@
+{
+  "label": "OFFLINE_SCRIPTED_CONTRACT_FILE_SINK",
+  "episodes": 1,
+  "user_improvement": "NOT_MEASURED",
+  "provider_quality": "NOT_RUN",
+  "real_provider_calls": 0,
+  "production_host_durability": "NOT_RUN",
+  "actual_entry_integration": "BLOCKED_A_CONTRACT_AND_ENTRY",
+  "artifact": {
+    "filename": "interview-preparation.md",
+    "sha256": "b00c3958a8303faf393c813e80ab92d663e3879b2c9f2552d9811711d55de1ed",
+    "byte_length": 32497,
+    "mime_type": "text/markdown; charset=utf-8",
+    "fresh_process_readback": true,
+    "structured_sha256": "ce720a85199ff6b446e0188a4799a4a26b6b7d67614502b88a9468e8ae437a33"
+  },
+  "memory": {
+    "storage": {
+      "pass": 1,
+      "total": 1,
+      "scope": "local JSON/file round trip only"
+    },
+    "retrieval": {
+      "pass": 6,
+      "total": 6,
+      "scope": "exact scripted request binding"
+    },
+    "use": {
+      "pass": 0,
+      "total": 0,
+      "status": "NOT_RUN_REAL_PROVIDER"
+    }
+  }
+}

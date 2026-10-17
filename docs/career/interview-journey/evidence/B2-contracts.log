@@ -1,0 +1,63 @@
+✔ portable SHA-256 matches native crypto including Unicode and canonical reordering (27.217159ms)
+✔ full exact answer, rubric, source refs and side question enter one bounded request (40.78028ms)
+✔ oversized answer is retained whole and no provider proposal is emitted (42.124895ms)
+✔ untrusted candidate cannot self-certify a checker receipt or post-hoc answer hash (19.109018ms)
+✔ invalid span, missing rationale, invented fact and repeated transfer are refused (84.492301ms)
+✔ not_assessed stays distinct from zero and aggregate mastery is forbidden (65.105069ms)
+✔ keyword-stuffed wrong answer has no deterministic score and no acceptance without checker proof (22.214218ms)
+✔ unwired coaching returns explicit state and preserves the immutable attempt (7.252666ms)
+✔ same event id with changed body conflicts rather than generating another assessment (26.554103ms)
+✔ raw benign words neither erase context nor accidentally become a graded answer (6.433777ms)
+✔ pause cancels inflight candidate, persists question, and resume does not restart intake (21.672266ms)
+✔ time intervention changes future allocations without rewriting attempts or interview date (15.275311ms)
+✔ missing company or time permits project practice with explicit unknowns (1.13966ms)
+✔ artifact cannot complete on assembly, fake receipt, or hash-only readback (17.351971ms)
+✔ readable partial pack stays partial and stale pack after time change is rejected (20.930455ms)
+✔ supply of executable or credential objects cannot enter the read-only snapshot (1.305226ms)
+✔ changing an answer after grading cannot retain an active assessment even if checksums are rewritten (12.748151ms)
+✔ pure start chooses one representative project question within the actual time budget (17.163205ms)
+✔ pause and serialization preserve checkpoint and same-key retry is deterministic (16.177918ms)
+✔ foreign snapshot and unsupported external actions never acquire authority (4.432095ms)
+✔ ownership correction invalidates only dependent feedback/drafts; independent research and time survive (101.707865ms)
+✔ withdrawal scrubs nested drafts, assessment spans and unresolved asks from subsequent active state/request/pack (55.324819ms)
+✔ epoch fence precedes duplicate-event replay and removes all old attempts and candidate payload (16.079621ms)
+✔ late model response after correction cannot replace the selected current draft (23.562474ms)
+✔ new target preserves historical stories but cancels fit, brief, draft and pack bindings (38.711499ms)
+✔ changed snapshot without typed invalidation blocks old-pack creation instead of silently dropping dependencies (9.251704ms)
+✔ fake typed correction and value-bearing tombstone cannot acquire host authority (25.208687ms)
+✔ reordered evidence retains canonical references and request meaning (16.090759ms)
+✔ complete scripted practice loop keeps original/revision/transfer separate and does not aggregate mastery (382.20336ms)
+✔ actual UTF-8 file reopens in fresh Node process with exact hashes and content (524.75993ms)
+✔ pause stores unresolved side question and exact attempt checkpoint before serialization (14.31366ms)
+✔ foreign fact is refused even when the snapshot envelope names the current owner (0.805171ms)
+✔ style edit consumes one admitted candidate while keeping original checkpoint and canonical facts (28.452866ms)
+✔ user stop produces a partial pack and no late callback can claim completion (17.846699ms)
+✔ real capture requires correlated status, host receipt and actual readable source bytes (45.867315ms)
+✔ fabricated success and altered source bytes fail before research can become usable (33.528397ms)
+✔ research queued remains explicit while independent practice is available (18.592539ms)
+✔ research running remains explicit while independent practice is available (23.829307ms)
+✔ research failed remains explicit while independent practice is available (25.659274ms)
+✔ research blocked remains explicit while independent practice is available (17.071419ms)
+✔ research unavailable remains explicit while independent practice is available (14.421257ms)
+✔ research unsupported remains explicit while independent practice is available (14.421377ms)
+✔ research unknown remains explicit while independent practice is available (14.35844ms)
+✔ research stale_context remains explicit while independent practice is available (17.579594ms)
+✔ posting requirements cannot become personal skills in draft or legacy stories (25.071116ms)
+✔ source synthesis and priority updates carry evidence and change deterministic plan order (18.252138ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1276.524103
+{
+  "offline_contracts": "PASS",
+  "ownership_scope": "PASS",
+  "frozen_inputs": "PASS",
+  "shared_contract_compatibility": "BLOCKED_A_CONTRACT_MISSING",
+  "actual_entry": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "provider_calls": 0
+}

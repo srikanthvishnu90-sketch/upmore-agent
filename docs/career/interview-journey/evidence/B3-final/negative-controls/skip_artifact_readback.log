@@ -1,0 +1,38 @@
+✖ artifact cannot complete on assembly, fake receipt, or hash-only readback (22.796931ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 137.026974
+
+✖ failing tests:
+
+test at tests/career-interview-journey/boundaries.test.cjs:19:1
+✖ artifact cannot complete on assembly, fake receipt, or hash-only readback (22.796931ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "completed journey requires verified non-partial artifact readback"
+      at TestContext.<anonymous> (/tmp/interview-negative-tE3Tlh/tests/career-interview-journey/boundaries.test.cjs:19:128)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: completed journey requires verified non-partial artifact readback
+        at Object.assert (/tmp/interview-negative-tE3Tlh/packages/career-interview-journey/adapters/context.js:4:58)
+        at validateState (/tmp/interview-negative-tE3Tlh/packages/domain/interview-journey/index.js:18:7)
+        at Object.planInterviewTurn (/tmp/interview-negative-tE3Tlh/packages/domain/interview-journey/index.js:189:37)
+        at Object.turn (/tmp/interview-negative-tE3Tlh/tests/career-interview-journey/scripted-host.cjs:12:133)
+        at /tmp/interview-negative-tE3Tlh/tests/career-interview-journey/boundaries.test.cjs:19:150
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (/tmp/interview-negative-tE3Tlh/tests/career-interview-journey/boundaries.test.cjs:19:128)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }

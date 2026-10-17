@@ -1,0 +1,91 @@
+✔ portable SHA-256 matches native crypto including Unicode and canonical reordering (47.340118ms)
+✔ full exact answer, rubric, source refs and side question enter one bounded request (45.431408ms)
+✔ oversized answer is retained whole and no provider proposal is emitted (63.403831ms)
+✔ untrusted candidate cannot self-certify a checker receipt or post-hoc answer hash (27.429756ms)
+✔ invalid span, missing rationale, invented fact and repeated transfer are refused (56.145782ms)
+✔ not_assessed stays distinct from zero and aggregate mastery is forbidden (49.141835ms)
+✔ keyword-stuffed wrong answer has no deterministic score and no acceptance without checker proof (23.037963ms)
+✔ unwired coaching returns explicit state and preserves the immutable attempt (10.78512ms)
+✔ same event id with changed body conflicts rather than generating another assessment (16.234626ms)
+✔ raw benign words neither erase context nor accidentally become a graded answer (9.47678ms)
+✔ pause cancels inflight candidate, persists question, and resume does not restart intake (40.518167ms)
+✔ time intervention changes future allocations without rewriting attempts or interview date (25.625046ms)
+✔ missing company or time permits project practice with explicit unknowns (3.635019ms)
+✔ artifact cannot complete on assembly, fake receipt, or hash-only readback (15.710464ms)
+✔ readable partial pack stays partial and stale pack after time change is rejected (25.458578ms)
+✔ supply of executable or credential objects cannot enter the read-only snapshot (0.68089ms)
+✔ changing an answer after grading cannot retain an active assessment even if checksums are rewritten (26.614742ms)
+✔ pure start chooses one representative project question within the actual time budget (16.26013ms)
+✔ pause and serialization preserve checkpoint and same-key retry is deterministic (13.400586ms)
+✔ foreign snapshot and unsupported external actions never acquire authority (5.41054ms)
+✔ ownership correction invalidates only dependent feedback/drafts; independent research and time survive (83.19296ms)
+✔ withdrawal scrubs nested drafts, assessment spans and unresolved asks from subsequent active state/request/pack (56.093284ms)
+✔ epoch fence precedes duplicate-event replay and removes all old attempts and candidate payload (15.427693ms)
+✔ late model response after correction cannot replace the selected current draft (16.960978ms)
+✔ new target preserves historical stories but cancels fit, brief, draft and pack bindings (27.348629ms)
+✔ changed snapshot without typed invalidation blocks old-pack creation instead of silently dropping dependencies (3.660039ms)
+✔ fake typed correction and value-bearing tombstone cannot acquire host authority (3.76782ms)
+✔ reordered evidence retains canonical references and request meaning (6.928518ms)
+✔ complete scripted practice loop keeps original/revision/transfer separate and does not aggregate mastery (448.186366ms)
+✔ actual UTF-8 file reopens in fresh Node process with exact hashes and content (646.538813ms)
+✔ pause stores unresolved side question and exact attempt checkpoint before serialization (15.989152ms)
+✔ foreign fact is refused even when the snapshot envelope names the current owner (0.501126ms)
+✔ style edit consumes one admitted candidate while keeping original checkpoint and canonical facts (26.896124ms)
+✔ user stop produces a partial pack and no late callback can claim completion (15.248951ms)
+✔ another role remains general practice without a software adapter claim or code execution (4.25591ms)
+✔ pure modules run in ordered ESM-like VM without require, IO or provider globals (47.563289ms)
+✔ real capture requires correlated status, host receipt and actual readable source bytes (43.664958ms)
+✔ fabricated success and altered source bytes fail before research can become usable (22.71933ms)
+✔ research queued remains explicit while independent practice is available (13.789804ms)
+✔ research running remains explicit while independent practice is available (13.8685ms)
+✔ research failed remains explicit while independent practice is available (15.929525ms)
+✔ research blocked remains explicit while independent practice is available (14.837637ms)
+✔ research unavailable remains explicit while independent practice is available (19.547079ms)
+✔ research unsupported remains explicit while independent practice is available (17.836708ms)
+✔ research unknown remains explicit while independent practice is available (36.66975ms)
+✔ research stale_context remains explicit while independent practice is available (26.984704ms)
+✔ posting requirements cannot become personal skills in draft or legacy stories (38.702295ms)
+✔ source synthesis and priority updates carry evidence and change deterministic plan order (63.605803ms)
+✔ untrusted source URL cannot approve itself through an available capability (14.137371ms)
+✔ reserve contract time-0 (21.832819ms)
+✔ reserve contract time-1 (3.675635ms)
+✔ reserve contract time-3 (10.857874ms)
+✔ reserve contract time-5 (2.994541ms)
+✔ reserve contract time-7 (4.09919ms)
+✔ reserve contract time-20 (5.442059ms)
+✔ reserve contract time-45 (3.741729ms)
+✔ reserve contract time-180 (3.500133ms)
+✔ reserve contract foreign_fact (6.486726ms)
+✔ reserve contract foreign_source (3.526545ms)
+✔ reserve contract foreign_receipt (18.641888ms)
+✔ reserve contract foreign_artifact (22.811583ms)
+✔ reserve contract withdraw_project (45.157769ms)
+✔ reserve contract replace_resume (32.740089ms)
+✔ reserve contract target_changed (38.87375ms)
+✔ reserve contract epoch_after_pause (14.426972ms)
+✔ reserve contract missing_coach_capability (9.410847ms)
+✔ reserve contract missing_research_capability (14.271701ms)
+✔ reserve contract unknown_research (8.322617ms)
+✔ reserve contract stale_answer_hash (13.406114ms)
+✔ reserve contract unsupported_candidate_field (11.276563ms)
+✔ reserve contract invalid_span (12.785629ms)
+✔ reserve contract empty_artifact (12.776224ms)
+✔ reserve contract stale_artifact_revision (12.855679ms)
+ℹ tests 73
+ℹ suites 0
+ℹ pass 73
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1453.362112
+{
+  "offline_contracts": "PASS",
+  "ownership_scope": "PASS",
+  "frozen_inputs": "PASS",
+  "shared_contract_compatibility": "BLOCKED_A_CONTRACT_MISSING",
+  "actual_entry": "NOT_RUN",
+  "quality": "NOT_RUN",
+  "provider_calls": 0
+}
+{"label":"SCRIPTED_CONTRACT_DEVELOPMENT","contract_assertions":"PASS","real_provider_episodes":0,"real_provider_not_run_episodes":24,"quality":"NOT_RUN","provider_calls":0}

@@ -1,0 +1,179 @@
+{
+  "label": "OFFLINE_SCRIPTED_NEGATIVE_CONTROLS",
+  "controls": [
+    {
+      "id": "foreign_fact",
+      "file": "packages/career-interview-journey/adapters/context.js",
+      "pattern": "foreign fact is refused",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "426069959dfa076816cd160952ced8ec5a25c8f5fc72b9c2f4b6d1b1c2717f5f",
+      "log_sha256": "484546e4cd4cc5f704a5de934eb754a4b06e9f53f2fd0cd6942081b834df0d20",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "foreign fact is refused",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "revive_invalidated_answer",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "ownership correction invalidates only",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "15276e33958a32edc308d6af24428ed3dadbd94878d0419999ebbd6f22bc3e59",
+      "log_sha256": "1142295dfa0f56630de2bc1de372f30deef39306f45bb26b4fa034f83259648e",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "ownership correction invalidates only",
+        "tests/career-interview-journey/invalidation.test.cjs"
+      ]
+    },
+    {
+      "id": "fabricate_tool_success",
+      "file": "packages/career-interview-journey/adapters/research.js",
+      "pattern": "fabricated success and altered source bytes",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "f68b8c87bc34188bd13b01ef1b31cba06424584f8c0645cd0561da6c4e840b3c",
+      "log_sha256": "20e69871362497d2437e2917db53397013a0f7debd9ad54374c17c67634a5fab",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "fabricated success and altered source bytes",
+        "tests/career-interview-journey/research.test.cjs"
+      ]
+    },
+    {
+      "id": "posting_becomes_personal_skill",
+      "file": "packages/career-interview-journey/adapters/reasoning.js",
+      "pattern": "posting requirements cannot become personal skills",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "325adade4d925018ead3ce7e54c07fe485abf93d962c1729d7896f9bac189f7a",
+      "log_sha256": "3ce3e97eb9ecdcdbe2539b0065f905a447ea647c1f9fc80ad64f2a72313edaa6",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "posting requirements cannot become personal skills",
+        "tests/career-interview-journey/research.test.cjs"
+      ]
+    },
+    {
+      "id": "change_answer_after_grading",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "changing an answer after grading",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "b8a51608feaf1975503d5f00cc443e38c381227880ff561677b903c9b7223d5f",
+      "log_sha256": "4619c3722ff664ad19595e74cf876c9e1d1b16a90480031b0d84816c26535342",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "changing an answer after grading",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "drop_interruption_checkpoint",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "pause stores unresolved side question",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "f11500ef3b3ed33febc9adcdc9a23121f4a2b17e022221164ab089b4201b8f56",
+      "log_sha256": "90c9c598d40b678f6ac7a078c37d918020bda76567ea7c2a2880586327342019",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "pause stores unresolved side question",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "keyword_wrong_answer_correct",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "keyword-stuffed wrong answer",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "1a2d6f96083a7ac0c78c0d974e13863d6d5cabb2772d43be108262b95617dfcb",
+      "log_sha256": "23f1bd07673d1b251d4d8426e618da3e2553fe9105e44c6179c6c18988f78c5e",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "keyword-stuffed wrong answer",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "reuse_stale_pack",
+      "file": "packages/domain/interview-journey/pack.js",
+      "pattern": "readable partial pack stays partial and stale pack",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "29a0aae4a86b491b733f45d23068c61bb2200c2ec18e54de3998ab290f59c74c",
+      "log_sha256": "723392753a238b39ced45d08614c183401b16dca28bd42c1dddcf2209cabdce1",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "readable partial pack stays partial and stale pack",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    },
+    {
+      "id": "sum_coached_and_transfer_into_improvement",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "complete scripted practice loop",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "c774d5bdd8f661719de6fd2961bb924b53d271e600f1dde29ee5c0ba42a4e420",
+      "log_sha256": "2155e9328036f7e1bcd7e8b61a642c6b6790c742f8fa2e93aeb8a07b63036a27",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "complete scripted practice loop",
+        "tests/career-interview-journey/journey.test.cjs"
+      ]
+    },
+    {
+      "id": "skip_artifact_readback",
+      "file": "packages/domain/interview-journey/index.js",
+      "pattern": "artifact cannot complete on assembly",
+      "baseline_exit": 0,
+      "mutant_exit": 1,
+      "caught": true,
+      "mutant_source_sha256": "9649eefe09ac59082cfc6786641ecd4d7a3e1a24dbea277cdae2815e743c70dd",
+      "log_sha256": "ed8c487a3ace72f29a47e992acf7d07a373885346112bee0841c742675a746f5",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "artifact cannot complete on assembly",
+        "tests/career-interview-journey/boundaries.test.cjs"
+      ]
+    }
+  ],
+  "total": 10,
+  "caught": 10,
+  "semantic_accuracy": "NOT_MEASURED",
+  "provider_calls": 0
+}

@@ -1,0 +1,27 @@
+✔ portable SHA-256 matches native crypto including Unicode and canonical reordering (16.739128ms)
+✔ full exact answer, rubric, source refs and side question enter one bounded request (22.472588ms)
+✔ oversized answer is retained whole and no provider proposal is emitted (42.813222ms)
+✔ untrusted candidate cannot self-certify a checker receipt or post-hoc answer hash (10.683975ms)
+✔ invalid span, missing rationale, invented fact and repeated transfer are refused (42.825705ms)
+✔ not_assessed stays distinct from zero and aggregate mastery is forbidden (20.039742ms)
+✔ keyword-stuffed wrong answer has no deterministic score and no acceptance without checker proof (11.512346ms)
+✔ unwired coaching returns explicit state and preserves the immutable attempt (4.822144ms)
+✔ same event id with changed body conflicts rather than generating another assessment (7.242027ms)
+✔ raw benign words neither erase context nor accidentally become a graded answer (4.321819ms)
+✔ pause cancels inflight candidate, persists question, and resume does not restart intake (13.925679ms)
+✔ time intervention changes future allocations without rewriting attempts or interview date (15.35431ms)
+✔ missing company or time permits project practice with explicit unknowns (2.497973ms)
+✔ artifact cannot complete on assembly, fake receipt, or hash-only readback (11.57092ms)
+✔ readable partial pack stays partial and stale pack after time change is rejected (18.049537ms)
+✔ supply of executable or credential objects cannot enter the read-only snapshot (0.458891ms)
+✔ pure start chooses one representative project question within the actual time budget (15.576768ms)
+✔ pause and serialization preserve checkpoint and same-key retry is deterministic (8.292446ms)
+✔ foreign snapshot and unsupported external actions never acquire authority (4.701873ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 364.261298

@@ -4,9 +4,12 @@
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
 const {spawn,spawnSync,execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'../../..'),argv=process.argv.slice(2);
-if(argv.some(x=>!['--postgres-only','--source-only'].includes(x)))throw Error('Only explicit source/SQL selection flags are supported');
+const fileFlags=argv.filter(x=>x.startsWith('--sql-file='));
+const diagnosticFile=fileFlags[0]?.slice('--sql-file='.length);
+if(argv.some(x=>!['--postgres-only','--source-only'].includes(x)&&!x.startsWith('--sql-file='))||fileFlags.length>1)throw Error('Only explicit source/SQL selection flags are supported');
 if(argv.includes('--postgres-only')&&argv.includes('--source-only'))throw Error('Conflicting test selection');
-for(const k of ['CAREER_TEST_CONTAINER','CAREER_TEST_DATABASE','CAREER_TEST_PORT'])if(process.env[k])throw Error('Refusing inherited/shared SQL target: '+k);
+if(diagnosticFile&&(!argv.includes('--postgres-only')||!/^career-critical-repairs\/[a-z0-9-]+-postgres\.test\.cjs$/.test(diagnosticFile)))throw Error('Diagnostic SQL file must be an explicit critical-repairs test');
+for(const k of ['CAREER_TEST_CONTAINER','CAREER_TEST_DATABASE','CAREER_TEST_PORT','CAREER_TEST_FIXTURE_TOKEN'])if(process.env[k])throw Error('Refusing inherited/shared SQL target: '+k);
 const token=crypto.randomBytes(8).toString('hex'),out=fs.mkdtempSync(path.join(os.tmpdir(),'upmore-ci-node-'));
 const run=(bin,args,extra={})=>execFileSync(bin,args,{cwd:root,encoding:'utf8',stdio:['pipe','pipe','pipe'],...extra}).trim();
 const dependencyDir=path.join(__dirname,'node_modules');
@@ -19,8 +22,10 @@ function criticalTests(relative){const dir=path.join(testsRoot,relative);if(!fs.
 const all=[...fs.readdirSync(testsRoot).filter(x=>x.endsWith('.cjs')),...criticalTests('career-critical-repairs'),...criticalTests('career-interview-journey')].sort();
 const sqlFiles=all.filter(x=>x.endsWith('-postgres.test.cjs')||x==='privacy-research-composition.test.cjs'||/process\.env\.CAREER_TEST_(?:CONTAINER|DATABASE|PORT)/.test(fs.readFileSync(path.join(root,'tests',x),'utf8')));
 const sourceFiles=all.filter(x=>!sqlFiles.includes(x));
-const selected=argv.includes('--source-only')?sourceFiles:argv.includes('--postgres-only')?sqlFiles:all;
-const summary={token,commit:run('git',['rev-parse','HEAD']),evidenceTier:'MOCK_CONTRACT_AND_LOCAL_POSTGRES',selection:argv.length?argv[0]:'WHOLE_ROOT_NODE_SELECTION',rootFiles:all.length,selectedFiles:selected.length,sqlFiles,started:new Date().toISOString(),runs:[],out,paidCalls:0,browserOutcomes:0};
+if(diagnosticFile&&!sqlFiles.includes(diagnosticFile))throw Error('Diagnostic SQL test does not exist');
+const selectedSql=diagnosticFile?[diagnosticFile]:sqlFiles;
+const selected=argv.includes('--source-only')?sourceFiles:argv.includes('--postgres-only')?selectedSql:all;
+const summary={token,commit:run('git',['rev-parse','HEAD']),evidenceTier:'MOCK_CONTRACT_AND_LOCAL_POSTGRES',selection:diagnosticFile?'DIAGNOSTIC_SINGLE_SQL_FILE':argv.length?argv[0]:'WHOLE_ROOT_NODE_SELECTION',rootFiles:all.length,selectedFiles:selected.length,sqlFiles:selectedSql,started:new Date().toISOString(),runs:[],out,paidCalls:0,browserOutcomes:0};
 console.log(JSON.stringify({preflight:'LOCAL_SYNTHETIC_CI_FIXTURE',...summary}));
 function test(files,env,label){
  const args=['--experimental-vm-modules','--test','--test-concurrency=1',...files.map(x=>'tests/'+x)];
@@ -46,13 +51,13 @@ async function main(){try{
   for(let i=0;!fs.existsSync(ready)&&i<100;i++)await new Promise(r=>setTimeout(r,50));
   const info=JSON.parse(fs.readFileSync(ready));if(info.container!==container||info.host!=='127.0.0.1')throw Error('Unexpected fixture wire');
   summary.fixture={container,network:'none',image,databaseVersion:docker(['exec',container,'psql','-X','-qAt','-U','postgres','-c','select version()'])};
-  for(const [i,file]of sqlFiles.entries()){
+  for(const [i,file]of selectedSql.entries()){
    const db='career_test_ci_'+token+'_'+i;docker(['exec',container,'createdb','-U','postgres',db]);
    docker(['exec',container,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1','-c',"comment on database "+db+" is 'upmore-ci-fixture:"+token+"';"]);
    const marker=docker(['exec',container,'psql','-X','-qAt','-U','postgres','-d',db,'-c',"select shobj_description(oid,'pg_database')from pg_database where datname=current_database()"]);if(marker!=='upmore-ci-fixture:'+token)throw Error('Unidentified database refused');
    console.log(JSON.stringify({fixture:'LOCAL_NETWORK_NONE_SYNTHETIC',file,database:db,marker}));
    for(const f of ddl)docker(['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d',db,'-v','ON_ERROR_STOP=1'],fs.readFileSync(path.join(root,f),'utf8'));
-   test([file],{CAREER_TEST_CONTAINER:container,CAREER_TEST_DATABASE:db,CAREER_TEST_PORT:String(info.port),NODE_PATH:[dependencyDir,process.env.NODE_PATH].filter(Boolean).join(path.delimiter)},'postgres-'+i);
+   test([file],{CAREER_TEST_CONTAINER:container,CAREER_TEST_DATABASE:db,CAREER_TEST_PORT:String(info.port),CAREER_TEST_FIXTURE_TOKEN:token,NODE_PATH:[dependencyDir,process.env.NODE_PATH].filter(Boolean).join(path.delimiter)},'postgres-'+i);
    fs.writeFileSync(path.join(out,'postgres-'+i+'.schema.sql'),docker(['exec',container,'pg_dump','-U','postgres','--schema-only','--no-owner','--no-privileges',db]));
   }
  }

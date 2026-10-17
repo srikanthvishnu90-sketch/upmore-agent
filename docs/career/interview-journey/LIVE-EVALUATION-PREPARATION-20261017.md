@@ -1,5 +1,11 @@
 # Live conversation evaluation: prepared, not admitted
 
+Superseding authorization: [the $7-total preflight](SEVEN-TOTAL-LIVE-ADMISSION-20261017.md)
+holds all old $5, limits the new evaluation to $1 and leaves $1 unused. That
+conservative allocation supersedes this packet's earlier $5-only/$0.25 budget
+proposal. Exact old charges need not be reconstructed first if old workers are
+proved fenced within the held $5. Scenario wording/oracle hashes are unchanged.
+
 No provider call, budget reservation, account-credit query or credential
 inspection was performed. The original shared **$5** remains the only allowance;
 this preparation does not create a new allowance.

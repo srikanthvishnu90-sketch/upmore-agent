@@ -1,9 +1,11 @@
 # Interview preparation journey — Spec B module handoff
 
-[Live conversation preparation](LIVE-EVALUATION-PREPARATION-20261017.md): twelve
-evaluator-only natural-language scenarios are prepared. No live call is admitted
-because the original shared $5 spend/hold/receipt bundle is unavailable; the
-remaining amount is unknown. This is a preparation result, not model-quality evidence.
+[Current live admission](SEVEN-TOTAL-LIVE-ADMISSION-20261017.md): the owner
+authorized $7 total; $5 is held for old work, at most $1 is allocated to the first
+evaluation and $1 stays unused. No live call is admitted until the old-worker
+fence and an existing secure provider path with durable generator/checker $1
+enforcement are proved. The [twelve prepared conversations](LIVE-EVALUATION-PREPARATION-20261017.md)
+remain evaluator-only. No live-quality result is claimed.
 
 The new pure journey and its offline adapters are implemented on
 `codex/spec-b-interview-depth-20261016`, based on `123943e1`.

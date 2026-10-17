@@ -1,0 +1,16 @@
+{
+  "authorization": "Owner $7 total; parent reserves old $5 and limits this first evaluation to $1, leaving $1 unused.",
+  "authorization_message": "Sentinel_072475c6870481918a1917fcb6e3d515",
+  "total_cap_micros": 7000000,
+  "old_campaign_conservative_hold_micros": 5000000,
+  "old_campaign_actual_spent_micros": null,
+  "new_evaluation_ceiling_micros": 1000000,
+  "unused_buffer_micros": 1000000,
+  "new_evaluation_actual_spent_micros": 0,
+  "new_evaluation_reservations_micros": 0,
+  "admittable_now_micros": 0,
+  "admission_open": false,
+  "record_kind": "Allocation/preflight record only; not an installed provider admission ledger.",
+  "no_new_5_or_7_dollar_allowance_per_worker": true,
+  "effective_policy": "Supersedes prior $5-only/$0.25-proposal preparation; original scenario wordings and hashes unchanged."
+}

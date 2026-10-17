@@ -1,0 +1,34 @@
+{
+  "status": "NOT_MEASURED_NO_LIVE_RUN",
+  "objective": "Fewest necessary questions and turns to verified task completion, with correct remembered fact reuse.",
+  "definitions": {
+    "remembered_fact_reuse_opportunities": "A needed fact is already valid, available and authorized for this owner/thread when answering. Log fact reference/version and first-supplied turn.",
+    "remembered_fact_reuse_successes": "The reply correctly uses that prior fact without asking again; unknown, stale or foreign facts do not qualify.",
+    "redundant_asks": "Requests for details already current and available in authorized context, excluding genuinely required fresh consent. Quote the ask and its earlier fact evidence.",
+    "necessary_clarifications": "Questions resolving an actual missing/conflicting/ambiguous prerequisite or consent; record the gap.",
+    "unnecessary_clarifications": "Questions that do not resolve such a prerequisite and delay the stated task.",
+    "user_detail_turns": "Turns needed to supply new prerequisites, separated from planned evaluator correction/withdrawal stressors.",
+    "user_turns_to_verified_completion": "Actual user turns from task start through complete task-specific artifact/readback proof, after required scenario perturbations. Null if not completed; report turns consumed and blocker/failure separately.",
+    "assistant_questions_before_completion": "All assistant requests for user information before verified completion, categorized necessary, redundant or unnecessary.",
+    "verified_task_completion": "All case criteria satisfied plus real owned artifact bytes freshly reopened and hash-verified; no credit for a promise or invented link."
+  },
+  "reporting": [
+    "Keep complete actual conversations and per-question/fact evidence; never replace raw traces with totals.",
+    "Stop when the case goal is fully verified; do not prolong a conversation for more calls or a higher score.",
+    "Report completed, failed and blocked cases separately; no paid judge.",
+    "Record both total elapsed turns and user-detail burden so planned fault injections are not mistaken for assistant-caused friction."
+  ],
+  "per_case_template": {
+    "outcome": "NOT_RUN",
+    "remembered_fact_reuse_opportunities": null,
+    "remembered_fact_reuse_successes": null,
+    "redundant_asks": null,
+    "necessary_clarifications": null,
+    "unnecessary_clarifications": null,
+    "user_detail_turns": null,
+    "assistant_questions_before_completion": null,
+    "user_turns_to_verified_completion": null,
+    "turns_consumed": 0,
+    "evidence": []
+  }
+}

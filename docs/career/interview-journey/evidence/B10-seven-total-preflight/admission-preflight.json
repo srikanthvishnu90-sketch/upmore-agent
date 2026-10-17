@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-10-17T03:31:27.931914+00:00",
+  "target": "346a48ce43be554bf79d04e765c9a5974439523c",
+  "decision": "NO_PAID_DISPATCH",
+  "allocation": "allocation.json",
+  "local_worker_pid_matches": {
+    "tests/memory-audit/supervise.py": [],
+    "tests/memory-audit/run.ts": [],
+    "tests/memory-audit/server.ts": [],
+    "paid-full-3500": []
+  },
+  "worker_check_scope": "This executor only; no global/remote shutdown or immutable-cap attestation. PID matching only; no credential values collected.",
+  "known_path_presence_only": {
+    "/workspace/.upmore-tools/audit-budget/budget.json": false,
+    "/workspace/upmore-audit/paid-full-3500/launch.json": false,
+    "/workspace/.upmore-tools/env.sh": false
+  },
+  "path_presence_does_not_prove_provider_access_or_credit_balance": true,
+  "credential_values_read": false,
+  "credential_values_printed_or_transmitted": false,
+  "provider_calls": 0,
+  "conditions": [
+    {
+      "condition": "old campaign cannot spend outside held $5",
+      "status": "UNPROVEN",
+      "proof_available": "No matching worker processes here; historical source hard-codes a shared $5 ceiling.",
+      "missing": "Original-executor worker shutdown/fence attestation, or proof every surviving worker remains on the same durable non-resettable $5 bound. Missing local ledger/launch state cannot prove this."
+    },
+    {
+      "condition": "durable hard $1 gate covers generation and checker including unknown liabilities",
+      "status": "UNPROVEN_NOT_ATTACHED",
+      "proof_available": "Reviewed A has paired SQL mechanics and a separate natural-language path; prior tests used synthetic campaign funding only.",
+      "missing": "An actual configured admission-ledger identity/host binding capped at $1 for this run, covering every generator/checker transport. A local allocation JSON is not that enforcement."
+    },
+    {
+      "condition": "already configured secure provider path usable without exposing secrets",
+      "status": "UNPROVEN",
+      "proof_available": "Source supports server configuration, but no non-secret usable Upmore endpoint/credential-binding attestation was supplied in this executor.",
+      "missing": "An existing opaque secret-backed invocation/endpoint binding plus non-secret readiness/identity evidence. Do not paste keys or infer access from presence."
+    }
+  ],
+  "minimum_resolution_bundle": "Original-executor stopped/fenced-within-$5 attestation, plus one existing secure Upmore invocation binding whose attached durable run ledger caps BOTH legs at $1 and retains unknown full bounds. No new spending authorization or exact reconstruction of old spend is required by this allocation.",
+  "A_source_sha256": {
+    "supabase/functions/agent-chat/handler-career.ts": "ef8a35637e94469de9ac8b79d92eabb35c404057ea86ba33690148e6b0eed0ae",
+    "supabase/functions/_shared/career_model_grounded.ts": "19826d2058ffa163f95b8f05f6aae65d2576b95d58ac22427bf9982f1b987ab2",
+    "supabase/functions/_shared/career_model_reply.ts": "9ce5ca0adaa00893c137674e60bf9d476cc7c66a1bb570993e6f4112f13b0eeb",
+    "supabase/functions/_shared/career_interview_reasoner.ts": "f29a0006de387a77c27a9e9955ee1cefa1f0b5ee6cc87011d9f1f8121a169455"
+  },
+  "runtime_changes": "NONE",
+  "fixture_quality_substitution": "NONE",
+  "live_transcript": "NOT_RUN",
+  "live_artifact": "NOT_RUN",
+  "budget_authorization_is_not_account_credit_balance": true
+}

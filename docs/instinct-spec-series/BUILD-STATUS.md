@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 final conversation replay prerequisite: scripts/career/conversation-recovery/run.cjs local fixture identification only. Require an explicitly labeled owned, network-none Docker target; create a new database, print and recheck its marker before schema/reset. Preserve all frozen transcript expectations, predicates and failure records. Own new critical-repairs replay evidence only.
+
 - 2026-10-16 Spec A gateway prerequisite: narrow shared model_gateway.ts deadline/parent-abort/stream-byte-limit lifecycle only, plus frozen staged-gateway synthetic tests and evidence in the critical-repairs namespace. Preserve provider routing, approved configuration, raw usage checks, no retries and all existing callers. No provider execution. Freeze current seven failures before runtime repair.
 
 - 2026-10-16 full-CI testing-agent checker follow-up: evals/agent/run.ts ALRT-012 test expectation only. Source reproduction shows it counts an existing cadence-exempt standing request as an unsolicited note, contradicting the explicit K2 contract already asserted in tests/edge/proactive.test.ts. Preserve exactly one non-cadence finding and daily-budget suppression; change no financial runtime. Freeze the red 91/92 result before repair.

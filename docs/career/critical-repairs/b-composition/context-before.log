@@ -1,0 +1,310 @@
+TAP version 13
+# Subtest: context consumer fixture keeps its pre-implementation frozen bytes
+ok 1 - context consumer fixture keeps its pre-implementation frozen bytes
+  ---
+  duration_ms: 1.262558
+  type: 'test'
+  ...
+# Subtest: canonical A snapshot converts into the unchanged B context validator
+not ok 2 - canonical A snapshot converts into the unchanged B context validator
+  ---
+  duration_ms: 0.993174
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:11:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:11:101)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: unchanged B reducer supports explicitly classified target through the adapter
+not ok 3 - unchanged B reducer supports explicitly classified target through the adapter
+  ---
+  duration_ms: 1.262408
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:12:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:12:110)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: a software-looking title alone never supplies role family or level
+not ok 4 - a software-looking title alone never supplies role family or level
+  ---
+  duration_ms: 0.563488
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:13:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:13:99)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: classification from a different source record does not bind the target
+not ok 5 - classification from a different source record does not bind the target
+  ---
+  duration_ms: 0.588805
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:14:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:14:103)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: ambiguous classification requires clarification rather than choosing a value
+not ok 6 - ambiguous classification requires clarification rather than choosing a value
+  ---
+  duration_ms: 0.497298
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:15:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:15:109)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: resume reference binds the owned source bytes, never a reported artifact label
+not ok 7 - resume reference binds the owned source bytes, never a reported artifact label
+  ---
+  duration_ms: 0.567754
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:16:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:16:111)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: stale/disputed/withdrawn personal evidence cannot enter B active facts
+not ok 8 - stale/disputed/withdrawn personal evidence cannot enter B active facts
+  ---
+  duration_ms: 0.68506
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:17:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:17:103)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: public-source provenance cannot turn a project fact into personal evidence
+not ok 9 - public-source provenance cannot turn a project fact into personal evidence
+  ---
+  duration_ms: 0.715596
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:18:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:18:107)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: actual source bytes must match the declared source digest
+not ok 10 - actual source bytes must match the declared source digest
+  ---
+  duration_ms: 0.748766
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:19:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:19:90)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: changed context bytes and foreign evidence fail closed
+not ok 11 - changed context bytes and foreign evidence fail closed
+  ---
+  duration_ms: 0.570558
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:20:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:20:87)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: absence never becomes available capability or execution proof
+not ok 12 - absence never becomes available capability or execution proof
+  ---
+  duration_ms: 0.550258
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:21:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:21:94)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: projection is immutable and leaves canonical input unchanged
+not ok 13 - projection is immutable and leaves canonical input unchanged
+  ---
+  duration_ms: 0.489576
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:22:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:22:93)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: explicit classification versions remain reducer dependencies
+not ok 14 - explicit classification versions remain reducer dependencies
+  ---
+  duration_ms: 0.587654
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:23:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:23:93)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: multiple targets require an explicit owned current selection
+not ok 15 - multiple targets require an explicit owned current selection
+  ---
+  duration_ms: 0.820334
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:24:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/workspace/upmore-critical-repairs/packages/career-contracts/interview-context-compat-v1.ts'"
+  code: 'ENOENT'
+  stack: |-
+    Object.readFileSync (node:fs:440:20)
+    load (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:5:226)
+    module.exports (/workspace/upmore-critical-repairs/tests/career-critical-repairs/load-contract.cjs:6:10)
+    adapter (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:9:19)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:24:93)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 1
+# fail 14
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 73.460071

@@ -1,0 +1,215 @@
+{
+  "contract_version": "career_journey_context/v1",
+  "owner_id": "00000000-0000-4000-8000-0000000000a1",
+  "thread_id": "00000000-0000-4000-8000-0000000000b1",
+  "captured_at": "2026-10-16T23:00:00.000Z",
+  "binding": {
+    "epoch": 0,
+    "account_version": 3,
+    "thread_revision": 2,
+    "context_sha256": "887766b0fb39628bcb6f27dfe56f1a7aa7f890c1c0b40cfc00ca7230f8a055f5"
+  },
+  "facts": [
+    {
+      "id": "fact-1",
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "synthetic-report-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "kind": "project",
+      "status": "active",
+      "value": "Built a synthetic class calculator.",
+      "source_refs": []
+    },
+    {
+      "id": "target-1",
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "target-report-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "kind": "target",
+      "status": "active",
+      "value": "Software engineer intern",
+      "source_refs": []
+    },
+    {
+      "id": "target-family-1",
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "target-report-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "kind": "target_role_family",
+      "status": "active",
+      "value": "software_engineering",
+      "source_refs": []
+    },
+    {
+      "id": "target-level-1",
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "target-report-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "kind": "target_level",
+      "status": "active",
+      "value": "early-career",
+      "source_refs": []
+    },
+    {
+      "id": "resume-1",
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "resume-source-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "kind": "resume",
+      "status": "active",
+      "value": "Untrusted resume display label",
+      "source_refs": [
+        "resume-source-1"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "item_version": 1,
+      "scope": {
+        "kind": "account",
+        "owner_id": "00000000-0000-4000-8000-0000000000a1"
+      },
+      "provenance": {
+        "kind": "user_report",
+        "record_id": "resume-source-1",
+        "revision": 1,
+        "reference": "synthetic committed profile",
+        "trust": "user_reported",
+        "observed_at": "2026-10-16T23:00:00.000Z"
+      },
+      "created": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "effective": {
+        "account_version": 1,
+        "event_ordinal": 2
+      },
+      "freshness": "current",
+      "id": "resume-source-1",
+      "source_kind": "user_pasted_text",
+      "content": "Built a synthetic class calculator.",
+      "canonical_url": null,
+      "retrieved_at": "2026-10-16T23:00:00.000Z",
+      "availability": "available",
+      "source_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+    }
+  ],
+  "dialogue": [],
+  "current_draft": null,
+  "goals": [],
+  "pending_asks": [],
+  "invalidations": [],
+  "tool_status": [],
+  "receipts": [],
+  "artifacts": [],
+  "assessments": [],
+  "capabilities": [
+    {
+      "capability_id": "career.coach_answer",
+      "availability": "available",
+      "reason": "Synthetic boundary fixture only"
+    },
+    {
+      "capability_id": "career.ask_question",
+      "availability": "available",
+      "reason": "Synthetic display fixture only"
+    }
+  ]
+}

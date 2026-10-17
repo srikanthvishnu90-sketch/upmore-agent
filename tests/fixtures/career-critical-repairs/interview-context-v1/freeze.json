@@ -1,0 +1,8 @@
+{
+  "frozen_before_implementation": true,
+  "B_source": "53ae74b30b4dc5567be845ae3ba602927a9b74ed",
+  "base": "2fb0bbe56abbeea66b299671a4a6ba7630bb35c6",
+  "snapshot_sha256": "8a92cef36b45aab43936860653a89c004332700245d9b5a62a1d5cfc4a2e5269",
+  "execution": "MOCK_CONTRACT_ONLY",
+  "paid_calls": 0
+}

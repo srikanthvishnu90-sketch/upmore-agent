@@ -410,6 +410,11 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       const scopedTask=taskId?store.get(taskId):null;
       if(taskId&&!scopedTask)throw fail('TASK_NOT_FOUND');
       if(scopedTask?.privateExpiredAt!==undefined)return [publicTask(scopedTask)];
+      // A captured result already has its owner-bound grant and immutable
+      // receipt. Recover its save before querying for any new queue work.
+      const publications=(scopedTask?[scopedTask]:store.list().map(id=>store.get(id)))
+        .filter(t=>t?.kind==='public_research/v1'&&t.publicationPending&&t.privateExpiredAt===undefined);
+      if(publications.length)return publications.slice(0,limit).map(t=>research(t.userId,t.id));
       const pending=authority.pending({limit,...(scopedTask?{taskId,userId:scopedTask.userId}:{})});
       for(const intent of pending.filter(i=>!taskId||(i.userId===scopedTask.userId&&(i.taskId===taskId||i.binding?.task_id===taskId))).slice(0,limit)) {
         try {

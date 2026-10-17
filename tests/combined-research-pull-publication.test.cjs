@@ -22,3 +22,8 @@ test('persistent publication failures retain the existing transition bound and c
  const runner=require('../workers/career-browser/pull-runner.cjs').createPullRunner({worker:f.worker,store:f.store,now:()=>F.NOW,maxTransitions:1,maxTasks:1});
  try{runner.start();runner.tick();assert.equal(runner.stats().stopped,true);assert.equal(runner.stats().tasks,0);assert.equal(f.store.get(f.queued.id).publicationPending,true);assert.equal(f.reads(),1);}finally{runner.stop();}
 });
+test('immutable publication recovery does not depend on the pending queue RPC',t=>{
+ const f=F.unit(t,{finishFailsOnce:true});f.worker.runPending({limit:1});
+ f.authority.pending=()=>{throw Error('synthetic pending queue unavailable');};
+ const recovered=f.worker.runPending({limit:1,taskId:f.queued.id});assert.equal(recovered.length,1);assert.equal(f.store.get(f.queued.id).publicationPending,false);assert.equal(f.reads(),1);assert.equal(f.finishes(),2);
+});

@@ -69,7 +69,7 @@ async function getBrowser() {
 // requests are gated — subresources (scripts, trackers, CDNs) pass
 // untouched, and the one armed submit's own landing navigation is
 // checked during submission too; controlled tasks reject every redirect.
-const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com"];
+const NAV_SUFFIXES = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com", "docs.google.com"]; // MI-101: docs.google.com is the Google Forms host — the hop gate allows the HOST; module 150's final-URL gate (via 149) further requires the /forms/ path, so a landing on a Doc/Sheet is still refused there
 function navAllowed(url) {
   let u;
   try { u = new URL(String(url)); } catch (e) { return false; }

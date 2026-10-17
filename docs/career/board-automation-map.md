@@ -74,6 +74,39 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+### Google Forms — docs.google.com/forms/… (MI-101)
+- What it is: the hosted form platform behind Z Fellows (fellowship
+  census 2026-10-15 §13). The live application — "Z Fellows – 2026
+  cohorts" — is a Google Form linked from zfellows.com, rolling, no
+  deadline. The form is short and fact-heavy: FACT fields (email,
+  name, company-or-project, birthday, phone, technical?, previously
+  applied?, based, school/work, website/links, achievements) plus
+  short essays capped at ~500 characters, and an optional 1-minute
+  intro video.
+- **Path-precise gate:** the family is ONLY a docs.google.com URL
+  under `/forms/` — the same host serves Docs, Sheets and Drive,
+  which are not application forms and stay refused
+  (UNTESTED_ATS_HOST); the helper's hop gate allows the docs.google.com
+  host and module 150's final-URL gate additionally requires the
+  /forms/ path on every landing. forms.gle shortlinks are not
+  classified — a drive needs the resolved /forms/ URL in hand.
+- **Owner-answer law for this form:** the company-or-project name is
+  a DECISION (Trainee or Sporv — the owner's Phase 2 call), Birthday
+  is a required fact NOT in the fact bank (Phase 2), and every
+  short-answer/essay field fills ONLY from the owner's own confirmed
+  draft — the packet assembles from confirmed facts + his approved
+  short answers, never invented text (guarded by
+  tests/career-googleforms-portal.test.cjs F2/F2b/F2c/F3). The form
+  carries no resume upload and no attestation checkbox.
+- Terms nuance (census): the $10K is optional and is an investment
+  (converting at the next priced round at a $1B cap), not a grant.
+- Driver posture: **allowed** (MI-101, branch work/mi101-google-forms) —
+  host+path gate in 149 + 150 + the helper's navigation gate;
+  doorstep proven tier-2 over a captured-form fixture
+  (tests/career-googleforms-portal.test.cjs 9/9 +
+  tests/career-googleforms-browser.test.cjs). No live Google Form
+  has been driven and nothing has been submitted through this family.
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

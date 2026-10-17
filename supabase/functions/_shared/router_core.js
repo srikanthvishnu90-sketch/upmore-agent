@@ -44739,7 +44739,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
+       Lever, Ashby, SmartRecruiters, Google Forms — MI-101); LinkedIn / Indeed apply automation
        is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
@@ -44791,6 +44791,16 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
   ];
+  // MI-101: Google Forms — the form platform behind the Z Fellows
+  // application (census 2026-10-15 §13; the live form is linked from
+  // zfellows.com and lives on docs.google.com under /forms/). This
+  // family is PATH-PRECISE, not host-wide: docs.google.com also serves
+  // Docs, Sheets and Drive, none of which is an application form, so
+  // classifyTarget special-cases it below — only a docs.google.com
+  // URL whose path is under /forms/ is the googleforms family; every
+  // other docs.google.com URL stays UNTESTED_ATS_HOST. Shortlink
+  // hosts (forms.gle) are NOT classified: the hop gate refuses them
+  // until the redirect target itself is a /forms/ URL in hand.
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
@@ -44800,9 +44810,13 @@ const CareerPortalApply = (() => {
 
   // ---------- §6.3 target classification ----------
   function classifyTarget(url) {
-    let host = "";
-    try { host = new URL(String(url)).hostname.toLowerCase(); } catch (e) {
+    let host = "", pathname = "";
+    try { const u = new URL(String(url)); host = u.hostname.toLowerCase(); pathname = u.pathname || ""; } catch (e) {
       return { allowed: false, code: "BAD_URL", host: "", kind: null };
+    }
+    // MI-101: the googleforms family — path-precise (see ATS_HOSTS note).
+    if (host === "docs.google.com" && /\/forms\//.test(pathname)) {
+      return { allowed: true, code: null, host, kind: "employer_ats", atsFamily: "googleforms" };
     }
     if (AGGREGATOR_HOSTS.some((re) => re.test(host))) {
       return { allowed: false, code: "AGGREGATOR_APPLY_FORBIDDEN", host, kind: "aggregator",
@@ -44814,7 +44828,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Google Forms) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -44866,6 +44880,90 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-101: the Google Forms sandbox board (TEST only) ----------
+  // Google-Forms-shaped field set, staged from the Z Fellows live form
+  // (census 2026-10-15 §13 — the census captured the form's fields in
+  // full; the census file lives in ~/workspace/your_files/real-apply/
+  // fellowships/, never in this repo): the form is short and
+  // fact-heavy. FACT fields (email, name, phone, location, website)
+  // fill from confirmed facts only; Birthday is a required FACT that
+  // is NOT in the fact bank (Phase 2) — with no confirmed
+  // date_of_birth the drive honestly waits. The company-or-project
+  // name is a DECISION (Trainee or Sporv — the owner's Phase 2 call)
+  // and the two yes/no questions (technical? / previously applied?)
+  // fill ONLY from confirmed answers — the owner's approved short
+  // answers. Every short-answer/essay field (most capped at ~500
+  // characters, written in the owner's voice; drafts from confirmed
+  // facts go to him for approval) is free_text: it fills ONLY from
+  // the owner's own confirmed draft — never invented, never from a
+  // merely-confirmed answer. The optional intro video is the same
+  // class (only he can record it; the link is his draft to supply).
+  // The live form carries NO resume upload and NO attestation
+  // checkbox, so this board has neither. The live form's fields are
+  // read at drive time by module 150; this board is the faithful
+  // local seam for the pipeline, like the Greenhouse one.
+  const GOOGLE_FORMS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "company_or_project", label: "Company or project name", kind: "screening", question_key: "company_or_project", required: true },
+    { field_id: "date_of_birth", label: "Birthday", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "phone", label: "Phone Number", kind: "standard", profile_key: "phone", required: true },
+    { field_id: "is_technical", label: "Are you technical?", kind: "screening", question_key: "is_technical", required: true },
+    { field_id: "previously_applied", label: "Have you previously applied to Z Fellows?", kind: "screening", question_key: "previously_applied", required: true },
+    { field_id: "location", label: "Where are you based?", kind: "standard", profile_key: "location", required: true },
+    { field_id: "website", label: "Personal/project website + links", kind: "standard", profile_key: "website", required: true },
+    { field_id: "school_or_work", label: "Are you in school or working? Or both? Where at?", kind: "free_text", question_key: "school_or_work", required: true },
+    { field_id: "achievements", label: "Achievements and prizes", kind: "free_text", question_key: "achievements", required: true },
+    { field_id: "project_description", label: "What project are you working on and why?", kind: "free_text", question_key: "project_description", required: true },
+    { field_id: "problem", label: "What problem are you solving?", kind: "free_text", question_key: "problem", required: true },
+    { field_id: "expertise", label: "What is your expertise to execute?", kind: "free_text", question_key: "expertise", required: true },
+    { field_id: "competitors", label: "Competitors — and what do you understand that they don't?", kind: "free_text", question_key: "competitors", required: false },
+    { field_id: "past_work", label: "What have you worked on in the past?", kind: "free_text", question_key: "past_work", required: true },
+    { field_id: "nerdiest_thing", label: "What is the nerdiest thing about you?", kind: "free_text", question_key: "nerdiest_thing", required: true },
+    { field_id: "what_drives_you", label: "What drives you?", kind: "free_text", question_key: "what_drives_you", required: true },
+    { field_id: "nontraditional_upbringing", label: "Non-traditional things you were doing growing up", kind: "free_text", question_key: "nontraditional_upbringing", required: true },
+    { field_id: "risk_or_challenge", label: "A risk you've taken or challenge you've faced — and what it says about your character", kind: "free_text", question_key: "risk_or_challenge", required: true },
+    { field_id: "cofounder_pick", label: "Who would you co-found a company with if you could pick anyone in your network?", kind: "free_text", question_key: "cofounder_pick", required: true },
+    { field_id: "need_help", label: "One thing you need help with (optional)", kind: "free_text", question_key: "need_help", required: false },
+    { field_id: "intro_video", label: "1-minute intro video (YouTube link) (optional)", kind: "free_text", question_key: "intro_video", required: false },
+  ];
+  function createGoogleFormsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "googleforms",
+      host: "sandbox.docs.google-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: GOOGLE_FORMS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-G-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -45755,7 +45853,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createGoogleFormsSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, GOOGLE_FORMS_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

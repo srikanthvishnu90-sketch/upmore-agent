@@ -405,7 +405,38 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-101 fixture: a Google-Forms-shaped fellowship form (the Z Fellows
+// shape, staged from the census 2026-10-15 §13 — fields are read at
+// drive time by module 150 in the real product; this fixture is the
+// captured-form replay guard). The short-answer textareas are
+// owner-writing only: the drive must leave them untouched, and they
+// are not required here so the fact-only doorstep can be verified
+// around them. The live form has no resume upload, so neither does
+// this fixture.
+const GOOGLE_FORMS_FORM = `<!doctype html><html><head><title>Z Fellows – 2026 cohorts (TEST fixture)</title></head><body>
+<h1>Z Fellows – 2026 cohorts</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="company">Company or project name *</label><input id="company" name="company_or_project" type="text" required></div>
+  <div><label for="birthday">Birthday *</label><input id="birthday" name="date_of_birth" type="text" required></div>
+  <div><label for="phone">Phone Number *</label><input id="phone" name="phone" type="tel" required></div>
+  <div><label for="tech">Are you technical? *</label>
+    <select id="tech" name="is_technical" required><option value="">Select...</option><option>Yes</option><option>No</option></select></div>
+  <div><label for="prev">Have you previously applied to Z Fellows? *</label>
+    <select id="prev" name="previously_applied" required><option value="">Select...</option><option>Yes</option><option>No</option></select></div>
+  <div><label for="based">Where are you based? *</label><input id="based" name="location" type="text" required></div>
+  <div><label for="site">Personal or project website and links *</label><input id="site" name="website" type="text" required></div>
+  <div><label for="schoolwork">Are you in school or working? Or both? Where at?</label><textarea id="schoolwork" name="school_or_work"></textarea></div>
+  <div><label for="achievements">Achievements and prizes</label><textarea id="achievements" name="achievements"></textarea></div>
+  <div><label for="project">What project are you working on and why?</label><textarea id="project" name="project_description"></textarea></div>
+  <div><label for="problem">What problem are you solving?</label><textarea id="problem" name="problem"></textarea></div>
+  <div><label for="video">1-minute intro video (YouTube link) (optional)</label><input id="video" name="intro_video" type="text"></div>
+  <button type="submit" id="submit-btn">Submit</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/google-forms-form": GOOGLE_FORMS_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

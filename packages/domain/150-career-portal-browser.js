@@ -95,11 +95,16 @@ const CareerPortalBrowser = (() => {
   }
   function atsFamilyOf(url) {
     try {
-      const host = new URL(String(url)).hostname.toLowerCase();
+      const u = new URL(String(url));
+      const host = u.hostname.toLowerCase();
       if (/(^|\.)greenhouse\.io$/.test(host)) return "greenhouse";
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      // MI-101: Google Forms is path-precise like module 149 — only a
+      // docs.google.com URL under /forms/ is the family; a Doc/Sheet
+      // on the same host is not.
+      if (host === "docs.google.com" && /\/forms\//.test(u.pathname || "")) return "googleforms";
     } catch (e) { /* fall through */ }
     return null;
   }
@@ -267,6 +272,34 @@ const CareerPortalBrowser = (() => {
     // boards name these fields by machine name (hispanic_ethnicity)
     // as often as by label ("Are you Hispanic/Latino?").
     if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt|hispanic|latino/.test(hay)) return { kind: "eeo", question_key: slug(eff).slice(0, 32) || "eeo" };
+    // MI-101: the Z Fellows Google Form's own question wordings (census
+    // 2026-10-15 §13). The two yes/no questions and the company-or-
+    // project DECISION bind to confirmed answers (screening — the
+    // owner's approved short answers, never a guess); "Birthday" binds
+    // to the date-of-birth fact below; every short-answer/essay wording
+    // binds to the SAME free_text question_key module 149's sandbox
+    // board uses, so an owner's confirmed draft under that key is the
+    // only text that can fill the live field either. These wordings
+    // are narrow program-specific phrases, checked before the generic
+    // education/standard rules (the school-or-work wording would
+    // otherwise bind to the school fact).
+    if (/company or project/.test(eff)) return { kind: "screening", question_key: "company_or_project" };
+    if (/are you technical/.test(eff)) return { kind: "screening", question_key: "is_technical" };
+    if (/previously applied/.test(eff)) return { kind: "screening", question_key: "previously_applied" };
+    if (/in school or working/.test(eff)) return { kind: "free_text", question_key: "school_or_work" };
+    if (/achievements and prizes/.test(eff)) return { kind: "free_text", question_key: "achievements" };
+    if (/what project are you working on/.test(eff)) return { kind: "free_text", question_key: "project_description" };
+    if (/what problem are you solving/.test(eff)) return { kind: "free_text", question_key: "problem" };
+    if (/expertise to execute/.test(eff)) return { kind: "free_text", question_key: "expertise" };
+    if (/competitors/.test(eff) && /understand|don.t know/.test(eff)) return { kind: "free_text", question_key: "competitors" };
+    if (/worked on in the past/.test(eff)) return { kind: "free_text", question_key: "past_work" };
+    if (/nerdiest thing/.test(eff)) return { kind: "free_text", question_key: "nerdiest_thing" };
+    if (/what drives you/.test(eff)) return { kind: "free_text", question_key: "what_drives_you" };
+    if (/non-traditional things|nontraditional things/.test(eff)) return { kind: "free_text", question_key: "nontraditional_upbringing" };
+    if (/risk you|challenge you/.test(eff) && /character/.test(eff)) return { kind: "free_text", question_key: "risk_or_challenge" };
+    if (/co-found a company with|cofound a company with/.test(eff)) return { kind: "free_text", question_key: "cofounder_pick" };
+    if (/one thing you need help with/.test(eff)) return { kind: "free_text", question_key: "need_help" };
+    if (/intro video/.test(eff)) return { kind: "free_text", question_key: "intro_video" };
     // D4 (BUG-062): education + country keys — the answers exist in the
     // fact bank (F-001 shape) and now have keys to carry them.
     if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };
@@ -303,7 +336,7 @@ const CareerPortalBrowser = (() => {
     // keys so deriveAnswers' profile fields can fill them.
     if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
-    if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
+    if (/date of birth|birth ?date|birthday|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" }; // MI-101: the Z Fellows form labels it "Birthday"
     if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };
     if (/first name|last name|full name|your name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
     if (/e-?mail/.test(eff) || inputType === "email") return { kind: "standard", profile_key: "email" };

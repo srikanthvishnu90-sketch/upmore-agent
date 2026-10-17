@@ -1,0 +1,30 @@
+✖ late uncertain accounting after user stop remains passive and cannot start a status-read loop (38.134332ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.868047
+
+✖ failing tests:
+
+test at tests/career-interview-journey/audit-stopped-outcome.test.cjs:4:1
+✖ late uncertain accounting after user stop remains passive and cannot start a status-read loop (38.134332ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-spec-b/tests/career-interview-journey/audit-stopped-outcome.test.cjs:8:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

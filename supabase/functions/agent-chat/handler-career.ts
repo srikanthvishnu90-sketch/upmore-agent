@@ -173,7 +173,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
     if(body.career_journey!==undefined){
       const note=flowCtx.note;flowCtx.note=null;
       const admin=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey);
-      return await interviewTurn({admin,userId:user.id,threadId:tid,turnKey,message,raw:body.career_journey,images:imageBlocks||[],cors,note});
+      return await interviewTurn({admin,userId:user.id,threadId:tid,turnKey,message,raw:body.career_journey,images:imageBlocks||[],cors,note,dependencies});
     }
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the

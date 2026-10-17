@@ -1,0 +1,301 @@
+TAP version 13
+# (node:825472) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:825472) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: gateway exposes exact immutable request wire serialization before admission
+ok 1 - gateway exposes exact immutable request wire serialization before admission
+  ---
+  duration_ms: 513.190214
+  type: 'test'
+  ...
+# Subtest: gateway captures uncoerced raw usage with exact wire/body hashes and configured identity
+ok 2 - gateway captures uncoerced raw usage with exact wire/body hashes and configured identity
+  ---
+  duration_ms: 321.093638
+  type: 'test'
+  ...
+# Subtest: charged malformed content still exposes its valid raw usage before translation fails
+ok 3 - charged malformed content still exposes its valid raw usage before translation fails
+  ---
+  duration_ms: 318.805017
+  type: 'test'
+  ...
+# Subtest: invalid raw usage is retained for conservative settlement and never converted into a free receipt
+ok 4 - invalid raw usage is retained for conservative settlement and never converted into a free receipt
+  ---
+  duration_ms: 317.870816
+  type: 'test'
+  ...
+# Subtest: timeout with no provider response creates no fabricated usage receipt
+ok 5 - timeout with no provider response creates no fabricated usage receipt
+  ---
+  duration_ms: 219.70193
+  type: 'test'
+  ...
+# Subtest: over-limit response creates no fabricated usage receipt
+ok 6 - over-limit response creates no fabricated usage receipt
+  ---
+  duration_ms: 228.299249
+  type: 'test'
+  ...
+# Subtest: invalid UTF-8 is refused rather than hashing replacement characters as original response bytes
+ok 7 - invalid UTF-8 is refused rather than hashing replacement characters as original response bytes
+  ---
+  duration_ms: 212.945044
+  type: 'test'
+  ...
+# (node:825473) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:825473) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: deadline bounds a transport that ignores the abort signal before headers
+ok 8 - deadline bounds a transport that ignores the abort signal before headers
+  ---
+  duration_ms: 594.818608
+  type: 'test'
+  ...
+# Subtest: deadline bounds and cancels a stalled 200 response body
+ok 9 - deadline bounds and cancels a stalled 200 response body
+  ---
+  duration_ms: 370.371886
+  type: 'test'
+  ...
+# Subtest: deadline bounds and cancels a stalled 503 response body
+ok 10 - deadline bounds and cancels a stalled 503 response body
+  ---
+  duration_ms: 355.84932
+  type: 'test'
+  ...
+# Subtest: an already aborted parent prevents dispatch
+ok 11 - an already aborted parent prevents dispatch
+  ---
+  duration_ms: 291.79979
+  type: 'test'
+  ...
+# Subtest: parent abort cancels a body read after headers
+ok 12 - parent abort cancels a body read after headers
+  ---
+  duration_ms: 252.107204
+  type: 'test'
+  ...
+# Subtest: response size is measured in UTF-8 bytes before parsing
+ok 13 - response size is measured in UTF-8 bytes before parsing
+  ---
+  duration_ms: 287.927892
+  type: 'test'
+  ...
+# Subtest: over-limit stream is cancelled without draining the remaining response
+ok 14 - over-limit stream is cancelled without draining the remaining response
+  ---
+  duration_ms: 179.460485
+  type: 'test'
+  ...
+# Subtest: bounded successful raw usage retains exact normal gateway translation
+ok 15 - bounded successful raw usage retains exact normal gateway translation
+  ---
+  duration_ms: 242.464515
+  type: 'test'
+  ...
+# (node:825474) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:825474) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: default-off career entry preserves deterministic path without budget/provider access
+ok 16 - default-off career entry preserves deterministic path without budget/provider access
+  ---
+  duration_ms: 524.380794
+  type: 'test'
+  ...
+# Subtest: actual entry uses existing gateway once and commits grounded coaching atomically; exact replay is free
+ok 17 - actual entry uses existing gateway once and commits grounded coaching atomically; exact replay is free
+  ---
+  duration_ms: 321.601503
+  type: 'test'
+  ...
+# Subtest: budgetDenied denies provider dispatch and preserves deterministic fallback
+ok 18 - budgetDenied denies provider dispatch and preserves deterministic fallback
+  ---
+  duration_ms: 303.49011
+  type: 'test'
+  ...
+# Subtest: monthlyDenied denies provider dispatch and preserves deterministic fallback
+ok 19 - monthlyDenied denies provider dispatch and preserves deterministic fallback
+  ---
+  duration_ms: 292.386983
+  type: 'test'
+  ...
+# Subtest: consumeDenied denies provider dispatch and preserves deterministic fallback
+ok 20 - consumeDenied denies provider dispatch and preserves deterministic fallback
+  ---
+  duration_ms: 242.565523
+  type: 'test'
+  ...
+# Subtest: noKey denies provider dispatch and preserves deterministic fallback
+ok 21 - noKey denies provider dispatch and preserves deterministic fallback
+  ---
+  duration_ms: 243.614556
+  type: 'test'
+  ...
+# Subtest: badTicket denies provider dispatch and preserves deterministic fallback
+ok 22 - badTicket denies provider dispatch and preserves deterministic fallback
+  ---
+  duration_ms: 318.802021
+  type: 'test'
+  ...
+# Subtest: httpError gives truthful fallback, retains uncertainty and never retries inference
+ok 23 - httpError gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 203.55494
+  type: 'test'
+  ...
+# Subtest: networkError gives truthful fallback, retains uncertainty and never retries inference
+ok 24 - networkError gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 243.073966
+  type: 'test'
+  ...
+# Subtest: badUsage gives truthful fallback, retains uncertainty and never retries inference
+ok 25 - badUsage gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 228.101339
+  type: 'test'
+  ...
+# Subtest: usageFails gives truthful fallback, retains uncertainty and never retries inference
+ok 26 - usageFails gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 218.323825
+  type: 'test'
+  ...
+# Subtest: settleFails gives truthful fallback, retains uncertainty and never retries inference
+ok 27 - settleFails gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 206.988564
+  type: 'test'
+  ...
+# Subtest: toolCall gives truthful fallback, retains uncertainty and never retries inference
+ok 28 - toolCall gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 204.421263
+  type: 'test'
+  ...
+# Subtest: truncated gives truthful fallback, retains uncertainty and never retries inference
+ok 29 - truncated gives truthful fallback, retains uncertainty and never retries inference
+  ---
+  duration_ms: 215.232462
+  type: 'test'
+  ...
+# Subtest: rejects extra-authority in model output without promoting it to facts
+ok 30 - rejects extra-authority in model output without promoting it to facts
+  ---
+  duration_ms: 199.639557
+  type: 'test'
+  ...
+# Subtest: rejects unknown-fact in model output without promoting it to facts
+ok 31 - rejects unknown-fact in model output without promoting it to facts
+  ---
+  duration_ms: 205.540847
+  type: 'test'
+  ...
+# Subtest: rejects personal-claim in model output without promoting it to facts
+ok 32 - rejects personal-claim in model output without promoting it to facts
+  ---
+  duration_ms: 204.541709
+  type: 'test'
+  ...
+# Subtest: rejects completion-claim in model output without promoting it to facts
+ok 33 - rejects completion-claim in model output without promoting it to facts
+  ---
+  duration_ms: 164.195429
+  type: 'test'
+  ...
+# Subtest: rejects url in model output without promoting it to facts
+ok 34 - rejects url in model output without promoting it to facts
+  ---
+  duration_ms: 180.851042
+  type: 'test'
+  ...
+# Subtest: rejects metric in model output without promoting it to facts
+ok 35 - rejects metric in model output without promoting it to facts
+  ---
+  duration_ms: 194.236442
+  type: 'test'
+  ...
+# Subtest: bounded context separates sources, unknown location and nonactual claims from current facts
+ok 36 - bounded context separates sources, unknown location and nonactual claims from current facts
+  ---
+  duration_ms: 178.937795
+  type: 'test'
+  ...
+# Subtest: colliding profiles in the same entry realm never put another owner facts into context
+ok 37 - colliding profiles in the same entry realm never put another owner facts into context
+  ---
+  duration_ms: 186.957109
+  type: 'test'
+  ...
+# Subtest: hypotheticals, factual correction, control and forgetting turns never use the model
+ok 38 - hypotheticals, factual correction, control and forgetting turns never use the model
+  ---
+  duration_ms: 938.305182
+  type: 'test'
+  ...
+# Subtest: failed atomic commit cannot return model success or retain model question; stable-key retry does not infer twice
+ok 39 - failed atomic commit cannot return model success or retain model question; stable-key retry does not infer twice
+  ---
+  duration_ms: 216.68162
+  type: 'test'
+  ...
+# Subtest: changed epoch/context after admitted inference refuses generated delivery
+ok 40 - changed epoch/context after admitted inference refuses generated delivery
+  ---
+  duration_ms: 220.57758
+  type: 'test'
+  ...
+# Subtest: current role constraints survive a full profile and unresolved education is not promoted
+ok 41 - current role constraints survive a full profile and unresolved education is not promoted
+  ---
+  duration_ms: 179.580852
+  type: 'test'
+  ...
+# Subtest: fresh entry loads only saved owned context and never reuses prior model prose as facts
+ok 42 - fresh entry loads only saved owned context and never reuses prior model prose as facts
+  ---
+  duration_ms: 384.640571
+  type: 'test'
+  ...
+# Subtest: missing provider usage cannot become a zero or discounted bill
+ok 43 - missing provider usage cannot become a zero or discounted bill
+  ---
+  duration_ms: 190.880474
+  type: 'test'
+  ...
+# Subtest: negative input provider usage cannot become a zero or discounted bill
+ok 44 - negative input provider usage cannot become a zero or discounted bill
+  ---
+  duration_ms: 186.164853
+  type: 'test'
+  ...
+# Subtest: coerced input provider usage cannot become a zero or discounted bill
+ok 45 - coerced input provider usage cannot become a zero or discounted bill
+  ---
+  duration_ms: 203.330652
+  type: 'test'
+  ...
+# Subtest: impossible cache provider usage cannot become a zero or discounted bill
+ok 46 - impossible cache provider usage cannot become a zero or discounted bill
+  ---
+  duration_ms: 196.692741
+  type: 'test'
+  ...
+# Subtest: actual correction and selective forgetting govern the next enabled and fresh model context
+ok 47 - actual correction and selective forgetting govern the next enabled and fresh model context
+  ---
+  duration_ms: 380.658993
+  type: 'test'
+  ...
+1..47
+# tests 47
+# suites 0
+# pass 47
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8464.527546

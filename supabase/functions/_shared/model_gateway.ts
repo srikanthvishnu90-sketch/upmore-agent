@@ -132,7 +132,11 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
-export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; signal?: AbortSignal; meter?: TurnMeter; health?: HealthSink; requireUsageReceipt?: boolean }
+export interface GatewayUsageReceiptV1 {version:'gateway_usage_receipt/v1';provider:Provider;configured_model:string;response_model:unknown;response_id:unknown;config_digest:string;request_body_sha256:string;response_body_sha256:string;usage:unknown}
+export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; signal?: AbortSignal; meter?: TurnMeter; health?: HealthSink; requireUsageReceipt?: boolean; receiptConfigDigest?:string; onUsageReceipt?:(receipt:GatewayUsageReceiptV1)=>Promise<void>|void }
+// The same exact bytes are admitted, hashed and dispatched. No secrets in body.
+export function modelRequestBody(cfg:ModelConfig,payload:any):string{return JSON.stringify(cfg.provider==='openai'?toOpenAI(payload,cfg):Object.assign({},payload,{model:cfg.model}));}
+async function receiptDigest(text:string){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
@@ -157,9 +161,10 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
   const guard=<T>(p:Promise<T>):Promise<T>=>Promise.race([p,stop]);
   try {
     if(controller.signal.aborted)throw stopped();
+    const wireBody=modelRequestBody(cfg,payload);
     const pending=cfg.provider === "openai"
-      ? request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify(toOpenAI(payload, cfg)), signal: controller.signal })
-      : request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: JSON.stringify(Object.assign({}, payload, { model: cfg.model })), signal: controller.signal });
+      ? request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: wireBody, signal: controller.signal })
+      : request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: wireBody, signal: controller.signal });
     const res:Response=await guard<Response>(Promise.resolve(pending).then(r=>{if(controller.signal.aborted){void r.body?.cancel().catch(()=>{});throw stopped();}return r;}));
     let raw='';
     if(res.body){
@@ -175,13 +180,21 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
           chunks.push(part.value);
         }
         const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-        raw=new TextDecoder().decode(bytes);
+        try{raw=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{throw new ModelUnavailableError(502,'bad_response',`${providerName(cfg)} returned invalid UTF-8`);}
       }finally{controller.signal.removeEventListener('abort',cancel);try{reader.releaseLock();}catch(_){/* pending abort cancellation releases the read */}}
     }
     if (!res.ok) throw await providerError({status:res.status,text:async()=>raw} as Response);
   let out: any;
   try {
     const body = JSON.parse(raw);
+    // Capture uncoerced usage before content translation or strict validation
+    // fails. Invalid receipts remain evidence for a conservative unknown bill.
+    // The callback is server-selected and remains inside the response deadline.
+    if(o.onUsageReceipt){
+      if(!/^[a-f0-9]{64}$/.test(o.receiptConfigDigest||''))throw new ModelUnavailableError(502,'invalid_receipt_config','Missing receipt configuration identity');
+      const receipt:GatewayUsageReceiptV1={version:'gateway_usage_receipt/v1',provider:cfg.provider,configured_model:cfg.model,response_model:body.model??null,response_id:body.id??null,config_digest:o.receiptConfigDigest!,request_body_sha256:await receiptDigest(wireBody),response_body_sha256:await receiptDigest(raw),usage:body.usage??null};
+      await guard(Promise.resolve(o.onUsageReceipt(receipt)));
+    }
     // Cash-bounded callers require actual integer receipts before the legacy
     // translator's numeric defaults/coercion can turn unknown usage into zero.
     // Existing callers retain their defaults; career coaching opts in.

@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A paired execution continuation: new `_shared/career_interview_reasoner.ts` and `career_interview_execution_v1.sql`, raw receipt/wire serialization extension in the existing gateway, narrow typed dependency/handler integration and generated pure-validator export alias. Freeze controlled actual-entry journeys and raw receipt/configuration oracles before edits; retain every failed run. Complete action and checker request bytes persist before dispatch, only owned backend receipts advance B, unknown starts remain held and participate immediately in the existing shared stop. No B source/module 127/130/155 change, real allowance seed, provider call or production application.
+
 - 2026-10-17 Spec A CI privacy false-positive repair: `evals/data/validate.cjs` typed complete commit-SHA recognition only, new critical-repairs positive/negative privacy controls and scoped evidence. Preserve the exact evidence SHA, every swept file and the privacy failure gate. A numeric substring of commit 315158f5314360417266270ec6e6e9e71aad0af8 was misclassified; no broad file/path exclusion is authorized.
 
 - 2026-10-17 Spec A reviewed readback repairs: narrow artifact-route CORS response in `agent-chat/_shared/chat_cors.ts` (retain the exact origin allowlist), owned artifact verification/reopen metadata in the existing entry proposal, and new critical-repairs regressions/evidence. Independent review confirmed missing receipt-header exposure and post-acknowledgement 404. GET safelisting means the prior Allow-Methods-only diagnosis is not used as browser-failure evidence. Native Chromium remains blocked; HTTP CORS protocol tests are labeled accordingly.

@@ -170,7 +170,8 @@ begin
   valid:=p_outcome='recorded'and jsonb_typeof(p_receipt)='object'and octet_length(p_receipt::text)<=16384;
   if valid then
    valid:=p_receipt->>'version'='gateway_usage_receipt/v1'and p_receipt->>'provider'=pol.provider and p_receipt->>'configured_model'=pol.model and p_receipt->>'response_model'=pol.model and coalesce(p_receipt->>'response_id','')~'^[A-Za-z0-9_-]{1,128}$'and p_receipt->>'request_body_sha256'=l.dispatched_payload and coalesce(p_receipt->>'response_body_sha256','')~'^[a-f0-9]{64}$'and jsonb_typeof(p_receipt->'usage')='object';
-   if exists(select 1 from jsonb_object_keys(p_receipt)t(k)where t.k not in('version','provider','configured_model','response_model','response_id','request_body_sha256','response_body_sha256','usage'))then valid:=false;end if;
+   if p_receipt?'config_digest' and p_receipt->>'config_digest' is distinct from l.config_digest then valid:=false;end if;
+   if exists(select 1 from jsonb_object_keys(p_receipt)t(k)where t.k not in('version','provider','configured_model','response_model','response_id','request_body_sha256','response_body_sha256','usage','config_digest'))then valid:=false;end if;
   end if;
   if coalesce(valid,false)then
    u:=p_receipt->'usage';

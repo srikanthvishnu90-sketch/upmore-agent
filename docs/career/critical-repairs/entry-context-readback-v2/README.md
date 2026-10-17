@@ -46,7 +46,7 @@ Frozen native writer tests: initially 0/3, then 2/3 (future logical-stamp planni
 error), then 3/3. The added replay oracle found stale writer response reuse;
 all 4 pass after repair. Readback tests: corrected 0/2 before repair; all 3
 including typed-context revocation now pass. Existing 10 entry cases passed the
-readback SQL repair. Combined targeted source: 209 checks passed; native Deno
+readback SQL repair. Combined targeted source: 205 checks passed; native Deno
 checks and the existing 2 CORS tests passed. All earlier failed logs are retained.
 
 Assessed generation/checker execution and unknown-settlement/retry remain the

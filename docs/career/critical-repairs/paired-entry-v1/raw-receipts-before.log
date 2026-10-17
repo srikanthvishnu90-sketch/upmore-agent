@@ -1,0 +1,106 @@
+TAP version 13
+# (node:692482) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:692482) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: gateway exposes exact immutable request wire serialization before admission
+not ok 1 - gateway exposes exact immutable request wire serialization before admission
+  ---
+  duration_ms: 240.617238
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:8:1'
+  failureType: 'testCodeFailure'
+  error: 'g.modelRequestBody is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:8:126)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: gateway captures uncoerced raw usage with exact wire/body hashes and configured identity
+not ok 2 - gateway captures uncoerced raw usage with exact wire/body hashes and configured identity
+  ---
+  duration_ms: 167.203124
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:9:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:9:374)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: charged malformed content still exposes its valid raw usage before translation fails
+not ok 3 - charged malformed content still exposes its valid raw usage before translation fails
+  ---
+  duration_ms: 175.74211
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:10:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:10:376)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: invalid raw usage is retained for conservative settlement and never converted into a free receipt
+not ok 4 - invalid raw usage is retained for conservative settlement and never converted into a free receipt
+  ---
+  duration_ms: 171.998781
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:11:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/gateway-raw-receipt.test.cjs:11:426)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: timeout with no provider response creates no fabricated usage receipt
+ok 5 - timeout with no provider response creates no fabricated usage receipt
+  ---
+  duration_ms: 182.520825
+  type: 'test'
+  ...
+# Subtest: over-limit response creates no fabricated usage receipt
+ok 6 - over-limit response creates no fabricated usage receipt
+  ---
+  duration_ms: 176.038842
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 2
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1172.942097

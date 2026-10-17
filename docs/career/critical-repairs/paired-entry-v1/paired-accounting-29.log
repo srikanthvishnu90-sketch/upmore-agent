@@ -1,0 +1,188 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"0270274c787345ae","commit":"5d9b7588fa3d701582a9ede0d47a4f816f47fbc0","preflightDirtyFiles":"M docs/career/critical-repairs/entry-context-readback-v2/README.md\n M scripts/build-router-core.py\n M scripts/career/critical-repairs/ci-node.cjs\n M supabase/functions/_shared/career_interview_entry.ts\n M supabase/functions/_shared/career_model_grounded.ts\n M supabase/functions/_shared/model_gateway.ts\n M supabase/functions/_shared/router_core.career.js\n M supabase/functions/_shared/router_core.js\n M supabase/functions/agent-chat/handler-career.ts\n M supabase/sql/proposals/career_model_pair_budget_v2.sql\n M tests/career-critical-repairs/interview-assessed-entry-postgres.test.cjs\n?? supabase/functions/_shared/career_interview_reasoner.ts\n?? supabase/sql/proposals/career_interview_execution_v1.sql","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/pair-budget-postgres.test.cjs":"efe4720086b38d700a3fe774509a141435e68ba4a268b25784185f67cd962f4b"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":375,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T01:54:26.218Z","runs":[],"out":"/tmp/upmore-ci-node-tgyfgK","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/pair-budget-postgres.test.cjs","database":"career_test_ci_0270274c787345ae_0","marker":"upmore-ci-fixture:0270274c787345ae"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-0270274c787345ae","database":"career_test_ci_0270274c787345ae_0","marker":"upmore-ci-fixture:0270274c787345ae"}
+# Subtest: pair admission never seeds absent or unreconciled real funding
+ok 1 - pair admission never seeds absent or unreconciled real funding
+  ---
+  duration_ms: 1175.531734
+  type: 'test'
+  ...
+# Subtest: both exact integer bounds and both monthly slots are held atomically
+ok 2 - both exact integer bounds and both monthly slots are held atomically
+  ---
+  duration_ms: 1024.581033
+  type: 'test'
+  ...
+# Subtest: funds sufficient for generation alone send neither leg
+ok 3 - funds sufficient for generation alone send neither leg
+  ---
+  duration_ms: 939.561823
+  type: 'test'
+  ...
+# Subtest: one remaining monthly slot rolls back both cash and partial monthly admission
+ok 4 - one remaining monthly slot rolls back both cash and partial monthly admission
+  ---
+  duration_ms: 1087.533603
+  type: 'test'
+  ...
+# Subtest: two owners racing the last affordable pair cannot overspend
+ok 5 - two owners racing the last affordable pair cannot overspend
+  ---
+  duration_ms: 815.357217
+  type: 'test'
+  ...
+# Subtest: same owner and exact key returns one stable existing attempt under a race
+ok 6 - same owner and exact key returns one stable existing attempt under a race
+  ---
+  duration_ms: 875.983972
+  type: 'test'
+  ...
+# Subtest: same key with different exact payload conflicts without another hold
+ok 7 - same key with different exact payload conflicts without another hold
+  ---
+  duration_ms: 868.650043
+  type: 'test'
+  ...
+# Subtest: foreign/stale context and unsupported policy configuration deny before admission
+ok 8 - foreign/stale context and unsupported policy configuration deny before admission
+  ---
+  duration_ms: 1412.646735
+  type: 'test'
+  ...
+# Subtest: each dispatch pins payload/envelope/bounds and permits a leg only once
+ok 9 - each dispatch pins payload/envelope/bounds and permits a leg only once
+  ---
+  duration_ms: 1703.131471
+  type: 'test'
+  ...
+# Subtest: both raw usage receipts settle global and monthly ledgers exactly once
+ok 10 - both raw usage receipts settle global and monthly ledgers exactly once
+  ---
+  duration_ms: 1487.209378
+  type: 'test'
+  ...
+# Subtest: missing raw usage stays unknown at the full bound
+ok 11 - missing raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1118.533114
+  type: 'test'
+  ...
+# Subtest: fractional raw usage stays unknown at the full bound
+ok 12 - fractional raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1095.340469
+  type: 'test'
+  ...
+# Subtest: negative raw usage stays unknown at the full bound
+ok 13 - negative raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1072.674664
+  type: 'test'
+  ...
+# Subtest: overcached raw usage stays unknown at the full bound
+ok 14 - overcached raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1086.559719
+  type: 'test'
+  ...
+# Subtest: inconsistent total raw usage stays unknown at the full bound
+ok 15 - inconsistent total raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1048.368035
+  type: 'test'
+  ...
+# Subtest: impossible reasoning raw usage stays unknown at the full bound
+ok 16 - impossible reasoning raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1124.941573
+  type: 'test'
+  ...
+# Subtest: wrong configured/response model or dispatch digest cannot become a known cheap bill
+ok 17 - wrong configured/response model or dispatch digest cannot become a known cheap bill
+  ---
+  duration_ms: 915.196558
+  type: 'test'
+  ...
+# Subtest: changed settlement bytes and foreign settlement cannot rewrite charges
+ok 18 - changed settlement bytes and foreign settlement cannot rewrite charges
+  ---
+  duration_ms: 1173.630933
+  type: 'test'
+  ...
+# Subtest: only never-dispatched legs refund their cash and monthly slots
+ok 19 - only never-dispatched legs refund their cash and monthly slots
+  ---
+  duration_ms: 1030.81074
+  type: 'test'
+  ...
+# Subtest: started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+ok 20 - started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+  ---
+  duration_ms: 1364.476534
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop blocks already held generation
+ok 21 - legacy unknown stop blocks already held generation
+  ---
+  duration_ms: 1555.852117
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop also blocks an already held verification leg
+ok 22 - legacy unknown stop also blocks an already held verification leg
+  ---
+  duration_ms: 1753.428163
+  type: 'test'
+  ...
+# Subtest: overdue started legacy tickets participate in the shared uncertainty stop
+ok 23 - overdue started legacy tickets participate in the shared uncertainty stop
+  ---
+  duration_ms: 1483.050099
+  type: 'test'
+  ...
+# Subtest: erase or STOP between legs denies checking while retaining known generation spend
+ok 24 - erase or STOP between legs denies checking while retaining known generation spend
+  ---
+  duration_ms: 1277.929836
+  type: 'test'
+  ...
+# Subtest: monthly record failure rolls back settlement and keeps the conservative hold
+ok 25 - monthly record failure rolls back settlement and keeps the conservative hold
+  ---
+  duration_ms: 1361.076831
+  type: 'test'
+  ...
+# Subtest: read-only owned status leaves account, parent and child rows unchanged
+ok 26 - read-only owned status leaves account, parent and child rows unchanged
+  ---
+  duration_ms: 1083.337717
+  type: 'test'
+  ...
+# Subtest: client roles cannot read pair data or invoke the four invoker RPCs
+ok 27 - client roles cannot read pair data or invoke the four invoker RPCs
+  ---
+  duration_ms: 995.088605
+  type: 'test'
+  ...
+# Subtest: extended gateway receipt pins the exact configured leg identity without losing raw usage
+ok 28 - extended gateway receipt pins the exact configured leg identity without losing raw usage
+  ---
+  duration_ms: 796.810261
+  type: 'test'
+  ...
+# Subtest: an extended receipt with the wrong configured leg identity remains fully uncertain
+ok 29 - an extended receipt with the wrong configured leg identity remains fully uncertain
+  ---
+  duration_ms: 795.977765
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33701.938439
+{"token":"0270274c787345ae","commit":"5d9b7588fa3d701582a9ede0d47a4f816f47fbc0","preflightDirtyFiles":"M docs/career/critical-repairs/entry-context-readback-v2/README.md\n M scripts/build-router-core.py\n M scripts/career/critical-repairs/ci-node.cjs\n M supabase/functions/_shared/career_interview_entry.ts\n M supabase/functions/_shared/career_model_grounded.ts\n M supabase/functions/_shared/model_gateway.ts\n M supabase/functions/_shared/router_core.career.js\n M supabase/functions/_shared/router_core.js\n M supabase/functions/agent-chat/handler-career.ts\n M supabase/sql/proposals/career_model_pair_budget_v2.sql\n M tests/career-critical-repairs/interview-assessed-entry-postgres.test.cjs\n?? supabase/functions/_shared/career_interview_reasoner.ts\n?? supabase/sql/proposals/career_interview_execution_v1.sql","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/pair-budget-postgres.test.cjs":"efe4720086b38d700a3fe774509a141435e68ba4a268b25784185f67cd962f4b"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":375,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T01:54:26.218Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/pair-budget-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/pair-budget-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-tgyfgK","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec","supabase/sql/proposals/career_interview_entry_v1.sql":"a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"299bb9fb2a50aa7666d4f8e234d550b8f0225ebf8c294b289835ffd1fd268845"},"fixture":{"container":"upmore-career-integration-pg-ci-0270274c787345ae","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T01:55:05.368Z","pass":true}

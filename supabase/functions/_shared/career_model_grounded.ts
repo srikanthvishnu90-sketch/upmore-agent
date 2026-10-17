@@ -7,7 +7,7 @@ type SemanticVerifier = {
   costPolicy: 'local_no_external_calls';
   verify: (request: any, signal: AbortSignal) => Promise<any>;
 };
-export type CareerModelDependencies = { semanticVerifier?: SemanticVerifier };
+export type CareerModelDependencies = { semanticVerifier?: SemanticVerifier; interview?:import('./career_interview_reasoner.ts').InterviewDependencies };
 const record=(x:any)=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const keys=(x:any,k:string[])=>record(x)&&Object.keys(x).sort().join(',')===[...k].sort().join(',');
 const copy=(x:any)=>JSON.parse(JSON.stringify(x));

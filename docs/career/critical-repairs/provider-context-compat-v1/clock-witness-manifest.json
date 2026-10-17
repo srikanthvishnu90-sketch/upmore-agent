@@ -1,0 +1,13 @@
+{
+  "testedParentHead": "bd20bb63a1401b702cc9d77f8770d4201430874f",
+  "sourceState": "SQL-only clock guard and watermark repair; earlier source-manifest remains the first runtime record",
+  "finalRefreshDdlSha256": "2f4573a8cf2827d2d3805e6c4d1690a9f2167b999e61c6b65104da3b28118791",
+  "evidenceSha256": {
+    "clock-guard-entry-10-of-10.log": "15ad2a06510caea2b4e755cba7f2853aa6358c4dc258e1ec6340f54f4c009685",
+    "clock-guard-refresh-9-of-9.log": "08f85c0ea4934d0ab6761a4ef837fc64271b5b553a98119a026f39a65c47dc52",
+    "deep-replay-driver.log": "1be14b22bfac628a95a8b19b3a07a41b2e15375d36629426b825e47be5853082"
+  },
+  "paidCalls": 0,
+  "browserOutcomes": 0,
+  "originalOraclesChanged": false
+}

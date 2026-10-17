@@ -50,6 +50,28 @@ The exact pre-account-scope proposal is retained as evidence, not applied SQL.
 recorded runner HEAD is the frozen-oracle HEAD and is not mislabeled as runtime.
 Every completed fixture reports ownership verification and removal.
 
+The first complete 21-file database run passed 243/244. Its original frozen
+entry oracle detected an unexplained counter edit being refreshed without a
+committed turn. This is an implementation failure, not an oracle error. The
+unchanged oracle and full failed output remain retained. Refresh now also
+requires the counter delta to match the durable owned-turn receipt delta and
+rejects decreasing or unexplained thread revisions. An explicitly imported
+older projection anchors its receipt watermark to its own account clock.
+The ten original entry checks pass with the clock guard; the nine refresh
+checks pass with the final watermark adjustment. The intermediate 8/9 run and
+its exact DDL are retained. No expected outcome was changed. Unsupported writers
+and missing witnesses fail closed. Full final validation must use the exact
+published head's CI result; the earlier 243/244 run is never counted as green.
+
+A fresh conversation replay on `bd20bb63a1401b702cc9d77f8770d4201430874f`
+passes 543/543 original checks over 83 turns and 426/426 held-out checks over
+82 turns. All transcripts, transport traces and SQL/state evidence are in
+`docs/testing/runs/conversation-recovery-20261016/spec-a-bd20-{original,heldouts}/`.
+Both report zero network attempts and require human review. The owned fixture
+was removed after both suites. The later change is confined to the context SQL
+proposal; this provider-disabled replay does not install that proposal or
+establish its correctness. `deep-replay-driver.log` records cleanup.
+
 The independent safe source suite passes 212/212 and native Deno checks the
 actual interview entry. The full native database run is recorded separately
 alongside this report once complete. No protected writing fixtures were read by

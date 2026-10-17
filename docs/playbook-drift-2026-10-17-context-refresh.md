@@ -15,3 +15,12 @@ and repaired 43/43 controlled run. The finite response mapping and numeric-zero
 exceptions preserve configured-model/pricing identity and all accounting gates.
 Neither official examples nor controlled provider responses establish actual
 provider quality or expenditure.
+
+The first full refresh regression run was 243/244: its unchanged original stale
+counter oracle caught the new refresh accepting an unexplained account edit.
+This is retained as an implementation failure. A durable owned-turn watermark
+now accompanies the source-basis witness; unexplained/decreasing clocks and
+missing witnesses remain unavailable. No stale-read assertion was removed or
+weakened. An older explicit canonical import anchors its watermark to its own
+projection clock. The evidence report distinguishes the failed prototype,
+scoped repaired runs and exact-head CI rather than transferring a passing score.

@@ -2,14 +2,14 @@
   "scope": "SOURCE_ONLY; Muse owns final merge/migration/deployment. No operational readiness or live-quality attestation.",
   "native_source": "a708123346e70a19a7787b0f60144b071f10ef15",
   "browser_source": "00f0178f9a36c8848233a2eb0bb04be3349b9168",
-  "combined_runtime": "ce810f30540665410de95856b694335a334c9ce8",
+  "combined_runtime": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
   "branch": "codex/native-browser-integration-20261017",
   "ordinary_native_input": [
     "thread_id",
     "turn_key",
     "message"
   ],
-  "runtime_hash_manifest": "final-source-sha256.json",
+  "runtime_hash_manifest": "review-followup-source-sha256.json (supplement to ce810f30 full manifest)",
   "native_upgrade_handoff": "../native-recovery-v1/muse-integration-handoff.json",
   "fresh_browser_dependencies": [
     "supabase/migrations/20261015020000_career_watch_kv.sql",
@@ -27,7 +27,7 @@
       "existing triggers, privileges, RLS and owner/version/epoch/approval fences",
       "existing intent/effect/accounting rows and unknown outcomes"
     ],
-    "purpose": "Use clock_timestamp after owner/row-lock waits for reservation, physical admission and first completion; refuse null/expired owned lease and expired intent."
+    "purpose": "Use clock_timestamp for absolute intent expiry at every legacy/owned reservation and physical admission; owned lease checks remain conditional. Post-dispatch settlement/unknown accounting remains allowed."
   },
   "migration_notes": [
     "Determine installed schema state before scaffolding a reviewed forward migration; no production inspection was performed.",
@@ -48,11 +48,31 @@
     "Original shared-campaign cash/unknown-liability reconciliation and old-worker fencing.",
     "Trusted parent-verified pinned readiness reporting provider_calls:0, exact invocation/host/source, native contract and full bounds.",
     "Intentional separate ingress exposure/origin and idle cleanup decisions by Muse.",
-    "Live model quality and live browser/employer outcomes remain unverified."
+    "Live model quality and live browser/employer outcomes remain unverified.",
+    "Wire the client, deploy career-applicant and its complete graph plus origins/auth routing and cleanup.",
+    "Reconcile Docker image copy closure with the current source artifact before native preflight.",
+    "Implement/review real employer destination/upload/receipt adapter; real manifests are denied, modeled receipts authoritative:false.",
+    "Select approved private host/identity/resource TTL and explicit browser-pilot allocation; see cost manifest."
   ],
   "vercel_target": "Owning-team get_deployment lookup denied HTTP403; authoritative target/promotion/aliases remain unverified. GitHub reported repository-managed deployment completed.",
   "paid_calls": 0,
   "production_mutations": 0,
   "deployment_commands": 0,
-  "employer_submissions": 0
+  "employer_submissions": 0,
+  "deployment_inventory": "deployment-manifest-proposal.json",
+  "current_verification": {
+    "runtime": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
+    "source_pass": 4754,
+    "source_skip": 40,
+    "source_fail": 0,
+    "local_sql_pass": 337,
+    "local_sql_suites": 36,
+    "ci_run": 39008896165,
+    "node": "success",
+    "deno": "success",
+    "database": "success",
+    "original_archives": "failure",
+    "dry_agents": "103/103",
+    "proof": "ci-99210033-terminal.json"
+  }
 }

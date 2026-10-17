@@ -1,0 +1,264 @@
+{
+  "status": "REVIEW_INVENTORY_ONLY_NOT_A_DEPLOYABLE_RELEASE",
+  "runtime": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
+  "observed_at": "2026-10-17T06:11:20.444774+00:00",
+  "function_components": [
+    {
+      "entry": "supabase/functions/career-applicant/index.ts",
+      "local_files_sha256": {
+        "supabase/functions/_shared/career_applicant_format.js": "3703ddc6b8b02a0f44ed248189b29565f6385af0828daac8d28b936bebc4dd52",
+        "supabase/functions/_shared/career_applicant_ingress.js": "1fa0a2c663ea054567976a02e7157a6c7cdc183a3544f57a4e1a5eed0318c906",
+        "supabase/functions/_shared/career_persistence.js": "e38f82a283a5e0eb7014564fba684f1c8d66959d96a913151d9ee1a6613952f1",
+        "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
+        "supabase/functions/_shared/router_core.career.js": "a10390be48140a6184dc99875aca0f65f1978caf9589a40f462d083fe672cfc5",
+        "supabase/functions/career-applicant/index.ts": "d3f129b06c83f10cf5c0b0ba15b2b119d1b2f68cd90cbc192c501d21d15e987b"
+      },
+      "unresolved_local_imports": []
+    },
+    {
+      "entry": "supabase/functions/agent-chat/index.ts",
+      "local_files_sha256": {
+        "supabase/functions/_shared/agent_core.js": "680dbfa0a1842083781f8aff1fcd886684f3c0729d9771686f253e03a7d9303d",
+        "supabase/functions/_shared/biller_service.ts": "ce98e3be6e8c5639ef0f54a7fdb80f22f6a2c4d56517d8ad6880f2d5e534fecf",
+        "supabase/functions/_shared/career_host.js": "1871bbc29a780d031b1c54876f3beb0999e8604c20cd2b0f980b4e17e45e6422",
+        "supabase/functions/_shared/claim_guard.ts": "6dea3271b93bfbe72aa8b4ddd4066dcb2bb8d819ca30413adf8a023af77f4439",
+        "supabase/functions/_shared/financial_planner.ts": "9271e3c7f8df465d5df4d7e14164c5ec98e927b32612ca785af5dbb19fedc09b",
+        "supabase/functions/_shared/financial_service.ts": "ba0fe85b0742a9bd40f9f2d2367f7cd853038fe29ab90d5aadd804ba59cae046",
+        "supabase/functions/_shared/financial_tools.ts": "4f421d6b2ee97ce6b8c4a8d9a6cb725993118128059bfd0c47df79ff1049d807",
+        "supabase/functions/_shared/flow_router.ts": "7806adce248cd0f97dba99bd8c8f556d31a89ddbfdab9334de75de6b442d7698",
+        "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
+        "supabase/functions/_shared/model_calls.ts": "13c144f240f310f1c076dbbcd9ee83dcc8435a802b2c967e613fb0d8d40ef91d",
+        "supabase/functions/_shared/model_gateway.ts": "75621ee237cd12cc1d950c980f3c6b0674b16302642a1bac90a5555c8ec549f1",
+        "supabase/functions/_shared/payment_service.ts": "100fb2f3cb232fec6a83d32678873c2dff4b27e9d05393fdc18767457cf267bf",
+        "supabase/functions/_shared/proactive.ts": "6aa3281cf682b73cbcab7e7fddd7d00a8956c328b7439946174cf7f2e0ca90c4",
+        "supabase/functions/_shared/recent_transactions.ts": "f9d420dd3ed3bbf1b8a36fd6559ea7a778ebe191a88157a71ee038978a5d7bd0",
+        "supabase/functions/_shared/recovery_service.ts": "a55b113f709d0438540950a4a76a01389e22490d10c9941319065d65261528eb",
+        "supabase/functions/_shared/router_core.js": "1c6587b5aa3af70a252908e5c006a3b6b60cc9a05d5fc2baf752132577603182",
+        "supabase/functions/_shared/workflow_service.ts": "5f73a6e5665e27ec0098267bc1e27c09af6bc24a0f68f0e312fffb432f0744d8",
+        "supabase/functions/agent-chat/_shared/agent.ts": "380b2b8f68cf0d6c25801aece68ab4c64917a66cd44a99b941ad2281ea14a61c",
+        "supabase/functions/agent-chat/_shared/airline_answer.ts": "db5ab52d70b1f3be7ae17838472e8fa39a5e4a088e01857cdda03e80c12009b4",
+        "supabase/functions/agent-chat/_shared/annual_checkup_answer.ts": "0c9c1b4cf0b075768ee838c49f34725acd02fe040a00c6b2fff1dfd42b4cb7db",
+        "supabase/functions/agent-chat/_shared/budget_answer.ts": "6217fccea143fec081ac5e4f00d632f248d8c0b71f5f5dcaff0da4f300181a16",
+        "supabase/functions/agent-chat/_shared/bureau_answer.ts": "87e9c9f79f7e113447c355448be6bc323993dfacbfa17f641303d69aff3d0906",
+        "supabase/functions/agent-chat/_shared/cancel_paths.ts": "7deb2385a10ed350ba574590946864d5bed47cabccf899b7c7e4136263cd4569",
+        "supabase/functions/agent-chat/_shared/capabilities.ts": "a64d2c087b1cdba72b7e47dd28111075983c2b2b31277a6d7188afde32ef267c",
+        "supabase/functions/agent-chat/_shared/card_offers_answer.ts": "b89b20287ce02a2f31e0fee72cf8fffcd9b0960f285e4f3bbd87f44432abff37",
+        "supabase/functions/agent-chat/_shared/chat_cors.ts": "ba442629ada47af34b549559bd924f1c7a6aae1410e95fca2d60e3661b496272",
+        "supabase/functions/agent-chat/_shared/chat_input.ts": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662",
+        "supabase/functions/agent-chat/_shared/chat_lesson_write.ts": "20be4fd5434c07f002a37b936c0a8b685af069dcaf644024301a9701a45b3255",
+        "supabase/functions/agent-chat/_shared/chat_session.ts": "25aee5ae5b24d3150a8551ebfbe0db98297aed75fbb3a8b0423b52b2b29ec623",
+        "supabase/functions/agent-chat/_shared/crypto_tax_answer.ts": "105b144b3cde52a9c3ffe1071614235c14d63dbbf6455926d2cb483bafd91970",
+        "supabase/functions/agent-chat/_shared/deadlines_answer.ts": "49f710e27cb733ae8627e627ba7237aa7c0ea49a25614aeb48f27fdd56edbd2f",
+        "supabase/functions/agent-chat/_shared/direct_answers.ts": "59485300b313172cc3c72704b8728d1cee70cbed5596b0986e44cdff9aa820a7",
+        "supabase/functions/agent-chat/_shared/dispute_answer.ts": "3eb487c145a885bdff0c7152368d0d22ebeea35cef2f928ae691871a079e69cd",
+        "supabase/functions/agent-chat/_shared/fee_audit_answer.ts": "fb1bd1883a6b477382808f5cbc0edb40a17d3d8c92dc95c0fee9554ea67fac1f",
+        "supabase/functions/agent-chat/_shared/finance_facts.ts": "cfcfbceed34bf167e53cb24d0d05d115a5c3085abde8a5c38105a5d2e4570c86",
+        "supabase/functions/agent-chat/_shared/form1099_answer.ts": "ca750fbc8b051fb74479ca58a1bede63a51e49c4c4fbf8bf09d5ebf207ee323c",
+        "supabase/functions/agent-chat/_shared/goal_answer.ts": "969c5dea09dfbe7b978bacdd5975de8566416f9ef91dd86e614b6166bd8652b5",
+        "supabase/functions/agent-chat/_shared/government_answer.ts": "2fa157f139534bdd64f78ceea5da2bc5e5789a4a6b017911b08d02de3637ab2a",
+        "supabase/functions/agent-chat/_shared/lessons.ts": "d551b585a8a4bf7f755db0702848b76829f846ac9bf39cf69edacf65d34b440a",
+        "supabase/functions/agent-chat/_shared/market_answer.ts": "ce3c4156e17088799f8eae191bd642dbfcfb03508fcc9689b107fd2a9f11b87a",
+        "supabase/functions/agent-chat/_shared/money_answers.ts": "7d7db990dfadc13c4e4eb44ea07323e8394f31127539682a24fd1666cb116f2e",
+        "supabase/functions/agent-chat/_shared/money_owed_answer.ts": "81a8a08b3367fd91bf116a148433015747b1b0cfae3b7bdfc99a95de0d442ab4",
+        "supabase/functions/agent-chat/_shared/paycheck_answer.ts": "092c25d02d05c0a06fffd37ae9f8fe28d32beb2efc1a698a1903f6aeb59bd6ed",
+        "supabase/functions/agent-chat/_shared/paycheck_send.ts": "599ecd233c57f1fb1d03452e025016afebc7f66f285ca0f29b68b2946dfb5b46",
+        "supabase/functions/agent-chat/_shared/payroll_answer.ts": "a44ea4034f67392a853bb89fd151dd9f849f038ae0812d8d7644c661fe332ab7",
+        "supabase/functions/agent-chat/_shared/price_drop_answer.ts": "0144dbadf57344a2dcdfbb171f9d5e518093b1f54f60090ea2abc965de72c8c6",
+        "supabase/functions/agent-chat/_shared/rewards_answer.ts": "a5063b85eb350ecd4d7fc7349a095b19879a5bfb3d920905d0658e428cea108b",
+        "supabase/functions/agent-chat/_shared/subscription_answer.ts": "3f15f1829835c5995cf77a89643fb590f17bd88fdbbb065026bebea5898c4d99",
+        "supabase/functions/agent-chat/_shared/substitutes_answer.ts": "a729f1aa9eea3999eb6118f50ce5a92026ee4ef1fc62ff0018cb13464bd9b035",
+        "supabase/functions/agent-chat/_shared/tip_fees_answer.ts": "6658108854c8ef751cc0c99d8c9184332c830b0ecf18e50a51d358b0defd3413",
+        "supabase/functions/agent-chat/_shared/unclaimed_answer.ts": "5caf8b82517c43b032db5e687c4de66a8297bfa3cbf96860230ddc159e689076",
+        "supabase/functions/agent-chat/_shared/whats_new_answer.ts": "3b8cb5d6e1696ee32c9c69b4330e5890440f0cd4ba1b40fe13681f95ae485a24",
+        "supabase/functions/agent-chat/_shared/win_back_answer.ts": "f731f70af6aef8f4db5af058fa8296d897822af193bbb0a27ea9983fd989ead9",
+        "supabase/functions/agent-chat/agent_core.js": "680dbfa0a1842083781f8aff1fcd886684f3c0729d9771686f253e03a7d9303d",
+        "supabase/functions/agent-chat/handler.ts": "2f81dfe87731830af74e2b9c27e49c08c5a1ce944265e8289be8137f85cb4bb1",
+        "supabase/functions/agent-chat/index.ts": "d8d72b49bce355e33c5f96b8653bf0c148e3ba82045370b3df934a17ad39e873",
+        "supabase/functions/agent-exec/merchant-catalog.ts": "509407a5d61d575def37d755708b63b5413bf5c3f74a6ac470f82cf75e18bba3"
+      },
+      "unresolved_local_imports": []
+    }
+  ],
+  "external_imports": [
+    "https://deno.land/std@0.208.0/http/server.ts",
+    "https://esm.sh/@supabase/supabase-js@2.117.1",
+    "node:buffer",
+    "node:zlib"
+  ],
+  "separate_deployment_units": [
+    "Existing frontend/client upload-review-confirm UI and ordinary chat endpoint",
+    "Supabase career-applicant Edge function plus recursively bundled shared imports",
+    "Reviewed SQL forward migration preserving existing rows/RLS/grants/unknown liabilities",
+    "Private single-replica Node24/Chromium worker from exact source artifact with owner-approved image, config and private volume"
+  ],
+  "schema_source_inventory_in_ci_order": [
+    {
+      "path": "supabase/migrations/20261015020000_career_watch_kv.sql",
+      "sha256": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/migrations/20261015234000_career_task_intents_v1.sql",
+      "sha256": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "sha256": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "sha256": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "sha256": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/migrations/20261010110000_model_call_budget.sql",
+      "sha256": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "sha256": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "sha256": "b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "sha256": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "sha256": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "sha256": "a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "sha256": "21bc9997661374aa2e5a25a8bd9958ae253bd6a92bd69d9446495b08279cf119",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "sha256": "87b4340ec038ebb9b10d130890b439e40b0e9839a75729a772424288efcbcc71",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "sha256": "bcf68d1d3e0fd5e22bc1f63be31e71383f1e86938cecc7322f5cfd49c542903d",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "sha256": "6518ea1ecee58ef45a4df2b77cc160c7a584bff72ab9c14960bf3b9fa2f9b50b",
+      "mode": "review installed schema; scaffold forward migration, never blindly rerun"
+    }
+  ],
+  "test_fixtures_not_production_migrations": [
+    "tests/fixtures/career-persistence-schema.sql",
+    "tests/fixtures/model-gateway-independent/monthly-schema.sql"
+  ],
+  "required_existing_relations": [
+    "auth.users",
+    "public.profiles",
+    "public.agent_threads",
+    "public.agent_messages",
+    "public.agent_flow_state",
+    "public.agent_usage"
+  ],
+  "endpoint_config_names_only": {
+    "platform_existing": [
+      "SUPABASE_URL",
+      "SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY"
+    ],
+    "owner_chosen_nonsecret": [
+      "UPMORE_APPLICANT_ALLOWED_ORIGINS"
+    ],
+    "auth_config": "career-applicant has no explicit supabase/config.toml stanza; Muse must review platform JWT/routing behavior. Source always verifies owner with auth.getUser. No auth configuration was changed.",
+    "routes": [
+      "POST /functions/v1/career-applicant/uploads",
+      "POST /functions/v1/career-applicant/review",
+      "POST /functions/v1/career-applicant/confirm"
+    ],
+    "origins": "Select actual approved frontend origins; no production alias guessed. Empty list still allows originless authenticated clients."
+  },
+  "worker_config_names_only": [
+    "UPMORE_BROWSER_BASE_IMAGE",
+    "UPMORE_WORKER_CODE_ROOT",
+    "UPMORE_STATE_DIR",
+    "UPMORE_SUPABASE_URL",
+    "UPMORE_EXISTING_RPC_KEY",
+    "UPMORE_EQUIPMENT_SOURCE=applicant_resume_store_v1",
+    "UPMORE_PLAYWRIGHT_PATH",
+    "UPMORE_CHROMIUM_PATH"
+  ],
+  "packaging_audit": {
+    "source_artifact": "scripts/career/build-owned-worker.cjs already packages worker modules and modeled-native smoke fixtures, plus per-file manifest. Edge functions and SQL intentionally ship separately.",
+    "docker_proposal": "Existing Dockerfile.proposal copies the legacy controlled smoke fixture; it does not copy new greenhouse-native smoke test/fixture files or renderer148 needed by that fixture. It is not a complete new-native smoke image. Muse must reconcile reviewed source artifact/image before building.",
+    "no_default_base": "Owner must provide digest-pinned compatible Node24/Playwright/Chromium base; no privileged/sandbox-disabled alternative.",
+    "image_built_or_launched": false
+  },
+  "genuine_path_blockers": [
+    "Client upload/review/confirm wiring is absent; text alone cannot supply or reconstruct an owned original resume.",
+    "No deployment, approved origins, live owner JWT/bytes, installed schema verification, private worker binding or idle cleanup schedule is established.",
+    "Real employer manifests are rejected in greenhouse-native.cjs by NATIVE_EMPLOYER_TRACE_REQUIRED; this is a code gate, not a missing environment variable.",
+    "Native capture returns authoritative:false; trusted employer-specific acceptance readback and unknown-outcome reconciliation are unimplemented/unverified.",
+    "Original archive release gate is red; source fixture totals do not waive it.",
+    "Native model enablement additionally needs original-campaign cash/liability reconciliation, old-worker fence and trusted pinned zero-provider-call readiness."
+  ],
+  "owner_muse_actions_in_order": [
+    "Restore genuine original archive prerequisites and accept independently reviewed source; do not waive required gate.",
+    "Review installed project schema and scaffold/apply approved forward migration with service-only RPCs, RLS, owner/epoch/version/expiry fences intact; no budget reseeding.",
+    "Approve and deploy separate Edge endpoint and UI mapping with existing secure server bindings and explicit origins; verify real-owner upload/review/confirm, exact bytes, stale/erase/pause/foreign-owner denials and cleanup.",
+    "Approve compatible private host/image/volume/identity and explicit browser-pilot spend/deadline; prove normal sandbox, local controlled browser and real queue path.",
+    "Implement/review a single-posting employer adapter and genuine readback from authorized observed form/upload/receipt trace; keep current denial until that exists.",
+    "Obtain one exact application approval bound to current job, resume hash, answers/profile and authority; permit one submit only; uncertain outcomes require readback, never re-click."
+  ],
+  "costs": {
+    "current_lane_paid_call_allocation_usd": 0,
+    "source_repairs_and_fixture_provider_spend_usd": 0,
+    "native_admitted_turn_ceiling_usd": "0.05 (25000 generation +25000 checker +0 other microUSD); no paid execution authorized",
+    "standalone_upload_review_confirmation_model_calls": 0,
+    "reference_host": {
+      "provider": "DigitalOcean Basic regular 1vCPU/2GiB/50GiB",
+      "hourly_usd": "0.01786",
+      "monthly_cap_usd": "12.00",
+      "two_hour_compute_only_usd": "0.03572",
+      "minimum": "60 seconds or $0.01, whichever higher",
+      "source": "https://www.digitalocean.com/pricing/droplets",
+      "checked_date": "2026-10-17",
+      "not_a_purchase_allocation_or_compatibility_attestation": true
+    },
+    "owner_quote_required": [
+      "Actual approved account/region/image and sandbox compatibility",
+      "Existing Supabase Edge/database/storage/egress/backup usage and quotas",
+      "Any incremental private volume/egress/retention costs and exact resource destroy time"
+    ],
+    "end_to_end_cost_total": "Unknown until owner selects resources and approves required code/integration work; infrastructure payment cannot enable the missing employer adapter/receipt."
+  },
+  "commands_executed": {
+    "deploy": 0,
+    "provision": 0,
+    "live_database_mutation": 0,
+    "paid_provider": 0,
+    "employer_submit": 0
+  },
+  "operationally_authorized_end_to_end_path": false,
+  "readiness_attestation": "NOT_ATTESTED",
+  "static_import_inventory_limit": "All new local static function imports resolved; actual deployed artifact/routing/auth/schema/runtime remain unverified."
+}

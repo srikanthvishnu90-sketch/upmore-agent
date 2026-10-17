@@ -61,3 +61,8 @@ Combined native a7081233 and browser 00f0178f source disproved complete publicat
 
 
 Combined verification completed on runtime ce810f30: 4752 source passes/40 skips, 332/332 local PostgreSQL contracts in 36 suites, 103/103 dry agents, and exact-runtime CI Node/Deno/database success (39007276669). Original-archive gate remains failed; quality/readiness/deployment remain unverified. Final evidence and migration/defaults checklist are in the linked combined handoff. All scoped code defects are closed; this completion supersedes only the earlier in-progress verification status.
+
+
+## Independent review: legacy expiry and mapped XML parts
+
+The8d102907 closure packet covered owned-lease expiry and suffix-based XML parts; reviewers reproduced supported legacy admission after absolute expiry and declared XML in settings.dat bypassing that guard. Runtime99210033 closes these exact gaps with frozen failures and unchanged post-dispatch settlement/allowed-byte controls. Fresh full results:4754 source passes/40 skips,337/337 local SQL in36 suites, and current CI39008896165 functional Node/Deno/database success with103/103 dry agents. Evidence-head8d CI39008211370 is also terminal functional green. Both workflows retain the failed required-original-archives gate. The new deployment manifest inventories actual source/schema units and explicitly marks the genuine employer path unavailable; host approval/payment cannot substitute for missing UI, deployment, real employer adapter or authoritative readback. [Current follow-up and owner/cost actions](career/critical-repairs/native-browser-compatibility-v1/INDEPENDENT-REVIEW-FOLLOWUP.md).

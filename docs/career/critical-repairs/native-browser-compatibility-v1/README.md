@@ -1,5 +1,7 @@
 # Native/browser source integration review and repair
 
+Current independent-review fixes are published at **99210033**; see [review follow-ups, current verification and the precise operational/cost boundary](INDEPENDENT-REVIEW-FOLLOWUP.md). Current verification: **4754 source passes/40 skips, 337/337 local SQL across36 suites, and exact-runtime Node/Deno/database CI success**. Required original archives remain red. The earlier ce810f30 results below are historical.
+
 This is an isolated source checkpoint, not a release, deployment, paid-model evaluation, browser/employer outcome, production migration, or operational-readiness attestation. Muse owns integration and deployment. Paid calls: **0**.
 
 Pins: native `a708123346e70a19a7787b0f60144b071f10ef15`; browser `00f0178f9a36c8848233a2eb0bb04be3349b9168`. Browser head supersedes the initial `7c575c5d` compatibility review. The combined unrepaired source is `0395abd4997d69c1294c8fec4181a1ebdbca4d65`; first repair candidate `670c5ba5720ed7d9fca1df67a4af584b4b4beb80`; document-policy correction `580be5426e10eaf98cdc07c6a67f0a6a5b0a2f68`; final runtime `ce810f30540665410de95856b694335a334c9ce8`. Both producer branches are preserved.

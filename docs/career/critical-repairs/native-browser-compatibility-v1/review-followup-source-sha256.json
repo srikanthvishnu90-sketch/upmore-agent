@@ -1,0 +1,12 @@
+{
+  "runtime": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
+  "files": {
+    "supabase/sql/proposals/career_owned_claim_recovery_v1.sql": "87b4340ec038ebb9b10d130890b439e40b0e9839a75729a772424288efcbcc71",
+    "supabase/functions/_shared/career_applicant_format.js": "3703ddc6b8b02a0f44ed248189b29565f6385af0828daac8d28b936bebc4dd52",
+    "tests/combined-effect-admission-postgres.test.cjs": "9775357f7d6c1dd064f84104254bb931a4ccf297d31f618f6f21c3be5a1cccc6",
+    "tests/helpers/applicant-policy-fixtures.cjs": "13fe2dffa864fd04c2e5d455a2798c4cca569d5917dcb1abb164a8c965a8336c",
+    "tests/combined-applicant-document-policy.test.cjs": "48aa15915b4692cae08a5e01134e93d8525a048074e1fb826e154e7f5adfd572"
+  },
+  "native_core_unchanged_from": "a708123346e70a19a7787b0f60144b071f10ef15",
+  "provider_calls": 0
+}

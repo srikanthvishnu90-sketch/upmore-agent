@@ -1,0 +1,27 @@
+✔ format validates actual original pdf container without changing bytes or extracting facts (14.432416ms)
+(node:1135850) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1135850) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ format validates actual original docx container without changing bytes or extracting facts (5.613914ms)
+✔ format rejects signature-only, corrupt, mismatched, traversal and oversized documents (4.667607ms)
+✔ PDF active/encrypted dialects are refused before storage (1.491252ms)
+✔ actual source entry rejects unauthenticated requests and blocked origins with zero backend effects (154.668566ms)
+✔ use-this-resume text without owned artifact/review and arbitrary page text do not confirm (80.509249ms)
+✔ unreviewed secret/eligibility fields and implicit field confirmation are refused (60.378729ms)
+✔ request body is bounded before JSON parsing or file storage, including no Content-Length (65.808461ms)
+✔ existing identity redactor refuses secrets in explicit field values while preserving ordinary phone numbers (61.444586ms)
+✔ filename metadata uses the existing identity policy before any storage RPC (71.208429ms)
+✔ bounded plain container refuses escaped-PDF-action (4.987058ms)
+✔ bounded plain container refuses UTF16-DOCX-DTD (1.103851ms)
+✔ bounded plain container refuses UTF16-DOCX-template (0.532859ms)
+✔ bounded plain container refuses UTF16-DOCX-mapped-settings-dat (2.261753ms)
+✔ literal active controls are refused and plain original bytes survive unchanged (11.49748ms)
+✔ declared plain UTF8 settings.dat is accepted without rewriting and mapped UTF8 DTD is refused (1.386175ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 613.510627

@@ -62756,6 +62756,65 @@
     "No paid model/browser/employer quality or production readiness proof.",
     "Required original archives remain missing and release-blocking."
    ]
+  },
+  {
+   "id": "native-browser-review-followup-20261017:99210033-source",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--source-only"
+   ],
+   "observed_at": "2026-10-17T06:28:14.019163+00:00",
+   "commit": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
+   "source_digest": "9335c76ebbf33ca3e5e013f194c16849d504389bbace582b063eeb21ae2dd532",
+   "source_inputs": "docs/career/critical-repairs/native-browser-compatibility-v1/review-followup-source-sha256.json",
+   "verification_level": "LOCAL",
+   "provider_mode": "SYNTHETIC_AUTH_PROVIDER_CAPTURE_NO_PAID_CALLS",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "passed": 4754,
+    "failed": 0,
+    "skipped": 40
+   },
+   "log": "docs/career/critical-repairs/native-browser-compatibility-v1/review-followup-full-source.log",
+   "log_sha256": "bcbdb36ea9cdd91d6a22d9a856322479a8a337b6c64d1422c65828dd59a644b7",
+   "screenshots": [],
+   "test_ids": [],
+   "limitations": [
+    "Source/controlled fixtures/local PostgreSQL only; no live model/employer quality or deployed readiness.",
+    "Genuine original archives remain missing and release-blocking."
+   ]
+  },
+  {
+   "id": "native-browser-review-followup-20261017:99210033-postgres",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only"
+   ],
+   "observed_at": "2026-10-17T06:28:14.019163+00:00",
+   "commit": "99210033674467cb248a84831d0fb3b3b5e9f1f4",
+   "source_digest": "9335c76ebbf33ca3e5e013f194c16849d504389bbace582b063eeb21ae2dd532",
+   "source_inputs": "docs/career/critical-repairs/native-browser-compatibility-v1/review-followup-source-sha256.json",
+   "verification_level": "ISOLATED_POSTGRES",
+   "provider_mode": "SYNTHETIC_AUTH_PROVIDER_CAPTURE_NO_PAID_CALLS",
+   "result": "PASS",
+   "exit_code": 0,
+   "reported_outcomes": {
+    "passed": 337,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 36
+   },
+   "log": "docs/career/critical-repairs/native-browser-compatibility-v1/review-followup-full-postgres.log",
+   "log_sha256": "7d40be1e81471405fc68d30612f394831e437047543a4b7dd641b3e1deebdd33",
+   "screenshots": [],
+   "test_ids": [],
+   "limitations": [
+    "Source/controlled fixtures/local PostgreSQL only; no live model/employer quality or deployed readiness.",
+    "Genuine original archives remain missing and release-blocking."
+   ]
   }
  ],
  "limitations": [

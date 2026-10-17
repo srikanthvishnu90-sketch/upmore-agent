@@ -74,6 +74,66 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+## Bespoke program-site fellowship forms (MI-104)
+
+One family class — a fellowship program's own site form — with two
+instances whose hosts and field sets genuinely differ, so each carries
+its own family in the seam (`eightvc`, `kleinerperkins`). Both entries
+are staged from the fellowship census 2026-10-15 (§8 / §7); neither
+census published an exact field list, so fields are read at drive time
+through module 150 and the sandbox boards stage the census summaries.
+
+### 8VC Fellowship — 8vc.com (Webflow)
+- What it is: the 8VC Fellowship application form on 8VC's own site
+  (census 2026-10-15 §8). A 3-month summer internship placing
+  undergraduate students (sophomore through graduating senior) as
+  engineers at 8VC portfolio startups; one application covers dozens
+  of companies; Engineering + Design pathways; fellows are paid by the
+  host company, with a partial housing stipend.
+- Deadline: rolling admission **until late January** — the official
+  page publishes no exact day/time [census].
+- Account required to apply? None observed in the census. Fields are
+  read at drive time — the sandbox board's field set is staged from
+  the census summary (identity/contact/education/resume = FACT;
+  work-authorization/sponsorship screening; the Engineering/Design
+  pathway is the applicant's own choice and stays an ask until
+  confirmed; the project description and why-8VC fields are free-text
+  owner asks that fill only from the owner's own confirmed draft —
+  never invented).
+- Driver posture: **allowed** (MI-104, branch work/mi104-bespoke-sites) —
+  host gate in 149 + 150 + the helper's navigation gate, end-anchored
+  so lookalikes (8vc.* on another registrable domain) stay refused;
+  doorstep proven tier-2 over captured-form fixtures
+  (tests/career-bespoke-sites-portal.test.cjs E-series +
+  tests/career-bespoke-sites-browser.test.cjs B1). No live 8VC form
+  has been driven and nothing has been submitted through this family.
+
+### Kleiner Perkins Fellows — fellows.kleinerperkins.com
+- What it is: the Kleiner Perkins Fellows application on KP's own
+  fellows site (census 2026-10-15 §7) — summer engineering internships
+  inside KP portfolio companies, SF Bay Area, in person. Top criterion:
+  "experience launching a meaningful product/project from scratch"; the
+  program also asks about positions of influence in campus
+  organizations (the offices themselves are not in the fact bank).
+- Deadline: **January 31, 2027, 11:59pm PST** [census — stated in KP's
+  own program listing].
+- Account required to apply? None observed in the census. Fields are
+  read at drive time — the sandbox board's field set is staged from
+  the census summary (identity/contact/education/resume = FACT,
+  including the CS/engineering/math/physics degree in progress;
+  work-authorization/sponsorship screening; the launched-project
+  write-up and the campus-leadership write-up are free-text owner asks
+  that fill only from the owner's own confirmed draft — never
+  invented, because those write-ups are the substance of this
+  application).
+- Driver posture: **allowed** (MI-104, branch work/mi104-bespoke-sites) —
+  host gate in 149 + 150 + the helper's navigation gate, end-anchored
+  so lookalikes stay refused; doorstep proven tier-2 over captured-form
+  fixtures (tests/career-bespoke-sites-portal.test.cjs K-series +
+  tests/career-bespoke-sites-browser.test.cjs B2). No live Kleiner
+  Perkins form has been driven and nothing has been submitted through
+  this family.
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

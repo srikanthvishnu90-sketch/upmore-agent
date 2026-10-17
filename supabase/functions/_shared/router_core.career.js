@@ -24678,8 +24678,10 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
-       is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
+       Lever, Ashby, SmartRecruiters, plus the bespoke program-site
+       fellowship families 8VC + Kleiner Perkins — MI-104); LinkedIn /
+       Indeed apply automation is refused by construction
+       (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
        the user the link to finish the last step (CAPTCHA_HANDOFF) — this
@@ -24729,6 +24731,16 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-104: bespoke program-site fellowship forms — one family class
+    // (each program's own site form), two instances with genuinely
+    // different hosts and field sets, so each gets its own family:
+    // the 8VC Fellowship form on 8vc.com (Webflow; census 2026-10-15
+    // §8) and the Kleiner Perkins Fellows application at
+    // fellows.kleinerperkins.com (census 2026-10-15 §7). Both patterns
+    // are anchored to the END of the hostname, so lookalikes
+    // (8vc.example.com, kleinerperkins.com.evil.com) do NOT match.
+    { re: /(^|\.)8vc\.com$/, family: "eightvc" },
+    { re: /(^|\.)kleinerperkins\.com$/, family: "kleinerperkins" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -24753,7 +24765,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, 8VC, Kleiner Perkins) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -24805,6 +24817,146 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-104: the bespoke program-site sandbox boards (TEST only) ----------
+  // Two program-site forms, two families — the sites share nothing but
+  // the family CLASS (a fellowship program's own site form), so each
+  // gets its own board + field set, staged from its census summary
+  // only (fellowship census 2026-10-15 §8 for 8VC, §7 for Kleiner
+  // Perkins). Neither census could publish an exact field list (both
+  // record "read at drive time"); the live forms' fields are read at
+  // drive time by module 150 and these boards are the faithful local
+  // seams for the pipeline, like the Greenhouse one. On both boards:
+  // identity/contact/education/resume + work-authorization/sponsorship
+  // screening fill from confirmed facts only; every free-text/essay
+  // field is an owner ask that fills ONLY from the owner's own
+  // confirmed draft — never invented; certify stays explicit-only.
+  //
+  // 8VC Fellowship (8vc.com, Webflow): a 3-month summer internship
+  // placing undergraduate students (sophomore through graduating
+  // senior) as engineers at 8VC portfolio startups; one application
+  // covers dozens of companies; Engineering + Design pathways — the
+  // pathway is the applicant's own choice, staged as a screening field
+  // that fills only from a confirmed answer and otherwise stays an ask.
+  const EIGHTVC_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "pathway", label: "Fellowship pathway (Engineering or Design)", kind: "screening", question_key: "pathway", required: false },
+    { field_id: "project_description", label: "Project description", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "why_8vc_fellowship", label: "Why 8VC Fellowship", kind: "free_text", question_key: "why_8vc_fellowship", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createEightVcSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "eightvc",
+      host: "sandbox.8vc-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: EIGHTVC_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-8-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // Kleiner Perkins Fellows (fellows.kleinerperkins.com): summer
+  // engineering internships inside KP portfolio companies, SF Bay Area,
+  // in person; deadline Jan 31, 2027, 11:59pm PST. The program's top
+  // criterion is "experience launching a meaningful product/project
+  // from scratch" and it asks about positions of influence in campus
+  // organizations — both are staged as free_text owner asks (the
+  // write-ups are the substance of the application and are the owner's
+  // own writing; campus offices are not in the fact bank). Degree in
+  // progress (CS/engineering/math/physics) fills from the education fact.
+  const KLEINERPERKINS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "degree", label: "Degree", kind: "standard", profile_key: "education_degree", required: false },
+    { field_id: "discipline", label: "Field of Study", kind: "standard", profile_key: "education_discipline", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "project_you_launched_from_scratch", label: "Project you launched from scratch", kind: "free_text", question_key: "project_you_launched_from_scratch", required: false },
+    { field_id: "campus_leadership_and_roles", label: "Campus leadership and roles", kind: "free_text", question_key: "campus_leadership_and_roles", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createKleinerPerkinsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "kleinerperkins",
+      host: "sandbox.kleinerperkins-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: KLEINERPERKINS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-K-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -25694,7 +25846,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createEightVcSandboxBoard, createKleinerPerkinsSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, EIGHTVC_FIELDS, KLEINERPERKINS_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

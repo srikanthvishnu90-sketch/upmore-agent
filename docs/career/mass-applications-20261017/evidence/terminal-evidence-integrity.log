@@ -1,0 +1,16 @@
+✔ size reduction restores every original career data value and Unicode character exactly (477.653617ms)
+✔ B-05: the staged career artifact stays under the platform ceiling (185.563649ms)
+✔ the scanner itself catches each kind and lets the anon key and labelled fakes through (3.333527ms)
+✔ no tracked file holds a key, a user or service JWT, a private key or a password (1735.08857ms)
+✔ control: the scanner still catches a real planted JWT, and the re-encoded fixtures still decode to live tripwires (0.779721ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (478.709418ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (219.859733ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.006947ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1812.163981

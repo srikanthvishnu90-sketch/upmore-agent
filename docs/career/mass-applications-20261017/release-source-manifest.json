@@ -1,6 +1,6 @@
 {
-  "runtime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
-  "observedAt": "2026-10-17T17:52:40.235117+00:00",
+  "runtime": "d9419241a82d21087871214df01ab63d4fa1e462",
+  "observedAt": "2026-10-17T18:15:08.928132+00:00",
   "status": "BLOCKED_SOURCE_HANDOFF_NOT_DEPLOYED",
   "branch": "codex/mass-applications-20261017",
   "project": {
@@ -28,7 +28,7 @@
         "supabase/functions/_shared/proactive.ts": "6aa3281cf682b73cbcab7e7fddd7d00a8956c328b7439946174cf7f2e0ca90c4",
         "supabase/functions/_shared/recent_transactions.ts": "f9d420dd3ed3bbf1b8a36fd6559ea7a778ebe191a88157a71ee038978a5d7bd0",
         "supabase/functions/_shared/recovery_service.ts": "a55b113f709d0438540950a4a76a01389e22490d10c9941319065d65261528eb",
-        "supabase/functions/_shared/router_core.js": "ed1b3019ae5f555524785e428d2bcddf00e2a4ea07b675182b4413e032f00710",
+        "supabase/functions/_shared/router_core.js": "3e698d9177372271e7f7c84e6d38245fef8b762db0d01861f1e57fe11dc7a3ef",
         "supabase/functions/_shared/workflow_service.ts": "5f73a6e5665e27ec0098267bc1e27c09af6bc24a0f68f0e312fffb432f0744d8",
         "supabase/functions/agent-chat/_shared/agent.ts": "380b2b8f68cf0d6c25801aece68ab4c64917a66cd44a99b941ad2281ea14a61c",
         "supabase/functions/agent-chat/_shared/airline_answer.ts": "db5ab52d70b1f3be7ae17838472e8fa39a5e4a088e01857cdda03e80c12009b4",
@@ -80,7 +80,7 @@
         "supabase/functions/_shared/career_applicant_ingress.js": "96d06b30222a33ada68b42052ded1a6fd988fa334e1e88c10e36371c29e25b3e",
         "supabase/functions/_shared/career_persistence.js": "e38f82a283a5e0eb7014564fba684f1c8d66959d96a913151d9ee1a6613952f1",
         "supabase/functions/_shared/identity_redact.ts": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83",
-        "supabase/functions/_shared/router_core.career.js": "980d4598b76da7dcc92795c6c96c375406c4a57bbdd2744105820663a066c583",
+        "supabase/functions/_shared/router_core.career.js": "2f8185056ee5f483cec3df89e4bdc9468e145bb83cf97a9a95bbadec7451458d",
         "supabase/functions/career-applicant/index.ts": "d3f129b06c83f10cf5c0b0ba15b2b119d1b2f68cd90cbc192c501d21d15e987b"
       },
       "unresolvedStaticImports": []
@@ -207,14 +207,14 @@
   ],
   "staticInventoryLimitation": "Literal ESM import/export declarations only; bundled CommonJS require calls resolve internally and are not treated as filesystem imports; runtime config, installed schema, external dependencies and Auth/origins require operator verification. No credential values read.",
   "workerBuild": {
-    "output": "/tmp/upmore-worker-e3c5ac58-source.tgz",
-    "sha256": "d9b3446c89c61a35a26cedf846086ce948e5e9d9088c09d78c7cab5cc6100c2d",
+    "output": "/tmp/upmore-worker-d9419241-source.tgz",
+    "sha256": "1623fd5fa061577cf3152507cccdbe82c279d05f3b4a235dc610af99bfc46f83",
     "files": 41,
-    "codeSha": "e3c5ac5809d74a602bf012a8b68d7869356a8deb"
+    "codeSha": "d9419241a82d21087871214df01ab63d4fa1e462"
   },
   "workerManifest": {
     "version": "upmore_owned_worker_source/v1",
-    "codeSha": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+    "codeSha": "d9419241a82d21087871214df01ab63d4fa1e462",
     "verification": "SOURCE_ONLY_NOT_DEPLOYED",
     "files": [
       {
@@ -251,7 +251,7 @@
       },
       {
         "path": "packages/domain/156-career-applications.js",
-        "sha256": "f6611ed6eb0d3ff4ed9780cd4c8a8ec0ae53d6b99d5bff5e8073b9e3a3eec24b"
+        "sha256": "f4d6b71646a9993a70f92b8be536b2891e0c0086f16bf694a2a6e56ea07d947c"
       },
       {
         "path": "scripts/career/build-owned-worker.cjs",
@@ -384,43 +384,171 @@
     ]
   },
   "checks": {
-    "currentRuntime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
-    "focusedParserSourceBundle": {
-      "passed": 23,
-      "failed": 0,
-      "log": "evidence/conversation-parser-after.log"
-    },
-    "actualSourceCollector": {
-      "passed": 1,
-      "failed": 0,
-      "log": "evidence/conversation-directory-source.log"
-    },
-    "stage": {
-      "bytes": 4087453,
-      "ceiling": 4200000,
-      "log": "evidence/stage-e3c5ac58.json"
-    },
-    "lastFullSource": {
-      "head": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
-      "passed": 4797,
+    "observedAt": "2026-10-17T18:15:08.928132+00:00",
+    "runtime": "d9419241a82d21087871214df01ab63d4fa1e462",
+    "evidenceTier": "CONTROLLED_SOURCE_DOM_EDGE_LOCAL_POSTGRES_AND_SYNTHETIC_PORTAL",
+    "source": {
+      "passed": 4800,
       "failed": 0,
       "skipped": 40,
-      "summary": "evidence/conversation-33219612-full-source-summary.json"
+      "cleanPreflight": true,
+      "summary": "evidence/d9419241-full-source-summary.json",
+      "log": "evidence/d9419241-full-source.log"
     },
-    "lastActualSQL": {
-      "head": "086ef37603cb81b7f85a1ec1f28e051278b65a59",
+    "composedSQL": {
       "passed": 1,
       "failed": 0,
       "fixtureRemoved": true,
-      "summary": "evidence/conversation-086ef376-actual-sql-summary.json"
+      "summary": "evidence/d9419241-composed-sql-summary.json",
+      "log": "evidence/d9419241-composed-sql.log",
+      "covers": [
+        "ordinary text and exact five-role constrained paraphrase",
+        "original resume and exact explicit factual profile confirmation",
+        "onsite-only rejects unstated mode; multi-city and negated-city/start-date clarification before fetch",
+        "sourced ten-match selection; hundred requested yields honest nine when only nine sources eligible",
+        "old scope/search/approval cannot revive newer context",
+        "expired source cannot enqueue approval; explicit unchanged-source refresh requires new preparation/answers/review",
+        "changed source held; admitted UNKNOWN roles never resent",
+        "lost refresh and approval acknowledgement replay; authoritative reload status",
+        "foreign owner, stale profile, pause, erase and client-role denial"
+      ]
     },
-    "active": {
-      "fullSourceSession": 27277,
-      "actualSQLSession": 1174,
-      "full40SQLSession": 48943,
-      "full40SQLHead": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
-      "runtimeCI": 39055588590
-    }
+    "fullLocalSQL": {
+      "runtime": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+      "passed": 356,
+      "failed": 0,
+      "files": 40,
+      "fixtureRemoved": true,
+      "summary": "evidence/33219612-full40-sql-summary.json",
+      "log": "evidence/33219612-full40-sql.log",
+      "same18ProductionSQLSourcesAsCurrent": {
+        "supabase/migrations/20261015020000_career_watch_kv.sql": true,
+        "supabase/migrations/20261015234000_career_task_intents_v1.sql": true,
+        "supabase/sql/proposals/career_public_research_v1.sql": true,
+        "supabase/sql/proposals/career_model_budget_v1.sql": true,
+        "supabase/sql/proposals/career_model_context_v2.sql": true,
+        "supabase/migrations/20261010110000_model_call_budget.sql": true,
+        "supabase/sql/proposals/career_model_pair_budget_v2.sql": true,
+        "supabase/sql/proposals/career_interview_entry_v1.sql": true,
+        "supabase/sql/proposals/career_interview_context_write_v1.sql": true,
+        "supabase/sql/proposals/career_interview_execution_v1.sql": true,
+        "supabase/sql/proposals/career_interview_context_refresh_v1.sql": true,
+        "supabase/sql/proposals/career_native_execution_v1.sql": true,
+        "supabase/sql/proposals/career_owned_claim_recovery_v1.sql": true,
+        "supabase/sql/proposals/career_application_admissions_v1.sql": true,
+        "supabase/sql/proposals/career_application_batch_v1.sql": true,
+        "supabase/sql/proposals/career_applicant_resume_store_v1.sql": true,
+        "supabase/sql/proposals/career_applicant_ingress_v1.sql": true,
+        "supabase/sql/proposals/career_application_conversation_v1.sql": true
+      },
+      "scope": "Frozen full suite is33219612; currentd9419241 additionally has the exact composed workflow run and full source. Do not mislabel the frozen full suite as current runtime."
+    },
+    "syntheticOutcome": {
+      "sourcedMatches": 10,
+      "sourceReads": 69,
+      "honestShortfall": {
+        "requested": 100,
+        "matched": 9
+      },
+      "initialHealthy": 9,
+      "roleHeldThenExplicitlyAnswered": 1,
+      "exactApprovedRoles": 10,
+      "physicalSyntheticSubmits": 5,
+      "unknown": 5,
+      "unchangedVendorCapBlocks": 5,
+      "employerReceipts": 0,
+      "employerSubmissions": 0,
+      "modelCalls": 0
+    },
+    "artifact": {
+      "stagedRawBytes": 4088315,
+      "ceilingBytes": 4200000,
+      "completeReferenceDatasets": 5,
+      "allValuesAndUnicodePreserved": true,
+      "worker": {
+        "output": "/tmp/upmore-worker-d9419241-source.tgz",
+        "sha256": "1623fd5fa061577cf3152507cccdbe82c279d05f3b4a235dc610af99bfc46f83",
+        "files": 41,
+        "codeSha": "d9419241a82d21087871214df01ab63d4fa1e462"
+      }
+    },
+    "offlineEvaluator": {
+      "passed": 91,
+      "gaps": 3,
+      "notRun": 3,
+      "runtime": "Node compatibility shim; actual Deno checked in CI, no browser claim"
+    },
+    "ciRuns": {
+      "priorRuntimeE3": {
+        "head": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+        "run": 39055588590,
+        "node": "success",
+        "deno": "success",
+        "database": "success",
+        "archives": "failure",
+        "terminalNodeSummary": "evidence/e3c5ac58-terminal-ci-node-summary.json",
+        "nodeRuns": 41,
+        "sqlFiles": 40
+      },
+      "priorEvidenceA6": {
+        "head": "a6a6b2751fddb77ec88959f7de7291a0ebc5e579",
+        "run": 39055713623,
+        "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39055713623",
+        "node": "success",
+        "deno": "success",
+        "database": "success",
+        "archives": "failure",
+        "terminalNodeSummary": "evidence/a6a6b275-terminal-ci-node-summary.json",
+        "nodeRuns": 41,
+        "sqlFiles": 40
+      },
+      "currentRuntime": {
+        "head": "d9419241a82d21087871214df01ab63d4fa1e462",
+        "run": 39056102226,
+        "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39056102226",
+        "statusSource": "Consult terminal GitHub job results; no pending state is inferred as success",
+        "node": "success",
+        "deno": "success",
+        "database": "success",
+        "archives": "failure",
+        "terminalNodeSummary": "evidence/d9419241-terminal-ci-node-summary.json",
+        "nodeRuns": 41,
+        "sqlFiles": 40
+      }
+    },
+    "sourceReadiness": "No remaining source/type/schema-contract failures in tested d9419241. Ready for Muse integration review under the documented supported-request and unchanged-posting scope. Workflow remains failed solely at the required original-archive gate; normal browser/model/employer outcomes are unproved.",
+    "remaining": [
+      "changed posting or replaced resume stays an explicit hold until a reviewed new preparation version is implemented",
+      "real applicant/country/employer requirements and exact approved supported-host manifest for a bounded trial",
+      "existing normal-sandbox runtime/access handoff; local sandbox startup failure and exact Vercel403 remain stopped",
+      "Muse forward migration and matched function/client/worker rollout; none executed",
+      "genuine original archives; required gate remains failed, no fabrication or waiver"
+    ],
+    "paidCalls": 0,
+    "liveDatabaseMutations": 0,
+    "deployments": 0,
+    "credentialOperations": 0,
+    "employerSubmissions": 0,
+    "evidenceSha256": {
+      "d9419241-full-source-summary.json": "261ab711bc85f20cbed688f77cc97508a611e1ba4a0f4e7aca64aeadc571fbbd",
+      "d9419241-full-source.log": "4485b9bbb57a73b4592deb0edfe7d37a6804d18c42d22ecd3be3ae0d0bea6e97",
+      "d9419241-composed-sql-summary.json": "7fc7d8fee70a6401b17d0b68017d8e69f66f2ba03dd91f404f994094ac27352a",
+      "d9419241-composed-sql.log": "9fe256ddc413f7506c87b1eb611960c0fb2fedfa29be5aae84b6e15644b1fccd",
+      "d9419241-composed-schema.sql": "88400a3018c0684076420753e162f45cbd56e3bd8112ae7ef8269edaf81217ec",
+      "33219612-full40-sql-summary.json": "1ac7d26207a8d2193ff4d8dbbd5aab6fd3a5e70a6fe8ec7fb0a028141434b40f",
+      "33219612-full40-sql.log": "ce1de5a64fb9ea69d2c73bcd66ccbf5ac4cbbe39d406cb8325b09ae3e03f3552",
+      "worker-d9419241-build.json": "8af891e246de30a9243f101d361cfc1a41d730ba8d442222f4c38e3d593b413b",
+      "stage-d9419241.json": "a809e2a7422d0f8cd957b93f98505ad90b4cf5b495546ed2a2bb63a6c23f17ee",
+      "d9419241-offline-check.log": "04986b7570fa5e96bdac09800e57ce54de217034a2d9c5b8115b2b4d396e9d33",
+      "e3c5ac58-terminal-ci-node-summary.json": "7e28e88d2a13e1e6115bd1238a1fc76a08697576c8fc4149eb53d24afe99be44",
+      "eeaedda9-deno-ts2322-excerpt.json": "d71dbf908948e8e6ae6999c448e4fec5a170f2b29fba0d4bc8d741b3daf94cd0",
+      "connectivity-terminal-source.log": "dfb8e92904c61fbf07acb035b2d7e7c9c3ab62fab23475a031a010fc98a8280d",
+      "a6a6b275-terminal-ci-node-summary.json": "f455c9dc3a5f59dc7ece7df48a1b4389383ebf18782838a4d31e1b981686f268",
+      "d9419241-terminal-ci-node-summary.json": "e8fc4fd92c00066d96535e191b609f709c6fd234fab4480b3764495e0216310a",
+      "terminal-runtime-evidence-ci-jobs.json": "133ff94918cc84883d3bb8e379296a0900de73c4bf86471067c14dadf781be4c",
+      "terminal-evidence-integrity.log": "b46c2650b283555578b55b1cc0c0df2e91da2e8612ec8da8ab60c34a4cfc732f"
+    },
+    "terminalCIObservedAt": "2026-10-17T18:23:47.388412+00:00"
   },
   "paidCalls": 0,
   "liveDatabaseMutations": 0,

@@ -1,89 +1,118 @@
 {
-  "observedAt": "2026-10-17T17:52:41.019284+00:00",
+  "observedAt": "2026-10-17T18:15:08.928132+00:00",
   "branch": "codex/mass-applications-20261017",
-  "runtime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+  "runtime": "d9419241a82d21087871214df01ab63d4fa1e462",
   "workingTree": "/workspace/upmore-review-final",
   "localBranch": "codex/application-review-final-20261017",
-  "frozenFullSQLWorktree": "/workspace/upmore-mass",
-  "features": [
-    "ordinary text to sourced shortlist and exact selected batch",
-    "explicit original resume and factual profile reviews; no invented facts",
-    "bound city/remote/publication filters and necessary date/negative-location clarification",
-    "bounded finance-first registry plus existing verified directory; Greenhouse content=true",
-    "stale-source refresh requires fresh preparation/answers/exact review; changed source held",
-    "status and UNKNOWN readback never grant resend"
-  ],
-  "completed": {
-    "currentRuntime": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
-    "focusedParserSourceBundle": {
-      "passed": 23,
-      "failed": 0,
-      "log": "evidence/conversation-parser-after.log"
-    },
-    "actualSourceCollector": {
-      "passed": 1,
-      "failed": 0,
-      "log": "evidence/conversation-directory-source.log"
-    },
-    "stage": {
-      "bytes": 4087453,
-      "ceiling": 4200000,
-      "log": "evidence/stage-e3c5ac58.json"
-    },
-    "lastFullSource": {
-      "head": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
-      "passed": 4797,
-      "failed": 0,
-      "skipped": 40,
-      "summary": "evidence/conversation-33219612-full-source-summary.json"
-    },
-    "lastActualSQL": {
-      "head": "086ef37603cb81b7f85a1ec1f28e051278b65a59",
-      "passed": 1,
-      "failed": 0,
-      "fixtureRemoved": true,
-      "summary": "evidence/conversation-086ef376-actual-sql-summary.json"
-    },
-    "active": {
-      "fullSourceSession": 27277,
-      "actualSQLSession": 1174,
-      "full40SQLSession": 48943,
-      "full40SQLHead": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
-      "runtimeCI": 39055588590
-    }
+  "sourceAndComposedTests": "TERMINAL_PASS",
+  "frozenFull40SQL": "TERMINAL_PASS_ON33219612_IDENTICAL_SQL_SOURCES",
+  "evidence": "terminal-local-checks.json",
+  "localSource": {
+    "passed": 4800,
+    "failed": 0,
+    "skipped": 40,
+    "cleanPreflight": true,
+    "summary": "evidence/d9419241-full-source-summary.json",
+    "log": "evidence/d9419241-full-source.log"
   },
-  "CI": {
-    "33219612": {
-      "run": 39054841616,
-      "deno": "success including actual typecheck",
-      "database": "success",
-      "node": "in_progress",
-      "archives": "failure"
+  "composedSQL": {
+    "passed": 1,
+    "failed": 0,
+    "fixtureRemoved": true,
+    "summary": "evidence/d9419241-composed-sql-summary.json",
+    "log": "evidence/d9419241-composed-sql.log",
+    "covers": [
+      "ordinary text and exact five-role constrained paraphrase",
+      "original resume and exact explicit factual profile confirmation",
+      "onsite-only rejects unstated mode; multi-city and negated-city/start-date clarification before fetch",
+      "sourced ten-match selection; hundred requested yields honest nine when only nine sources eligible",
+      "old scope/search/approval cannot revive newer context",
+      "expired source cannot enqueue approval; explicit unchanged-source refresh requires new preparation/answers/review",
+      "changed source held; admitted UNKNOWN roles never resent",
+      "lost refresh and approval acknowledgement replay; authoritative reload status",
+      "foreign owner, stale profile, pause, erase and client-role denial"
+    ]
+  },
+  "fullLocalSQL": {
+    "runtime": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+    "passed": 356,
+    "failed": 0,
+    "files": 40,
+    "fixtureRemoved": true,
+    "summary": "evidence/33219612-full40-sql-summary.json",
+    "log": "evidence/33219612-full40-sql.log",
+    "same18ProductionSQLSourcesAsCurrent": {
+      "supabase/migrations/20261015020000_career_watch_kv.sql": true,
+      "supabase/migrations/20261015234000_career_task_intents_v1.sql": true,
+      "supabase/sql/proposals/career_public_research_v1.sql": true,
+      "supabase/sql/proposals/career_model_budget_v1.sql": true,
+      "supabase/sql/proposals/career_model_context_v2.sql": true,
+      "supabase/migrations/20261010110000_model_call_budget.sql": true,
+      "supabase/sql/proposals/career_model_pair_budget_v2.sql": true,
+      "supabase/sql/proposals/career_interview_entry_v1.sql": true,
+      "supabase/sql/proposals/career_interview_context_write_v1.sql": true,
+      "supabase/sql/proposals/career_interview_execution_v1.sql": true,
+      "supabase/sql/proposals/career_interview_context_refresh_v1.sql": true,
+      "supabase/sql/proposals/career_native_execution_v1.sql": true,
+      "supabase/sql/proposals/career_owned_claim_recovery_v1.sql": true,
+      "supabase/sql/proposals/career_application_admissions_v1.sql": true,
+      "supabase/sql/proposals/career_application_batch_v1.sql": true,
+      "supabase/sql/proposals/career_applicant_resume_store_v1.sql": true,
+      "supabase/sql/proposals/career_applicant_ingress_v1.sql": true,
+      "supabase/sql/proposals/career_application_conversation_v1.sql": true
     },
-    "eeaedda9": {
-      "run": 39053821947,
-      "state": "terminalfailure",
-      "sourcePassed": 4788,
-      "sourceFailed": 4,
-      "SQLFilesPassed": 40,
-      "deno": "TS2322",
-      "archives": "failure"
-    },
-    "e3c5ac58": {
+    "scope": "Frozen full suite is33219612; currentd9419241 additionally has the exact composed workflow run and full source. Do not mislabel the frozen full suite as current runtime."
+  },
+  "ciRuns": {
+    "priorRuntimeE3": {
+      "head": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
       "run": 39055588590,
-      "state": "in_progress"
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "archives": "failure",
+      "terminalNodeSummary": "evidence/e3c5ac58-terminal-ci-node-summary.json",
+      "nodeRuns": 41,
+      "sqlFiles": 40
+    },
+    "priorEvidenceA6": {
+      "head": "a6a6b2751fddb77ec88959f7de7291a0ebc5e579",
+      "run": 39055713623,
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39055713623",
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "archives": "failure",
+      "terminalNodeSummary": "evidence/a6a6b275-terminal-ci-node-summary.json",
+      "nodeRuns": 41,
+      "sqlFiles": 40
+    },
+    "currentRuntime": {
+      "head": "d9419241a82d21087871214df01ab63d4fa1e462",
+      "run": 39056102226,
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39056102226",
+      "statusSource": "Consult terminal GitHub job results; no pending state is inferred as success",
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "archives": "failure",
+      "terminalNodeSummary": "evidence/d9419241-terminal-ci-node-summary.json",
+      "nodeRuns": 41,
+      "sqlFiles": 40
     }
   },
   "remaining": [
-    "complete exact e3c5ac58 full source and actual composed SQL; full40 local SQL frozen33219612 and exact CI",
-    "explicit reselection/versioning of changed postings or replaced resume remains a safe hold; no silent overwrite",
-    "genuine country/employer-specific requirements must be supplied; no inferred qualification or acceptance",
-    "normal-sandbox runtime handoff unavailable; exact Vercel403 and local sandbox failure remain stopped",
-    "Muse final coordinated forward migration/function/client/worker integration",
-    "genuine original archives required; no waiver"
+    "changed posting or replaced resume stays an explicit hold until a reviewed new preparation version is implemented",
+    "real applicant/country/employer requirements and exact approved supported-host manifest for a bounded trial",
+    "existing normal-sandbox runtime/access handoff; local sandbox startup failure and exact Vercel403 remain stopped",
+    "Muse forward migration and matched function/client/worker rollout; none executed",
+    "genuine original archives; required gate remains failed, no fabrication or waiver"
   ],
   "paidCalls": 0,
   "liveDatabaseMutations": 0,
   "deployments": 0,
-  "employerSubmissions": 0
+  "employerSubmissions": 0,
+  "sourceReadiness": "No remaining source/type/schema-contract failures in tested d9419241. Ready for Muse integration review under the documented supported-request and unchanged-posting scope. Workflow remains failed solely at the required original-archive gate; normal browser/model/employer outcomes are unproved.",
+  "localTestProcesses": "All terminal; no pending local test processes",
+  "ciJobEvidence": "evidence/terminal-runtime-evidence-ci-jobs.json"
 }

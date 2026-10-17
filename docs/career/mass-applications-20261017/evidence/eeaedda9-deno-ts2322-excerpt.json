@@ -1,0 +1,19 @@
+{
+  "evidenceTier": "CI_JOB_LOG_EXCERPT_NOT_ORIGINAL_PROVIDER_ARCHIVE",
+  "head": "eeaedda9ca9ff8ccdd16bc7c4d8da839be47120d",
+  "run": 39053821947,
+  "job": 117457609385,
+  "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39053821947/job/117457609385",
+  "excerpt": [
+    "2026-10-17T17:28:25.4477958Z Check supabase/functions/gmail-oauth/career.ts",
+    "2026-10-17T17:28:28.2487833Z TS2322 [ERROR]: Type 'any[]' is not assignable to type 'never[]'.",
+    "2026-10-17T17:28:28.2488266Z   Type 'any' is not assignable to type 'never'.",
+    "2026-10-17T17:28:28.2488976Z     at file:///home/runner/work/upmore-agent/upmore-agent/supabase/functions/agent-chat/handler-career.ts:189:182",
+    "2026-10-17T17:28:28.2489472Z ",
+    "2026-10-17T17:28:28.2549984Z error: Type checking failed.",
+    "2026-10-17T17:28:28.2997811Z ##[error]Process completed with exit code 1.",
+    "2026-10-17T17:28:28.3059909Z Post job cleanup.",
+    "2026-10-17T17:28:28.3785539Z Caching is not enabled. Caching is skipped.",
+    "2026-10-17T17:28:28.3933470Z Post job cleanup."
+  ]
+}

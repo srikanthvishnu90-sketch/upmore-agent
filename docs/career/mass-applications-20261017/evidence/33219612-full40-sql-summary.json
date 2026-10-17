@@ -1,0 +1,691 @@
+{
+  "token": "5c660214e2dc2b6e",
+  "commit": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+  "preflightDirtyFiles": "",
+  "harnessSha256": "a167cac44fbac9f64b74cd313fdc272eb8c8f03e3a7efed29a57387ab1b5f628",
+  "testSourceSha256": {
+    "career-applicant-ingress-postgres.test.cjs": "c99f3825492ba77b0904f3f43662d757809d11fc8003517b8eb0e8a7e54f87d4",
+    "career-applicant-store-postgres.test.cjs": "5528c32ce42b275c770f721a0f681edda2db454727866680b515bd8dea48f409",
+    "career-claim-recovery-postgres.test.cjs": "370b1dc76943a21f95c8cc5e9707d1979b1eddd1c62e7fbe1b073c0fe3fc38ac",
+    "career-critical-repairs/applicant-client-postgres.test.cjs": "2a93957dc2a0ebe16e1e230af033b7ae01cb4f8369c4442d241670e1b3fabcf9",
+    "career-critical-repairs/application-admissions-postgres.test.cjs": "9d8b191e06640a4bc420dd8b1e28fccb969bee8a01b88e295b3b3ceb5eaa5ec1",
+    "career-critical-repairs/application-batch-postgres.test.cjs": "15e7a95c91870459e99ef9d76e4928a59b1d0841983f8fe949b488ea6b6e69f7",
+    "career-critical-repairs/application-conversation-postgres.test.cjs": "5f8fd05f8ea9a1ffc819250c9da69903d06a051867d9b189535ac7cb6a71be61",
+    "career-critical-repairs/combined-ingress-native-postgres.test.cjs": "9e6e05dae5bfa057379b647ed9cb7087c04a931082150ea7785797d2d0b193a9",
+    "career-critical-repairs/combined-native-applicant-postgres.test.cjs": "0c27329d96ad062bcf82eab308aafa046dbf52cb391c36c8c546849a8f92e75c",
+    "career-critical-repairs/combined-pull-publication-postgres.test.cjs": "30a1b2814ebc8c66d9ba45a6652b630fc98935ad1376e779fa56843de1a17c6e",
+    "career-critical-repairs/interview-assessed-entry-postgres.test.cjs": "c70321ebde445b98faa0857dc6d9cc3dc3b0ef19ff293cfe5a274a82cd984145",
+    "career-critical-repairs/interview-background-refresh-postgres.test.cjs": "0d7a261fffac8a6de7628e4b4f84cf56abe27384c41a943735aa03fd73f87522",
+    "career-critical-repairs/interview-context-writer-postgres.test.cjs": "36edd0aac119d524006288ffa832cb6ebe3957d8a9a352d60e2541d11901c3c9",
+    "career-critical-repairs/interview-entry-postgres.test.cjs": "bed4062457d55be80ea5f98fe2bf7df13d37d64708274de7e051a46aa2ad04af",
+    "career-critical-repairs/interview-execution-failures-postgres.test.cjs": "d399b4aa09a151794f2794307c32c9a8de546b058f22874c8d695824df9f595c",
+    "career-critical-repairs/interview-readback-review-postgres.test.cjs": "727135b9372da0bd452a826cf4e5b03752a1cd950f9468053b25e566eae71f8d",
+    "career-critical-repairs/interview-status-postgres.test.cjs": "beb07cf858f7e93b2698de5d2d4b19d355421b77de0aa5cff7169b1f0ebcd9f5",
+    "career-critical-repairs/interview-thread-refresh-postgres.test.cjs": "29beb83da78611eda78b6eb572505c2155e2b676308b9ecd0db47993784ab249",
+    "career-critical-repairs/native-delayed-duplicate-postgres.test.cjs": "f4eadf42e01b52e2e42ed8069c81cda01d80600a3b4770313a56d920f8bae785",
+    "career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs": "9e121ae472c80190acbae317c69c240ed0f582f3b569f3c30d7d94e18bb0f78c",
+    "career-critical-repairs/native-observation-recovery-postgres.test.cjs": "278e73edf57278a6a8549121012f500bd72bff2b89c674669269af4a7798773e",
+    "career-critical-repairs/native-text-authority-postgres.test.cjs": "f58eb8fd024d3b60c622403961c3269ef8b4611a11574499fe80a53719389a4c",
+    "career-critical-repairs/native-text-entry-postgres.test.cjs": "716efcb5d0d4817c6bff3425d5db03718a753818abcc85f6fedd220b7fd563e6",
+    "career-critical-repairs/pair-budget-postgres.test.cjs": "efe4720086b38d700a3fe774509a141435e68ba4a268b25784185f67cd962f4b",
+    "career-critical-repairs/provider-receipt-compat-postgres.test.cjs": "60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22",
+    "career-flexible-grounding-postgres.test.cjs": "9b2d6e97be464ff05d1a7580c9908b23011c9bf9dda1c417de3977d428c71520",
+    "career-model-budget-postgres.test.cjs": "f7b924ee27a0ade9830e46c63e7a247be5d1899b3f2de48cfefe3c62edc43df3",
+    "career-persistence-postgres.test.cjs": "976b7114bdc1dd31c480259dccd46a79c1b9d52d0d63e7cdb8d717a230dd5d88",
+    "career-public-research-postgres.test.cjs": "79984ed2c8ac98cc23dcd7bf105f3b44c1cbc39ba210e1ec2471d631817eeb94",
+    "career-task-authority-postgres.test.cjs": "b9133701082a0d3f782a3b500f8036f3e99b47453eb694d7d0358c51417556b8",
+    "combined-applicant-document-postgres.test.cjs": "3086b5edf99b7d9d448a77826d78a49e0fc0ae804917c6fa6271081732b7b55f",
+    "combined-applicant-filename-postgres.test.cjs": "607bd8c6a4397d1ac055395a5849c385c0886f04c67cd57ea92560c9827a3d0e",
+    "combined-effect-admission-postgres.test.cjs": "9775357f7d6c1dd064f84104254bb931a4ccf297d31f618f6f21c3be5a1cccc6",
+    "correction-authority-postgres.test.cjs": "86b23664ee6f6b53c7ef9151888a7141afaf3f51218deede0fde302ecc3bc8f4",
+    "model-budget-independent-postgres.test.cjs": "a8f3e6fbb7c346e7c2736fd2c231bcc337fd203acd445145d7c5c9928bd273e4",
+    "model-monthly-independent-postgres.test.cjs": "263b244c837ffb85e5ec15261f02c9476b94108a0604da086296c0c4e4eb02b0",
+    "privacy-research-composition.test.cjs": "78683dc5fcbf9faf8a91d5a4eafcadf785392760f13b3a69ec0108a72e5a05a2",
+    "research-conversation-independent-postgres.test.cjs": "ffa0faf0d04ee9fc40a2399d87f8408fe5d5614693dd80617d47feb1f2273047",
+    "resume-flexible-composition-postgres.test.cjs": "8b2988f6689227d7ee12e420920411b44c52f91b0bf13739037ec7bdc5d9c60a",
+    "resume-supersession-postgres.test.cjs": "8fd1eb7ca5c276fbcefff398f8735fdaa1429f8b25d8de90930e1b9d438f528d"
+  },
+  "evidenceTier": "MOCK_CONTRACT_AND_LOCAL_POSTGRES",
+  "selection": "--postgres-only",
+  "rootFiles": 426,
+  "selectedFiles": 40,
+  "sqlFiles": [
+    "career-applicant-ingress-postgres.test.cjs",
+    "career-applicant-store-postgres.test.cjs",
+    "career-claim-recovery-postgres.test.cjs",
+    "career-critical-repairs/applicant-client-postgres.test.cjs",
+    "career-critical-repairs/application-admissions-postgres.test.cjs",
+    "career-critical-repairs/application-batch-postgres.test.cjs",
+    "career-critical-repairs/application-conversation-postgres.test.cjs",
+    "career-critical-repairs/combined-ingress-native-postgres.test.cjs",
+    "career-critical-repairs/combined-native-applicant-postgres.test.cjs",
+    "career-critical-repairs/combined-pull-publication-postgres.test.cjs",
+    "career-critical-repairs/interview-assessed-entry-postgres.test.cjs",
+    "career-critical-repairs/interview-background-refresh-postgres.test.cjs",
+    "career-critical-repairs/interview-context-writer-postgres.test.cjs",
+    "career-critical-repairs/interview-entry-postgres.test.cjs",
+    "career-critical-repairs/interview-execution-failures-postgres.test.cjs",
+    "career-critical-repairs/interview-readback-review-postgres.test.cjs",
+    "career-critical-repairs/interview-status-postgres.test.cjs",
+    "career-critical-repairs/interview-thread-refresh-postgres.test.cjs",
+    "career-critical-repairs/native-delayed-duplicate-postgres.test.cjs",
+    "career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs",
+    "career-critical-repairs/native-observation-recovery-postgres.test.cjs",
+    "career-critical-repairs/native-text-authority-postgres.test.cjs",
+    "career-critical-repairs/native-text-entry-postgres.test.cjs",
+    "career-critical-repairs/pair-budget-postgres.test.cjs",
+    "career-critical-repairs/provider-receipt-compat-postgres.test.cjs",
+    "career-flexible-grounding-postgres.test.cjs",
+    "career-model-budget-postgres.test.cjs",
+    "career-persistence-postgres.test.cjs",
+    "career-public-research-postgres.test.cjs",
+    "career-task-authority-postgres.test.cjs",
+    "combined-applicant-document-postgres.test.cjs",
+    "combined-applicant-filename-postgres.test.cjs",
+    "combined-effect-admission-postgres.test.cjs",
+    "correction-authority-postgres.test.cjs",
+    "model-budget-independent-postgres.test.cjs",
+    "model-monthly-independent-postgres.test.cjs",
+    "privacy-research-composition.test.cjs",
+    "research-conversation-independent-postgres.test.cjs",
+    "resume-flexible-composition-postgres.test.cjs",
+    "resume-supersession-postgres.test.cjs"
+  ],
+  "started": "2026-10-17T17:41:18.202Z",
+  "runs": [
+    {
+      "label": "postgres-0",
+      "files": [
+        "career-applicant-ingress-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-applicant-ingress-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-1",
+      "files": [
+        "career-applicant-store-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-applicant-store-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-2",
+      "files": [
+        "career-claim-recovery-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-claim-recovery-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-3",
+      "files": [
+        "career-critical-repairs/applicant-client-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/applicant-client-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-4",
+      "files": [
+        "career-critical-repairs/application-admissions-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/application-admissions-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-5",
+      "files": [
+        "career-critical-repairs/application-batch-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/application-batch-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-6",
+      "files": [
+        "career-critical-repairs/application-conversation-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/application-conversation-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-7",
+      "files": [
+        "career-critical-repairs/combined-ingress-native-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/combined-ingress-native-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-8",
+      "files": [
+        "career-critical-repairs/combined-native-applicant-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/combined-native-applicant-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-9",
+      "files": [
+        "career-critical-repairs/combined-pull-publication-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/combined-pull-publication-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-10",
+      "files": [
+        "career-critical-repairs/interview-assessed-entry-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-assessed-entry-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-11",
+      "files": [
+        "career-critical-repairs/interview-background-refresh-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-background-refresh-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-12",
+      "files": [
+        "career-critical-repairs/interview-context-writer-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-context-writer-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-13",
+      "files": [
+        "career-critical-repairs/interview-entry-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-entry-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-14",
+      "files": [
+        "career-critical-repairs/interview-execution-failures-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-execution-failures-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-15",
+      "files": [
+        "career-critical-repairs/interview-readback-review-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-readback-review-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-16",
+      "files": [
+        "career-critical-repairs/interview-status-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-status-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-17",
+      "files": [
+        "career-critical-repairs/interview-thread-refresh-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-18",
+      "files": [
+        "career-critical-repairs/native-delayed-duplicate-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/native-delayed-duplicate-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-19",
+      "files": [
+        "career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-20",
+      "files": [
+        "career-critical-repairs/native-observation-recovery-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/native-observation-recovery-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-21",
+      "files": [
+        "career-critical-repairs/native-text-authority-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/native-text-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-22",
+      "files": [
+        "career-critical-repairs/native-text-entry-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/native-text-entry-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-23",
+      "files": [
+        "career-critical-repairs/pair-budget-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/pair-budget-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-24",
+      "files": [
+        "career-critical-repairs/provider-receipt-compat-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-25",
+      "files": [
+        "career-flexible-grounding-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-flexible-grounding-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-26",
+      "files": [
+        "career-model-budget-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-model-budget-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-27",
+      "files": [
+        "career-persistence-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-persistence-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-28",
+      "files": [
+        "career-public-research-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-public-research-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-29",
+      "files": [
+        "career-task-authority-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/career-task-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-30",
+      "files": [
+        "combined-applicant-document-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/combined-applicant-document-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-31",
+      "files": [
+        "combined-applicant-filename-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/combined-applicant-filename-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-32",
+      "files": [
+        "combined-effect-admission-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/combined-effect-admission-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-33",
+      "files": [
+        "correction-authority-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/correction-authority-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-34",
+      "files": [
+        "model-budget-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/model-budget-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-35",
+      "files": [
+        "model-monthly-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/model-monthly-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-36",
+      "files": [
+        "privacy-research-composition.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/privacy-research-composition.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-37",
+      "files": [
+        "research-conversation-independent-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/research-conversation-independent-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-38",
+      "files": [
+        "resume-flexible-composition-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/resume-flexible-composition-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "label": "postgres-39",
+      "files": [
+        "resume-supersession-postgres.test.cjs"
+      ],
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--experimental-vm-modules",
+        "--test",
+        "--test-concurrency=1",
+        "tests/resume-supersession-postgres.test.cjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "out": "/tmp/upmore-ci-node-zTWuzU",
+  "paidCalls": 0,
+  "browserOutcomes": 0,
+  "ddlSha256": {
+    "tests/fixtures/career-persistence-schema.sql": "589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486",
+    "supabase/migrations/20261015020000_career_watch_kv.sql": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a",
+    "supabase/migrations/20261015234000_career_task_intents_v1.sql": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa",
+    "supabase/sql/proposals/career_public_research_v1.sql": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+    "supabase/sql/proposals/career_model_budget_v1.sql": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+    "supabase/sql/proposals/career_model_context_v2.sql": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+    "tests/fixtures/model-gateway-independent/monthly-schema.sql": "52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb",
+    "supabase/migrations/20261010110000_model_call_budget.sql": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+    "supabase/sql/proposals/career_interview_entry_v1.sql": "b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c",
+    "supabase/sql/proposals/career_interview_context_write_v1.sql": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+    "supabase/sql/proposals/career_interview_execution_v1.sql": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f",
+    "supabase/sql/proposals/career_interview_context_refresh_v1.sql": "a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "21bc9997661374aa2e5a25a8bd9958ae253bd6a92bd69d9446495b08279cf119",
+    "supabase/sql/proposals/career_owned_claim_recovery_v1.sql": "87b4340ec038ebb9b10d130890b439e40b0e9839a75729a772424288efcbcc71",
+    "supabase/sql/proposals/career_application_admissions_v1.sql": "f7e570e858eba160bc1928e480e0bedde2e1ab3eaff5c120bfbc531ba31145e7",
+    "supabase/sql/proposals/career_application_batch_v1.sql": "b0f5338e3a9c1ca02004d25bb1fde1998cef64fa287b5098f4d44c4766819508",
+    "supabase/sql/proposals/career_applicant_resume_store_v1.sql": "bcf68d1d3e0fd5e22bc1f63be31e71383f1e86938cecc7322f5cfd49c542903d",
+    "supabase/sql/proposals/career_applicant_ingress_v1.sql": "7d90839e9c4ec5b6252875b33198b1b98b8f53e26fc4e8a547a38c49dca7b85f",
+    "supabase/sql/proposals/career_application_conversation_v1.sql": "8b6a282a821d431e3a17c0d30e42fddc40dbff7a829b4c20c46e8421fa0b6811"
+  },
+  "fixture": {
+    "container": "upmore-career-integration-pg-ci-5c660214e2dc2b6e",
+    "network": "none",
+    "image": "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+    "databaseVersion": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+  },
+  "ownedFixtureRemoved": true,
+  "finished": "2026-10-17T18:06:01.556Z",
+  "pass": true
+}

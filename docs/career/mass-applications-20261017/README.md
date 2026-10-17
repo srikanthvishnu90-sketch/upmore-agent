@@ -1,5 +1,7 @@
 # Application entry checkpoint
 
+Current runtime **d9419241** passes4800 clean source contracts (40 explicit skips) and its actual composed workflow contract. The frozen full40-file SQL suite passes356/356 on identical SQL source bytes. [Terminal local evidence and exact CI links](terminal-local-checks.json) distinguish each runtime and preserve all failures. Real browser/deployment/archives remain blocked; changed-posting reselection remains an explicit safe hold.
+
 Current conversational source: [Conversational application workflow](CONVERSATIONAL-APPLICATIONS.md). Ordinary text, sourced shortlist, exact batch review, role answers and SQL status are implemented; historical pending descriptions below record earlier checkpoints. Validation remains synthetic and no live operation is claimed.
 
 Source adds a separate Resume control to application chat. It uploads the original PDF/DOCX to the existing owned ingress, displays filename/byte/hash proof and an exact server review, and requires explicit confirmation. Resume bytes do not enter chat images or a model request. Stable request IDs recover uncertain acknowledgements; owner/thread/mode changes clear private client state. The resume panel now restores authoritative confirmed file metadata after reload or in another owned thread; source-thread contact facts and document bytes are not returned by that read.

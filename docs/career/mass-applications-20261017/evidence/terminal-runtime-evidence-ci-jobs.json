@@ -1,0 +1,96 @@
+{
+  "observedAt": "2026-10-17T18:22:17.600Z",
+  "evidenceTier": "ACTUAL_GITHUB_JOB_RESULTS_NOT_ORIGINAL_PROVIDER_ARCHIVES",
+  "runs": [
+    {
+      "head": "e3c5ac5809d74a602bf012a8b68d7869356a8deb",
+      "run": 39055588590,
+      "jobs": [
+        {
+          "name": "deno",
+          "id": 117462776877,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "database",
+          "id": 117462776950,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "node",
+          "id": 117462776981,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Required original archival evidence",
+          "id": 117462777037,
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ]
+    },
+    {
+      "head": "a6a6b2751fddb77ec88959f7de7291a0ebc5e579",
+      "run": 39055713623,
+      "jobs": [
+        {
+          "name": "database",
+          "id": 117463139459,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "deno",
+          "id": 117463139681,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Required original archival evidence",
+          "id": 117463139714,
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "name": "node",
+          "id": 117463139744,
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "head": "d9419241a82d21087871214df01ab63d4fa1e462",
+      "run": 39056102226,
+      "jobs": [
+        {
+          "name": "deno",
+          "id": 117464274314,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "node",
+          "id": 117464274415,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Required original archival evidence",
+          "id": 117464274416,
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "name": "database",
+          "id": 117464274439,
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

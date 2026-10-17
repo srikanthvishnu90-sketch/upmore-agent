@@ -63384,6 +63384,38 @@
    "failed": 0,
    "scope": "focused source/parser/bundle contracts; exact broad checks pending",
    "evidence": "docs/career/mass-applications-20261017/evidence/conversation-parser-after.log"
+  },
+  {
+   "id": "career-applications-d9419241-terminal-local-20261017",
+   "observed_at": "2026-10-17T18:15:08.928132+00:00",
+   "commit": "d9419241a82d21087871214df01ab63d4fa1e462",
+   "status": "pass",
+   "sourcePassed": 4800,
+   "sourceSkipped": 40,
+   "sourceFailed": 0,
+   "composedSQLPassed": 1,
+   "fullSQL": {
+    "runtime": "332196128089df79dbd0cbaf625faf4ffeaa2f5f",
+    "passed": 356,
+    "files": 40,
+    "failed": 0,
+    "fixtureRemoved": true
+   },
+   "evidence": "docs/career/mass-applications-20261017/terminal-local-checks.json"
+  },
+  {
+   "id": "career-applications-d9419241-terminal-ci-20261017",
+   "observed_at": "2026-10-17T18:23:47.388412+00:00",
+   "commit": "d9419241a82d21087871214df01ab63d4fa1e462",
+   "status": "source_type_database_pass_archive_gate_fail",
+   "run": 39056102226,
+   "sourcePassed": 4800,
+   "sourceSkipped": 40,
+   "sourceFailed": 0,
+   "nodeSelections": 41,
+   "sqlFiles": 40,
+   "fixtureRemoved": true,
+   "evidence": "docs/career/mass-applications-20261017/evidence/terminal-runtime-evidence-ci-jobs.json"
   }
  ],
  "limitations": [

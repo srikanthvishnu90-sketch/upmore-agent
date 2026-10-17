@@ -134,3 +134,6 @@ Exact086ef376 full-source test correctly rejected the raw CAREER_BOARD_DIRECTORY
 
 
 Held-out constraint review: onsite-only used remote exclusion and admitted hybrid/unknown work modes; Chicago-and-Boston parsed only Chicago. Both failures are retained. Onsite-only now requires positive employer source wording plus onsite mode and rejects ambiguity. Multiple-city input requests one explicit clarification before fetching. Domain, actual Edge source-collector and composed SQL regressions cover those cases; unrelated source remains frozen. Predecessore3c5ac58 full source4799/40skip/0fail and actual SQL1/1 are retained distinctly from the follow-up.
+
+
+Terminal local record: d9419241 clean source4800/40skip/0fail and exact composed UI/Edge/SQL/runner1/1 pass. Frozen33219612 full40SQL356/356 pass, fixture removed;18 production SQL files are byte-identical to current source. Current source adds stricter onsite proof and multi-city clarification, covered by the exact composed test. Handoff and manifest now pin d9419241, its41-file source package and4,088,315-byte staged graph. Prior runtime/evidence CI IDs stay explicit, while live GitHub run results provide terminal status; no archive failure is waived or reclassified.

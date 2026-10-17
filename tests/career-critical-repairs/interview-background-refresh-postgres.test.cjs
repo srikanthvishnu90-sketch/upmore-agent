@@ -43,10 +43,13 @@ test('actual multiwrite alert cycles preserve interview read, correction and res
   await cycle.commit([]);events.push({account:account(),turns:turns(),witnesses:count()});
  }
  assert.equal(turns(),beforeTurns,'a background cycle must not invent chat receipts');
- assert.equal(account().version,5);assert.equal(count(),4);
- await send(a,'status','after-cycle');assert.deepEqual(F.context().facts[0],original);
- await send(a,'save_fact','correct',{id:'p',kind:'project',expected_version:0,actual:true},'Actual input validation only.');
- await send(a,'save_resume','resume',{id:'r',expected_version:null,actual:true},'Graduation 2027. Class calculator, no deployment.');
+ assert.equal(account().version,5);
+ const read=await a.requestBody(F.body('status','after-cycle')),afterRead=F.context();
+ const correction=await a.requestBody(F.body('save_fact','correct',{id:'p',kind:'project',expected_version:0,actual:true},'Actual input validation only.'));
+ const resume=await a.requestBody(F.body('save_resume','resume',{id:'r',expected_version:null,actual:true},'Graduation 2027. Class calculator, no deployment.'));
+ console.log(JSON.stringify({evidence:'MULTIWRITE_CYCLE_READ_CORRECTION_RESUME_RESPONSES',events,read,correction,resume}));
+ for(const r of [read,correction,resume])assert.equal(r.status,200,JSON.stringify(r.body));
+ assert.deepEqual(afterRead.facts[0],original);assert.equal(count(),4);
  const fresh=await F.app(t);await send(fresh,'status','fresh');
  assert.equal(F.context().facts.find(f=>f.id==='p').item_version,1);
  assert.equal(F.context().sources[0].content,'Graduation 2027. Class calculator, no deployment.');

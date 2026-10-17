@@ -1,6 +1,9 @@
 # One Greenhouse application: implementation and verification handoff
 
 **STRUCTURAL ONLY. No browser, employer submit, hosted deployment or new spend.**
+The later [worker review repair](worker-review-repair-20261017.md) addresses
+confirmed structural defects in this handoff source. The actual Greenhouse
+destination/upload/receipt adapter and hosted runtime remain blocked/unverified.
 Shared release: `f67db048599db308f2691a7be7feada841143da5`.
 Browser review base: `c574352c11958f9a27242a273255d88e72997be5`.
 The product target is cloud text → owned worker → application proof. A desktop

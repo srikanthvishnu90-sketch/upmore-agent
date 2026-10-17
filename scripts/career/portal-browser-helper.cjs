@@ -20,6 +20,8 @@ const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
 const { publicGet } = require('../../workers/career-browser/research-network.cjs');
 const { publicResearchURL } = require('../../supabase/functions/_shared/career_research_policy.js');
+const {writeBrowserPNG,LIMITS}=require('../../workers/career-browser/evidence.cjs');
+const {monitorParent}=require('../../workers/career-browser/helper-runtime.cjs');
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -38,6 +40,25 @@ const helperInstanceId = crypto.randomUUID();
 const boards = new Map(); // boardId -> { context, page, url }
 let browser = null;
 let lastActivity = Date.now();
+let stopping=false;
+async function stopHelper(){
+  if(stopping)return;stopping=true;
+  const hard=setTimeout(()=>process.exit(0),2000);
+  try{await browser?.close();}catch(_){}
+  try{fs.rmSync(dir,{recursive:true,force:true});}catch(_){}
+  clearTimeout(hard);process.exit(0);
+}
+monitorParent({parentPid:Number(process.argv[3])||process.ppid,stop:stopHelper});
+process.once('SIGTERM',stopHelper);process.once('SIGINT',stopHelper);
+async function capturePNG(board,target,fullPage=false){
+  const bytes=await board.page.screenshot({type:'png',fullPage});
+  if(bytes.length>LIMITS.maxFileBytes||(board.captureBytes||0)+bytes.length>LIMITS.maxTaskBytes||(board.captureCount||0)>=LIMITS.maxFiles)throw Object.assign(new Error('Evidence storage budget exhausted'),{code:'EVIDENCE_STORAGE_BUDGET'});
+  if(target){
+    if(path.dirname(target)!==(board.evidenceDir||dir))throw Object.assign(new Error('Capture path outside private board directory'),{code:'EVIDENCE_PATH_INVALID'});
+    writeBrowserPNG(target,bytes,{...LIMITS,...(board.evidenceRoot?{root:board.evidenceRoot}:{})});
+  }
+  board.captureBytes=(board.captureBytes||0)+bytes.length;board.captureCount=(board.captureCount||0)+1;return bytes;
+}
 
 // Upmore-owned Chromium only. Failure to start with its sandbox enabled is
 // a runtime blocker, never a reason to disable isolation or add a proxy.
@@ -238,6 +259,7 @@ async function cmdOpen(board, cmd) {
   const navSteps = [];
   board.blockedNav = null;
   board.scope = cmd.scope || null;
+  board.evidenceDir=cmd.evidenceDir||dir;board.evidenceRoot=cmd.evidenceRoot||null;
   // "commit" + a soft domcontentloaded wait: heavy ATS pages hang for a
   // long time on third-party subresources, and the form is usable long
   // before every tracker finishes (a hard domcontentloaded wait timed
@@ -468,16 +490,16 @@ async function cmdSubmitCapture(board, cmd) {
   if (board.blockedNav) return { clicked: true, finalUrl: board.blockedNav, text: "", blockedNavigation: board.blockedNav };
   const captcha = await page.evaluate(fnDetectChallenge);
   const text = await page.evaluate(() => ((document.body && document.body.innerText) || "").replace(/\s+/g, " ").slice(0, 6000)).catch(() => "");
-  let screenshot = null;
+  let screenshot = null, screenshotError=null;
   if (cmd.screenshotPath) {
-    try { await page.screenshot({ path: cmd.screenshotPath, fullPage: true }); screenshot = cmd.screenshotPath; } catch (e) { /* capture failure is reported as a null ref, never invented */ }
+    try { await capturePNG(board,cmd.screenshotPath); screenshot = cmd.screenshotPath; } catch (e) { screenshotError=e.code||'EVIDENCE_CAPTURE_FAILED'; }
   }
-  return { clicked: true, captcha: captcha || null, finalUrl: page.url(), text, screenshot };
+  return { clicked: true, captcha: captcha || null, finalUrl: page.url(), text, screenshot, screenshotError };
 }
 
 async function execute(boardId, cmd) {
   validateAction(cmd);
-  if (cmd.type === "shutdown") { setTimeout(() => process.exit(0), 50); return { ok: true }; }
+  if (cmd.type === "shutdown") { setTimeout(stopHelper, 50); return { ok: true }; }
   if (cmd.type === 'close') {
     const existing = boards.get(boardId);
     if (existing) { await existing.context.close().catch(() => {}); boards.delete(boardId); }
@@ -502,7 +524,7 @@ async function execute(boardId, cmd) {
           links: Array.from(document.querySelectorAll('a[href]')).filter(visible).slice(0,100).map(e=>({text:e.innerText.slice(0,200),url:e.href})) };
       });
       const links=dom.links.filter(link=>{try{return new URL(publicResearchURL(link.url)).origin===board.scope.origin;}catch(_){return false;}});
-      const screenshot = await board.page.screenshot({ type: 'png', fullPage: false });
+      const screenshot = await capturePNG(board,null,false);
       if (screenshot.length > 500000) throw Object.assign(new Error('research screenshot exceeded bounded evidence budget'), { code: 'RESEARCH_EVIDENCE_TOO_LARGE' });
       return { version: 'public_research_capture/v1', provenance: 'owned_chromium_dom', taskId: cmd.scope.taskId, intentId: cmd.scope.intentId, sessionId: `${helperInstanceId}:${boardId}`,
         url: board.page.url(), capturedAt: new Date().toISOString(), untrusted: true, sourceSha256: board.sourceSha256,
@@ -520,7 +542,7 @@ async function execute(boardId, cmd) {
     }
     case "review": return await cmdReview(board, cmd);
     case "submit_and_capture": return await cmdSubmitCapture(board, cmd);
-    case "screenshot": await board.page.screenshot({ path: cmd.path, fullPage: true }); return { path: cmd.path };
+    case "screenshot": await capturePNG(board,cmd.path); return { path: cmd.path };
     case "close": await board.context.close().catch(() => {}); boards.delete(boardId); return { ok: true };
     default: throw Object.assign(new Error("unknown command " + cmd.type), { code: "BAD_COMMAND" });
   }
@@ -553,5 +575,5 @@ async function pump() {
 fs.writeFileSync(path.join(dir, "ready.json"), JSON.stringify({ pid: process.pid, at: Date.now() }));
 setInterval(() => {
   pump().catch(() => {});
-  if (Date.now() - lastActivity > 15 * 60 * 1000) process.exit(0);
+  if (Date.now() - lastActivity > 15 * 60 * 1000)stopHelper();
 }, 25);

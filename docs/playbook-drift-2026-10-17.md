@@ -21,3 +21,12 @@ lists the exact resource, existing-credential binding and distinct budget/deploy
 approvals still needed; the browser lane's allocation is $0, and nothing was
 purchased or deployed. See `docs/career/hosted-worker-proposal-20261017.md` and
 `docs/career/greenhouse-one-application-handoff-20261017.md`.
+
+Independent review of source 2ac4bd3 found that its receipt hook depended on a
+nonexistent adapter property; the pull budget stopped at review; prose was parsed
+as an ID; the detached helper inherited backend environment; idle review was not
+purged after erase; direct submit/CAPTCHA captures escaped evidence quotas; and
+lost claim acknowledgement could strand work before a local lease checkpoint.
+These are repaired on the separate source branch with fail-first regressions and
+an isolated-PostgreSQL-owned-claim proposal. The employer adapter and hosted
+runtime remain NOT_WIRED/NOT_RUN. See `docs/career/worker-review-repair-20261017.md`.

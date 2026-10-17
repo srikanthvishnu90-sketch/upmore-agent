@@ -28,7 +28,7 @@ test('synchronous private IPC adapter roundtrip closes its helper and scratch di
 });
 test('pull runner requests one task, stops at pilot budget, logs metadata only and opens no server',()=>{
  const events=[];let calls=0,closed=0;
- const runner=createPullRunner({worker:{runPending(options){calls++;assert.equal(options.limit,1);return [{id:'a'.repeat(32),intentId:'b'.repeat(64),status:'unknown_outcome',profile:{private:'DO_NOT_LOG'},receipt:{private:'DO_NOT_LOG'},token:'DO_NOT_LOG'}];}},store:{list:()=>[]},maxTasks:1,emit:e=>events.push(e),onStop:()=>closed++});
+ const runner=createPullRunner({worker:{runPending(options){calls++;assert.equal(options.limit,1);return [{id:'a'.repeat(32),intentId:'b'.repeat(64),status:'completed',profile:{private:'DO_NOT_LOG'},receipt:{private:'DO_NOT_LOG'},token:'DO_NOT_LOG'}];}},store:{list:()=>[]},maxTasks:1,emit:e=>events.push(e),onStop:()=>closed++});
  runner.start();runner.tick();assert.equal(calls,1);assert.equal(closed,1);assert.equal(runner.stats().stopped,true);assert.equal(JSON.stringify(events).includes('DO_NOT_LOG'),false);assert.equal(events.find(e=>e.event==='task_result').taskId,'a'.repeat(32));
 });
 test('restart reports uncertain checkpoints without requeue; bounded errors stop polling',()=>{

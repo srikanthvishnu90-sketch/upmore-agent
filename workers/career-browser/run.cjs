@@ -14,8 +14,8 @@ function start(config) {
   if(config.mode === "pull_only") {
     const runner=createPullRunner({...config.runner,worker,store,
       emit:config.emit || (event=>console.log(JSON.stringify(event))),
-      onStop:()=>{require("../../packages/domain/150-career-portal-browser.js").shutdownAll();config.close?.();}});
-    runner.start();return {worker,runner,stop:()=>runner.stop()};
+      onStop:()=>{require("../../packages/domain/150-career-portal-browser.js").shutdownAll();config.close?.();worker.releaseEvidence();}});
+    runner.start();return {worker,runner,stop:()=>{runner.stop();worker.releaseEvidence({immediate:true});}};
   }
   const handle = createHttpHandler({ worker, authenticate: config.authenticate });
   const server = http.createServer(async (req, res) => {

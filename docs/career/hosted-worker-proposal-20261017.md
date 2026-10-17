@@ -14,7 +14,7 @@ parent's evaluator/reserved allocations do not authorize this deployment.
 | `scripts/career/build-owned-worker.cjs` | Deterministic allowlisted source tarball + per-file SHA manifest. No `.git`, credentials, operator config, uploaded resumes, dependencies or browser binary. |
 | `workers/career-browser/run.cjs` | `mode: pull_only` runs unprivileged and creates no public HTTP listener. Existing local HTTP mode is preserved. |
 | `pull-runner.cjs` | One task per pilot process, at most 15 minutes, 5-second polls, stop after three consecutive errors. It reports persisted interrupted/unknown checkpoints but never resets them to queued. |
-| `rpc-client.cjs`, `rpc-helper.cjs`, `rpc-transport.cjs` | Bounded HTTPS RPC calls to the owner-configured project only, nine explicit task RPC names, 10-second network timeout, bounded 2 MiB bodies, no redirects or write retries. Private 0700 IPC directory bridges asynchronous HTTPS to the existing synchronous engine; key is not in argv/files/logs. |
+| `rpc-client.cjs`, `rpc-helper.cjs`, `rpc-transport.cjs` | Bounded HTTPS RPC calls to the owner-configured project only, twelve explicit task RPC names, 10-second network timeout, bounded 2 MiB bodies, no redirects or blind write retries. Private 0700 IPC directory bridges asynchronous HTTPS to the existing synchronous engine; key is not in argv/files/logs. |
 | `authority.cjs`, existing task SQL | Existing server-side owner/version/epoch/pause locks, claims and one-use effect tokens remain authoritative. No second account store or permissive offline fallback. |
 | `store.cjs` | Existing fsynced task state and local exclusive leases on a private persistent POSIX disk; one replica only, no shared NFS or multi-writer deployment. |
 | `evidence.cjs` and worker hooks | Actual board screenshot calls only; private PNGs with opaque refs and hashes. Max 10 MiB/frame, 64 MiB/task. Required pre-submit form/read and review evidence can stop an application; missing receipt evidence never permits resubmission. Active evidence is removed on the next observed epoch revocation. |
@@ -137,3 +137,11 @@ remain NOT_RUN. Exact commands, source digests, test names, log hashes and
 remaining authorizations are in
 `docs/testing/runs/career-hosted-worker-20261017/results.json`.
 Local test container and wire listener were removed afterward.
+
+This is the historical package/run at that source. Subsequent review found
+material receipt, lifecycle, child-process, revocation, capture-limit and claim
+recovery gaps. The separate [source repair](worker-review-repair-20261017.md)
+documents their regressions and changes, including the unapplied owned-claim
+SQL proposal. Neither verification packet certifies a hosted browser or employer
+adapter. Captures now have a 15-minute TTL and explicit expiry metadata; the
+local janitor can outlive the stopped poll runner without RPC/browser authority.

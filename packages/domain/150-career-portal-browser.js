@@ -59,7 +59,7 @@ const CareerPortalBrowser = (() => {
   const path = require("node:path");
   const os = require("node:os");
   const crypto = require("node:crypto");
-  const { spawn } = require("node:child_process");
+  const { spawnBrowserHelper } = require("../../workers/career-browser/helper-runtime.cjs");
   const Portal149 = (() => { try { return require("./149-career-portal-apply.js"); } catch (e) { return null; } })();
 
   const HELPER = path.join(__dirname, "..", "..", "scripts", "career", "portal-browser-helper.cjs");
@@ -104,9 +104,9 @@ const CareerPortalBrowser = (() => {
   // Anything weaker leaves the outcome unknown — never upgraded.
   function extractConfirmation(text) {
     const t = String(text || "");
-    const idMatch = t.match(/(?:application|confirmation|reference|submission|tracking)\s*(?:id|number|no\.?|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/i);
+    const idMatch = t.match(/\b(?:application|confirmation|reference|submission|tracking)[ \t]+(?:id|number|no\.?|#)[ \t]*[:#]?[ \t]*([A-Z0-9][A-Z0-9-]{4,})\b/i);
     const successText = /(application (has been |was )?(submitted|received)|thank you for applying|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i.test(t);
-    return { confirmationId: idMatch ? idMatch[1] : null, successText };
+    return { confirmationId: idMatch && /[0-9]/.test(idMatch[1]) ? idMatch[1] : null, successText };
   }
 
   function classifyFields(rawFields) {
@@ -276,18 +276,17 @@ const CareerPortalBrowser = (() => {
     const base = process.env.UPMORE_SEAM_TMP || os.tmpdir();
     try { fs.mkdirSync(base, { recursive: true }); } catch (e) {}
     helperDir = fs.mkdtempSync(path.join(base, "upmore-portal-seam-"));
-    helperProc = spawn(process.execPath, [HELPER, helperDir], { detached: true, stdio: "ignore", env: { ...process.env, TMPDIR: base } });
-    helperProc.unref();
+    helperProc = spawnBrowserHelper(HELPER, helperDir);
     const ready = path.join(helperDir, "ready.json");
     const fatal = path.join(helperDir, "fatal.json");
     const deadline = Date.now() + 20000;
     const buf = new Int32Array(new SharedArrayBuffer(4));
     while (!fs.existsSync(ready)) {
-      if (fs.existsSync(fatal)) { const f = JSON.parse(fs.readFileSync(fatal, "utf8")); throw coded(f.code || "HELPER_FATAL", f.message || "browser helper failed to start"); }
-      if (Date.now() > deadline) throw coded("HELPER_TIMEOUT", "browser helper did not become ready in 20s");
+      if (fs.existsSync(fatal)) { const f = JSON.parse(fs.readFileSync(fatal, "utf8")); helperProc.kill("SIGTERM");helperProc=null;throw coded(f.code || "HELPER_FATAL", f.message || "browser helper failed to start"); }
+      if (Date.now() > deadline) {helperProc.kill("SIGTERM");helperProc=null;throw coded("HELPER_TIMEOUT", "browser helper did not become ready in 20s");}
       Atomics.wait(buf, 0, 0, 25);
     }
-    process.on("exit", () => { try { fs.writeFileSync(path.join(helperDir, "cmd-sys-exit.json"), JSON.stringify({ type: "shutdown", boardId: "sys" })); } catch (e) {} });
+    process.once("exit", () => { try { helperProc?.kill("SIGTERM"); } catch (e) {} });
   }
   function call(boardId, cmd, timeoutMs) {
     ensureHelper();
@@ -327,6 +326,8 @@ const CareerPortalBrowser = (() => {
   let boardSeq = 0;
   function createBrowserBoard(opts) {
     const o = opts || {};
+    // Trusted constructor seam only, never accepted from a chat/task payload.
+    const command = typeof o.commandTransport === "function" ? o.commandTransport : call;
     if (!o.url) throw coded("BOARD_URL_REQUIRED", "createBrowserBoard: the posting url is required — a browser board is bound to one posting");
     if (!o.userId) throw coded("BOARD_USER_REQUIRED", "createBrowserBoard: userId is required — sessions are per-user, never shared");
     boardSeq += 1;
@@ -356,7 +357,7 @@ const CareerPortalBrowser = (() => {
     function captureStopScreenshot(at) {
       try {
         const dir = o.evidenceDir || helperDir;
-        if (o.evidenceDir) fs.mkdirSync(dir, { recursive: true });
+        if (o.evidenceDir) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
         const p = path.join(dir, `captcha-${boardId}-${at}.png`);
         board.screenshot(p);
         log("captcha_screenshot", { at, screenshot_ref: p });
@@ -398,7 +399,7 @@ const CareerPortalBrowser = (() => {
       open() {
         if (state.closed) throw coded("BOARD_CLOSED", "this browser board is closed");
         if (!gate.allowed) throw coded("DRIVER_HOST_REFUSED", `driver refuses to open ${o.url} — only tested ATS families and localhost test pages may be driven (§6.3)`);
-        const r = call(boardId, { type: "open", url: o.url, scope: o.scope || null }, 240000);
+        const r = command(boardId, { type: "open", url: o.url, scope: o.scope || null, evidenceDir:o.evidenceDir||null,evidenceRoot:o.evidenceRoot||null }, 240000);
         calls.open += 1;
         state.opened = true;
         state.finalUrl = r.finalUrl; state.captchaTech = r.captchaTech || []; state.navSteps = r.navSteps || [];
@@ -421,7 +422,7 @@ const CareerPortalBrowser = (() => {
         refuseIfRedirected();
         if (!state.opened) board.open();
         refuseIfRedirected();
-        const r = call(boardId, { type: "discover" }, 30000);
+        const r = command(boardId, { type: "discover" }, 30000);
         const { defs, bindings } = classifyFields(r.fields || []);
         state.observation = r.observation;
         const refOf = (selector) => (r.fields || []).find((f) => f.selector === selector)?.ref;
@@ -448,7 +449,7 @@ const CareerPortalBrowser = (() => {
           if (!value || value.sha256 !== state.resumeShaChecked) {
             throw coded("RESUME_SHA_MISMATCH", "the local resume file's bytes do not hash to the profile's resume sha256 — refused, never uploaded");
           }
-          call(boardId, { type: "fill", observationVersion: state.observation.version, binding, value, filePath: o.resumePath }, 30000);
+          command(boardId, { type: "fill", observationVersion: state.observation.version, binding, value, filePath: o.resumePath }, 30000);
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
           log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename });
           return value;
@@ -462,7 +463,7 @@ const CareerPortalBrowser = (() => {
         // claims a resume it failed to upload would be a lie.)
         let r;
         try {
-          r = call(boardId, { type: "fill", observationVersion: state.observation.version, binding, value }, 30000);
+          r = command(boardId, { type: "fill", observationVersion: state.observation.version, binding, value }, 30000);
         } catch (e) {
           if (e.code === "STALE_OBSERVATION" && !state.staleRetries.has(fieldId)) {
             state.staleRetries.add(fieldId);
@@ -488,13 +489,13 @@ const CareerPortalBrowser = (() => {
       answers() {
         if (!state.bindings) return Object.assign({}, state.filledValues);
         const list = Object.values(state.bindings);
-        const r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: list }, 30000);
+        const r = command(boardId, { type: "readback", observationVersion: state.observation.version, bindings: list }, 30000);
         return r.answers || {};
       },
       atReview() {
         refuseIfRedirected();
         let r;
-        try { r = call(boardId, { type: "review", observationVersion: state.observation.version, knownSelectors: Object.values(state.bindings || {}).flatMap((b) => b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector))).filter(Boolean) }, 90000); }
+        try { r = command(boardId, { type: "review", observationVersion: state.observation.version, knownSelectors: Object.values(state.bindings || {}).flatMap((b) => b.selectors || (b.selector ? [b.selector] : (b.options || []).map((x) => x.selector))).filter(Boolean) }, 90000); }
         catch (e) { if (e.code === "STALE_OBSERVATION") { board.form(); return { needsFields: true }; } throw e; }
         // §6.3 hop gate at review (BUG-060): the Next/Continue clicks
         // inside the review step navigate too — wherever they landed
@@ -515,9 +516,17 @@ const CareerPortalBrowser = (() => {
         return { ok: true, captcha: null, needsFields: !!r.needsFields, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };
       },
       screenshot(filePath) {
-        const r = call(boardId, { type: "screenshot", path: filePath }, 30000);
+        const r = command(boardId, { type: "screenshot", path: filePath }, 30000);
         log("screenshot", { path: filePath });
         return r.path;
+      },
+      captureReceiptEvidence(confirmationId,filePath) {
+        const cap=state.submitCapture;
+        if(!cap || !cap.confirmationId || cap.confirmationId!==confirmationId)return Object.freeze({status:"NOT_VERIFIED"});
+        try {
+          require("../../workers/career-browser/evidence.cjs").copyBrowserPNG(cap.screenshotRef,filePath,o.evidenceRoot?{root:o.evidenceRoot}:{});
+          return Object.freeze({status:"CAPTURED",confirmationId:cap.confirmationId,path:filePath});
+        }catch(_){return Object.freeze({status:"BLOCKED",code:cap.screenshotError||"RECEIPT_CAPTURE_MISSING"});}
       },
       submit() {
         refuseIfRedirected();
@@ -533,15 +542,15 @@ const CareerPortalBrowser = (() => {
           throw coded("SUBMIT_ALREADY_ATTEMPTED", "this board already fired its one submit — reconcile the captured outcome, never re-click (§8.3)");
         }
         if (state.armedPayload) {
-          const checked = call(boardId, { type: "verify_payload", observationVersion: state.observation.version,
+          const checked = command(boardId, { type: "verify_payload", observationVersion: state.observation.version,
             bindings: Object.values(state.bindingHistory), payload: state.armedPayload }, 30000);
           if (!checked.matches) throw coded("PAYLOAD_CHANGED_BEFORE_CLICK", "the current browser fields differ from the approved payload; no click was issued");
         }
         state.submitAttempted = true;
         calls.submit += 1;
-        const shotPath = path.join(o.evidenceDir || helperDir, `submit-confirmation-${boardId}.png`);
-        if (o.evidenceDir) { try { fs.mkdirSync(o.evidenceDir, { recursive: true }); } catch (e) {} }
-        const r = call(boardId, { type: "submit_and_capture", observationVersion: state.observation.version, screenshotPath: shotPath }, 90000);
+        const shotPath = path.join(o.evidenceDir || helperDir || os.tmpdir(), `submit-confirmation-${boardId}.png`);
+        if (o.evidenceDir) { try { fs.mkdirSync(o.evidenceDir, { recursive: true, mode: 0o700 }); } catch (e) {} }
+        const r = command(boardId, { type: "submit_and_capture", observationVersion: state.observation.version, screenshotPath: shotPath }, 90000);
         if (r.captcha) {
           // A challenge at the moment of submit: nothing was clicked
           // through it. 149 reads the non-accepted outcome as unknown —
@@ -560,7 +569,7 @@ const CareerPortalBrowser = (() => {
         // outcome "unknown" and 149 records unknown_outcome (§8.3).
         const capText = String(r.text || "").slice(0, 4000);
         const ex = extractConfirmation(capText);
-        const cap = { text: capText, finalUrl: r.finalUrl || null, screenshotRef: r.screenshot || null, confirmationId: ex.confirmationId, successText: ex.successText };
+        const cap = Object.freeze({ text: capText, finalUrl: r.finalUrl || null, screenshotRef: r.screenshot || null, screenshotError:r.screenshotError || null, confirmationId: ex.confirmationId, successText: ex.successText });
         state.submitCapture = cap;
         log("submit_capture", { confirmationId: cap.confirmationId, successText: cap.successText, finalUrl: cap.finalUrl, screenshotRef: cap.screenshotRef });
         if (cap.confirmationId || cap.successText) {
@@ -585,7 +594,7 @@ const CareerPortalBrowser = (() => {
         if (state.closed) return;
         state.closed = true;
         liveBoards.delete(board);
-        try { call(boardId, { type: "close" }, 15000); } catch (e) { /* helper may already be gone */ }
+        try { command(boardId, { type: "close" }, 15000); } catch (e) { /* helper may already be gone */ }
         if (liveBoards.size === 0 && helperProc) { try { call("sys", { type: "shutdown" }, 5000); } catch (e) {} helperProc = null; }
       },
     };

@@ -26,6 +26,14 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   }));
   if(evidenceRequired && !evidenceRoot)throw fail("EVIDENCE_ROOT_REQUIRED");
   const evidenceCapture=evidenceRoot?require("./evidence.cjs").createEvidenceCapture(evidenceRoot):null;
+  let auditCursor=0;
+  let cancelEvidenceExpiry;
+  function markExpired(id,removed){store.withLock(id,()=>{const t=store.get(id);if(!t)return;for(const [stage,d]of Object.entries(t.evidence||{}))if(removed.includes(d.ref))t.evidence[stage]={stage,status:"EXPIRED"};save(t,"check");});}
+  function releaseEvidence({immediate=false}={}){
+    if(!evidenceCapture)return;cancelEvidenceExpiry?.();
+    if(immediate){for(const id of store.list()){const removed=evidenceCapture.expire(id,Infinity);if(removed.length)markExpired(id,removed);}}
+    else cancelEvidenceExpiry=evidenceCapture.scheduleExpiry(markExpired);
+  }
   const save = (t, phase, detail = {}) => {
     t.phase = phase;
     t.checkpoints.push({ sequence: t.checkpoints.length + 1, phase, at: new Date(now()).toISOString(), ...detail });
@@ -64,10 +72,11 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     }
   }
   const validProof = validControlledReceipt;
-  function captureEvidence(t,board,stage) {
+  function captureEvidence(t,board,stage,confirmationId) {
     if(!evidenceCapture)return;
-    const descriptor=evidenceCapture.capture(t,board,stage);t.evidence ||= {};t.evidence[stage]=descriptor;
+    const descriptor=evidenceCapture.capture(t,board,stage,confirmationId);t.evidence ||= {};t.evidence[stage]=descriptor;
     save(t,"check",{evidenceStage:stage,evidenceStatus:descriptor.status});
+    if(evidenceRequired&&stage==="confirmed-receipt"&&descriptor.status!=="CAPTURED")t.blocker="REQUIRED_RECEIPT_EVIDENCE_MISSING";
     if(evidenceRequired && stage!=="confirmed-receipt" && descriptor.status!=="CAPTURED")throw fail("REQUIRED_BROWSER_EVIDENCE_MISSING");
   }
   function destinationProof(t,board) {
@@ -77,7 +86,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     try { return effect(t, "destination_readback", () => {
       const proof=readReceipt(clone(t));
       if(evidenceCapture && validProof(t,proof)) {
-        if(board?.lastCapture?.confirmationId===proof.confirmationId)captureEvidence(t,board,"confirmed-receipt");
+        if(typeof board?.captureReceiptEvidence==='function')captureEvidence(t,board,"confirmed-receipt",proof.confirmationId);
         else {t.evidence ||= {};t.evidence["confirmed-receipt"]={status:"NOT_VERIFIED",stage:"confirmed-receipt"};save(t,"check");}
       }
       return proof;
@@ -117,6 +126,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
         checkAuthority(existing, true);
         if (existing.specHash !== bindingHash(specification)) throw fail("TASK_SPEC_CONFLICT");
         if (!existing.attempt && existing.authority?.accountVersion !== grant.accountVersion) { existing.authority = grant; existing.status = "queued"; save(existing, "receive"); }
+        else if(!existing.attempt&&existing.authority?.intentId===grant.intentId&&existing.authority?.leaseToken!==grant.leaseToken){existing.authority=grant;save(existing,"receive");}
         return publicTask(existing);
       }
       const t = { id, userId, spec: clone(specification), specHash: bindingHash(specification), receivedEvent: input.eventId,
@@ -133,7 +143,13 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const id = hash([userId, 'public_research/v1', input.intentId]).slice(0,32);
     return store.withLock(id, () => {
       const existing = store.get(id);
-      if (existing) { checkAuthority(existing,true); if(existing.specHash!==bindingHash(spec))throw fail('TASK_SPEC_CONFLICT'); return publicTask(existing); }
+      if (existing) {
+        checkAuthority(existing,true);if(existing.specHash!==bindingHash(spec))throw fail('TASK_SPEC_CONFLICT');
+        if(existing.status==='queued'&&existing.authority?.intentId===input.intentId){
+          const grant=authority.claim({userId,intentId:input.intentId,taskId:id,leaseToken:existing.authority.leaseToken,expected:{action:'research',event_id:input.eventId,destination:spec.url}});
+          if(grant.leaseToken!==existing.authority.leaseToken){existing.authority=grant;save(existing,'receive');}
+        }return publicTask(existing);
+      }
       const grant = authority.claim({userId,intentId:input.intentId,taskId:id,expected:{action:'research',event_id:input.eventId,destination:spec.url}});
       if (bindingHash(grant.binding.research) !== bindingHash(spec) || bindingHash(grant.request?.research) !== bindingHash(spec)) throw fail('TASK_AUTHORITY_BINDING_MISMATCH');
       const t={id,userId,kind:'public_research/v1',spec,specHash:bindingHash(spec),authority:grant,privacyEpoch:grant.privacyEpoch,status:'queued',revision:0,checkpoints:[],approvals:[],budget:{limitActions:maxActions,spentActions:0,reservedActions:0,spendCents:0}};
@@ -187,7 +203,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const registered = portals.get(t.spec.posting.url);
     const board = boardFactory({ url: registered.url, userId: t.userId, resumePath: e.resumePath,
       commandTimeoutMs: Math.max(1, deadline - now()), deadlineMs: deadline,
-      ...(evidenceRoot?{evidenceDir:require("node:path").join(evidenceRoot,t.id)}:{}),
+      ...(evidenceRoot?{evidenceRoot,evidenceDir:require("node:path").join(evidenceRoot,t.id)}:{}),
       scope: { origin: new URL(registered.url).origin, submitUrl: registered.submitUrl, taskId: t.id,
         userId: t.userId, payloadSha256: t.review?.payloadSha256 || null, resumeSha256: t.spec.resumeSha256 } });
     // Every browser command reserves before the effect and settles afterwards.
@@ -337,11 +353,24 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       save(t, "check"); return finish(t);
     });
   }
-  return { receive, prepare, approve, reconcile, research, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
-    runPending: ({limit=50}={}) => {
+  return { receive, prepare, approve, reconcile, research, releaseEvidence, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
+    runPending: ({limit=50,taskId}={}) => {
       if(!Number.isInteger(limit)||limit<1||limit>50)throw fail("TASK_BATCH_LIMIT_INVALID");
+      if(taskId!==undefined&&!/^[a-f0-9]{32}$/.test(taskId))throw fail("TASK_ID_INVALID");
+      // Polling observes revocation even while a task is idle at review. No
+      // browser operation or task redispatch occurs in this authority audit.
+      const auditIds=store.list().sort(),auditBatch=new Set(taskId?[taskId]:[]);
+      for(let n=0;n<Math.min(10,auditIds.length);n++)auditBatch.add(auditIds[(auditCursor+n)%auditIds.length]);
+      if(auditIds.length)auditCursor=(auditCursor+10)%auditIds.length;
+      for(const id of auditBatch)store.withLock(id,()=>{
+        const t=store.get(id);if(!t)return;
+        if(t.blocker==="PRIVACY_EPOCH_REVOKED")return;
+        try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;return;}
+        const expired=evidenceCapture?.expire(id,now())||[];
+        if(expired.length){for(const [stage,d]of Object.entries(t.evidence||{}))if(expired.includes(d.ref))t.evidence[stage]={stage,status:"EXPIRED"};save(t,"check");}
+      });
       const results=[];
-      for(const intent of authority.pending().slice(0,limit)) {
+      for(const intent of authority.pending().filter(i=>!taskId||i.taskId===taskId||i.binding?.task_id===taskId).slice(0,limit)) {
         try {
           const b=intent.binding;
           if(b.action==="research") { const task=receive(intent.userId,{action:"research",eventId:b.event_id,...b.research,intentId:intent.intentId});results.push(research(intent.userId,task.id)); }
@@ -350,7 +379,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
           else if(b.action==="reconcile") results.push(reconcile(intent.userId,b.task_id,{intentId:intent.intentId}));
         } catch(e) { results.push({intentId:intent.intentId,status:"blocked",blocker:e.code||"TASK_AUTHORITY_UNAVAILABLE"}); }
       }
-      for(const id of store.list()) {if(results.length>=limit)break;const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
+      for(const id of store.list()) {if(results.length>=limit)break;if(taskId&&id!==taskId)continue;const t=store.get(id);if(t.status==="queued")results.push(t.kind==="public_research/v1"?research(t.userId,id):prepare(t.userId,id));}
       return results;
     } };
 }

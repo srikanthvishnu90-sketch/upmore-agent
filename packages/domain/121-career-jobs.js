@@ -11,7 +11,11 @@
    Functions:
      feeds.greenhouse(token) / lever(company) / ashby(name) / smartrecruiters(company)
                                    feed descriptors { source, company_token, url } for Appendix B.2 endpoints
-     fetchFeed(feed, {fetch})      one feed -> { status, url, postings, error? } (never throws on HTTP error)
+     fetchFeed(feed, {fetch, fetchCache?})
+                                   one feed -> { status, url, postings, error? } (never throws on HTTP error);
+                                   MI-107: with opts.fetchCache (Map/object keyed by URL) the fetch goes
+                                   conditional (ETag / If-Modified-Since) and unchanged bodies skip the
+                                   parse via a body hash — see the MI-107 block above fetchFeed
      fetchAll(feeds, {fetch})      many feeds -> { postings (deduped), feeds: [per-feed results] }
      normalize* (per ATS)          raw feed JSON -> normalized postings
      dedupe(postings)              company + normalized title + location (+ req id when both sides have one)
@@ -582,19 +586,101 @@ const CareerJobs = (() => {
   // Feed descriptors for the live boards only — dead boards produce no fetchable feed.
   const boardFeeds = () => liveBoards().map((b) => ({ source: b.source, company_token: b.company_token, url: b.url, company: b.company, provider: b.provider, board: b.board, status: b.status, checkedAt: b.checkedAt, note: b.note }));
 
-  const realFetch = (url) => (typeof fetch !== "undefined" ? fetch(url, { headers: { accept: "application/json" } }) : Promise.reject(new Error("no fetch available; inject opts.fetch")));
+  const realFetch = (url, init) => (typeof fetch !== "undefined"
+    ? fetch(url, { headers: Object.assign({ accept: "application/json" }, (init && init.headers) || {}) })
+    : Promise.reject(new Error("no fetch available; inject opts.fetch")));
+
+  // ---------- MI-107: polling efficiency (conditional GETs + body-hash skip) ----------
+  // OPT-IN via opts.fetchCache (a Map or plain object, keyed by feed URL) threaded
+  // through poll()/fetchAll() into fetchFeed. The watcher (151) owns and persists
+  // the cache; every other caller passes nothing and gets the exact legacy
+  // behavior — the injected fetch is called with the URL only and the result
+  // carries no new fields. An entry is { etag, last_modified, body_hash,
+  // hash_basis, postings } where postings are the LAST NORMALIZED postings for
+  // the feed. With an entry present, a poll costs:
+  //   - a 304 when the server honors If-None-Match / If-Modified-Since: zero
+  //     body bytes, zero parses; the cached postings flow into the diff, so a
+  //     304 never masquerades as an empty board (no phantom removals/closures);
+  //   - or, when the server ignores conditionals, a body-hash compare: the
+  //     body is served but JSON parse + normalize are skipped on a hash match;
+  //   - a full parse only when the body actually changed.
+  // A 304 with NO entry is a server protocol error and lands in the ordinary
+  // HTTP-error result — never a silent empty board. Validators are only ever
+  // trusted as the HTTP contract defines them: a 304 is the server asserting
+  // the body equals the one the stored etag was issued for.
+  const NodeCrypto = (() => { try { return typeof require !== "undefined" ? require("node:crypto") : null; } catch { return null; } })();
+  function hashBody(text) {
+    if (NodeCrypto && typeof NodeCrypto.createHash === "function")
+      return "sha256:" + NodeCrypto.createHash("sha256").update(String(text)).digest("hex");
+    // FNV-1a 64-bit, two seeds — change detection only, not a security boundary
+    // (used where node:crypto is unavailable, e.g. the Deno bundle).
+    let h1 = 0xcbf29ce484222325n, h2 = 0x84222325cbf29ce4n;
+    const prime = 0x100000001b3n, mask = 0xffffffffffffffffn;
+    const str = String(text);
+    for (let i = 0; i < str.length; i++) {
+      const c = BigInt(str.charCodeAt(i));
+      h1 = ((h1 ^ c) * prime) & mask;
+      h2 = ((h2 ^ (c + 0x9en)) * prime) & mask;
+    }
+    return "fnv1a64x2:" + h1.toString(16).padStart(16, "0") + h2.toString(16).padStart(16, "0");
+  }
+  function headerGet(res, name) {
+    const h = res && res.headers;
+    if (!h) return null;
+    if (typeof h.get === "function") { try { return h.get(name); } catch { return null; } }
+    const want = String(name).toLowerCase();
+    for (const k of Object.keys(h)) if (k.toLowerCase() === want) return h[k];
+    return null;
+  }
+  const cacheGet = (cache, url) => (cache instanceof Map ? cache.get(url) : cache[url]) || null;
+  const cacheSet = (cache, url, entry) => { if (cache instanceof Map) cache.set(url, entry); else cache[url] = entry; };
 
   async function fetchFeed(feed, opts) {
     // Dead boards are never fetched: no silent 404s, the skip is the result.
     if (feed && feed.status === "dead") return { source: feed.source, company_token: feed.company_token, url: feed.url || null, status: 0, postings: [], skipped: true, error: `board marked dead (${(feed.company || feed.company_token || "?")}: ${feed.note || "no public API"})` };
     const f = (opts && opts.fetch) || realFetch;
+    const cache = (opts && opts.fetchCache) || null;
+    const entry = cache ? cacheGet(cache, feed.url) : null;
     try {
-      const res = await f(feed.url);
+      let headers = null;
+      if (entry) {
+        headers = {};
+        if (entry.etag) headers["if-none-match"] = entry.etag;
+        if (entry.last_modified) headers["if-modified-since"] = entry.last_modified;
+        if (!Object.keys(headers).length) headers = null;
+      }
+      const res = headers ? await f(feed.url, { headers }) : await f(feed.url);
       const status = res.status != null ? res.status : (res.ok ? 200 : 0);
+      // MI-107: 304 + a stored entry = unchanged; serve the cached postings.
+      // (A bare 304 falls through to the HTTP-error result below.)
+      if (status === 304 && entry && Array.isArray(entry.postings))
+        return { source: feed.source, company_token: feed.company_token, url: feed.url, status, not_modified: true, postings: entry.postings, fetch_cache: "hit-304", bytes: 0 };
       if (status < 200 || status >= 300) return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: [], error: `HTTP ${status}` };
-      const json = typeof res.json === "function" ? await res.json() : res;
+      let json = null, bodyHash = null, hashBasis = null, bytes = null;
+      if (cache && typeof res.text === "function") {
+        const text = await res.text();
+        bytes = text.length;
+        bodyHash = hashBody(text); hashBasis = "text";
+        if (entry && entry.body_hash === bodyHash && entry.hash_basis === "text" && Array.isArray(entry.postings))
+          return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: entry.postings, fetch_cache: "hit-hash", bytes };
+        try { json = JSON.parse(text); }
+        catch (pe) { if (typeof res.json !== "function") throw pe; json = await res.json(); bodyHash = hashBody(JSON.stringify(json)); hashBasis = "json"; }
+      } else {
+        json = typeof res.json === "function" ? await res.json() : res;
+        if (cache) {
+          bodyHash = hashBody(JSON.stringify(json)); hashBasis = "json";
+          if (entry && entry.body_hash === bodyHash && entry.hash_basis === "json" && Array.isArray(entry.postings))
+            return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: entry.postings, fetch_cache: "hit-hash", bytes: null };
+        }
+      }
       const postings = NORMALIZERS[feed.source](json, feed.company_token, feed.company);
-      return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
+      const out = { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
+      if (cache) {
+        cacheSet(cache, feed.url, { etag: headerGet(res, "etag"), last_modified: headerGet(res, "last-modified"), body_hash: bodyHash, hash_basis: hashBasis, postings });
+        out.fetch_cache = "miss";
+        out.bytes = bytes;
+      }
+      return out;
     } catch (e) {
       return { source: feed.source, company_token: feed.company_token, url: feed.url, status: 0, postings: [], error: s(e && e.message || e) };
     }

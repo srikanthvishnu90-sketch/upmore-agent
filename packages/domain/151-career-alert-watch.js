@@ -63,7 +63,7 @@ const CareerAlertWatch = (() => {
   // returned response's json()/text() race the REMAINING deadline budget.
   function withDeadline(fetchFn, ms) {
     if (!fetchFn || !ms) return fetchFn;
-    return async (url) => {
+    return async (url, init) => {
       const startedAt = Date.now();
       let timer = null;
       const deadlineError = () => new Error(`board fetch deadline exceeded after ${ms}ms (G7 hard deadline)`);
@@ -72,7 +72,9 @@ const CareerAlertWatch = (() => {
         if (timer && typeof timer.unref === "function") timer.unref();
       });
       try {
-        const res = await Promise.race([Promise.resolve().then(() => fetchFn(url)), arm(ms)]);
+        // MI-107: the init (conditional-GET headers from 121's fetch cache)
+        // passes through untouched; the deadline bounds headers + body as before.
+        const res = await Promise.race([Promise.resolve().then(() => fetchFn(url, init)), arm(ms)]);
         if (!res || (typeof res.json !== "function" && typeof res.text !== "function")) return res;
         const bound = (fn) => async (...a) => {
           let bodyTimer = null;
@@ -318,9 +320,35 @@ const CareerAlertWatch = (() => {
     const seeded = !(prior && Array.isArray(prior.job_ids));
     const priorIds = seeded ? [] : prior.job_ids.slice();
 
+    // MI-107: the per-board fetch cache (validators + body hashes + last
+    // normalized postings) lives in the same injected store under a key
+    // derived from the snapshot key, so the adaptive cycle's per-board
+    // snapshots get per-board caches for free. Loaded fresh each cycle —
+    // cycles may run in separate processes against a durable store.
+    const cacheKey = key + ":fetch-cache";
+    const storedCache = await store.get(cacheKey);
+    const fetchCache = new Map(storedCache && typeof storedCache === "object" ? Object.entries(storedCache) : []);
+
     // (b)+(e) 121's real poll: fetch + dedupe + diffNew vs the stored snapshot, then
     // poll persists the new snapshot to the same store/key itself.
-    const result = await Jobs.poll(feeds, { fetch: fetchFn || undefined, store, snapshotKey: key, now: detectedMs });
+    const result = await Jobs.poll(feeds, { fetch: fetchFn || undefined, store, snapshotKey: key, now: detectedMs, fetchCache });
+
+    // Persist the fetch cache for the next cycle. Best-effort: a failed cache
+    // write costs efficiency next cycle, never correctness — the outcome is
+    // reported on fetch_efficiency.cache_persisted, not hidden.
+    let cachePersisted = true;
+    try { await store.set(cacheKey, Object.fromEntries(fetchCache)); } catch { cachePersisted = false; }
+
+    // MI-107 end-state accounting: what this cycle's polls actually cost.
+    const feedResults = result.feeds || [];
+    const fetch_efficiency = {
+      requests: feedResults.length,
+      bytes_transferred: feedResults.reduce((n, r) => n + (typeof r.bytes === "number" ? r.bytes : 0), 0),
+      full_parses: feedResults.filter((r) => r.fetch_cache === "miss").length,
+      not_modified_304: feedResults.filter((r) => r.fetch_cache === "hit-304").length,
+      hash_skips: feedResults.filter((r) => r.fetch_cache === "hit-hash").length,
+      cache_persisted: cachePersisted,
+    };
 
     // Per-board failures degrade, never kill (121 fetchFeed already records them).
     const errors = [];
@@ -381,6 +409,7 @@ const CareerAlertWatch = (() => {
       removed,
       errors,
       source_health: health,
+      fetch_efficiency,
       mass_close_suspect: result.mass_close_suspect || null,
       // Per-feed summary (additive): the adaptive scheduler (below) keeps per-board
       // health/velocity state and needs each board's own outcome, not just totals.

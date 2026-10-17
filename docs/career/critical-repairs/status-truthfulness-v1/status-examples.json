@@ -1,0 +1,46 @@
+[
+  {
+    "case": "CHECKED_CONTROLLED_STATUS",
+    "response": {
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "turn_key": "read",
+      "reply": "Your saved checkpoint includes checked advisory feedback from controlled provider responses. Actual model response quality has not been evaluated.",
+      "action": null,
+      "reminders": [],
+      "read_only": true,
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "version": "career_interview_entry/v1",
+          "stage": "feedback_ready",
+          "status": "active",
+          "revision": 3,
+          "assessment_status": "checked_advisory",
+          "actual_model_quality": "NOT_RUN"
+        }
+      }
+    }
+  },
+  {
+    "case": "UNAVAILABLE_STATUS",
+    "response": {
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "turn_key": "read",
+      "reply": "Your saved interview checkpoint is available. Assessment is not wired on this host; no checked advisory feedback is saved.",
+      "action": null,
+      "reminders": [],
+      "read_only": true,
+      "meta": {
+        "career": true,
+        "career_journey": {
+          "version": "career_interview_entry/v1",
+          "stage": "awaiting_answer",
+          "status": "active",
+          "revision": 2,
+          "assessment_status": "not_wired",
+          "actual_model_quality": "NOT_RUN"
+        }
+      }
+    }
+  }
+]

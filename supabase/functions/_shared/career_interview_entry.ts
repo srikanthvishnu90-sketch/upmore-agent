@@ -31,7 +31,20 @@ function command(raw:any){
  return clone(raw);
 }
 async function call(admin:any,name:string,args:any){const r=await admin.rpc(name,args);if(r.error)throw Error('storage_unavailable');if(!r.data||r.data.error)throw Error(r.data?.error||'storage_unavailable');return clone(r.data);}
-function meta(state:any){return {version:'career_interview_entry/v1',stage:state.stage,status:state.status,revision:state.revision,assessment_status:state.checkpoint.pending_reasoning?'pending':state.assessments.some((a:any)=>a.status==='active')?'checked_advisory':interviewReasoningAvailable(Deno.env)?'not_assessed':'not_wired',actual_model_quality:'NOT_RUN'};}
+function assessmentWired(context:any){return interviewReasoningAvailable(Deno.env)&&context.capabilities.some((c:any)=>c.capability_id==='career.coach_answer'&&c.availability==='available');}
+function meta(state:any,context:any){return {version:'career_interview_entry/v1',stage:state.stage,status:state.status,revision:state.revision,assessment_status:state.checkpoint.pending_reasoning?'pending':state.assessments.some((a:any)=>a.status==='active')?'checked_advisory':assessmentWired(context)?'not_assessed':'not_wired',actual_model_quality:'NOT_RUN'};}
+function statusReply(state:any,report:any,context:any){
+ let text:string;
+ if(report.assessment_status==='checked_advisory'){
+  const active=state.assessments.filter((a:any)=>a.status==='active'),controlled=active.every((a:any)=>/^(?:CONTROLLED|SCRIPTED|MOCK)(?:_|$)/.test(String(a.generator)));
+  text=controlled?'Your saved checkpoint includes checked advisory feedback from controlled provider responses. Actual model response quality has not been evaluated.':'Your saved checkpoint includes checked advisory feedback. Model response quality has not been evaluated.';
+ }else if(report.assessment_status==='pending')text='Your answer and assessment request are saved. Assessment is pending; this status check does not run it. Model response quality has not been evaluated.';
+ else if(report.assessment_status==='not_wired')text='Your saved interview checkpoint is available. Assessment is not wired on this host; no checked advisory feedback is saved.';
+ else text='Your saved interview checkpoint is available. No checked advisory feedback is saved yet. Model response quality has not been evaluated.';
+ if(state.checkpoint.reasoning_recovery?.budget_state==='uncertain')text+=' An earlier action still has uncertain settlement; reconcile it before another assessment.';
+ if(report.assessment_status!=='not_wired'&&!assessmentWired(context))text+=' New assessments are not wired on this host.';
+ return text;
+}
 export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,images,cors,note,dependencies={}}:any){
  let cmd;try{cmd=command(raw);if(images.length)throw Error('invalid_journey_command');}catch{return json(cors,{error:'invalid_journey_command'},400);}
  if(Deno.env.get('CAREER_JOURNEY_MODE')!=='interview_v1')return json(cors,{error:'not_wired',reply:'Interview preparation is not enabled on this host.',action:null},503);
@@ -46,7 +59,7 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
   if(context.owner_id!==userId||context.thread_id!==threadId||context.binding.account_version!==loaded.accountVersion||context.binding.thread_revision!==loaded.revision||context.binding.epoch!==(loaded.account.epoch||0))throw Error('journey_context_unavailable');
   const previous=loaded.snapshot?.stores?.interviewJourney||null;
   if(previous){J.validateState(previous);if(previous.owner_id!==userId||previous.thread_id!==threadId||previous.epoch!==context.binding.epoch)throw Error('journey_context_unavailable');}
-  if(cmd.type==='status')return json(cors,{thread_id:threadId,turn_key:turnKey,reply:previous?'Your saved interview checkpoint is available. Assessment is not wired on this host.':'No interview journey is saved.',action:null,reminders:[],read_only:true,meta:{career:true,career_journey:previous?meta(previous):null}});
+  if(cmd.type==='status'){const report=previous?meta(previous,context):null;return json(cors,{thread_id:threadId,turn_key:turnKey,reply:previous?statusReply(previous,report,context):'No interview journey is saved.',action:null,reminders:[],read_only:true,meta:{career:true,career_journey:report}});}
   if(read.paused&&!['reconcile_assessment'].includes(cmd.type))throw Error('journey_account_paused');
   const selection=previous?{...(previous.target_ref?{target_ref:previous.target_ref}:{}),...(previous.resume_ref?{resume_ref:previous.resume_ref}:{})}:cmd;
   const projected=await toInterviewContextV1(context,selection),snapshot=clone(projected.snapshot);
@@ -72,7 +85,7 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
    const executed=await executeInterviewAction({admin,userId,threadId,actionId:cmd.action_id,snapshot,state:previous,note,dependencies:dependencies.interview||{},reconcile:cmd.type==='reconcile_assessment'}),e=executed.execution,r=e.result,proposal=executed.proposal;
    if(!r)throw Error('execution_unconfirmed');
    const outstanding=previous.checkpoint.pending_reasoning?.action_id===cmd.action_id||previous.checkpoint.outstanding_reasoning.some((x:any)=>x.request.action_id===cmd.action_id);
-   if(!outstanding||previous.checkpoint.reasoning_recovery?.receipt_id===e.result_receipt_id)return json(cors,{thread_id:threadId,turn_key:turnKey,reply:'This action has no new outcome to apply. Your saved checkpoint is unchanged.',action:null,reminders:[],read_only:true,meta:{career:true,career_journey:meta(previous)},accounting:{state:r.budget_state,pair_id:e.pair_id}});
+   if(!outstanding||previous.checkpoint.reasoning_recovery?.receipt_id===e.result_receipt_id)return json(cors,{thread_id:threadId,turn_key:turnKey,reply:'This action has no new outcome to apply. Your saved checkpoint is unchanged.',action:null,reminders:[],read_only:true,meta:{career:true,career_journey:meta(previous,context)},accounting:{state:r.budget_state,pair_id:e.pair_id}});
    const receipt={...r,id:e.result_receipt_id,type:r.kind,profile_version:r.kind==='semantic_candidate'?'career_host_accepted_candidate/v1':'career_host_reasoning_outcome/v1',owner_id:userId,thread_id:threadId,epoch:snapshot.binding.epoch,action_id:cmd.action_id,input_digest:proposal.input_digest,request_binding:proposal.expected_binding,validated_binding:{owner_id:userId,thread_id:threadId,...snapshot.binding,journey_revision:previous.revision},terminal_no_call:e.pair_id===null,paired_settlement_revision:executed.pair.settlement_revision??0};
    snapshot.receipts.push(receipt);event.type=r.kind==='semantic_candidate'?'model_candidate':'reasoning_result';event.action_id=cmd.action_id;event.receipt_id=receipt.id;if(r.kind==='semantic_candidate')event.candidate=r.candidate;executionResult=r;
   }
@@ -105,7 +118,7 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
   let text=plan.reply_plan.text||'Your exact answer is saved. Assessment is not wired on this host.';
   if(cmd.type==='submit_answer')text=state.checkpoint.pending_reasoning?'Your exact answer and complete assessment request are saved. Assessment is pending; no provider call has run from this turn.':'Your exact answer is saved without an assessment. Generation and independent checking are not wired on this host.';
   const finalReply=executionResult?.kind==='semantic_candidate'?executionResult.rendered_response:[note,text,question].filter(Boolean).join('\n');
-  const response={thread_id:threadId,turn_key:turnKey,reply:finalReply,action:null,reminders:[],meta:{career:true,career_journey:{...meta(state),context_binding:next.binding}},...(artifact?{artifact:{id:artifact.id,sha256:artifact.sha256,byte_length:artifact.byte_length,partial:state.checkpoint.pending_artifact.partial,download_path:'/career/artifacts/'+artifact.id}}:{})};
+  const response={thread_id:threadId,turn_key:turnKey,reply:finalReply,action:null,reminders:[],meta:{career:true,career_journey:{...meta(state,context),context_binding:next.binding}},...(artifact?{artifact:{id:artifact.id,sha256:artifact.sha256,byte_length:artifact.byte_length,partial:state.checkpoint.pending_artifact.partial,download_path:'/career/artifacts/'+artifact.id}}:{})};
   const saved=await call(admin,'career_journey_turn_commit_v1',{p_base:{p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,p_revision:loaded.revision,p_account_version:loaded.accountVersion,p_snapshot:savedSnapshot,p_patch:{},p_input:message,p_response:response},p_context:next,p_actions:actions,p_artifact:artifact});
   return json(cors,saved.response);
  }catch(e){const reason=e instanceof Error?e.message:'storage_unavailable';const conflict=['turn_key_conflict','revision_conflict','privacy_epoch_changed','journey_context_unavailable'].includes(reason);const reply=['process_assessment','reconcile_assessment'].includes(cmd.type)?'I could not confirm the saved assessment outcome. A provider action may already have run. Check or reconcile this same owned action; do not repeat an uncertain action.':'I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.';return json(cors,{error:reason,reply,action:null,turn_key:turnKey},conflict?409:503);}

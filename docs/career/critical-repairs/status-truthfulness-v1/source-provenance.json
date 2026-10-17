@@ -1,0 +1,9 @@
+{
+  "frozen_oracle_commit": "8b4e1dbf",
+  "prepared_on": "8b4e1dbf",
+  "runtime_source": "supabase/functions/_shared/career_interview_entry.ts",
+  "runtime_sha256": "23e6cf312e798ad000e5b53d640cc402f2a34e5ad479e4ceb19042034fddf290",
+  "scope": "ACTUAL_STAGED_ENTRY_LOCAL_SQL_CONTROLLED_RESPONSES",
+  "paid_calls": 0,
+  "actual_model_quality": "NOT_RUN"
+}

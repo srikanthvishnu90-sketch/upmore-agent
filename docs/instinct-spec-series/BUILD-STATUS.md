@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A status truthfulness follow-up: `_shared/career_interview_entry.ts` status wording and capability-aware metadata only, new actual-entry status regressions and scoped evidence. Preserve read-only status behavior, recorded controlled-response provenance, NOT_RUN quality metadata, accounting/dispatch gates, B runtime and modules 127/130/155. Independent review reproduced checked_advisory metadata alongside a blanket not-wired reply; freeze checked/pending/current-unavailable and saved-feedback/disabled-host cases before repair.
+
 - 2026-10-17 Spec A paired execution continuation: new `_shared/career_interview_reasoner.ts` and `career_interview_execution_v1.sql`, raw receipt/wire serialization extension in the existing gateway, narrow typed dependency/handler integration and generated pure-validator export alias. Freeze controlled actual-entry journeys and raw receipt/configuration oracles before edits; retain every failed run. Complete action and checker request bytes persist before dispatch, only owned backend receipts advance B, unknown starts remain held and participate immediately in the existing shared stop. No B source/module 127/130/155 change, real allowance seed, provider call or production application.
 
 - 2026-10-17 Spec A CI privacy false-positive repair: `evals/data/validate.cjs` typed complete commit-SHA recognition only, new critical-repairs positive/negative privacy controls and scoped evidence. Preserve the exact evidence SHA, every swept file and the privacy failure gate. A numeric substring of commit 315158f5314360417266270ec6e6e9e71aad0af8 was misclassified; no broad file/path exclusion is authorized.

@@ -1,0 +1,115 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"93427e2821bbdac0","commit":"8b4e1dbf3de39021f07bbc721b6466dfea75a1ab","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/interview-status-postgres.test.cjs":"beb07cf858f7e93b2698de5d2d4b19d355421b77de0aa5cff7169b1f0ebcd9f5"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":377,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-status-postgres.test.cjs"],"started":"2026-10-17T02:23:03.317Z","runs":[],"out":"/tmp/upmore-ci-node-lPknAG","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-status-postgres.test.cjs","database":"career_test_ci_93427e2821bbdac0_0","marker":"upmore-ci-fixture:93427e2821bbdac0"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-93427e2821bbdac0","database":"career_test_ci_93427e2821bbdac0_0","marker":"upmore-ci-fixture:93427e2821bbdac0"}
+# (node:979835) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:979835) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: checked controlled feedback has consistent human status after a fresh entry without a live-quality claim
+not ok 1 - checked controlled feedback has consistent human status after a fresh entry without a live-quality claim
+  ---
+  duration_ms: 4777.379072
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:9:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /checked advisory feedback/i. Input:
+    
+    'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:9:474)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# {"case":"UNAVAILABLE_STATUS","response":{"thread_id":"00000000-0000-4000-8000-0000000000b1","turn_key":"read","reply":"Your saved interview checkpoint is available. Assessment is not wired on this host.","action":null,"reminders":[],"read_only":true,"meta":{"career":true,"career_journey":{"version":"career_interview_entry/v1","stage":"awaiting_answer","status":"active","revision":2,"assessment_status":"not_wired","actual_model_quality":"NOT_RUN"}}}}
+# Subtest: truly unavailable assessment stays unassessed and is described as not wired
+ok 2 - truly unavailable assessment stays unassessed and is described as not wired
+  ---
+  duration_ms: 2252.048809
+  type: 'test'
+  ...
+# Subtest: pending configured request is described as pending without status dispatching it
+not ok 3 - pending configured request is described as pending without status dispatching it
+  ---
+  duration_ms: 2633.227796
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:11:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /pending/i. Input:
+    
+    'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:11:282)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: saved controlled feedback remains distinguishable from capability disabled on the current host
+not ok 4 - saved controlled feedback remains distinguishable from capability disabled on the current host
+  ---
+  duration_ms: 4819.911362
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:12:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /saved[^.]*checked advisory feedback/i. Input:
+    
+    'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Your saved interview checkpoint is available. Assessment is not wired on this host.'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:12:450)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: canonical capability denial is truly unavailable even when server configuration exists
+not ok 5 - canonical capability denial is truly unavailable even when server configuration exists
+  ---
+  duration_ms: 2629.026371
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:13:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'not_assessed'
+    - 'not_wired'
+           ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'not_wired'
+  actual: 'not_assessed'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-status-postgres.test.cjs:13:836)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 1
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17276.66432
+{"token":"93427e2821bbdac0","commit":"8b4e1dbf3de39021f07bbc721b6466dfea75a1ab","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/interview-status-postgres.test.cjs":"beb07cf858f7e93b2698de5d2d4b19d355421b77de0aa5cff7169b1f0ebcd9f5"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":377,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-status-postgres.test.cjs"],"started":"2026-10-17T02:23:03.317Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-status-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-status-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-lPknAG","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec","supabase/sql/proposals/career_interview_entry_v1.sql":"a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"},"fixture":{"container":"upmore-career-integration-pg-ci-93427e2821bbdac0","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T02:23:26.737Z","pass":false}

@@ -24719,6 +24719,19 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    or submit that would exceed one stops CAP_REACHED naming the cap and
    the count, counted from the submissions ledger this module writes;
    the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
+   Telemetry (MI-118, contract docs/career/contracts/
+   mi-118-per-run-telemetry.md): EVERY run of this module — prepare and
+   submit phases alike, on every terminal path including a thrown board
+   error — writes ONE structured record to that same ledger carrying
+   application_id, platform, schema_source (census-fresh vs cached,
+   honestly not_read when no form was read), tokens_consumed and
+   execution_seconds (null when unmetered/unmeasured, never fabricated),
+   captcha_encountered as a STOP metric, and delivery_status as the
+   employer's END STATE. An accepted submit's telemetry record IS the
+   ledger's one submitted record; every other telemetry record carries
+   no submitted status, so caps and the duplicate guard never count one.
+   summarizeTelemetry(records) renders the per-run cost/latency summary
+   from the ledger records alone.
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -24783,6 +24796,9 @@ const CareerPortalApply = (() => {
     const calls = { open: 0, fill: 0, submit: 0 };
     return {
       kind: "sandbox", sandbox: true, atsFamily: "greenhouse",
+      // MI-118: the sandbox field set is a fixed in-code fixture — a
+      // cached (censused) schema by construction, never a live read.
+      schemaSource: "cached",
       host: "sandbox.greenhouse-like.test",
       calls,
       get accountName() { return state.accountName; },
@@ -25164,12 +25180,203 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  // ---------- MI-118: per-run telemetry / proof layer ----------
+  // One structured record per run phase, written to the SAME injected
+  // ledger (log.records) the caps count from. Honesty rules (contract
+  // mi-118): tokens/time are null when the caller metered/measured
+  // nothing — never fabricated; schema_source is census-fresh only when
+  // a form schema was actually read live in this run, cached when the
+  // board attests a censused/fixture schema, and not_read when the run
+  // stopped before any form read; delivery_status is the employer's
+  // end state, graded exactly as the submit path already grades it.
+  const TELEMETRY_SCHEMA_SOURCES = ["census-fresh", "cached", "not_read"];
+  function validSchemaSource(v) { return TELEMETRY_SCHEMA_SOURCES.includes(v) && v !== "not_read" ? v : null; }
+  function tokensOf() {
+    for (const src of arguments) {
+      if (!src || typeof src !== "object") continue;
+      let v = null;
+      if (typeof src.tokenMeter === "function") { try { v = src.tokenMeter(); } catch (e) { v = null; } }
+      if (v == null && src.tokens != null) v = src.tokens;
+      if (v == null && src.tokensConsumed != null) v = src.tokensConsumed;
+      if (v == null && src.tokenUsage && src.tokenUsage.total != null) v = src.tokenUsage.total;
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0) return Math.round(v);
+    }
+    return null;
+  }
+  function clockReadingMs(src) {
+    if (src && typeof src.clock === "function") { try { return tsMs(src.clock()); } catch (e) { return NaN; } }
+    return NaN;
+  }
+  function beginTelemetry(session, src, posting, phase) {
+    const s = src || {};
+    const board = session.board || {};
+    const p = posting || {};
+    const canonicalKey = p.canonicalKey || (session.doorstep && session.doorstep.postingKey) || null;
+    let applicationId = s.applicationId || s.application_id || session.applicationId || null;
+    if (!applicationId) {
+      applicationId = `app-${sha256(`${session.userId || ""}|${canonicalKey || ""}|${session.sessionId || ""}`).slice(0, 12)}`;
+    }
+    session.applicationId = applicationId;
+    const target = p.url ? classifyTarget(p.url) : { atsFamily: null };
+    const platform = board.atsFamily || target.atsFamily || p.atsFamily || p.vendor || board.kind || null;
+    let startedMs = clockReadingMs(s);
+    if (!Number.isFinite(startedMs)) startedMs = tsMs(s.now);
+    // Per-run state resets: a prior phase's submit outcome / record
+    // must never leak into this run's record on a reused session. An
+    // inline submit later in THIS run re-sets both after this point.
+    const submitRecordBefore = session._submitTelemetryRecord || null;
+    session._lastSubmitOutcome = null;
+    return {
+      phase, applicationId, platform, canonicalKey,
+      company: p.company || (session.doorstep && session.doorstep.company) || null,
+      vendor: p.vendor || target.atsFamily || board.atsFamily || null,
+      startedMs, startedRaw: s.now != null ? s.now : null,
+      tokens: tokensOf(s), attest: validSchemaSource(s.schemaSource),
+      formRead: false, captchaAt: null, submitRecordBefore,
+    };
+  }
+  function schemaSourceOf(session, tctx) {
+    if (tctx.attest) return tctx.attest; // the caller's census posture, stated explicitly
+    if (!tctx.formRead) return "not_read"; // this run read no schema — no claim
+    const boardSrc = session.board ? validSchemaSource(session.board.schemaSource) : null;
+    if (boardSrc) return boardSrc; // the board's attestation, earned by a read this run
+    return "census-fresh"; // a form() read happened live in this run and nothing attests a cache
+  }
+  function finalizeTelemetry(session, tctx, log, src, outcome) {
+    const s = src || {};
+    const result = outcome && outcome.result ? outcome.result : null;
+    const error = outcome && outcome.error ? outcome.error : null;
+    // A second clock reading (injected clock, or an explicit end stamp)
+    // is the ONLY source of a measured duration; the run's single `now`
+    // still stamps the record so ledger day-slicing keeps working.
+    let finishedMs = clockReadingMs(s);
+    let measured = Number.isFinite(finishedMs);
+    if (!measured && (s.endNow != null || s.finishedAt != null)) { finishedMs = tsMs(s.endNow != null ? s.endNow : s.finishedAt); measured = Number.isFinite(finishedMs); }
+    if (!Number.isFinite(finishedMs)) finishedMs = tsMs(s.now);
+    const executionSeconds = measured && Number.isFinite(tctx.startedMs) && Number.isFinite(finishedMs)
+      ? Math.max(0, Math.round(((finishedMs - tctx.startedMs) / 1000) * 1000) / 1000) : null;
+    // captcha: a STOP metric — read from the run's own step log / codes.
+    let captcha = false, captchaAt = tctx.captchaAt;
+    if (result && result.code === "CAPTCHA_HANDOFF") captcha = true;
+    if (result && Array.isArray(result.stepLog)) {
+      const hit = result.stepLog.find((x) => x && x.action === "captcha_stop");
+      if (hit) { captcha = true; captchaAt = captchaAt || hit.at || null; }
+    }
+    if (session._lastSubmitOutcome === "captcha_stop") { captcha = true; captchaAt = captchaAt || "submit"; }
+    // delivery_status: the employer's END STATE for this phase.
+    let delivery = "not_submitted", resultStatus = result ? result.resultStatus || null : null, outcomeCode = result ? result.code || null : null;
+    let confirmationId = null;
+    if (error) {
+      outcomeCode = error.code || "ERROR";
+      resultStatus = resultStatus || "error";
+      if (session.needsReconcile) delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") delivery = "submitted";
+    } else if (tctx.phase === "submit") {
+      if (resultStatus === "completed") {
+        delivery = "submitted";
+        confirmationId = (result.submission && result.submission.confirmationId) || (session.submission && session.submission.confirmationId) || null;
+      } else if (resultStatus === "unknown_outcome") delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") { delivery = "submitted"; confirmationId = session.submission.confirmationId || null; }
+    }
+    const finishedAt = Number.isFinite(finishedMs) ? new Date(finishedMs).toISOString() : (s.now != null ? s.now : null);
+    const rec = {
+      record_type: "run_telemetry", telemetry: true, phase: tctx.phase,
+      application_id: tctx.applicationId, applicationId: tctx.applicationId, appId: tctx.applicationId,
+      userId: session.userId, canonicalKey: tctx.canonicalKey, company: tctx.company, vendor: tctx.vendor,
+      platform: tctx.platform, target_platform: tctx.platform,
+      schema_source: schemaSourceOf(session, tctx),
+      tokens_consumed: tctx.tokens,
+      execution_seconds: executionSeconds,
+      captcha_encountered: captcha, captcha_at: captcha ? captchaAt : null,
+      delivery_status: delivery,
+      result_status: resultStatus, outcome_code: outcomeCode,
+      confirmation_id: confirmationId, confirmationId,
+      started_at: Number.isFinite(tctx.startedMs) ? new Date(tctx.startedMs).toISOString() : tctx.startedRaw,
+      finished_at: finishedAt, timestamp: finishedAt,
+    };
+    // An ACCEPTED submit's record IS the ledger's submission record:
+    // it alone carries status "submitted" (caps + duplicate guard
+    // count exactly it). Every other telemetry record carries no
+    // status a cap or duplicate count could mistake for a submission.
+    if (tctx.phase === "submit" && delivery === "submitted" && resultStatus === "completed") rec.status = "submitted";
+    if (log && Array.isArray(log.records)) {
+      // An inline submit finalizes its record from inside the prepare
+      // run, before the prepare wrapper finalizes its own — the ledger
+      // keeps phase order (prepare before its submit) regardless.
+      const subIdx = tctx.phase === "prepare" && session._submitTelemetryRecord && session._submitTelemetryRecord !== tctx.submitRecordBefore ? log.records.indexOf(session._submitTelemetryRecord) : -1;
+      if (subIdx >= 0) log.records.splice(subIdx, 0, rec); else log.records.push(rec);
+    }
+    if (tctx.phase === "submit") session._submitTelemetryRecord = rec;
+    session._lastTelemetryRecord = rec;
+    if (result && typeof result === "object") result.telemetry = rec;
+    return rec;
+  }
+  // The per-run cost/latency summary, producible from ledger records
+  // alone (MI-118 done-test, second half). Unmetered/unmeasured runs
+  // contribute nothing to the sums and are NAMED in their own counts.
+  function summarizeTelemetry(input) {
+    const records = Array.isArray(input) ? input : ((input && input.records) || []);
+    const rows = records.filter((r) => r && (r.record_type === "run_telemetry" || r.telemetry === true));
+    const sum = {
+      runs: rows.length, applications: 0,
+      total_tokens: 0, unmetered_runs: 0,
+      total_execution_seconds: 0, unmeasured_runs: 0,
+      captcha_encounters: 0,
+      by_delivery_status: {}, applications_by_delivery_status: {},
+      by_platform: {}, rows: [],
+    };
+    const apps = new Map();
+    const bump = (obj, key, fields) => {
+      const k = key == null ? "unknown" : String(key);
+      if (!obj[k]) obj[k] = { runs: 0, tokens: 0, execution_seconds: 0, captcha_encounters: 0, submitted: 0, unknown_outcome: 0, not_submitted: 0 };
+      obj[k].runs += 1;
+      if (fields.tokens != null) obj[k].tokens += fields.tokens;
+      if (fields.seconds != null) obj[k].execution_seconds = Math.round((obj[k].execution_seconds + fields.seconds) * 1000) / 1000;
+      if (fields.captcha) obj[k].captcha_encounters += 1;
+      if (fields.delivery && obj[k][fields.delivery] != null) obj[k][fields.delivery] += 1;
+    };
+    for (const r of rows) {
+      if (r.tokens_consumed != null) sum.total_tokens += r.tokens_consumed; else sum.unmetered_runs += 1;
+      if (r.execution_seconds != null) sum.total_execution_seconds = Math.round((sum.total_execution_seconds + r.execution_seconds) * 1000) / 1000; else sum.unmeasured_runs += 1;
+      if (r.captcha_encountered) sum.captcha_encounters += 1;
+      sum.by_delivery_status[r.delivery_status] = (sum.by_delivery_status[r.delivery_status] || 0) + 1;
+      bump(sum.by_platform, r.platform, { tokens: r.tokens_consumed, seconds: r.execution_seconds, captcha: r.captcha_encountered, delivery: r.delivery_status });
+      const id = r.application_id || r.canonicalKey || "?";
+      const prev = apps.get(id);
+      // per-application delivery: the submit phase's end state wins
+      // over the prepare phase's (a doorstep is not a delivery).
+      if (!prev || r.phase === "submit" || prev.phase !== "submit") apps.set(id, { phase: r.phase, delivery: r.delivery_status });
+      sum.rows.push({
+        application_id: r.application_id, phase: r.phase, platform: r.platform,
+        schema_source: r.schema_source, tokens_consumed: r.tokens_consumed,
+        execution_seconds: r.execution_seconds, captcha_encountered: !!r.captcha_encountered,
+        delivery_status: r.delivery_status, outcome_code: r.outcome_code || null,
+        confirmation_id: r.confirmation_id || null, canonicalKey: r.canonicalKey || null,
+      });
+    }
+    sum.applications = apps.size;
+    for (const a of apps.values()) sum.applications_by_delivery_status[a.delivery] = (sum.applications_by_delivery_status[a.delivery] || 0) + 1;
+    return sum;
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.doorstep = null;
-    return prepareRound(session, input, false, 0, []);
+    const inp = input || {};
+    const tctx = beginTelemetry(session, inp, inp.posting, "prepare");
+    session._activeTelemetry = tctx;
+    try {
+      const result = prepareRound(session, inp, false, 0, []);
+      finalizeTelemetry(session, tctx, inp.log, inp, { result });
+      session._activeTelemetry = null;
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, inp.log, inp, { error: e });
+      session._activeTelemetry = null;
+      throw e;
+    }
   }
   function prepareRound(session, input, continued, round, priorSteps) {
     const inp = input || {};
@@ -25234,6 +25441,7 @@ const CareerPortalApply = (() => {
 
     // steps 3+4: analyze, then fill from confirmed facts only
     const formDef = board.form();
+    if (session._activeTelemetry) session._activeTelemetry.formRead = true; // MI-118: a schema was read live in this run
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -25469,13 +25677,30 @@ const CareerPortalApply = (() => {
       // fields win) — returning the leg's bare object dropped the
       // audit trail, which hid the D11 doorstep repair from the run's
       // record (BUG-207 guards, ported from the submit-path lineage).
-      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting }));
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, clock: inp.clock, schemaSource: inp.schemaSource, applicationId: inp.applicationId }));
     }
     return prepared;
   }
 
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
+  // MI-118 wrapper: every submit-leg run — completed, blocked, unknown,
+  // or thrown — finalizes its telemetry record (sharing the session's
+  // application_id with the prepare phase) before the caller sees the
+  // outcome; a throw is recorded and rethrown, never swallowed.
   function submitDoorstep(session, approval, ctx) {
+    const c = ctx || {};
+    const src = Object.assign({}, approval || {}, c);
+    const tctx = beginTelemetry(session, src, c.posting, "submit");
+    try {
+      const result = submitDoorstepInner(session, approval, ctx);
+      finalizeTelemetry(session, tctx, c.log, src, { result });
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, c.log, src, { error: e });
+      throw e;
+    }
+  }
+  function submitDoorstepInner(session, approval, ctx) {
     const c = ctx || {};
     const log = c.log || { records: [] };
     if (session.needsReconcile) {
@@ -25557,10 +25782,15 @@ const CareerPortalApply = (() => {
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256 });
     }
     const out = board.submit();
+    session._lastSubmitOutcome = out && out.outcome ? out.outcome : null; // MI-118: captcha_stop at submit is a telemetry STOP metric
     if (out.outcome === "accepted") {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
+      // MI-118: the ledger's submitted record is written by the
+      // submitDoorstep telemetry wrapper (finalizeTelemetry) — it
+      // carries every legacy field (userId, canonicalKey, status,
+      // timestamp, confirmationId, vendor, company via the tctx) plus
+      // the telemetry fields, exactly once.
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
@@ -25572,15 +25802,30 @@ const CareerPortalApply = (() => {
   }
 
   // ---------- reconciliation: truth is read from the board, never from memory ----------
+  // MI-118: reconciliation resolves the employer's end state, so the
+  // session's submit-phase telemetry record (the same object the
+  // ledger holds) is updated in place to carry it.
+  function syncReconcileTelemetry(session, delivery, confirmationId) {
+    const rec = session._submitTelemetryRecord;
+    if (!rec) return;
+    rec.delivery_status = delivery;
+    rec.reconciled = true;
+    if (delivery === "submitted") {
+      rec.status = "submitted"; // now employer-confirmed: the caps count it from here
+      if (confirmationId) { rec.confirmation_id = confirmationId; rec.confirmationId = confirmationId; }
+    }
+  }
   function reconcile(session) {
     const st = session.board.submissionState();
     if (st.submitted) {
+      syncReconcileTelemetry(session, "submitted", st.confirmationId);
       session.needsReconcile = false;
       session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
         confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
     }
     if (st.unverifiable === true) {
+      syncReconcileTelemetry(session, "unknown_outcome", null);
       // The board cannot prove a negative (a real portal without account
       // access): the outcome STAYS unknown and the reconcile lock stays
       // on — a human reads the captured evidence; no retry is cleared.
@@ -25589,6 +25834,7 @@ const CareerPortalApply = (() => {
           confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null },
         reason: "the board's state cannot be read back — the captured confirmation evidence is attached; a human verifies before any retry" };
     }
+    syncReconcileTelemetry(session, "not_submitted", null);
     session.needsReconcile = false; // state is now KNOWN: nothing landed; a fresh approval may retry
     return { resultStatus: "unknown_outcome",
       submission: { status: "not_submitted", onBoard: false, needsHuman: true, receiptBoard: session.board.kind },
@@ -25688,13 +25934,14 @@ const CareerPortalApply = (() => {
         else if (outcome && outcome.reason) attempt.detail = outcome.reason;
         report.stillUnknown.push({ id: recId(rec), userQuestion: rec.userQuestion });
       }
+      if (rec.delivery_status !== undefined) rec.delivery_status = rec.status; // MI-118: delivery stays in sync with the resolved end state
       if (!rec.resolutionAttempts) rec.resolutionAttempts = [];
       rec.resolutionAttempts.push(attempt);
     }
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, summarizeTelemetry, TELEMETRY_SCHEMA_SOURCES, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -26926,6 +27173,12 @@ const CareerBatchApply = (() => {
     }
     return run.apps[key];
   }
+  // MI-118: one stable application id per (run, posting), shared by
+  // the prepare and submit phases across invocations, so the ledger's
+  // telemetry records join into one application.
+  function applicationIdFor(run, posting) {
+    return `app-${sha256(`${run.id}|${postingKeyOf(posting)}`).slice(0, 12)}`;
+  }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
     const Jobs = getJobs();
@@ -27021,7 +27274,7 @@ const CareerBatchApply = (() => {
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
       const session = Portal.createPortalSession({ userId: run.userId, board });
       rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
       absorbPrepareResult(run, app, res);
     }
 
@@ -27153,7 +27406,7 @@ const CareerBatchApply = (() => {
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
-          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
         // The approval carries the batch approvalRef minted at the
@@ -27161,7 +27414,7 @@ const CareerBatchApply = (() => {
         // ctx.approvalRef) at its arming wire — a real board arms
         // only under it. A run approved in the pre-fix shape (hashes
         // only, approvalRef null) still stops at the board, named.
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);

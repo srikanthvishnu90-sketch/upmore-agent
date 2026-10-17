@@ -138,6 +138,12 @@ const CareerBatchApply = (() => {
     }
     return run.apps[key];
   }
+  // MI-118: one stable application id per (run, posting), shared by
+  // the prepare and submit phases across invocations, so the ledger's
+  // telemetry records join into one application.
+  function applicationIdFor(run, posting) {
+    return `app-${sha256(`${run.id}|${postingKeyOf(posting)}`).slice(0, 12)}`;
+  }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
     const Jobs = getJobs();
@@ -233,7 +239,7 @@ const CareerBatchApply = (() => {
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
       const session = Portal.createPortalSession({ userId: run.userId, board });
       rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
       absorbPrepareResult(run, app, res);
     }
 
@@ -365,7 +371,7 @@ const CareerBatchApply = (() => {
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
-          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
         // The approval carries the batch approvalRef minted at the
@@ -373,7 +379,7 @@ const CareerBatchApply = (() => {
         // ctx.approvalRef) at its arming wire — a real board arms
         // only under it. A run approved in the pre-fix shape (hashes
         // only, approvalRef null) still stops at the board, named.
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);

@@ -49,6 +49,10 @@
        records as unknown_outcome, never as sent. submissionState()
        reports from the same capture: confirmed → submitted; ambiguous →
        unverifiable (reconcile must not clear it for a retry).
+   Telemetry (MI-118): the board attests its form-schema source for
+   module 149's per-run record — a caller-censused attestation
+   (opts.schemaSource) until form() performs a live discovery on this
+   board, from which point the schema is census-fresh by construction.
    Session isolation (§6.3): every board owns a fresh browser context —
    no cookies, storage, or values are shared between boards or users.
    Account model: boards that need no account (Greenhouse / Lever /
@@ -412,6 +416,7 @@ const CareerPortalBrowser = (() => {
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
       armed: o.submitArmed === true, approvalRef: o.submitArmed === true ? (o.approvalRef || null) : null,
+      schemaAttest: o.schemaSource === "cached" || o.schemaSource === "census-fresh" ? o.schemaSource : null, // MI-118
     };
     const refuseIfRedirected = () => {
       if (state.redirectRefused) throw coded("HOST_REDIRECT_REFUSED", `this board landed off the allowlist at ${state.redirectRefused.finalUrl} — no further actions on it (§6.3)`);
@@ -444,6 +449,11 @@ const CareerPortalBrowser = (() => {
       atsFamily: atsFamilyOf(o.url) || o.atsFamily || null,
       host: gate.host || "", contextId: boardId, calls, driverLog,
       get accountName() { return o.accountName || null; },
+      // MI-118: the schema source this board's form carries — the
+      // caller's censused attestation until a live discovery happens
+      // on THIS board (state.defs is set only by form()'s discover
+      // call), census-fresh from then on. Never a claim before either.
+      get schemaSource() { return state.defs ? "census-fresh" : state.schemaAttest; },
       get fillFailures() { return state.fillFailures.slice(); },
       // The board's own rendering of each verified fill (FR-395: a
       // widget's single-value, including its short forms like the

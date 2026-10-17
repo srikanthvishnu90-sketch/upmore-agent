@@ -2723,3 +2723,11 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-424 — A wins-log STATEMENT is recordable content after a log cue, never a framing sentence (BUG-269)
 - **RULE:** The read/write split for the wins log turns on recordable content: a "log a win / add a win" cue followed by actual win content writes; method descriptions and framing text ("I text wins all semester") read. Text about the log is never itself logged.
 - **ENFORCEMENT:** tests/career-os-safety-wave.test.cjs H-12 + tests/career-integration-perfection.test.cjs (canonical ask reads, no garbage win stored). STATUS: ENFORCED.
+
+### FR-PENDING (apply-readiness, 2026-10-17) — Captcha tech PRESENT is not a challenge PRESENTED (BUG PENDING-ALLOCATION)
+- **RULE:** A drive stops for a captcha only when a challenge is presented to the applicant: a rendered widget with real geometry (≥100x40, visible, on-screen), a vendor widget not declared `data-size="invisible"`, not the reCAPTCHA v3 badge, or a challenge/interstitial text on the page. Passive mounts (0-height containers, invisible widgets, scoring badges) are recorded as captcha-tech EVIDENCE (fnCaptchaTech) and never stop a drive by themselves. A widget presented at a later step is detected at that step by the same rule.
+- **ENFORCEMENT:** tests/career-apply-readiness.test.cjs C1 (passive shape drives to the doorstep) + C2 (presented widget stops) + C3 (challenge text stops); live re-verified on Lever/Spotify and Greenhouse/LionTree dry drives 2026-10-17. STATUS: ENFORCED on branch finish/apply-readiness; FR number requested from the Crew A registry (single-writer rule).
+
+### FR-PENDING (apply-readiness, 2026-10-17) — Discovery waits for client-rendered forms before calling a page formless (BUG PENDING-ALLOCATION)
+- **RULE:** On live boards, field discovery polls until the field set is non-trivial and stable or a bounded budget expires; EMPTY_FORM may only be reported after the budget, never from a first-paint read. Scoped controlled-task boards keep the single immediate read.
+- **ENFORCEMENT:** tests/career-apply-readiness.test.cjs C4 (/spa-late-form: fields at ~3.5s discovered, doorstep reached); live re-verified on Ashby/Ramp dry drive 2026-10-17. STATUS: ENFORCED on branch finish/apply-readiness; FR number requested from the Crew A registry (single-writer rule).

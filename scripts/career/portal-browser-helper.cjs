@@ -143,9 +143,31 @@ async function getBoard(boardId) {
 
 // ---------- in-page helpers (self-contained; serialized by Playwright) ----------
 function fnDetectChallenge() {
-  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  // PRESENTED vs PRESENT (apply-readiness fix, 2026-10-17; guard
+  // tests/career-apply-readiness.test.cjs C1/C2/C3). A challenge counts
+  // only when one is PRESENTED to the applicant — a rendered widget
+  // with real geometry. Passive captcha TECH is not a challenge:
+  // measured live on Lever (2026-10-17), an ordinary usable apply form
+  // carries a 1220x0 .h-captcha container (an invisible mount that only
+  // renders if the vendor challenges at submit) and Greenhouse embeds
+  // a 70x60 reCAPTCHA v3 badge — the old offsetParent heuristic read
+  // both as a challenge and stopped drives at open on healthy forms.
+  // Tech presence is still recorded as evidence (fnCaptchaTech); a
+  // widget the vendor actually presents at any step renders at real
+  // size and is caught by the same function at that step.
+  const presented = (el) => {
+    if (!el) return false;
+    if (el.closest && el.closest(".grecaptcha-badge")) return false; // v3 badge: scoring branding, never interactive
+    if (el.getAttribute && el.getAttribute("data-size") === "invisible") return false; // vendor-declared passive mount
+    const r = el.getBoundingClientRect();
+    if (!r || r.width < 100 || r.height < 40) return false; // unrendered mounts are 0-height; badges are 70px wide
+    const st = window.getComputedStyle(el);
+    if (st.visibility === "hidden" || Number(st.opacity) === 0) return false;
+    if (r.bottom < 0 || r.top > window.innerHeight + 2000) return false; // parked offscreen
+    return true;
+  };
   const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];
-  for (const s of sels) { const el = document.querySelector(s); if (el && vis(el)) return "challenge"; }
+  for (const s of sels) { const el = document.querySelector(s); if (el && presented(el)) return "challenge"; }
   const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);
   if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";
   return null;
@@ -260,6 +282,29 @@ function fnFindApplyControl() {
   return null;
 }
 // ---------- command implementations ----------
+/* SPA settle (apply-readiness fix, 2026-10-17; guard
+ * tests/career-apply-readiness.test.cjs C4). SPA boards render their
+ * form seconds after domcontentloaded — measured live on Ashby
+ * (2026-10-17): 0 fields at first paint, 13 inputs / 3 textareas /
+ * 3 file inputs by ~9s. Discovering at first paint reports EMPTY_FORM
+ * for a form that exists. Poll discovery until at least 2 fields hold
+ * steady across two polls or the budget ends; a genuinely formless
+ * page still returns what it has (0) when the budget expires, just
+ * later. Scoped (controlled-task) boards keep the single immediate
+ * read — their pages are local fixtures with their own timing law. */
+async function settleForFields(page, budgetMs) {
+  const deadline = Date.now() + budgetMs;
+  let fields = await page.evaluate(fnDiscoverFields);
+  let prev = -1;
+  while (Date.now() < deadline) {
+    if (fields.length >= 2 && fields.length === prev) break;
+    prev = fields.length;
+    await page.waitForTimeout(600);
+    fields = await page.evaluate(fnDiscoverFields);
+  }
+  return fields;
+}
+
 async function cmdOpen(board, cmd) {
   const page = board.page;
   const navSteps = [];
@@ -294,7 +339,7 @@ async function cmdOpen(board, cmd) {
   navSteps.push("goto:" + board.url);
   let captcha = await page.evaluate(fnDetectChallenge);
   if (!captcha) {
-    let fields = await page.evaluate(fnDiscoverFields);
+    let fields = board.scope ? await page.evaluate(fnDiscoverFields) : await settleForFields(page, 15000);
     if (fields.length < 2 && !board.scope) {
       const apply = await page.evaluate(fnFindApplyControl);
       if (apply) {
@@ -311,7 +356,7 @@ async function cmdOpen(board, cmd) {
           board.url = page.url();
           navSteps.push("apply-click:" + board.url);
           captcha = await page.evaluate(fnDetectChallenge);
-          fields = await page.evaluate(fnDiscoverFields);
+          fields = await settleForFields(page, 8000);
         } catch (e) { /* stay on the posting page; discovery result stands */ }
       }
     }
@@ -342,7 +387,8 @@ async function resolveFieldHandle(page, f) {
 }
 
 async function cmdDiscover(board) {
-  const fields = await board.page.evaluate(fnDiscoverFields);
+  let fields = await board.page.evaluate(fnDiscoverFields);
+  if (!fields.length && !board.scope) fields = await settleForFields(board.page, 10000);
   const version = crypto.randomUUID();
   const handles = board.handles || new Map(); // retained only for rechecking prior steps before commit
   for (const f of fields) {

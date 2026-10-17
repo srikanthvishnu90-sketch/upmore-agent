@@ -51,6 +51,47 @@ const CAPTCHA_REVIEW_STEP1 = `<!doctype html><html><head><title>Apply step 1 (TE
     '<button type="submit">Submit application</button>';
 });</script></body></html>`;
 
+// Passive-captcha fixture (apply-readiness lane, 2026-10-17): a fully
+// usable form carrying only PASSIVE captcha tech — an invisible
+// hCaptcha mount (height 0, data-size="invisible", the exact shape
+// measured live on Lever/Spotify: a 1220x0 .h-captcha container) and
+// a reCAPTCHA v3 badge iframe (70x60, fixed corner). No challenge is
+// presented anywhere. The drive must discover and fill this form;
+// stopping here is the passive-mount misfire.
+const CAPTCHA_PASSIVE = `<!doctype html><html><head><title>Apply (TEST fixture)</title></head><body>
+<h1>Apply</h1>
+<form id="f"><div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>
+<div><label for="last_name">Last Name *</label><input id="last_name" type="text" required></div>
+<div><label for="email">Email *</label><input id="email" type="email" required></div>
+<div class="h-captcha" data-sitekey="TEST-KEY-NEVER-SOLVED" data-size="invisible" style="height:0;overflow:hidden"></div>
+<div class="grecaptcha-badge" style="position:fixed;bottom:14px;right:14px;width:70px;height:60px"><iframe src="/assets/recaptcha-badge.html" style="width:70px;height:60px;border:0"></iframe></div>
+<button type="submit">Submit application</button></form></body></html>`;
+
+// Presented-challenge fixture (apply-readiness lane, 2026-10-17): a
+// real-sized challenge widget (304x78 iframe, the vendor checkbox
+// geometry) and NO challenge text — detection must come from the
+// widget geometry leg alone, before and after the passive fix.
+const CAPTCHA_PRESENTED = `<!doctype html><html><head><title>Apply (TEST fixture)</title></head><body>
+<h1>Apply</h1>
+<form id="f"><div><label for="email">Email *</label><input id="email" type="email" required></div>
+<iframe src="/assets/recaptcha-widget.html" style="width:304px;height:78px;border:0"></iframe>
+<button type="submit">Submit application</button></form></body></html>`;
+
+// Late-rendering SPA fixture (apply-readiness lane, 2026-10-17): the
+// form fields are injected ~3.5s after load — the Ashby shape
+// measured live (0 fields at first paint, 13 inputs by ~9s).
+// Discovery that reads only first paint reports EMPTY_FORM for a
+// form that exists.
+const SPA_LATE_FORM = `<!doctype html><html><head><title>Apply (TEST fixture)</title></head><body>
+<h1>Apply</h1><div id="app"><p>Loading the application…</p></div>
+<script>setTimeout(() => {
+  document.getElementById('app').innerHTML = '<form id="f">' +
+    '<div><label for="first_name">First Name *</label><input id="first_name" type="text" required></div>' +
+    '<div><label for="last_name">Last Name *</label><input id="last_name" type="text" required></div>' +
+    '<div><label for="email">Email *</label><input id="email" type="email" required></div>' +
+    '<button type="submit">Submit application</button></form>';
+}, 3500);</script></body></html>`;
+
 // Submit-landing fixtures for the confirmation-capture tests: same form as
 // GH_FORM, but the submit button swaps the page (SPA-style) to a landing
 // page — one with a real employer confirmation, one deliberately ambiguous.
@@ -424,7 +465,7 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/captcha-passive": CAPTCHA_PASSIVE, "/captcha-presented": CAPTCHA_PRESENTED, "/spa-late-form": SPA_LATE_FORM };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

@@ -23,7 +23,18 @@
       "skipped": 40,
       "remainingFailure": "Deterministic worker bundle refuses uncommitted allowlisted source; no gate was weakened. Exact committed rerun pending."
     },
-    "fullPostgres": "IN_PROGRESS",
+    "fullPostgres": {
+      "result": "FAIL",
+      "suites": 38,
+      "tests": 345,
+      "pass": 344,
+      "fail": 1,
+      "skipped": 0,
+      "log": "evidence/full-postgres-first.log",
+      "summary": "evidence/full-postgres-first-summary.json",
+      "ownedFixtureRemoved": true,
+      "remainingFailure": "career-claim-recovery unknown-submit fixture rewrites its sole preparation into approval, so original accounting anchor is absent. All no-resubmit assertions remain required."
+    },
     "committedFullSource": {
       "commit": "0337c815765754e2321bf1bb8ce5da40b9300443",
       "passed": 4764,

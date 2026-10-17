@@ -62939,6 +62939,31 @@
    "limitations": [
     "No browser, employer or live-model-quality claim."
    ]
+  },
+  {
+   "id": "mass-full-postgres-first-20261017",
+   "command": [
+    "node",
+    "scripts/career/critical-repairs/ci-node.cjs",
+    "--postgres-only"
+   ],
+   "source_hashes": "docs/career/mass-applications-20261017/admission-evidence.json",
+   "result": "FAIL",
+   "reported_outcomes": {
+    "tests": 345,
+    "pass": 344,
+    "fail": 1,
+    "skipped": 0
+   },
+   "suite_count": 38,
+   "log": "docs/career/mass-applications-20261017/evidence/full-postgres-first.log",
+   "log_sha256": "704058639b60524d3925a183c966ff30178e5143572379d203559b80bc3a4245",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Missing original prepare anchor in one old synthetic fixture; 37 other suites pass.",
+    "Not employer or live model quality evidence."
+   ]
   }
  ],
  "limitations": [

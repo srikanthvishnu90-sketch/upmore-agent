@@ -767,6 +767,12 @@ const CareerRouter = (() => {
         ...(sweepFirst ? [groundedFact] : []),
         leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
         gapLine,
+        // MI-025 (Depth Lane C): the eligibility verdict is SPOKEN as
+        // its own sentence, the same line the document prints — the
+        // gap line names what is missing; the verdict is the
+        // judgement, and it comes from 123's typed result, never
+        // re-derived here.
+        ...(tailored.eligibilityVerdict && tailored.eligibilityVerdict.line ? [tailored.eligibilityVerdict.line] : []),
         // BUG-048: the artifact's sha256 stays in the typed artifact record
         // (the proof) — it is never spoken. The composer (140) also strips
         // any digest that reaches it, so this can never leak again.
@@ -3120,6 +3126,14 @@ const CareerRouter = (() => {
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
   function handleIntel(text, ctx) {
     if (!Intel) return null;
+    // 140's composeResult keeps the FIRST sentence of each fact and
+    // caps the fact block at 6 sentences — multi-sentence evidence
+    // (a role bar, the library's stats block) is therefore passed as
+    // one fact per sentence, the same idiom the summary below uses.
+    // Abbreviations are shielded first: a naive split breaks "Inc."
+    // and "Sr." into phantom facts and the real closing facts fall
+    // off the cap.
+    const sentsOf = (t) => String(t || "").replace(/\b(Inc|Corp|Ltd|Sr|Jr|Dr|Mr|Mrs|Ms|St|vs|U\.S|D\.C|e\.g|i\.e)\./g, "$1\u0001").split(/(?<=[.!?])\s+/).map((x) => x.trim().split("\u0001").join(".")).filter(Boolean);
     let cir = cirFor(text, ctx);
     if (!cir) {
       // COMPLEXITY WAVE (BUG-174): a pronoun follow-up ("and what's
@@ -3128,6 +3142,12 @@ const CareerRouter = (() => {
       // which survives the snapshot round trip.
       const stored = ctx.discovery && ctx.discovery.lastIntelCompany;
       if (stored && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
+      // Depth Lane C: an elliptical role follow-up ("and for PM?",
+      // "and what about for software engineers?") names no firm at
+      // all — it continues the firm this thread last discussed, and
+      // the role-lens branch below answers it for that firm (or, for
+      // an unfiled firm, the no-file branch's role half does).
+      if (!cir && stored && s(text).length <= 60 && /^\s*(and\s+)?(what about\s+)?for\b/i.test(s(text))) cir = cirFor(stored, ctx);
     }
     if (!cir) {
       // COMPLEXITY WAVE (BUG-174): a NAMED firm with no company file
@@ -3137,12 +3157,84 @@ const CareerRouter = (() => {
       const comp0 = companyFromText(text, ctx);
       let comp = comp0;
       if (!comp) { const am = s(text).match(/\babout\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (am) comp = am[1].replace(/[?.!,]+$/, ""); }
+      // LF-05 (Depth Lane C): the registry's most natural phrasing —
+      // "What do you have on Databricks?" — matched NO extraction
+      // frame (companyFromText owns firm/company/bank/at/about), so
+      // this branch never fired and the live path served the generic
+      // fallback although the honest answer existed in the build. The
+      // "on <Name>" frames live HERE, in the no-file branch only:
+      // companyFromText is shared by state-writing handlers, where a
+      // wider net would mint companies the user never named.
+      if (!comp) { const om = s(text).match(/\bon\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (om && !/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December)$/.test(om[1])) comp = om[1].replace(/[?.!,]+$/, ""); }
+      if (!comp) { const hm = s(text).match(/\bhave on\s+([a-z][a-z0-9&.'-]{2,})\b/i); if (hm && !/^(file|files|record|records|me|this|that|today|tomorrow|average|hand|him|her|them|it|my|your|tap|deck|deck,|it,)$/i.test(hm[1])) comp = hm[1].replace(/[?.!,]+$/, ""); }
+      // "What does Databricks look for in data analysts?" — the firm
+      // sits after does/do with no preposition frame at all; the
+      // no-file branch is the only place this frame is read, so a
+      // wider net here cannot mint companies for state writers.
+      if (!comp) { const dm = s(text).match(/\b(?:does|do|did)\s+([A-Z][A-Za-z0-9&.'-]{2,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)\s+(?:look|hire|want|need|post|seek)\b/); if (dm) comp = dm[1].replace(/[?.!,]+$/, ""); }
       if (!comp && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
-      if (!comp) return null;
+      if (!comp) {
+        // MI-020 (Depth Lane C): no company is named, but the ask can
+        // still be a ROLE-evidence ask ("what does it take for data
+        // analyst", "what do welder postings name?"). The knowledge
+        // library (153, via 125) answers those with stats cited with
+        // their n; a role the library does not carry gets the honest
+        // no-data answer. Neither may fall through to the generic
+        // fallback, and no neighbouring role's numbers are ever
+        // borrowed (153 returns found:false rather than a neighbour).
+        const roleShape = /\bwhat does it take\b|\bwhat (do|does)\b[^.?!]*\b(postings?|roles?)\b|\bwhat skills\b|\bpostings (name|ask|require|usually|emphasize)\b|\bget hired as\b|\bbecome an?\b|\bwhat (are|is)\b[^.?!]*\b(postings?|requirements?|skills?)\b|\blook for in\b|\bwhat about\b[^.?!]*\bfor\b|\bmost common\b[^.?!]*\b(requirements?|skills?)\b|\bwhat\b[^.?!]*\bpostings\b[^.?!]*\b(require|required|ask|name|emphasize|look for|usually|matter)\b/i.test(s(text));
+        if (roleShape && Intel.roleKbStats && Intel.kbStatsText) {
+          let kst = null;
+          try { kst = Intel.roleKbStats(s(text)); } catch { kst = null; }
+          if (!kst && Intel.detectRole) {
+            // Sentence-shaped asks defeat the library's title matcher
+            // on inflections ("welders" vs the "Welder" row); the
+            // detected role's label is the matcher's home ground.
+            try { const dr = Intel.detectRole(s(text)); if (dr && (dr.label || dr.key)) kst = Intel.roleKbStats(dr.label || dr.key); } catch { kst = null; }
+          }
+          if (!kst) {
+            // Roles outside 125's lens list (welder, nurse, …) are
+            // named in the ask's own frames; try those phrases, and
+            // their singular, against the library before concluding
+            // the role is absent.
+            const cands = [];
+            const aboutM = s(text).match(/\babout\s+([A-Za-z][A-Za-z -]*?)(?:\s+—|\s+--|\s+-|\?|$)/); if (aboutM) cands.push(aboutM[1].trim());
+            const forM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([A-Za-z][A-Za-z -]*?)(?:\?|$)/); if (forM) cands.push(forM[1].trim());
+            for (const cand of cands) {
+              if (!cand) continue;
+              try { kst = Intel.roleKbStats(cand); } catch { kst = null; }
+              if (!kst && /s$/i.test(cand)) { try { kst = Intel.roleKbStats(cand.replace(/s$/i, "")); } catch { kst = null; } }
+              if (kst) break;
+            }
+          }
+          if (kst) {
+            const facts = ["No company is named in that ask, so no company file applies — but the role itself is in the career knowledge library, and its posting evidence is on record.", ...sentsOf(Intel.kbStatsText(kst))];
+            const reply = compose({ headline: `${kst.role.title} — what its postings actually ask for, from the library.`, facts, nextStep: "Name a company and I will put its own file's bar next to this, role by role." });
+            return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, payload: { kind: "role_kb_stats", role: kst.role.title }, artifact: { kind: "role_kb_stats", role: kst.role.title } };
+          }
+          const tailM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([^?.!,]+)$/i);
+          const roleTail = tailM ? tailM[1].trim() : "";
+          const reply = compose({ headline: "That role is not in the career knowledge library — stated plainly.", facts: [`The library's role evidence covers the occupations it was built from; ${roleTail ? `"${roleTail}" is` : "that role is"} not among them, so no posting statistics exist on record for it.`, "What I will not do is borrow a neighbouring role's numbers and present them as this role's — a percentage without its own evidence behind it is invention."], nextStep: "Name a role the library carries — data analyst, software engineer, registered nurse, welder, product manager — and its posting evidence is quoted with its sample sizes." });
+          return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "role_kb_absent" }, artifact: { kind: "role_kb_absent" } };
+        }
+        return null;
+      }
       try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: comp }); } catch { /* memo only */ }
       const facts = [`The company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. ${comp} is not one of them, so none of that exists on record for this firm.`];
       if (/\bgpa\b|\bcutoff\b|\bcut-off\b/i.test(s(text))) facts.push(`On the cutoff question specifically: no verified GPA cutoff for ${comp} is on record. Firms rarely publish one, and a number I cannot source will not be quoted at you as fact.`);
       facts.push("What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence.");
+      // MI-020 (Depth Lane C): a no-file company asked about FOR A ROLE
+      // still gets the role's half answered — from the knowledge
+      // library, with its n — instead of "no file" being the whole
+      // answer (the live KB4 shape: "…to be a product manager at
+      // Databricks?" stopped at the missing file).
+      if (Intel.detectRole && Intel.roleKbStats && Intel.kbStatsText) {
+        try {
+          const dr = Intel.detectRole(s(text));
+          const kst = dr && (dr.key || dr.label) ? Intel.roleKbStats(dr.label || dr.key) : null;
+          if (kst) facts.push("The role half of your ask does have library evidence:", ...sentsOf(Intel.kbStatsText(kst)));
+        } catch { /* the no-file answer stands on its own */ }
+      }
       const reply = compose({ headline: `${comp} has no company file yet — here is what that means, plainly.`, facts, nextStep: `Want prep for ${comp} built from its public postings instead, or a firm whose file exists?` });
       return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, company: comp, payload: { kind: "company_file_absent", company: comp }, artifact: { kind: "company_file_absent", company: comp } };
     }
@@ -3166,8 +3258,29 @@ const CareerRouter = (() => {
           const third = (v) => v ? v.replace(/\byou must\b/gi, "candidates must").replace(/\byou need to\b/gi, "candidates need to").replace(/\byou have to\b/gi, "candidates have to").replace(/\byou should\b/gi, "candidates should").replace(/\byou are expected to\b/gi, "candidates are expected to").replace(/\byour\b/gi, "their") : v;
           const facts = [];
           const bar = firstOf(cir.hiring_bar_summary); if (bar) facts.push(`${name}'s bar, from its file: ${third(bar)}`);
-          const cult = firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
+          // MI-019 rider (Depth Lane C): a compare asked FOR A ROLE
+          // ("compare Snowflake and Databricks for PM") must not let
+          // the filed side's cohort bar stand as the role's answer —
+          // the asked role's lens (its own bar, or the honest no-bar
+          // statement, plus the library's cited stats for the role)
+          // rides in the same answer, and the culture line yields its
+          // sentence slot to it.
+          let lensFacts = null;
+          if (Intel.detectRole && Intel.barForRole && Intel.answerRoleIntel) {
+            try {
+              const dr = Intel.detectRole(text);
+              if (dr && (dr.key || dr.label)) {
+                const lens = Intel.barForRole(cir, dr);
+                if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) {
+                  const ra = Intel.answerRoleIntel(cir, text, { role: dr });
+                  if (ra && ra.text) lensFacts = sentsOf(ra.text).slice(0, 3);
+                }
+              }
+            } catch { lensFacts = null; }
+          }
+          const cult = lensFacts ? null : firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
           facts.push(`${other} has no company file in the library, so its culture, hours, deal flow, and exits cannot be compared from record — anything said about them here would be invention.`);
+          if (lensFacts) facts.push(...lensFacts);
           if (cir.as_of) facts.push(`Source: the ${name} company file (public sources), as of ${cir.as_of}.`);
           const reply = compose({ headline: `${name} versus ${other}: one side of this comparison exists on record; the other does not.`, facts, nextStep: `Want the ${name} side deepened, or ${other}'s file built from public sources first?` });
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: { kind: "company_compare_partial", filed: name, unfiled: other }, artifact: { kind: "company_compare_partial", filed: name, unfiled: other } };
@@ -3194,6 +3307,44 @@ const CareerRouter = (() => {
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload, artifact: payload };
         }
       } catch { /* fall through to the file summary */ }
+    }
+    // MI-019 / MI-020 (Depth Lane C): a ROLE-LENS ask names a role
+    // whose bar is not this file's cohort bar. Serving the cohort
+    // summary to it answers a different question than the one asked —
+    // the live failure (registry LF-02): a PM ask about Snowflake was
+    // served Snowflake's SWE bar verbatim. When the file carries the
+    // asked role's own bar, serve that bar; when it carries no bar
+    // for the asked role, say exactly that; either way the knowledge
+    // library's cited stats for the ASKED role ride along — 125's
+    // answerRoleIntel composes both halves and neither half borrows
+    // the other role's evidence. A cohort-bar ask, a mere role
+    // mention, and a two-filed-firm compare fall through to the
+    // summary below unchanged.
+    if (Intel.detectRole && Intel.barForRole && Intel.answerRoleIntel) {
+      let askedRole = null, lens = null, roleAns = null;
+      try {
+        askedRole = Intel.detectRole(text);
+        if (askedRole && (askedRole.key || askedRole.label)) {
+          const lab = lc(askedRole.label || "");
+          const low = lc(text);
+          const frameToks = new Set([lab, lc(String(askedRole.key || "").replace(/-/g, " "))]);
+          if (askedRole.key && askedRole.key.length <= 3) frameToks.add(lc(askedRole.key));
+          const framed = [...frameToks].filter(Boolean).some((f) => low.includes(`for ${f}`) || low.includes(`for a ${f}`) || low.includes(`for an ${f}`) || low.includes(`${f} at`) || low.includes(`${f} role`) || low.includes(`as a ${f}`) || low.includes(`as an ${f}`))
+            || (/\b(hiring bar|the bar|bar for|look for in|hiring for)\b/.test(low) && (lab ? low.includes(lab.split(" ")[0]) : false))
+            || (/\b(stats|statistics|library|percentages?|postings data)\b/.test(low) && !!lab);
+          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!(cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, low)));
+          if (framed && !otherFiled) {
+            lens = Intel.barForRole(cir, askedRole);
+            if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) roleAns = Intel.answerRoleIntel(cir, text, { role: askedRole });
+          }
+        }
+      } catch { askedRole = null; lens = null; roleAns = null; }
+      if (roleAns && roleAns.text) {
+        const facts = [...sentsOf(roleAns.text)];
+        facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}; role statistics from the career knowledge library, each cited with its sample size.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed. Role statistics from the career knowledge library, each cited with its sample size.`);
+        const reply = compose({ headline: `${name} for ${askedRole.label} — the asked role's own evidence, not the file's headline cohort.`, facts, nextStep: "Want your own record read against this role's bar next?" });
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: { kind: "role_intel", company: name, role: askedRole.label, lens_status: lens.status }, artifact: { kind: "role_intel", company: name, role: askedRole.label } };
+      }
     }
     // BUG-087 (template-breakup lane): the file summary is composed
     // from the file's OWN sections, picked by the ask's angle — the
@@ -6917,7 +7068,7 @@ const CareerRouter = (() => {
         const sa = handleApplicationStatus(text, c);
         if (sa) return sa;
       }
-      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
+      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
         const ig = handleIntelGuidance(text, c);

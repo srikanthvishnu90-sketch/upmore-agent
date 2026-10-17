@@ -1046,6 +1046,22 @@ const CareerTailor = (() => {
       text: `Not covered by your record: ${gaps.map((g) => g.requirement).join("; ")}`,
     };
   }
+  // MI-025 last clause (Depth Lane C): the discrete eligibility
+  // VERDICT, printed on the tailored document itself. The gap list
+  // names what is missing (packet data); the verdict is the one-line
+  // judgement a reader of the document alone can see. It is derived
+  // only from computeGaps' classes, it names nothing the record does
+  // not support (the missing items themselves stay in the gap list —
+  // printing their names here would claim them), and it is attached
+  // AFTER the truth audit like the gaps: it is a computed judgement
+  // about the record, not a claim from it.
+  function eligibilityVerdictFor(gaps) {
+    const failed = (gaps || []).filter((g) => g.reasonClass === "knockout-failed");
+    const required = (gaps || []).filter((g) => g.gapClass === "required");
+    if (failed.length) return { status: "not_eligible", line: "Eligibility verdict: this record does not meet every hard requirement stated in the posting — the unmet requirements are named in the gap list that travels with this packet." };
+    if (required.length) return { status: "eligible_with_required_gaps", line: "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet." };
+    return { status: "eligible", line: "Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting." };
+  }
 
   // ---- main entry: tailor with the hard gate ----
   let versionSeq = 0;
@@ -1080,6 +1096,28 @@ const CareerTailor = (() => {
     assembled.requiredGaps = requiredGaps;
     assembled.preferredGaps = preferredGaps;
     assembled.gapSection = gapSectionFor(gaps);
+    // MI-025: the verdict line joins the document model itself so
+    // the rendered PDF/DOCX prints it. It rides as the closing note
+    // line of the document's LAST section — a new heading of its own
+    // would break the standing heading contracts (148's allowlist is
+    // satisfied either way, but 133's ATS standard set and the R3
+    // heading discipline pin the sections a tailored resume carries);
+    // only a document with no sections at all gains a Summary
+    // section to hold it.
+    const verdict = eligibilityVerdictFor(gaps);
+    assembled.eligibilityVerdict = verdict;
+    {
+      // The line joins the SECTION model only — never assembled.lines:
+      // the flat line list carries the invariant that every line is
+      // fact-cited (the truth audit's contract), and the verdict is a
+      // computed judgement, not a fact claim. The gap section sets the
+      // precedent: its lines likewise live outside the cited list.
+      // 148 renders from sections, so the verdict still prints.
+      const vLine = { text: verdict.line, type: "note", factIds: [] };
+      const lastSec = assembled.sections[assembled.sections.length - 1];
+      if (lastSec) { vLine.section = lastSec.heading; lastSec.lines.push(vLine); }
+      else { vLine.section = "Summary"; assembled.sections.push({ heading: "Summary", lines: [vLine] }); }
+    }
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled, { profile });
@@ -1088,12 +1126,12 @@ const CareerTailor = (() => {
     // (filename + sha256 + size) so a submitted resume can be reproduced.
     if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
-      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps, eligibilityVerdict: verdict };
     }
     const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
-    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps, eligibilityVerdict: verdict };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, eligibilityVerdictFor, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;

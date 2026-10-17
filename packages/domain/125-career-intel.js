@@ -312,16 +312,16 @@ const CareerIntel = (() => {
   // honest answer is that this file carries no bar for the asked role.
   const factText = (f) => (typeof f === "string" ? f : (f && (f.statement || f.text || f.summary)) || "");
   const ROLE_LENSES = [
-    { key: "pm", label: "product management", re: /\b(pm|apm|product manager|product management)\b/i },
-    { key: "swe", label: "software engineering", re: /\b(swe|software engineer|software engineering|software developer|engineering)\b/i },
-    { key: "data-analyst", label: "data analyst", re: /\bdata analyst\b/i },
-    { key: "data-scientist", label: "data science", re: /\b(data scientist|data science)\b/i },
-    { key: "ml", label: "machine learning engineering", re: /\b(machine learning|ml engineer)\b/i },
+    { key: "pm", label: "product management", re: /\b(pm|apm|product managers?|product management)\b/i },
+    { key: "swe", label: "software engineering", re: /\b(swe|software engineers?|software engineering|software developers?|engineering)\b/i },
+    { key: "data-analyst", label: "data analyst", re: /\bdata analysts?\b/i },
+    { key: "data-scientist", label: "data science", re: /\b(data scientists?|data science)\b/i },
+    { key: "ml", label: "machine learning engineering", re: /\b(machine learning|ml engineers?)\b/i },
     { key: "quant", label: "quantitative trading / research", re: /\b(quant|quantitative)\b/i },
-    { key: "ib", label: "investment banking", re: /\b(investment banking|ibd|banker|banking analyst)\b/i },
-    { key: "consulting", label: "consulting", re: /\b(consultant|consulting|management consulting)\b/i },
-    { key: "design", label: "design", re: /\b(designer|product design|ux|ui design)\b/i },
-    { key: "sales", label: "sales", re: /\b(sales|account executive)\b/i },
+    { key: "ib", label: "investment banking", re: /\b(investment banking|ibd|bankers?|banking analysts?)\b/i },
+    { key: "consulting", label: "consulting", re: /\b(consultants?|consulting|management consulting)\b/i },
+    { key: "design", label: "design", re: /\b(designers?|product design|ux|ui design)\b/i },
+    { key: "sales", label: "sales", re: /\b(sales|account executives?)\b/i },
   ];
   function detectRole(text) {
     const t = String(text || "");
@@ -364,6 +364,15 @@ const CareerIntel = (() => {
     if (!KB || !roleAsk) return null;
     const label = typeof roleAsk === "string" ? roleAsk : roleAsk.label;
     try { const st = KB.roleStats(label, opts || {}); return st && st.found ? st : null; } catch { return null; }
+  }
+  // MI-020 (Depth Lane C): the formatted, n-cited stats text for a
+  // roleStats result, exposed so the router can cite the library inside
+  // its own composed answers (no-file company + asked role) without
+  // reaching into 153 directly.
+  function kbStatsText(stats) {
+    const KB = getKB();
+    if (!KB || !stats) return "";
+    try { return KB.formatRoleStats(stats); } catch { return ""; }
   }
   // The composed intel answer for a role question about a company:
   // role-lens bar (or the honest no-bar statement) + the library's
@@ -692,7 +701,7 @@ const CareerIntel = (() => {
     };
   }
 
-  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn, detectRole, barForRole, roleKbStats, answerRoleIntel, ROLE_LENSES };
+  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn, detectRole, barForRole, roleKbStats, kbStatsText, answerRoleIntel, ROLE_LENSES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerIntel;
 if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) {

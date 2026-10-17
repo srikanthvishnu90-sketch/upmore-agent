@@ -23025,6 +23025,22 @@ const CareerTailor = (() => {
       text: `Not covered by your record: ${gaps.map((g) => g.requirement).join("; ")}`,
     };
   }
+  // MI-025 last clause (Depth Lane C): the discrete eligibility
+  // VERDICT, printed on the tailored document itself. The gap list
+  // names what is missing (packet data); the verdict is the one-line
+  // judgement a reader of the document alone can see. It is derived
+  // only from computeGaps' classes, it names nothing the record does
+  // not support (the missing items themselves stay in the gap list —
+  // printing their names here would claim them), and it is attached
+  // AFTER the truth audit like the gaps: it is a computed judgement
+  // about the record, not a claim from it.
+  function eligibilityVerdictFor(gaps) {
+    const failed = (gaps || []).filter((g) => g.reasonClass === "knockout-failed");
+    const required = (gaps || []).filter((g) => g.gapClass === "required");
+    if (failed.length) return { status: "not_eligible", line: "Eligibility verdict: this record does not meet every hard requirement stated in the posting — the unmet requirements are named in the gap list that travels with this packet." };
+    if (required.length) return { status: "eligible_with_required_gaps", line: "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet." };
+    return { status: "eligible", line: "Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting." };
+  }
 
   // ---- main entry: tailor with the hard gate ----
   let versionSeq = 0;
@@ -23059,6 +23075,28 @@ const CareerTailor = (() => {
     assembled.requiredGaps = requiredGaps;
     assembled.preferredGaps = preferredGaps;
     assembled.gapSection = gapSectionFor(gaps);
+    // MI-025: the verdict line joins the document model itself so
+    // the rendered PDF/DOCX prints it. It rides as the closing note
+    // line of the document's LAST section — a new heading of its own
+    // would break the standing heading contracts (148's allowlist is
+    // satisfied either way, but 133's ATS standard set and the R3
+    // heading discipline pin the sections a tailored resume carries);
+    // only a document with no sections at all gains a Summary
+    // section to hold it.
+    const verdict = eligibilityVerdictFor(gaps);
+    assembled.eligibilityVerdict = verdict;
+    {
+      // The line joins the SECTION model only — never assembled.lines:
+      // the flat line list carries the invariant that every line is
+      // fact-cited (the truth audit's contract), and the verdict is a
+      // computed judgement, not a fact claim. The gap section sets the
+      // precedent: its lines likewise live outside the cited list.
+      // 148 renders from sections, so the verdict still prints.
+      const vLine = { text: verdict.line, type: "note", factIds: [] };
+      const lastSec = assembled.sections[assembled.sections.length - 1];
+      if (lastSec) { vLine.section = lastSec.heading; lastSec.lines.push(vLine); }
+      else { vLine.section = "Summary"; assembled.sections.push({ heading: "Summary", lines: [vLine] }); }
+    }
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled, { profile });
@@ -23067,13 +23105,13 @@ const CareerTailor = (() => {
     // (filename + sha256 + size) so a submitted resume can be reproduced.
     if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
-      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps, eligibilityVerdict: verdict };
     }
     const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
-    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps };
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version, gaps, requiredGaps, preferredGaps, eligibilityVerdict: verdict };
   }
 
-  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, FAMILY_SKILLS, extractKnockouts, jdSegments, scoreFact, selectFacts, provenSkills, derivedSkillNames, skillFactProven, computeGaps, eligibilityVerdictFor, personaLevelOf, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;
 
@@ -25258,16 +25296,16 @@ const CareerIntel = (() => {
   // honest answer is that this file carries no bar for the asked role.
   const factText = (f) => (typeof f === "string" ? f : (f && (f.statement || f.text || f.summary)) || "");
   const ROLE_LENSES = [
-    { key: "pm", label: "product management", re: /\b(pm|apm|product manager|product management)\b/i },
-    { key: "swe", label: "software engineering", re: /\b(swe|software engineer|software engineering|software developer|engineering)\b/i },
-    { key: "data-analyst", label: "data analyst", re: /\bdata analyst\b/i },
-    { key: "data-scientist", label: "data science", re: /\b(data scientist|data science)\b/i },
-    { key: "ml", label: "machine learning engineering", re: /\b(machine learning|ml engineer)\b/i },
+    { key: "pm", label: "product management", re: /\b(pm|apm|product managers?|product management)\b/i },
+    { key: "swe", label: "software engineering", re: /\b(swe|software engineers?|software engineering|software developers?|engineering)\b/i },
+    { key: "data-analyst", label: "data analyst", re: /\bdata analysts?\b/i },
+    { key: "data-scientist", label: "data science", re: /\b(data scientists?|data science)\b/i },
+    { key: "ml", label: "machine learning engineering", re: /\b(machine learning|ml engineers?)\b/i },
     { key: "quant", label: "quantitative trading / research", re: /\b(quant|quantitative)\b/i },
-    { key: "ib", label: "investment banking", re: /\b(investment banking|ibd|banker|banking analyst)\b/i },
-    { key: "consulting", label: "consulting", re: /\b(consultant|consulting|management consulting)\b/i },
-    { key: "design", label: "design", re: /\b(designer|product design|ux|ui design)\b/i },
-    { key: "sales", label: "sales", re: /\b(sales|account executive)\b/i },
+    { key: "ib", label: "investment banking", re: /\b(investment banking|ibd|bankers?|banking analysts?)\b/i },
+    { key: "consulting", label: "consulting", re: /\b(consultants?|consulting|management consulting)\b/i },
+    { key: "design", label: "design", re: /\b(designers?|product design|ux|ui design)\b/i },
+    { key: "sales", label: "sales", re: /\b(sales|account executives?)\b/i },
   ];
   function detectRole(text) {
     const t = String(text || "");
@@ -25310,6 +25348,15 @@ const CareerIntel = (() => {
     if (!KB || !roleAsk) return null;
     const label = typeof roleAsk === "string" ? roleAsk : roleAsk.label;
     try { const st = KB.roleStats(label, opts || {}); return st && st.found ? st : null; } catch { return null; }
+  }
+  // MI-020 (Depth Lane C): the formatted, n-cited stats text for a
+  // roleStats result, exposed so the router can cite the library inside
+  // its own composed answers (no-file company + asked role) without
+  // reaching into 153 directly.
+  function kbStatsText(stats) {
+    const KB = getKB();
+    if (!KB || !stats) return "";
+    try { return KB.formatRoleStats(stats); } catch { return ""; }
   }
   // The composed intel answer for a role question about a company:
   // role-lens bar (or the honest no-bar statement) + the library's
@@ -25638,7 +25685,7 @@ const CareerIntel = (() => {
     };
   }
 
-  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn, detectRole, barForRole, roleKbStats, answerRoleIntel, ROLE_LENSES };
+  return { CONFIDENCE, FACT_KINDS, DIST_FIELDS, K_ANON, THIN_BELOW, validateCIR, loadCIRs, loadCIRsFromDir, getCIR, cohortStats, compareMe, planPath, composeThesis, verifyClaims, verifyThesis, lintAdvice, respondToRequest, refreshDue, reportOutdated, numbersIn, detectRole, barForRole, roleKbStats, kbStatsText, answerRoleIntel, ROLE_LENSES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerIntel;
 if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) {
@@ -25719,7 +25766,7 @@ const CareerKB = (() => {
   }
 
   const normalizeKey = (text) => String(text || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const stemToken = (w) => ({ management: "manager", engineers: "engineer", analysts: "analyst", scientists: "scientist", nurses: "nurse", managers: "manager", designers: "designer", developers: "developer" }[w] || (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
+  const stemToken = (w) => ({ management: "manager", engineering: "engineer", engineers: "engineer", analysts: "analyst", scientists: "scientist", nurses: "nurse", managers: "manager", designers: "designer", developers: "developer" }[w] || (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
   const tokensOf = (text) => new Set(normalizeKey(text).split("-").filter((w) => w && !["and", "the", "of"].includes(w)).map(stemToken));
 
   // Free-text asks carry the role inside a sentence ("what does it take
@@ -25735,6 +25782,16 @@ const CareerKB = (() => {
     "ib-analyst": "investment-banking-analyst",
     "data-analyst": "data-analyst",
     "pm": "product-manager",
+    // Field labels (125's detectRole vocabulary) name the same rows by
+    // their discipline, not their job title — "data science" is the
+    // Data Scientist row, "software engineering" the Software
+    // Engineer row. Without these, a field-label ask fell to
+    // found:false although the row exists (Depth Lane C probe).
+    "data-science": "data-scientist",
+    "software-engineering": "software-engineer",
+    "investment-banking": "investment-banking-analyst",
+    "machine-learning": "machine-learning-engineer",
+    "nursing": "registered-nurse",
   };
   function matchRow(rows, query) {
     const q = normalizeKey(query);
@@ -25752,7 +25809,17 @@ const CareerKB = (() => {
       for (const t of tt) if (!qt.has(t)) { all = false; break; }
       if (all) { best = r; bestSize = tt.size; }
     }
-    return best;
+    if (best) return best;
+    // Last: an alias whose tokens all appear in the ask ("what are
+    // the most common requirements in welder postings?" — the
+    // Welder row's full title can never be a subset of a natural
+    // ask). Specific titles above win first, so a longer title the
+    // ask does name is never shadowed by an alias it also contains.
+    for (const [aliasKey, target] of Object.entries(ALIASES)) {
+      const at = tokensOf(aliasKey);
+      if (at.size && [...at].every((t) => qt.has(t))) { const r = rows.find((x) => x.key === target); if (r) return r; }
+    }
+    return null;
   }
 
   // Adapt host-provided live rows to the aggregate shape. Accepts:
@@ -36317,6 +36384,12 @@ const CareerRouter = (() => {
         ...(sweepFirst ? [groundedFact] : []),
         leadPhrase ? `It leads with ${leadPhrase}, and every line traces to a fact already on your profile.` : `It leads with your proven skills${matched.length ? ` for this role: ${matched.join(", ")}` : ""}, and every line traces to a fact already on your profile.`,
         gapLine,
+        // MI-025 (Depth Lane C): the eligibility verdict is SPOKEN as
+        // its own sentence, the same line the document prints — the
+        // gap line names what is missing; the verdict is the
+        // judgement, and it comes from 123's typed result, never
+        // re-derived here.
+        ...(tailored.eligibilityVerdict && tailored.eligibilityVerdict.line ? [tailored.eligibilityVerdict.line] : []),
         // BUG-048: the artifact's sha256 stays in the typed artifact record
         // (the proof) — it is never spoken. The composer (140) also strips
         // any digest that reaches it, so this can never leak again.
@@ -38670,6 +38743,14 @@ const CareerRouter = (() => {
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
   function handleIntel(text, ctx) {
     if (!Intel) return null;
+    // 140's composeResult keeps the FIRST sentence of each fact and
+    // caps the fact block at 6 sentences — multi-sentence evidence
+    // (a role bar, the library's stats block) is therefore passed as
+    // one fact per sentence, the same idiom the summary below uses.
+    // Abbreviations are shielded first: a naive split breaks "Inc."
+    // and "Sr." into phantom facts and the real closing facts fall
+    // off the cap.
+    const sentsOf = (t) => String(t || "").replace(/\b(Inc|Corp|Ltd|Sr|Jr|Dr|Mr|Mrs|Ms|St|vs|U\.S|D\.C|e\.g|i\.e)\./g, "$1\u0001").split(/(?<=[.!?])\s+/).map((x) => x.trim().split("\u0001").join(".")).filter(Boolean);
     let cir = cirFor(text, ctx);
     if (!cir) {
       // COMPLEXITY WAVE (BUG-174): a pronoun follow-up ("and what's
@@ -38678,6 +38759,12 @@ const CareerRouter = (() => {
       // which survives the snapshot round trip.
       const stored = ctx.discovery && ctx.discovery.lastIntelCompany;
       if (stored && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
+      // Depth Lane C: an elliptical role follow-up ("and for PM?",
+      // "and what about for software engineers?") names no firm at
+      // all — it continues the firm this thread last discussed, and
+      // the role-lens branch below answers it for that firm (or, for
+      // an unfiled firm, the no-file branch's role half does).
+      if (!cir && stored && s(text).length <= 60 && /^\s*(and\s+)?(what about\s+)?for\b/i.test(s(text))) cir = cirFor(stored, ctx);
     }
     if (!cir) {
       // COMPLEXITY WAVE (BUG-174): a NAMED firm with no company file
@@ -38687,12 +38774,84 @@ const CareerRouter = (() => {
       const comp0 = companyFromText(text, ctx);
       let comp = comp0;
       if (!comp) { const am = s(text).match(/\babout\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (am) comp = am[1].replace(/[?.!,]+$/, ""); }
+      // LF-05 (Depth Lane C): the registry's most natural phrasing —
+      // "What do you have on Databricks?" — matched NO extraction
+      // frame (companyFromText owns firm/company/bank/at/about), so
+      // this branch never fired and the live path served the generic
+      // fallback although the honest answer existed in the build. The
+      // "on <Name>" frames live HERE, in the no-file branch only:
+      // companyFromText is shared by state-writing handlers, where a
+      // wider net would mint companies the user never named.
+      if (!comp) { const om = s(text).match(/\bon\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (om && !/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December)$/.test(om[1])) comp = om[1].replace(/[?.!,]+$/, ""); }
+      if (!comp) { const hm = s(text).match(/\bhave on\s+([a-z][a-z0-9&.'-]{2,})\b/i); if (hm && !/^(file|files|record|records|me|this|that|today|tomorrow|average|hand|him|her|them|it|my|your|tap|deck|deck,|it,)$/i.test(hm[1])) comp = hm[1].replace(/[?.!,]+$/, ""); }
+      // "What does Databricks look for in data analysts?" — the firm
+      // sits after does/do with no preposition frame at all; the
+      // no-file branch is the only place this frame is read, so a
+      // wider net here cannot mint companies for state writers.
+      if (!comp) { const dm = s(text).match(/\b(?:does|do|did)\s+([A-Z][A-Za-z0-9&.'-]{2,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)\s+(?:look|hire|want|need|post|seek)\b/); if (dm) comp = dm[1].replace(/[?.!,]+$/, ""); }
       if (!comp && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
-      if (!comp) return null;
+      if (!comp) {
+        // MI-020 (Depth Lane C): no company is named, but the ask can
+        // still be a ROLE-evidence ask ("what does it take for data
+        // analyst", "what do welder postings name?"). The knowledge
+        // library (153, via 125) answers those with stats cited with
+        // their n; a role the library does not carry gets the honest
+        // no-data answer. Neither may fall through to the generic
+        // fallback, and no neighbouring role's numbers are ever
+        // borrowed (153 returns found:false rather than a neighbour).
+        const roleShape = /\bwhat does it take\b|\bwhat (do|does)\b[^.?!]*\b(postings?|roles?)\b|\bwhat skills\b|\bpostings (name|ask|require|usually|emphasize)\b|\bget hired as\b|\bbecome an?\b|\bwhat (are|is)\b[^.?!]*\b(postings?|requirements?|skills?)\b|\blook for in\b|\bwhat about\b[^.?!]*\bfor\b|\bmost common\b[^.?!]*\b(requirements?|skills?)\b|\bwhat\b[^.?!]*\bpostings\b[^.?!]*\b(require|required|ask|name|emphasize|look for|usually|matter)\b/i.test(s(text));
+        if (roleShape && Intel.roleKbStats && Intel.kbStatsText) {
+          let kst = null;
+          try { kst = Intel.roleKbStats(s(text)); } catch { kst = null; }
+          if (!kst && Intel.detectRole) {
+            // Sentence-shaped asks defeat the library's title matcher
+            // on inflections ("welders" vs the "Welder" row); the
+            // detected role's label is the matcher's home ground.
+            try { const dr = Intel.detectRole(s(text)); if (dr && (dr.label || dr.key)) kst = Intel.roleKbStats(dr.label || dr.key); } catch { kst = null; }
+          }
+          if (!kst) {
+            // Roles outside 125's lens list (welder, nurse, …) are
+            // named in the ask's own frames; try those phrases, and
+            // their singular, against the library before concluding
+            // the role is absent.
+            const cands = [];
+            const aboutM = s(text).match(/\babout\s+([A-Za-z][A-Za-z -]*?)(?:\s+—|\s+--|\s+-|\?|$)/); if (aboutM) cands.push(aboutM[1].trim());
+            const forM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([A-Za-z][A-Za-z -]*?)(?:\?|$)/); if (forM) cands.push(forM[1].trim());
+            for (const cand of cands) {
+              if (!cand) continue;
+              try { kst = Intel.roleKbStats(cand); } catch { kst = null; }
+              if (!kst && /s$/i.test(cand)) { try { kst = Intel.roleKbStats(cand.replace(/s$/i, "")); } catch { kst = null; } }
+              if (kst) break;
+            }
+          }
+          if (kst) {
+            const facts = ["No company is named in that ask, so no company file applies — but the role itself is in the career knowledge library, and its posting evidence is on record.", ...sentsOf(Intel.kbStatsText(kst))];
+            const reply = compose({ headline: `${kst.role.title} — what its postings actually ask for, from the library.`, facts, nextStep: "Name a company and I will put its own file's bar next to this, role by role." });
+            return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, payload: { kind: "role_kb_stats", role: kst.role.title }, artifact: { kind: "role_kb_stats", role: kst.role.title } };
+          }
+          const tailM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([^?.!,]+)$/i);
+          const roleTail = tailM ? tailM[1].trim() : "";
+          const reply = compose({ headline: "That role is not in the career knowledge library — stated plainly.", facts: [`The library's role evidence covers the occupations it was built from; ${roleTail ? `"${roleTail}" is` : "that role is"} not among them, so no posting statistics exist on record for it.`, "What I will not do is borrow a neighbouring role's numbers and present them as this role's — a percentage without its own evidence behind it is invention."], nextStep: "Name a role the library carries — data analyst, software engineer, registered nurse, welder, product manager — and its posting evidence is quoted with its sample sizes." });
+          return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "role_kb_absent" }, artifact: { kind: "role_kb_absent" } };
+        }
+        return null;
+      }
       try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: comp }); } catch { /* memo only */ }
       const facts = [`The company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. ${comp} is not one of them, so none of that exists on record for this firm.`];
       if (/\bgpa\b|\bcutoff\b|\bcut-off\b/i.test(s(text))) facts.push(`On the cutoff question specifically: no verified GPA cutoff for ${comp} is on record. Firms rarely publish one, and a number I cannot source will not be quoted at you as fact.`);
       facts.push("What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence.");
+      // MI-020 (Depth Lane C): a no-file company asked about FOR A ROLE
+      // still gets the role's half answered — from the knowledge
+      // library, with its n — instead of "no file" being the whole
+      // answer (the live KB4 shape: "…to be a product manager at
+      // Databricks?" stopped at the missing file).
+      if (Intel.detectRole && Intel.roleKbStats && Intel.kbStatsText) {
+        try {
+          const dr = Intel.detectRole(s(text));
+          const kst = dr && (dr.key || dr.label) ? Intel.roleKbStats(dr.label || dr.key) : null;
+          if (kst) facts.push("The role half of your ask does have library evidence:", ...sentsOf(Intel.kbStatsText(kst)));
+        } catch { /* the no-file answer stands on its own */ }
+      }
       const reply = compose({ headline: `${comp} has no company file yet — here is what that means, plainly.`, facts, nextStep: `Want prep for ${comp} built from its public postings instead, or a firm whose file exists?` });
       return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, company: comp, payload: { kind: "company_file_absent", company: comp }, artifact: { kind: "company_file_absent", company: comp } };
     }
@@ -38716,8 +38875,29 @@ const CareerRouter = (() => {
           const third = (v) => v ? v.replace(/\byou must\b/gi, "candidates must").replace(/\byou need to\b/gi, "candidates need to").replace(/\byou have to\b/gi, "candidates have to").replace(/\byou should\b/gi, "candidates should").replace(/\byou are expected to\b/gi, "candidates are expected to").replace(/\byour\b/gi, "their") : v;
           const facts = [];
           const bar = firstOf(cir.hiring_bar_summary); if (bar) facts.push(`${name}'s bar, from its file: ${third(bar)}`);
-          const cult = firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
+          // MI-019 rider (Depth Lane C): a compare asked FOR A ROLE
+          // ("compare Snowflake and Databricks for PM") must not let
+          // the filed side's cohort bar stand as the role's answer —
+          // the asked role's lens (its own bar, or the honest no-bar
+          // statement, plus the library's cited stats for the role)
+          // rides in the same answer, and the culture line yields its
+          // sentence slot to it.
+          let lensFacts = null;
+          if (Intel.detectRole && Intel.barForRole && Intel.answerRoleIntel) {
+            try {
+              const dr = Intel.detectRole(text);
+              if (dr && (dr.key || dr.label)) {
+                const lens = Intel.barForRole(cir, dr);
+                if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) {
+                  const ra = Intel.answerRoleIntel(cir, text, { role: dr });
+                  if (ra && ra.text) lensFacts = sentsOf(ra.text).slice(0, 3);
+                }
+              }
+            } catch { lensFacts = null; }
+          }
+          const cult = lensFacts ? null : firstOf(cir.values_culture_signals || cir.culture_notes); if (cult) facts.push(`On culture: ${cult}`);
           facts.push(`${other} has no company file in the library, so its culture, hours, deal flow, and exits cannot be compared from record — anything said about them here would be invention.`);
+          if (lensFacts) facts.push(...lensFacts);
           if (cir.as_of) facts.push(`Source: the ${name} company file (public sources), as of ${cir.as_of}.`);
           const reply = compose({ headline: `${name} versus ${other}: one side of this comparison exists on record; the other does not.`, facts, nextStep: `Want the ${name} side deepened, or ${other}'s file built from public sources first?` });
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: { kind: "company_compare_partial", filed: name, unfiled: other }, artifact: { kind: "company_compare_partial", filed: name, unfiled: other } };
@@ -38744,6 +38924,44 @@ const CareerRouter = (() => {
           return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, comparison: cm, payload, artifact: payload };
         }
       } catch { /* fall through to the file summary */ }
+    }
+    // MI-019 / MI-020 (Depth Lane C): a ROLE-LENS ask names a role
+    // whose bar is not this file's cohort bar. Serving the cohort
+    // summary to it answers a different question than the one asked —
+    // the live failure (registry LF-02): a PM ask about Snowflake was
+    // served Snowflake's SWE bar verbatim. When the file carries the
+    // asked role's own bar, serve that bar; when it carries no bar
+    // for the asked role, say exactly that; either way the knowledge
+    // library's cited stats for the ASKED role ride along — 125's
+    // answerRoleIntel composes both halves and neither half borrows
+    // the other role's evidence. A cohort-bar ask, a mere role
+    // mention, and a two-filed-firm compare fall through to the
+    // summary below unchanged.
+    if (Intel.detectRole && Intel.barForRole && Intel.answerRoleIntel) {
+      let askedRole = null, lens = null, roleAns = null;
+      try {
+        askedRole = Intel.detectRole(text);
+        if (askedRole && (askedRole.key || askedRole.label)) {
+          const lab = lc(askedRole.label || "");
+          const low = lc(text);
+          const frameToks = new Set([lab, lc(String(askedRole.key || "").replace(/-/g, " "))]);
+          if (askedRole.key && askedRole.key.length <= 3) frameToks.add(lc(askedRole.key));
+          const framed = [...frameToks].filter(Boolean).some((f) => low.includes(`for ${f}`) || low.includes(`for a ${f}`) || low.includes(`for an ${f}`) || low.includes(`${f} at`) || low.includes(`${f} role`) || low.includes(`as a ${f}`) || low.includes(`as an ${f}`))
+            || (/\b(hiring bar|the bar|bar for|look for in|hiring for)\b/.test(low) && (lab ? low.includes(lab.split(" ")[0]) : false))
+            || (/\b(stats|statistics|library|percentages?|postings data)\b/.test(low) && !!lab);
+          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!(cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, low)));
+          if (framed && !otherFiled) {
+            lens = Intel.barForRole(cir, askedRole);
+            if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) roleAns = Intel.answerRoleIntel(cir, text, { role: askedRole });
+          }
+        }
+      } catch { askedRole = null; lens = null; roleAns = null; }
+      if (roleAns && roleAns.text) {
+        const facts = [...sentsOf(roleAns.text)];
+        facts.push(cir.as_of ? `Source: the ${name} company file (public sources), as of ${cir.as_of}; role statistics from the career knowledge library, each cited with its sample size.` : `Source: the ${name} company file (public sources); the file carries no as-of date, so none is claimed. Role statistics from the career knowledge library, each cited with its sample size.`);
+        const reply = compose({ headline: `${name} for ${askedRole.label} — the asked role's own evidence, not the file's headline cohort.`, facts, nextStep: "Want your own record read against this role's bar next?" });
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: { kind: "role_intel", company: name, role: askedRole.label, lens_status: lens.status }, artifact: { kind: "role_intel", company: name, role: askedRole.label } };
+      }
     }
     // BUG-087 (template-breakup lane): the file summary is composed
     // from the file's OWN sections, picked by the ask's angle — the
@@ -42467,7 +42685,7 @@ const CareerRouter = (() => {
         const sa = handleApplicationStatus(text, c);
         if (sa) return sa;
       }
-      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay)\b/.test(t)) ? handleIntel(text, c) : null;
+      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
         const ig = handleIntelGuidance(text, c);
@@ -44519,13 +44737,22 @@ const CareerRender = (() => {
     // punctuation-only like ", , ") is a content-empty document wearing a
     // valid format — it must FAIL, not pass. The honest shapes are a
     // skills body naming proven skills, or no SKILLS section at all.
+    // MI-024 (Depth Lane C): the floor is every section, not SKILLS
+    // alone — the original audit's defect class was "a present section
+    // with no content passes parse-check", and a punctuation-only
+    // EXPERIENCE or EDUCATION body is the same shipped defect in a
+    // different heading. The SKILLS check keeps its name (pinned by
+    // BUG-210's guard); every other heading fails as empty_section.
     if (resume) {
       const secs = (Array.isArray(resume.sections) && resume.sections.length) ? resume.sections
         : (() => { const grouped = new Map(); for (const l of resume.lines || []) { const h = l.section || ""; if (!grouped.has(h)) grouped.set(h, { heading: h, lines: [] }); grouped.get(h).lines.push(l); } return [...grouped.values()]; })();
       for (const s of secs) {
-        if (!s || String(s.heading || "").toUpperCase() !== "SKILLS") continue;
+        if (!s) continue;
+        const heading = String(s.heading || "").toUpperCase();
         const body = (s.lines || []).map((l) => String((l && l.text) || "")).join(" ").replace(/technical skills:/i, "");
-        if (!/[a-z0-9]/i.test(body)) add("empty_skills_section", "fail", `SKILLS section is present but its body names no skill (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty skills section fails; omit the section or list proven skills`);
+        if (/[a-z0-9]/i.test(body)) continue;
+        if (heading === "SKILLS") add("empty_skills_section", "fail", `SKILLS section is present but its body names no skill (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty skills section fails; omit the section or list proven skills`);
+        else if (heading) add("empty_section", "fail", `${heading} section is present but its body carries no content (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty section fails; omit the section or fill it from the record`);
       }
     }
     const profIn = inp.profile || o.profile || null;

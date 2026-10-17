@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 92,
-  "total": 92
+  "pass": 91,
+  "total": 91
  },
  "results": [
   {
@@ -224,8 +224,9 @@
   {
    "family": "design",
    "id": "D-06",
-   "title": "pixel regression of the signed-out screens (real Chromium 141.0.7390.37, run 2026-10-12, recorded with a fingerprint of what it rendered)",
-   "status": "PASS"
+   "title": "pixel regression of the signed-out screens",
+   "status": "NOT_RUN",
+   "actual": "last run 2026-10-12T13:18:10.194Z saw a different app, images, fonts or baselines; run again: node evals/agent/visual.cjs (real Chromium, phone and desktop: pixel regression against evals/agent/visual-baseline, clipped or covered copy, dead controls read through DevTools). Signed-in screens need a live login."
   },
   {
    "family": "flow",

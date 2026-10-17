@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Codex owns generated evaluator freshness outputs `docs/testing/agent-report.md`, `docs/capability-list/flow-evidence.md`, `evals/agent/results/latest.json` for the app-source change only; run the actual existing evaluator, preserve all assertions, NOT_RUNs and release gates.
+
 - 2026-10-17 Codex mass-application continuation explicitly owns `workers/career-browser/{authority,service}.cjs`, `packages/domain/149-career-portal-apply.js` admission-count seam, `tests/fixtures/owned-worker-authority.cjs`, new admissions SQL/tests, CI-node DDL selection and both regenerated router bundles. Atomic shared caps only; existing employer guards, model/native code and protected modules127/130/155 stay unchanged.
 
 - 2026-10-17 owner mass-application priority at14:18/14:23UTC: `codex/mass-applications-20261017` from51807f10. Own client resume upload/review/confirmation controller, template/build/generated app seams; narrow132 triage continuation; new source-aware batch/answer/approval/durable-ledger seams and proposal/test/docs as implemented. Preserve real-employer denial/readback truth,15/day5/vendor/day1/company/30-day caps, exact per-role approvals, native accounting, modules127/130/155 and protected reviewer source. No document-security expansion or retry of denied security work. Paid allocation0; no Browserbase, provisioning, credential changes, shared merge, deploy or live submit. Muse owns integration/operational actions.

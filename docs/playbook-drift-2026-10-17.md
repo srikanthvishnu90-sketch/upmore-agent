@@ -74,3 +74,6 @@ The shipped chat file picker accepted only images; the standalone owned resume i
 
 
 Atomic application admission finding: the worker passed `log:{records:[]}` into149 despite its cross-thread quota contract. New source reads owner-bound durable admission history and reserves every submit under the existing SQL owner lock, retaining15/day5/vendor/day1/company/30-day policy. Admissions reserve quota without claiming an employer receipt; incomplete historical mappings stop new work. The proposed schema is unapplied and full exact-committed validation is pending. [Source checkpoint](career/mass-applications-20261017/README.md). The executable reviewed batch, durable multi-day role queue and genuine adapter/receipt remain unfinished.
+
+
+The app-source change invalidated the2026-10-12 visual fingerprint. CI0337c815 correctly rejected stale generated reports. Running the actual offline evaluator regenerated91/91 checks with the affected visual check honestly NOT_RUN, preserving three labeled gaps and three NOT_RUNs. No browser baseline/fingerprint was fabricated and no freshness assertion was weakened. Node24 compatibility generation/check is recorded separately from actual Deno CI. Committed runtime0337c815 full Node source passes4764/40skip.

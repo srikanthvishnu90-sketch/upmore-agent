@@ -23,7 +23,33 @@
       "skipped": 40,
       "remainingFailure": "Deterministic worker bundle refuses uncommitted allowlisted source; no gate was weakened. Exact committed rerun pending."
     },
-    "fullPostgres": "IN_PROGRESS"
+    "fullPostgres": "IN_PROGRESS",
+    "committedFullSource": {
+      "commit": "0337c815765754e2321bf1bb8ce5da40b9300443",
+      "passed": 4764,
+      "failed": 0,
+      "skipped": 40,
+      "log": "evidence/admission-committed-source.log"
+    },
+    "offlineEvaluator": {
+      "generator": "Actual evals/agent/run.ts, Node24 TS-transform with minimal filesystem/Command compatibility; external HTTP disabled, env.get unavailable. No Deno installation.",
+      "pass": 91,
+      "fail": 0,
+      "gaps": 3,
+      "notRun": 3,
+      "freshnessCheck": "PASS",
+      "visualEvidence": "Old different-app fingerprint became NOT_RUN; not fabricated or waived."
+    },
+    "ci0337": {
+      "run": 39042525270,
+      "edgeTests": 713,
+      "edgeTestsFailed": 0,
+      "mutationsCaught": 12,
+      "database": "success",
+      "denoJob": "failed at generated-report freshness; source checks passed; regenerated outputs committed next",
+      "node": "in_progress",
+      "requiredOriginalArchives": "failure"
+    }
   },
   "paidCalls": 0,
   "employerSubmissions": 0,

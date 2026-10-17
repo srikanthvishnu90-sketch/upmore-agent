@@ -1,0 +1,36 @@
+✔ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (8.12714ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (2.696833ms)
+✔ Receive deduplicates duplicate webhooks and the same seat across different event IDs (11.625942ms)
+✔ Equip checks actual file bytes and artifact owner before a browser opens (5.253934ms)
+✔ Execute/Check checkpoints persist and each action reserves then settles its budget (13.534072ms)
+✔ action schema and observation references reject unknown tools, stale nodes, disabled fields and wrong origin/frame (0.992216ms)
+✔ wrong-user read, prepare, approval and reconciliation are refused without browser actions (9.782003ms)
+✔ explicit approval binds exact review, resume bytes, destination and expiration (10.025712ms)
+✔ duplicate approval after restart returns the checked receipt with exactly one click (29.125663ms)
+✔ changed confirmed profile after review creates a new review and spends no approval (17.093969ms)
+✔ timeouts and exhausted budgets stop before submission and settle attempted actions (5.406811ms)
+✔ a captured success without destination proof remains unknown and never retries (25.93423ms)
+✔ real worker-process death after the click recovers the lease and reconciles without a second click (88.828168ms)
+✔ wrong-user destination proof cannot turn an uncertain write into a receipt (20.439252ms)
+✔ HTTP task endpoint authenticates existing identity, rejects service role and body impersonation (24.721738ms)
+✔ worker refuses employer destinations even if the older driver recognizes their ATS (0.925761ms)
+✔ 149 repeatedly observes conditional fields and page transitions before final review (0.660442ms)
+✔ 149 stops at newly revealed unknown required fields and refuses unobserved or altered answers (0.630766ms)
+✔ controlled local portal reads real multipart file bytes, checks the approved hash and refuses duplicate receipts (44.463638ms)
+✔ confirmation parser requires an explicit reference label (3.485637ms)
+✔ actual 150 adapter extracts explicit application reference, never success prose (3.699139ms)
+✔ actual 150 receipt capture binds the private submit capture and refuses absent PNG (1.814674ms)
+✔ one-application runner remains alive through review, approval uncertainty and reconciliation (1.565335ms)
+✔ idle review checkpoint is purged on ordinary polling after epoch revocation (19.72599ms)
+✔ browser helper gets a benign environment and managed lifetime, never backend markers (1.98808ms)
+✔ service calls the actual 150 immutable receipt seam for the exact destination ID (41.498199ms)
+✔ idle revocation purges private evidence but preserves an unknown-submit tombstone (31.620837ms)
+✔ runner bounds idle and uncertain waits and preserves the same checkpoint on restart (0.634013ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 412.293524

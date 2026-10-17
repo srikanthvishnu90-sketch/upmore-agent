@@ -41,3 +41,6 @@ Confirmed-resume restoration adds authenticated POST `/career-applicant/status` 
 
 
 Published metadata runtime91811a34 full clean source4778/40skip/0fail. Prior runner runtimef74812b3 now has terminal CI39047577375 Node/Deno/database success across all40 source/SQL runs (5125 passes,40 skips), original archives failed. The exact manifest and coordinated handoff now pin91811a34, retaining prior-runtime test identities.
+
+
+The independently reviewed zero-citation/weak-fit and unhashable eligibility-answer defects are now repaired through existing121/132/151/152 engines. Batch admission withholds zero/orphan/draft citations, weak Reach rows and mismatched role/family/band/location before browser open. Explicit typed sponsorship/residence answers bind the current question/posting/owner context and remain role-local; source/proof changes require fresh confirmation/review.8 focused source/build and28 worker controls pass; the actual entry/SQL/worker contracts pass10/10, retaining their original no-resubmit/owner/stale/pause/erase checks. [Exact hashes, failures and evidence](eligibility-fit-evidence.json). Conversational discovery/batch controls and fuller country/employer requirement collection remain unfinished.

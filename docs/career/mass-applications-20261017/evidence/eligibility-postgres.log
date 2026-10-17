@@ -1,0 +1,31 @@
+{"syntheticBatchRpcFailure":"ERROR:  exact fresh batch approval required\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 54 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  exact role answer confirmation required\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 72 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  no batch roles ready\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 46 at RAISE\n"}
+{"evidence":"ACTUAL_BATCH_ENTRY_SQL_WORKER_SYNTHETIC_BOARD","healthyRolesProgressed":2,"answerContinued":1,"admissions":3,"physicalSyntheticDispatches":3,"employerReceipts":0,"modelCalls":0,"sharedAccountVersion":1}
+{"syntheticBatchRpcFailure":"ERROR:  invalid eligibility answer type\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 81 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  unknown batch command field\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 13 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch review changed\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 58 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+{"syntheticBatchRpcFailure":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 9 at RAISE\n"}
+(node:1140408) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1140408) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ one exact batch approval progresses healthy roles while one answer continues independently; lost acknowledgements never duplicate intents (34411.434712ms)
+✔ reconciliation queued after checkpoint deletion durably records unavailable readback without redispatch (22428.855813ms)
+✔ confirmed typed eligibility answer resumes one role without changing healthy approvals or inventing master facts (33097.228635ms)
+✔ zero sourced matches cannot enter a reviewed batch or open a browser (8588.49861ms)
+✔ changed eligibility proof requires a fresh exact review before any submit admission (29589.203259ms)
+✔ one changed included role rolls back every approval in the immutable batch (10776.235725ms)
+✔ changed wording re-asks only the affected role and requires a new exact approval (18417.548975ms)
+✔ foreign owner, stale shared context, pause and erase refuse batch commands and clear private continuations (10996.334922ms)
+✔ closed current posting is held before any browser open; surviving roles remain reviewable (8753.786325ms)
+✔ unregistered destination is durably blocked without starving supported roles (8556.918928ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 185733.09175

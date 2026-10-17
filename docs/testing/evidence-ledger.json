@@ -63269,6 +63269,57 @@
     "Required original archives remain absent.",
     "No live employer or model-quality proof."
    ]
+  },
+  {
+   "id": "mass-fit-eligibility-source-20261017",
+   "source_hashes": "docs/career/mass-applications-20261017/eligibility-fit-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 8,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/eligibility-source-focused.log",
+   "log_sha256": "98acfbdd5514b4406268cc678a659f24ea5e1c5c279a200b52fff107b727e6df",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No live browser, employer receipt, model quality or deployment proof.",
+    "Conversational discovery/batch controls remain unfinished."
+   ]
+  },
+  {
+   "id": "mass-fit-eligibility-worker-controls-20261017",
+   "source_hashes": "docs/career/mass-applications-20261017/eligibility-fit-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 28,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/eligibility-worker-controls.log",
+   "log_sha256": "d475e472c364b03fec8e32a1390e2c79634af837f3862933b75a00af2beaa185",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No live browser, employer receipt, model quality or deployment proof.",
+    "Conversational discovery/batch controls remain unfinished."
+   ]
+  },
+  {
+   "id": "mass-fit-eligibility-sql-20261017",
+   "source_hashes": "docs/career/mass-applications-20261017/eligibility-fit-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 10,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/eligibility-postgres.log",
+   "log_sha256": "c486be5589e11e24fdbe2687c9653cbe49a5c033b53a1657c471da1850c2c733",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No live browser, employer receipt, model quality or deployment proof.",
+    "Conversational discovery/batch controls remain unfinished."
+   ]
   }
  ],
  "limitations": [

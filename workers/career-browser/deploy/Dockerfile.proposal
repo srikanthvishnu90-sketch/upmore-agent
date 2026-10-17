@@ -6,7 +6,7 @@ ARG UPMORE_BROWSER_BASE_IMAGE
 FROM ${UPMORE_BROWSER_BASE_IMAGE}
 WORKDIR /app
 COPY workers/career-browser /app/workers/career-browser
-COPY packages/domain/121-career-jobs.js packages/domain/122-career-profile.js packages/domain/132-career-apply.js packages/domain/148-career-render.js packages/domain/149-career-portal-apply.js packages/domain/150-career-portal-browser.js packages/domain/151-career-alert-watch.js /app/packages/domain/
+COPY packages/domain/121-career-jobs.js packages/domain/122-career-profile.js packages/domain/132-career-apply.js packages/domain/148-career-render.js packages/domain/149-career-portal-apply.js packages/domain/150-career-portal-browser.js packages/domain/151-career-alert-watch.js packages/domain/152-career-assign.js /app/packages/domain/
 COPY scripts/career/portal-browser-helper.cjs /app/scripts/career/
 COPY supabase/functions/_shared/career_research_policy.js /app/supabase/functions/_shared/
 COPY tests/career-owned-worker-browser.test.cjs tests/career-greenhouse-native-browser.test.cjs /app/tests/

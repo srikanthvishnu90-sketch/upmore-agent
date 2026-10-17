@@ -1,0 +1,44 @@
+{
+  "base": "db1137c3 (published metadata/terminal-SQL evidence)",
+  "observedAt": "2026-10-17T16:32:23.225467+00:00",
+  "sourceSha256": {
+    "workers/career-browser/batch-context.cjs": "16a344baf3851fbf855152f471199017ba517647a9894e0add32065ecb0e5e41",
+    "workers/career-browser/service.cjs": "d732df13d40fe33fa0de432d8dd0fef99d58a50efbc8d86e6e2a115192fec2db",
+    "supabase/sql/proposals/career_application_batch_v1.sql": "b0f5338e3a9c1ca02004d25bb1fde1998cef64fa287b5098f4d44c4766819508",
+    "scripts/career/build-owned-worker.cjs": "24df952092eb9a5bcdb3d8d2c9f6b0a2e51cb3530718b9b6f2f1c7d1073e031f",
+    "workers/career-browser/deploy/Dockerfile.proposal": "97358aa9c433bf49ceb0f48370b183d112ed1b5c704eea38ac70ed3e692d33f2",
+    "tests/career-worker-image-closure.test.cjs": "d66d71b6cf3ca3088407bc8298e1177b662fc1e1517326d2d09b8342fd1aca6d",
+    "tests/career-batch-eligibility.test.cjs": "c9d73ac7fbbef628a3b94cb6f0f00c3d029dc14edf53258b12256d2bfb1ea445",
+    "tests/career-critical-repairs/application-batch-postgres.test.cjs": "15e7a95c91870459e99ef9d76e4928a59b1d0841983f8fe949b488ea6b6e69f7"
+  },
+  "checks": {
+    "reviewDefectsBefore": {
+      "passed": 0,
+      "failed": 4,
+      "log": "evidence/eligibility-source-before.log"
+    },
+    "focusedSourceAndCopyBuild": {
+      "passed": 8,
+      "failed": 0,
+      "log": "evidence/eligibility-source-focused.log"
+    },
+    "workerControls": {
+      "passed": 28,
+      "failed": 0,
+      "log": "evidence/eligibility-worker-controls.log"
+    },
+    "actualEntrySQLWorker": {
+      "passed": 10,
+      "failed": 0,
+      "summary": "evidence/eligibility-postgres-summary.json",
+      "log": "evidence/eligibility-postgres.log",
+      "testAndDDLHashesMatch": true,
+      "fixtureRemoved": true
+    },
+    "fullCommittedSource": "PENDING"
+  },
+  "scope": "Existing121/132/151/152 engines; synthetic confirmed facts/current postings and UNKNOWN-only board. Typed role-local answers do not mutate master facts. No employer receipt or live quality proof.",
+  "paidCalls": 0,
+  "employerSubmissions": 0,
+  "liveDatabaseMutations": 0
+}

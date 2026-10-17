@@ -1,0 +1,19 @@
+(node:1111590) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1111590) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual batch entry authenticates owner and excludes injected profile, owner and posting data (122.313924ms)
+✔ lost batch acknowledgement asks for the same request ID; explicit role answers cannot contain identity digits (7.570395ms)
+✔ changed question wording refuses a scoped answer; missing eligibility is not invented (10.032954ms)
+✔ batch admission requires meaningful fit and actual cited confirmed facts (20.947407ms)
+✔ confirmed role terms, family and internship band cannot be padded with unrelated roles (0.795679ms)
+✔ explicit scoped eligibility answers bind exact question/posting context and never mutate master facts (9.729406ms)
+✔ residency answers are actual supplied locations, never an inferred address from yes (8.511827ms)
+✔ Dockerfile COPY staging loads application/batch/native dependencies and both controlled preflight source graphs (97.381982ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 209.410289

@@ -182,8 +182,9 @@ begin
     or jsonb_typeof(answer->'value')not in('string','boolean','number') or octet_length((answer->'value')::text)>4000 then raise exception 'invalid role answer';end if;
    select v into question from jsonb_array_elements(i.result->'asks')v where v->>'field_id'=answer->>'fieldId' and v->>'questionSha256'=answer->>'questionSha256' and v->'required'='true'::jsonb and v->'answerable'='true'::jsonb;
    if question is null then raise exception 'role question changed';end if;
+   if question#>>'{field,kind}'='eligibility' and (jsonb_typeof(answer->'value') is distinct from question#>>'{field,answerType}' or (question#>>'{field,answerType}'='string' and (length(btrim(answer->>'value'))not between 1 and 300)))then raise exception 'invalid eligibility answer type';end if;
    select coalesce(jsonb_agg(v),'[]')into new_answers from jsonb_array_elements(new_answers)v where v->>'fieldId'<>answer->>'fieldId';
-   new_answers:=new_answers||jsonb_build_array(answer||jsonb_build_object('source','user_explicit_role_confirmation'));
+   new_answers:=new_answers||jsonb_build_array(answer||jsonb_build_object('source','user_explicit_role_confirmation','kind',coalesce(question#>>'{field,kind}','portal')));
   end loop;
   update career_application_batch_roles_v1 set answers=new_answers,answer_revision=answer_revision+1 where user_id=p_user and batch_id=batch and task_id=task;
   perform career_application_batch_queue_v1(p_user,batch,task,'prepare');

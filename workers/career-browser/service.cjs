@@ -279,9 +279,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       let eligibility=null;
       if(t.authority.request?.batch){
         const batch=require('./batch-context.cjs');
-        eligibility=batch.eligibility(t,e,log,now());
-        if(eligibility.status!=='eligible'){t.status=eligibility.status;t.blocker=eligibility.code;t.asks=eligibility.asks||[];save(t,'check');return publicTask(t);}
         e.batchAnswers=authority.answers(t.authority);e.attestations ||= {};
+        eligibility=batch.eligibility(t,e,log,now(),e.batchAnswers);
+        if(eligibility.status!=='eligible'){t.status=eligibility.status;t.blocker=eligibility.code;t.review=null;t.asks=eligibility.asks||[];t.questionsSha256=batch.digest(t.asks);save(t,'check');return publicTask(t);}
       }
       run = executeBoard(t, e, deadline);
       const session = Portal.createPortalSession({ userId: t.userId, board: run.board });
@@ -304,7 +304,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       t.status = "review_ready"; t.blocker = null; t.asks = [];
       save(t, "check", { reviewSha256: t.review.payloadSha256 });
       if (!approval) return publicTask(t);
-      if (!oldReview || oldReview.payloadSha256 !== t.review.payloadSha256 || oldReview.profileHash !== t.review.profileHash || bindingHash(oldReview.questions||null)!==bindingHash(t.review.questions)) {
+      if (!oldReview || oldReview.payloadSha256 !== t.review.payloadSha256 || oldReview.profileHash !== t.review.profileHash || bindingHash(oldReview.questions||null)!==bindingHash(t.review.questions) || oldReview.eligibility?.bindingSha256!==t.review.eligibility?.bindingSha256) {
         t.blocker = "REVIEW_CHANGED_REAPPROVAL_REQUIRED"; save(t, "check"); return publicTask(t);
       }
       if (now() >= Date.parse(oldReview.expiresAt)) throw fail("APPROVAL_EXPIRED");

@@ -10,14 +10,14 @@ if(!process.env.CAREER_TEST_CONTAINER){test('durable batch actual entry/SQL/work
  const db=require('../helpers/career-task-sql.cjs')(process.env.CAREER_TEST_CONTAINER,process.env.CAREER_TEST_DATABASE);
  const U='00000000-0000-4000-8000-000000000001',V='00000000-0000-4000-8000-000000000002',T='00000000-0000-4000-8000-000000000003',W='00000000-0000-4000-8000-000000000004';
  const q=v=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'";
- let root,worker,makeWorker,authority,app,postings,ids,clock,clicks,opens,values,requestId,lostApproval,changeQuestion,registeredKeys;
+ let root,worker,makeWorker,authority,app,postings,ids,clock,clicks,opens,values,requestId,lostApproval,changeQuestion,registeredKeys,missingSponsorship,zeroFit,sourceNonce;
  beforeEach(async()=>{
   db.sql("truncate auth.users cascade;insert into auth.users values('"+U+"'),('"+V+"');insert into agent_threads values('"+T+"','"+U+"');insert into career_watch_kv(user_id,key,value)values('"+U+"','career:account','{\"version\":1,\"epoch\":0,\"paused\":false}');");
-  root=fs.mkdtempSync(path.join(os.tmpdir(),'SYNTHETIC-batch-'));clock=Date.now();clicks={};opens={};values={};requestId=0;lostApproval=false;changeQuestion=false;registeredKeys=['a','b','c'];
+  root=fs.mkdtempSync(path.join(os.tmpdir(),'SYNTHETIC-batch-'));clock=Date.now();clicks={};opens={};values={};requestId=0;lostApproval=false;changeQuestion=false;registeredKeys=['a','b','c'];missingSponsorship=false;zeroFit=false;sourceNonce='';
   const original=require('../../packages/domain/148-career-render.js').renderPdf({header:{name:'SYNTHETIC ONLY'},sections:[{heading:'Fixture',lines:[{type:'bullet',text:'Synthetic original bytes. No applicant or employer fact.'}]}]}).buffer;
   const resumePath=path.join(root,'synthetic.pdf');fs.writeFileSync(resumePath,original);const sha=hash(original);
   postings=['a','b','c'].map(key=>({job_id:'synthetic-'+key,canonicalKey:'synthetic:'+key,url:'http://localhost:8123/form/'+key,
-   company:'Synthetic company '+key,title:'Private Equity Analyst Intern',role_family:'Finance',seniority_band:'intern',location:'New York, NY',remote:'onsite',source:'greenhouse',sources:['greenhouse'],source_urls:[],jd_text:'Private equity internship. Excel financial analysis.',status:'open'}));
+   company:'Synthetic company '+key,title:'Private Equity Analyst Intern',role_family:'Finance',seniority_band:'intern',location:'New York, NY',remote:'onsite',source:'greenhouse',sources:['greenhouse'],source_urls:[],jd_text:'Private equity internship. Excel valuation financial modeling.'+(key==='b'?' No sponsorship offered.':''),status:'open'}));
   ids=postings.map(p=>hash([U,p.url]).slice(0,32));
   for(const [n,posting]of postings.entries()){
    const id=hash('source-'+n),binding={version:'career_task_intent/v1',intent_id:id,user_id:U,thread_id:T,turn_key:'source-'+n,request_hash:hash('request'+n),action:'prepare',task_id:ids[n],event_id:'source-'+n,artifact_id:'synthetic-original',resume_sha256:sha,destination:posting.url,authority_account_version:1,privacy_epoch:0};
@@ -28,9 +28,10 @@ if(!process.env.CAREER_TEST_CONTAINER){test('durable batch actual entry/SQL/work
   makeWorker=()=>createWorker({authority,store:createFileTaskStore(path.join(root,'tasks')),now:()=>clock,controlledPortals:postings.filter(p=>registeredKeys.includes(p.url.slice(-1))).map(p=>({url:p.url,submitUrl:p.url+'/submit'})),
    resolveEquipment:(user,artifact,scope)=>({userId:user,accountVersion:scope.accountVersion,privacyEpoch:scope.privacyEpoch,resumePath,
     profile:{name:'SYNTHETIC ONLY',email:'synthetic@example.test',resume:{filename:'synthetic.pdf',sha256:sha}},attestations:{},
-    careerProfile:{facts:[{id:'fact-excel',kind:'skill',name:'Excel',evidence:['SYNTHETIC confirmed fixture']}]},
-    scoringProfile:{skills:[{name:'Excel',proven:true,fact_id:'fact-excel',evidence:['SYNTHETIC fixture']}],level:'student',experience_years:0,constraints:{work_authorization:'US citizen',needs_sponsorship:false},preferences:{}},
-    currentPosting:{posting:postings.find(p=>p.canonicalKey===scope.postingKey),observedAt:new Date(clock).toISOString(),sourceSha256:hash('SYNTHETIC PUBLIC SOURCE '+scope.postingKey)}}),
+    careerProfile:{facts:['Excel','valuation','financial modeling'].map((name,n)=>({id:n===0?'fact-excel':'fact-'+n,kind:'skill',status:'confirmed',name,evidence:['SYNTHETIC confirmed fixture']}))},
+    scoringProfile:{skills:(zeroFit&&scope.postingKey.endsWith(':b')?[]:['Excel','valuation','financial modeling']).map((name,n)=>({name,proven:true,fact_id:n===0?'fact-excel':'fact-'+n,evidence:['SYNTHETIC fixture']})),level:'student',experience_years:0,constraints:missingSponsorship?{}:{work_authorization:'US citizen',needs_sponsorship:false},preferences:{role_families:['Finance']}},
+    roleInterests:[{interest_id:'SYNTHETIC_pe_intern',role:require('../../packages/domain/152-career-assign.js').roleSpecFor({split:'Private Equity Analyst'}),filters:{bands:['intern'],locations:['New York']}}],
+    currentPosting:{posting:postings.find(p=>p.canonicalKey===scope.postingKey),observedAt:new Date(clock).toISOString(),sourceSha256:hash('SYNTHETIC PUBLIC SOURCE '+scope.postingKey+sourceNonce)}}),
    boardFactory:opts=>{
     const key=opts.url.slice(-1),filled={};values[key]=filled;
     return {kind:'browser',browserDriver:true,sandbox:false,host:'localhost',open(){opens[key]=(opens[key]||0)+1;return {ok:true};},
@@ -90,6 +91,25 @@ if(!process.env.CAREER_TEST_CONTAINER){test('durable batch actual entry/SQL/work
   assert.equal(db.sql("select state from career_task_intents_v1 where binding->>'action'='reconcile'"),'completed');
   assert.equal(run().length,0);assert.deepEqual(clicks,{a:1,c:1});assert.equal(db.sql('select count(*)from career_application_admissions_v1'),'2');
   const next=await ok('create',{taskIds:ids});assert.ok(next.roles.filter(v=>[ids[0],ids[2]].includes(v.taskId)).every(v=>v.status==='unknown_outcome'));
+ });
+ test('confirmed typed eligibility answer resumes one role without changing healthy approvals or inventing master facts',async()=>{
+  missingSponsorship=true;const batch=await prepared(),status=await ok('status',{batchId:batch}),held=status.roles.find(v=>v.taskId===ids[1]),ask=held.task.asks[0];
+  assert.equal(held.status,'awaiting_user');assert.equal(ask.kind,'eligibility');assert.equal(ask.field.answerType,'boolean');assert.equal(opens.b,undefined);assert.match(held.task.questionsSha256,/^[a-f0-9]{64}$/);
+  const r=await review(batch);assert.equal(r.manifest.roles.length,2);await approve(batch,r);
+  const input=value=>({batchId:batch,taskId:ids[1],questionsHash:held.task.questionsSha256,answers:[{fieldId:ask.field_id,questionSha256:ask.questionSha256,value}],message:'Confirm answers for '+ids[1]+' '+held.task.questionsSha256});
+  assert.equal((await command('answers',input('no'))).status,400);await ok('answers',input(false));
+  run();assert.deepEqual(clicks,{a:1,c:1});const after=await ok('status',{batchId:batch}),portalHeld=after.roles.find(v=>v.taskId===ids[1]);assert.equal(portalHeld.status,'awaiting_user');assert.equal(portalHeld.task.asks[0].field_id,'availability');
+  assert.equal(db.sql("select value->>'version'from career_watch_kv where user_id='"+U+"'and key='career:account'"),'1');
+  await answer(batch,portalHeld);run();const fresh=await review(batch);assert.deepEqual(fresh.manifest.roles.map(v=>v.taskId),[ids[1]]);await approve(batch,fresh);run();assert.deepEqual(clicks,{a:1,b:1,c:1});
+  assert.equal((await ok('status',{batchId:batch})).roles.find(v=>v.taskId===ids[1]).status,'unknown_outcome');
+ });
+ test('zero sourced matches cannot enter a reviewed batch or open a browser',async()=>{
+  zeroFit=true;const batch=await prepared(),status=await ok('status',{batchId:batch}),held=status.roles.find(v=>v.taskId===ids[1]);assert.equal(held.task.blocker,'CONFIRMED_FIT_EVIDENCE_REQUIRED');assert.equal(opens.b,undefined);assert.equal((await review(batch)).manifest.roles.length,2);assert.deepEqual(clicks,{});
+ });
+ test('changed eligibility proof requires a fresh exact review before any submit admission',async()=>{
+  const batch=await prepared(),r=await review(batch);await approve(batch,r);sourceNonce='SYNTHETIC changed current source';run();assert.deepEqual(clicks,{});assert.equal(db.sql('select count(*)from career_application_admissions_v1'),'0');
+  const status=await ok('status',{batchId:batch});assert.ok(status.roles.filter(v=>[ids[0],ids[2]].includes(v.taskId)).every(v=>v.task.blocker==='REVIEW_CHANGED_REAPPROVAL_REQUIRED'));
+  const fresh=await review(batch);assert.notEqual(fresh.reviewHash,r.reviewHash);await approve(batch,fresh);run();assert.deepEqual(clicks,{a:1,c:1});
  });
  test('one changed included role rolls back every approval in the immutable batch',async()=>{
   const batch=await prepared(),r=await review(batch),changed=r.manifest.roles[1];

@@ -1,0 +1,104 @@
+✖ batch admission requires meaningful fit and actual cited confirmed facts (15.082751ms)
+✖ confirmed role terms, family and internship band cannot be padded with unrelated roles (1.266213ms)
+✖ explicit scoped eligibility answers bind exact question/posting context and never mutate master facts (1.004212ms)
+✖ residency answers are actual supplied locations, never an inferred address from yes (1.876718ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110.586271
+
+✖ failing tests:
+
+test at tests/career-batch-eligibility.test.cjs:13:1
+✖ batch admission requires meaningful fit and actual cited confirmed facts (15.082751ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'CONFIRMED_FIT_EVIDENCE_REQUIRED'
+  
+      at TestContext.<anonymous> (/workspace/upmore-mass-flow/tests/career-batch-eligibility.test.cjs:15:92)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'CONFIRMED_FIT_EVIDENCE_REQUIRED',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-batch-eligibility.test.cjs:19:1
+✖ confirmed role terms, family and internship band cannot be padded with unrelated roles (1.266213ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'ROLE_TARGET_MISMATCH'
+  
+      at TestContext.<anonymous> (/workspace/upmore-mass-flow/tests/career-batch-eligibility.test.cjs:20:318)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'ROLE_TARGET_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-batch-eligibility.test.cjs:23:1
+✖ explicit scoped eligibility answers bind exact question/posting context and never mutate master facts (1.004212ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - true
+  
+      at TestContext.<anonymous> (/workspace/upmore-mass-flow/tests/career-batch-eligibility.test.cjs:25:30)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-batch-eligibility.test.cjs:30:1
+✖ residency answers are actual supplied locations, never an inferred address from yes (1.876718ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'awaiting_user'
+  - 'eligible'
+  
+      at TestContext.<anonymous> (/workspace/upmore-mass-flow/tests/career-batch-eligibility.test.cjs:33:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'awaiting_user',
+    expected: 'eligible',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

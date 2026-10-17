@@ -1,0 +1,3 @@
+{"message":"Find 5 suitable investment internships","command":{"action":"discover","limit":10,"ask":"Find 5 suitable investment internships"},"constraints":{"locations":[],"remote":"any","publishedSince":null,"clarification":null}}
+{"message":"Find 10 investment internships not in Chicago","command":{"action":"discover","limit":10,"ask":"Find 10 investment internships not in Chicago"},"constraints":{"locations":["Chicago"],"remote":"any","publishedSince":null,"clarification":null}}
+{"message":"I need help writing a cover letter for investment internships","command":{"action":"discover","limit":10,"ask":"I need help writing a cover letter for investment internships"},"constraints":{"locations":[],"remote":"any","publishedSince":null,"clarification":null}}

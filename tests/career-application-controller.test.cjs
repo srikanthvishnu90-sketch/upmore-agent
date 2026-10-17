@@ -12,3 +12,5 @@ test('approval and role answers bind the currently displayed immutable review/qu
 });
 
 test('client routes ordinary reordered internship text before the capital wall and recognizes natural status',()=>{const f=fixture(),A=require('../packages/domain/156-career-applications.js');for(const message of ["Could you recommend five internships in investment banking?","I am looking for ten summer analyst roles in private equity","How are my applications doing?","What's the status of my applications?",'Show my applications']){assert.ok(A.command(message),message);assert.equal(f.client.accepts(message),true,message);}assert.equal(f.client.accepts('Should I buy investment funds?'),false);});
+
+test('writing requests and explicit discovery negations retain their ordinary native input path',()=>{const f=fixture();for(const message of ['I need help writing a cover letter for investment internships',"Don't find investment internships"])assert.equal(f.client.accepts(message),false);assert.equal(f.client.accepts('Find 5 suitable investment internships'),true);});

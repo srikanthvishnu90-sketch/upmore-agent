@@ -128,3 +128,6 @@ Reviewer refresh/constraint corrections: a five-minute immutable observation cou
 
 
 Feed coverage review found that prioritizing131's small registry still omitted the larger existing board-directory.json. The application planner now combines its historically verified live supported entries through151.feedsFromDirectory({content:true}) with the registry, deduplicates exact URLs and ranks finance names before the16-feed cap. Directory dates are historical registry evidence; fresh responses alone establish current observed rows. No endpoint or employer identity was guessed. Source33219612 full clean run is4797pass/40skip/0fail and exact CI39054841616 Deno/type/database succeeded; new directory refinement gets separate exact checks.
+
+
+Exact086ef376 full-source test correctly rejected the raw CAREER_BOARD_DIRECTORY_JSON export under the Career* boundary. Renamed the export to CareerBoardDirectory, leaving data/constants and the original assertion intact. Read-only wording probes also found modifiers dropping an explicit5-role count, negative city wording reversing its meaning and writing help entering discovery. Narrow parser/clarification/client-parity regressions cover all three; no generated candidate text, model call or employer action is involved.

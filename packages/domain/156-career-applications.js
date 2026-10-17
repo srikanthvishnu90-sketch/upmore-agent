@@ -17,9 +17,11 @@ const CareerApplications=(()=>{
   if(/^(?:Approve batch|Reconcile batch role|Confirm application facts)\b/i.test(m))return {action:'invalid',code:'EXACT_APPLICATION_CONFIRMATION_REQUIRED'};
   if(/^(?:review|prepare (?:a |the )?review (?:of|for)) (?:my |the )?(?:application )?batch[.!]?$/i.test(m))return {action:'review'};
   if(/^(?:(?:show|check|refresh|status(?: of)?) (?:my |the )?(?:application )?batch(?: status)?|(?:show|check|refresh) my applications|(?:what(?:'s| is) the status of|how are) my applications(?: doing)?)[.!?]?$/i.test(m))return {action:'status'};
+  if(/^(?:please\s+)?(?:do not|don't|stop|never)\s+(?:find|show|search|look)/i.test(m))return null;
+  if(!/\b(?:find|show|search|look(?:ing)? for|recommend)\b/i.test(m)&&/\b(?:help|writing|write|draft|prepare|learn|explain|interview)\b/i.test(m))return null;
   if(!/\b(?:find|show|search|look(?:ing)? for|want|need|recommend)\b/i.test(m)||!(/\b(?:investment|private equity|equity research)\b/i.test(m))||!(/\b(?:intern(?:ship)?s?|summer analyst)\b/i.test(m)))return null;
-  const counts={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,twenty:20,hundred:100},n=/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\s+(?:(?:investment(?: banking)?|private equity|equity research|summer)\s+)*(?:intern(?:ship)?s?|analyst(?:s| roles)?)/i.exec(m),limit=n?(counts[n[1].toLowerCase()]||Number(n[1])):10;
-  if(limit<1||limit>100)return {action:'invalid',code:'APPLICATION_COUNT_RANGE'};
+  const counts={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,twenty:20,hundred:100},n=/\b(\d+(?:\.\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b(?=\s+(?:[a-z'-]+\s+){0,8}(?:intern(?:ship)?s?|analyst(?:s| roles)?))/i.exec(m),key=n?.[1].toLowerCase(),count=n?(Object.hasOwn(counts,key)?counts[key]:Number(key)):10,limit=count>=2000&&count<=2100?10:n&&m[n.index-1]==='-'?-count:count;
+  if(!Number.isSafeInteger(limit)||limit<1||limit>100)return {action:'invalid',code:'APPLICATION_COUNT_RANGE'};
   return {action:'discover',limit,ask:m};
  }
  function workCountry(profile){
@@ -44,7 +46,7 @@ const CareerApplications=(()=>{
   else if(/\b(?:recent(?:ly)?|fresh|newly|new openings|posted|published)\b/i.test(a))c.clarification='What first-publication cutoff should I use: for example, posted in the last 7 days or posted since YYYY-MM-DD?';
   const dateWords=a.replace(iso?.[0]||'','').replace(days?.[0]||'','');
   if(/\b(?:20\d\d|summer\s+20\d\d|20\d\d\s+summer|starting|start date|between|by\s+\d|before\s+\d|after\s+\d|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+20\d\d)\b/i.test(dateWords))c.clarification='Does your date refer to the internship start period or the posting publication date? I cannot infer an employer start date from a publication timestamp.';
-  if(/\b(?:within|around|hybrid|except|outside)\b/i.test(a))c.clarification='Please clarify the exact city and whether remote, onsite or hybrid work is required. I cannot silently broaden a location or work-mode restriction.';
+  if(/\b(?:within|around|hybrid|except|outside|excluding|exclude|avoid|not\s+(?:in|near))\b/i.test(a))c.clarification='Please clarify the exact city and whether remote, onsite or hybrid work is required. I cannot silently broaden a location or work-mode restriction.';
   return c;
  }
  function constraintsMatch(posting,c){

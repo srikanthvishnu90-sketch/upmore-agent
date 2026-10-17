@@ -1,0 +1,34 @@
+✔ ordinary application text uses normal thread/turn/message POST and explicit control references (4.289707ms)
+✔ lost action acknowledgement freezes its exact nonce/body until manual retry (2.127973ms)
+✔ malformed acknowledgement preserves the exact action instead of allowing a new nonce (4.518054ms)
+✔ late responses cannot cross owner or thread changes and private review state resets (9.112752ms)
+✔ approval and role answers bind the currently displayed immutable review/question set (3.009712ms)
+✔ client routes ordinary reordered internship text before the capital wall and recognizes natural status (12.367302ms)
+✔ writing requests and explicit discovery negations retain their ordinary native input path (2.0147ms)
+(node:2059426) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2059426) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ bounded source planning prioritizes registered finance boards and first-publication constraints never pad a shortlist (601.540949ms)
+✔ ordinary investment-internship commands and exact confirmations reuse the application workflow only (4.278125ms)
+✔ unknown sponsorship/experience and a residence country never become authorization facts (6.650035ms)
+✔ explicit fact confirmation preserves stable existing fact IDs and unknown fields (1.792485ms)
+✔ Greenhouse edits cannot masquerade as publication or make an old opening newly fresh (7.205333ms)
+✔ ordinary word order and common counts preserve search intent; natural status stays read-only (0.420677ms)
+✔ expressed city, remote and publication constraints are bound without inventing start dates (3.213003ms)
+✔ modifiers preserve explicit counts, negated locations require clarification, writing advice stays native (0.301103ms)
+✔ the career bundle is current with packages/domain (build --career-only --check) (509.736478ms)
+✔ the career bundle exports only Career* names — no finance surface (209.56623ms)
+✔ pruned artifact == full bundle: 9-turn chain and the whole battery, byte-identical (717.734172ms)
+✔ size reduction restores every original career data value and Unicode character exactly (628.609539ms)
+✔ B-05: the staged career artifact stays under the platform ceiling (141.677312ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (341.479932ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (261.848921ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (0.996434ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1691.843107

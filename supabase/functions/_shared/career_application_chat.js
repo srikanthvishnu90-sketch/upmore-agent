@@ -1,4 +1,4 @@
-import {CareerApplications as Apps,CareerJobs as Jobs,CareerDiscover as Discover,CareerAlertWatch as Watch,CAREER_BOARD_DIRECTORY_JSON as Directory} from './router_core.career.js';
+import {CareerApplications as Apps,CareerJobs as Jobs,CareerDiscover as Discover,CareerAlertWatch as Watch,CareerBoardDirectory as Directory} from './router_core.career.js';
 import {redactIdentity} from './identity_redact.ts';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,HASH=/^[a-f0-9]{64}$/,TASK=/^[a-f0-9]{32}$/;
 const err=(code,status=409)=>Object.assign(Error(code),{code,status});

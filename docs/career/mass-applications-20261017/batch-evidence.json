@@ -28,8 +28,23 @@
       "failed": 0,
       "log": "evidence/batch-six-local-postgres.log"
     },
-    "fullCommittedSource": "PENDING",
-    "fullPostgres": "PENDING",
+    "fullCommittedSource": {
+      "head": "5cf56311bc3c9b3e2f6b8aa457e71962c3648007",
+      "passed": 4769,
+      "failed": 0,
+      "skipped": 40,
+      "log": "evidence/batch-committed-source.log",
+      "summary": "evidence/batch-committed-source-summary.json"
+    },
+    "fullPostgres": {
+      "status": "IN_PROGRESS",
+      "suites": 39,
+      "session": 76037,
+      "log": "/tmp/upmore-batch-full-postgres.log",
+      "fixtureSummaryDirectory": "/tmp/upmore-ci-node-nUYhHL",
+      "initialCompletedSuites": 5,
+      "initialFailures": 0
+    },
     "original38SuiteBaseline": {
       "passed": 344,
       "failed": 1,

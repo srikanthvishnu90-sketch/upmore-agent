@@ -1,9 +1,6 @@
 'use strict';
 // Batch orchestration reuses the existing eligibility and fact-citation engines.
-const Jobs=require('../../packages/domain/121-career-jobs.js');
-const Apply=require('../../packages/domain/132-career-apply.js');
-const Watch=require('../../packages/domain/151-career-alert-watch.js');
-const Assign=require('../../packages/domain/152-career-assign.js');
+const Applications=require('../../packages/domain/156-career-applications.js');
 const {hash,fail,clone}=require('./store.cjs');
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 const digest=v=>hash(canonical(v));
@@ -55,13 +52,10 @@ function eligibility(t,e,log,now,answers=[]){
  if(posting.canonicalKey!==t.spec.posting.canonicalKey||posting.url!==t.spec.posting.url)return {status:'blocked',code:'CURRENT_POSTING_BINDING_CHANGED'};
  if(posting.status!=='open')return {status:'blocked',code:'JOB_CLOSED'};
  for(const k of ['company','title','role','jd_text','location','seniority_band'])if(JSON.stringify(posting[k])!==JSON.stringify(t.spec.posting[k]))return {status:'blocked',code:'CURRENT_POSTING_REVIEW_REQUIRED'};
- const interests=e.roleInterests,families=e.scoringProfile.preferences?.role_families;
- if(!Array.isArray(interests)||!interests.length||!Array.isArray(families)||!families.length)return {status:'blocked',code:'ROLE_INTEREST_CONTEXT_REQUIRED'};
- const roleMatches=interests.filter(i=>i?.role&&Array.isArray(i.filters?.bands)&&i.filters.bands.length&&Assign.matchInterest(posting,i,null).matched);
- if(!families.includes(posting.role_family)||!roleMatches.length)return {status:'blocked',code:'ROLE_TARGET_MISMATCH'};
  const scoring=clone(e.scoringProfile);scoring.constraints ||= {};
- const first=Apply.triageBatch([posting],{profile:e.careerProfile,scoringProfile:scoring,log})[0];
- const observedQuestions=eligibilityQuestions(t,e,first.needs_user_input||[]),applied=[];
+ const first=Applications.assess(posting,e.careerProfile,scoring,e.roleInterests,log);
+ if(first.status==='blocked')return first;
+ const observedQuestions=eligibilityQuestions(t,e,first.asks||[]),applied=[];
  for(const a of answers.filter(a=>a.kind==='eligibility')){
   const q=observedQuestions.find(q=>q.field_id===a.fieldId&&q.questionSha256===a.questionSha256&&q.answerable);if(!q)continue;
   if(a.source!=='user_explicit_role_confirmation'||typeof a.value!==q.field.answerType||(typeof a.value==='string'&&(!a.value.trim()||a.value.length>300)))throw fail('INVALID_ELIGIBILITY_ANSWER');
@@ -69,12 +63,9 @@ function eligibility(t,e,log,now,answers=[]){
   else if(q.field.target==='residence')scoring.residence=a.value;
   applied.push({fieldId:a.fieldId,questionSha256:a.questionSha256,value:a.value,source:a.source});
  }
- const row=Apply.triageBatch([posting],{profile:e.careerProfile,scoringProfile:scoring,log})[0];
- if(row.decision!=='apply')return {status:row.decision==='ask'?'awaiting_user':'blocked',code:'ELIGIBILITY_REVIEW_REQUIRED',asks:eligibilityQuestions(t,e,row.needs_user_input||[{type:'manual_review',reason:(row.reasons||[]).join('; ')}]),reasons:row.reasons};
- const fit=Jobs.scoreFit(posting,scoring),cited=Watch.composeAlert(posting,fit,scoring,now),facts=e.careerProfile.facts||[];
- if(!fit.matched_skills.length||!cited.matched_fact_ids.length||cited.matched_fact_ids.length<fit.matched_skills.length||cited.matched_fact_ids.some(id=>!facts.some(f=>(f.id||f.fact_id)===id&&f.kind==='skill'&&f.status==='confirmed'&&!f.needs_confirmation&&!f.unproven&&Array.isArray(f.evidence)&&f.evidence.length)))return {status:'blocked',code:'CONFIRMED_FIT_EVIDENCE_REQUIRED'};
- if(fit.bucket==='Reach')return {status:'blocked',code:'MEANINGFUL_FIT_REQUIRED',reasons:fit.reasons,gaps:fit.gaps};
- const proof={sourceSha256:current.sourceSha256,roleInterests:roleMatches.map(i=>({id:i.interest_id,role:i.role,filters:i.filters})),answers:applied,fit:{score:fit.score,bucket:fit.bucket,reasons:fit.reasons,gaps:fit.gaps,fitLines:cited.fit_lines,factIds:cited.matched_fact_ids}};
+ const row=Applications.assess(posting,e.careerProfile,scoring,e.roleInterests,log);
+ if(row.status!=='eligible')return {...row,asks:eligibilityQuestions(t,e,row.asks||[])};
+ const proof={sourceSha256:current.sourceSha256,roleInterests:row.roleInterests,answers:applied,fit:row.fit};
  return {status:'eligible',...proof,observedAt:current.observedAt,bindingSha256:digest(proof)};
 }
 module.exports={questions,applyAnswers,eligibility,digest};

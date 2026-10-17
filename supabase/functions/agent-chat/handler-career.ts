@@ -3,6 +3,7 @@ import { dialogueStamp, groundedEnabled, type CareerModelDependencies } from "..
 import { researchCommand } from "../_shared/career_research_policy.js";
 import {interviewTurn,interviewArtifact} from '../_shared/career_interview_entry.ts';
 import {nativeInput} from '../_shared/career_native_context.ts';
+import {applicationConversation} from '../_shared/career_application_chat.js';
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
@@ -47,13 +48,14 @@ type TurnCtx = { note: string | null; user: string | null; thread: string | null
 
 // Runtime dependencies are chosen by the server entry, never by request JSON,
 // headers, persisted profile fields or a model-produced verification receipt.
-export function createCareerChatHandler(dependencies: CareerModelDependencies = {}) {
+type CareerChatDependencies=CareerModelDependencies&{applicationSearch?:Record<string,unknown>};
+export function createCareerChatHandler(dependencies: CareerChatDependencies = {}) {
   const fixed = Object.freeze({...dependencies});
   return (req: Request) => handleChatWithDependencies(req,fixed);
 }
 export const handleChat = createCareerChatHandler();
 
-async function handleChatWithDependencies(req: Request, dependencies: CareerModelDependencies): Promise<Response> {
+async function handleChatWithDependencies(req: Request, dependencies: CareerChatDependencies): Promise<Response> {
   const ctx: TurnCtx = { note: null, user: null, thread: null };
   const res = await handleChatInner(req, ctx, dependencies);
   if (!ctx.note || res.status !== 200) return res;
@@ -66,7 +68,7 @@ async function handleChatWithDependencies(req: Request, dependencies: CareerMode
   } catch { return res; }
 }
 
-async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: CareerModelDependencies): Promise<Response> {
+async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: CareerChatDependencies): Promise<Response> {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -176,11 +178,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
+    if(body.career_application!==undefined&&(body.career_journey!==undefined||body.career_task!==undefined))return json(cors,{error:'conflicting_career_workflow'},400);
     if(body.career_journey!==undefined){
       const note=flowCtx.note;flowCtx.note=null;
       const admin=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey);
       return await interviewTurn({admin,userId:user.id,threadId:tid,turnKey,message,raw:body.career_journey,images:imageBlocks||[],cors,note,dependencies});
     }
+    if(body.career_task===undefined){
+      const admin=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey);
+      const application=await applicationConversation({admin,userId:user.id,threadId:tid,turnKey,message:typeof rawMessage==='string'?rawMessage:message,raw:body.career_application,images:imageBlocks||[],config:dependencies.applicationSearch||{}});
+      if(application){flowCtx.note=null;return json(cors,application.body,application.status);}
+    }else if(body.career_application!==undefined)return json(cors,{error:'conflicting_career_workflow'},400);
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the

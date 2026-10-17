@@ -1,0 +1,17 @@
+✔ ordinary application text uses normal thread/turn/message POST and explicit control references (3.897506ms)
+✔ lost action acknowledgement freezes its exact nonce/body until manual retry (2.022466ms)
+✔ malformed acknowledgement preserves the exact action instead of allowing a new nonce (1.96574ms)
+✔ late responses cannot cross owner or thread changes and private review state resets (8.912509ms)
+✔ approval and role answers bind the currently displayed immutable review/question set (2.579101ms)
+✔ ordinary investment-internship commands and exact confirmations reuse the application workflow only (2.653932ms)
+✔ unknown sponsorship/experience and a residence country never become authorization facts (3.203994ms)
+✔ explicit fact confirmation preserves stable existing fact IDs and unknown fields (3.777505ms)
+✔ Greenhouse edits cannot masquerade as publication or make an old opening newly fresh (7.234189ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.549777

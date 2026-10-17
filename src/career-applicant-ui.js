@@ -15,7 +15,7 @@ function renderApplicantResume(){
   const retry=$('applicantResumeRetry');retry.hidden=v.state!=='upload_uncertain';retry.disabled=v.busy;
   for(const key of ['first_name','last_name','email','location'])$('applicant_'+key).disabled=v.busy||v.state==='confirmed';
 }
-function careerResumeReset(){applicantResume.reset();const panel=$('applicantResumeSheet');if(panel)panel.hidden=true;const file=$('applicantResumeInput');if(file)file.value='';for(const key of ['first_name','last_name','email','location']){const el=$('applicant_'+key);if(el)el.value='';}renderApplicantResume();}
+function careerResumeReset(){applicantResume.reset();careerApplicationReset();const panel=$('applicantResumeSheet');if(panel)panel.hidden=true;const file=$('applicantResumeInput');if(file)file.value='';for(const key of ['first_name','last_name','email','location']){const el=$('applicant_'+key);if(el)el.value='';}renderApplicantResume();}
 function openApplicantResume(){
   if(!session){toast('Sign in to use your resume.');show('login');return;}
   if(!upmoreThread){toast('Start or open your application chat first, then add your resume.');return;}

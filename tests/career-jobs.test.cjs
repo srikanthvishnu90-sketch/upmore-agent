@@ -14,7 +14,7 @@ const NOW = Date.parse("2026-10-12T12:00:00Z");
 
 // ---- recorded-shape fixtures (MOCK postings) ----
 const GH = { name: "Stripe", jobs: [
-  { id: 555001, title: "Software Engineer, New Grad", location: { name: "San Francisco, CA" }, absolute_url: "https://boards.greenhouse.io/stripe/jobs/555001", updated_at: "2026-10-10T00:00:00Z", requisition_id: "REQ-100", departments: [{ name: "Engineering" }], content: "&lt;p&gt;Join our team building payments in Python and React. Salary range $120,000 - $150,000.&lt;/p&gt;" },
+  { id: 555001, title: "Software Engineer, New Grad", location: { name: "San Francisco, CA" }, absolute_url: "https://boards.greenhouse.io/stripe/jobs/555001", first_published: "2026-10-09T00:00:00Z", updated_at: "2026-10-10T00:00:00Z", requisition_id: "REQ-100", departments: [{ name: "Engineering" }], content: "&lt;p&gt;Join our team building payments in Python and React. Salary range $120,000 - $150,000.&lt;/p&gt;" },
   { id: 555002, title: "Senior Software Engineer", location: { name: "New York, NY" }, absolute_url: "https://boards.greenhouse.io/stripe/jobs/555002", updated_at: "2026-07-15T00:00:00Z", requisition_id: "REQ-101", departments: [{ name: "Engineering" }], content: "&lt;p&gt;Requires US citizenship. 7+ years of experience required. PhD required.&lt;/p&gt;" },
 ]};
 const LEVER = [

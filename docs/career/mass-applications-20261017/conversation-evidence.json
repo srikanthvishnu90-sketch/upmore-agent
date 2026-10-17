@@ -1,0 +1,97 @@
+{
+  "observedAt": "2026-10-17T17:26:28.072855+00:00",
+  "phase": "SOURCE_IMPLEMENTED_BROAD_EXACT_COMMIT_VALIDATION_PENDING",
+  "parent": "92dde8a8996e73fcccdbc43407fb882e316c2e17",
+  "features": [
+    "ordinary text -> observed public ATS shortlist with cited fit",
+    "explicit application facts review/confirmation; no residence to authorization inference",
+    "exact selected roles -> existing durable batch authority",
+    "actual cards for review, role answers, UNKNOWN readback and status",
+    "owned claimed-intent profile/source equipment and private RPC closure"
+  ],
+  "checks": {
+    "currentDomainController": {
+      "passed": 9,
+      "failed": 0,
+      "log": "evidence/upmore-application-final-unit.log"
+    },
+    "earlierFocused": {
+      "passed": 78,
+      "failed": 0,
+      "log": "evidence/upmore-application-focused-final.log"
+    },
+    "earlierActualControllerEdgeSQLWorker": {
+      "passed": 1,
+      "failed": 0,
+      "log": "evidence/upmore-application-conversation-full-path3.log",
+      "scope": "before final actual UI/negative coverage and facts-review replay refinement; not exact-head broad proof"
+    },
+    "compatibilityPrecommit": {
+      "passed": 13,
+      "failed": 1,
+      "failure": "source package correctly refuses dirty allowlist; rerun after source commit",
+      "log": "evidence/upmore-application-compatibility.log"
+    },
+    "activeFinalUI_SQL": {
+      "session": 91592,
+      "summaryDirectory": "/tmp/upmore-ci-node-4W7DgW",
+      "testHashAtStart": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
+      "laterNegativeTestExtension": "pending separate run"
+    }
+  },
+  "sourceSha256": {
+    "packages/domain/156-career-applications.js": "c97f64ceb6417bea485067e0f55e1141390f428d36bbde3580958744ed5cf8d9",
+    "src/career-application-controller.js": "b10e65c1d61870f8397825baaf6e69aa496ea6dec4e6651654d3b711e708bef0",
+    "src/career-application-ui.js": "24d2a7c1ca7a93b265eda231e74a0e5633845a7767cf741ab7669fe826eb0149",
+    "supabase/functions/_shared/career_application_chat.js": "7bcc6c5c038b45d1a69cf3f367fac61668ef818c3c93a3f93b49ac5e185c23a0",
+    "supabase/sql/proposals/career_application_conversation_v1.sql": "ab7399a991feee6546317cedf15c8f770ebe2e2a5dee1a5cbde44bc629ddcb17",
+    "tests/career-application-controller.test.cjs": "3a03657cf0cec9fc8fa54dd7dba4c2651b3fcab9d3219b73e0f3f96bf3efbb1e",
+    "tests/career-applications-domain.test.cjs": "5b90b14d1ba974f75346c434ff4ecbf818af395f378f08c549dd9ff88a731491",
+    "tests/career-critical-repairs/application-conversation-postgres.test.cjs": "2cb0797fd73367532ff845cfdc4d99ec79f043f6c687d410e7f803f5d5f2d5a9",
+    "index.html": "24191ac4b46854c91df986fcd8a1eeeb4dbcda90a1847fe14600b08ffb9f7364",
+    "packages/domain/121-career-jobs.js": "b642cf55cce5d05264ef780252b03501edc0d8e5d3f1e477e1468b1e0ba8e5c8",
+    "packages/domain/131-career-discover.js": "a1fcf3cd3630fd05c73396f891a00ca0dd0f26b9721b14f8b6d47c62ef5c4f9c",
+    "packages/domain/132-career-apply.js": "cbd44e48517b2782c7209ea899b796e1490c00d6842e97d5c50ed9439243b484",
+    "scripts/build-router-core.py": "116345ccdbf5d74472da7df947333ccb7b9be870c52c5aa2016955fcd95f8ad9",
+    "scripts/career/build-owned-worker.cjs": "e4b7a17c796fd582817ae3ba235bbb2bc926e367c0951b8736594c3ec746476e",
+    "scripts/career/critical-repairs/ci-node.cjs": "a167cac44fbac9f64b74cd313fdc272eb8c8f03e3a7efed29a57387ab1b5f628",
+    "src/build-app.py": "2c19980f55f182b65a2ca32e01fd6c1d2c2742d484e2506ed70e807f9938f175",
+    "src/career-applicant-ui.js": "9603f1bdafb010bc1e4a1e45c3b1115195d16015bff29e96f0c3b79777a256f0",
+    "src/upmore-app-template.html": "789138751b29535eb8ac1df555dc874481b957c70191e1367e0981c4ba9200f3",
+    "src/upmore-app.html": "24191ac4b46854c91df986fcd8a1eeeb4dbcda90a1847fe14600b08ffb9f7364",
+    "supabase/functions/_shared/router_core.career.js": "4b316f58e3235e83941a28cc43536c6b6aa621cc52d5490a7a65992ca2d20c58",
+    "supabase/functions/_shared/router_core.js": "8fb1bcbe03346431d7a6d6739aa601417c2e44944cc7d51e30b7790e99e291f4",
+    "supabase/functions/agent-chat/handler-career.ts": "cc460f1a567e31b6e91554cc58094b4f4bbf7a1bb3d35b9435821dbbcb93cc50",
+    "sw.js": "fc546fbfa70c07669478e09a4e12853b00deafc0846f30836dea47172c776e59",
+    "tests/career-hosted-worker.test.cjs": "4121dc2663c9b29d7a09ce292dfeb08539888c152b5e93509675b925daa46c50",
+    "tests/career-jobs.test.cjs": "c65376bbf6806d01a6702cfbe1cb1a5ccddd7f98dd05f4928092f8082fc0a9e8",
+    "workers/career-browser/applicant-store.cjs": "17098d338558b569074b64127549479b480a5fbfb448c4bd1bdd7aee801cf985",
+    "workers/career-browser/batch-context.cjs": "0704cab380a31ab4f81205fe03de657b7e6d2a99e26dfabdab42336a54ef0ab3",
+    "workers/career-browser/deploy/Dockerfile.proposal": "59c48266613946258f047bd651bfa94e31996e472f1444dd1426ce6d86eb4883",
+    "workers/career-browser/rpc-client.cjs": "b2492d2d89815a8d14b3aa28409ec11e33e7c5b8ae55d386d37fc301ea18b5a2",
+    "workers/career-browser/service.cjs": "a16514f28dd990afeaaa28963d8bca5deae3308421d5d9044b651755ef5a6814"
+  },
+  "syntheticExecution": {
+    "selected": 10,
+    "initialHealthy": 9,
+    "heldAndResumed": 1,
+    "exactApproved": 10,
+    "physicalSyntheticDispatches": 5,
+    "unknown": 5,
+    "quotaBlocked": 5,
+    "reason": "unchanged single vendor cap",
+    "employerReceipts": 0
+  },
+  "remaining": [
+    "final expanded UI/Edge/SQL denial run",
+    "full clean source and40-file SQL",
+    "exact-head CI",
+    "normal sandbox browser blocked; existing Vercel403 stopped",
+    "Muse published source/ref and integration",
+    "missing original archives gate remains failed"
+  ],
+  "paidCalls": 0,
+  "liveDatabaseMutations": 0,
+  "deployments": 0,
+  "employerSubmissions": 0
+}

@@ -9,6 +9,11 @@ const {createPullRunner}=require('../workers/career-browser/pull-runner.cjs');
 const {fixture}=require('./fixtures/owned-worker-fixture.cjs');
 const {createEvidenceCapture}=require('../workers/career-browser/evidence.cjs');
 const config={url:'https://synthetic-project.example.test',key:'MOCK-NOT-A-CREDENTIAL'};
+test('private RPC transport exposes the exact scoped admission, role-answer and discovery-context reads',async()=>{
+ for(const name of ['career_application_admission_history_v1','career_application_batch_answers_v1','career_application_task_context_v1']){
+  let count=0;await requestRPC(config,name,{p_user:'SYNTHETIC',p_intent:'a'.repeat(64),p_task:'b'.repeat(32),p_lease:'SYNTHETIC'},{fetch:async url=>{count++;assert.equal(url,config.url+'/rest/v1/rpc/'+name);return new Response(JSON.stringify({records:[],answers:[],context:null}));}});assert.equal(count,1);
+ }
+});
 test('trusted RPC transport restricts endpoint/method and never follows a redirect',async()=>{
  let calls=0;const data=await requestRPC(config,'career_task_account_v1',{p_user:'MOCK-user'},{fetch:async(url,options)=>{calls++;assert.equal(url,config.url+'/rest/v1/rpc/career_task_account_v1');assert.equal(options.redirect,'error');assert.equal(options.credentials,'omit');assert.equal(options.headers.authorization,'Bearer '+config.key);return new Response(JSON.stringify({exists:true,account:{version:1,epoch:0}}));}});
  assert.equal(data.account.epoch,0);await assert.rejects(()=>requestRPC(config,'arbitrary_sql',{}, {fetch:()=>calls++}),{code:'RPC_METHOD_REFUSED'});assert.equal(calls,1);

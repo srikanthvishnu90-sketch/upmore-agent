@@ -4,6 +4,7 @@
 // fixture records, Storage URLs, filesystem guesses, or a new credential path.
 const {fail}=require('./store.cjs');
 const {createOwnedEquipmentResolver}=require('./equipment.cjs');
+const Applications=require('../../packages/domain/156-career-applications.js');
 function createApplicantStoreEquipment({call,authority,root,...options}){
  if(typeof call!=='function')throw fail('APPLICANT_STORE_NOT_WIRED');
  function read(userId,artifactId,scope,includeBytes){
@@ -13,7 +14,7 @@ function createApplicantStoreEquipment({call,authority,root,...options}){
   if(out?.error==='CONFIRMED_RESUME_NOT_STORED')throw fail('CONFIRMED_RESUME_NOT_STORED');
   if(!out?.records||out.error)throw fail('APPLICANT_STORE_UNAVAILABLE');return out;
  }
- return createOwnedEquipmentResolver({...options,maxBytes:1048576,authority,root,
+ const resolver=createOwnedEquipmentResolver({...options,maxBytes:1048576,authority,root,
   loadOwnedRecords:(user,id,scope)=>read(user,id,scope,false).records,
   readOwnedBytes(user,artifact,scope){
    const out=read(user,artifact.id,scope,true),b=out.blob,r=out.records;
@@ -22,5 +23,17 @@ function createApplicantStoreEquipment({call,authority,root,...options}){
    return {userId:b.userId,artifactId:b.artifactId,versionId:b.versionId,bytes};
   }
  });
+ return {...resolver,resolveEquipment(user,id,scope){
+  const e=resolver.resolveEquipment(user,id,scope);
+  if(!scope.batchId)return e;
+  try{
+   // This RPC is lease/current-account scoped. Legacy tasks have no search
+   // context and retain their existing equipment contract unchanged.
+   const out=call('career_application_task_context_v1',{p_user:user,p_intent:scope.intentId,p_lease:scope.leaseToken,p_task:scope.taskId});
+   if(out?.then||!out||out.error)throw fail('APPLICATION_CONTEXT_UNAVAILABLE');const c=out.context;if(c===null)return e;
+   if(c?.userId!==user||c.accountVersion!==scope.accountVersion||c.privacyEpoch!==scope.privacyEpoch||c.taskId!==scope.taskId||c.currentPosting?.posting?.canonicalKey!==scope.postingKey||!c.careerProfile||!Array.isArray(c.roleInterests))throw fail('APPLICATION_CONTEXT_BINDING_MISMATCH');
+   return {...e,careerProfile:c.careerProfile,scoringProfile:Applications.scoringProfile(c.careerProfile),roleInterests:c.roleInterests,currentPosting:c.currentPosting};
+  }catch(error){try{e.release();}catch(_){}throw error;}
+ }};
 }
 module.exports={createApplicantStoreEquipment};

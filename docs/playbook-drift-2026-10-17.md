@@ -119,3 +119,6 @@ Independent batch defects reproduced0/4 source regressions. Existing121/132/151/
 
 
 Published fit/eligibility runtimeabe6db57 full clean source completed4782/40skip/0fail, including deterministic40-file worker packaging and image COPY closure. Focused SQL10/10 remains distinct from the active full39-file run and current CI39049893782. Historical in-progress patch is explicitly superseded; no unpublished source is at risk after verified connectivity and branch publication.
+
+
+Conversation wiring drift: previous source required operator construction of batch discovery context. Ordinary authenticated chat now owns explicit fact reviews, bounded public ATS snapshots and exact selection into existing batch authority; application cards expose role answers/status. Real staged execution exposed131/132 CommonJS-only dependency lookup in Deno and missing private worker RPC allowlist entries; narrowly repaired without eligibility/cap changes. Greenhouse updated_at/created_at previously stood in for first publication; only first_published now establishes that date. Test mocks explicitly carry first publication; original assertions remain. Source-only contracts and operational limits are described in CONVERSATIONAL-APPLICATIONS.md. Prior92dde8a exact CI is39050141942;39049893782 is earliera78ddeb3. No original archive or normal-browser result is fabricated.

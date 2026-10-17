@@ -23,7 +23,7 @@
                                    121's POLL_MINUTES (starred 15 min, default 60).
    Pure domain module, UMD like the other domain modules. No fetch, no deploy, no secrets. */
 const CareerDiscover = (() => {
-  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })() : null;
+  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })() : (typeof CareerJobs !== "undefined" ? CareerJobs : null);
   const lc = (v) => String(v == null ? "" : v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 

@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Codex conversational application workflow owns new156 orchestration (existing121/122/131/132/151/152 engines only;131/132 Node/Deno dependency lookup and121 publication-date truth repair), new authenticated chat/discovery seams and unapplied workflow SQL, narrow handler-career ordinary-text routing, worker owned discovery-context resolver, frontend controller/cards/build wiring and actual app/Edge/SQL regressions. Preserve raw normal POST, model pairing/publication proof, approval/account/epoch/owner gates and all policy caps. Controlled source/portal fixtures remain labeled; no operational browser, proxy/trust, credentials, paid calls, deploy or employer action.
+
 - 2026-10-17 Codex scoped fit/eligibility review owns worker batch-context/service, application-batch SQL answer kind/type mapping, actual entry/SQL worker regressions,152 package/Dockerfile dependency closure and current evidence/handoff. Reuse121/132/151/152; no new matching/browser engine, no draft facts as proof, no inferred residence/country or stale approval, and no operational changes.
 
 - 2026-10-17 Codex continuation owns `workers/career-browser/deploy/Dockerfile.proposal` COPY dependency closure and a staged-filesystem build contract, then applicant metadata-read restoration and conversational discovery/batch/eligibility/fit seams with their focused tests and release evidence. No image pull/build, sandbox settings, credentials, deployment, live database mutation or employer action is authorized by this claim.

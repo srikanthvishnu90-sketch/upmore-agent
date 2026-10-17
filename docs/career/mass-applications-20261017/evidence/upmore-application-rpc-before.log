@@ -1,0 +1,24 @@
+✖ private RPC transport exposes the exact scoped admission, role-answer and discovery-context reads (1.419629ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76.709867
+
+✖ failing tests:
+
+test at tests/career-hosted-worker.test.cjs:12:1
+✖ private RPC transport exposes the exact scoped admission, role-answer and discovery-context reads (1.419629ms)
+  Error: RPC_METHOD_REFUSED
+      at fail (/workspace/upmore-mass/workers/career-browser/store.cjs:6:54)
+      at requestRPC (/workspace/upmore-mass/workers/career-browser/rpc-client.cjs:11:83)
+      at TestContext.<anonymous> (/workspace/upmore-mass/tests/career-hosted-worker.test.cjs:14:21)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    code: 'RPC_METHOD_REFUSED'
+  }

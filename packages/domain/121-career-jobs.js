@@ -486,7 +486,9 @@ const CareerJobs = (() => {
       // that is a placeholder (or shared text, not an identifier) must fall back to the numeric id.
       source: "greenhouse", company, title: j.title, req_id: (j.requisition_id && !/see opening/i.test(String(j.requisition_id))) ? j.requisition_id : j.id,
       location: (j.location && j.location.name) || (j.offices && j.offices[0] && j.offices[0].name) || "",
-      url: j.absolute_url, posted_at: j.first_published || j.updated_at || j.created_at,
+      // Editing a req is not a new publication. Unknown first-publication
+      // dates stay unknown; discovery records its actual observation separately.
+      url: j.absolute_url, posted_at: j.first_published || null,
       jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
     }));
   }

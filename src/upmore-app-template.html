@@ -1833,6 +1833,7 @@
         <div class="ctoolrow">
           <button class="ctool" id="chatAttach" aria-label="Attach a photo"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
           <button class="ctool" id="chatResume" aria-label="Add or review your resume">Resume</button>
+          <button class="ctool" id="chatApplications" aria-label="Review application shortlist and batch">Applications</button>
           <span class="cctx" id="chatCtx"><span class="cdotok"></span><span id="chatCtxText">No connected data</span></span>
           <span style="flex:1"></span>
           <button class="ctool" id="chatVoice" aria-label="Voice input"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
@@ -1844,6 +1845,13 @@
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
 
+  <div class="sheet" id="careerApplicationsSheet" role="dialog" aria-modal="true" aria-labelledby="careerApplicationsTitle" hidden>
+    <div class="sheetcard" style="max-height:85vh;overflow:auto">
+      <h2 id="careerApplicationsTitle">Your applications</h2>
+      <div id="careerApplicationsContent" aria-live="polite"></div>
+      <button class="btn" id="careerApplicationsClose" type="button">Close</button>
+    </div>
+  </div>
   <div class="sheet" id="applicantResumeSheet" role="dialog" aria-modal="true" aria-labelledby="applicantResumeTitle" hidden>
     <div class="sheetcard">
       <h2 id="applicantResumeTitle">Your application resume</h2>
@@ -7846,6 +7854,11 @@
   const staleChatResult = Object.freeze({stale:true});
   async function agentAsk(text, images, ticket = chatRequests.capture()) {
     if (!UPMORE_BACKEND_URL || !UPMORE_ANON_KEY) return null;
+    if(!images?.length&&applicationChat.accepts(text)){
+      const result=await applicationChat.send(text,undefined,ticket);if(!ticket.current())return staleChatResult;
+      $('careerApplicationsSheet').hidden=false;renderCareerApplications();
+      return result||{reply:'This application step could not be confirmed. Open Applications and retry the same request before starting another application step.',thread_id:upmoreThread};
+    }
     const result = await chatRequests.ask(text, images, ticket);
     if (result.state === 'stale') return staleChatResult;
     if (result.state !== 'ok') return null;
@@ -7856,6 +7869,7 @@
       // the user can come back to it from "Chats".
       upmoreThreads.unshift({ id: j.thread_id, user_id:ticket.owner, title: text.slice(0, 60), created_at: new Date().toISOString() });
     }
+    if(j.application&&applicationChat.observe(j,ticket)){$('careerApplicationsSheet').hidden=false;renderCareerApplications();}
     return j;
   }
 
@@ -7956,6 +7970,8 @@
   });
   /*__APPLICANT_CONTROLLER__*/
 /*__APPLICANT_UI__*/
+/*__APPLICATION_CONTROLLER__*/
+/*__APPLICATION_UI__*/
   function resetPrivateChat() {
     careerResumeReset();
     chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;
@@ -8185,6 +8201,9 @@
     const ticket=chatRequests.capture(), hasImg=images && images.length;
     addMe(text, images);
     try {
+      if(!hasImg&&applicationChat.accepts(text)){
+        const result=await agentAsk(text,images,ticket);if(ticket.current()&&!result?.stale&&result?.reply)addAI([result.reply],null,null,ticket);busy=false;return;
+      }
       // Photos go straight to the agent backend — the local answer engine
       // can't see images, so answering locally would silently ignore them.
 
@@ -12505,6 +12524,7 @@ function renderChatImages() {
 }
 function wireChat() {
   wireApplicantResume();
+  wireCareerApplications();
   const feed = chatFeedEl();
   feed.innerHTML = '<div id="threadMain"></div>';
   chat = $("threadMain");

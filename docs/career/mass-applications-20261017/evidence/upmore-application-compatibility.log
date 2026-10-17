@@ -1,0 +1,36 @@
+✔ private RPC transport exposes the exact scoped admission, role-answer and discovery-context reads (28.171494ms)
+✔ trusted RPC transport restricts endpoint/method and never follows a redirect (1.868227ms)
+✔ RPC lost/failed response stays uncertain, attempts once and does not log SQL text (3.036821ms)
+✔ synchronous private IPC adapter roundtrip closes its helper and scratch directory (68.292877ms)
+✔ pull runner requests one task, stops at pilot budget, logs metadata only and opens no server (1.223036ms)
+✔ restart reports uncertain checkpoints without requeue; bounded errors stop polling (0.510649ms)
+✔ service batch limit is enforced before dispatch and does not widen portal permissions (20.750172ms)
+✔ genuine evidence hook refuses absent screenshot methods/files; no synthetic PNG is created (1.639086ms)
+✔ pull-only entry has no HTTP listener and closes injected resources (1.978804ms)
+✖ deployment build is deterministic and contains only an explicit source allowlist (15.19363ms)
+✔ required real PNG capability blocks a worker before approval/submission when absent (3.000012ms)
+✔ supabase/functions/_shared/router_core.js is current with packages/domain and the registry (310.115101ms)
+✔ the bundle loads as an ES module and exports the career seam modules and the reference JSON consts (196.055683ms)
+✔ the handler routes flows ahead of the finance path and returns route data; a one-time code is never stored (1.904505ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 13
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 580.890625
+
+✖ failing tests:
+
+test at tests/career-hosted-worker.test.cjs:63:1
+✖ deployment build is deterministic and contains only an explicit source allowlist (15.19363ms)
+  Error: Commit the reviewed source allowlist before building
+      at build (/workspace/upmore-mass/scripts/career/build-owned-worker.cjs:11:105)
+      at TestContext.<anonymous> (/workspace/upmore-mass/tests/career-hosted-worker.test.cjs:65:70)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

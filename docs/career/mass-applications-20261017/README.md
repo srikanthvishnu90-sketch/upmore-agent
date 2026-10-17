@@ -1,5 +1,7 @@
 # Application entry checkpoint
 
+Current conversational source: [Conversational application workflow](CONVERSATIONAL-APPLICATIONS.md). Ordinary text, sourced shortlist, exact batch review, role answers and SQL status are implemented; historical pending descriptions below record earlier checkpoints. Validation remains synthetic and no live operation is claimed.
+
 Source adds a separate Resume control to application chat. It uploads the original PDF/DOCX to the existing owned ingress, displays filename/byte/hash proof and an exact server review, and requires explicit confirmation. Resume bytes do not enter chat images or a model request. Stable request IDs recover uncertain acknowledgements; owner/thread/mode changes clear private client state. The resume panel now restores authoritative confirmed file metadata after reload or in another owned thread; source-thread contact facts and document bytes are not returned by that read.
 
 Reproduced on base51807f10:132 triage marked an unresolved Colorado residency restriction `apply`. The narrow repair returns `ask` with121's essential question; a healthy role proceeds independently. This reuses121 scoring and changes no policy cap.
@@ -47,3 +49,6 @@ The independently reviewed zero-citation/weak-fit and unhashable eligibility-ans
 
 
 Runtimeabe6db57 full clean source passes4782/40skip/0fail. Focused actual entry/SQL/worker10/10 is complete; full39-file local SQL and CI39049893782 remain active. Current recovery details are in [CONNECTIVITY-RECOVERY.md](CONNECTIVITY-RECOVERY.md). No unpublished implementation remains, and the historical preservation patch is superseded.
+
+
+Exact92dde8a CI39050141942 completed Node/Deno/database successfully (4782 source passes,40 skips;355 local SQL contracts in39 files). CI39049893782 belongs to earliera78ddeb3, not92dde8a. The next conversational source checkpoint has its own validation and must not inherit those exact-head results.

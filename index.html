@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-7DotxvZSpe3t+Zn8R1E8C4SoVYmLNobmHMKZcPuWfmo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-jkPf0Dtps+qozmwEK5P3Q0BO2hEFsK8Y5nWQk9yGijw=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1834,6 +1834,7 @@
         <div class="ctoolrow">
           <button class="ctool" id="chatAttach" aria-label="Attach a photo"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
           <button class="ctool" id="chatResume" aria-label="Add or review your resume">Resume</button>
+          <button class="ctool" id="chatApplications" aria-label="Review application shortlist and batch">Applications</button>
           <span class="cctx" id="chatCtx"><span class="cdotok"></span><span id="chatCtxText">No connected data</span></span>
           <span style="flex:1"></span>
           <button class="ctool" id="chatVoice" aria-label="Voice input"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
@@ -1845,6 +1846,13 @@
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
 
+  <div class="sheet" id="careerApplicationsSheet" role="dialog" aria-modal="true" aria-labelledby="careerApplicationsTitle" hidden>
+    <div class="sheetcard" style="max-height:85vh;overflow:auto">
+      <h2 id="careerApplicationsTitle">Your applications</h2>
+      <div id="careerApplicationsContent" aria-live="polite"></div>
+      <button class="btn" id="careerApplicationsClose" type="button">Close</button>
+    </div>
+  </div>
   <div class="sheet" id="applicantResumeSheet" role="dialog" aria-modal="true" aria-labelledby="applicantResumeTitle" hidden>
     <div class="sheetcard">
       <h2 id="applicantResumeTitle">Your application resume</h2>
@@ -8229,6 +8237,11 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
   const staleChatResult = Object.freeze({stale:true});
   async function agentAsk(text, images, ticket = chatRequests.capture()) {
     if (!UPMORE_BACKEND_URL || !UPMORE_ANON_KEY) return null;
+    if(!images?.length&&applicationChat.accepts(text)){
+      const result=await applicationChat.send(text,undefined,ticket);if(!ticket.current())return staleChatResult;
+      $('careerApplicationsSheet').hidden=false;renderCareerApplications();
+      return result||{reply:'This application step could not be confirmed. Open Applications and retry the same request before starting another application step.',thread_id:upmoreThread};
+    }
     const result = await chatRequests.ask(text, images, ticket);
     if (result.state === 'stale') return staleChatResult;
     if (result.state !== 'ok') return null;
@@ -8239,6 +8252,7 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
       // the user can come back to it from "Chats".
       upmoreThreads.unshift({ id: j.thread_id, user_id:ticket.owner, title: text.slice(0, 60), created_at: new Date().toISOString() });
     }
+    if(j.application&&applicationChat.observe(j,ticket)){$('careerApplicationsSheet').hidden=false;renderCareerApplications();}
     return j;
   }
 
@@ -8422,7 +8436,7 @@ function renderApplicantResume(){
   const retry=$('applicantResumeRetry');retry.hidden=v.state!=='upload_uncertain';retry.disabled=v.busy;
   for(const key of ['first_name','last_name','email','location'])$('applicant_'+key).disabled=v.busy||v.state==='confirmed';
 }
-function careerResumeReset(){applicantResume.reset();const panel=$('applicantResumeSheet');if(panel)panel.hidden=true;const file=$('applicantResumeInput');if(file)file.value='';for(const key of ['first_name','last_name','email','location']){const el=$('applicant_'+key);if(el)el.value='';}renderApplicantResume();}
+function careerResumeReset(){applicantResume.reset();careerApplicationReset();const panel=$('applicantResumeSheet');if(panel)panel.hidden=true;const file=$('applicantResumeInput');if(file)file.value='';for(const key of ['first_name','last_name','email','location']){const el=$('applicant_'+key);if(el)el.value='';}renderApplicantResume();}
 function openApplicantResume(){
   if(!session){toast('Sign in to use your resume.');show('login');return;}
   if(!upmoreThread){toast('Start or open your application chat first, then add your resume.');return;}
@@ -8441,6 +8455,126 @@ function wireApplicantResume(){
   for(const key of ['first_name','last_name','email','location'])$('applicant_'+key).oninput=()=>applicantResume.edit(applicantFields());
   $('applicantResumeSheet').addEventListener('keydown',event=>{if(event.key==='Escape'){$('applicantResumeSheet').hidden=true;$('chatResume').focus();}});
 }
+
+/* Application chat commands share the existing endpoint. Private views and
+   uncertain command nonces live only in memory and are fenced by chat tickets. */
+globalThis.UpmoreApplicationChat=function({capture,getToken,request,adopt=()=>false,onChange=()=>{},newId=()=>crypto.randomUUID().replace(/-/g,'')}){
+ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,HASH=/^[a-f0-9]{64}$/;
+ let ticket,revision=0,pending=null,data=null,busy=false,state='idle',lastSearch='Find 10 investment internships';
+ const clone=x=>JSON.parse(JSON.stringify(x));
+ const accepts=text=>typeof text==='string'&&(/\b(?:find|show|search|look for|want|need|recommend)\b.*\b(?:investment|private equity|equity research)\b.*\b(?:intern|internships?|summer analyst)/i.test(text)||/^(?:(?:Approve|Review) (?:my |the )?(?:application )?batch|(?:Show|Check|Refresh|Status(?: of)?) (?:my |the )?(?:application )?batch|Reconcile batch role|Confirm application facts)\b/i.test(text));
+ function reset(){revision++;ticket=undefined;pending=data=null;busy=false;state='idle';lastSearch='Find 10 investment internships';onChange();}
+ function current(){return !!ticket?.current();}
+ function view(){if(ticket&&!current())reset();return {state,busy,pending:!!pending,data:data?clone(data):null,lastSearch};}
+ function observe(body,t){if(!t?.current()||body?.application?.version!=='career_application_chat/v1'||!UUID.test(body.thread_id||'')||(t.thread&&body.thread_id!==t.thread))return false;ticket=t;data=clone(body.application);if(typeof data.originalAsk==='string')lastSearch=data.originalAsk;state='ready';onChange();return true;}
+ async function dispatch(item){
+  const rev=revision;ticket=item.ticket;busy=true;state='loading';onChange();
+  try{
+   const token=await getToken();if(rev!==revision||!current())return null;if(typeof token!=='string'||!token)throw Error('sign_in');
+   const result=await request(item.body,token);if(rev!==revision||!current())return null;
+   if(result.status!==200){if(result.status===503)throw Error('uncertain');pending=null;data=null;state=result.status===401?'sign_in':'refused';return null;}
+   const body=result.body;if(!body||typeof body.reply!=='string'||!UUID.test(body.thread_id||'')||(ticket.thread&&body.thread_id!==ticket.thread))throw Error('uncertain');
+   if(!ticket.thread&&!adopt(ticket,body.thread_id))return null;
+   if(item.body.career_application&&!body.application)throw Error('uncertain');
+   if(body.application){if(!observe(body,ticket))throw Error('uncertain');}else state='idle';pending=null;return body;
+  }catch(e){if(rev===revision&&current())state=e.message==='sign_in'?'sign_in':'uncertain';return null;}
+  finally{if(rev===revision&&current()){busy=false;onChange();}}
+ }
+ async function send(message,control,t=capture()){
+  if(busy||pending)return null;if(!t?.current()||!UUID.test(t.owner||'')||(t.thread&&!UUID.test(t.thread)))return null;
+  const body={thread_id:t.thread,turn_key:'application_'+newId(),message,...(control?{career_application:clone(control)}:{})};pending={ticket:t,body};if(/\b(?:find|search|look for)\b/i.test(message))lastSearch=message;return dispatch(pending);
+ }
+ const batch=()=>data?.batch?.batchId;
+ return {accepts,send,reset,view,observe,retry:()=>!busy&&pending?dispatch(pending):Promise.resolve(null),
+  search:()=>send(lastSearch),
+  facts:fields=>send('Review my application facts',{action:'facts_review',input:fields}),
+  confirmFacts:()=>data?.status==='facts_review'&&HASH.test(data.reviewHash||'')?send(data.confirmationPhrase,{action:'facts_confirm',input:{reviewHash:data.reviewHash}}):Promise.resolve(null),
+  prepare:taskIds=>data?.status==='shortlist'?send('Prepare selected applications',{action:'prepare',input:{searchId:data.searchId,taskIds}}):Promise.resolve(null),
+  status:()=>send('Show my application batch',batch()?{action:'status',input:{batchId:batch()}}:undefined),
+  review:()=>send('Review my application batch',batch()?{action:'review',input:{batchId:batch()}}:undefined),
+  approve:()=>data?.status==='batch_review'&&HASH.test(data.batch?.reviewHash||'')?send(data.batch.approvalPhrase,{action:'approve',input:{batchId:batch(),reviewHash:data.batch.reviewHash}}):Promise.resolve(null),
+  answers:(taskId,answers)=>{const r=data?.batch?.roles?.find(r=>r.taskId===taskId);return r?.status==='awaiting_user'&&HASH.test(r.task?.questionsSha256||'')?send('Confirm answers for '+taskId+' '+r.task.questionsSha256,{action:'answers',input:{batchId:batch(),taskId,questionsHash:r.task.questionsSha256,answers}}):Promise.resolve(null);},
+  reconcile:taskId=>send('Reconcile batch role '+taskId,{action:'reconcile',input:{batchId:batch(),taskId}})
+ };
+};
+
+/* Explicit application workflow controls. All dynamic text uses textContent;
+   reviews/answers stay in memory and the server remains execution authority. */
+const applicationChat=UpmoreApplicationChat({capture:()=>chatRequests.capture(),getToken:()=>getSessionToken(),onChange:renderCareerApplications,
+ adopt:(ticket,id)=>ticket.adoptThread(id,value=>{upmoreThread=value;}),
+ request:async(body,token)=>{const r=await fetch(UPMORE_BACKEND_URL+'/functions/v1/agent-chat',{method:'POST',headers:{apikey:UPMORE_ANON_KEY,authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)});let value;try{value=await r.json();}catch(_){value=null;}return {status:r.status,body:value};}
+});
+let applicationFactDraft=null;
+function careerApplicationReset(){applicationFactDraft=null;applicationChat.reset();const el=$('careerApplicationsSheet');if(el)el.hidden=true;}
+function appElement(tag,text,parent){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(parent)parent.appendChild(el);return el;}
+function appButton(parent,label,run,disabled){const el=appElement('button',label,parent);el.type='button';el.className='btn';el.disabled=!!disabled;el.onclick=()=>applicationAction(run);return el;}
+async function applicationAction(run){const ticket=chatRequests.capture();const result=await run();if(result&&ticket.current())addAI([result.reply],null,null,ticket);renderCareerApplications();return result;}
+function appLink(parent,url,label){try{const u=new URL(url);if(u.protocol!=='https:')return appElement('span',label,parent);const a=appElement('a',label,parent);a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';return a;}catch(_){return appElement('span',label,parent);}}
+function applicationFactsForm(parent,v){
+ const form=appElement('form',undefined,parent),draft=applicationFactDraft||v.data?.factDefaults||{},refs={};
+ const input=(key,label,type='text')=>{const row=appElement('label',label,form),el=appElement('input',undefined,row);el.name=key;el.type=type;el.required=true;el.value=draft[key]||'';refs[key]=el;return el;};
+ input('workCountry','Country where you are authorized to work (two-letter code, for example US or GB)');
+ input('workAuthorization','Your actual work authorization');
+ const sponsorRow=appElement('label','Do you require sponsorship?',form),sponsor=appElement('select',undefined,sponsorRow);sponsor.required=true;for(const [value,label]of [['','Choose an answer'],['yes','Yes'],['no','No']]){const o=appElement('option',label,sponsor);o.value=value;}if(typeof draft.needsSponsorship==='boolean')sponsor.value=draft.needsSponsorship?'yes':'no';
+ const levelRow=appElement('label','Current career stage',form),level=appElement('select',undefined,levelRow);level.required=true;for(const [value,label]of [['','Choose a stage'],['student','Student'],['new_grad','New graduate'],['experienced','Experienced']]){const o=appElement('option',label,level);o.value=value;}level.value=draft.level||'';
+ input('graduationDate','Expected or actual graduation month','month');input('education','Your actual education');input('location','Your current city/state').required=false;
+ const label=appElement('label','Skills and supporting evidence — one “skill | evidence” pair per line',form),skills=appElement('textarea',undefined,label);skills.required=true;skills.rows=5;skills.value=(draft.skills||[]).map(s=>s.name+' | '+s.evidence).join('\n');
+ const submit=appElement('button','Review these facts',form);submit.type='submit';submit.className='btn';submit.disabled=v.busy||v.pending;
+ form.onsubmit=event=>{event.preventDefault();if(!form.reportValidity())return;const lines=skills.value.split('\n').map(x=>x.trim()).filter(Boolean),items=[];for(const line of lines){const at=line.indexOf('|');if(at<1||!line.slice(at+1).trim()){toast('Use skill | supporting evidence on each line.');return;}items.push({name:line.slice(0,at).trim(),evidence:line.slice(at+1).trim()});}
+  applicationFactDraft={workCountry:refs.workCountry.value.trim().toUpperCase(),workAuthorization:refs.workAuthorization.value.trim(),needsSponsorship:sponsor.value==='yes',level:level.value,graduationDate:refs.graduationDate.value,education:refs.education.value.trim(),location:refs.location.value.trim(),skills:items};applicationAction(()=>applicationChat.facts(applicationFactDraft));};
+}
+function renderCareerApplications(){
+ const panel=$('careerApplicationsContent');if(!panel)return;const v=applicationChat.view(),d=v.data;panel.replaceChildren();
+ const messages={idle:'Ask for investment internships to start a sourced shortlist.',loading:'Checking the current application records…',uncertain:'This step could not be confirmed. Retry the same request to recover its acknowledgement.',sign_in:'Sign in again to continue.',refused:'The request or saved context changed. Refresh the owned batch and review again.'};
+ if(v.state!=='ready')appElement('p',messages[v.state]||messages.idle,panel);
+ if(v.state==='uncertain')appButton(panel,'Retry same request',()=>applicationChat.retry(),v.busy);
+ const locked=v.busy||v.pending;
+ if(!d){appButton(panel,'Check saved batch',()=>applicationChat.status(),locked);return;}
+ const rows=d.batch?.roles||d.batch?.manifest?.roles||[],synthetic=d.synthetic||rows.some(r=>r.posting?.observationProvenance==='synthetic_fixture/v1');
+ if(synthetic)appElement('p','SYNTHETIC FIXTURE — these records do not establish a real employer outcome.',panel);
+ if(['needs_resume','needs_facts'].includes(d.status)){
+  if(d.status==='needs_resume')appButton(panel,'Add or review original resume',async()=>{$('careerApplicationsSheet').hidden=true;openApplicantResume();return null;},locked);
+  if(d.missingFacts?.length){appElement('p','Needed: '+d.missingFacts.join(', '),panel);applicationFactsForm(panel,v);}
+  appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;
+ }
+ if(d.status==='facts_review'){
+  appElement('p','Confirm only the facts and evidence you supplied. This updates your current career context.',panel);const pre=appElement('pre',JSON.stringify(d.fields,null,2),panel);pre.style.whiteSpace='pre-wrap';
+  appButton(panel,'Confirm exactly these facts',()=>applicationChat.confirmFacts(),locked||Date.parse(d.expiresAt)<=Date.now());const edit=appElement('details',undefined,panel);appElement('summary','Edit or renew this facts review',edit);applicationFactsForm(edit,{...v,data:{factDefaults:d.fields}});return;
+ }
+ if(d.status==='profile_confirmed'){appElement('p','Your explicitly confirmed application facts are saved.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
+ if(d.status==='no_batch'){appElement('p','Start with a sourced internship shortlist.',panel);appButton(panel,'Find my internships',()=>applicationChat.search(),locked);return;}
+ if(['shortlist','shortlist_expired'].includes(d.status)){
+  appElement('p',d.matched+' of '+d.requested+' requested roles have sourced fit evidence. '+(d.status==='shortlist_expired'?'Refresh the source snapshot before preparing.':''),panel);
+  const choices=[];for(const row of [...(d.shortlist||[]),...(d.held||[])]){
+   const card=appElement('article',undefined,panel);card.className='item';const label=appElement('label',undefined,card),check=appElement('input',undefined,label);check.type='checkbox';check.checked=false;check.disabled=locked||d.status==='shortlist_expired';choices.push({id:row.taskId,check});appElement('span',row.posting.title+' — '+row.posting.company,label);
+   appElement('p',row.posting.location||'Location not stated',card);appLink(card,row.posting.url,'Employer posting');appLink(card,row.source.url,' Source record');
+   appElement('p','Observed '+new Date(row.source.observedAt).toLocaleString()+(row.posting.posted_at?' · First published '+new Date(row.posting.posted_at).toLocaleDateString():' · First publication date unavailable'),card);
+   for(const line of row.eligibility.fit?.fitLines||[])appElement('p',line,card);if(row.eligibility.status!=='eligible')appElement('p','Held for eligibility answers before preparation.',card);
+  }
+  appButton(panel,'Prepare selected roles',()=>applicationChat.prepare(choices.filter(x=>x.check.checked).map(x=>x.id)),locked||d.status==='shortlist_expired'||!choices.length);
+  const health=appElement('details',undefined,panel);appElement('summary','Source coverage',health);for(const h of d.sourceHealth||[])appElement('p',h.provider+': '+h.postings+' observed postings · '+(h.error||'HTTP '+h.status),health);
+  appButton(panel,'Refresh search',()=>applicationChat.search(),locked);return;
+ }
+ if(d.status==='batch_review'){
+  appElement('p',rows.length+' exact ready roles. '+(d.batch.manifest.withheld||[]).length+' held roles are excluded from this approval.',panel);
+  for(const row of rows){const card=appElement('article',undefined,panel);card.className='item';appElement('h3',row.posting.title+' — '+row.posting.company,card);appLink(card,row.posting.url,'Employer posting');for(const line of row.review.eligibility?.fit?.fitLines||[])appElement('p',line,card);
+   appElement('p','Resume '+(row.review.artifactVersion||'confirmed version')+' · SHA-256 '+row.review.resumeSha256,card);const detail=appElement('details',undefined,card);appElement('summary','Exact payload and observed question bindings',detail);const pre=appElement('pre',JSON.stringify({payload:row.review.payload,questions:row.review.questions,answers:row.review.answerBindings},null,2),detail);pre.style.whiteSpace='pre-wrap';}
+  appElement('p','Review expires '+new Date(d.batch.expiresAt).toLocaleString()+'. Daily, vendor and company limits still apply.',panel);
+  appButton(panel,'Approve these '+rows.length+' exact applications',()=>applicationChat.approve(),locked||Date.parse(d.batch.expiresAt)<=Date.now());
+ }
+ if(d.status==='batch'){
+  if(d.batch?.approvedTaskIds)appElement('p',d.batch.approvedTaskIds.length+' reviewed roles are queued. Check authoritative outcomes below.',panel);
+  for(const role of rows){const card=appElement('article',undefined,panel);card.className='item';appElement('h3',(role.posting?.title||'Application')+' — '+(role.posting?.company||''),card);appElement('p',role.status==='unknown_outcome'?'Outcome unknown. Check the destination receipt.':role.status.replaceAll('_',' '),card);if(role.task?.blocker)appElement('p',role.task.blocker.replaceAll('_',' ').toLowerCase(),card);
+   if(role.status==='awaiting_user'&&role.task?.questionsSha256){const inputs=[];for(const ask of role.task.asks||[]){if(!ask.answerable){appElement('p',ask.question||ask.reason||'Manual review required.',card);continue;}const label=appElement('label',ask.field?.label||ask.question||ask.field_id,card),boolean=ask.field?.answerType==='boolean'||ask.field?.kind==='attestation',el=appElement(boolean?'select':'input',undefined,label);if(boolean){for(const [value,text]of [['','Choose an answer'],['true','Yes'],['false','No']]){const o=appElement('option',text,el);o.value=value;}}else el.type='text';el.disabled=locked;inputs.push({ask,el,boolean});}
+    if(inputs.length)appButton(card,'Confirm answers for this role',async()=>{if(inputs.some(x=>!x.el.value.trim())){toast('Answer the displayed questions before confirming.');return null;}return applicationChat.answers(role.taskId,inputs.map(x=>({fieldId:x.ask.field_id,questionSha256:x.ask.questionSha256,value:x.boolean?x.el.value==='true':x.el.value})));},locked);
+   }
+   if(role.status==='unknown_outcome')appButton(card,'Check receipt without resending',()=>applicationChat.reconcile(role.taskId),locked);
+  }
+ }
+ appButton(panel,'Refresh batch status',()=>applicationChat.status(),locked);appButton(panel,'Review ready roles',()=>applicationChat.review(),locked);
+}
+function openCareerApplications(){if(!session){toast('Sign in to view your application records.');return;}$('careerApplicationsSheet').hidden=false;renderCareerApplications();if(!applicationChat.view().data)applicationAction(()=>applicationChat.status());}
+function wireCareerApplications(){$('chatApplications').onclick=openCareerApplications;$('careerApplicationsClose').onclick=()=>{$('careerApplicationsSheet').hidden=true;$('chatApplications').focus();};$('careerApplicationsSheet').addEventListener('keydown',e=>{if(e.key==='Escape'){$('careerApplicationsSheet').hidden=true;$('chatApplications').focus();}});}
 
   function resetPrivateChat() {
     careerResumeReset();
@@ -9126,6 +9260,9 @@ function renderRecoveryReview(){document.getElementById('recoveryReload').onclic
     const ticket=chatRequests.capture(), hasImg=images && images.length;
     addMe(text, images);
     try {
+      if(!hasImg&&applicationChat.accepts(text)){
+        const result=await agentAsk(text,images,ticket);if(ticket.current()&&!result?.stale&&result?.reply)addAI([result.reply],null,null,ticket);busy=false;return;
+      }
       // Photos go straight to the agent backend — the local answer engine
       // can't see images, so answering locally would silently ignore them.
 
@@ -13446,6 +13583,7 @@ function renderChatImages() {
 }
 function wireChat() {
   wireApplicantResume();
+  wireCareerApplications();
   const feed = chatFeedEl();
   feed.innerHTML = '<div id="threadMain"></div>';
   chat = $("threadMain");

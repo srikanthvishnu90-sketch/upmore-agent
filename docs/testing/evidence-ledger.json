@@ -63343,6 +63343,22 @@
     "Full39-file local SQL and current CI remain active.",
     "No live model/browser/employer or deployment proof."
    ]
+  },
+  {
+   "id": "career-applications-conversation-source-20261017",
+   "command": [
+    "node",
+    "--test",
+    "tests/career-application-controller.test.cjs",
+    "tests/career-applications-domain.test.cjs"
+   ],
+   "observed_at": "2026-10-17T17:26:28.072855+00:00",
+   "commit": "PRECOMMIT_SOURCE_HASHES_IN_PACKET",
+   "status": "pass",
+   "passed": 9,
+   "failed": 0,
+   "evidence": "docs/career/mass-applications-20261017/conversation-evidence.json",
+   "scope": "synthetic source contracts; broad checks pending"
   }
  ],
  "limitations": [

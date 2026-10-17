@@ -37,6 +37,8 @@
    Pure: no I/O, no network, no clock except values passed in. UMD. */
 const CareerApply = (() => {
   const DAILY_CAP = 15;
+  const jobs = () => typeof require !== "undefined" ? require("./121-career-jobs.js") : CareerJobs;
+  const profiles = () => typeof require !== "undefined" ? require("./122-career-profile.js") : CareerProfile;
   const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
   // ---------- application log + audit record (APPE-008, Doc 2 §5.5) ----------
@@ -157,7 +159,7 @@ const CareerApply = (() => {
     const facts = (profile && profile.facts) || [];
     const sk = facts.find((f) => f.kind === "skill" && norm(f.name || f.title) === norm(skill));
     if (!sk) return 0;
-    const ev = require("./122-career-profile.js").skillEvidence(profile, skill);
+    const ev = profiles().skillEvidence(profile, skill);
     if (!ev.proven) return 0;
     // Conservative: one internship/project cycle counts as 1 year unless the
     // supporting facts carry explicit start/end spans summing higher.
@@ -191,7 +193,7 @@ const CareerApply = (() => {
   // ---------- batch triage (Doc 2 S3) + batch card (SC-054) ----------
   function triageBatch(postings, ctx) {
     const c = ctx || {};
-    const Jobs = require("./121-career-jobs.js");
+    const Jobs = jobs();
     const scoringProfile = c.scoringProfile || null;
     return (postings || []).map((p) => {
       const reasons = [];
@@ -302,7 +304,7 @@ const CareerApply = (() => {
   }
   function evaluateRule(rule, postings, ctx) {
     const c = ctx || {};
-    const Jobs = require("./121-career-jobs.js");
+    const Jobs = jobs();
     const today = c.date || "2026-10-12";
     const already = applicationsOn(c.log, today);
     const capToday = Math.max(0, Math.min(rule.maxPerDay, DAILY_CAP) - already);

@@ -1,0 +1,24 @@
+✔ missing checkpoint reconciliation uses only its exact grant and publishes unavailable readback (6.803742ms)
+✔ checkpoint absence cannot bypass owner, action, task or current-context authority (1.818508ms)
+✔ expired unknown-submit tombstone stays fenced without pinning a new pilot (2.305735ms)
+✔ ordinary polling expires old orphan evidence without deleting task fences (7.673277ms)
+✔ explicit shutdown removes fresh orphan evidence without deleting task fences (1.338797ms)
+✔ real expired uncertain checkpoint keeps polling unrelated work after restart past two minutes (34.556098ms)
+✔ expiry during an active pilot immediately reports a handoff rather than uncertainty timeout (27.815555ms)
+✔ confirmation parser requires an explicit reference label (3.80348ms)
+✔ actual 150 adapter extracts explicit application reference, never success prose (3.879033ms)
+✔ actual 150 receipt capture binds the private submit capture and refuses absent PNG (1.392068ms)
+✔ one-application runner remains alive through review, approval uncertainty and reconciliation (1.500471ms)
+✔ idle review checkpoint is purged on ordinary polling after epoch revocation (21.760221ms)
+✔ browser helper gets a benign environment and managed lifetime, never backend markers (1.45207ms)
+✔ service calls the actual 150 immutable receipt seam for the exact destination ID (31.993489ms)
+✔ idle revocation purges private evidence but preserves an unknown-submit tombstone (21.931152ms)
+✔ runner bounds idle and uncertain waits and preserves the same checkpoint on restart (0.602061ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 181.647427

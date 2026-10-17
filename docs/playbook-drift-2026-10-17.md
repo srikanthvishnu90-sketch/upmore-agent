@@ -92,3 +92,6 @@ Full runtime5cf56311 PostgreSQL validation completed all39 suites:351 passed,0 f
 
 
 Independent recovery review reproduced a missing-checkpoint defect with deletion before reconciliation enqueue/restart: the actual SQL/worker contract returned blocked TASK_NOT_FOUND and stranded the request (6 prior contracts pass; new seventh fails). A readback-only owner-bound grant now publishes deterministic UNKNOWN/DESTINATION_READBACK_UNAVAILABLE without reconstructing private state or emitting any browser effect. Source regression proves exact task/action/owner/current-context fences. Focused source initially omitted required VM-module flag (2 harness errors); corrected invocation passes31/31, preserving the failed command evidence.
+
+
+Packaged-runner review reproduced queue starvation using the actual built/extracted run.cjs entry: only1/10 roles reached review, and100 preparations never progressed past the first role. Explicit per_role scheduling now yields waiting application checkpoints to the existing queue without requeue, authority renewal or a higher maxTasks. Existing single-task lifecycle contracts pass16/16. Actual packaged rerun is pending at this source commit. Checkpoint-loss SQL after-fix passes7/7 with no additional dispatch/admission.

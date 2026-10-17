@@ -1,8 +1,10 @@
 'use strict';
 const {fail}=require('./store.cjs');
-function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=5000,maxTasks=1,maxRunMs=900000,maxErrors=3,idleTimeoutMs=600000,uncertainTimeoutMs=120000,maxTransitions=100,now=Date.now}){
+function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=5000,maxTasks=1,maxRunMs=900000,maxErrors=3,idleTimeoutMs=600000,uncertainTimeoutMs=120000,maxTransitions=100,scheduling='single_task',now=Date.now}){
   if(typeof worker?.runPending!=='function'||typeof store?.list!=='function'||!Number.isInteger(intervalMs)||intervalMs<1000||intervalMs>60000||!Number.isInteger(maxTasks)||maxTasks<1||maxTasks>50||!Number.isInteger(maxRunMs)||maxRunMs<1000||maxRunMs>3600000||!Number.isInteger(maxErrors)||maxErrors<1||maxErrors>10)throw fail('RUNNER_CONFIGURATION_INVALID');
   if(!Number.isInteger(idleTimeoutMs)||idleTimeoutMs<1000||idleTimeoutMs>3600000||!Number.isInteger(uncertainTimeoutMs)||uncertainTimeoutMs<1000||uncertainTimeoutMs>3600000||!Number.isInteger(maxTransitions)||maxTransitions<1||maxTransitions>1000)throw fail('RUNNER_CONFIGURATION_INVALID');
+  if(!['single_task','per_role'].includes(scheduling))throw fail('RUNNER_CONFIGURATION_INVALID');
+  const perRole=scheduling==='per_role',visited=new Set();
   const started=now();let timer,stopped=false,busy=false,tasks=0,completed=0,evidenceReady=0,handoffs=0,errors=0,activeTaskId,activeStatus,lastProgress=started,uncertainSince,transitions=0;
   const publicationPending=t=>t?.kind==='public_research/v1'&&t.publicationPending===true;
   function event(type,result={}){
@@ -31,9 +33,17 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
         if(result.status==='unknown_outcome'||publishing)uncertainSince??=now();else uncertainSince=undefined;
         event('task_result',result);
         const expired=result.blocker==='PRIVATE_RETENTION_EXPIRED';
-        if(expired||(!publishing&&['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status))){
-          if(expired)handoffs++;else if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
-          tasks++;activeTaskId=undefined;activeStatus=undefined;uncertainSince=undefined;
+        if(expired||(!publishing&&(['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status)||(perRole&&['review_ready','unknown_outcome'].includes(result.status))))){
+          // Waiting applications have a durable result and no runnable local
+          // transition. Poll the authoritative queue for another role rather
+          // than pinning the whole process to their review/unknown checkpoint.
+          // Count unique roles within this bounded window; approvals/readback
+          // still require fresh existing queue grants and never requeue a role.
+          if(!perRole||!visited.has(result.id)){
+            if(expired)handoffs++;else if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
+            tasks++;visited.add(result.id);
+          }
+          activeTaskId=undefined;activeStatus=undefined;uncertainSince=undefined;
           if(expired)stop('private_expiry_handoff');
         }
       }errors=0;
@@ -47,8 +57,10 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
     const checkpoints=store.list().map(id=>store.get(id));
     for(const t of checkpoints)if(t?.privateExpiredAt!==undefined)event('checkpoint_expired_handoff',{id:t.id,status:t.status,blocker:'PRIVATE_RETENTION_EXPIRED'});
     const active=checkpoints.filter(t=>t&&t.privateExpiredAt===undefined&&(publicationPending(t)||['queued','preparing','reading','review_ready','unknown_outcome'].includes(t.status)));
-    if(active.length>1){stop('multiple_active_checkpoints');return api;}
-    if(active.length){const task=active[0];activeTaskId=task.id;activeStatus=task.status;if(task.status==='unknown_outcome'||publicationPending(task))uncertainSince=now();event('checkpoint_requires_review',{id:task.id,status:task.status,authority:task.authority});}
+    if(!perRole&&active.length>1){stop('multiple_active_checkpoints');return api;}
+    for(const task of active)event('checkpoint_requires_review',{id:task.id,status:task.status,authority:task.authority});
+    const restored=perRole?active.find(publicationPending):active[0];
+    if(restored){activeTaskId=restored.id;activeStatus=restored.status;if(restored.status==='unknown_outcome'||publicationPending(restored))uncertainSince=now();}
     // Restore checkpoints, never force a stalled/uncertain task to queued.
     tick();if(!stopped)timer=setInterval(tick,intervalMs);return api;
   }

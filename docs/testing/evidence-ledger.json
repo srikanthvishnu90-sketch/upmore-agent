@@ -63075,6 +63075,23 @@
     "No live employer receipt, paid calls or deployment.",
     "Checkpoint-loss PostgreSQL before/after evidence tracked separately."
    ]
+  },
+  {
+   "id": "mass-checkpoint-loss-sql-20261017",
+   "commit": "c8722e971fc5fe8682ab69effa4e95d858fa5a44",
+   "source_hashes": "docs/career/mass-applications-20261017/checkpoint-recovery-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 7,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/checkpoint-postgres-after.log",
+   "log_sha256": "5991d0522d21cde821bb3aa254963f85532b04d0c18972bba43b67611d8dc1db",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "No employer receipt, browser, deployment or paid-call claim."
+   ]
   }
  ],
  "limitations": [

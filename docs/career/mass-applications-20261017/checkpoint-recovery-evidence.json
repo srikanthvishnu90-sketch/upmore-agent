@@ -24,9 +24,16 @@
       "fail": 0,
       "log": "evidence/checkpoint-source-focused.log"
     },
-    "postgresAfter": "IN_PROGRESS"
+    "postgresAfter": {
+      "passed": 7,
+      "failed": 0,
+      "summary": "evidence/checkpoint-postgres-after-summary.json",
+      "log": "evidence/checkpoint-postgres-after.log",
+      "sourceSha256MatchesRuntime": true
+    }
   },
   "paidCalls": 0,
   "employerReceipts": 0,
-  "externalSubmissions": 0
+  "externalSubmissions": 0,
+  "runtimeCommit": "c8722e971fc5fe8682ab69effa4e95d858fa5a44"
 }

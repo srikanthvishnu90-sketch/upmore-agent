@@ -1,0 +1,58 @@
+{
+  "scope": "SOURCE_ONLY; Muse owns final merge/migration/deployment. No operational readiness or live-quality attestation.",
+  "native_source": "a708123346e70a19a7787b0f60144b071f10ef15",
+  "browser_source": "00f0178f9a36c8848233a2eb0bb04be3349b9168",
+  "combined_runtime": "ce810f30540665410de95856b694335a334c9ce8",
+  "branch": "codex/native-browser-integration-20261017",
+  "ordinary_native_input": [
+    "thread_id",
+    "turn_key",
+    "message"
+  ],
+  "runtime_hash_manifest": "final-source-sha256.json",
+  "native_upgrade_handoff": "../native-recovery-v1/muse-integration-handoff.json",
+  "fresh_browser_dependencies": [
+    "supabase/migrations/20261015020000_career_watch_kv.sql",
+    "supabase/migrations/20261015234000_career_task_intents_v1.sql",
+    "supabase/sql/proposals/career_public_research_v1.sql",
+    "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+    "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+    "supabase/sql/proposals/career_applicant_ingress_v1.sql"
+  ],
+  "upgrade_if_owned_claim_already_installed": {
+    "operation": "CREATE OR REPLACE FUNCTION",
+    "signature": "public.career_task_owned_lease_fence_v1()",
+    "body_source": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+    "preserve": [
+      "existing triggers, privileges, RLS and owner/version/epoch/approval fences",
+      "existing intent/effect/accounting rows and unknown outcomes"
+    ],
+    "purpose": "Use clock_timestamp after owner/row-lock waits for reservation, physical admission and first completion; refuse null/expired owned lease and expired intent."
+  },
+  "migration_notes": [
+    "Determine installed schema state before scaffolding a reviewed forward migration; no production inspection was performed.",
+    "Clean-install proposal files contain CREATE TABLE/CREATE FUNCTION and are not idempotent upgrades.",
+    "Ingress proposal renames the original equipment resolver before adding a same-signature wrapper; apply it last, never blindly rerun it.",
+    "Do not apply local fixtures, synthetic funding or test roles to a real project. No campaign reset or liability loss."
+  ],
+  "defaults": {
+    "native_model": "CAREER_MODEL_ENABLED unset or not exactly true; retain approved 50000 microUSD whole-turn bound before any later enablement.",
+    "equipment": "Explicit UPMORE_EQUIPMENT_SOURCE=applicant_resume_store_v1 or an approved operator equipment module; no fallback to fixture/private snapshots.",
+    "portals": "No real employer registration or activation. controlledPortals/nativePortals default empty.",
+    "ingress": "Undeployed standalone authenticated endpoint, no UI wiring. The native-model flag does not gate it; empty CORS origins still allow originless authenticated requests.",
+    "cleanup": "Access expiry and owner sweeps exist; independent idle physical cleanup remains unwired."
+  },
+  "remaining_enablement_gates": [
+    "Genuine original archives; required gate remains red.",
+    "Review and scaffold the exact SQL migration for actual installed schema; match service-only RPC grants and preserve accounting.",
+    "Original shared-campaign cash/unknown-liability reconciliation and old-worker fencing.",
+    "Trusted parent-verified pinned readiness reporting provider_calls:0, exact invocation/host/source, native contract and full bounds.",
+    "Intentional separate ingress exposure/origin and idle cleanup decisions by Muse.",
+    "Live model quality and live browser/employer outcomes remain unverified."
+  ],
+  "vercel_target": "Owning-team get_deployment lookup denied HTTP403; authoritative target/promotion/aliases remain unverified. GitHub reported repository-managed deployment completed.",
+  "paid_calls": 0,
+  "production_mutations": 0,
+  "deployment_commands": 0,
+  "employer_submissions": 0
+}

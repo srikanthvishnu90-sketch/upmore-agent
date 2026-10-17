@@ -17,8 +17,8 @@
     {
       "id": 117322206208,
       "name": "node",
-      "status": "in_progress",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "success"
     },
     {
       "id": 117322206213,
@@ -45,5 +45,7 @@
       "result": "HTTP 403 authorization denied"
     },
     "retry": "Not retried without new owning-team authorization. No credentials changed."
-  }
+  },
+  "observed_at": "2026-10-17T05:58:56.230583+00:00",
+  "ci_status": "TERMINAL_FAILURE_ONLY_REQUIRED_ORIGINAL_ARCHIVES"
 }

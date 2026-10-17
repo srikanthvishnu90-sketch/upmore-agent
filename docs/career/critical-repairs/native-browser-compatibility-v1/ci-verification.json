@@ -1,0 +1,54 @@
+{
+  "runtime": "ce810f30540665410de95856b694335a334c9ce8",
+  "run_id": 39007276669,
+  "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39007276669",
+  "jobs": [
+    {
+      "id": 117322206073,
+      "name": "deno",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 117322206169,
+      "name": "Required original archival evidence",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 117322206208,
+      "name": "node",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 117322206213,
+      "name": "database",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "node": {
+    "job_id": 117322206208,
+    "source": {
+      "total": 4792,
+      "passed": 4752,
+      "failed": 0,
+      "skipped": 40
+    },
+    "postgres": {
+      "suites": 36,
+      "total": 332,
+      "passed": 332,
+      "failed": 0,
+      "skipped": 0
+    },
+    "agent100": true,
+    "raw_log": "ci-ce810f30-node.log",
+    "raw_log_scope": "Full decoded CI job log retained locally; original provider tool string stored before line-ending normalization.",
+    "raw_log_sha256": "e4b9d0661f6a48443c48ea919ea63c668ab8460ff97d50ff74f8cdec6cdeed6f",
+    "raw_log_location": "Local complete capture at /tmp/upmore-combined-review-evidence/ci-ce810f30-node.log; canonical log remains at the linked GitHub job."
+  },
+  "overall": "Failure because required genuine original archives are missing. Functional Node/Deno/database jobs succeeded.",
+  "paidCalls": 0
+}

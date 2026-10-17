@@ -1,0 +1,144 @@
+﻿2026-10-17T05:43:03.3809480Z Current runner version: '2.337.0'
+2026-10-17T05:43:03.3836246Z ##[group]Runner Image Provisioner
+2026-10-17T05:43:03.3837372Z Hosted Compute Agent
+2026-10-17T05:43:03.3837964Z Version: 20261012.601
+2026-10-17T05:43:03.3838672Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-17T05:43:03.3839426Z Build Date: 2026-10-12T17:48:21Z
+2026-10-17T05:43:03.3840132Z Worker ID: {367f44ab-7d32-45b3-8bba-2f88957805d9}
+2026-10-17T05:43:03.3840904Z Region: westcentralus
+2026-10-17T05:43:03.3841476Z Cloud: Azure
+2026-10-17T05:43:03.3842072Z ##[endgroup]
+2026-10-17T05:43:03.3843754Z ##[group]Operating System
+2026-10-17T05:43:03.3844403Z Ubuntu
+2026-10-17T05:43:03.3845004Z 24.04.5
+2026-10-17T05:43:03.3845518Z LTS
+2026-10-17T05:43:03.3846340Z ##[endgroup]
+2026-10-17T05:43:03.3846995Z ##[group]Runner Image
+2026-10-17T05:43:03.3847657Z Image: ubuntu-24.04
+2026-10-17T05:43:03.3848299Z Version: 20261012.334.1
+2026-10-17T05:43:03.3849621Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-17T05:43:03.3851201Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-17T05:43:03.3852208Z ##[endgroup]
+2026-10-17T05:43:03.3853344Z ##[group]GITHUB_TOKEN Permissions
+2026-10-17T05:43:03.3855550Z Contents: read
+2026-10-17T05:43:03.3856828Z Metadata: read
+2026-10-17T05:43:03.3857416Z ##[endgroup]
+2026-10-17T05:43:03.3859606Z Secret source: Actions
+2026-10-17T05:43:03.3860717Z Cache mode: write
+2026-10-17T05:43:03.3861628Z Prepare workflow directory
+2026-10-17T05:43:03.4223306Z Prepare all required actions
+2026-10-17T05:43:03.4271438Z Getting action download info
+2026-10-17T05:43:03.7207901Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-17T05:43:03.8236942Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-17T05:43:04.0705538Z Complete job name: Required original archival evidence
+2026-10-17T05:43:04.1506364Z ##[group]Run actions/checkout@v4
+2026-10-17T05:43:04.1507596Z with:
+2026-10-17T05:43:04.1508147Z   repository: srikanthvishnu90-sketch/upmore-agent
+2026-10-17T05:43:04.1512176Z   token: ***
+2026-10-17T05:43:04.1512613Z   ssh-strict: true
+2026-10-17T05:43:04.1513059Z   ssh-user: git
+2026-10-17T05:43:04.1513510Z   persist-credentials: true
+2026-10-17T05:43:04.1513998Z   clean: true
+2026-10-17T05:43:04.1514450Z   sparse-checkout-cone-mode: true
+2026-10-17T05:43:04.1514976Z   fetch-depth: 1
+2026-10-17T05:43:04.1515413Z   fetch-tags: false
+2026-10-17T05:43:04.1516059Z   show-progress: true
+2026-10-17T05:43:04.1516526Z   lfs: false
+2026-10-17T05:43:04.1516949Z   submodules: false
+2026-10-17T05:43:04.1517414Z   set-safe-directory: true
+2026-10-17T05:43:04.1517928Z   allow-unsafe-pr-checkout: false
+2026-10-17T05:43:04.1518709Z ##[endgroup]
+2026-10-17T05:43:04.2600643Z Syncing repository: srikanthvishnu90-sketch/upmore-agent
+2026-10-17T05:43:04.2603624Z ##[group]Getting Git version info
+2026-10-17T05:43:04.2605123Z Working directory is '/home/runner/work/upmore-agent/upmore-agent'
+2026-10-17T05:43:04.2607414Z [command]/usr/bin/git version
+2026-10-17T05:43:04.2710125Z git version 2.55.0
+2026-10-17T05:43:04.2739522Z ##[endgroup]
+2026-10-17T05:43:04.2759565Z Temporarily overriding HOME='/home/runner/work/_temp/8f6fd08b-bb32-49dc-add8-f166960b374a' before making global git config changes
+2026-10-17T05:43:04.2762222Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T05:43:04.2767033Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/upmore-agent/upmore-agent
+2026-10-17T05:43:04.2840443Z Deleting the contents of '/home/runner/work/upmore-agent/upmore-agent'
+2026-10-17T05:43:04.2852904Z ##[group]Initializing the repository
+2026-10-17T05:43:04.2857292Z [command]/usr/bin/git init /home/runner/work/upmore-agent/upmore-agent
+2026-10-17T05:43:04.2989694Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-17T05:43:04.2992466Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-17T05:43:04.2994946Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-17T05:43:04.2996529Z hint: call:
+2026-10-17T05:43:04.2997896Z hint:
+2026-10-17T05:43:04.2999073Z hint: 	git config --global init.defaultBranch <name>
+2026-10-17T05:43:04.3000206Z hint:
+2026-10-17T05:43:04.3001172Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-17T05:43:04.3002750Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-17T05:43:04.3003722Z hint:
+2026-10-17T05:43:04.3004492Z hint: 	git branch -m <name>
+2026-10-17T05:43:04.3005451Z hint:
+2026-10-17T05:43:04.3006838Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-17T05:43:04.3008681Z Initialized empty Git repository in /home/runner/work/upmore-agent/upmore-agent/.git/
+2026-10-17T05:43:04.3011422Z [command]/usr/bin/git remote add origin https://github.com/srikanthvishnu90-sketch/upmore-agent
+2026-10-17T05:43:04.3073375Z ##[endgroup]
+2026-10-17T05:43:04.3074665Z ##[group]Disabling automatic garbage collection
+2026-10-17T05:43:04.3078652Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-17T05:43:04.3114337Z ##[endgroup]
+2026-10-17T05:43:04.3115551Z ##[group]Setting up auth
+2026-10-17T05:43:04.3123606Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T05:43:04.3190826Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T05:43:04.3647108Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T05:43:04.3686684Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T05:43:04.3920375Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T05:43:04.3961840Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T05:43:04.4207914Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-17T05:43:04.4259366Z ##[endgroup]
+2026-10-17T05:43:04.4260419Z ##[group]Fetching the repository
+2026-10-17T05:43:04.4275513Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ce810f30540665410de95856b694335a334c9ce8:refs/remotes/origin/codex/native-browser-integration-20261017
+2026-10-17T05:43:07.5940108Z From https://github.com/srikanthvishnu90-sketch/upmore-agent
+2026-10-17T05:43:07.5943032Z  * [new ref]         ce810f30540665410de95856b694335a334c9ce8 -> origin/codex/native-browser-integration-20261017
+2026-10-17T05:43:07.5948264Z ##[endgroup]
+2026-10-17T05:43:07.5951641Z ##[group]Determining the checkout info
+2026-10-17T05:43:07.5952892Z ##[endgroup]
+2026-10-17T05:43:07.5959873Z [command]/usr/bin/git sparse-checkout disable
+2026-10-17T05:43:07.6021574Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-17T05:43:07.6061348Z ##[group]Checking out the ref
+2026-10-17T05:43:07.6070100Z [command]/usr/bin/git checkout --progress --force -B codex/native-browser-integration-20261017 refs/remotes/origin/codex/native-browser-integration-20261017
+2026-10-17T05:43:08.3714785Z Switched to a new branch 'codex/native-browser-integration-20261017'
+2026-10-17T05:43:08.3718756Z branch 'codex/native-browser-integration-20261017' set up to track 'origin/codex/native-browser-integration-20261017'.
+2026-10-17T05:43:08.3782270Z ##[endgroup]
+2026-10-17T05:43:08.3832403Z [command]/usr/bin/git log -1 --format=%H
+2026-10-17T05:43:08.3861389Z ce810f30540665410de95856b694335a334c9ce8
+2026-10-17T05:43:08.4144778Z ##[group]Run actions/setup-node@v4
+2026-10-17T05:43:08.4145375Z with:
+2026-10-17T05:43:08.4145983Z   node-version: 22.23.3
+2026-10-17T05:43:08.4146296Z   always-auth: false
+2026-10-17T05:43:08.4146562Z   check-latest: false
+2026-10-17T05:43:08.4149212Z   token: ***
+2026-10-17T05:43:08.4149480Z ##[endgroup]
+2026-10-17T05:43:08.5574265Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-17T05:43:08.5580026Z (node:2364) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-17T05:43:08.5581314Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-17T05:43:08.5582520Z ##[group]Environment details
+2026-10-17T05:43:11.4795898Z node: v22.23.3
+2026-10-17T05:43:11.4796931Z npm: 10.9.9
+2026-10-17T05:43:11.4798525Z yarn: 1.22.22
+2026-10-17T05:43:11.4799986Z ##[endgroup]
+2026-10-17T05:43:11.4936530Z ##[group]Run node scripts/career/critical-repairs/archive-gate.cjs --require-complete
+2026-10-17T05:43:11.4937357Z [36;1mnode scripts/career/critical-repairs/archive-gate.cjs --require-complete[0m
+2026-10-17T05:43:11.5286591Z shell: /usr/bin/bash -e {0}
+2026-10-17T05:43:11.5286979Z ##[endgroup]
+2026-10-17T05:43:11.5724955Z {"gate":"historical_archival_validation/v1","directory":"/home/runner/workspace/your_files","required":["upmore-career-gauntlet","upmore-career-gauntlet-variants-a","upmore-career-gauntlet-variants-b","upmore-career-gauntlet-u","upmore-career-gauntlet-300","upmore-career-300-rerun-results.md","review/honest-yield-copy.md"],"missing":["upmore-career-gauntlet","upmore-career-gauntlet-variants-a","upmore-career-gauntlet-variants-b","upmore-career-gauntlet-u","upmore-career-gauntlet-300","upmore-career-300-rerun-results.md","review/honest-yield-copy.md"],"status":"NOT_RUN","archiveRequirementSatisfied":false,"generatedHistoricalRecords":0}
+2026-10-17T05:43:11.5728775Z Historical archival validation NOT_RUN: original assets are unavailable. Release remains blocked. No records or receipts were generated.
+2026-10-17T05:43:11.5771829Z ##[error]Process completed with exit code 1.
+2026-10-17T05:43:11.5931946Z Post job cleanup.
+2026-10-17T05:43:11.6790256Z [command]/usr/bin/git version
+2026-10-17T05:43:11.6836442Z git version 2.55.0
+2026-10-17T05:43:11.6879763Z Temporarily overriding HOME='/home/runner/work/_temp/8129b913-a784-4af1-8ce2-fe63e54d9823' before making global git config changes
+2026-10-17T05:43:11.6881778Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-17T05:43:11.6886723Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/upmore-agent/upmore-agent
+2026-10-17T05:43:11.6937991Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-17T05:43:11.6980427Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-17T05:43:11.7256498Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-17T05:43:11.7288106Z http.https://github.com/.extraheader
+2026-10-17T05:43:11.7303293Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-17T05:43:11.7344882Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-17T05:43:11.7627366Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-17T05:43:11.7704407Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-17T05:43:11.8120166Z Cleaning up orphan processes
+2026-10-17T05:43:11.8428499Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

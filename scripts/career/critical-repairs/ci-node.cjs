@@ -25,7 +25,8 @@ const sourceFiles=all.filter(x=>!sqlFiles.includes(x));
 if(diagnosticFile&&!sqlFiles.includes(diagnosticFile))throw Error('Diagnostic SQL test does not exist');
 const selectedSql=diagnosticFile?[diagnosticFile]:sqlFiles;
 const selected=argv.includes('--source-only')?sourceFiles:argv.includes('--postgres-only')?selectedSql:all;
-const summary={token,commit:run('git',['rev-parse','HEAD']),evidenceTier:'MOCK_CONTRACT_AND_LOCAL_POSTGRES',selection:diagnosticFile?'DIAGNOSTIC_SINGLE_SQL_FILE':argv.length?argv[0]:'WHOLE_ROOT_NODE_SELECTION',rootFiles:all.length,selectedFiles:selected.length,sqlFiles:selectedSql,started:new Date().toISOString(),runs:[],out,paidCalls:0,browserOutcomes:0};
+const sha256=b=>crypto.createHash('sha256').update(b).digest('hex');
+const summary={token,commit:run('git',['rev-parse','HEAD']),preflightDirtyFiles:run('git',['status','--porcelain']),harnessSha256:sha256(fs.readFileSync(__filename)),testSourceSha256:Object.fromEntries(selected.map(x=>[x,sha256(fs.readFileSync(path.join(testsRoot,x)))])),evidenceTier:'MOCK_CONTRACT_AND_LOCAL_POSTGRES',selection:diagnosticFile?'DIAGNOSTIC_SINGLE_SQL_FILE':argv.length?argv[0]:'WHOLE_ROOT_NODE_SELECTION',rootFiles:all.length,selectedFiles:selected.length,sqlFiles:selectedSql,started:new Date().toISOString(),runs:[],out,paidCalls:0,browserOutcomes:0};
 console.log(JSON.stringify({preflight:'LOCAL_SYNTHETIC_CI_FIXTURE',...summary}));
 function test(files,env,label){
  const args=['--experimental-vm-modules','--test','--test-concurrency=1',...files.map(x=>'tests/'+x)];
@@ -36,7 +37,8 @@ function test(files,env,label){
 const image='postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d';
 const container='upmore-career-integration-pg-ci-'+token,ready=path.join(out,'wire-ready.json');let wire,created=false;
 const docker=(args,input)=>run('docker',args,input===undefined?{}:{input});
-const ddl=['tests/fixtures/career-persistence-schema.sql','supabase/migrations/20261015020000_career_watch_kv.sql','supabase/migrations/20261015234000_career_task_intents_v1.sql','supabase/sql/proposals/career_public_research_v1.sql','supabase/sql/proposals/career_model_budget_v1.sql','supabase/sql/proposals/career_model_context_v2.sql','tests/fixtures/model-gateway-independent/monthly-schema.sql','supabase/migrations/20261010110000_model_call_budget.sql'];
+const ddl=['tests/fixtures/career-persistence-schema.sql','supabase/migrations/20261015020000_career_watch_kv.sql','supabase/migrations/20261015234000_career_task_intents_v1.sql','supabase/sql/proposals/career_public_research_v1.sql','supabase/sql/proposals/career_model_budget_v1.sql','supabase/sql/proposals/career_model_context_v2.sql','tests/fixtures/model-gateway-independent/monthly-schema.sql','supabase/migrations/20261010110000_model_call_budget.sql','supabase/sql/proposals/career_model_pair_budget_v2.sql'];
+summary.ddlSha256=Object.fromEntries(ddl.map(x=>[x,sha256(fs.readFileSync(path.join(root,x)))]));
 async function main(){try{
  if(!argv.includes('--postgres-only'))test(sourceFiles,{},'source');
  if(!argv.includes('--source-only')){

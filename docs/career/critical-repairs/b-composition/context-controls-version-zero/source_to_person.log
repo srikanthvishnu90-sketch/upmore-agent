@@ -1,0 +1,35 @@
+TAP version 13
+# (node:422456) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:422456) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: public-source provenance cannot turn a project fact into personal evidence
+not ok 1 - public-source provenance cannot turn a project fact into personal evidence
+  ---
+  duration_ms: 60.941968
+  type: 'test'
+  location: '/tmp/upmore-context-controls-DhkLjC/tests/career-critical-repairs/interview-context-compat.test.cjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(!r.snapshot.facts.some(x=>x.id==='fact-1'))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-context-controls-DhkLjC/tests/career-critical-repairs/interview-context-compat.test.cjs:18:283)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 117.526068

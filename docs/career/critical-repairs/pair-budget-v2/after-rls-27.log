@@ -1,0 +1,176 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"edaf533ce20612e5","commit":"2583a2e19f62f1cfa7ac6e6eaa5dde4a242ed72f","evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":357,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T00:48:30.440Z","runs":[],"out":"/tmp/upmore-ci-node-2Bxyt9","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/pair-budget-postgres.test.cjs","database":"career_test_ci_edaf533ce20612e5_0","marker":"upmore-ci-fixture:edaf533ce20612e5"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-edaf533ce20612e5","database":"career_test_ci_edaf533ce20612e5_0","marker":"upmore-ci-fixture:edaf533ce20612e5"}
+# Subtest: pair admission never seeds absent or unreconciled real funding
+ok 1 - pair admission never seeds absent or unreconciled real funding
+  ---
+  duration_ms: 1112.470478
+  type: 'test'
+  ...
+# Subtest: both exact integer bounds and both monthly slots are held atomically
+ok 2 - both exact integer bounds and both monthly slots are held atomically
+  ---
+  duration_ms: 1005.181426
+  type: 'test'
+  ...
+# Subtest: funds sufficient for generation alone send neither leg
+ok 3 - funds sufficient for generation alone send neither leg
+  ---
+  duration_ms: 818.415925
+  type: 'test'
+  ...
+# Subtest: one remaining monthly slot rolls back both cash and partial monthly admission
+ok 4 - one remaining monthly slot rolls back both cash and partial monthly admission
+  ---
+  duration_ms: 1003.700514
+  type: 'test'
+  ...
+# Subtest: two owners racing the last affordable pair cannot overspend
+ok 5 - two owners racing the last affordable pair cannot overspend
+  ---
+  duration_ms: 749.567918
+  type: 'test'
+  ...
+# Subtest: same owner and exact key returns one stable existing attempt under a race
+ok 6 - same owner and exact key returns one stable existing attempt under a race
+  ---
+  duration_ms: 887.929084
+  type: 'test'
+  ...
+# Subtest: same key with different exact payload conflicts without another hold
+ok 7 - same key with different exact payload conflicts without another hold
+  ---
+  duration_ms: 823.497013
+  type: 'test'
+  ...
+# Subtest: foreign/stale context and unsupported policy configuration deny before admission
+ok 8 - foreign/stale context and unsupported policy configuration deny before admission
+  ---
+  duration_ms: 1227.430817
+  type: 'test'
+  ...
+# Subtest: each dispatch pins payload/envelope/bounds and permits a leg only once
+ok 9 - each dispatch pins payload/envelope/bounds and permits a leg only once
+  ---
+  duration_ms: 1623.092137
+  type: 'test'
+  ...
+# Subtest: both raw usage receipts settle global and monthly ledgers exactly once
+ok 10 - both raw usage receipts settle global and monthly ledgers exactly once
+  ---
+  duration_ms: 1428.43346
+  type: 'test'
+  ...
+# Subtest: missing raw usage stays unknown at the full bound
+ok 11 - missing raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1051.295164
+  type: 'test'
+  ...
+# Subtest: fractional raw usage stays unknown at the full bound
+ok 12 - fractional raw usage stays unknown at the full bound
+  ---
+  duration_ms: 978.646939
+  type: 'test'
+  ...
+# Subtest: negative raw usage stays unknown at the full bound
+ok 13 - negative raw usage stays unknown at the full bound
+  ---
+  duration_ms: 998.680715
+  type: 'test'
+  ...
+# Subtest: overcached raw usage stays unknown at the full bound
+ok 14 - overcached raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1017.460891
+  type: 'test'
+  ...
+# Subtest: inconsistent total raw usage stays unknown at the full bound
+ok 15 - inconsistent total raw usage stays unknown at the full bound
+  ---
+  duration_ms: 991.237028
+  type: 'test'
+  ...
+# Subtest: impossible reasoning raw usage stays unknown at the full bound
+ok 16 - impossible reasoning raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1004.409996
+  type: 'test'
+  ...
+# Subtest: wrong configured/response model or dispatch digest cannot become a known cheap bill
+ok 17 - wrong configured/response model or dispatch digest cannot become a known cheap bill
+  ---
+  duration_ms: 848.43574
+  type: 'test'
+  ...
+# Subtest: changed settlement bytes and foreign settlement cannot rewrite charges
+ok 18 - changed settlement bytes and foreign settlement cannot rewrite charges
+  ---
+  duration_ms: 1101.619145
+  type: 'test'
+  ...
+# Subtest: only never-dispatched legs refund their cash and monthly slots
+ok 19 - only never-dispatched legs refund their cash and monthly slots
+  ---
+  duration_ms: 1025.734402
+  type: 'test'
+  ...
+# Subtest: started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+ok 20 - started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+  ---
+  duration_ms: 1264.645195
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop blocks already held generation
+ok 21 - legacy unknown stop blocks already held generation
+  ---
+  duration_ms: 1481.320074
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop also blocks an already held verification leg
+ok 22 - legacy unknown stop also blocks an already held verification leg
+  ---
+  duration_ms: 1680.643039
+  type: 'test'
+  ...
+# Subtest: overdue started legacy tickets participate in the shared uncertainty stop
+ok 23 - overdue started legacy tickets participate in the shared uncertainty stop
+  ---
+  duration_ms: 1398.743298
+  type: 'test'
+  ...
+# Subtest: erase or STOP between legs denies checking while retaining known generation spend
+ok 24 - erase or STOP between legs denies checking while retaining known generation spend
+  ---
+  duration_ms: 1223.265118
+  type: 'test'
+  ...
+# Subtest: monthly record failure rolls back settlement and keeps the conservative hold
+ok 25 - monthly record failure rolls back settlement and keeps the conservative hold
+  ---
+  duration_ms: 1298.231338
+  type: 'test'
+  ...
+# Subtest: read-only owned status leaves account, parent and child rows unchanged
+ok 26 - read-only owned status leaves account, parent and child rows unchanged
+  ---
+  duration_ms: 981.136398
+  type: 'test'
+  ...
+# Subtest: client roles cannot read pair data or invoke the four invoker RPCs
+ok 27 - client roles cannot read pair data or invoke the four invoker RPCs
+  ---
+  duration_ms: 973.404496
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 30172.197448
+{"token":"edaf533ce20612e5","commit":"2583a2e19f62f1cfa7ac6e6eaa5dde4a242ed72f","evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":357,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T00:48:30.440Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/pair-budget-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/pair-budget-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-2Bxyt9","paidCalls":0,"browserOutcomes":0,"fixture":{"container":"upmore-career-integration-pg-ci-edaf533ce20612e5","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T00:49:08.218Z","pass":true}

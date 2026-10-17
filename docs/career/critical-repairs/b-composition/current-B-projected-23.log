@@ -1,0 +1,2030 @@
+(node:446780) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:446780) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{
+  "status": "PASS",
+  "producer_ref": "315158f5314360417266270ec6e6e9e71aad0af8",
+  "actual_A_blobs_sha256": {
+    "packages/career-contracts/journey-contract-v1.ts": "146b3de3d875062256c5e2995e3b8a485df748a409d7a0e97c2e28d98325b04c",
+    "packages/career-contracts/journey-contract-v1.schema.json": "e9d67853dc0476391c49b7d5140031a04e64a5a47f69f9fe073f5f013b93b022",
+    "packages/career-contracts/fixtures/journey-contract-v1/freeze.json": "367c77f3abba65dbcf5836165ba654e729d07973a815b4b1dd90f64863558bf5",
+    "packages/career-contracts/interview-context-compat-v1.ts": "64bfa8bc52472d7b18219346726156124e7a25eb5f8f87e738099427c7d01228",
+    "tests/fixtures/career-critical-repairs/interview-context-v1/snapshot.json": "8a92cef36b45aab43936860653a89c004332700245d9b5a62a1d5cfc4a2e5269",
+    "tests/fixtures/career-critical-repairs/interview-context-v1/freeze.json": "a962c5cb9f4a9d4ad741654ffc551f33ebdb871de2abbadf35c8eed786ad3be9"
+  },
+  "checks": [
+    {
+      "name": "original",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-project",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-target",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-classification",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-resume",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-source",
+      "status": "PASS"
+    },
+    {
+      "name": "all-zero",
+      "status": "PASS"
+    },
+    {
+      "name": "maximum-safe",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid--1",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid-0.5",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid-\"0\"",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid-null",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid-true",
+      "status": "PASS"
+    },
+    {
+      "name": "facts-invalid-9007199254740992",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid--1",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid-0.5",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid-\"0\"",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid-null",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid-true",
+      "status": "PASS"
+    },
+    {
+      "name": "sources-invalid-9007199254740992",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-owner-fence",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-thread-fence",
+      "status": "PASS"
+    },
+    {
+      "name": "zero-epoch-fence",
+      "status": "PASS"
+    }
+  ],
+  "pass": 23,
+  "total": 23,
+  "projected_A_snapshots": {
+    "original": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "887766b0fb39628bcb6f27dfe56f1a7aa7f890c1c0b40cfc00ca7230f8a055f5"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "zero-project": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "88ab8ee6754747e5ead3c06820af70b01946cc037335ccf7866d7f32a5b8c915"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "zero-target": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "dae8f725d0477bb2baf05e9dd6d356c567c9096c970fd88e9f46a39f8dc59174"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "zero-classification": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "5a479c3e78d90f65ebd75de815b5f29d482d5839ed14bbf6374c57c6ca3fa479"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "zero-resume": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "4610e0f7786043bf6a116b899d86ccea6793066ea1f7d0a89a1e980ea6f53ee7"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "zero-source": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "b184a622efa985d0cd9ef466fb8490779f42eed36248304548e7d52ea0987827"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 0,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "all-zero": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "c9c3c95e9cf9ce9741720ceeac322f5696c6cadb521cddc52db658d31e8f48b8"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 0,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 0,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    },
+    "maximum-safe": {
+      "contract_version": "career_journey_context/v1",
+      "owner_id": "00000000-0000-4000-8000-0000000000a1",
+      "thread_id": "00000000-0000-4000-8000-0000000000b1",
+      "captured_at": "2026-10-16T23:00:00.000Z",
+      "binding": {
+        "epoch": 0,
+        "account_version": 3,
+        "thread_revision": 2,
+        "context_sha256": "d6ed845a25dec859f97cc45eec533dc9d05cd428599d100c6f05be4e25a8e224"
+      },
+      "facts": [
+        {
+          "id": "fact-1",
+          "version": 9007199254740991,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "synthetic-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "project",
+          "value": "Built a synthetic class calculator."
+        },
+        {
+          "id": "target-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "target",
+          "value": {
+            "role": "Software engineer intern",
+            "role_family": "software_engineering",
+            "level": "early-career",
+            "company": null,
+            "stage": null
+          }
+        },
+        {
+          "id": "target-family-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "software_engineering"
+        },
+        {
+          "id": "target-level-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "target-report-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "interview_guidance",
+          "value": "early-career"
+        },
+        {
+          "id": "resume-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "user_reported",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "resume",
+          "value": {
+            "artifact_id": "resume-source-1",
+            "sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144"
+          },
+          "source_refs": [
+            {
+              "id": "resume-source-1",
+              "version": 1
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "resume-source-1",
+          "version": 1,
+          "owner_id": "00000000-0000-4000-8000-0000000000a1",
+          "scope": "owner",
+          "provenance": {
+            "kind": "user_report",
+            "record_id": "resume-source-1",
+            "revision": 1,
+            "reference": "synthetic committed profile",
+            "trust": "user_reported",
+            "observed_at": "2026-10-16T23:00:00.000Z"
+          },
+          "trust": "untrusted_source",
+          "validity": {
+            "status": "active",
+            "epoch": 0
+          },
+          "created": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "effective": {
+            "account_version": 1,
+            "event_ordinal": 2
+          },
+          "freshness": "current",
+          "kind": "source",
+          "value": {
+            "excerpt": "Built a synthetic class calculator.",
+            "content_sha256": "7f3ea0a1166a8a0917d324a7c566aaca21749b56c6ea497c20ad76ad6d86d144",
+            "canonical_url": null,
+            "source_kind": "user_pasted_text"
+          }
+        }
+      ],
+      "dialogue": [],
+      "current_draft": null,
+      "goals": [],
+      "pending_asks": [],
+      "invalidations": [],
+      "tool_status": [],
+      "receipts": [],
+      "artifacts": [],
+      "assessments": [],
+      "capabilities": [
+        {
+          "id": "interview.coach.v1",
+          "status": "not_wired",
+          "version": 1,
+          "reason": "Context-only bridge has no trusted execution/result adapter."
+        },
+        {
+          "id": "career.ask_question",
+          "status": "available",
+          "version": 1,
+          "reason": "Synthetic display fixture only"
+        }
+      ]
+    }
+  },
+  "B_versions_renumbered": false,
+  "A_files_modified": false,
+  "provider_calls": 0,
+  "quality": "NOT_RUN",
+  "execution_integration": "NOT_RUN"
+}

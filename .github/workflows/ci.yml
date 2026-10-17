@@ -21,6 +21,7 @@ jobs:
           "$RUNNER_TEMP/upmore-parser-venv/bin/pip" install python-docx==1.2.0
           echo "$RUNNER_TEMP/upmore-parser-venv/bin" >> "$GITHUB_PATH"
           npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/career/critical-repairs
+          npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/career/interview-journey
       - name: Domain, registry, router, gauntlet grader, UI, secret scan
         run: node scripts/career/critical-repairs/ci-node.cjs
       - name: Inventory original archival release prerequisites (missing assets remain NOT_RUN)
@@ -52,6 +53,9 @@ jobs:
       - name: Published interview workflow negative controls (offline contracts only)
         if: always()
         run: node scripts/career/interview-journey/negative-controls.cjs --output "$RUNNER_TEMP/upmore-interview-negative-controls"
+      - name: Actual versioned A context consumed by current B (context-only compatibility)
+        if: always()
+        run: node --experimental-vm-modules scripts/career/interview-journey/projected-context-compatibility.cjs --producer-ref "$GITHUB_SHA"
       - name: Canonical context adapter negative controls (offline contracts only)
         if: always()
         run: node scripts/career/critical-repairs/context-negative-controls.cjs ci-context-controls

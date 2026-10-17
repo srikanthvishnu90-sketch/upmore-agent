@@ -1,0 +1,328 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"cc2dda819ccdc960","commit":"2583a2e19f62f1cfa7ac6e6eaa5dde4a242ed72f","evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":357,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T00:47:03.331Z","runs":[],"out":"/tmp/upmore-ci-node-RREGMv","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/pair-budget-postgres.test.cjs","database":"career_test_ci_cc2dda819ccdc960_0","marker":"upmore-ci-fixture:cc2dda819ccdc960"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cc2dda819ccdc960","database":"career_test_ci_cc2dda819ccdc960_0","marker":"upmore-ci-fixture:cc2dda819ccdc960"}
+# Subtest: pair admission never seeds absent or unreconciled real funding
+ok 1 - pair admission never seeds absent or unreconciled real funding
+  ---
+  duration_ms: 1071.459001
+  type: 'test'
+  ...
+# Subtest: both exact integer bounds and both monthly slots are held atomically
+ok 2 - both exact integer bounds and both monthly slots are held atomically
+  ---
+  duration_ms: 1026.446919
+  type: 'test'
+  ...
+# Subtest: funds sufficient for generation alone send neither leg
+ok 3 - funds sufficient for generation alone send neither leg
+  ---
+  duration_ms: 863.136898
+  type: 'test'
+  ...
+# Subtest: one remaining monthly slot rolls back both cash and partial monthly admission
+ok 4 - one remaining monthly slot rolls back both cash and partial monthly admission
+  ---
+  duration_ms: 1025.848394
+  type: 'test'
+  ...
+# Subtest: two owners racing the last affordable pair cannot overspend
+ok 5 - two owners racing the last affordable pair cannot overspend
+  ---
+  duration_ms: 780.685635
+  type: 'test'
+  ...
+# Subtest: same owner and exact key returns one stable existing attempt under a race
+ok 6 - same owner and exact key returns one stable existing attempt under a race
+  ---
+  duration_ms: 839.20583
+  type: 'test'
+  ...
+# Subtest: same key with different exact payload conflicts without another hold
+ok 7 - same key with different exact payload conflicts without another hold
+  ---
+  duration_ms: 825.828434
+  type: 'test'
+  ...
+# Subtest: foreign/stale context and unsupported policy configuration deny before admission
+ok 8 - foreign/stale context and unsupported policy configuration deny before admission
+  ---
+  duration_ms: 1241.27729
+  type: 'test'
+  ...
+# Subtest: each dispatch pins payload/envelope/bounds and permits a leg only once
+not ok 9 - each dispatch pins payload/envelope/bounds and permits a leg only once
+  ---
+  duration_ms: 1236.895916
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:26:389)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: both raw usage receipts settle global and monthly ledgers exactly once
+not ok 10 - both raw usage receipts settle global and monthly ledgers exactly once
+  ---
+  duration_ms: 782.44409
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:27:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:27:133)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: missing raw usage stays unknown at the full bound
+ok 11 - missing raw usage stays unknown at the full bound
+  ---
+  duration_ms: 978.8713
+  type: 'test'
+  ...
+# Subtest: fractional raw usage stays unknown at the full bound
+ok 12 - fractional raw usage stays unknown at the full bound
+  ---
+  duration_ms: 989.374433
+  type: 'test'
+  ...
+# Subtest: negative raw usage stays unknown at the full bound
+ok 13 - negative raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1113.561587
+  type: 'test'
+  ...
+# Subtest: overcached raw usage stays unknown at the full bound
+ok 14 - overcached raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1021.288065
+  type: 'test'
+  ...
+# Subtest: inconsistent total raw usage stays unknown at the full bound
+ok 15 - inconsistent total raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1066.083842
+  type: 'test'
+  ...
+# Subtest: impossible reasoning raw usage stays unknown at the full bound
+ok 16 - impossible reasoning raw usage stays unknown at the full bound
+  ---
+  duration_ms: 1058.227418
+  type: 'test'
+  ...
+# Subtest: wrong configured/response model or dispatch digest cannot become a known cheap bill
+ok 17 - wrong configured/response model or dispatch digest cannot become a known cheap bill
+  ---
+  duration_ms: 875.863101
+  type: 'test'
+  ...
+# Subtest: changed settlement bytes and foreign settlement cannot rewrite charges
+not ok 18 - changed settlement bytes and foreign settlement cannot rewrite charges
+  ---
+  duration_ms: 784.467773
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:30:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:30:120)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: only never-dispatched legs refund their cash and monthly slots
+not ok 19 - only never-dispatched legs refund their cash and monthly slots
+  ---
+  duration_ms: 706.987662
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:31:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly refund unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 21 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:31:114)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+not ok 20 - started expiry cannot refund; unknown retains full obligation while an unsent peer refunds
+  ---
+  duration_ms: 1044.261308
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:32:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly refund unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 21 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:32:503)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: legacy unknown stop blocks already held generation
+ok 21 - legacy unknown stop blocks already held generation
+  ---
+  duration_ms: 1575.930875
+  type: 'test'
+  ...
+# Subtest: legacy unknown stop also blocks an already held verification leg
+not ok 22 - legacy unknown stop also blocks an already held verification leg
+  ---
+  duration_ms: 798.207087
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:34:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:34:114)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: overdue started legacy tickets participate in the shared uncertainty stop
+ok 23 - overdue started legacy tickets participate in the shared uncertainty stop
+  ---
+  duration_ms: 1478.451356
+  type: 'test'
+  ...
+# Subtest: erase or STOP between legs denies checking while retaining known generation spend
+not ok 24 - erase or STOP between legs denies checking while retaining known generation spend
+  ---
+  duration_ms: 793.997121
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:36:131)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: monthly record failure rolls back settlement and keeps the conservative hold
+not ok 25 - monthly record failure rolls back settlement and keeps the conservative hold
+  ---
+  duration_ms: 1291.538896
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:37:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: docker exec -i upmore-career-integration-pg-ci-cc2dda819ccdc960 psql -X -qAt -U postgres -d career_test_ci_cc2dda819ccdc960_0 -v ON_ERROR_STOP=1
+    ERROR:  monthly usage readback unconfirmed
+    CONTEXT:  PL/pgSQL function career_model_leg_settle_v2(uuid,uuid,text,text,jsonb) line 61 at RAISE
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    sql (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:10:12)
+    Object.call (/workspace/upmore-critical-repairs/tests/helpers/career-task-sql.cjs:16:38)
+    settle (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:15:84)
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/pair-budget-postgres.test.cjs:37:642)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+  ...
+# Subtest: read-only owned status leaves account, parent and child rows unchanged
+ok 26 - read-only owned status leaves account, parent and child rows unchanged
+  ---
+  duration_ms: 1013.700171
+  type: 'test'
+  ...
+# Subtest: client roles cannot read pair data or invoke the four invoker RPCs
+ok 27 - client roles cannot read pair data or invoke the four invoker RPCs
+  ---
+  duration_ms: 971.339098
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 19
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27449.831986
+{"token":"cc2dda819ccdc960","commit":"2583a2e19f62f1cfa7ac6e6eaa5dde4a242ed72f","evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":357,"selectedFiles":1,"sqlFiles":["career-critical-repairs/pair-budget-postgres.test.cjs"],"started":"2026-10-17T00:47:03.331Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/pair-budget-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/pair-budget-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-RREGMv","paidCalls":0,"browserOutcomes":0,"fixture":{"container":"upmore-career-integration-pg-ci-cc2dda819ccdc960","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T00:47:37.182Z","pass":false}

@@ -19,7 +19,11 @@ Every profile contains `profile_version`, `receipt_ref`, `owner_id`, `thread_id`
 `epoch`, `action_id`, `input_digest`, `request_digest`,
 `original_request_binding`, `validated_binding` and `issued_at`.
 Both binding objects use the exact canonical `ExpectedBindingV1` shape.
-Their owner/thread/epoch must agree with the profile and current snapshot.
+Their owner/thread must agree with the profile and current snapshot. Accepted
+candidates and successful reads require the same current epoch throughout.
+An accounting-only outcome may reference an older erased request epoch while
+its validation/profile epoch is current; it carries no old content and cannot
+restore that journey, approve work or accept an old candidate.
 The original binding matches the saved action; the validated binding matches
 the current revalidated event. Their account/thread/journey revisions may differ
 after the attempt is durably prepared. An arbitrary later binding is not a rebase
@@ -88,6 +92,17 @@ their full bounds; they cannot be represented as settled/free or retried by a
 status poll. Known generation spend remains charged after checker failure.
 Only an explicit new request and fresh admission can create another attempt.
 This profile carries no accepted candidate or successful-effect proof.
+
+A host-rejected proposal still needs an authenticated terminal no-call receipt.
+For `admission_state: not_admitted`, authoritative lookup plus the owned action
+fence must prove no late reservation/dispatch can appear; the settlement is zero
+with no usage receipts and a distinct `no_call_settlement` record. Never invent
+a paired reservation ID. A lost admission response or unresolved ledger read
+remains uncertain and cannot release B's outstanding-action fence. A accepted
+candidate can clear that fence only after both paired legs are known/recorded.
+Outstanding references and the full payload/checkpoint are persisted atomically.
+Authoritative uncertainty also remains in the separate non-content accounting
+ledger after B state is erased; a new epoch cannot reset cost or unknown stops.
 
 ## Source readback
 

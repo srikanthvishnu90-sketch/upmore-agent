@@ -2695,3 +2695,31 @@ Counts: ENFORCED 257 · GUARDED-RED 1 · HARD-SHUT 1 · UNENFORCED 103 · TOTAL 
 ### FR-414 — Prep serves come only from the asked sector's bank, and the ask's sector outranks the thread's (BUG-256, MI-022)
 - **RULE:** (a) Every prep serve is drawn from the researched bank of the sector the TURN asks about (127.questionBank with sector + the session's recorded focus); the generic behavioral bank never answers a sector ask. (b) MI-022: canonical content decides its own domain wherever it is asked (three financial statements / DCF / LBO → finance; coding → SWE; cases → consulting; SQL → data; MMI ethics → medicine) — the reply names the switch, and the thread's sector is NOT overwritten, so the conversation returns to its own domain on the next turn. (c) Model answers and explanations come from the bank item itself or the drill bank's own ground-truth keys — never composed from model memory; a bank item with no model answer is answered with its grading points, labeled as such. (d) Topic selection ignores function words; a stated weakness is recorded and drilled first, and after two consecutive focus reps the session interleaves off-focus and says so. (e) The session serves ONE question at a time and stands down for SET-shaped asks — "prep set", "question bank", label-style scenario asks ("Quant prep: ..."), and asks enumerating several canonical technicals belong to the set handler with its own pinned payload and headline; a session serve must never shadow a set (the SC-183/186/187/188 pins).
 - **ENFORCEMENT:** tests/career-depth-families.test.cjs (consulting focus chain with the no-behavioral-template assertion, law/medicine openers, GEN-0404 replay incl. wrong-domain fail patterns and the return-to-SWE turn). STATUS: ENFORCED.
+
+### FR-418 — The negotiation claim accepts offer ARRIVAL verbs, not only receipt verbs (BUG-263)
+- **RULE:** An offer statement claims the negotiation conversation in every genuine arrival shape — got/received/offered/came in AND landed/arrived/dropped (offer, offer letter, an offer) — with the figures and deadline read from the statement itself. A gate that knows only the exam dialect's verbs drops the most natural opener to the fallback while capture runs underneath.
+- **ENFORCEMENT:** tests/career-integration-perfection.test.cjs (arrival-verb opener, counter follow-up on the thread record). STATUS: ENFORCED.
+
+### FR-419 — A stated fact can be READ BACK by direct ask, from the record or not at all (BUG-264)
+- **RULE:** "What's my <fact kind>?" is answered from ctx.statedFacts with the record's own wording when the fact stands, and with the honest not-on-record reply when it does not. The fallback is never the answer to a question the record can settle, and no value is ever composed to fill an absent fact.
+- **ENFORCEMENT:** tests/career-integration-perfection.test.cjs (corrected value read back; absent fact honest). STATUS: ENFORCED.
+
+### FR-420 — Watch read-back accepts the shapes people use for their own list (BUG-265)
+- **RULE:** The watch manage route (and the dispatch gate that admits it) accepts "what's on my watch", "show me my watch", "what's my watch" alongside the canonical plurals. A created watch must be listable in the same conversation in the user's own words.
+- **ENFORCEMENT:** tests/career-integration-perfection.test.cjs (create → both shapes list the watch). STATUS: ENFORCED.
+
+### FR-421 — The internship route's boundary is pinned, not drifted (BUG-266, OPEN)
+- **RULE:** Until a deliberate lane change updates the pin in tests/career-http-host.test.cjs, "find me internships" is served by the generic discovery and the internship-banded route owns need/want/looking shapes. Nobody reroutes this silently: the ask-type fidelity gap is a named, open residue (merge record §5.4), and the no-fabrication property holds on both routes.
+- **ENFORCEMENT:** tests/career-http-host.test.cjs (the pin itself). STATUS: PINNED-OPEN.
+
+### FR-422 — A path ask's target is extracted from the shape that stated it (BUG-267)
+- **RULE:** The career-path gate and its target extraction cover the same shape classes: a thinking-about/considering opener must both claim the turn AND yield its target role — a ladder composed "to null" is a failed answer, not a served one. Live-thread follow-ups include the learn/skills class.
+- **ENFORCEMENT:** tests/career-integration-perfection.test.cjs (three-turn thinking-about journey, target named). STATUS: ENFORCED.
+
+### FR-423 — A compound ask's parts are served, previewed, or named — in that order, in the turn (BUG-268)
+- **RULE:** (a) A recap handler for one plan kind stands down when the turn's "plan" belongs to another kind (career vs campaign) and no record of its own kind stands. (b) A reply that answers a compound ask carries every asked half or names the unheld part. (c) The multi-intent taxonomy covers every servable family — including the market-value read — so the composition wrapper can account for a part at all; a held part is named in the turn and delivered in full on continuation.
+- **ENFORCEMENT:** tests/career-integration-perfection.test.cjs (worth+plan composed; three-part ask named in-turn, worth delivered on "next"). STATUS: ENFORCED.
+
+### FR-424 — A wins-log STATEMENT is recordable content after a log cue, never a framing sentence (BUG-269)
+- **RULE:** The read/write split for the wins log turns on recordable content: a "log a win / add a win" cue followed by actual win content writes; method descriptions and framing text ("I text wins all semester") read. Text about the log is never itself logged.
+- **ENFORCEMENT:** tests/career-os-safety-wave.test.cjs H-12 + tests/career-integration-perfection.test.cjs (canonical ask reads, no garbage win stored). STATUS: ENFORCED.

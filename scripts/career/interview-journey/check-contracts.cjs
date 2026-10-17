@@ -14,7 +14,7 @@ function check(){
   const files=fs.readdirSync(path.join(root,'tests/career-interview-journey')).filter(f=>f.endsWith('.test.cjs')).map(f=>'tests/career-interview-journey/'+f);
   const run=spawnSync(process.execPath,['--test',...files],{cwd:root,encoding:'utf8'});process.stdout.write(run.stdout);process.stderr.write(run.stderr);assert.equal(run.status,0,'offline contracts failed');
   const canonical=['journey-contract-v1.ts','journey-contract-v1.schema.json'].map(f=>path.join(root,'packages/career-contracts',f));
-  const status={offline_contracts:'PASS',ownership_scope:'PASS',frozen_inputs:'PASS',shared_contract_compatibility:canonical.every(f=>fs.existsSync(f))?'PRESENT_REVIEW_REQUIRED':'BLOCKED_A_CONTRACT_MISSING',actual_entry:'NOT_RUN',quality:'NOT_RUN',provider_calls:0};
+  const status={offline_contracts:'PASS',ownership_scope:'PASS',frozen_inputs:'PASS',shared_contract_compatibility:canonical.every(f=>fs.existsSync(f))?'PRESENT_REVIEW_REQUIRED':'BLOCKED_CANONICAL_CONTRACT_NOT_COMPOSED',actual_entry:'NOT_RUN',quality:'NOT_RUN',provider_calls:0};
   console.log(JSON.stringify(status,null,2));return status;
 }
 if(require.main===module)check();module.exports={check};

@@ -224,32 +224,42 @@ never implies readiness. Timing changes mean **minutes remaining now**, anchored
 to the lifetime elapsed counter. Corrections retain pause/stop status and sanitize
 both current and saved questions; resume/submission recheck current role scope.
 
-### Executable canonical-schema consumer check
+### Actual canonical-schema consumer check (A publication now available)
+
+A published its actual canonical files at
+`3a41cd456cbdbe53639275ae83096b9fb91aa33d`. B does not copy or edit them.
+Run the check directly against that exact fetched Git object:
 
 ```sh
 npm ci --prefix scripts/career/interview-journey --ignore-scripts
-node scripts/career/interview-journey/canonical-compatibility.cjs \
-  --schema packages/career-contracts/journey-contract-v1.schema.json \
-  --fixtures packages/career-contracts/journey-contract-v1.fixtures.json
+git fetch origin 3a41cd456cbdbe53639275ae83096b9fb91aa33d
+node scripts/career/interview-journey/canonical-compatibility.cjs --producer-ref 3a41cd456cbdbe53639275ae83096b9fb91aa33d
 ```
 
-The runner accepts inputs only from A's actual `packages/career-contracts`
-directory; B's synthetic development fixtures and state schema are refused.
-There is no fabricated positive fixture in this runner. Missing A files report
-BLOCKED with zero canonical cases executed. Ajv 8.17.1 is pinned solely as a
-development schema validator (standard formats via pinned `ajv-formats` 3.0.1),
-with coercion/defaults/removal disabled, format validation preserved and no
-remote reference fetching.
+The runner reads A's exact schema, TypeScript validator, `freeze.json`,
+`valid.json` and `invalid.json` from `packages/career-contracts`. It verifies A's
+frozen hashes, checks the TypeScript validator's embedded schema against the
+schema bytes, runs the actual A validator plus pinned Ajv/formats, and passes
+A's frozen context unchanged to the B consumer. No B-authored positive fixture,
+shadow schema, field coercion, repaired producer example or weaker validator is
+substituted. A metadata/authority negative that JSON Schema alone cannot reject
+must still be rejected by A's own runtime validator.
 
-A's fixture bundle identifies `canonical_schema_sha256`, `pointers` for its
-actual snapshot/transition/action definitions, and producer `cases`. Each case
-has ID/family and actual host `steps` (snapshot/event, optional initial state).
-The schema definition pointers are selected by A; B does not invent aliases or
-weaken definitions. Expected consumer-rejection steps are explicit. The runner
-first validates each genuine producer snapshot, freezes inputs, executes B,
-checks mutation/CAS invariants, and validates B's transition and every action
-against A's exact definitions. Schema failures preserve precise instance paths.
-Required producer families are start, paused role change, abstention, admitted
-failure, uncertain admission and artifact readback. Missing families remain an
-open compatibility gate. This checks JSON consumer shape; actual TypeScript,
-entry, SQL, paired admission and deployed behavior remain separate A tests.
+Observed result: A's **3 valid and 9 invalid examples pass their 12 expected
+checks**. B rejects the **one genuine A context** with `foreign evidence
+owner/scope`, because its provisional row DTO differs. **Canonical compatibility
+FAIL; zero B canonical transitions executed.** A files are available; the
+remaining blocker is incompatibility, not their absence.
+
+See `CANONICAL-COMPATIBILITY-3a41cd45.md` for exact differences and proof-profile
+requirements. Spec B section 15 says to stop dependent work when A's contract
+is incompatible. B therefore does not register the provisional reducer, invent
+receipt encodings, or weaken A's schema to manufacture a pass. A/B must agree the
+versioned event/proof projection, then B can build the pure DTO adapter and rerun
+these same producer examples plus genuine A journey cases.
+
+The existing CI Node glob is `tests/*.cjs`; it does not discover the nested B
+directory. A/Muse must add the explicit B contract command to CI during actual
+registration, then add the canonical consumer command. B runs its own contracts
+separately and does not count the old CI glob as execution of the new module or
+as interview-quality evidence.

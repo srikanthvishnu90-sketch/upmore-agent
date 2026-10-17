@@ -108,6 +108,25 @@ const LEVER_CARD = `<!doctype html><html><head><title>Apply (TEST fixture)</titl
   <button type="submit" id="submit-btn">Submit application</button>
 </form></body></html>`;
 
+// Depth-E fixture (live Neighbor/Lever shape, 2026-10-16): a Lever card
+// whose question is answered by a RADIO GROUP — both radios share one
+// machine name (cards[<uuid>][field0]), values Yes/No, no ids. Discovery
+// built a bare name selector for the group, which matches BOTH inputs;
+// the helper's strict elementHandle() threw and the whole drive died as
+// DRIVER_ERROR before a single field was classified.
+const LEVER_RADIO = `<!doctype html><html><head><title>Apply (TEST fixture)</title></head><body>
+<h1>Software Engineering Intern</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="name">Full Name *</label><input id="name" name="name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div class="card"><div class="question">Are you legally authorized to work in the United States?</div>
+    <ul>
+      <li><label><input type="radio" name="cards[fcd87568-ba1e-4bfd-8962-24d1142d97d6][field0]" value="Yes" required> Yes</label></li>
+      <li><label><input type="radio" name="cards[fcd87568-ba1e-4bfd-8962-24d1142d97d6][field0]" value="No" required> No</label></li>
+    </ul></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
 // D11 fixture (BUG-207): a Greenhouse-shaped form whose framework REMOUNTS
 // its fields — the first input/change on a field replaces its DOM node with
 // a fresh empty clone ~300ms later (once per field), exactly the loss the
@@ -405,7 +424,7 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

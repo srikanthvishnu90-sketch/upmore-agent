@@ -193,7 +193,21 @@ function fnDiscoverFields(includeHidden) {
   }
   function selectorFor(el, idx) {
     if (el.id) return "#" + esc(el.id);
-    if (el.name) return el.tagName.toLowerCase() + '[name="' + el.name.replace(/"/g, '\\"') + '"]';
+    if (el.name) {
+      const base = el.tagName.toLowerCase() + '[name="' + el.name.replace(/"/g, '\\"') + '"]';
+      // Depth-E (live Neighbor/Lever defect, 2026-10-16): radio and
+      // checkbox inputs SHARE one name across the whole group by
+      // design, so the bare name selector matches every option in the
+      // group and strict handle resolution throws — the drive died in
+      // discovery before a single field was classified. The value is
+      // what distinguishes group members; qualify with it. A member
+      // with no value keeps the index fallback.
+      const t = (el.getAttribute("type") || "").toLowerCase();
+      if ((t === "radio" || t === "checkbox") && el.getAttribute("value")) {
+        return base + '[value="' + el.getAttribute("value").replace(/"/g, '\\"') + '"]';
+      }
+      return base;
+    }
     return "upmore-idx-" + idx; // resolved by index fallback below
   }
   const els = Array.from(document.querySelectorAll("input, select, textarea"));
@@ -311,15 +325,29 @@ async function cmdOpen(board, cmd) {
   return { ok: true, captcha, finalUrl: board.url, fieldCount: board.fieldCount || 0, captchaTech: tech, navSteps };
 }
 
+/* Handle capture for one discovered field. A selector that resolves
+ * to more than one element (any same-name shape discovery did not
+ * qualify) must degrade to the field's document index — never throw
+ * and kill the whole drive in discovery (Depth-E, live Lever defect,
+ * 2026-10-16: strict-mode violation on a radio group's shared name). */
+async function resolveFieldHandle(page, f) {
+  try {
+    return f.selector.startsWith("upmore-idx-")
+      ? await page.locator("input,select,textarea").nth(f.domIndex).elementHandle()
+      : await page.locator(f.selector).elementHandle();
+  } catch (e) {
+    try { return await page.locator("input,select,textarea").nth(f.domIndex).elementHandle(); }
+    catch (e2) { return null; }
+  }
+}
+
 async function cmdDiscover(board) {
   const fields = await board.page.evaluate(fnDiscoverFields);
   const version = crypto.randomUUID();
   const handles = board.handles || new Map(); // retained only for rechecking prior steps before commit
   for (const f of fields) {
     f.ref = version + ":f:" + f.domIndex;
-    const h = f.selector.startsWith("upmore-idx-")
-      ? await board.page.locator("input,select,textarea").nth(f.domIndex).elementHandle()
-      : await board.page.locator(f.selector).elementHandle();
+    const h = await resolveFieldHandle(board.page, f);
     if (h) handles.set(f.ref, h);
   }
   const controls = [];
@@ -827,9 +855,7 @@ async function reresolveBinding(board, b) {
   const fields = await board.page.evaluate(fnDiscoverFields);
   const version = (board.observation && board.observation.version) || "re";
   const mint = async (f) => {
-    const h = f.selector.startsWith("upmore-idx-")
-      ? await board.page.locator("input,select,textarea").nth(f.domIndex).elementHandle()
-      : await board.page.locator(f.selector).elementHandle();
+    const h = await resolveFieldHandle(board.page, f);
     if (!h) return null;
     const ref = version + ":f:" + f.domIndex;
     board.handles.set(ref, h);

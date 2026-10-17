@@ -1,0 +1,73 @@
+{
+  "checked_at": "2026-10-17T03:23:06.095024+00:00",
+  "status": "BLOCKED_MISSING_ORIGINAL_SPEND_EVIDENCE",
+  "authorized_original_cap_micros": 5000000,
+  "verified_original_campaign_spent_micros": null,
+  "verified_original_campaign_outstanding_micros": null,
+  "verified_original_campaign_remaining_micros": null,
+  "provider_account_credit_balance": "NOT_READ_OR_INFERRED",
+  "historical_documented_first_conversation_cost_micros": 502,
+  "historical_amount_is": "A reported first-conversation amount, not a reconciled total or provider-receipt-verified balance.",
+  "verified_real_provider_requests_for_this_preparation": 0,
+  "this_lane_prior_controlled_B8_cost": {
+    "micros": 48,
+    "classification": "SYNTHETIC_ISOLATED_POSTGRES_ONLY",
+    "deduct_from_real_campaign": false
+  },
+  "source_provenance": [
+    {
+      "ref": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+      "path": "docs/testing/memory-capability-audit/paid-campaign.md",
+      "sha256": "cdb624a969862fab7c9aad88fc3bc1d709af00d67095f357a929153d0fa72b58",
+      "bytes": 3647
+    },
+    {
+      "ref": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+      "path": "tests/memory-audit/budget.ts",
+      "sha256": "5f4c61a14dc16c86c1a1ef4f3450e1e0f9d2e0d49f3d23c1f34596e5e325c026",
+      "bytes": 5441
+    },
+    {
+      "ref": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+      "path": "tests/memory-audit/supervise.py",
+      "sha256": "2bef0a12895160a9f03040a2a8be43a2c19e2c9feaf110ea0e3db628e556a438",
+      "bytes": 5195
+    },
+    {
+      "ref": "346a48ce43be554bf79d04e765c9a5974439523c",
+      "path": "supabase/functions/agent-chat/handler-career.ts",
+      "sha256": "ef8a35637e94469de9ac8b79d92eabb35c404057ea86ba33690148e6b0eed0ae",
+      "bytes": 16021
+    },
+    {
+      "ref": "346a48ce43be554bf79d04e765c9a5974439523c",
+      "path": "supabase/functions/_shared/career_interview_entry.ts",
+      "sha256": "366e40d07874f0d7b8bbc047458dba4919979974e32919a6b1771a65fd906408",
+      "bytes": 18514
+    }
+  ],
+  "missing_local_paths": [
+    "/workspace/.upmore-tools/audit-budget/budget.json",
+    "/workspace/upmore-audit/paid-full-3500/launch.json",
+    "/workspace/upmore-audit/paid-full-3500/report.json",
+    "/workspace/upmore-audit/paid-full-3500/turn-events.jsonl",
+    "/workspace/upmore-audit/paid-full-3500/completed.jsonl"
+  ],
+  "historical_remote_audit_head": "357f9fba11e2b428925fa7a224b1ebc7d01e85c9",
+  "historical_versioned_paid_ledger_or_receipt_exports": [],
+  "not_invoked": [
+    "AuditBudget.status/health/reserve, because missing ledger can initialize zero-spend data",
+    "historical supervisor/campaign",
+    "provider inference or billing/credit API",
+    "credential files, values or environment-presence checks"
+  ],
+  "minimum_missing_evidence": [
+    "Non-secret snapshot/export of the SAME original shared ledger with as-of time and campaign identity, covering all four workers, pilots, judges, retries and continuation runs.",
+    "Matching raw usage/settlement receipts and current in-flight/unknown worst-case reservations, de-duplicated by physical provider request/leg/reservation identity.",
+    "Parent confirmation of the reconciled spent, held and remaining amounts and permitted incremental run ceiling."
+  ],
+  "reconciliation_rule": "R = 5,000,000 - unique known settled actual charges - unique unresolved worst-case liabilities. Never count monthly and cash records of the same request twice; never release uncertain holds because of timeout or expiry alone. Missing rows/receipts block admission.",
+  "run_admitted": false,
+  "no_new_ledger_or_allowance_created": true,
+  "no_provider_calls": true
+}

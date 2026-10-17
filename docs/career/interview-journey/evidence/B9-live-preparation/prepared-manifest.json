@@ -1,0 +1,156 @@
+{
+  "label": "LIVE_CONVERSATION_EVALUATION_PREPARED_NOT_RUN",
+  "prepared_at": "2026-10-17T03:23:06.095024+00:00",
+  "target_candidate": "346a48ce43be554bf79d04e765c9a5974439523c",
+  "current_B_review_head": "337d55fb2b8df9cddd0f53f46a71c569cd504f4e",
+  "scenario_packet_sha256": "2f568eab63acd38cfab3c9781021b3c5a589ac491c7f9932ba6ea3d971d56b11",
+  "private_protocol_sha256": "653f96ce212778c21dae71c7b75f2d837f18c012d0a9d1490948dd2e9d112641",
+  "private_manifest_sha256": "3ba630e1c9bd72a547b4ed10676d64ff13b24a4b2c7acc78f78712f63e8091e0",
+  "private_packet_local_path": "/workspace/scratch/upmore-evaluator-private/live12-20261017",
+  "builder_visibility": "Coverage and hashes only; scenario wordings, synthetic values and task-specific oracles remain outside Git.",
+  "authorship_limit": "B reviewer authored the packet and also built prior B code; not pristine independent gold. Withheld from A builder where practical. Parent/evaluator should judge full records.",
+  "cases": [
+    {
+      "id": "LC01",
+      "coverage": [
+        "completion",
+        "correction",
+        "truthfulness"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "8e084e8d2630beca73ce4964086a93271169a7e2da7464d010af2f8868b0a5d0"
+    },
+    {
+      "id": "LC02",
+      "coverage": [
+        "resume_replacement",
+        "interruption",
+        "status"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "d837873aa675884148dc3a5322b363f6136c1514012d0786cfa9aac9ed12ae67"
+    },
+    {
+      "id": "LC03",
+      "coverage": [
+        "cross_thread_memory",
+        "scope",
+        "completion"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "08fe66dba89f656d2ec7200025aa357b43cb6cdd0e8ae3ed07d9a5e300a4c065"
+    },
+    {
+      "id": "LC04",
+      "coverage": [
+        "cross_thread_memory",
+        "owner_isolation",
+        "correction"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "aa2cacef7e5827d00dcf46725cdfb50ad85305d91e285b1e961dd85d9a86ad27"
+    },
+    {
+      "id": "LC05",
+      "coverage": [
+        "interruption",
+        "status",
+        "pending_actions"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "2ae5ade225f5c7746e42676f16ee4e8d9d244124e909278b7dfab4c6d71c5172"
+    },
+    {
+      "id": "LC06",
+      "coverage": [
+        "target_change",
+        "retry",
+        "rubric_consistency"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "db261a6aa7eff0ece85f408f8967a6cd56d3766cb09640fce9df285d6682022c"
+    },
+    {
+      "id": "LC07",
+      "coverage": [
+        "artifact_delivery",
+        "correction",
+        "restart"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "35b199d32bea909cd05d6d572ba4faf16dbb84f957634f6fed6136361da173b1"
+    },
+    {
+      "id": "LC08",
+      "coverage": [
+        "grounding",
+        "research_limits",
+        "truthfulness"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "1fafeeabca4a74af2f74b47016d3446274a1bc63803d62c012e4191a2ad6388a"
+    },
+    {
+      "id": "LC09",
+      "coverage": [
+        "technical_reasoning",
+        "feedback_quality",
+        "transfer"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "e12881286f45e5174242f5e62c75cd3601bf59853e5a64f4cf551fe9e85924f8"
+    },
+    {
+      "id": "LC10",
+      "coverage": [
+        "style_revision",
+        "immutable_attempts",
+        "artifact_delivery"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "c9341929ba3429919f80ae64e3d3c502cb6d0ba82a944303148c23e09d2c5b0e"
+    },
+    {
+      "id": "LC11",
+      "coverage": [
+        "withdrawal",
+        "cross_thread_memory",
+        "artifact_currentness"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "3ce72fe73e269449ebff8d03efe586c25c9de544d350e41ad77ceb21f55eaac6"
+    },
+    {
+      "id": "LC12",
+      "coverage": [
+        "multi_step_completion",
+        "time_budget",
+        "honest_action_status"
+      ],
+      "user_turns": 8,
+      "private_case_sha256": "14da2ee817d43f72bc19bb027042db58948a797961bfb10be37f04506d4a39c1"
+    }
+  ],
+  "limits": {
+    "episodes": 12,
+    "user_turns_per_episode": 8,
+    "user_turns_total": 96,
+    "generation_dispatches_at_most": 96,
+    "checker_dispatches_at_most": 96,
+    "total_provider_dispatches_at_most": 192,
+    "automatic_paid_retries": 0,
+    "paid_judge_calls": 0,
+    "proposed_not_authorized_incremental_ceiling_micros": 250000,
+    "authorized_incremental_ceiling_micros": null
+  },
+  "conversation_recording": {
+    "prepared_case_records": 12,
+    "actual_provider_calls": 0,
+    "actual_conversations_recorded": 0,
+    "status": "NOT_RUN",
+    "assistant_replies_prefilled": false,
+    "must_record": "Every actual user/assistant/tool message plus complete handler I/O, artifact byte/readback proofs and non-secret raw usage/reservation receipts. No credential values."
+  },
+  "admission": "BLOCKED. Original ledger/receipts missing; parent has not confirmed a reconciled budget. Do not run or reserve yet.",
+  "natural_language_route_note": "At this exact A source, body.career_journey selects the typed paired interview branch. Ordinary message-only traffic uses the existing CareerHost/careerModelReply branch. This evaluation must use actual natural user traffic; no hidden-oracle-to-command conversion or standalone provider prompting."
+}

@@ -1,0 +1,9 @@
+# Execution connectivity checkpoint
+
+Fresh shell and GitHub ls-remote succeeded after the16:21UTC disconnection notification. Published local/remote branch was f8cf1451568cd2d0d8c55f834c7e344878eaa585. Work can continue; no environment, sandbox, proxy, certificate or credential setting was changed.
+
+Published runtime91811a34 implements confirmed-resume metadata restoration:4778 source passes/40 skips,33 focused contracts and actual client/Edge/SQL status contract pass. Dockerfile source closure is repaired and tested; no image build or normal-browser success is claimed. Frozen runner f74812b3 full local SQL352/352 in39 files and exact CI39047577375 all40 source/SQL runs succeed; Deno/database succeed; genuine original archives remain missing and fail their gate.
+
+Unpublished eligibility/fit work is in `/workspace/upmore-mass-flow`, based on f8cf1451. It changes `workers/career-browser/{batch-context,service}.cjs`, `career_application_batch_v1.sql`, package/Dockerfile152 dependency closure and its build contract, the batch SQL fixture, plus new `tests/career-batch-eligibility.test.cjs`. Focused source/build tests pass5/5. Actual SQL tests and complete source validation have not run for this patch. The remote preservation artifact [eligibility-in-progress-NOT-RELEASE.patch](evidence/eligibility-in-progress-NOT-RELEASE.patch) includes the untracked test as well as tracked changes; SHA25652f577a42f2a917ec40ba23c2ffbb94f7ac1a5f972eb318dd45e5f1c644cbbf8. It is a recovery artifact, not a release-ready implementation. Apply only onto the recorded base and rerun verification.
+
+Remaining work continues: finish eligibility/fit actual-SQL proof and conversational discovery/batch controls, inspect Muse's provided browser source read-only and preserve all approval/receipt boundaries. No paid call, live database mutation, browser configuration change, hosting, deployment or employer submission is authorized here.

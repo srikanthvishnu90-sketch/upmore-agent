@@ -63250,6 +63250,25 @@
     "Required original archive gate failed.",
     "Controlled fixtures do not prove live model or employer quality."
    ]
+  },
+  {
+   "id": "mass-runner-full-local-sql-20261017",
+   "commit": "f74812b3dda211edbada9a5be604b65af2e09e50",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 352,
+    "failed": 0,
+    "skipped": 0,
+    "sqlFiles": 39
+   },
+   "summary": "docs/career/mass-applications-20261017/evidence/f748-full-postgres-summary.json",
+   "summary_sha256": "a9a70a66d3bbc1c3e97dc73168019536a67aaee1a75486fd894f854b48a0b39b",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Required original archives remain absent.",
+    "No live employer or model-quality proof."
+   ]
   }
  ],
  "limitations": [

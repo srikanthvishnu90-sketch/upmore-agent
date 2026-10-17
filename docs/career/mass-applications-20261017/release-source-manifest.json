@@ -421,16 +421,25 @@
     "runtimeExactCI": {
       "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
       "run": 39047577375,
-      "status": "IN_PROGRESS",
-      "checkedAt": "2026-10-17T16:04:03.190640+00:00"
+      "node": "success",
+      "deno": "success",
+      "database": "success",
+      "archiveGate": "failure",
+      "sourceAndSqlRuns": 40,
+      "passed": 5125,
+      "failed": 0,
+      "skipped": 40,
+      "summary": "evidence/f748-ci-node-summary.json"
     },
     "runtimeFullPostgres": {
-      "status": "IN_PROGRESS",
+      "status": "PASS",
       "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
+      "passed": 352,
+      "failed": 0,
+      "skipped": 0,
       "files": 39,
-      "log": "/tmp/upmore-runner-full-postgres.log",
-      "worktree": "/workspace/upmore-mass-next",
-      "sourceGraphFrozen": true
+      "fixtureRemoved": true,
+      "summary": "evidence/f748-full-postgres-summary.json"
     },
     "currentDockerCopyContract": {
       "passed": 1,

@@ -110,3 +110,6 @@ Resume metadata restoration was missing after reload/new owned thread. New authe
 
 
 Metadata runtime91811a34 full committed source passes4778/40skip/0fail. Frozen runner f74812b3 exact CI39047577375 completed all40 source/SQL selections successfully (5125 passes,40 skips), Deno/database success; original archive gate still fails. Exact source summaries retained; new status RPC requires its own reviewed forward SQL/function/client change and was not deployed.
+
+
+A16:21UTC environment-disconnection notice was checked with a fresh successful shell and GitHub read; local/remote f8cf1451 matched and work remains connected. Frozen f748 full local SQL completed352/352 in39 files, fixture removed. The active eligibility/fit patch is preserved explicitly NOT-RELEASE with5/5 focused source/build proof but no SQL claim, while conversational work continues.

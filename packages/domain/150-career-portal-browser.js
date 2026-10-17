@@ -559,7 +559,7 @@ const CareerPortalBrowser = (() => {
         if (o.evidenceDir) { try { fs.mkdirSync(o.evidenceDir, { recursive: true, mode: 0o700 }); } catch (e) {} }
         const r = command(boardId, { type: "submit_and_capture", observationVersion: state.observation.version, screenshotPath: shotPath }, 90000);
         if(native){
-          const cap=r.nativeCapture?.status==="receipt_observed" ? r.nativeCapture : {status:"unknown_outcome",confirmationId:null,authoritative:false};
+          const cap=r.nativeCapture ? {...r.nativeCapture,confirmationId:r.nativeCapture.status==="receipt_observed"?r.nativeCapture.confirmationId:null} : {status:"unknown_outcome",confirmationId:null,authoritative:false};
           state.submitCapture=Object.freeze({text:String(r.text||""),finalUrl:r.finalUrl||null,screenshotRef:r.screenshot||null,screenshotError:r.screenshotError||null,confirmationId:cap.confirmationId,successText:false,nativeCapture:cap});
           return {outcome:"unknown",confirmationId:cap.confirmationId,confirmationText:String(r.text||""),screenshotRef:r.screenshot||null,nativeCapture:cap};
         }

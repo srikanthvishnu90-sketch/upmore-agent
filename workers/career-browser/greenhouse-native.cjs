@@ -73,7 +73,11 @@ function admitMultipart(manifest,contentType,body,payload){
    if(f.inputType==='select'&&value!==undefined){const option=f.options.find(x=>x.label===value);if(!option)throw fail('NATIVE_PAYLOAD_MISMATCH');expected=option.value;}
    if(f.inputType==='checkbox')expected=value===true?(f.checkedValue||'on'):'';
    if(f.required&&(value===undefined||value===''||(f.inputType==='checkbox'&&value!==true)))throw fail('NATIVE_PAYLOAD_MISMATCH');
-   if((p?.bytes.toString('utf8')||'')!==expected||(!p&&expected!==''))throw fail('NATIVE_PAYLOAD_MISMATCH');
+   const observed=p?.bytes.toString('utf8')||'';
+   // textarea DOM values use LF; HTML multipart serializes line breaks as CRLF.
+   // Normalize line endings only, preserving paragraphs, spaces and wording.
+   const text=v=>f.inputType==='textarea'?v.replace(/\r\n|\r/g,'\n'):v;
+   if(text(observed)!==text(expected)||(!p&&expected!==''))throw fail('NATIVE_PAYLOAD_MISMATCH');
   }
  }
  if(parts.some(x=>!m.fields.some(f=>f.name===x.name)))throw fail('NATIVE_PAYLOAD_MISMATCH');
@@ -110,3 +114,11 @@ async function routeNative(board,route){
  }catch(error){await refuse(error.code||'NATIVE_NETWORK_UNCERTAIN');}
 }
 module.exports.routeNative=routeNative;
+
+// Diagnostic only. Never clears the worker/SQL submit fence or authorizes retry.
+function dispatchObservation(board){
+ if(board.mutationSent)return {source:'owned_chromium_route_gate',state:'admitted_outcome_unconfirmed',admittedMutations:1};
+ if(board.nativeBlocked)return {source:'owned_chromium_route_gate',state:'refused_before_dispatch',admittedMutations:0,code:/^NATIVE_[A-Z_]+$/.test(board.nativeBlocked)?board.nativeBlocked:'NATIVE_REQUEST_REFUSED'};
+ return {source:'owned_chromium_route_gate',state:'no_dispatch_observed',admittedMutations:0};
+}
+module.exports.dispatchObservation=dispatchObservation;

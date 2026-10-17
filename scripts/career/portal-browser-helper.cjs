@@ -525,7 +525,7 @@ async function cmdSubmitCapture(board, cmd) {
   if(board.nativeManifest){
     const observed=await page.evaluate(m=>({url:location.href,text:document.querySelectorAll(m.receipt.selector).length===1?document.querySelector(m.receipt.selector).textContent.trim():null,id:document.querySelectorAll(m.receipt.idSelector).length===1?document.querySelector(m.receipt.idSelector).textContent.trim():null,errors:Array.from(document.querySelectorAll('[role=alert],.error,.validation-error')).filter(el=>el.getClientRects().length).map(el=>el.textContent.slice(0,300))}),board.nativeManifest);
     observed.challenge=!!captcha||!!board.nativeBlocked;
-    nativeCapture=Native.captureReceipt(board.nativeManifest,observed,board.nativeOutbound);
+    nativeCapture={...Native.captureReceipt(board.nativeManifest,observed,board.nativeOutbound),dispatch:Native.dispatchObservation(board)};
   }
   return { clicked: true, captcha: captcha || null, finalUrl: page.url(), text, screenshot, screenshotError, nativeCapture };
 }

@@ -299,6 +299,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       t.result = { kind: "career_browser_result", taskId: t.id, status: t.status, approvalRef: approval.approvalRef,
         destination: t.review.destination, payloadSha256: t.review.payloadSha256, resumeSha256: t.review.resumeSha256,
         receipt: validProof(t, proof) ? proof : null,
+        nativeDispatchObservation:run.board.nativeReceiptCapture?.dispatch || null,
         capture: outcome.submission ? { confirmationId: outcome.submission.confirmationId || null, confirmationUrl: outcome.submission.confirmationUrl || null } : null,
         checkedAt: new Date(now()).toISOString() };
       save(t, "check");

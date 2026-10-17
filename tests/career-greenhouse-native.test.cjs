@@ -67,3 +67,15 @@ test('representative HTML independently parses to the exact manifest fields (STA
  const parsed=JSON.parse(execFileSync('python3',[path.join(__dirname,'helpers/native-form-observation.py'),path.join(__dirname,'fixtures/greenhouse-native/form.html')],{encoding:'utf8'}));
  assert.equal(parsed.provenance,'STATIC_MODELED_FIXTURE_NOT_BROWSER');assert.equal(Native.exactFields(manifest(),parsed.fields).defs.length,5);
 });
+test('multiline textarea uses HTML form newline semantics without changing words or whitespace (platform multipart, no network)',async()=>{
+ const m=manifest(),file=doc(),p={...payload(file),cover_note:'First paragraph.\n\nSecond paragraph.\nFinal line.'};m.fields.push({field_id:'cover_note',name:'job_application[cover_note]',selector:'#cover_note',label:'Cover note',inputType:'textarea',kind:'free_text',question_key:'cover_note',required:true});
+ const form=new FormData();for(const f of m.fields)form.append(f.name,f.inputType==='file'?new Blob([file.bytes],{type:file.contentType}):f.inputType==='select'?'no':p[f.field_id],...(f.inputType==='file'?[file.filename]:[]));
+ const request=new Request(m.submitUrl,{method:'POST',body:form}),body=Buffer.from(await request.arrayBuffer()),type=request.headers.get('content-type');assert.ok(body.includes(Buffer.from('paragraph.\r\n\r\nSecond')));
+ assert.doesNotThrow(()=>Native.admitMultipart(m,type,body,p));
+ for(const value of ['First paragraph.\nSecond paragraph.\nFinal line.','First paragraph. \n\nSecond paragraph.\nFinal line.','Different words.\n\nSecond paragraph.\nFinal line.'])assert.throws(()=>Native.admitMultipart(m,type,body,{...p,cover_note:value}),{code:'NATIVE_PAYLOAD_MISMATCH'});
+});
+test('pre-dispatch refusal is diagnostic; any admitted transmission stays uncertain',async()=>{
+ const m=manifest(),w=await multipart(m,doc()),h=routeHarness(m,w);h.board.nativePayload={...w.payload,email:'changed@example.test'};await Native.routeNative(h.board,h.route);
+ assert.equal(h.count().effects,0);assert.deepEqual(Native.dispatchObservation(h.board),{source:'owned_chromium_route_gate',state:'refused_before_dispatch',admittedMutations:0,code:'NATIVE_PAYLOAD_MISMATCH'});
+ h.board.mutationSent=true;assert.equal(Native.dispatchObservation(h.board).state,'admitted_outcome_unconfirmed');
+});

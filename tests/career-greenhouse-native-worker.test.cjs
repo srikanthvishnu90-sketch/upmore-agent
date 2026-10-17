@@ -9,7 +9,7 @@ const Browser=require('../packages/domain/150-career-portal-browser.js');
 const {mockAuthority,bindMockTaskClient}=require('./fixtures/owned-worker-authority.cjs');
 const {manifest}=require('./fixtures/greenhouse-native/manifest.cjs');
 const {equipment}=require('./fixtures/greenhouse-native/equipment.cjs');
-function fixture(t){
+function fixture(t,options={}){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'MOCK-native-worker-')),authority=mockAuthority(root),e=equipment(path.join(root,'private'),authority),store=createFileTaskStore(path.join(root,'tasks')),m=manifest('http://localhost:1');let submits=0,opens=0,uploads=0;
  t.after(()=>{e.resolver.close();fs.rmSync(root,{recursive:true,force:true});});
  const factory=opts=>{const values={};return Browser.createBrowserBoard({...opts,commandTransport(id,cmd){switch(cmd.type){
@@ -19,7 +19,7 @@ function fixture(t){
   case 'readback':return {answers:{...values}};
   case 'review':return {atFinalReview:true,finalUrl:m.url};
   case 'verify_payload':return {matches:JSON.stringify({...values,resume_sha256:values.resume.sha256})===JSON.stringify(cmd.payload)};
-  case 'submit_and_capture':submits++;return {clicked:true,text:'MODELED native receipt',finalUrl:m.submitUrl,nativeCapture:{status:'receipt_observed',confirmationId:'MODELED-12345',authoritative:false}};
+  case 'submit_and_capture':submits++;return {clicked:true,text:'MODELED native receipt',finalUrl:m.submitUrl,nativeCapture:{status:options.refused?'unknown_outcome':'receipt_observed',confirmationId:options.refused?null:'MODELED-12345',authoritative:false,...(options.refused?{dispatch:{source:'owned_chromium_route_gate',state:'refused_before_dispatch',admittedMutations:0,code:'NATIVE_PAYLOAD_MISMATCH'}}:{})}};
   case 'close':return {};
   default:throw Error('Unexpected MOCK command '+cmd.type);
  }}});};
@@ -43,4 +43,9 @@ test('changed native manifest after restart invalidates prepared task before ope
 test('posting identity and specific approval hash are independently enforced',t=>{
  const f=fixture(t);assert.throws(()=>f.worker.receive(f.e.userId,{...f.input,eventId:'synthetic-invalid',posting:{...f.input.posting,canonicalKey:'modeled:different'}}),{code:'NATIVE_POSTING_BINDING_MISMATCH'});
  const q=f.worker.receive(f.e.userId,f.input),r=f.worker.prepare(f.e.userId,q.id);assert.throws(()=>f.worker.approve(f.e.userId,q.id,{...f.approval(r),payloadSha256:hash('wrong')}),{code:'APPROVAL_BINDING_MISMATCH'});assert.equal(f.count().submits,0);
+});
+
+test('verified route refusal is reported as diagnostic without clearing the durable submit fence (MODELED transport)',t=>{
+ const f=fixture(t,{refused:true}),q=f.worker.receive(f.e.userId,f.input),review=f.worker.prepare(f.e.userId,q.id),a=f.approval(review),out=f.worker.approve(f.e.userId,q.id,a);
+ assert.equal(out.status,'unknown_outcome');assert.equal(out.result.nativeDispatchObservation.state,'refused_before_dispatch');assert.ok(f.store.get(q.id).attempt);f.worker.approve(f.e.userId,q.id,a);f.worker.reconcile(f.e.userId,q.id);assert.equal(f.count().submits,1);
 });

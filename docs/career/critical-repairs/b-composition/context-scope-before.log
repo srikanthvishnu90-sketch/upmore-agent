@@ -1,0 +1,149 @@
+TAP version 13
+# (node:418251) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:418251) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: context consumer fixture keeps its pre-implementation frozen bytes
+ok 1 - context consumer fixture keeps its pre-implementation frozen bytes
+  ---
+  duration_ms: 1.257952
+  type: 'test'
+  ...
+# Subtest: canonical A snapshot converts into the unchanged B context validator
+ok 2 - canonical A snapshot converts into the unchanged B context validator
+  ---
+  duration_ms: 53.188639
+  type: 'test'
+  ...
+# Subtest: unchanged B reducer supports explicitly classified target through the adapter
+ok 3 - unchanged B reducer supports explicitly classified target through the adapter
+  ---
+  duration_ms: 18.571816
+  type: 'test'
+  ...
+# Subtest: a software-looking title alone never supplies role family or level
+ok 4 - a software-looking title alone never supplies role family or level
+  ---
+  duration_ms: 9.256489
+  type: 'test'
+  ...
+# Subtest: classification from a different source record does not bind the target
+ok 5 - classification from a different source record does not bind the target
+  ---
+  duration_ms: 8.980204
+  type: 'test'
+  ...
+# Subtest: ambiguous classification requires clarification rather than choosing a value
+ok 6 - ambiguous classification requires clarification rather than choosing a value
+  ---
+  duration_ms: 9.346224
+  type: 'test'
+  ...
+# Subtest: resume reference binds the owned source bytes, never a reported artifact label
+ok 7 - resume reference binds the owned source bytes, never a reported artifact label
+  ---
+  duration_ms: 10.773961
+  type: 'test'
+  ...
+# Subtest: stale/disputed/withdrawn personal evidence cannot enter B active facts
+ok 8 - stale/disputed/withdrawn personal evidence cannot enter B active facts
+  ---
+  duration_ms: 8.327302
+  type: 'test'
+  ...
+# Subtest: public-source provenance cannot turn a project fact into personal evidence
+ok 9 - public-source provenance cannot turn a project fact into personal evidence
+  ---
+  duration_ms: 8.380892
+  type: 'test'
+  ...
+# Subtest: actual source bytes must match the declared source digest
+ok 10 - actual source bytes must match the declared source digest
+  ---
+  duration_ms: 9.291792
+  type: 'test'
+  ...
+# Subtest: changed context bytes and foreign evidence fail closed
+ok 11 - changed context bytes and foreign evidence fail closed
+  ---
+  duration_ms: 8.43912
+  type: 'test'
+  ...
+# Subtest: absence never becomes available capability or execution proof
+ok 12 - absence never becomes available capability or execution proof
+  ---
+  duration_ms: 8.460452
+  type: 'test'
+  ...
+# Subtest: projection is immutable and leaves canonical input unchanged
+ok 13 - projection is immutable and leaves canonical input unchanged
+  ---
+  duration_ms: 8.398198
+  type: 'test'
+  ...
+# Subtest: explicit classification versions remain reducer dependencies
+ok 14 - explicit classification versions remain reducer dependencies
+  ---
+  duration_ms: 23.012654
+  type: 'test'
+  ...
+# Subtest: multiple targets require an explicit owned current selection
+ok 15 - multiple targets require an explicit owned current selection
+  ---
+  duration_ms: 9.703341
+  type: 'test'
+  ...
+# Subtest: unrelated goal changes never become interview target invalidations
+not ok 16 - unrelated goal changes never become interview target invalidations
+  ---
+  duration_ms: 13.106698
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(!r.snapshot.invalidations.some(x=>x.evidence_id==='unrelated-goal'))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:26:258)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: source supersession is resume replacement only for the selected resume source
+not ok 17 - source supersession is resume replacement only for the selected resume source
+  ---
+  duration_ms: 10.303393
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:27:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'resume_replaced'
+    - 'correction'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'correction'
+  actual: 'resume_replaced'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:27:252)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 15
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.745235

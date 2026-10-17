@@ -104,3 +104,6 @@ Full clean runner runtimef74812b3 source completed4773 passed/40 skipped/0 faile
 
 
 Dockerfile COPY closure reproduced a missing121 module under its actual staged filesystem. The proposal now copies121/122/132/148/151 and the complete modeled native preflight graph, preserving its supplied-base, UID1000 and no-RUN/sandbox policy. The build contract stages the literal COPY instructions and loads real dependencies (including lazy132 dependency122) without image pull/build, browser or network.1/1 passes; original failure retained. This does not prove an approved base image exists or runs Chromium.
+
+
+Resume metadata restoration was missing after reload/new owned thread. New authenticated status read uses the existing owner account/epoch and immutable confirmation receipt; missing proof is unavailable, not empty or success. The panel restores only filename/bytes/hash/artifact version, never document bytes/contact facts. Pending confirmations keep their original nonce.33 focused source contracts pass; the actual client/Edge/SQL scenario proves reload/new-thread restoration, current-version advancement, bad proof, foreign/pause/erase and client-role denial with unchanged account/history/usage. Build succeeds; actual offline evaluator stays91/91 with3 gaps and3 NOT_RUN, no fabricated visual fingerprint.

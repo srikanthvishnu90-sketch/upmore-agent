@@ -6,9 +6,9 @@ const applicantResume=UpmoreApplicantResume({
 function applicantFields(){const values={};for(const key of ['first_name','last_name','email','location'])values[key]=$('applicant_'+key)?.value||'';return values;}
 function renderApplicantResume(){
   const panel=$('applicantResumeSheet');if(!panel)return;const v=applicantResume.view(),status=$('applicantResumeStatus');
-  const messages={idle:'Choose your original PDF or DOCX, up to 1 MiB.',uploading:'Uploading your original file…',uploaded:'File uploaded. Review the file and any details you want to confirm.',reviewing:'Preparing your exact review…',review_ready:'Review this file and the details below. Confirm only what you want used in applications.',confirming:'Saving your confirmation…',confirmed:'Resume confirmed for this application chat. Job applications still need a reviewed approval.',upload_uncertain:'The upload could not be confirmed. Retry the same upload to check it.',confirm_uncertain:'The confirmation could not be confirmed. Retry the same confirmation to check it.',changed:'Your review changed or expired. Review it again before confirming.',chat_required:'Start or open your application chat first.',sign_in:'Sign in again to continue.',file_required:'Choose an original PDF or DOCX up to 1 MiB.',unavailable:'Resume upload is unavailable. No new confirmation is claimed.',uncertain:'The review is unavailable. Try reviewing again.'};
+  const messages={idle:'Choose your original PDF or DOCX, up to 1 MiB.',loading:'Checking your confirmed resume…',uploading:'Uploading your original file…',uploaded:'File uploaded. Review the file and any details you want to confirm.',reviewing:'Preparing your exact review…',review_ready:'Review this file and the details below. Confirm only what you want used in applications.',confirming:'Saving your confirmation…',confirmed:'Your confirmed resume is available. Application answers and each job submission still need their own review.',upload_uncertain:'The upload could not be confirmed. Retry the same upload to check it.',confirm_uncertain:'The confirmation could not be confirmed. Retry the same confirmation to check it.',changed:'Your review changed or expired. Review it again before confirming.',chat_required:'Start or open your application chat first.',sign_in:'Sign in again to continue.',file_required:'Choose an original PDF or DOCX up to 1 MiB.',unavailable:'Your resume could not be verified. Try again to check its status.',uncertain:'The review is unavailable. Try reviewing again.'};
   status.textContent=messages[v.state]||messages.unavailable;
-  const proof=$('applicantResumeFile');proof.textContent=v.upload?`${v.upload.filename} · ${v.upload.bytes} bytes · SHA-256 ${v.upload.sha256}`:v.filename||'';
+  const proof=$('applicantResumeFile'),shown=v.upload||v.confirmed;proof.textContent=shown?`${shown.filename} · ${shown.bytes} bytes · SHA-256 ${shown.sha256}`:v.filename||'';
   $('applicantResumeChoose').disabled=v.busy;$('applicantResumeReview').disabled=v.busy||!v.upload||v.state==='confirmed';
   $('applicantResumeConfirm').disabled=v.busy||!v.review||v.state==='confirmed';
   $('applicantResumeConfirm').textContent=v.state==='confirm_uncertain'?'Retry same confirmation':Object.keys(applicantFields()).some(k=>applicantFields()[k].trim())?'Use this resume and confirm these details':'Use this resume';
@@ -21,6 +21,7 @@ function openApplicantResume(){
   if(!upmoreThread){toast('Start or open your application chat first, then add your resume.');return;}
   if(applicantResume.view().state==='idle'&&!applicantResume.start())return;
   $('applicantResumeSheet').hidden=false;renderApplicantResume();$('applicantResumeChoose').focus();
+  if(applicantResume.view().state==='idle'||applicantResume.view().state==='unavailable')applicantResume.restore();
 }
 function wireApplicantResume(){
   $('chatResume').onclick=openApplicantResume;

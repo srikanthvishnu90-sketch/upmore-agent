@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-fcTiPbWx2mpKO3VaAP0fSoGQiX6QQ2IIKos9Sun/stk=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-7DotxvZSpe3t+Zn8R1E8C4SoVYmLNobmHMKZcPuWfmo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -8389,7 +8389,20 @@ globalThis.UpmoreApplicantResume = function ({capture,getToken,request,onChange=
     }catch(e){if(version===revision&&current())state=e.message==='uncertain'?'confirm_uncertain':e.message;return false;}
     finally{if(version===revision&&current()){busy=false;onChange();}}
   }
-  return {start,reset,view,upload:uploadFile,edit,review:reviewFile,confirm:confirmFile};
+  async function restore(){
+    // A read must never overwrite a retained upload/review or its uncertain
+    // confirmation nonce. New owner/thread tickets fence delayed responses.
+    if(busy||file||upload||review)return false;if(!bound()&&!start())return false;
+    const version=revision;busy=true;state='loading';onChange();
+    try{const body=await call('status',{threadId:ticket.thread},version);if(!body)return false;
+      if(body.version!=='career_applicant_status/v1'||body.userId!==ticket.owner||body.threadId!==ticket.thread||!Number.isSafeInteger(body.accountVersion)||body.accountVersion<0||!Number.isSafeInteger(body.privacyEpoch)||body.privacyEpoch<0)throw Error('unavailable');
+      if(body.status==='none'&&body.applicant===null){confirmed=undefined;state='idle';return true;}
+      const a=body.applicant;if(body.status!=='confirmed'||a?.status!=='confirmed'||!HASH.test(a.sha256||'')||!(/^[A-Za-z0-9_-]{1,160}$/).test(a.artifactId||'')||!(/^[A-Za-z0-9_-]{1,160}$/).test(a.versionId||'')||typeof a.filename!=='string'||!a.filename||a.filename.length>180||!Number.isInteger(a.bytes)||a.bytes<1||a.bytes>1048576||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(a.contentType)||!Number.isFinite(Date.parse(a.confirmedAt)))throw Error('unavailable');
+      confirmed={status:'confirmed',artifactId:a.artifactId,versionId:a.versionId,sha256:a.sha256,filename:a.filename,contentType:a.contentType,bytes:a.bytes,confirmedAt:a.confirmedAt};state='confirmed';return true;
+    }catch(e){if(version===revision&&current()){confirmed=undefined;state=e.message==='sign_in'?'sign_in':'unavailable';}return false;}
+    finally{if(version===revision&&current()){busy=false;onChange();}}
+  }
+  return {start,reset,view,upload:uploadFile,edit,review:reviewFile,confirm:confirmFile,restore};
 };
 
 /* Application-chat resume flow; no file bytes enter agentAsk or chatImages. */
@@ -8400,9 +8413,9 @@ const applicantResume=UpmoreApplicantResume({
 function applicantFields(){const values={};for(const key of ['first_name','last_name','email','location'])values[key]=$('applicant_'+key)?.value||'';return values;}
 function renderApplicantResume(){
   const panel=$('applicantResumeSheet');if(!panel)return;const v=applicantResume.view(),status=$('applicantResumeStatus');
-  const messages={idle:'Choose your original PDF or DOCX, up to 1 MiB.',uploading:'Uploading your original file…',uploaded:'File uploaded. Review the file and any details you want to confirm.',reviewing:'Preparing your exact review…',review_ready:'Review this file and the details below. Confirm only what you want used in applications.',confirming:'Saving your confirmation…',confirmed:'Resume confirmed for this application chat. Job applications still need a reviewed approval.',upload_uncertain:'The upload could not be confirmed. Retry the same upload to check it.',confirm_uncertain:'The confirmation could not be confirmed. Retry the same confirmation to check it.',changed:'Your review changed or expired. Review it again before confirming.',chat_required:'Start or open your application chat first.',sign_in:'Sign in again to continue.',file_required:'Choose an original PDF or DOCX up to 1 MiB.',unavailable:'Resume upload is unavailable. No new confirmation is claimed.',uncertain:'The review is unavailable. Try reviewing again.'};
+  const messages={idle:'Choose your original PDF or DOCX, up to 1 MiB.',loading:'Checking your confirmed resume…',uploading:'Uploading your original file…',uploaded:'File uploaded. Review the file and any details you want to confirm.',reviewing:'Preparing your exact review…',review_ready:'Review this file and the details below. Confirm only what you want used in applications.',confirming:'Saving your confirmation…',confirmed:'Your confirmed resume is available. Application answers and each job submission still need their own review.',upload_uncertain:'The upload could not be confirmed. Retry the same upload to check it.',confirm_uncertain:'The confirmation could not be confirmed. Retry the same confirmation to check it.',changed:'Your review changed or expired. Review it again before confirming.',chat_required:'Start or open your application chat first.',sign_in:'Sign in again to continue.',file_required:'Choose an original PDF or DOCX up to 1 MiB.',unavailable:'Your resume could not be verified. Try again to check its status.',uncertain:'The review is unavailable. Try reviewing again.'};
   status.textContent=messages[v.state]||messages.unavailable;
-  const proof=$('applicantResumeFile');proof.textContent=v.upload?`${v.upload.filename} · ${v.upload.bytes} bytes · SHA-256 ${v.upload.sha256}`:v.filename||'';
+  const proof=$('applicantResumeFile'),shown=v.upload||v.confirmed;proof.textContent=shown?`${shown.filename} · ${shown.bytes} bytes · SHA-256 ${shown.sha256}`:v.filename||'';
   $('applicantResumeChoose').disabled=v.busy;$('applicantResumeReview').disabled=v.busy||!v.upload||v.state==='confirmed';
   $('applicantResumeConfirm').disabled=v.busy||!v.review||v.state==='confirmed';
   $('applicantResumeConfirm').textContent=v.state==='confirm_uncertain'?'Retry same confirmation':Object.keys(applicantFields()).some(k=>applicantFields()[k].trim())?'Use this resume and confirm these details':'Use this resume';
@@ -8415,6 +8428,7 @@ function openApplicantResume(){
   if(!upmoreThread){toast('Start or open your application chat first, then add your resume.');return;}
   if(applicantResume.view().state==='idle'&&!applicantResume.start())return;
   $('applicantResumeSheet').hidden=false;renderApplicantResume();$('applicantResumeChoose').focus();
+  if(applicantResume.view().state==='idle'||applicantResume.view().state==='unavailable')applicantResume.restore();
 }
 function wireApplicantResume(){
   $('chatResume').onclick=openApplicantResume;

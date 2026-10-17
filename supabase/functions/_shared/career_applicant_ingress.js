@@ -29,8 +29,8 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=/** @typ
   try{
    const bearer=/^Bearer ([^\s]+)$/i.exec(req.headers.get('authorization')||'');if(!bearer)throw error('UNAUTHORIZED',401);
    let user;try{user=await authenticate(bearer[1]);}catch(_){throw error('UNAUTHORIZED',401);}if(!UUID.test(user?.id||''))throw error('UNAUTHORIZED',401);
-   const path=new URL(req.url).pathname,action=path.endsWith('/uploads')?'upload':path.endsWith('/review')?'review':path.endsWith('/confirm')?'confirm':null;if(!action)throw error('APPLICANT_ROUTE_NOT_FOUND',404);
-   async function call(name,args){let result;try{result=await rpc(name,args);}catch(_){throw error('APPLICANT_STORAGE_UNCERTAIN',503);}if(result?.error||!result?.data||typeof result.data!=='object')throw error('APPLICANT_STORAGE_UNAVAILABLE',503);if(result.data.error)throw error(result.data.error,409);return result.data;}
+   const path=new URL(req.url).pathname,action=path.endsWith('/uploads')?'upload':path.endsWith('/review')?'review':path.endsWith('/confirm')?'confirm':path.endsWith('/status')?'status':null;if(!action)throw error('APPLICANT_ROUTE_NOT_FOUND',404);
+   async function call(name,args){let result;try{result=await rpc(name,args);}catch(_){throw error('APPLICANT_STORAGE_UNCERTAIN',503);}if(result?.error||!result?.data||typeof result.data!=='object')throw error('APPLICANT_STORAGE_UNAVAILABLE',503);if(result.data.error)throw error(result.data.error,result.data.error==='APPLICANT_STATUS_FORBIDDEN'?403:409);return result.data;}
    let threadId,requestId,uploadId,input,validation,encoded,requestHash;
    if(action==='upload'){
     const type=req.headers.get('content-type')||'';if(!/^multipart\/form-data;\s*boundary=/i.test(type))throw error('MULTIPART_FILE_REQUIRED');
@@ -47,8 +47,9 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=/** @typ
     if(!/^application\/json(?:;|$)/i.test(req.headers.get('content-type')||''))throw error('JSON_REQUIRED');
     try{input=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(await bodyBytes(req,12288)));}catch(e){if(e.status)throw e;throw error('INVALID_JSON');}
     if(!input||typeof input!=='object'||Array.isArray(input))throw error('INVALID_APPLICANT_REQUEST');
-    const allowed=action==='review'?['threadId','uploadId','fields']:['threadId','requestId','uploadId','fields','reviewHash','message'];
+    const allowed=action==='status'?['threadId']:action==='review'?['threadId','uploadId','fields']:['threadId','requestId','uploadId','fields','reviewHash','message'];
     if(Object.keys(input).some(k=>!allowed.includes(k)))throw error('INVALID_APPLICANT_REQUEST');
+    if(action==='status'){if(!UUID.test(input.threadId||''))throw error('OWNED_THREAD_REQUIRED');return respond(200,await call('career_applicant_status_v1',{p_user:user.id,p_thread:input.threadId.toLowerCase()}));}
     ({threadId,requestId,uploadId}=input);if(!UUID.test(threadId||'')||!UUID.test(uploadId||''))throw error('OWNED_UPLOAD_REFERENCE_REQUIRED');threadId=threadId.toLowerCase();uploadId=uploadId.toLowerCase();fields(input.fields);
     if(action==='review'){await call('career_applicant_upload_sweep_v1',{p_user:user.id});const result=await call('career_applicant_review_v1',{p_user:user.id,p_thread:threadId,p_upload:uploadId,p_fields:input.fields});return respond(200,result);}
     const phrase=Object.keys(input.fields).length?'use this resume and confirm these fields':'use this resume';

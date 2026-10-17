@@ -154,3 +154,25 @@ end $$;
 create trigger career_applicant_upload_erasure_v1 after update or delete on career_watch_kv for each row execute function career_applicant_upload_erase_v1();
 revoke all on function career_applicant_canonical_v1(jsonb),career_applicant_upload_sweep_v1(uuid,integer),career_applicant_upload_turn_v1(jsonb,jsonb,text),career_applicant_review_v1(uuid,uuid,uuid,jsonb),career_applicant_confirm_turn_v1(jsonb,uuid,text,jsonb,text),career_applicant_equipment_resolve_v1(uuid,text,bigint,bigint,text,text,uuid,text,text,boolean),career_applicant_upload_erase_v1() from public,anon,authenticated;
 grant execute on function career_applicant_canonical_v1(jsonb),career_applicant_upload_sweep_v1(uuid,integer),career_applicant_upload_turn_v1(jsonb,jsonb,text),career_applicant_review_v1(uuid,uuid,uuid,jsonb),career_applicant_confirm_turn_v1(jsonb,uuid,text,jsonb,text),career_applicant_equipment_resolve_v1(uuid,text,bigint,bigint,text,text,uuid,text,text,boolean),career_applicant_upload_erase_v1() to service_role;
+
+-- Read-only reload discovery. Global same-epoch resume metadata is available
+-- in any owned thread; source-thread contact facts and original bytes are not.
+-- The existing account and immutable confirmation receipt remain authority.
+create function public.career_applicant_status_v1(p_user uuid,p_thread uuid) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare a jsonb;r jsonb;latest career_applicant_resumes_v1;result jsonb;epoch bigint;
+begin
+ if p_user is null or p_thread is null then return jsonb_build_object('error','APPLICANT_STATUS_FORBIDDEN');end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ if not exists(select 1 from agent_threads where id=p_thread and user_id=p_user)then return jsonb_build_object('error','APPLICANT_STATUS_FORBIDDEN');end if;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if a is null or a->'paused'='true'::jsonb then return jsonb_build_object('error','APPLICANT_STATUS_REVOKED');end if;
+ epoch:=coalesce((a->>'epoch')::bigint,0);
+ result:=jsonb_build_object('version','career_applicant_status/v1','userId',p_user,'threadId',p_thread,'accountVersion',(a->>'version')::bigint,'privacyEpoch',epoch,'checkedAt',clock_timestamp());
+ select * into latest from career_applicant_resumes_v1 where user_id=p_user and privacy_epoch=epoch order by sequence desc limit 1;
+ if latest.artifact_id is null then return result||jsonb_build_object('status','none','applicant',null);end if;
+ select value into r from career_watch_kv where user_id=p_user and key=latest.confirmation_key;
+ if r is null or r->'response' is null or r->'response'='null'::jsonb or r#>>'{response,thread_id}' is distinct from latest.confirmation_thread::text or coalesce((r->>'epoch')::bigint,-1) is distinct from epoch or (r->>'equipment_account_version')::bigint is distinct from latest.confirmation_account_version or not exists(select 1 from agent_threads where id=latest.confirmation_thread and user_id=p_user)then return jsonb_build_object('error','APPLICANT_CONFIRMATION_UNAVAILABLE');end if;
+ return result||jsonb_build_object('status','confirmed','applicant',jsonb_build_object('status','confirmed','artifactId',latest.artifact_id,'versionId',latest.version_id,'sha256',latest.sha256,'filename',latest.filename,'contentType',latest.content_type,'bytes',octet_length(latest.content),'confirmedAt',latest.confirmed_at));
+end $$;
+revoke all on function public.career_applicant_status_v1(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.career_applicant_status_v1(uuid,uuid) to service_role;

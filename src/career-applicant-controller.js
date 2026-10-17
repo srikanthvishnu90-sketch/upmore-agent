@@ -50,5 +50,18 @@ globalThis.UpmoreApplicantResume = function ({capture,getToken,request,onChange=
     }catch(e){if(version===revision&&current())state=e.message==='uncertain'?'confirm_uncertain':e.message;return false;}
     finally{if(version===revision&&current()){busy=false;onChange();}}
   }
-  return {start,reset,view,upload:uploadFile,edit,review:reviewFile,confirm:confirmFile};
+  async function restore(){
+    // A read must never overwrite a retained upload/review or its uncertain
+    // confirmation nonce. New owner/thread tickets fence delayed responses.
+    if(busy||file||upload||review)return false;if(!bound()&&!start())return false;
+    const version=revision;busy=true;state='loading';onChange();
+    try{const body=await call('status',{threadId:ticket.thread},version);if(!body)return false;
+      if(body.version!=='career_applicant_status/v1'||body.userId!==ticket.owner||body.threadId!==ticket.thread||!Number.isSafeInteger(body.accountVersion)||body.accountVersion<0||!Number.isSafeInteger(body.privacyEpoch)||body.privacyEpoch<0)throw Error('unavailable');
+      if(body.status==='none'&&body.applicant===null){confirmed=undefined;state='idle';return true;}
+      const a=body.applicant;if(body.status!=='confirmed'||a?.status!=='confirmed'||!HASH.test(a.sha256||'')||!(/^[A-Za-z0-9_-]{1,160}$/).test(a.artifactId||'')||!(/^[A-Za-z0-9_-]{1,160}$/).test(a.versionId||'')||typeof a.filename!=='string'||!a.filename||a.filename.length>180||!Number.isInteger(a.bytes)||a.bytes<1||a.bytes>1048576||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(a.contentType)||!Number.isFinite(Date.parse(a.confirmedAt)))throw Error('unavailable');
+      confirmed={status:'confirmed',artifactId:a.artifactId,versionId:a.versionId,sha256:a.sha256,filename:a.filename,contentType:a.contentType,bytes:a.bytes,confirmedAt:a.confirmedAt};state='confirmed';return true;
+    }catch(e){if(version===revision&&current()){confirmed=undefined;state=e.message==='sign_in'?'sign_in':'unavailable';}return false;}
+    finally{if(version===revision&&current()){busy=false;onChange();}}
+  }
+  return {start,reset,view,upload:uploadFile,edit,review:reviewFile,confirm:confirmFile,restore};
 };

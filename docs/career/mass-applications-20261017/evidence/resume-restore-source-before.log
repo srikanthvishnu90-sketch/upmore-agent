@@ -1,0 +1,52 @@
+✔ actual client sends original file separately from chat, reviews explicit fields then confirms (31.761546ms)
+✔ confirmation acknowledgement uncertainty retries the exact owned request, even after review expiry (2.09157ms)
+✔ upload uncertainty is explicit and manual retry retains original bytes and id (1.763716ms)
+✔ edited answers invalidate the review and cannot silently change an approved field set (1.533695ms)
+✔ owner change ignores pending acknowledgements and clears memory-only private state (8.833428ms)
+✔ missing application chat makes no request and unknown field names never become confirmed facts (1.641437ms)
+✖ reload restores only authoritative confirmed resume metadata without uploading or confirming again (0.99738ms)
+✖ metadata absence, unavailable storage and foreign replies stay distinct (0.935804ms)
+✖ late restored metadata cannot cross an owner switch or replace an uncertain confirmation (1.046892ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 6
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 136.901537
+
+✖ failing tests:
+
+test at tests/career-applicant-client.test.cjs:27:1
+✖ reload restores only authoritative confirmed resume metadata without uploading or confirming again (0.99738ms)
+  TypeError: f.client.restore is not a function
+      at TestContext.<anonymous> (/workspace/upmore-mass/tests/career-applicant-client.test.cjs:27:180)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/career-applicant-client.test.cjs:28:1
+✖ metadata absence, unavailable storage and foreign replies stay distinct (0.935804ms)
+  TypeError: a.client.restore is not a function
+      at TestContext.<anonymous> (/workspace/upmore-mass/tests/career-applicant-client.test.cjs:28:168)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/career-applicant-client.test.cjs:29:1
+✖ late restored metadata cannot cross an owner switch or replace an uncertain confirmation (1.046892ms)
+  TypeError: f.client.restore is not a function
+      at TestContext.<anonymous> (/workspace/upmore-mass/tests/career-applicant-client.test.cjs:29:214)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

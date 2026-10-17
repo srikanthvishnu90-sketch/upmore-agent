@@ -1,0 +1,63 @@
+{
+  "base": "11a81b46fd1f9224969bd1b66daf91d8fe257068",
+  "observedAt": "2026-10-17T16:14:40.628355+00:00",
+  "sourceSha256": {
+    "src/career-applicant-controller.js": "d93b67f8419fb0df2679ea6287e2ab41a22587941665f72372e920f501579d2a",
+    "src/career-applicant-ui.js": "5d5ef4fa5d1b79856ce01fef9817d50f4648363cf2a741ebd6355819c2269473",
+    "src/upmore-app.html": "1a570b8eb9288512b08349a702d95d7dbef267d181b4eeae56588d41a4b4dbae",
+    "index.html": "1a570b8eb9288512b08349a702d95d7dbef267d181b4eeae56588d41a4b4dbae",
+    "sw.js": "dd592d05594dff2225dba38aba6959ff2dee64186a084ff3388f8a626c1f608d",
+    "supabase/functions/_shared/career_applicant_ingress.js": "96d06b30222a33ada68b42052ded1a6fd988fa334e1e88c10e36371c29e25b3e",
+    "supabase/sql/proposals/career_applicant_ingress_v1.sql": "7d90839e9c4ec5b6252875b33198b1b98b8f53e26fc4e8a547a38c49dca7b85f",
+    "tests/career-applicant-client.test.cjs": "64a0cfc5031f561ed3f215045bd1777cc1616965d03f64ffdd559d8b7703fef9",
+    "tests/career-applicant-cors.test.cjs": "ccd8d97d16952054ce2d20ead94a7d454d0171394f9e7033be6541bf11d48933",
+    "tests/career-critical-repairs/applicant-client-postgres.test.cjs": "2a93957dc2a0ebe16e1e230af033b7ae01cb4f8369c4442d241670e1b3fabcf9"
+  },
+  "checks": {
+    "clientBefore": {
+      "passed": 6,
+      "failed": 3,
+      "log": "evidence/resume-restore-source-before.log"
+    },
+    "focusedSource": {
+      "passed": 33,
+      "failed": 0,
+      "log": "evidence/resume-restore-source-focused.log"
+    },
+    "actualClientEdgeSQL": {
+      "passed": 1,
+      "failed": 0,
+      "log": "evidence/resume-restore-postgres.log",
+      "summary": "evidence/resume-restore-postgres-summary.json",
+      "scenarios": [
+        "lost confirmation acknowledgement",
+        "reload metadata restoration",
+        "other owned thread metadata only",
+        "no profile/contact/byte promotion",
+        "no account/history/usage mutation",
+        "ordinary account version advancement retains same-epoch confirmation",
+        "mismatched confirmation receipt unavailable",
+        "foreign-thread denial",
+        "pause denial",
+        "erase/empty after epoch advancement",
+        "anon/authenticated RPC denial"
+      ]
+    },
+    "appBuild": "evidence/resume-restore-build.log",
+    "offlineEvaluator": {
+      "passed": 91,
+      "gaps": 3,
+      "notRun": 3,
+      "logs": [
+        "evidence/resume-restore-evaluator-generate.log",
+        "evidence/resume-restore-evaluator-check.log"
+      ],
+      "runtime": "actual existing evaluator via retained Node24 offline Deno API compatibility shim; actual Deno absent; no browser proof"
+    },
+    "fullCommittedSource": "PENDING"
+  },
+  "paidCalls": 0,
+  "modelCalls": 0,
+  "employerSubmissions": 0,
+  "liveDatabaseMutations": 0
+}

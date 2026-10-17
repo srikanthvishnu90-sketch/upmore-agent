@@ -1,0 +1,47 @@
+✔ actual client sends original file separately from chat, reviews explicit fields then confirms (29.218578ms)
+✔ confirmation acknowledgement uncertainty retries the exact owned request, even after review expiry (1.721848ms)
+✔ upload uncertainty is explicit and manual retry retains original bytes and id (1.282229ms)
+✔ edited answers invalidate the review and cannot silently change an approved field set (1.360667ms)
+✔ owner change ignores pending acknowledgements and clears memory-only private state (7.516389ms)
+✔ missing application chat makes no request and unknown field names never become confirmed facts (15.000216ms)
+✔ reload restores only authoritative confirmed resume metadata without uploading or confirming again (1.986568ms)
+✔ metadata absence, unavailable storage and foreign replies stay distinct (2.856119ms)
+✔ late restored metadata cannot cross an owner switch or replace an uncertain confirmation (3.198754ms)
+(node:933193) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:933193) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual applicant entry permits the shipped client public apikey preflight only for configured origins (236.493621ms)
+✔ metadata status uses only authenticated owner/thread read RPC and rejects injected data (125.962054ms)
+✔ format validates actual original pdf container without changing bytes or extracting facts (16.324471ms)
+(node:933199) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:933199) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ format validates actual original docx container without changing bytes or extracting facts (10.556344ms)
+✔ format rejects signature-only, corrupt, mismatched, traversal and oversized documents (17.521903ms)
+✔ PDF active/encrypted dialects are refused before storage (1.658438ms)
+✔ actual source entry rejects unauthenticated requests and blocked origins with zero backend effects (313.104326ms)
+✔ use-this-resume text without owned artifact/review and arbitrary page text do not confirm (114.029684ms)
+✔ unreviewed secret/eligibility fields and implicit field confirmation are refused (85.866468ms)
+✔ request body is bounded before JSON parsing or file storage, including no Content-Length (127.475479ms)
+✔ existing identity redactor refuses secrets in explicit field values while preserving ordinary phone numbers (74.847442ms)
+✔ filename metadata uses the existing identity policy before any storage RPC (88.245636ms)
+✔ delayed token resolution after owner change never sends the previous message under the new token (9.618664ms)
+✔ new chat invalidation drops delayed replies and does not fall back to private local data (19.216756ms)
+✔ thread switch and chat mode changes invalidate captured work even without explicit invalidation (9.701592ms)
+✔ current new chat adopts only its own valid server thread and existing chats reject substitution (2.133675ms)
+✔ late errors are stale rather than triggering fallback, while current outages may use general guidance (13.531336ms)
+✔ thread list and history cannot repopulate an old owner or switched conversation (3.211709ms)
+✔ current history requires separately owned thread and exact message binding (2.569638ms)
+✔ workflow link validates exact identifiers, drops authority fields and stops after navigation changes (0.97008ms)
+✔ invalid workflow payload cannot become a bill link or financial approval (0.988375ms)
+✔ anonymous local scopes stay usable until sign-in changes their identity (0.898635ms)
+✔ sign-out and same-owner sign-in still invalidate old conversation tickets (0.734866ms)
+✔ malformed history and thread lists stay unavailable instead of leaking unbound rows (0.829675ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 972.053128

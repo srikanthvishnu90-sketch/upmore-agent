@@ -63181,6 +63181,40 @@
     "COPY filesystem staging and real module loads only; no Docker image built or pulled.",
     "No normal-browser or employer proof."
    ]
+  },
+  {
+   "id": "mass-resume-restore-source-20261017",
+   "source_hashes": "docs/career/mass-applications-20261017/resume-restoration-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 33,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/resume-restore-source-focused.log",
+   "log_sha256": "a2ee46f28bddad2c99010d5799193e6131ae68225e1ef15d2da36c0b976d28e5",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Actual client/Edge and isolated SQL; no live browser, employer or model-quality proof.",
+    "No live schema change or deployment."
+   ]
+  },
+  {
+   "id": "mass-resume-restore-sql-20261017",
+   "source_hashes": "docs/career/mass-applications-20261017/resume-restoration-evidence.json",
+   "result": "PASS",
+   "reported_outcomes": {
+    "passed": 1,
+    "failed": 0
+   },
+   "log": "docs/career/mass-applications-20261017/evidence/resume-restore-postgres.log",
+   "log_sha256": "75c4b4e80ed0f70373011c4a68796a95330958deada7ada08b552ddf750c1842",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "limitations": [
+    "Actual client/Edge and isolated SQL; no live browser, employer or model-quality proof.",
+    "No live schema change or deployment."
+   ]
   }
  ],
  "limitations": [

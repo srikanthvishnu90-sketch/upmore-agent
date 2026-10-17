@@ -9,6 +9,7 @@ const CareerInterviewJourney = (() => {
   const VERSION='interview_journey_state/v1';
   const stages=['intake','research_pending','plan_ready','awaiting_answer','feedback_ready','targeted_practice','awaiting_revision','transfer_check','pack_ready','completed'];
   function roleSupport(target){return target?.role_family==='software_engineering'&&target?.level==='early-career'?'early_career_software':target?.role_family&&target.role_family!=='software_engineering'||target?.level&&target.level!=='early-career'?'unsupported_full_slice':'generic_project_only';}
+  function refreshUnknowns(s){const derived=['target role','selected resume','minutes available now','company','interview stage'];const unknowns=[...(typeof s.target?.role!=='string'||!s.target.role.trim()?['target role']:[]),...(!s.resume_ref?['selected resume']:[]),...(s.constraints.available_minutes===null?['minutes available now']:[]),...(!s.target?.company?['company']:[]),...(!s.target?.stage?['interview stage']:[])];s.constraints.unknowns=[...new Set([...(s.constraints.unknowns||[]).filter(u=>!derived.includes(u)),...unknowns])];}
   function contentHash(s){const copy=H.clone(s);delete copy.content_sha256;return H.sha256(copy);}
   function recordHash(record){const copy=H.clone(record);delete copy.content_sha256;return H.sha256(copy);}
   function validateState(s){
@@ -205,6 +206,7 @@ const CareerInterviewJourney = (() => {
       reply={status:'needs_confirmation',text:'Interpret this turn through the host into an explicit answer, style edit, task switch or control event. It has not been graded or used to reset evidence.'};
     }else{reply={status:'unsupported',text:'This journey supports interview preparation only. The preparation checkpoint is preserved.'};}
     s.processed_events.push({id:event.id,input_digest:digest});
+    refreshUnknowns(s);
     for(const record of [...s.attempts,...s.assessments,...s.drafts,...s.observations,...s.briefs]){Object.assign(record,{owner_id:s.owner_id,thread_id:s.thread_id,journey_id:s.journey_id,epoch:s.epoch});record.content_sha256=recordHash(record);}
     s.last_event={id:event.id,input_digest:digest,expected_binding:expected,reply_plan:H.clone(reply),proposed_actions:H.clone(actions)};
     s.content_sha256=contentHash(s);validateState(s);

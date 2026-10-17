@@ -262,15 +262,19 @@ const CareerPortalBrowser = (() => {
     if (/acknowledge and agree to this requirement|not able to adjust the (internship )?start or end dates/.test(eff)) return { kind: "screening", question_key: "fixed_dates_acknowledgment" };
     if (/full duration of this cohort|available for the entirety of the program/.test(eff)) return { kind: "screening", question_key: "cohort_availability" };
     // Attestation classes canonicalize (R3): receipt-acknowledgment /
-    // privacy checkboxes -> acknowledgment_receipt (filled only from
-    // the owner's class approval, Fact 5, via module 149); the certify
+    // privacy widgets -> acknowledgment_receipt (filled only from the
+    // owner's class approval, Fact 5, via module 149); the certify
     // class -> certify_true (the D10 confirmation's own key, so the
-    // explicit attestation reaches the checkbox whatever DOM id the
+    // explicit attestation reaches the widget whatever DOM id the
     // board gave it). A label carrying certify/attest wording is the
-    // certify class even when it also says "acknowledge".
-    if (inputType === "checkbox" || inputType === "group") {
+    // certify class even when it also says "acknowledge". R3 follow-on:
+    // live boards render these as SELECT and RADIO widgets too, not
+    // only checkboxes (Sigma's "Acknowledge, confirm, and agree..."
+    // and Point72's "Privacy" both classified unknown live) — the
+    // canonicalization is keyed on the label class, not the element.
+    if (inputType === "checkbox" || inputType === "group" || inputType === "radio" || inputType === "select") {
       if (/acknowledg|privacy/.test(eff) && !/certif|attest/.test(eff)) return { kind: "attestation", question_key: "acknowledgment_receipt" };
-      if (inputType === "checkbox" && /certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
+      if (/certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
     }
     // R3 follow-on (2026-10-17, live-drive evidence): a work-authorization
     // question that names a DIFFERENT region than the bank's authorized

@@ -739,3 +739,14 @@ test("R3 follow-on end to end: graduation_year_or_later resolves against the edu
   const noDef = no.defs.find((d) => d.question_key === "graduation_year_or_later");
   assert.equal(no.board.held[noDef.field_id], "No", "graduation year 2029 is not in 2030 or later");
 });
+
+test("R3 follow-on classification: acknowledgment widgets canonicalize on SELECT and RADIO shapes too (Sigma/Point72 live shapes)", () => {
+  for (const t of ["select", "radio"]) {
+    const a = clsR3("Acknowledge, confirm, and agree to the following statements.", t);
+    assert.equal(a.kind, "attestation", t); assert.equal(a.question_key, "acknowledgment_receipt", t);
+    const p = clsR3("Privacy", t);
+    assert.equal(p.kind, "attestation", t); assert.equal(p.question_key, "acknowledgment_receipt", t);
+  }
+  const cert = clsR3("I certify that the information I have provided is true and complete", "select");
+  assert.equal(cert.question_key, "certify_true", "the certify class canonicalizes on a select shape too");
+});

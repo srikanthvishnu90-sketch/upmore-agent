@@ -18,4 +18,4 @@ module.exports={mode:'pull_only',storeRoot:path.join(stateRoot,'tasks'),evidence
  // This file can register only controlled loopback portals. It cannot turn
  // on a real employer; the existing worker rejects such a registration.
  controlledPortals:process.env.UPMORE_CONTROLLED_PORTALS_FILE?JSON.parse(fs.readFileSync(process.env.UPMORE_CONTROLLED_PORTALS_FILE,'utf8')):[],
- maxActions:120,timeoutMs:120000,runner:{intervalMs:5000,maxTasks:1,maxRunMs:900000,maxErrors:3},close:()=>transport.close()};
+ maxActions:120,timeoutMs:120000,runner:{intervalMs:5000,maxTasks:1,maxRunMs:900000,maxErrors:3},close:()=>{try{equipment.close?.();}finally{transport.close();}}};

@@ -192,7 +192,8 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   function equip(t) {
     checkAuthority(t);
     if (typeof resolveEquipment !== "function") throw fail("WORKER_NOT_WIRED");
-    const e = resolveEquipment(t.userId, t.spec.artifactId);
+    const e = resolveEquipment(t.userId, t.spec.artifactId,{accountVersion:t.authority.accountVersion,privacyEpoch:t.privacyEpoch,taskId:t.id,postingKey:t.spec.posting.canonicalKey,resumeSha256:t.spec.resumeSha256});
+    try {
     if (!e || e.userId !== t.userId || !e.profile || !e.resumePath) throw fail("EQUIPMENT_OWNER_MISMATCH");
     if (e.privacyEpoch !== t.privacyEpoch || e.accountVersion !== t.authority.accountVersion) throw fail("STALE_EQUIPMENT_AUTHORITY");
     const bytes = fs.readFileSync(e.resumePath);
@@ -204,6 +205,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const profileHash = hash(profile);
     save(t, "equip", { artifactSha256: t.spec.resumeSha256, profileHash });
     return { ...e, profile, profileHash };
+    }catch(error){try{e?.release?.();}catch(_){}throw error;}
   }
   function executeBoard(t, e, deadline) {
     const registered = portals.get(t.spec.posting.url);
@@ -244,9 +246,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     const oldReview = t.review;
     t.status = "preparing"; save(t, "equip");
     const deadline = now() + timeoutMs;
-    let run;
+    let run,equipment;
     try {
-      const e = equip(t);
+      const e = equipment = equip(t);
       run = executeBoard(t, e, deadline);
       const session = Portal.createPortalSession({ userId: t.userId, board: run.board });
       const prepared = Portal.runApply(session, { userId: t.userId, posting: t.spec.posting, profile: e.profile, attestations: e.attestations || {}, log: { records: [] }, now: new Date(now()).toISOString() });
@@ -296,7 +298,9 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       t.blocker = e.code || "WORKER_RUNTIME_FAILURE";
       save(t, "check");
       return publicTask(t);
-    } finally { run?.close(); }
+    } finally {
+      try{run?.close();}finally{try{equipment?.release?.();}catch(_){t.blocker='EQUIPMENT_CLEANUP_FAILED';if(!t.attempt)t.status='blocked';save(t,'check');}}
+    }
   }
   function finish(t) {
     if (!t.authority) return publicTask(t);

@@ -40,3 +40,9 @@ private JSON and frames on a fixed deadline without retaining RPC access.
 Post-stop account revocations are not observed after RPC closes; the residual
 window is explicitly bounded by that deadline. Host death still needs an
 owner-approved volume retention/destruction policy. No live-readiness claim.
+
+The handoff previously had no browser-owned equipment resolver. Source now has
+a scoped confirmed-record/byte materializer with worker cleanup and twenty
+local tests, including rendered PDF/DOCX bytes. Production memory/artifact-store
+mapping and native Greenhouse form/readback remain separate live gates; this
+does not enable employer submissions. See `docs/career/owned-equipment-contract-20261017.md`.

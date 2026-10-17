@@ -54108,6 +54108,80 @@
    "additional_source_digests": {
     "workers/career-browser/**": "21bfffb44720b29056c7fd9254f22ee433e97d0ccd19defd9ce7b783cad64d56"
    }
+  },
+  {
+   "id": "browser-recovery-retention-20261017:equipment",
+   "command": [
+    "node",
+    "--test",
+    "tests/career-owned-equipment.test.cjs"
+   ],
+   "observed_at": "2026-10-17T04:44:14.627396+00:00",
+   "commit": "dd243e87de8db339cb3c02b666451ff8d22ade23",
+   "source_digest": "4a5f41d9bc233ea27debc8aa873d6b3070f53676b76f368a368d2f6bc06ed001",
+   "environment": {
+    "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+   },
+   "result": "PASS",
+   "reported_outcomes": null,
+   "exit_code": 0,
+   "log": "docs/testing/runs/browser-recovery-retention-20261017/equipment.log",
+   "log_sha256": "4ad4cee6eee162b2f57c3d5a3fe7fbb9256af9542b8a07a554373ec766456e52",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "test_ids": [
+    "confirmed owned bytes materialize privately and release without changing their hash",
+    "equipment refuses foreign record owner before creating an upload copy",
+    "equipment refuses stale record version before creating an upload copy",
+    "equipment refuses foreign artifact owner before creating an upload copy",
+    "equipment refuses unconfirmed resume version before creating an upload copy",
+    "equipment refuses future confirmation before creating an upload copy",
+    "equipment refuses changed declared bytes before creating an upload copy",
+    "equipment refuses unsafe upload filename before creating an upload copy",
+    "equipment refuses paused owner before creating an upload copy",
+    "equipment refuses revoked epoch before creating an upload copy",
+    "unconfirmed, foreign and stale facts are omitted rather than inferred",
+    "answers and attestations bind the posting and exact observed wording",
+    "conflicting confirmed facts and unsupported secret-like fields fail closed",
+    "byte ownership, immutable version and actual digest are independently checked",
+    "erase or correction during byte retrieval prevents materialization",
+    "bounded copy TTL and explicit close remove resume bytes without a backend call",
+    "real worker uses fresh scoped equipment for preparation and approval and releases both copies",
+    "real locally rendered resume.pdf bytes survive owned resolution exactly",
+    "real locally rendered resume.docx bytes survive owned resolution exactly",
+    "worker validation failure releases equipment without opening a page",
+    "restart schedules inherited young resume copies and preserves their remaining TTL (SYNTHETIC local bytes)"
+   ],
+   "limitations": [
+    "Not browser, sandbox-provider or live verification."
+   ]
+  },
+  {
+   "id": "browser-recovery-retention-20261017:whitespace",
+   "command": [
+    "git",
+    "diff",
+    "--check"
+   ],
+   "observed_at": "2026-10-17T04:44:14.627396+00:00",
+   "commit": "dd243e87de8db339cb3c02b666451ff8d22ade23",
+   "source_digest": "4a5f41d9bc233ea27debc8aa873d6b3070f53676b76f368a368d2f6bc06ed001",
+   "environment": {
+    "os": "Linux-6.18.55-x86_64-with-glibc2.41"
+   },
+   "result": "PASS",
+   "reported_outcomes": null,
+   "exit_code": 0,
+   "log": "docs/testing/runs/browser-recovery-retention-20261017/whitespace.log",
+   "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "verification_level": "LOCAL",
+   "provider_mode": "synthetic",
+   "screenshots": [],
+   "test_ids": [],
+   "limitations": [
+    "Not browser, sandbox-provider or live verification."
+   ]
   }
  ],
  "limitations": [

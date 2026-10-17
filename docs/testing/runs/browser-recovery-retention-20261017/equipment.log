@@ -1,0 +1,29 @@
+✔ confirmed owned bytes materialize privately and release without changing their hash (12.688534ms)
+✔ equipment refuses foreign record owner before creating an upload copy (1.869268ms)
+✔ equipment refuses stale record version before creating an upload copy (0.685348ms)
+✔ equipment refuses foreign artifact owner before creating an upload copy (0.46187ms)
+✔ equipment refuses unconfirmed resume version before creating an upload copy (0.628789ms)
+✔ equipment refuses future confirmation before creating an upload copy (3.988684ms)
+✔ equipment refuses changed declared bytes before creating an upload copy (0.74917ms)
+✔ equipment refuses unsafe upload filename before creating an upload copy (0.789034ms)
+✔ equipment refuses paused owner before creating an upload copy (0.670795ms)
+✔ equipment refuses revoked epoch before creating an upload copy (0.658189ms)
+✔ unconfirmed, foreign and stale facts are omitted rather than inferred (0.901473ms)
+✔ answers and attestations bind the posting and exact observed wording (1.100755ms)
+✔ conflicting confirmed facts and unsupported secret-like fields fail closed (0.616869ms)
+✔ byte ownership, immutable version and actual digest are independently checked (1.126825ms)
+✔ erase or correction during byte retrieval prevents materialization (0.800364ms)
+✔ bounded copy TTL and explicit close remove resume bytes without a backend call (0.566906ms)
+✔ real worker uses fresh scoped equipment for preparation and approval and releases both copies (30.878454ms)
+✔ real locally rendered resume.pdf bytes survive owned resolution exactly (6.022034ms)
+✔ real locally rendered resume.docx bytes survive owned resolution exactly (1.950009ms)
+✔ worker validation failure releases equipment without opening a page (1.355427ms)
+✔ restart schedules inherited young resume copies and preserves their remaining TTL (SYNTHETIC local bytes) (207.028161ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 341.687926

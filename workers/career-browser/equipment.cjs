@@ -11,11 +11,25 @@ const canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Obje
 function createOwnedEquipmentResolver({authority,loadOwnedRecords,readOwnedBytes,root,maxBytes=10485760,ttlMs=900000,now=Date.now,schedule=setTimeout}){
  if(typeof authority?.current!=='function'||typeof loadOwnedRecords!=='function'||typeof readOwnedBytes!=='function'||!path.isAbsolute(root)||!Number.isInteger(maxBytes)||maxBytes<1||maxBytes>10485760||!Number.isInteger(ttlMs)||ttlMs<100||ttlMs>900000)throw fail('EQUIPMENT_CONFIGURATION_INVALID');
  fs.mkdirSync(root,{recursive:true,mode:0o700});const s=fs.lstatSync(root);if(!s.isDirectory()||s.isSymbolicLink()||(s.mode&0o077)||fs.realpathSync(root)!==path.resolve(root))throw fail('EQUIPMENT_PRIVATE_DIRECTORY_REQUIRED');
- const active=new Map();
+ const active=new Map();let inheritedTimer;
  function account(userId,scope){const a=authority.current(userId);if(a?.then||!a?.exists||a.paused||a.version!==scope.accountVersion||a.epoch!==scope.privacyEpoch)throw fail('STALE_EQUIPMENT_AUTHORITY');return a;}
  function confirmation(record,userId,epoch){const c=record.confirmation;return record.userId===userId&&record.privacyEpoch===epoch&&c?.confirmed===true&&c.userId===userId&&KEY.test(c.ref||'')&&Number.isFinite(Date.parse(c.at))&&Date.parse(c.at)<=now();}
  function value(v){if(typeof v==='string')return v.length<=12000&&!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(v);if(typeof v==='boolean')return true;if(typeof v==='number')return Number.isFinite(v);return Array.isArray(v)&&v.length<=25&&v.every(x=>typeof x==='string'&&x.length<=1000&&!/[\x00-\x1f\x7f]/.test(x));}
- function purgeExpired(){if(!fs.existsSync(root))return;for(const file of fs.readdirSync(root).filter(f=>/^resume-[a-f0-9]{16}-[A-Za-z0-9]+$/.test(f))){const p=path.join(root,file),s=fs.lstatSync(p);if(s.isSymbolicLink()||!s.isDirectory())throw fail('EQUIPMENT_PATH_INVALID');if(now()-s.mtimeMs>=ttlMs)fs.rmSync(p,{recursive:true,force:true});}}
+ function purgeExpired(){
+  clearTimeout(inheritedTimer);inheritedTimer=undefined;
+  if(!fs.existsSync(root))return;
+  let remaining=Infinity;
+  for(const file of fs.readdirSync(root).filter(f=>/^resume-[a-f0-9]{16}-[A-Za-z0-9]+$/.test(f))){
+   const p=path.join(root,file),s=fs.lstatSync(p);
+   if(s.isSymbolicLink()||!s.isDirectory())throw fail('EQUIPMENT_PATH_INVALID');
+   if(active.has(p))continue; // own active copies already have exact release timers
+   const left=ttlMs-(now()-s.mtimeMs);
+   if(left<=0)fs.rmSync(p,{recursive:true,force:true});else remaining=Math.min(remaining,left);
+  }
+  // A restart must enroll young inherited copies, not just sweep old ones.
+  // Recheck their age at the deadline; never erase a still-young copy early.
+  if(Number.isFinite(remaining)){inheritedTimer=schedule(purgeExpired,Math.max(1,Math.ceil(remaining)));inheritedTimer?.unref?.();}
+ }
  purgeExpired();
  function resolveEquipment(userId,artifactId,scope){
   if(typeof userId!=='string'||!userId||!KEY.test(artifactId||'')||!scope||!Number.isSafeInteger(scope.accountVersion)||!Number.isSafeInteger(scope.privacyEpoch)||(typeof scope.postingKey!=='string'||!scope.postingKey||scope.postingKey.length>512||/[\x00-\x1f\x7f]/.test(scope.postingKey))||!/^[a-f0-9]{64}$/.test(scope.resumeSha256||''))throw fail('EQUIPMENT_SCOPE_REQUIRED');

@@ -66,3 +66,13 @@ test('worker validation failure releases equipment without opening a page',t=>{
  f=require('./fixtures/owned-worker-fixture.cjs').fixture(root,{resolveEquipment:()=>({userId:'user-a',accountVersion:f.authority.current('user-a').version,privacyEpoch:0,profile:{...f.profile,resume:{sha256:'a'.repeat(64)}},resumePath:f.resumePath,release:()=>released++})});
  const q=f.worker.receive('user-a',f.input),result=f.worker.prepare('user-a',q.id);assert.equal(result.blocker,'RESUME_SHA_MISMATCH');assert.equal(released,1);assert.equal(f.count().opens,0);assert.equal(f.count().clicks,0);
 });
+
+test('restart schedules inherited young resume copies and preserves their remaining TTL (SYNTHETIC local bytes)',async t=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'MOCK-equipment-restart-')),cache=path.join(root,'copies');fs.mkdirSync(cache,{mode:0o700});
+ const inherited=path.join(cache,'resume-'+'a'.repeat(16)+'-ABC123');fs.mkdirSync(inherited,{mode:0o700});fs.writeFileSync(path.join(inherited,'resume-bytes'),'SYNTHETIC private resume');
+ let callbacks=0;const resolver=createOwnedEquipmentResolver({root:cache,ttlMs:100,authority:{current:()=>({exists:true,version:1,epoch:0})},loadOwnedRecords:()=>null,readOwnedBytes:()=>null,schedule:(fn,ms)=>{callbacks++;return setTimeout(fn,ms);}});
+ t.after(()=>{resolver.close();fs.rmSync(root,{recursive:true,force:true});});
+ assert.equal(fs.existsSync(inherited),true,'restart must preserve a young copy');
+ await new Promise(resolve=>setTimeout(resolve,205));
+ assert.equal(fs.existsSync(inherited),false,'inherited bytes must expire while restarted worker stays alive');assert.ok(callbacks>0,'startup must enroll inherited bytes in cleanup');
+});

@@ -6086,7 +6086,7 @@ const CareerTrack = (() => {
   // rejection". Capitalized event-context phrases only; sentence-opening
   // fillers are never a company. Inbox text is never mined this way.
   const NOT_A_COMPANY = new Set(["they", "the", "my", "i", "just", "so", "well", "finally", "yesterday", "today", "got", "it", "this", "that", "an", "a", "ugh", "and", "but", "then", "we", "you", "he", "she"]);
-  // LF-09 (BUG-271): a calendar word is never a company. The
+  // LF-09 (BUG-274): a calendar word is never a company. The
   // from/at/by/with frame mined "by Monday" — the DEADLINE in "they
   // want an answer by Monday" — as a company name and opened a named
   // tracker row for "Monday" under the user's offer. A captured name
@@ -16978,7 +16978,7 @@ const CareerRouter = (() => {
     if (q) {
       const facts = statedFactsOf(ctx);
       const firmF = facts.find((f) => f.kind === "target_firm");
-      // LF-09 (ii) (BUG-272 / FR-427): the on-record firm may anchor
+      // LF-09 (ii) (BUG-275 / FR-430): the on-record firm may anchor
       // only an ask that named NO universe of its own. Named firms, a
       // named set, and a category proposal are the ask's own universe
       // (124's own note: a category proposal is by construction the
@@ -24106,7 +24106,7 @@ const CareerRouter = (() => {
       // DEPTH LANE A: "I want New York firms" — the want-frame names
       // the search geography as plainly as "targeting" does.
       else if ((m = cl.match(new RegExp(`\\bwant\\s+(${FACT_CITIES.join("|")})\\s+(?:firms|roles|jobs|banks|companies|offices)\\b`, "i")))) push("geography", m[1], m[0]);
-      // LF-09 (iii) (BUG-273 / FR-428): the bare `in <CITY>` frame used
+      // LF-09 (iii) (BUG-276 / FR-431): the bare `in <CITY>` frame used
       // to fire on any location keyword in the clause (network /
       // target / firms / aiming / looking / move / based) — so
       // "looking at data analyst roles in Chicago" (P6 t1, live
@@ -24987,7 +24987,7 @@ const CareerRouter = (() => {
       company = (open.length === 1 ? open[0] : rows.length === 1 ? rows[0] : null)?.company || null;
       if (!company && rows.length === 1) company = rows[0].company;
     }
-    // LF-09 (i) (BUG-271 / FR-426): there is deliberately NO further
+    // LF-09 (i) (BUG-274 / FR-429): there is deliberately NO further
     // fallback. The on-record target_firm used to be read here as the
     // company of last resort — so an unnamed offer report ("I got an
     // offer from a fintech startup, 85k…") was recorded FOR the target

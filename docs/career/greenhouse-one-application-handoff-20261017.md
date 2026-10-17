@@ -4,6 +4,8 @@
 The later [worker review repair](worker-review-repair-20261017.md) addresses
 confirmed structural defects in this handoff source. The actual Greenhouse
 destination/upload/receipt adapter and hosted runtime remain blocked/unverified.
+Recovery follow-up: [native browser recovery](browser-native-recovery-20261017.md) adds exact native multipart mechanics, real local PDF/DOCX wire tests and latest-confirmed equipment v2. These are modeled-loopback checks; no employer manifest or production mapping is activated. Module 150/helper/service now have native seams, so the older ownership summary below describes the original contribution only.
+
 Shared release: `f67db048599db308f2691a7be7feada841143da5`.
 Browser review base: `c574352c11958f9a27242a273255d88e72997be5`.
 The product target is cloud text → owned worker → application proof. A desktop

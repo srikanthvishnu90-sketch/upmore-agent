@@ -356,7 +356,8 @@ async function cmdDiscover(board) {
       disabled: !!el.disabled || el.getAttribute("aria-disabled") === "true", visible: !!el.getClientRects().length }));
     if (!value.visible) continue;
     const ref = version + ":b:" + i;
-    controls.push({ ref, ...value, kind: /^next$|^continue$|^review application$|^save and continue$/i.test(value.label) ? "next" : /submit/i.test(value.label) ? "submit" : "other" });
+    const nativeSubmit=board.nativeManifest?await buttons[i].evaluate((el,selector)=>el.matches(selector),board.nativeManifest.submitSelector):null;
+    controls.push({ ref, ...value, kind: board.nativeManifest ? (nativeSubmit ? "submit" : "other") : /^next$|^continue$|^review application$|^save and continue$/i.test(value.label) ? "next" : /submit/i.test(value.label) ? "submit" : "other" });
     handles.set(ref, buttons[i]);
   }
   const text = await board.page.evaluate(() => {

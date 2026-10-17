@@ -42,6 +42,10 @@
        records as unknown_outcome, never as sent. submissionState()
        reports from the same capture: confirmed → submitted; ambiguous →
        unverifiable (reconcile must not clear it for a retry).
+   The separately registered native multipart dialect uses an exact manifest;
+   it refuses employer activation until actual network evidence is reviewed,
+   and keeps every browser receipt nonauthoritative/unknown. Generic success
+   prose never promotes a native application to accepted.
    Session isolation (§6.3): every board owns a fresh browser context —
    no cookies, storage, or values are shared between boards or users.
    Account model: boards that need no account (Greenhouse / Lever /
@@ -381,6 +385,7 @@ const CareerPortalBrowser = (() => {
       get submitArmed() { return state.armed; },
       get lastObservation() { return state.observation; },
       get approvalRef() { return state.approvalRef; },
+      get nativeReceiptCapture() { return state.submitCapture?.nativeCapture || null; },
       // THE ARMING WIRE (BUG-063 / D3): called ONLY by 149's approval
       // gate (submitDoorstep). Arms this board iff the gate passed AND
       // the approval carries a reference naming the owner's batch

@@ -36,8 +36,7 @@ No browser or employer submission is represented by these tests.
 
 The production store-to-contract mapping remains A/Muse integration work: no
 existing resume storage schema, access credential or applicant record has been
-guessed or bound. The native Greenhouse multipart/readback adapter is the next
-source step. Real form/network observation and a compatible authorized runtime
+guessed or bound. The native direct multipart mechanics are now implemented behind a modeled-loopback-only manifest; actual Greenhouse multipart/readback remains unverified. Real form/network observation and a compatible authorized runtime
 remain live gates; prior access denials remain intact.
 
 

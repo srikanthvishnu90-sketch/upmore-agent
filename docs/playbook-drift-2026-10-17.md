@@ -46,3 +46,6 @@ a scoped confirmed-record/byte materializer with worker cleanup and twenty
 local tests, including rendered PDF/DOCX bytes. Production memory/artifact-store
 mapping and native Greenhouse form/readback remain separate live gates; this
 does not enable employer submissions. See `docs/career/owned-equipment-contract-20261017.md`.
+
+
+Native recovery source status: the owned-equipment contract previously called native multipart the next source step and described v1 without a latest-confirmed pointer. Recovery adds a v2 pointer requirement and direct native multipart mechanics behind a modeled-loopback-only manifest. Actual Greenhouse traces/receipt authority and production applicant store mapping remain absent. Source: `workers/career-browser/equipment.cjs`, `greenhouse-native.cjs`, module 150/helper/service and scoped tests. Updated the equipment contract and original handoff to distinguish this source checkpoint from employer verification. No capability, live readiness or shared release status was promoted.

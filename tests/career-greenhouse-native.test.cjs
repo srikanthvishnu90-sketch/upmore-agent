@@ -2,7 +2,7 @@
 // Structural and real loopback HTTP tests; NO browser or actual Greenhouse.
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {fork}=require('node:child_process');
+const {fork,execFileSync}=require('node:child_process');
 const Native=require('../workers/career-browser/greenhouse-native.cjs');
 const {manifest}=require('./fixtures/greenhouse-native/manifest.cjs');
 const {hash}=require('../workers/career-browser/store.cjs');
@@ -63,4 +63,7 @@ test('transport uncertainty consumes mutation allowance before fetch; a later co
  const m=manifest(),w=await multipart(m,doc()),h=routeHarness(m,w);let effects=0;h.route.fetch=async()=>{effects++;throw Error('MODELED connection lost after send');};await Native.routeNative(h.board,h.route);assert.equal(h.board.mutationSent,true);await Native.routeNative(h.board,h.route);assert.equal(effects,1);assert.equal(h.board.nativeBlocked,'NATIVE_MUTATION_REFUSED');
 });
 test('redirect is not followed and cannot become a receipt',async()=>{const m=manifest(),w=await multipart(m,doc()),h=routeHarness(m,w);h.route.fetch=async()=>({status:()=>302,headers:()=>({location:'https://example.test/unreviewed'})});let status;h.route.fulfill=async value=>{status=value.status;};await Native.routeNative(h.board,h.route);assert.equal(status,403);assert.equal(h.board.blockedNav,'https://example.test/unreviewed');assert.equal(Native.captureReceipt(m,{url:m.submitUrl,text:m.receipt.text,id:'MODELED-12345'},h.board.nativeOutbound).status,'unknown_outcome');});
-module.exports={doc,payload,multipart,raw};
+test('representative HTML independently parses to the exact manifest fields (STATIC modeled fixture)',()=>{
+ const parsed=JSON.parse(execFileSync('python3',[path.join(__dirname,'helpers/native-form-observation.py'),path.join(__dirname,'fixtures/greenhouse-native/form.html')],{encoding:'utf8'}));
+ assert.equal(parsed.provenance,'STATIC_MODELED_FIXTURE_NOT_BROWSER');assert.equal(Native.exactFields(manifest(),parsed.fields).defs.length,5);
+});

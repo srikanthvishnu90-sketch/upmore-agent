@@ -33,10 +33,11 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=[]}){
    if(action==='upload'){
     const type=req.headers.get('content-type')||'';if(!/^multipart\/form-data;\s*boundary=/i.test(type))throw error('MULTIPART_FILE_REQUIRED');
     const bytes=await bodyBytes(req,MAX_RESUME_BYTES+16384),parsed=await new Request('http://local.invalid/',{method:'POST',headers:{'content-type':type},body:bytes}).formData();
-    if([...parsed.keys()].some(k=>!['threadId','requestId','file'].includes(k))||['threadId','requestId','file'].some(k=>parsed.getAll(k).length!==1))throw error('INVALID_UPLOAD_FIELDS');
+    if([...parsed.keys()].some(k=>!['threadId','requestId','file','filename'].includes(k))||['threadId','requestId','file'].some(k=>parsed.getAll(k).length!==1))throw error('INVALID_UPLOAD_FIELDS');
     threadId=parsed.get('threadId');requestId=parsed.get('requestId');const file=parsed.get('file');
-    if(!UUID.test(threadId||'')||!KEY.test(requestId||'')||!file||typeof file.arrayBuffer!=='function')throw error('INVALID_UPLOAD_FIELDS');
-    const original=await file.arrayBuffer();validation=await validateResume(original,file.name,file.type);encoded=Buffer.from(original).toString('base64');
+    if(!UUID.test(threadId||'')||!KEY.test(requestId||'')||!file||typeof file.arrayBuffer!=='function')throw error('INVALID_UPLOAD_FIELDS');threadId=threadId.toLowerCase();
+    const declared=parsed.get('filename');if(parsed.getAll('filename').length>1||(declared!==null&&(typeof declared!=='string'||(file.name!==declared&&file.name!==declared.replace(/"/g,'%22')))))throw error('UPLOAD_FILENAME_MISMATCH');
+    const original=await file.arrayBuffer();validation=await validateResume(original,declared===null?file.name:declared,file.type);encoded=Buffer.from(original).toString('base64');
     requestHash=await applicantRequestHash({version:'career_applicant_upload/v1',threadId,requestId,filename:validation.filename,contentType:validation.contentType,sha256:validation.sha256,bytes:validation.bytes});
    }else{
     if(!/^application\/json(?:;|$)/i.test(req.headers.get('content-type')||''))throw error('JSON_REQUIRED');
@@ -44,12 +45,13 @@ export function createApplicantIngress({authenticate,rpc,allowedOrigins=[]}){
     if(!input||typeof input!=='object'||Array.isArray(input))throw error('INVALID_APPLICANT_REQUEST');
     const allowed=action==='review'?['threadId','uploadId','fields']:['threadId','requestId','uploadId','fields','reviewHash','message'];
     if(Object.keys(input).some(k=>!allowed.includes(k)))throw error('INVALID_APPLICANT_REQUEST');
-    ({threadId,requestId,uploadId}=input);if(!UUID.test(threadId||'')||!UUID.test(uploadId||''))throw error('OWNED_UPLOAD_REFERENCE_REQUIRED');fields(input.fields);
-    if(action==='review'){const result=await call('career_applicant_review_v1',{p_user:user.id,p_thread:threadId,p_upload:uploadId,p_fields:input.fields});return respond(200,result);}
+    ({threadId,requestId,uploadId}=input);if(!UUID.test(threadId||'')||!UUID.test(uploadId||''))throw error('OWNED_UPLOAD_REFERENCE_REQUIRED');threadId=threadId.toLowerCase();uploadId=uploadId.toLowerCase();fields(input.fields);
+    if(action==='review'){await call('career_applicant_upload_sweep_v1',{p_user:user.id});const result=await call('career_applicant_review_v1',{p_user:user.id,p_thread:threadId,p_upload:uploadId,p_fields:input.fields});return respond(200,result);}
     const phrase=Object.keys(input.fields).length?'use this resume and confirm these fields':'use this resume';
     if(!KEY.test(requestId||'')||typeof input.message!=='string'||input.message.length>120||input.message.trim().toLowerCase()!==phrase||!/^[a-f0-9]{64}$/.test(input.reviewHash||''))throw error('EXPLICIT_REVIEW_CONFIRMATION_REQUIRED');
     requestHash=await applicantRequestHash({version:'career_applicant_confirm/v1',threadId,requestId,uploadId,reviewHash:input.reviewHash,fields:input.fields,message:input.message});
    }
+   await call('career_applicant_upload_sweep_v1',{p_user:user.id});
    let loaded;try{loaded=await persistence.load({userId:user.id,threadId,turnKey:requestId,requestHash});}catch(e){throw error(e.code==='storage_unavailable'?'APPLICANT_STORAGE_UNAVAILABLE':e.code,['turn_key_conflict','privacy_epoch_changed','owned_thread_missing'].includes(e.code)?409:503);}
    if(loaded.replay)return respond(200,loaded.replay);
    const base={p_user:user.id,p_thread:threadId,p_key:requestId,p_hash:requestHash,p_revision:loaded.revision,p_account_version:loaded.accountVersion};

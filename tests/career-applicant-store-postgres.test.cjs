@@ -50,6 +50,20 @@ else{
  test('STOP revokes resolution and ERASE deletes server bytes without another owner loss',()=>{const file=render();confirm(file);confirm(file,'foreign','foreign-resume','v1',V,TV);const p=prepare(file);turn('stop','STOP',U,T,{paused:true});assert.throws(()=>adapter().resolveEquipment(U,'owned-resume',p.scope));turn('erase','Forget my career profile',U,T,{erase:true,paused:true});assert.equal(scalar("(select count(*) from career_applicant_resumes_v1 where user_id='"+U+"')"),0);assert.equal(scalar("(select count(*) from career_applicant_resumes_v1 where user_id='"+V+"')"),1);});
  test('correction between metadata and byte RPC prevents materialization',()=>{const file=render();confirm(file);const p=prepare(file);let calls=0;const a=adapter((name,args)=>{if(++calls===2)turn('correction','SYNTHETIC correction');return db.call(name,args);});assert.throws(()=>a.resolveEquipment(U,'owned-resume',p.scope));assert.equal(calls,2);assert.deepEqual(fs.readdirSync(path.join(root,'bytes-0')),[]);});
  test('SQL gates expired owned lease and unclaimed task; no bytes are returned',()=>{const file=render();confirm(file);const p=prepare(file);for(const update of ["claim_lease_until=null","claim_lease_until=now()-interval '1 second'","claim_lease_until=now()+interval '1 minute',state='queued'"]){db.sql("update career_task_intents_v1 set "+update+" where user_id='"+U+"';");assert.throws(()=>adapter().resolveEquipment(U,'owned-resume',p.scope));}});
+ test('lease expiry is evaluated after a real owner-lock wait, not at transaction start',async()=>{
+  const file=render();confirm(file);const p=prepare(file),{spawn}=require('node:child_process');
+  const holder=spawn('docker',['exec','-i',container,'psql','-X','-qAt','-U','postgres','-d',database,'-v','ON_ERROR_STOP=1']);let output='';
+  const locked=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('owner lock holder did not start')),4000);holder.stdout.on('data',x=>{output+=x;if(output.includes('OWNER_LOCK_HELD')){clearTimeout(timer);resolve();}});holder.once('error',reject);});
+  holder.stdin.end("begin;select pg_advisory_xact_lock(hashtextextended('"+U+"',0));\n\\echo OWNER_LOCK_HELD\nselect pg_sleep(1.0);commit;\n");
+  try{
+   await locked;
+   // Separate update does not need the owner advisory lock; it sets up a real
+   // future lease deadline before the resolver transaction begins waiting.
+   db.sql("update career_task_intents_v1 set claim_lease_until=clock_timestamp()+interval '500 milliseconds' where user_id='"+U+"';");
+   const pending=db.callAsync('career_applicant_equipment_resolve_v1',{p_user:U,p_artifact:'owned-resume',p_version:p.scope.accountVersion,p_epoch:p.scope.privacyEpoch,p_task:TASK,p_intent:p.scope.intentId,p_lease:p.scope.leaseToken,p_posting:posting.canonicalKey,p_sha:file.sha256,p_include_bytes:true});
+   await assert.rejects(pending,/revoked/);
+  }finally{holder.kill();}
+ });
  test('actual service forwards the claimed task/lease to source adapter and asks for missing confirmed facts',()=>{
   const file=render();confirm(file);const p=prepare(file,'owned-resume','service-prepare',null),a=adapter(),{createWorker}=require('../workers/career-browser/service.cjs'),{createFileTaskStore}=require('../workers/career-browser/store.cjs');let uploads=0,clicks=0;const answers={};
   const worker=createWorker({authority,store:createFileTaskStore(path.join(root,'worker-tasks')),resolveEquipment:a.resolveEquipment,controlledPortals:[{url:posting.url,submitUrl:'http://localhost:8123/submit'}],boardFactory:()=>({kind:'browser',browserDriver:true,sandbox:false,host:'localhost',open:()=>({ok:true}),form:()=>({fields:[{field_id:'email',kind:'standard',profile_key:'email',required:true},{field_id:'resume',kind:'standard',profile_key:'resume',required:true}]}),fill(id,v){uploads++;answers[id]=v;},answers:()=>answers,atReview:()=>({atFinalReview:true}),submit:()=>{clicks++;},close(){}})});

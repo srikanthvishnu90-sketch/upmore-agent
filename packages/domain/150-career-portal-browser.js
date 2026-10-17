@@ -171,7 +171,7 @@ const CareerPortalBrowser = (() => {
     // DIFFERENT machine names (country / country_2, school / school_0)
     // for the same human question. Slug-derived question_keys are
     // unstable across duplicates, so only canonical keys count.
-    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements", "how_heard", "citizenship_status", "student_visa_holder", "us_person_status", "deemed_export_affects_employment", "acknowledgment_receipt", "certify_true", "military_service", "languages_fluent_other", "first_generation_professional", "gender_identity", "relatives_at_posting_firm", "federal_employment_history", "federal_relatives", "sql_python_strength", "english_proficiency", "outstanding_offers", "winternship_interest", "office_location_preference", "relocate_bay_area", "relocate_new_york", "onsite_sf_ny", "austin_onsite", "twelve_week_availability", "available_terms", "full_time_start_timing", "swe_area_interest", "areas_of_interest", "flexwork_acceptance", "documentation_ability", "cohort_availability", "fixed_dates_acknowledgment", "omaha_requirement", "comp_expectations", "comp_monthly_expectation", "grosvenor_relationships", "figma_area_first_choice", "figma_area_second_choice"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
@@ -255,7 +255,23 @@ const CareerPortalBrowser = (() => {
       if (/resume|cv\b|curriculum/.test(hay)) return { kind: "standard", profile_key: "resume" };
       return { kind: "unknown" };
     }
-    if (/certif|attest|acknowledge|true and complete|provided.*true/.test(eff) && inputType === "checkbox") return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
+    // R3 delegated answers (2026-10-17): two Gusto labels carry the
+    // word "acknowledge" but are AVAILABILITY questions with Yes/No
+    // shapes, not receipt checkboxes — they route to their screening
+    // keys before any attestation rule can see them.
+    if (/acknowledge and agree to this requirement|not able to adjust the (internship )?start or end dates/.test(eff)) return { kind: "screening", question_key: "fixed_dates_acknowledgment" };
+    if (/full duration of this cohort|available for the entirety of the program/.test(eff)) return { kind: "screening", question_key: "cohort_availability" };
+    // Attestation classes canonicalize (R3): receipt-acknowledgment /
+    // privacy checkboxes -> acknowledgment_receipt (filled only from
+    // the owner's class approval, Fact 5, via module 149); the certify
+    // class -> certify_true (the D10 confirmation's own key, so the
+    // explicit attestation reaches the checkbox whatever DOM id the
+    // board gave it). A label carrying certify/attest wording is the
+    // certify class even when it also says "acknowledge".
+    if (inputType === "checkbox" || inputType === "group") {
+      if (/acknowledg|privacy/.test(eff) && !/certif|attest/.test(eff)) return { kind: "attestation", question_key: "acknowledgment_receipt" };
+      if (inputType === "checkbox" && /certif|attest|true and complete|provided.*true/.test(eff)) return { kind: "attestation", question_key: "certify_true" };
+    }
     if (/authori[sz]ed to work|legally authori[sz]ed|right to work|eligible to work|legally eligible/.test(eff)) return { kind: "screening", question_key: "work_authorization" };
     if (/sponsor/.test(eff)) return { kind: "screening", question_key: "sponsorship" };
     // R2 binding audit (2026-10-17; Lane E re-drive record,
@@ -278,6 +294,49 @@ const CareerPortalBrowser = (() => {
     if (/previously applied|have you applied/.test(eff)) return { kind: "screening", question_key: "prior_application" };
     if (/ready for full-?time employment/.test(eff)) return { kind: "screening", question_key: "full_time_readiness" };
     if (/outside business activities|outside activities|other outside employment/.test(eff)) return { kind: "screening", question_key: "outside_activities" };
+    // R3 delegated answers (2026-10-17): the question classes the
+    // owner's 47-fact ask sheet covered. Every key below is emitted by
+    // module 149's deriveAnswers ONLY from a confirmed fact (profile
+    // facts for the citizenship trio / how-heard; owner-delegated
+    // application_answer facts for the rest) — an unmatched bank still
+    // leaves the field an ask, never a guess. Order is load-bearing:
+    // the federal pair precedes the relatives rule (Ginkgo's federal
+    // relatives label also matches "relatives ... employed"); the
+    // detailed-comp text is excluded from comp_expectations so GCM's
+    // paragraph stays a draft.
+    if (/how did you (hear|learn|connect)|how did you first (hear|learn)/.test(eff)) return { kind: "screening", question_key: "how_heard" };
+    if (/student (in )?f-?1 status|f-?1 status|student visa holder|pursuant to (curricular|optional) practical training|cpt.*\bopt\b/.test(eff)) return { kind: "screening", question_key: "student_visa_holder" };
+    if (/current visa status|what is your visa status/.test(eff)) return { kind: "screening", question_key: "citizenship_status" };
+    if (/deemed export/.test(eff)) return /state whether|are you a|whether you are/.test(eff) ? { kind: "screening", question_key: "us_person_status" } : { kind: "screening", question_key: "deemed_export_affects_employment" };
+    if (/have you served in the military|military service/.test(eff)) return { kind: "screening", question_key: "military_service" };
+    if (/fluent \(written\)|fluent \(spoken\)|language\(s\) are you fluent|which languages? are you fluent/.test(eff)) return { kind: "screening", question_key: "languages_fluent_other" };
+    if (/first[- ]generation/.test(eff)) return { kind: "screening", question_key: "first_generation_professional" };
+    if (/^i identify as:?$/ .test(eff.trim())) return { kind: "screening", question_key: "gender_identity" };
+    if (/relatives?.*federal|relative.*federal government/.test(eff)) return { kind: "screening", question_key: "federal_relatives" };
+    if (/employed by the u\.s\. federal government|performed work for the u\.s\. federal government|federal government.*contractor|political appointee/.test(eff)) return { kind: "screening", question_key: "federal_employment_history" };
+    if (/relatives?.*(currently )?employed by|any relatives.*employed/.test(eff)) return { kind: "screening", question_key: "relatives_at_posting_firm" };
+    if (/strong (experience with )?sql|sql and python|sql \+ python/.test(eff)) return { kind: "screening", question_key: "sql_python_strength" };
+    if (/english level|level of proficiency in english|english proficiency|proficiency in english/.test(eff)) return { kind: "screening", question_key: "english_proficiency" };
+    if (/outstanding offers|offer deadlines|upcoming deadlines/.test(eff)) return { kind: "screening", question_key: "outstanding_offers" };
+    if (/winternship/.test(eff)) return { kind: "screening", question_key: "winternship_interest" };
+    if (/office location preference/.test(eff)) return { kind: "screening", question_key: "office_location_preference" };
+    if (/relocate to the bay area|relocate to or commute|based in or willing to relocate/.test(eff) && /bay area/.test(eff)) return { kind: "screening", question_key: "relocate_bay_area" };
+    if (/relocate to new york/.test(eff)) return { kind: "screening", question_key: "relocate_new_york" };
+    if (/onsite in our (san francisco|new york)|open to working.*onsite|relocate to work onsite/.test(eff)) return { kind: "screening", question_key: "onsite_sf_ny" };
+    if (/austin office|onsite in austin|work in our austin/.test(eff)) return { kind: "screening", question_key: "austin_onsite" };
+    if (/12-?week/.test(eff)) return { kind: "screening", question_key: "twelve_week_availability" };
+    if (/which term\(s\) are you available|terms? (are you|you are) available to intern/.test(eff)) return { kind: "screening", question_key: "available_terms" };
+    if (/receive a full-?time offer.*available to start|when would you be available to start/.test(eff)) return { kind: "screening", question_key: "full_time_start_timing" };
+    if (/area of interest in software engineering|area or project within software engineering/.test(eff)) return { kind: "screening", question_key: "swe_area_interest" };
+    if (/select up to (three|3) areas of interest|areas of interest/.test(eff)) return { kind: "screening", question_key: "areas_of_interest" };
+    if (/flexwork/.test(eff)) return { kind: "screening", question_key: "flexwork_acceptance" };
+    if (/provide documentation/.test(eff)) return { kind: "screening", question_key: "documentation_ability" };
+    if (/in omaha|omaha, ne/.test(eff)) return { kind: "screening", question_key: "omaha_requirement" };
+    if (/monthly salary/.test(eff)) return { kind: "screening", question_key: "comp_monthly_expectation" };
+    if (/salary expectations|compensation expectations/.test(eff) && !/detailed information/.test(eff)) return { kind: "screening", question_key: "comp_expectations" };
+    if (/relationships with (grosvenor|the company|the firm)/.test(eff)) return { kind: "screening", question_key: "grosvenor_relationships" };
+    if (/engineering work/.test(eff) && /first choice/.test(eff)) return { kind: "screening", question_key: "figma_area_first_choice" };
+    if (/engineering work/.test(eff) && /second choice/.test(eff)) return { kind: "screening", question_key: "figma_area_second_choice" };
     // BUG-238 / FR-396: the bank-derived answer keys (module 149's
     // deriveAnswers) — the questions Drive Pass 2 stopped on although
     // the bank already answered them. Each rule names the key module
@@ -327,12 +386,19 @@ const CareerPortalBrowser = (() => {
     if (/^(licenses?|certifications?)(\s*(\/|&|and)\s*(licenses?|certifications?))?$/.test(eff)) return { kind: "standard", profile_key: "certifications" };
     if (f && /^start_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_start_date" }; // Greenhouse's built-in education-entry fields slug to start_year_<n> / end_year_<n> (labels: "Start date year")
     if (f && /^end_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_end_date" };
+    // R3: the MONTH halves of the same education block (R2 stop at
+    // LionTree/Affirm/Point72/Sigma/Pure: the year fields bound, the
+    // month fields had no key). Before the generic start/end rules
+    // below, which would otherwise claim them for the year values.
+    if (/start date month|start month/.test(eff)) return { kind: "standard", profile_key: "education_start_month" };
+    if (/end date month|end month/.test(eff)) return { kind: "standard", profile_key: "education_end_month" };
     if (/(start|begin)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_start_date" };
     if (/(end|completion)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_end_date" };
     // BUG-238: residence facts the bank carries (F-024 hometown /
     // basics.location) — state, time zone, date of birth get standard
     // keys so deriveAnswers' profile fields can fill them.
     if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|which (u\.s\. )?state or (canadian )?province|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
+    if (/zip code|postal code/.test(eff)) return { kind: "standard", profile_key: "zip_code" }; // R3: the bank's current-ZIP fact (Gusto's R2 stop)
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
     if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
     if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };
@@ -344,6 +410,12 @@ const CareerPortalBrowser = (() => {
     if (/portfolio|website|web site|personal site/.test(eff)) return { kind: "standard", profile_key: "website" };
     if (/current company|current employer|present company/.test(eff)) return { kind: "standard", profile_key: "current_company" };
     if (/location|city|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7)
+    // R3: why-essays and their kin are free text WHATEVER element the
+    // board renders (several boards use a plain text input, which left
+    // them "unknown" in R2 — Workshop's why-essay among them). Their
+    // drafts key by the label slug, the same key the bank's
+    // application_text facts carry.
+    if (/why do you want|why are you interested|tell us a little bit about yourself|describe a past project|best resonates with you|conferences, gatherings/.test(eff)) return { kind: "free_text", question_key: slug(eff).slice(0, 40) || "free_text" };
     if (inputType === "textarea" || /cover letter|additional information|anything else/.test(eff)) return { kind: "free_text", question_key: /cover letter/.test(eff) ? "cover_note" : (slug(eff).slice(0, 40) || "free_text") };
     if (inputType === "checkbox" && /confirm|agree/.test(eff)) return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
     return { kind: "unknown" };

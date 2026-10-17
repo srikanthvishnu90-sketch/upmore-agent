@@ -89,8 +89,19 @@ test("derivation: every bank-answered kind resolves, each answer traced to its f
   assert.equal(d.profileFields.country, "United States");
   assert.ok(d.profileFields.preferred_name && d.profileFields.preferred_name.length > 0, "preferred name derives from the bank's name");
   assert.equal(d.profileFields.education && d.profileFields.education.school, BANK.facts.find((f) => f.id === "F-001").org, "the education block derives from the bank's education fact, whichever bank loaded");
-  // the "completed" nuance: no completed-credential fact exists, so no key
-  assert.equal(d.answers.education_level_completed, undefined, "an in-progress degree never answers a completed-education question");
+  // the "completed" nuance (R3, 2026-10-17): an in-progress degree NEVER
+  // answers a completed-education question — only an explicitly completed
+  // credential fact does. The bank-aware form: when the loaded bank carries
+  // that fact (owner-delegated F-030), the key resolves to ITS value; when
+  // it does not (mini bank), the key stays absent. The synthetic pin below
+  // proves the in-progress-only case can never resolve.
+  const completedFact = BANK.facts.find((f) => f.kind === "profile" && /completed education/i.test(f.name || ""));
+  if (completedFact) {
+    assert.equal(d.answers.education_level_completed.value, completedFact.value, "a completed-credential fact answers the completed-education key with its own value");
+    assert.equal(d.answers.education_level_completed.factId, completedFact.id);
+  } else {
+    assert.equal(d.answers.education_level_completed, undefined, "an in-progress degree never answers a completed-education question");
+  }
 });
 
 test("declared-source law: every emitted answer key is declared in ANSWER_KEY_SOURCES with a fact-kind source", () => {
@@ -392,4 +403,280 @@ test("R2 end to end: the GitLab restrictions field is never filled with the curr
   assert.equal(board.held[def.field_id], undefined, "no value is ever filled into a restrictions question by the company derivation");
   assert.ok((r.asks || []).some((a) => a.field_id === def.field_id), "the restrictions question stays an honest ask");
   assert.equal(board.calls.submit, 0);
+});
+
+// ---------- R3 delegated-answers audit (2026-10-17): the 47-fact owner ask
+// sheet, answered by the owner-delegated answer-all directive ----------
+// The owner delegated the answers ("answer all of these questions urself",
+// 2026-10-17); each became a confirmed fact-bank entry (F-027..F-079,
+// provenance "owner-delegated 2026-10-17") and this section is the permanent
+// enforcement that every one of them is actually CONSUMED by the answer map:
+// classification (module 150 routes the verbatim R2 employer labels to the
+// keys), derivation (module 149 emits the answers from the facts alone), and
+// end-to-end fills (a fact removed -> the field is an ask again, never a
+// guess). Fail-first: every assertion in this section is RED on the
+// pre-R3 tree (no classifier rules, no derivations, no attestation fallback).
+const R3_BANK = {
+  basics: { name: "Sam Synthetic", location: "Chicago, IL", country: "United States" },
+  defaults: { gpa: "3.5" },
+  facts: [
+    { id: "F-001", kind: "education", status: "confirmed", title: "Pursuing Bachelors in Computer Science, Synthetic University", org: "Synthetic University", start: "2025", end: "2029", text: "Pursuing Bachelors in Computer Science at Synthetic University, 2025 - 2029." },
+    { id: "F-002", kind: "experience", status: "confirmed", org: "Acme Corp", role: "Founder", title: "Founder, Acme Corp", start: "2025", end: "present", text: "Founder, Acme Corp, 2025 - present." },
+    { id: "F-027", kind: "profile", status: "confirmed", name: "Citizenship status", value: "U.S. Citizen" },
+    { id: "F-028", kind: "profile", status: "confirmed", name: "Education start month", value: "September" },
+    { id: "F-029", kind: "profile", status: "confirmed", name: "Education end month", value: "May" },
+    { id: "F-030", kind: "profile", status: "confirmed", name: "Highest level of completed education", value: "High School Diploma" },
+    { id: "F-031", kind: "profile", status: "confirmed", name: "How heard (standard answer)", value: "Company Website" },
+    { id: "F-032", kind: "profile", status: "confirmed", name: "Current ZIP code", value: "60600" },
+    { id: "F-033", kind: "application_answer", status: "confirmed", question_key: "restrictive_agreements", value: "No" },
+    { id: "F-034", kind: "application_answer", status: "confirmed", question_key: "acknowledgment_receipt", value: true },
+    { id: "F-035", kind: "application_answer", status: "confirmed", question_key: "military_service", value: "No" },
+    { id: "F-036", kind: "application_answer", status: "confirmed", question_key: "languages_fluent_other", value: "None" },
+    { id: "F-037", kind: "application_answer", status: "confirmed", question_key: "first_generation_professional", value: "No" },
+    { id: "F-038", kind: "application_answer", status: "confirmed", question_key: "gender_identity", value: "Male" },
+    { id: "F-039", kind: "application_answer", status: "confirmed", question_key: "relatives_at_posting_firm", value: "No" },
+    { id: "F-040", kind: "application_answer", status: "confirmed", question_key: "federal_employment_history", value: "No" },
+    { id: "F-041", kind: "application_answer", status: "confirmed", question_key: "federal_relatives", value: "No" },
+    { id: "F-042", kind: "application_answer", status: "confirmed", question_key: "sql_python_strength", value: "Yes" },
+    { id: "F-043", kind: "application_answer", status: "confirmed", question_key: "english_proficiency", value: "Native or bilingual proficiency" },
+    { id: "F-044", kind: "application_answer", status: "confirmed", question_key: "outstanding_offers", value: "No" },
+    { id: "F-045", kind: "application_answer", status: "confirmed", question_key: "winternship_interest", value: "No" },
+    { id: "F-046", kind: "application_answer", status: "confirmed", question_key: "office_location_preference", value: "Chicago" },
+    { id: "F-047", kind: "application_answer", status: "confirmed", question_key: "relocate_bay_area", value: "Yes" },
+    { id: "F-048", kind: "application_answer", status: "confirmed", question_key: "relocate_new_york", value: "Yes" },
+    { id: "F-049", kind: "application_answer", status: "confirmed", question_key: "onsite_sf_ny", value: "Yes" },
+    { id: "F-050", kind: "application_answer", status: "confirmed", question_key: "austin_onsite", value: "Yes" },
+    { id: "F-051", kind: "application_answer", status: "confirmed", question_key: "twelve_week_availability", value: "Yes" },
+    { id: "F-052", kind: "application_answer", status: "confirmed", question_key: "available_terms", value: "Summer" },
+    { id: "F-053", kind: "application_answer", status: "confirmed", question_key: "full_time_start_timing", value: "June 2029" },
+    { id: "F-054", kind: "application_answer", status: "confirmed", question_key: "swe_area_interest", value: "Infrastructure" },
+    { id: "F-055", kind: "application_answer", status: "confirmed", question_key: "areas_of_interest", value: ["Finance", "Technology", "Data"] },
+    { id: "F-056", kind: "application_answer", status: "confirmed", question_key: "flexwork_acceptance", value: "Yes" },
+    { id: "F-057", kind: "application_answer", status: "confirmed", question_key: "documentation_ability", value: "Yes" },
+    { id: "F-058", kind: "application_answer", status: "confirmed", question_key: "cohort_availability", value: "Yes" },
+    { id: "F-059", kind: "application_answer", status: "confirmed", question_key: "fixed_dates_acknowledgment", value: "Yes" },
+    { id: "F-060", kind: "application_answer", status: "confirmed", question_key: "omaha_requirement", value: "Yes" },
+    { id: "F-061", kind: "application_answer", status: "confirmed", question_key: "comp_expectations", value: "$25 per hour" },
+    { id: "F-062", kind: "application_answer", status: "confirmed", question_key: "comp_monthly_expectation", value: "4000" },
+    { id: "F-063", kind: "application_answer", status: "confirmed", question_key: "grosvenor_relationships", value: "No" },
+    { id: "F-064", kind: "application_answer", status: "confirmed", question_key: "figma_area_first_choice", value: "Product Engineering" },
+    { id: "F-065", kind: "application_answer", status: "confirmed", question_key: "figma_area_second_choice", value: "Machine Learning" },
+    { id: "F-067", kind: "application_text", status: "confirmed", company: "gemini", draft: true, question_key: "essay_slug", value: "draft text" },
+  ],
+};
+const clsR3 = clsR2;
+
+test("R3 coverage: the delegated fact kinds are consumed (application_answer) or exempted with a reason (application_text)", () => {
+  const cov = Portal.answerMapCoverage(R3_BANK);
+  assert.deepEqual(cov.uncovered, [], "no delegated kind is left uncovered");
+  assert.ok(cov.consumed.includes("application_answer"), "application_answer is consumed by derivation");
+  const ex = cov.exempt.find((e) => e.kind === "application_text");
+  assert.ok(ex && ex.reason.length > 10, "application_text is exempted WITH its reason (host-supplied company-scoped drafts)");
+});
+
+test("R3 forcing function: an application_answer fact whose key is NOT declared emits nothing and is named by the guard", () => {
+  const grown = JSON.parse(JSON.stringify(R3_BANK));
+  grown.facts.push({ id: "F-901", kind: "application_answer", status: "confirmed", question_key: "undeclared_key_xyz", value: "Yes" });
+  const d = Portal.deriveAnswers(grown, NOW);
+  assert.equal(d.answers.undeclared_key_xyz, undefined, "an undeclared key never reaches the answer map (declared-source law)");
+});
+
+test("R3 derivation: citizenship trio derives from the single citizenship fact — and only from an affirmative one", () => {
+  const d = Portal.deriveAnswers(R3_BANK, NOW);
+  assert.equal(d.answers.citizenship_status.value, "U.S. Citizen"); assert.equal(d.answers.citizenship_status.factId, "F-027");
+  assert.equal(d.answers.student_visa_holder.value, "No", "a U.S. citizen is not an F-1/CPT/OPT student-visa holder");
+  assert.equal(d.answers.us_person_status.value, "Yes", "a U.S. citizen is a U.S. Person under the deemed-export rule");
+  assert.equal(d.answers.deemed_export_affects_employment.value, "No");
+  const other = JSON.parse(JSON.stringify(R3_BANK));
+  other.facts.find((f) => f.id === "F-027").value = "Canadian citizen";
+  const d2 = Portal.deriveAnswers(other, NOW);
+  assert.equal(d2.answers.citizenship_status.value, "Canadian citizen", "the status text itself always derives verbatim");
+  assert.equal(d2.answers.student_visa_holder, undefined, "a non-U.S.-citizen status derives NO visa-holder answer — the field stays an ask");
+  assert.equal(d2.answers.us_person_status, undefined);
+  assert.equal(d2.answers.deemed_export_affects_employment, undefined);
+});
+
+test("R3 derivation: months, completed education, how-heard, ZIP and every application_answer key resolve from their facts", () => {
+  const d = Portal.deriveAnswers(R3_BANK, NOW);
+  assert.equal(d.profileFields.education.start_month, "September");
+  assert.equal(d.profileFields.education.end_month, "May");
+  assert.equal(d.answers.education_level_completed.value, "High School Diploma"); assert.equal(d.answers.education_level_completed.factId, "F-030");
+  assert.equal(d.answers.how_heard.value, "Company Website"); assert.equal(d.answers.how_heard.factId, "F-031");
+  assert.equal(d.profileFields.zip_code, "60600");
+  for (const f of R3_BANK.facts.filter((x) => x.kind === "application_answer")) {
+    assert.ok(d.answers[f.question_key], `delegated key ${f.question_key} derives`);
+    assert.deepEqual(d.answers[f.question_key].value, f.value, `${f.question_key} carries its fact's value verbatim`);
+    assert.equal(d.answers[f.question_key].factId, f.id, `${f.question_key} traces to ${f.id}`);
+    assert.equal(d.answers[f.question_key].confirmed, true);
+  }
+  const un = JSON.parse(JSON.stringify(R3_BANK));
+  un.facts.find((f) => f.id === "F-033").status = "unconfirmed";
+  assert.equal(Portal.deriveAnswers(un, NOW).answers.restrictive_agreements, undefined, "an unconfirmed delegated fact yields no answer (confirmed-only law)");
+});
+
+test("R3 pin: an in-progress-only bank can NEVER answer the completed-education key (the BUG-238 law survives R3)", () => {
+  const b = JSON.parse(JSON.stringify(R3_BANK));
+  b.facts = b.facts.filter((f) => f.id !== "F-030");
+  assert.equal(Portal.deriveAnswers(b, NOW).answers.education_level_completed, undefined);
+});
+
+test("R3 classification: how-heard phrasings (verbatim R2 labels) route to how_heard", () => {
+  for (const l of ["How did you hear about this job?", "How did you connect with us?", "How did you first learn about Affirm as an employer?", "How did you learn about this opportunity?", "How did you hear about this internship?", "How did you hear about this opportunity?", "How did you first hear about Affirm?"]) {
+    assert.equal(clsR3(l).question_key, "how_heard", l);
+  }
+});
+
+test("R3 classification: the citizenship trio's verbatim labels route to their keys", () => {
+  assert.equal(clsR3("Are you a student in F-1 status who plans to work pursuant to curricular practical training (CPT), or optional practical training (OPT)?").question_key, "student_visa_holder");
+  assert.equal(clsR3("What is your current visa status?").question_key, "citizenship_status");
+  assert.equal(clsR3("Does the deemed export rule affect your employment by Everpure?").question_key, "deemed_export_affects_employment");
+  assert.equal(clsR3("State whether you are a US Citizen, US National, lawful permanent resident asylee or refugee (i.e. a US Person under the Deemed Export Rule of EAR 734.13 and ITAR 120.15)?").question_key, "us_person_status");
+});
+
+test("R3 classification: education months and ZIP get standard profile keys", () => {
+  assert.equal(clsR3("Start date month").profile_key, "education_start_month");
+  assert.equal(clsR3("End date month").profile_key, "education_end_month");
+  assert.equal(clsR3("Zip Code / Postal Code (Non-U.S. based candidates, please enter \"00000\")").profile_key, "zip_code");
+});
+
+test("R3 classification: the delegated screening labels (verbatim R2) route to their keys", () => {
+  const cases = [
+    ["Have you served in the military?", "military_service"],
+    ["In which language(s) are you fluent (written) other than English?", "languages_fluent_other"],
+    ["In which language(s) are you fluent (spoken) other than English?", "languages_fluent_other"],
+    ["I identify as a first-generation professional (please select one):", "first_generation_professional"],
+    ["I identify as:", "gender_identity"],
+    ["Do you have any relatives that are currently employed by GCM Grosvenor?", "relatives_at_posting_firm"],
+    ["Do you have strong experience with SQL and Python?", "sql_python_strength"],
+    ["What is your English level?", "english_proficiency"],
+    ["Do you have any outstanding offers or deadlines?", "outstanding_offers"],
+    ["Are you interested in our Women's Winternship program?", "winternship_interest"],
+    ["Are you currently based in or willing to relocate to the Bay Area for this position?", "relocate_bay_area"],
+    ["Are you willing to relocate to New York for the duration of this internship?", "relocate_new_york"],
+    ["Are you open to working 4 days onsite in our San Francisco, CA or New York, NY office?", "onsite_sf_ny"],
+    ["Are you able to work in our Austin office 3–5 days a week?", "austin_onsite"],
+    ["Are you available for a 12-week full-time (40 hours per week) internship during your select term(s)?", "twelve_week_availability"],
+    ["Which term(s) are you available to intern?", "available_terms"],
+    ["A successful internship may lead to consideration for a full-time opportunity. If you were to receive a full-time offer, when would you be available to start?", "full_time_start_timing"],
+    ["Area of interest in Software Engineering", "swe_area_interest"],
+    ["Please select up to three areas of interest.", "areas_of_interest"],
+    ["If requested, would you be able to provide documentation reflecting the education and employment history listed on your resume?", "documentation_ability"],
+    ["This internship is from May 17, 2027 to August 6, 2027 (12 weeks). Are you available for the full duration of this cohort?", "cohort_availability"],
+    ["To help make sure everyone has the same experience, we are not able to adjust the internship start or end dates. Are you able to acknowledge and agree to this requirement?", "fixed_dates_acknowledgment"],
+    ["For this role, candidates must be in Omaha, NE for Summer 2026. Are you able to meet this requirement? (Please note- housing is not provided)", "omaha_requirement"],
+    ["What are your salary expectations for this role?", "comp_expectations"],
+    ["What is your monthly salary expectation in USD?", "comp_monthly_expectation"],
+    ["Are you involved in any active or potential relationships with Grosvenor?", "grosvenor_relationships"],
+    ["Which type of engineering work are you most excited to do at Figma? Select your first choice.", "figma_area_first_choice"],
+    ["Which type of engineering work are you most excited to do at Figma? Select your second choice.", "figma_area_second_choice"],
+  ];
+  for (const [label, key] of cases) assert.equal(clsR3(label).question_key, key, label);
+  const flex = clsR3("Justworks believes in a \"flexwork\" model where teammates have at least two days a week when they are expected to work in a global office. The exact schedule is at individual teams' discretion. Does this requirement work for you?");
+  assert.equal(flex.question_key, "flexwork_acceptance");
+  const office = clsR3("What is your office location preference?");
+  assert.equal(office.question_key, "office_location_preference");
+  assert.equal(office.profile_key, undefined, "an office PREFERENCE is never the current-location value (D7)");
+});
+
+test("R3 classification: Ginkgo's federal pair routes to the federal keys — never prior_employment, never relatives_at_posting_firm", () => {
+  const fed = clsR3("Including your current position, have you ever been employed by the U.S. Federal Government, a contractor (including subsidiaries, parents, and affiliates) that performed work for the U.S. Federal Government, served in the Military, and/or were a Political Appointee?");
+  assert.equal(fed.question_key, "federal_employment_history");
+  const rel = clsR3("Do you have any relatives that are currently employed by the Federal Government, a contractor (including subsidiaries, parents, and affiliates) that performs work for the U.S. Department of Health and Human Services (or any of its sub-agencies, including CDC, for example) or the U.S. Department of Defense?");
+  assert.equal(rel.question_key, "federal_relatives");
+});
+
+test("R3 classification: acknowledgment checkboxes canonicalize to acknowledgment_receipt; certify checkboxes to certify_true", () => {
+  for (const l of ["Applicant Privacy Statement", "Privacy", "Privacy Acknowledgement", "Acknowledge/Confirm", "Acknowledge, confirm, and agree to the following statements."]) {
+    const d = clsR3(l, "checkbox");
+    assert.equal(d.kind, "attestation", l);
+    assert.equal(d.question_key, "acknowledgment_receipt", l);
+  }
+  const cert = clsR3("I certify that the information I have provided is true and complete", "checkbox");
+  assert.equal(cert.kind, "attestation");
+  assert.equal(cert.question_key, "certify_true", "the certify class keeps its own canonical key (D10), distinct from receipt acknowledgments");
+});
+
+test("R3 classification: why-essays are free_text even on plain text inputs (their drafts key by label slug)", () => {
+  assert.equal(clsR3("Why do you want to intern at Workshop?", "text").kind, "free_text");
+  assert.equal(clsR3("Why do you want to intern at Workshop?", "text").question_key, "why_do_you_want_to_intern_at_workshop");
+  assert.equal(clsR3("Which of our core values (Humble, Hungry, Connected) best resonates with you and why?", "textarea").kind, "free_text");
+  const gcm = clsR3("Please provide detailed information concerning your compensation expectations, including base salary, bonus and other compensation components:", "textarea");
+  assert.equal(gcm.kind, "free_text", "GCM's DETAILED comp text stays a draft, never the short comp_expectations value");
+  assert.equal(gcm.question_key, "please_provide_detailed_information_conc");
+});
+
+test("R3 end to end: how-heard fills from the delegated fact; without the fact the same field stops the drive", () => {
+  const mk = (b) => {
+    const { defs } = BrowserBoard.classifyFields([
+      { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+      { label: "How did you hear about this job?", name: "q_src", id: "q_src", inputType: "text", tag: "input", cls: "select__input", selector: "#q_src", required: true },
+    ]);
+    const board = stubBoard(defs);
+    const session = Portal.createPortalSession({ userId: "u-test", board });
+    const r = Portal.runApply(session, { posting: POSTING, profile: profileFromBank(b), log: { records: [] } });
+    return { defs, board, r };
+  };
+  const d = Portal.deriveAnswers(R3_BANK, NOW);
+  const withFact = mk(R3_BANK);
+  const def = withFact.defs.find((x) => x.question_key === "how_heard");
+  assert.ok(def, "classified how_heard");
+  assert.equal(withFact.board.held[def.field_id], d.answers.how_heard.value, "filled with the bank's delegated how-heard value");
+  const without = mk({ basics: R3_BANK.basics, facts: R3_BANK.facts.filter((f) => f.id !== "F-031") });
+  assert.equal(without.board.held[def.field_id], undefined, "no fact, no fill");
+  assert.ok((without.r.asks || []).some((a) => a.field_id === def.field_id), "the field is an ask again");
+});
+
+test("R3 end to end: an acknowledgment attestation fills from the class-approval fact; the certify class fills from a key-addressed explicit attestation", () => {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label: "Acknowledge/Confirm", name: "q_ack", id: "q_ack", inputType: "checkbox", tag: "input", cls: "", selector: "#q_ack", required: true },
+    { label: "I certify that the information I have provided is true and complete", name: "q_cert", id: "q_cert", inputType: "checkbox", tag: "input", cls: "", selector: "#q_cert", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  const r = Portal.runApply(session, { posting: POSTING, profile: profileFromBank(R3_BANK), log: { records: [] },
+    attestations: { certify_true: { value: true, explicit: true } } });
+  const ackDef = defs.find((x) => x.question_key === "acknowledgment_receipt");
+  const certDef = defs.find((x) => x.question_key === "certify_true");
+  assert.ok(ackDef && certDef, "both attestation classes classified to their canonical keys");
+  assert.equal(board.held[ackDef.field_id], true, "the receipt acknowledgment filled from the F-034 class approval (a confirmed answer under its key)");
+  assert.equal(board.held[certDef.field_id], true, "the certify checkbox filled from the explicit attestation addressed by its canonical key");
+  assert.ok(!(r.asks || []).some((a) => a.field_id === ackDef.field_id || a.field_id === certDef.field_id), "neither attestation remains an ask");
+  // and without the class-approval fact, the acknowledgment is an ask again:
+  const b2 = { basics: R3_BANK.basics, facts: R3_BANK.facts.filter((f) => f.id !== "F-034") };
+  const board2 = stubBoard(defs);
+  const session2 = Portal.createPortalSession({ userId: "u-test", board: board2 });
+  const r2 = Portal.runApply(session2, { posting: POSTING, profile: profileFromBank(b2), log: { records: [] },
+    attestations: { certify_true: { value: true, explicit: true } } });
+  assert.equal(board2.held[ackDef.field_id], undefined, "no class approval on file -> no acknowledgment fill");
+  assert.ok((r2.asks || []).some((a) => a.field_id === ackDef.field_id), "the acknowledgment stays an honest ask");
+});
+
+test("R3 end to end: restrictive_agreements fills No from the delegated confirmation — and only from it", () => {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label: "Are you currently subject to any agreement with a former employer/third party (such as a non-solicitation or non-compete agreement) that may potentially limit your ability to perform the duties of the position you are applying for?", name: "q_restr", id: "q_restr", inputType: "text", tag: "input", cls: "select__input", selector: "#q_restr", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  Portal.runApply(session, { posting: POSTING, profile: profileFromBank(R3_BANK), log: { records: [] } });
+  const def = defs.find((x) => x.question_key === "restrictive_agreements");
+  assert.ok(def, "classified restrictive_agreements");
+  assert.equal(board.held[def.field_id], "No", "the owner's delegated confirmation (F-033) fills the restrictions question — the R2 no-derivation stance held only until the owner answered");
+});
+
+test("R3 end to end: education month fields fill from the month facts (the LionTree/Affirm R2 stop)", () => {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label: "Start date month", name: "start_month_0", id: "start_month_0", inputType: "text", tag: "input", cls: "select__input", selector: "#sm", required: true },
+    { label: "End date month", name: "end_month_0", id: "end_month_0", inputType: "text", tag: "input", cls: "select__input", selector: "#em", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  Portal.runApply(session, { posting: POSTING, profile: profileFromBank(R3_BANK), log: { records: [] } });
+  const sm = defs.find((x) => x.profile_key === "education_start_month");
+  const em = defs.find((x) => x.profile_key === "education_end_month");
+  assert.ok(sm && em, "month fields classified to their standard keys");
+  assert.equal(board.held[sm.field_id], "September");
+  assert.equal(board.held[em.field_id], "May");
 });

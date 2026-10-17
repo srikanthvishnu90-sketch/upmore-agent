@@ -28,3 +28,9 @@ test('expressed city, remote and publication constraints are bound without inven
 test('modifiers preserve explicit counts, negated locations require clarification, writing advice stays native',()=>{
  assert.equal(A.command('Find 5 suitable investment internships').limit,5);assert.equal(A.command('Recommend five suitable summer analyst roles in private equity').limit,5);for(const n of ['0','zero','-5','2.5','1000'])assert.equal(A.command('Find '+n+' suitable investment internships').action,'invalid');assert.ok(A.searchConstraints('Find investment internships not in Chicago').clarification);assert.ok(A.searchConstraints('Find 2027 investment internships').clarification);assert.equal(A.command('I need help writing a cover letter for investment internships'),null);assert.equal(A.command("Don't find investment internships"),null);
 });
+test('held-out onsite-only and multi-city constraints never admit hybrid/unknown or drop a city',()=>{
+ const c=A.searchConstraints('Find 10 investment internships onsite only');assert.equal(c.clarification,null);assert.deepEqual(A.searchConstraints('Find investment internships in Chicago onsite only').locations,['Chicago']);
+ for(const p of [{remote:'hybrid',location:'Chicago, IL (hybrid)'},{remote:null,location:'Chicago, IL'},{remote:'unknown',location:'Chicago, IL'},{remote:'onsite',location:'Chicago, IL'}])assert.equal(A.constraintsMatch(p,c),false,JSON.stringify(p));
+ assert.equal(A.constraintsMatch({remote:'onsite',location:'Chicago, IL (on-site)'},c),true);
+ for(const cities of ['in Chicago and Boston','in Chicago or Boston','in Chicago, Boston','in Chicago/Boston','in Chicago and in Boston']){const q=A.searchConstraints('Find investment internships '+cities);assert.match(q.clarification||'',/single city|multiple|locations/i,cities);assert.equal(A.constraintsMatch({remote:'onsite',location:'Chicago, IL (on-site)'},q),false,cities);}
+});

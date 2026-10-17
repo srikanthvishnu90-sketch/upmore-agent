@@ -131,3 +131,6 @@ Feed coverage review found that prioritizing131's small registry still omitted t
 
 
 Exact086ef376 full-source test correctly rejected the raw CAREER_BOARD_DIRECTORY_JSON export under the Career* boundary. Renamed the export to CareerBoardDirectory, leaving data/constants and the original assertion intact. Read-only wording probes also found modifiers dropping an explicit5-role count, negative city wording reversing its meaning and writing help entering discovery. Narrow parser/clarification/client-parity regressions cover all three; no generated candidate text, model call or employer action is involved.
+
+
+Held-out constraint review: onsite-only used remote exclusion and admitted hybrid/unknown work modes; Chicago-and-Boston parsed only Chicago. Both failures are retained. Onsite-only now requires positive employer source wording plus onsite mode and rejects ambiguity. Multiple-city input requests one explicit clarification before fetching. Domain, actual Edge source-collector and composed SQL regressions cover those cases; unrelated source remains frozen. Predecessore3c5ac58 full source4799/40skip/0fail and actual SQL1/1 are retained distinctly from the follow-up.

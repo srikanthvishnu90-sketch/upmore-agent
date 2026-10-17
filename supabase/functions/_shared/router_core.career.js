@@ -26752,8 +26752,8 @@ const CareerApplications=(()=>{
   if(/\b(?:remote only|only remote|fully remote)\b/i.test(a))c.remote='only';
   else if(/\b(?:no remote|onsite only|on-site only|only onsite|only on-site)\b/i.test(a))c.remote='exclude';
   else if(/\bremote\b/i.test(a))c.clarification='Should remote work be required, excluded, or allowed alongside onsite roles?';
-  const city=/\b(?:city\s*:\s*|(?:in|near|based in|located in)\s+)([a-z][a-z .'-]*?)(?=,|;|[!?]|\s+(?:in|near|remote|posted|published|since|after|before|for|starting|with|and)\b|$)/ig;let hit;
-  while((hit=city.exec(a))){const state=/^,\s*([A-Z]{2})(?=,|;|\s|$)/.exec(a.slice(city.lastIndex)),v=hit[1].trim().replace(/\.$/,'')+(state?', '+state[1]:'');if(!/^(?:investment banking|private equity|equity research)$/i.test(v))c.locations.push(v);}
+  const city=/\b(?:city\s*:\s*|(?:in|near|based in|located in)\s+)([a-z][a-z .'-]*?)(?=,|;|[!?/]|\s+(?:in|near|onsite|on-site|remote|posted|published|since|after|before|for|starting|with|and|or)\b|$)/ig;let hit;
+  while((hit=city.exec(a))){const state=/^,\s*([A-Z]{2})(?=,|;|\s|$)/.exec(a.slice(city.lastIndex)),v=hit[1].trim().replace(/\.$/,'')+(state?', '+state[1]:'');if(!/^(?:investment banking|private equity|equity research)$/i.test(v)){c.locations.push(v);const tail=a.slice(city.lastIndex).replace(/^,\s*[A-Z]{2}\b/,'');if(/\b(?:and|or)\b/i.test(v)||/^\s*(?:,|\band\b|\bor\b|\/)\s*(?!(?:remote|onsite|on-site|posted|published|since|after|before|with|for|only)\b)[a-z]/i.test(tail))c.clarification='Which single city should I search first? Multiple locations require separate explicit searches; I will not drop a requested city.';}}
   const iso=/\b(?:posted|published)\s+(?:since|after)\s+(\d{4}-\d{2}-\d{2})\b/i.exec(a),days=/\b(?:posted|published)\s+(?:in\s+)?(?:the\s+)?last\s+(\d{1,3})\s+days?\b/i.exec(a);
   if(iso){const at=Date.parse(iso[1]+'T00:00:00Z');if(Number.isFinite(at)&&new Date(at).toISOString().slice(0,10)===iso[1]&&at<=now)c.publishedSince=iso[1]+'T00:00:00.000Z';else c.clarification='What valid past first-publication date should I use (YYYY-MM-DD)?';}
   else if(days&&+days[1]>0)c.publishedSince=new Date(now-Number(days[1])*86400000).toISOString();
@@ -26761,11 +26761,13 @@ const CareerApplications=(()=>{
   const dateWords=a.replace(iso?.[0]||'','').replace(days?.[0]||'','');
   if(/\b(?:20\d\d|summer\s+20\d\d|20\d\d\s+summer|starting|start date|between|by\s+\d|before\s+\d|after\s+\d|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+20\d\d)\b/i.test(dateWords))c.clarification='Does your date refer to the internship start period or the posting publication date? I cannot infer an employer start date from a publication timestamp.';
   if(/\b(?:within|around|hybrid|except|outside|excluding|exclude|avoid|not\s+(?:in|near))\b/i.test(a))c.clarification='Please clarify the exact city and whether remote, onsite or hybrid work is required. I cannot silently broaden a location or work-mode restriction.';
+  if(c.locations.length>1)c.clarification='Which single city should I search first? Multiple locations require separate explicit searches; I will not drop a requested city.';
   return c;
  }
  function constraintsMatch(posting,c){
   if(c?.clarification)return false;
-  if(c?.remote==='only'&&posting.remote!=='remote')return false;if(c?.remote==='exclude'&&posting.remote==='remote')return false;
+  if(c?.remote==='only'&&posting.remote!=='remote')return false;
+  if(c?.remote==='exclude'){const evidence=text(posting.location)+' '+text(posting.jd_text);if(posting.remote!=='onsite'||/\b(?:hybrid|remote)\b/i.test(evidence)||!/\b(?:on[ -]?site|in[ -]?person|office[ -]?based|work from (?:the )?office)\b/i.test(evidence)||/\b(?:not|no|never)\s+(?:an?\s+)?(?:on[ -]?site|in[ -]?person)\b/i.test(evidence))return false;}
   if(c?.locations?.length&&!c.locations.some(x=>text(posting.location).toLowerCase().includes(x.toLowerCase())))return false;
   if(c?.publishedSince){const at=Date.parse(posting.posted_at);if(!Number.isFinite(at)||at<Date.parse(c.publishedSince)||at>Date.now())return false;}return true;
  }

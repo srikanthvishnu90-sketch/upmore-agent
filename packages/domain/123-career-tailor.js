@@ -603,7 +603,29 @@ const CareerTailor = (() => {
     const attestedListed = new Set();
     for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
     const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
-    const skillsProven = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
+    const skillsProvenAll = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
+    // Posting-family scope (iteration lane, BUG-273): both row
+    // sources above deliberately carry the record's whole evidenced
+    // vocabulary (Crew B Cycle 2's answer to KEYWORD_ABSENT_TRUTHFUL),
+    // so the printed line was the SAME full inventory on every
+    // posting — an operations application leading with the record's
+    // SWE stack, a law application carrying its Python line — the
+    // residual GENERIC_NOT_TAILORED mechanism (893 flags on the
+    // merged tree). Lane B's own stated intent was the evidenced
+    // vocabulary "for the role family"; the scope below is that
+    // intent, implemented: a name prints when THIS posting names it
+    // (extracted must/nice lists), when its raw text mentions it
+    // (extraction misses on truncated texts stay covered), or when
+    // it belongs to this posting's role-family vocabulary
+    // (FAMILY_SKILLS). Every printed name remains attested under
+    // the MI-023 rule above, and gaps are computed from evidence
+    // separately — scoping the line can neither invent a skill nor
+    // hide a gap.
+    const wantedLcScope = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((x) => String(x).toLowerCase()));
+    const famVocabScope = new Set((FAMILY_SKILLS[jd.family] || []).map((x) => String(x).toLowerCase()));
+    const rawLcScope = String(jd.rawText || "").toLowerCase();
+    const mentionedInJd = (name) => { const n = String(name).toLowerCase(); let i = rawLcScope.indexOf(n); while (i >= 0) { const b = i === 0 ? " " : rawLcScope[i - 1]; const a = rawLcScope[i + n.length] || " "; if (!/[a-z0-9]/.test(b) && !/[a-z0-9]/.test(a)) return true; i = rawLcScope.indexOf(n, i + 1); } return false; };
+    const skillsProven = skillsProvenAll.filter((s) => wantedLcScope.has(s.name.toLowerCase()) || famVocabScope.has(s.name.toLowerCase()) || mentionedInJd(s.name));
     const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
     if (skillsLine) {
       const ids = [...new Set(skillsProven.map((s) => s.factId))];

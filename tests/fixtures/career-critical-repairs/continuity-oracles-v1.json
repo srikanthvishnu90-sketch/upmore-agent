@@ -1,0 +1,35 @@
+{
+  "version": "spec_a_native_continuity_oracles/v1",
+  "frozen_before_context_v3_implementation": true,
+  "base": "95ba434e4e4b4cda6d99f568f6eafdf4a4b12725",
+  "tier": "LOCAL_POSTGRES_AND_STAGED_ENTRY_WITH_SCRIPTED_MODELS",
+  "execution_started": false,
+  "cases": [
+    {
+      "id": "A03_SAME_TURN_REPLACEMENT",
+      "turns": ["Help me practice an interview answer.", "Actually, make that answer shorter.", "Make that answer shorter again."],
+      "restart_before_turn": 3,
+      "expected": "The replacement draft committed on turn two survives reload and is the current draft supplied to turn three. Its ID/revision match the committed replacement; the earlier draft is not revived.",
+      "preconditions": ["All three advisory generations reach generated status using scripted outputs.", "Turn two commits a draft with a different stable ID and newer revision.", "Use actual owned PostgreSQL RPCs and inspect committed rows."],
+      "legacy_failure_target": "career_model_context_read_v2 uses account_version > barrier for the replacement committed at the barrier version."
+    },
+    {
+      "id": "A04_POST_CORRECTION_PENDING_ASK",
+      "turns": ["Actually, use Boston as the target city.", "Help me compare data analysis and software engineering, then practice an interview.", "Help me think through the next step."],
+      "restart_before_turn": 3,
+      "expected": "The newly created explicit interview ask remains in effective pending asks after the historical location correction and through reload.",
+      "preconditions": ["The canonical host creates pendingInterview on turn two and persists it.", "The next model context comes from actual PostgreSQL and contains that new pending ask."],
+      "legacy_failure_target": "groundedContext suppresses pendingInterview and raw pending asks whenever any historical barrier_version is truthy."
+    },
+    {
+      "id": "A04_UNRELATED_CORRECTION_PRESERVES_ASK",
+      "turns": ["Help me compare data analysis and software engineering, then practice an interview.", "Actually, use Boston as the target city.", "Help me think through the next step."],
+      "restart_before_turn": 3,
+      "expected": "The independent pending interview ask survives a location-only correction. Revoked location-dependent material remains unavailable.",
+      "preconditions": ["The host persists the explicit pending interview ask before correction.", "The correction targets location only and does not cancel the interview ask."]
+    }
+  ],
+  "failure_reporting": "Missing setup, missing RPC, failed generation and absent host preconditions are harness/precondition failures, never a reproduced continuity defect.",
+  "actual_model_quality": "NOT_RUN",
+  "paid_calls": 0
+}

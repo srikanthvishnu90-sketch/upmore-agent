@@ -578,13 +578,22 @@ const CareerRender = (() => {
     // punctuation-only like ", , ") is a content-empty document wearing a
     // valid format — it must FAIL, not pass. The honest shapes are a
     // skills body naming proven skills, or no SKILLS section at all.
+    // MI-024 (Depth Lane C): the floor is every section, not SKILLS
+    // alone — the original audit's defect class was "a present section
+    // with no content passes parse-check", and a punctuation-only
+    // EXPERIENCE or EDUCATION body is the same shipped defect in a
+    // different heading. The SKILLS check keeps its name (pinned by
+    // BUG-210's guard); every other heading fails as empty_section.
     if (resume) {
       const secs = (Array.isArray(resume.sections) && resume.sections.length) ? resume.sections
         : (() => { const grouped = new Map(); for (const l of resume.lines || []) { const h = l.section || ""; if (!grouped.has(h)) grouped.set(h, { heading: h, lines: [] }); grouped.get(h).lines.push(l); } return [...grouped.values()]; })();
       for (const s of secs) {
-        if (!s || String(s.heading || "").toUpperCase() !== "SKILLS") continue;
+        if (!s) continue;
+        const heading = String(s.heading || "").toUpperCase();
         const body = (s.lines || []).map((l) => String((l && l.text) || "")).join(" ").replace(/technical skills:/i, "");
-        if (!/[a-z0-9]/i.test(body)) add("empty_skills_section", "fail", `SKILLS section is present but its body names no skill (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty skills section fails; omit the section or list proven skills`);
+        if (/[a-z0-9]/i.test(body)) continue;
+        if (heading === "SKILLS") add("empty_skills_section", "fail", `SKILLS section is present but its body names no skill (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty skills section fails; omit the section or list proven skills`);
+        else if (heading) add("empty_section", "fail", `${heading} section is present but its body carries no content (body: "${body.trim().slice(0, 40) || "(empty)"}") — a present-but-empty section fails; omit the section or fill it from the record`);
       }
     }
     const profIn = inp.profile || o.profile || null;

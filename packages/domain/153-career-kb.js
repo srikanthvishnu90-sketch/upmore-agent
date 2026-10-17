@@ -55,7 +55,7 @@ const CareerKB = (() => {
   }
 
   const normalizeKey = (text) => String(text || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const stemToken = (w) => ({ management: "manager", engineers: "engineer", analysts: "analyst", scientists: "scientist", nurses: "nurse", managers: "manager", designers: "designer", developers: "developer" }[w] || (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
+  const stemToken = (w) => ({ management: "manager", engineering: "engineer", engineers: "engineer", analysts: "analyst", scientists: "scientist", nurses: "nurse", managers: "manager", designers: "designer", developers: "developer" }[w] || (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
   const tokensOf = (text) => new Set(normalizeKey(text).split("-").filter((w) => w && !["and", "the", "of"].includes(w)).map(stemToken));
 
   // Free-text asks carry the role inside a sentence ("what does it take
@@ -71,6 +71,16 @@ const CareerKB = (() => {
     "ib-analyst": "investment-banking-analyst",
     "data-analyst": "data-analyst",
     "pm": "product-manager",
+    // Field labels (125's detectRole vocabulary) name the same rows by
+    // their discipline, not their job title — "data science" is the
+    // Data Scientist row, "software engineering" the Software
+    // Engineer row. Without these, a field-label ask fell to
+    // found:false although the row exists (Depth Lane C probe).
+    "data-science": "data-scientist",
+    "software-engineering": "software-engineer",
+    "investment-banking": "investment-banking-analyst",
+    "machine-learning": "machine-learning-engineer",
+    "nursing": "registered-nurse",
   };
   function matchRow(rows, query) {
     const q = normalizeKey(query);
@@ -88,7 +98,17 @@ const CareerKB = (() => {
       for (const t of tt) if (!qt.has(t)) { all = false; break; }
       if (all) { best = r; bestSize = tt.size; }
     }
-    return best;
+    if (best) return best;
+    // Last: an alias whose tokens all appear in the ask ("what are
+    // the most common requirements in welder postings?" — the
+    // Welder row's full title can never be a subset of a natural
+    // ask). Specific titles above win first, so a longer title the
+    // ask does name is never shadowed by an alias it also contains.
+    for (const [aliasKey, target] of Object.entries(ALIASES)) {
+      const at = tokensOf(aliasKey);
+      if (at.size && [...at].every((t) => qt.has(t))) { const r = rows.find((x) => x.key === target); if (r) return r; }
+    }
+    return null;
   }
 
   // Adapt host-provided live rows to the aggregate shape. Accepts:

@@ -2031,7 +2031,6 @@
 <!--__LEDGER_CONTROLLER__-->
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
-<!--__APPLICANT_CONTROLLER__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -7955,7 +7954,8 @@
     readThreads:async owner=>{const {data,error}=await supa.from('agent_threads').select('id,user_id,title,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data;},
     readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('thread_id,role,content').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
   });
-  /*__APPLICANT_UI__*/
+  /*__APPLICANT_CONTROLLER__*/
+/*__APPLICANT_UI__*/
   function resetPrivateChat() {
     careerResumeReset();
     chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;

@@ -1,0 +1,40 @@
+✔ built app extraction loads the actual Guide, calculators and isolated controller preludes (244.727722ms)
+✔ semantic extraction rejects missing or ambiguous app/data blocks without executing vendor scripts (1.155974ms)
+✔ runner makes actual failures nonzero while explicitly deferred work stays unverified (3.051622ms)
+✔ an actually failing dry Guide assertion propagates to the run exit code with no API calls (27.062321ms)
+✔ actual client sends original file separately from chat, reviews explicit fields then confirms (35.067434ms)
+✔ confirmation acknowledgement uncertainty retries the exact owned request, even after review expiry (2.070595ms)
+✔ upload uncertainty is explicit and manual retry retains original bytes and id (1.815067ms)
+✔ edited answers invalidate the review and cannot silently change an approved field set (1.300555ms)
+✔ owner change ignores pending acknowledgements and clears memory-only private state (10.225389ms)
+✔ missing application chat makes no request and unknown field names never become confirmed facts (1.814456ms)
+✔ batch triage holds only the unresolved role and preserves its essential question (14.143201ms)
+✔ actual agentAsk drops an old reply after new chat without adopting its server thread (212.142685ms)
+✔ actual Guide discards stale remote responses without invoking local fallback or adding private text (90.336317ms)
+✔ actual delayed typing render cannot append old financial content after owner reset (70.281372ms)
+✔ actual thread list discards late owner results and history verifies ownership before reading messages (71.218295ms)
+✔ actual agent mode drops stale tracked results before rendering or writing its audit entry (86.114876ms)
+✔ actual workflow reply presents a read-only review link that cannot survive a thread switch (82.119749ms)
+✔ actual chat sheet distinguishes failed history reads from a verified empty list and supports retry (59.688295ms)
+✔ generated finance app scripts compile and every inline script is CSP-bound (223.258427ms)
+✔ generated bills entry points are unique and generated outputs agree (280.607387ms)
+✔ actual Auth owner switch clears bank, task, profile and UI memory while retaining scoped inputs for their owner (154.462518ms)
+✔ sign-out does not display signed-in private records or a prior anonymous workspace (62.679714ms)
+✔ unowned legacy private records remain preserved but cannot become the current financial picture (50.444594ms)
+✔ a delayed bank response cannot populate another owner or repopulate a disconnected bank (103.399126ms)
+✔ late profile, subscription and task reads cannot refill a switched owner cache or DOM (65.989178ms)
+✔ export is captured to one owner and aborts before download after an identity change (43.87571ms)
+✔ Auth changes clear every retained finance surface, not only the bank transaction list (48.068417ms)
+✔ same-owner auth generation changes fence a pending bank refresh (75.906099ms)
+✔ late Plaid refresh cannot store positions or status under a new owner (90.291683ms)
+✔ disconnect invalidates UI immediately and cannot delete the next owner vault after a delayed first step (67.653323ms)
+✔ OAuth onboarding answers and referral state cannot cross owner namespaces (97.473926ms)
+✔ same-owner Auth refresh and bank disconnect discard delayed recovery evidence in the actual app (167.974719ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2346.802571

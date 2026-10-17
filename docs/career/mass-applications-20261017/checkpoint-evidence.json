@@ -4,14 +4,14 @@
   "sourceSha256": {
     "src/career-applicant-controller.js": "17c0036609754c5f9cf16ce3d3dee4cef8eb27364daeb540d9dd727473e21d7a",
     "src/career-applicant-ui.js": "540098fc10d593fba852a4c4b65ca17e80409240f7ecc0aac501a692c3639504",
-    "src/upmore-app-template.html": "c79d982066b06ee77053e13da5af41eb5612eab75122909ae984b201ddeda2b8",
-    "src/build-app.py": "df69b16e6005c35d7cab7147d5a4a1684e78d649b717137f499dd937ebd53c6a",
+    "src/upmore-app-template.html": "3a9930237b2372d0f0f215d41b545e9e15592948713e3086289eb82ce82c5380",
+    "src/build-app.py": "953be40bfeb9d219ee3266d492927fe18f22f2b05344a5f48ac870b63499b403",
     "packages/domain/132-career-apply.js": "467200dfdd7dd64f67851deec78c90d388d394ceca8253b8b617bf4b4063c54c",
     "supabase/functions/_shared/router_core.js": "579171c503fd259a42ad942709f232180d4eda515de1a0be6d743799da29ce3a",
     "supabase/functions/_shared/router_core.career.js": "a398c3e861aa66412e42d629cabc993f35a842ee92c1fd648cf3911775a0e8f6",
-    "index.html": "ef8b37c2411c298333521beab06f308b29ace1f15ef00bc128a87b0bed0bb4c6",
-    "src/upmore-app.html": "ef8b37c2411c298333521beab06f308b29ace1f15ef00bc128a87b0bed0bb4c6",
-    "sw.js": "7399fba28da59e02d4b9e0f33db15c2d760fc023f06349fa9b008799df2f58d9",
+    "index.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
+    "src/upmore-app.html": "887e90afe7fa444cc64227322a3bd762a4458772e71fe1c45391894b07262155",
+    "sw.js": "8a511b1abd81428a1d61e67e70edcffc96ffb4d4b6131ecdb254f056c9bf9e21",
     "tests/career-applicant-client.test.cjs": "82432da474415342b77298668d1c7131f97e623b0c9b11f9a6c00aa4cfa7e13a",
     "tests/career-mass-readiness.test.cjs": "b40ac1cfc0616d6b610795148ca97b15d53eadc8faf1e419f95705a49f4139be",
     "tests/career-critical-repairs/applicant-client-postgres.test.cjs": "b79c39aa59a554329500e7ec73bd3c263148ddf730535ecb7797590f76b659fb"
@@ -20,10 +20,18 @@
     "focusedSource": "10/10 PASS",
     "resumeClientToActualIngressAndLocalSQL": "1/1 PASS",
     "agent100": "103/103 synthetic dry PASS",
-    "generatedAppInlineScripts": "7 parsed",
+    "generatedAppInlineScripts": "6 blocks, existing all-inline CSP test passes",
     "fullSource": "IN_PROGRESS",
     "requiredOriginalArchives": "FAIL: unavailable originals; not waived",
-    "actualBrowserUI": "NOT_VERIFIED: normal-sandbox probe ended without a retained successful result; no sandbox changes or alternate route attempted"
+    "actualBrowserUI": "NOT_VERIFIED: normal-sandbox probe ended without a retained successful result; no sandbox changes or alternate route attempted",
+    "firstFullSource": {
+      "pass": 4739,
+      "fail": 22,
+      "skip": 40,
+      "log": "evidence/source-first-failed.log",
+      "reason": "New standalone prelude omitted by actual-app extraction allowlists; now injected into existing app block."
+    },
+    "appBootRepair": "32/32 PASS"
   },
   "paidCalls": 0,
   "employerSubmissions": 0,

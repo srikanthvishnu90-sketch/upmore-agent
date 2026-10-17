@@ -1,0 +1,32 @@
+'use strict';
+// Frozen actual staged entry oracle. Real isolated SQL; synthetic auth identity
+// and transport only. No generation/verifier adapter and no campaign funding.
+const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),path=require('node:path');
+const db=require('./owned-sql.cjs')(),staged=require('../helpers/career-staged-entry.cjs');
+const U='00000000-0000-4000-8000-0000000000a1',T='00000000-0000-4000-8000-0000000000b1',V='00000000-0000-4000-8000-0000000000a2';
+const copy=x=>JSON.parse(JSON.stringify(x)),q=x=>"'"+String(typeof x==='object'?JSON.stringify(x):x).replaceAll("'","''")+"'";
+const canonical=x=>x===null||typeof x!=='object'?JSON.stringify(x):Array.isArray(x)?'['+x.map(canonical).join(',')+']':'{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';
+const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
+const ANSWER='I built a class calculator. I wrote the input validation myself; a teammate wrote the display. We tested 12 examples. I have no production deployment or measured business impact. π stays exact here.';
+function context(){const c=copy(require('../fixtures/career-critical-repairs/interview-context-v1/snapshot.json'));c.binding.account_version=0;c.binding.thread_revision=0;for(const key of ['facts','sources','goals','pending_asks','invalidations'])for(const r of c[key]||[])for(const k of ['created','effective'])if(r[k])r[k].account_version=0;c.capabilities.push({capability_id:'career.create_draft',availability:'available',reason:'Owned local artifact host'});const x=copy(c);delete x.captured_at;delete x.binding.context_sha256;c.binding.context_sha256=sha(canonical(x));return c;}
+function client(owner=U){return {auth:{getUser:async()=>({data:{user:{id:owner}}})},from(table){const filters={};return {upsert:async row=>{assert.equal(table,'profiles');db.sql(`insert into profiles values(${q(row.id)})on conflict do nothing`);return {error:null};},select(){return this;},eq(k,v){filters[k]=v;return this;},async maybeSingle(){assert.equal(table,'agent_threads');const rows=JSON.parse(db.sql(`select coalesce(jsonb_agg(t),'[]'::jsonb)from agent_threads t where id=${q(filters.id)} and user_id=${q(filters.user_id)}`));return {data:rows[0]||null,error:null};}};},async rpc(name,args){if(name==='agent_rl_bump')return {data:true,error:null};return db.client.rpc(name,args);}};}
+async function app(t,owner=U){const a=await staged(path.resolve(__dirname,'../..'),client(owner),{env:{CAREER_JOURNEY_MODE:'interview_v1'}});t.after(()=>a.close());return a;}
+const state=()=>JSON.parse(db.sql(`select state#>'{career,stores,interviewJourney}' from agent_flow_state where thread_id=${q(T)}`));
+const version=()=>db.sql(`select value->>'version' from career_watch_kv where user_id=${q(U)} and key='career:account'`);
+test('actual entry saves exact unassessed answer and verifies a partial pack through fresh owned UTF-8 download',async t=>{
+ db.verify();db.sql('truncate auth.users cascade;');db.sql(`insert into auth.users values(${q(U)}),(${q(V)});insert into agent_threads values(${q(T)},${q(U)});insert into career_watch_kv(user_id,key,value)values(${q(U)},${q('career:journey-context:'+T)},${q(context())}::jsonb);`);
+ const a=await app(t),events=[];
+ async function send(entry,type,key,message='Interview preparation',extra={}){const r=await entry.requestBody({thread_id:T,turn_key:key,message,career_journey:{type,...extra}});events.push({type,key,message,response:r.body,status:r.status});assert.equal(r.status,200,JSON.stringify(r.body));return r.body;}
+ const start=await send(a,'start','start',undefined,{available_minutes:30,target_ref:{id:'target-1',version:1},resume_ref:{id:'resume-1',version:1}});
+ assert.equal(start.meta?.career_journey?.stage,'awaiting_answer','B must be registered through the actual handler');
+ await send(a,'submit_answer','answer',ANSWER);assert.equal(state().attempts[0].text,ANSWER);assert.equal(state().assessments.length,0);assert.equal(state().checkpoint.pending_reasoning,null);
+ const before=version();const replay=await send(a,'submit_answer','answer',ANSWER);assert.equal(version(),before);assert.equal(state().attempts.length,1);assert.equal(replay.meta.career_journey.assessment_status,'not_wired');
+ const paused=await send(a,'pause','pause');assert.equal(paused.meta.career_journey.status,'paused');const fresh=await app(t);await send(fresh,'resume','resume');assert.equal(state().attempts[0].text,ANSWER);
+ const pack=await send(fresh,'build_pack','pack');assert.equal(pack.meta.career_journey.stage,'pack_ready');assert.equal(state().completion.artifact,null);assert.match(pack.artifact.download_path,/^\/career\/artifacts\/[a-f0-9-]{36}$/);
+ const again=await app(t),preReadVersion=version(),download=await again.requestBody(null,{method:'GET',path:pack.artifact.download_path});assert.equal(download.status,200);assert.equal(version(),preReadVersion);assert.equal(sha(download.text),pack.artifact.sha256);assert.equal(Buffer.byteLength(download.text),pack.artifact.byte_length);assert.match(download.text,/partial/i);assert.ok(download.text.includes(ANSWER));assert.equal(download.headers['content-type'],'text/markdown; charset=utf-8');
+ const receipt=download.headers['x-upmore-readback-receipt'];assert.ok(receipt);const foreign=await app(t,V);assert.equal((await foreign.requestBody(null,{method:'GET',path:pack.artifact.download_path})).status,404);
+ const forged=await again.requestBody({thread_id:T,turn_key:'forged',message:'Read pack',career_journey:{type:'artifact_readback',receipt_id:receipt,authorized_open:true}});assert.equal(forged.status,400);assert.equal(version(),preReadVersion);
+ await send(again,'artifact_readback','readback','I opened the partial pack',{receipt_id:receipt});assert.equal(state().completion.artifact.readback_status,'verified');assert.equal(state().completion.artifact.partial,true);assert.notEqual(state().stage,'completed');
+ const stable=version();await send(again,'status','status');assert.equal(version(),stable);assert.equal(db.sql('select count(*) from career_model_pairs_v2'),'0');assert.equal(db.sql('select count(*) from career_model_campaign_v1'),'0');
+ console.log(JSON.stringify({evidence:'ACTUAL_STAGED_ENTRY_LOCAL_SQL_PROVIDER_DISABLED',events,artifact:{...pack.artifact,download_sha256:sha(download.text),readback_receipt:receipt,utf8:download.text},paidCalls:0,actualModelQuality:'NOT_RUN'}));
+});

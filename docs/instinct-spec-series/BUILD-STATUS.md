@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Spec A background-mutation integration follow-up: `career_interview_context_refresh_v1.sql` only for a proposal-scoped, atomic typed watch-write witness and projection witness consumption; new actual alerts-store → native SQL → actual interview-entry regressions/evidence. Preserve original migration and alert-host source, strict unexplained-counter/CAS/owner/epoch/pause/semantic guards, B source, modules 127/130/155 and all frozen previous tests. No paid calls or deployment; the separate evaluator's allocation is not used here.
+
 - 2026-10-17 Spec A owner-counter refresh repair: new context-refresh SQL proposal and host helper, narrow existing entry/writer/artifact delivery integration, owned basis cursor and CAS regressions/evidence. Keep strict context equality, item versions/provenance/stamps, privacy epoch, semantic invalidations and accounting fences. Fingerprint changes conservatively stale affected scoped evidence; explicit writer repair applies value-free invalidations. No B source or legacy module edit, no paid calls or production application.
 
 - 2026-10-17 Spec A documented provider compatibility: paired-settlement SQL only, explicit finite nano response-identity mapping, documented zero-valued text-only auxiliary usage fields, new actual gateway-to-SQL controls and scoped evidence. Preserve raw receipts, exact configured model/config/pricing identities, strict integers, unsupported-modality rejection, unknown holds, global stop and no-redispatch. Official documentation establishes a compatibility risk; no live provider response or paid call is claimed.

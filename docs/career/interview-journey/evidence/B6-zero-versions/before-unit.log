@@ -1,0 +1,169 @@
+✖ facts preserve canonical nonnegative safe version 0 (2.306996ms)
+✔ facts preserve canonical nonnegative safe version 1 (1.694564ms)
+✔ facts preserve canonical nonnegative safe version 9007199254740991 (0.536342ms)
+✔ facts reject invalid evidence version -1 (number) (0.547087ms)
+✔ facts reject invalid evidence version 0.5 (number) (0.327933ms)
+✔ facts reject invalid evidence version 0 (string) (0.183148ms)
+✔ facts reject invalid evidence version null (object) (0.113866ms)
+✔ facts reject invalid evidence version true (boolean) (0.111177ms)
+✔ facts reject invalid evidence version 9007199254740992 (number) (0.348907ms)
+✔ facts reject invalid evidence version NaN (number) (0.349034ms)
+✔ facts reject invalid evidence version Infinity (number) (0.351688ms)
+✖ sources preserve canonical nonnegative safe version 0 (0.551739ms)
+✔ sources preserve canonical nonnegative safe version 1 (0.648586ms)
+✔ sources preserve canonical nonnegative safe version 9007199254740991 (0.496925ms)
+✔ sources reject invalid evidence version -1 (number) (0.228233ms)
+✔ sources reject invalid evidence version 0.5 (number) (0.153028ms)
+✔ sources reject invalid evidence version 0 (string) (0.086467ms)
+✔ sources reject invalid evidence version null (object) (0.206622ms)
+✔ sources reject invalid evidence version true (boolean) (0.160044ms)
+✔ sources reject invalid evidence version 9007199254740992 (number) (0.128619ms)
+✔ sources reject invalid evidence version NaN (number) (0.092349ms)
+✔ sources reject invalid evidence version Infinity (number) (0.070382ms)
+✔ zero versions retain the owner evidence fence (0.268153ms)
+✔ zero versions retain the thread evidence fence (0.218094ms)
+✖ zero versions retain the epoch evidence fence (0.29625ms)
+✖ zero versions retain the inactive evidence fence (0.188636ms)
+✖ zero references survive reducer start, answer proposal, pause and JSON restart without renumbering (2.675332ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 22
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.068805
+
+✖ failing tests:
+
+test at tests/career-interview-journey/context-versions.test.cjs:9:54
+✖ facts preserve canonical nonnegative safe version 0 (2.306996ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "missing evidence lineage"
+      at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: missing evidence lineage
+        at assert (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:4:58)
+        at Object.validate (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:17:7)
+        at /tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:31
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:12)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.start (node:internal/test_runner/test:1242:17)
+        at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/context-versions.test.cjs:9:54
+✖ sources preserve canonical nonnegative safe version 0 (0.551739ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "missing evidence lineage"
+      at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: missing evidence lineage
+        at assert (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:4:58)
+        at Object.validate (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:17:7)
+        at /tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:31
+        at getActual (node:assert:611:5)
+        at strict.doesNotThrow (node:assert:779:32)
+        at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:11:12)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19),
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/context-versions.test.cjs:17:62
+✖ zero versions retain the epoch evidence fence (0.29625ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /foreign evidence|old epoch|inactive payload/. Input:
+  
+  'Error: missing evidence lineage'
+  
+      at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: missing evidence lineage
+        at assert (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:4:58)
+        at Object.validate (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:17:7)
+        at /tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:23
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:10)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19),
+    expected: /foreign evidence|old epoch|inactive payload/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/context-versions.test.cjs:17:62
+✖ zero versions retain the inactive evidence fence (0.188636ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /foreign evidence|old epoch|inactive payload/. Input:
+  
+  'Error: missing evidence lineage'
+  
+      at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: missing evidence lineage
+        at assert (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:4:58)
+        at Object.validate (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:17:7)
+        at /tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:23
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:23:10)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19),
+    expected: /foreign evidence|old epoch|inactive payload/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/career-interview-journey/context-versions.test.cjs:25:1
+✖ zero references survive reducer start, answer proposal, pause and JSON restart without renumbering (2.675332ms)
+  Error: missing evidence lineage
+      at assert (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:4:58)
+      at Object.validate (/tmp/upmore-b6-baseline-cdd3220u/packages/career-interview-journey/adapters/context.js:17:7)
+      at Object.planInterviewTurn (/tmp/upmore-b6-baseline-cdd3220u/packages/domain/interview-journey/index.js:91:7)
+      at Object.turn (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/scripted-host.cjs:12:133)
+      at Object.start (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/scripted-host.cjs:12:565)
+      at TestContext.<anonymous> (/tmp/upmore-b6-baseline-cdd3220u/tests/career-interview-journey/context-versions.test.cjs:27:31)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)

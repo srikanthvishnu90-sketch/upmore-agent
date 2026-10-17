@@ -1,6 +1,6 @@
 'use strict';
 const {fail}=require('./store.cjs');
-const METHODS=new Set(['career_task_pending_scoped_v1','career_task_claim_owned_v1','career_task_claim_readback_v1','career_task_pending_owned_v1','career_task_account_v1','career_task_claim_v1','career_task_begin_effect_v1','career_task_consume_effect_v1','career_task_settle_effect_v1','career_task_effect_status_v1','career_task_finish_v1','career_task_result_v1','career_task_pending_v1']);
+const METHODS=new Set(['career_applicant_equipment_resolve_v1','career_task_pending_scoped_v1','career_task_claim_owned_v1','career_task_claim_readback_v1','career_task_pending_owned_v1','career_task_account_v1','career_task_claim_v1','career_task_begin_effect_v1','career_task_consume_effect_v1','career_task_settle_effect_v1','career_task_effect_status_v1','career_task_finish_v1','career_task_result_v1','career_task_pending_v1']);
 function configuration(url,key){
   const u=new URL(url);
   if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/'||typeof key!=='string'||!key||key.length>8192)throw fail('RPC_CONFIGURATION_INVALID');

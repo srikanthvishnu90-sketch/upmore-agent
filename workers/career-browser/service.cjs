@@ -200,7 +200,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   function equip(t) {
     checkAuthority(t);
     if (typeof resolveEquipment !== "function") throw fail("WORKER_NOT_WIRED");
-    const e = resolveEquipment(t.userId, t.spec.artifactId,{accountVersion:t.authority.accountVersion,privacyEpoch:t.privacyEpoch,taskId:t.id,postingKey:t.spec.posting.canonicalKey,resumeSha256:t.spec.resumeSha256});
+    const e = resolveEquipment(t.userId, t.spec.artifactId,{accountVersion:t.authority.accountVersion,privacyEpoch:t.privacyEpoch,taskId:t.id,intentId:t.authority.intentId,leaseToken:t.authority.leaseToken,postingKey:t.spec.posting.canonicalKey,resumeSha256:t.spec.resumeSha256});
     try {
     if (!e || e.userId !== t.userId || !e.profile || !e.resumePath) throw fail("EQUIPMENT_OWNER_MISMATCH");
     if (e.privacyEpoch !== t.privacyEpoch || e.accountVersion !== t.authority.accountVersion) throw fail("STALE_EQUIPMENT_AUTHORITY");

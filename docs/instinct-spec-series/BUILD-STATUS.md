@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 explicit recovery delegation, `codex/browser-native-recovery-20261017`, exact base `cef431fb73f1b5a1bb91961273f59e8a137974b7`: browser-owned native Greenhouse adapter, module 150/helper/service seams, owned equipment latest-confirmed selection, synthetic native form fixtures/tests and recovery evidence/docs. Existing account/SQL/memory authority remains read-only. Parent authorizes separate checkpoint commits/pushes; Muse owns integration. No production activation, employer requests, denial retry, spend, credential binding, deploy or shared-release merge.
+
 - 2026-10-17 next-capability parent delegation, same browser branch: new browser-owned equipment resolver/materializer and native Greenhouse multipart/receipt adapter, worker cleanup/adapter seams, representative synthetic local page/network fixtures, real byte regression tests and checkpoint evidence/docs. Existing account authority, confirmed-memory storage and module 130 remain read-only; load records through a scoped operator adapter contract. No external denial bypass, applicant-data invention in real submissions, hosting, credential binding, spend, merge or deploy.
 
 - 2026-10-17 parent independent-review continuation on codex/greenhouse-vertical-slice-20261017: actual RPC helper/transport lifetime, owned scoped SQL pending query plus service/authority wiring, research terminal accounting, private local JSON/frame retention and atomic scratch cleanup; new lifecycle/retention/queue regressions, existing owned-worker fixture and review evidence/docs. Source-only isolated tests; no hosting, spend, deploy, credential binding or shared branch change.

@@ -5,6 +5,7 @@ import {toInterviewContextV1,interviewContextDigestV1} from '../../../packages/c
 import {createCareerPersistence} from './career_persistence.js';
 import {interviewContextTurn} from './career_interview_context.ts';
 import {executeInterviewAction,interviewReasoningAvailable} from './career_interview_reasoner.ts';
+import {refreshInterviewContext} from './career_interview_refresh.ts';
 const clone=(v:any)=>JSON.parse(JSON.stringify(v));
 const canonical=(x:any):string=>x===null||typeof x!=='object'?JSON.stringify(x):Array.isArray(x)?'['+x.map(canonical).join(',')+']':'{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';
 async function sha(text:string){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -53,6 +54,8 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
  const requestHash=await sha(canonical({version:'career_interview_request/v1',message,command:cmd}));
  try{
   const p=createCareerPersistence(admin),loaded=clone(await p.load({userId,threadId,turnKey,requestHash}));
+  const refreshed=await refreshInterviewContext(admin,userId,threadId);
+  if(refreshed.pending_invalidation_ids.length)throw Error('journey_context_unavailable');
   if(loaded.replay){const current=await call(admin,'career_journey_context_read_v1',{p_user:userId,p_thread:threadId});if(canonical(current.context.binding)!==canonical(loaded.replay.meta?.career_journey?.context_binding))throw Error('journey_context_unavailable');return json(cors,loaded.replay);}
   const read=await call(admin,'career_journey_context_read_v1',{p_user:userId,p_thread:threadId});
   const context=read.context;
@@ -125,7 +128,7 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
 }
 export async function interviewArtifact({admin,userId,id,cors}:any){
  if(Deno.env.get('CAREER_JOURNEY_MODE')!=='interview_v1')return json(cors,{error:'not_wired'},503);
- try{const r=await call(admin,'career_journey_artifact_open_v1',{p_user:userId,p_artifact:id});const a=r.artifact;
+ try{const scope=await call(admin,'career_journey_artifact_scope_v1',{p_user:userId,p_artifact:id});if(!scope.thread_id)throw Error('artifact_unavailable');const refreshed=await refreshInterviewContext(admin,userId,scope.thread_id);if(refreshed.pending_invalidation_ids.length)throw Error('artifact_unavailable');const r=await call(admin,'career_journey_artifact_open_v1',{p_user:userId,p_artifact:id});const a=r.artifact;
   if(a.owner_id!==userId||await sha(a.content)!==a.sha256||new TextEncoder().encode(a.content).length!==a.byte_length)throw Error('artifact_unavailable');
   return new Response(a.content,{headers:{...cors,'content-type':'text/markdown; charset=utf-8','content-disposition':'attachment; filename="interview-preparation.md"','cache-control':'no-store','x-upmore-readback-receipt':r.receipt.id}});
  }catch{return json(cors,{error:'artifact_unavailable'},404);}

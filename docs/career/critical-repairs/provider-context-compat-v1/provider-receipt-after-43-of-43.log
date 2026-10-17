@@ -1,0 +1,278 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"4e2445d84fd725a5","commit":"e54bbe144114657618dad8b1f74370b6272eca68","preflightDirtyFiles":"M docs/instinct-spec-series/BUILD-STATUS.md\n M supabase/sql/proposals/career_model_pair_budget_v2.sql","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/provider-receipt-compat-postgres.test.cjs":"60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":379,"selectedFiles":1,"sqlFiles":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"started":"2026-10-17T02:50:15.278Z","runs":[],"out":"/tmp/upmore-ci-node-68oOF2","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/provider-receipt-compat-postgres.test.cjs","database":"career_test_ci_4e2445d84fd725a5_0","marker":"upmore-ci-fixture:4e2445d84fd725a5"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-4e2445d84fd725a5","database":"career_test_ci_4e2445d84fd725a5_0","marker":"upmore-ci-fixture:4e2445d84fd725a5"}
+# (node:1035141) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1035141) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# {"case":"DOCUMENTED_TEXT_RECEIPT","responseModel":"gpt-5-nano","receipt":{"version":"gateway_usage_receipt/v1","provider":"openai","configured_model":"gpt-5-nano","response_model":"gpt-5-nano","response_id":"chatcmpl-controlled-compat","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","request_body_sha256":"e51cb1931f635ffe158e555cb39e9427c4708a670f3fdff2ddaecb316d18d124","response_body_sha256":"d21fb0de41e88101f7bd83308c84d4570966be7fb417eff37f6394a454ef107e","usage":{"prompt_tokens":50,"completion_tokens":20,"total_tokens":70,"prompt_tokens_details":{"cached_tokens":5,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":3,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}},"state":"recorded","syntheticCostMicros":11}
+# Subtest: documented zero auxiliary usage with approved response gpt-5-nano settles exact raw receipt once
+ok 1 - documented zero auxiliary usage with approved response gpt-5-nano settles exact raw receipt once
+  ---
+  duration_ms: 1698.185336
+  type: 'test'
+  ...
+# {"case":"DOCUMENTED_TEXT_RECEIPT","responseModel":"gpt-5-nano-2025-08-07","receipt":{"version":"gateway_usage_receipt/v1","provider":"openai","configured_model":"gpt-5-nano","response_model":"gpt-5-nano-2025-08-07","response_id":"chatcmpl-controlled-compat","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","request_body_sha256":"e51cb1931f635ffe158e555cb39e9427c4708a670f3fdff2ddaecb316d18d124","response_body_sha256":"1cac823db086b67d3dd172fc623acedc12e645d001efaa3c1ba9f8fd063b5873","usage":{"prompt_tokens":50,"completion_tokens":20,"total_tokens":70,"prompt_tokens_details":{"cached_tokens":5,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":3,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}},"state":"recorded","syntheticCostMicros":11}
+# Subtest: documented zero auxiliary usage with approved response gpt-5-nano-2025-08-07 settles exact raw receipt once
+ok 2 - documented zero auxiliary usage with approved response gpt-5-nano-2025-08-07 settles exact raw receipt once
+  ---
+  duration_ms: 1490.752984
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity gpt-5-mini retains full hold
+ok 3 - unapproved exact response identity gpt-5-mini retains full hold
+  ---
+  duration_ms: 1358.858979
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity gpt-5-nano-2025-08-08 retains full hold
+ok 4 - unapproved exact response identity gpt-5-nano-2025-08-08 retains full hold
+  ---
+  duration_ms: 1263.560477
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity gpt-5-nano-2025-08-07-extra retains full hold
+ok 5 - unapproved exact response identity gpt-5-nano-2025-08-07-extra retains full hold
+  ---
+  duration_ms: 1245.386066
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity prefix-gpt-5-nano retains full hold
+ok 6 - unapproved exact response identity prefix-gpt-5-nano retains full hold
+  ---
+  duration_ms: 1225.974484
+  type: 'test'
+  ...
+# Subtest: a different configured model cannot use the nano policy or its price
+ok 7 - a different configured model cannot use the nano policy or its price
+  ---
+  duration_ms: 1210.064859
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+ok 8 - prompt_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1213.044253
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens negative remains unsupported and uncertain
+ok 9 - prompt_tokens_details.audio_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1213.07945
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens fractional remains unsupported and uncertain
+ok 10 - prompt_tokens_details.audio_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1226.109144
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens string remains unsupported and uncertain
+ok 11 - prompt_tokens_details.audio_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1192.314392
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens null remains unsupported and uncertain
+ok 12 - prompt_tokens_details.audio_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1284.683405
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+ok 13 - completion_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1218.565835
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens negative remains unsupported and uncertain
+ok 14 - completion_tokens_details.audio_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1176.609204
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens fractional remains unsupported and uncertain
+ok 15 - completion_tokens_details.audio_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1186.468725
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens string remains unsupported and uncertain
+ok 16 - completion_tokens_details.audio_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1180.426352
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens null remains unsupported and uncertain
+ok 17 - completion_tokens_details.audio_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1188.345831
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens nonzero remains unsupported and uncertain
+ok 18 - completion_tokens_details.accepted_prediction_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1179.403915
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens negative remains unsupported and uncertain
+ok 19 - completion_tokens_details.accepted_prediction_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1172.788085
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens fractional remains unsupported and uncertain
+ok 20 - completion_tokens_details.accepted_prediction_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1200.983922
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens string remains unsupported and uncertain
+ok 21 - completion_tokens_details.accepted_prediction_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1184.654287
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens null remains unsupported and uncertain
+ok 22 - completion_tokens_details.accepted_prediction_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1153.878707
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens nonzero remains unsupported and uncertain
+ok 23 - completion_tokens_details.rejected_prediction_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1179.755036
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens negative remains unsupported and uncertain
+ok 24 - completion_tokens_details.rejected_prediction_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1162.015103
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens fractional remains unsupported and uncertain
+ok 25 - completion_tokens_details.rejected_prediction_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1198.969306
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens string remains unsupported and uncertain
+ok 26 - completion_tokens_details.rejected_prediction_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1250.341902
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens null remains unsupported and uncertain
+ok 27 - completion_tokens_details.rejected_prediction_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1216.436108
+  type: 'test'
+  ...
+# Subtest: negative prompt is never normalized into a known cheap bill
+ok 28 - negative prompt is never normalized into a known cheap bill
+  ---
+  duration_ms: 1207.242284
+  type: 'test'
+  ...
+# Subtest: fractional completion is never normalized into a known cheap bill
+ok 29 - fractional completion is never normalized into a known cheap bill
+  ---
+  duration_ms: 1178.032401
+  type: 'test'
+  ...
+# Subtest: string prompt is never normalized into a known cheap bill
+ok 30 - string prompt is never normalized into a known cheap bill
+  ---
+  duration_ms: 1190.664007
+  type: 'test'
+  ...
+# Subtest: inconsistent total is never normalized into a known cheap bill
+ok 31 - inconsistent total is never normalized into a known cheap bill
+  ---
+  duration_ms: 1168.189925
+  type: 'test'
+  ...
+# Subtest: string total is never normalized into a known cheap bill
+ok 32 - string total is never normalized into a known cheap bill
+  ---
+  duration_ms: 1141.768161
+  type: 'test'
+  ...
+# Subtest: cached overrun is never normalized into a known cheap bill
+ok 33 - cached overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1176.313661
+  type: 'test'
+  ...
+# Subtest: negative cached is never normalized into a known cheap bill
+ok 34 - negative cached is never normalized into a known cheap bill
+  ---
+  duration_ms: 1129.268313
+  type: 'test'
+  ...
+# Subtest: string cached is never normalized into a known cheap bill
+ok 35 - string cached is never normalized into a known cheap bill
+  ---
+  duration_ms: 1219.967488
+  type: 'test'
+  ...
+# Subtest: reasoning overrun is never normalized into a known cheap bill
+ok 36 - reasoning overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1184.27483
+  type: 'test'
+  ...
+# Subtest: fractional reasoning is never normalized into a known cheap bill
+ok 37 - fractional reasoning is never normalized into a known cheap bill
+  ---
+  duration_ms: 1182.082984
+  type: 'test'
+  ...
+# Subtest: string reasoning is never normalized into a known cheap bill
+ok 38 - string reasoning is never normalized into a known cheap bill
+  ---
+  duration_ms: 1180.248635
+  type: 'test'
+  ...
+# Subtest: unrecognized zero field is never normalized into a known cheap bill
+ok 39 - unrecognized zero field is never normalized into a known cheap bill
+  ---
+  duration_ms: 1196.291471
+  type: 'test'
+  ...
+# Subtest: input bound overrun is never normalized into a known cheap bill
+ok 40 - input bound overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1216.122226
+  type: 'test'
+  ...
+# Subtest: output bound overrun is never normalized into a known cheap bill
+ok 41 - output bound overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1207.393324
+  type: 'test'
+  ...
+# Subtest: three malformed receipts preserve the shared stop for new admission and held checking
+ok 42 - three malformed receipts preserve the shared stop for new admission and held checking
+  ---
+  duration_ms: 1959.062699
+  type: 'test'
+  ...
+# {"case":"APPROVED_SNAPSHOT_ACTUAL_ENTRY","result":{"meta":{"career":true,"career_journey":{"stage":"feedback_ready","status":"active","version":"career_interview_entry/v1","revision":3,"context_binding":{"epoch":0,"context_sha256":"13d23f714fb3e72eca5b087d487f3bd58287597e7b7167be22f75614989bd24e","account_version":4,"thread_revision":4},"assessment_status":"checked_advisory","actual_model_quality":"NOT_RUN"}},"reply":"CONTROLLED: separate your validation work from the teammate display; do not claim production impact.","action":null,"turn_key":"process","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"receipts":[{"usage":{"total_tokens":70,"prompt_tokens":50,"completion_tokens":20,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":5},"completion_tokens_details":{"audio_tokens":0,"reasoning_tokens":3,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}},"version":"gateway_usage_receipt/v1","provider":"openai","response_id":"chatcmpl-controlled-1","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","response_model":"gpt-5-nano-2025-08-07","configured_model":"gpt-5-nano","request_body_sha256":"7962ff14393540cba4dbec2c9c57f1f965e09de9438ea0691ddab81a69398d59","response_body_sha256":"a34ef36dd75714b2ab343f3934ae518d177fb85f922b00545b5525b587697a07"},{"usage":{"total_tokens":70,"prompt_tokens":50,"completion_tokens":20,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":5},"completion_tokens_details":{"audio_tokens":0,"reasoning_tokens":3,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}},"version":"gateway_usage_receipt/v1","provider":"openai","response_id":"chatcmpl-controlled-2","config_digest":"8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a","response_model":"gpt-5-nano-2025-08-07","configured_model":"gpt-5-nano","request_body_sha256":"176ae0d8d6d925752bbd47cdf7de52408bce8126067a2ee6e10d536f76ddf2ef","response_body_sha256":"9fef88dfe7a9c1132a4b9f7108725b904a79b579d50a06d46f43639858e4d463"}],"configuredModel":"gpt-5-nano","observedModel":"gpt-5-nano-2025-08-07","providerResponses":2,"paidCalls":0,"quality":"NOT_RUN"}
+# Subtest: actual paired handler accepts documented usage and exact approved snapshot without config/pricing substitution or redispatch
+ok 43 - actual paired handler accepts documented usage and exact approved snapshot without config/pricing substitution or redispatch
+  ---
+  duration_ms: 4907.361632
+  type: 'test'
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 43
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 57401.178233
+{"token":"4e2445d84fd725a5","commit":"e54bbe144114657618dad8b1f74370b6272eca68","preflightDirtyFiles":"M docs/instinct-spec-series/BUILD-STATUS.md\n M supabase/sql/proposals/career_model_pair_budget_v2.sql","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/provider-receipt-compat-postgres.test.cjs":"60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":379,"selectedFiles":1,"sqlFiles":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"started":"2026-10-17T02:50:15.278Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-68oOF2","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837","supabase/sql/proposals/career_interview_entry_v1.sql":"a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"},"fixture":{"container":"upmore-career-integration-pg-ci-4e2445d84fd725a5","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T02:51:19.952Z","pass":true}

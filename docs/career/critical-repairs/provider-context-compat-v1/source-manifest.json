@@ -1,0 +1,32 @@
+{
+  "frozenOracleHead": "38dfd0d44b479b4e91e192d33212b33297e975f7",
+  "sourceState": "uncommitted runtime changes on frozen oracle HEAD",
+  "tier": "MOCK_CONTRACT_AND_LOCAL_POSTGRES",
+  "paidCalls": 0,
+  "browserOutcomes": 0,
+  "sourceSha256": {
+    "scripts/career/critical-repairs/ci-node.cjs": "4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad",
+    "supabase/functions/_shared/career_interview_context.ts": "8d2e270640934fdafc746e46dce593ac71cae2e9620a73d2bf0f38851183a2af",
+    "supabase/functions/_shared/career_interview_entry.ts": "366e40d07874f0d7b8bbc047458dba4919979974e32919a6b1771a65fd906408",
+    "supabase/functions/_shared/career_interview_refresh.ts": "cd415b216820be7cb3cdd8b5720fcf83bc9bac329df42d1900e73ab18058abae",
+    "supabase/sql/proposals/career_interview_entry_v1.sql": "b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837",
+    "supabase/sql/proposals/career_interview_context_refresh_v1.sql": "fc76d25394ef190bb3219bbd1109c8f6d8ad9146548894c40293cb65d533f7d8",
+    "tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs": "29beb83da78611eda78b6eb572505c2155e2b676308b9ecd0db47993784ab249",
+    "tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs": "60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22"
+  },
+  "evidenceSha256": {
+    "provider-receipt-before-40-of-43.log": "21b7165671441a1ccf046f80587fb44d6328bed4f6733ec98038a97e90e2287e",
+    "provider-receipt-after-43-of-43.log": "35d1a4d08a65d15205ff343d68cd1e7a347dca2620005e4e43651a3dcc0208d4",
+    "refresh-original-before-1-of-6.log": "6a27fcf40176344cc6da2bb2a0fd44748aebf70e689015fbd4159c41b2014618",
+    "refresh-seven-before-1-of-7.log": "1b2c93bc4569ab537826368ef025375029877b54c115551684836d832e107a25",
+    "refresh-prototype-sql-error.log": "635893521210f5ad52a57ed20706e8d104598324f2bf0cbf5fce08e2d951d724",
+    "refresh-prototype-after-7-of-7.log": "a21d30eb09f948903cf037fb1f4b3edda49abc340e1a06afe188f125c55eac3c",
+    "refresh-nine-before-8-of-9.log": "2a26cf51b595d465a5ec1ec1d680006d79f1873028a63cef95bb4127515521a2",
+    "refresh-nine-after-9-of-9.log": "7aea2c1508e6bbefe8bb637e63cc712683a907acfb753035f2f79622278af997",
+    "refresh-assessed-3-of-3.log": "2672d34af6109474d73c948ea327f5ee54e459ded6c6d871a5073df0364791ac",
+    "refresh-before-account-scope.sql.txt": "bf4369e2a376c66cd120142ef1da4330e593ee8e5ee21d4fef1a1e9a397a4244",
+    "safe-source-212-of-212.log": "1ba29af020912d821c54a8a9a4d6e5bc8f3c8092c95d844b0cd38bb482a734a6",
+    "native-deno-check.log": "fdbb8e77f2ea590560ac82f3c4602f44efb9e4726ceefeb4b1866e9660191858"
+  }
+}

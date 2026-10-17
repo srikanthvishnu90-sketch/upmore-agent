@@ -1,0 +1,89 @@
+-- Owner-review proposal only. Keep the strict context equality RPC unchanged.
+-- Counter-only refresh requires an owned source-basis witness and CAS.
+create function public.career_journey_context_basis_v1(p_user uuid,p_thread uuid)
+returns jsonb language sql stable security invoker set search_path=public,pg_temp as $$
+ with stores as(select thread_id,coalesce(state#>'{career,stores}','{}'::jsonb)-'interviewJourney'-'globalPause' as value from agent_flow_state where user_id=p_user),
+ account_items as(select k.key,v.item-'freshness' as item from career_watch_kv k cross join lateral jsonb_array_elements(
+  coalesce(k.value->'facts','[]'::jsonb)||coalesce(k.value->'sources','[]'::jsonb)||coalesce(k.value->'dialogue','[]'::jsonb)||coalesce(k.value->'goals','[]'::jsonb)||coalesce(k.value->'pending_asks','[]'::jsonb)||coalesce(k.value->'tool_status','[]'::jsonb)||coalesce(k.value->'receipts','[]'::jsonb)||coalesce(k.value->'artifacts','[]'::jsonb)||coalesce(k.value->'assessments','[]'::jsonb)||case when jsonb_typeof(k.value->'current_draft')='object'then jsonb_build_array(k.value->'current_draft')else '[]'::jsonb end)v(item)
+  where k.user_id=p_user and k.key~'^career:journey-context:[a-f0-9-]{36}$'and v.item#>>'{scope,kind}'='account')
+ select jsonb_build_object(
+  'thread_sha',encode(sha256(convert_to(coalesce((select value from stores where thread_id=p_thread),'{}'::jsonb)::text,'UTF8')),'hex'),
+  'account_sha',encode(sha256(convert_to(jsonb_build_object('stores',coalesce((select jsonb_agg(jsonb_build_array(thread_id,value)order by thread_id)from stores where value<>'{}'::jsonb),'[]'::jsonb),'canonical',coalesce((select jsonb_agg(jsonb_build_array(key,item)order by key,item->>'id')from account_items),'[]'::jsonb),'preferences',coalesce((select value-'version'-'epoch'-'paused' from career_watch_kv where user_id=p_user and key='career:account'),'{}'::jsonb))::text,'UTF8')),'hex'));
+$$;
+create function public.career_journey_context_cursor_v1()returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
+declare t uuid;s jsonb;pending jsonb;b jsonb;
+begin
+ if NEW.key!~'^career:journey-context:[a-f0-9-]{36}$'then return NEW;end if;
+ t:=substring(NEW.key from length('career:journey-context:')+1)::uuid;
+ perform pg_advisory_xact_lock(hashtextextended(NEW.user_id::text,0));
+ if NEW.value->>'owner_id' is distinct from NEW.user_id::text or NEW.value->>'thread_id' is distinct from t::text or not exists(select 1 from agent_threads where id=t and user_id=NEW.user_id)then raise exception 'invalid owned context cursor';end if;
+ select state#>'{career,stores,interviewJourney}'into s from agent_flow_state where user_id=NEW.user_id and thread_id=t;
+ select coalesce(jsonb_agg(i->'id'),'[]'::jsonb)into pending from jsonb_array_elements(coalesce(NEW.value->'invalidations','[]'::jsonb))i
+  where i#>>'{provenance,record_id}'~'^authority:[a-f0-9]{64}$'and not exists(select 1 from jsonb_array_elements(coalesce(s->'invalidations','[]'::jsonb))applied where applied#>>'{provenance,record_id}'=i#>>'{provenance,record_id}')
+  and(s is not null or exists(select 1 from jsonb_each(NEW.value)fields cross join lateral jsonb_array_elements(case when jsonb_typeof(fields.value)='array'then fields.value else '[]'::jsonb end)row where row->>'freshness'='stale'and(i->'target_ids')?(row->>'id'))or(NEW.value#>>'{current_draft,freshness}'='stale'and(i->'target_ids')?(NEW.value#>>'{current_draft,id}')));
+ b:=career_journey_context_basis_v1(NEW.user_id,t)||jsonb_build_object('context_sha256',NEW.value#>'{binding,context_sha256}','pending_invalidation_ids',pending);
+ insert into career_watch_kv(user_id,key,value)values(NEW.user_id,'career:journey-context-cursor:'||t,b)on conflict(user_id,key)do update set value=excluded.value,updated_at=now();
+ return NEW;
+end $$;
+create trigger career_journey_context_cursor_v1 after insert or update of value on public.career_watch_kv for each row execute function public.career_journey_context_cursor_v1();
+
+create function public.career_journey_context_refresh_load_v1(p_user uuid,p_thread uuid)
+returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare c jsonb;a jsonb;r bigint;cursor_value jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ if not exists(select 1 from agent_threads where id=p_thread and user_id=p_user)then return jsonb_build_object('error','owned_thread_missing');end if;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ select coalesce((state#>>'{career,revision}')::bigint,0)into r from agent_flow_state where user_id=p_user and thread_id=p_thread;
+ select value into c from career_watch_kv where user_id=p_user and key='career:journey-context:'||p_thread;
+ select value into cursor_value from career_watch_kv where user_id=p_user and key='career:journey-context-cursor:'||p_thread;
+ return jsonb_build_object('context',c,'cursor',cursor_value,'basis',career_journey_context_basis_v1(p_user,p_thread),'binding',jsonb_build_object('epoch',coalesce((a->>'epoch')::bigint,0),'account_version',coalesce((a->>'version')::bigint,0),'thread_revision',coalesce(r,0)));
+end $$;
+create function public.career_journey_context_content_v1(p_context jsonb)
+returns jsonb language plpgsql immutable security invoker set search_path=public,pg_temp as $$
+declare c jsonb:=p_context-'binding'-'captured_at'-'invalidations';k text;rows jsonb;
+begin
+ foreach k in array array['facts','sources','dialogue','goals','pending_asks','tool_status','receipts','artifacts','assessments']loop
+  select coalesce(jsonb_agg(value-'freshness'order by ordinality),'[]'::jsonb)into rows from jsonb_array_elements(c->k)with ordinality;
+  c:=jsonb_set(c,array[k],rows);
+ end loop;
+ if jsonb_typeof(c->'current_draft')='object'then c:=jsonb_set(c,'{current_draft}',(c->'current_draft')-'freshness');end if;
+ return c;
+end $$;
+create function public.career_journey_context_refresh_commit_v1(p_user uuid,p_thread uuid,p_expected_hash text,p_binding jsonb,p_basis jsonb,p_context jsonb)
+returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare loaded jsonb;old jsonb;cursor_value jsonb;s jsonb;art record;k text;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ loaded:=career_journey_context_refresh_load_v1(p_user,p_thread);if loaded ? 'error'then return loaded;end if;old:=loaded->'context';
+ if old is null or old='null'::jsonb then return jsonb_build_object('error','journey_context_unavailable');end if;
+ if old#>'{binding,epoch}' is distinct from loaded#>'{binding,epoch}'then return jsonb_build_object('error','privacy_epoch_changed');end if;
+ if old#>>'{binding,context_sha256}' is distinct from p_expected_hash or loaded->'binding' is distinct from p_binding or loaded->'basis' is distinct from p_basis then return jsonb_build_object('error','revision_conflict');end if;
+ if p_context->>'owner_id' is distinct from p_user::text or p_context->>'thread_id' is distinct from p_thread::text
+ or (p_context->'binding')-'context_sha256' is distinct from p_binding or p_context#>>'{binding,context_sha256}'!~'^[a-f0-9]{64}$'
+ or career_journey_context_content_v1(old) is distinct from career_journey_context_content_v1(p_context)
+ or not((p_context->'invalidations')@>(old->'invalidations'))then raise exception 'invalid context-only refresh';end if;
+ -- Refresh cannot revive an old/stale value or change any item version/stamp.
+ foreach k in array array['facts','sources','dialogue','goals','pending_asks','tool_status','receipts','artifacts','assessments']loop
+  if exists(select 1 from jsonb_array_elements(old->k)o join jsonb_array_elements(p_context->k)n on n->>'id'=o->>'id'where not(n->'freshness'=o->'freshness'or(o->>'freshness'='current'and n->>'freshness'='stale')))then raise exception 'freshness revival refused';end if;
+ end loop;
+ if jsonb_typeof(old->'current_draft')='object'and not(p_context#>'{current_draft,freshness}'=old#>'{current_draft,freshness}'or(old#>>'{current_draft,freshness}'='current'and p_context#>>'{current_draft,freshness}'='stale'))then raise exception 'draft revival refused';end if;
+ insert into career_watch_kv(user_id,key,value)values(p_user,'career:journey-context:'||p_thread,p_context)on conflict(user_id,key)do update set value=excluded.value,updated_at=now();
+ select value into cursor_value from career_watch_kv where user_id=p_user and key='career:journey-context-cursor:'||p_thread;
+ if jsonb_array_length(cursor_value->'pending_invalidation_ids')=0 then
+  select state#>'{career,stores,interviewJourney}'into s from agent_flow_state where user_id=p_user and thread_id=p_thread;
+  for art in select key,value from career_watch_kv where user_id=p_user and key like 'career:journey-artifact:%'and value->>'thread_id'=p_thread::text loop
+   if art.value->>'journey_id'=s->>'journey_id'and art.value->'epoch'=p_binding->'epoch'and art.value->'target_ref'=s->'target_ref'and art.value->'resume_ref'=s->'resume_ref'
+   and(art.value->>'action_id'=s#>>'{checkpoint,pending_artifact,action_id}'or(art.value->>'id'=s#>>'{completion,artifact,id}'and art.value->>'sha256'=s#>>'{completion,artifact,sha256}'and s#>>'{completion,artifact,readback_status}'='verified'))then
+    update career_watch_kv set value=value||jsonb_build_object('delivery_binding',p_context->'binding')||case when s#>>'{completion,artifact,id}'=art.value->>'id'then jsonb_build_object('readable_binding',p_context->'binding','readable_journey_revision',s->'revision')else '{}'::jsonb end,updated_at=now()where user_id=p_user and key=art.key;
+   end if;
+  end loop;
+ end if;
+ return jsonb_build_object('ok',true,'context',p_context,'pending_invalidation_ids',cursor_value->'pending_invalidation_ids');
+end $$;
+create function public.career_journey_artifact_scope_v1(p_user uuid,p_artifact uuid)
+returns jsonb language sql security invoker set search_path=public,pg_temp as $$
+ select jsonb_build_object('thread_id',(select a.value->'thread_id'from career_watch_kv a join agent_threads t on t.id=(a.value->>'thread_id')::uuid and t.user_id=p_user where a.user_id=p_user and a.key='career:journey-artifact:'||p_artifact));
+$$;
+revoke all on function public.career_journey_context_basis_v1(uuid,uuid),public.career_journey_context_cursor_v1(),public.career_journey_context_refresh_load_v1(uuid,uuid),public.career_journey_context_content_v1(jsonb),public.career_journey_context_refresh_commit_v1(uuid,uuid,text,jsonb,jsonb,jsonb),public.career_journey_artifact_scope_v1(uuid,uuid)from public,anon,authenticated;
+grant execute on function public.career_journey_context_basis_v1(uuid,uuid),public.career_journey_context_cursor_v1(),public.career_journey_context_refresh_load_v1(uuid,uuid),public.career_journey_context_content_v1(jsonb),public.career_journey_context_refresh_commit_v1(uuid,uuid,text,jsonb,jsonb,jsonb),public.career_journey_artifact_scope_v1(uuid,uuid)to service_role;

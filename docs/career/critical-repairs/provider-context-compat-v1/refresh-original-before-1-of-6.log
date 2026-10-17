@@ -1,0 +1,135 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"89e819c3d111d65e","commit":"e54bbe144114657618dad8b1f74370b6272eca68","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/interview-thread-refresh-postgres.test.cjs":"57309ad4c8e9c74885db58e69aea4feb736ed5c5bf6f8b00e49ab40c0605391e"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":379,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"started":"2026-10-17T02:49:34.716Z","runs":[],"out":"/tmp/upmore-ci-node-ygsMLJ","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/interview-thread-refresh-postgres.test.cjs","database":"career_test_ci_89e819c3d111d65e_0","marker":"upmore-ci-fixture:89e819c3d111d65e"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-89e819c3d111d65e","database":"career_test_ci_89e819c3d111d65e_0","marker":"upmore-ci-fixture:89e819c3d111d65e"}
+# (node:1029809) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1029809) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: two owned interview contexts can be read without weakening strict counter equality or bumping turns
+not ok 1 - two owned interview contexts can be read without weakening strict counter equality or bumping turns
+  ---
+  duration_ms: 2220.024152
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:13:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"read-a"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:8:129)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:13:484)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: a writer can repair its own version after another thread changes the owner counter
+not ok 2 - a writer can repair its own version after another thread changes the owner counter
+  ---
+  duration_ms: 1784.348328
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:14:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved context change. Nothing new was assessed.","action":null}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:8:129)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:14:228)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ordinary owned counter/control changes refresh context while preserving pause admission
+not ok 3 - ordinary owned counter/control changes refresh context while preserving pause admission
+  ---
+  duration_ms: 1550.657012
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:15:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"error":"journey_context_unavailable","reply":"I could not confirm a current saved interview result. Reload the owned conversation; no provider call was made.","action":null,"turn_key":"read"}
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    send (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:8:129)
+    async TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:15:252)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: concurrent owned corrections retain both item updates after explicit CAS-conflict retry
+not ok 4 - concurrent owned corrections retain both item updates after explicit CAS-conflict retry
+  ---
+  duration_ms: 2488.712014
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:16:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    409 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 409
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:16:694)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: semantic source changes remain invalidated until an explicit owned repair, rather than being retagged current
+not ok 5 - semantic source changes remain invalidated until an explicit owned repair, rather than being retagged current
+  ---
+  duration_ms: 2444.12432
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:17:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" to be strictly unequal to:
+    
+    'current'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'current'
+  actual: 'current'
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs:17:587)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: foreign ownership and privacy erase cannot use refresh to resurrect old context
+ok 6 - foreign ownership and privacy erase cannot use refresh to resurrect old context
+  ---
+  duration_ms: 3648.233566
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 1
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14345.33475
+{"token":"89e819c3d111d65e","commit":"e54bbe144114657618dad8b1f74370b6272eca68","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/interview-thread-refresh-postgres.test.cjs":"57309ad4c8e9c74885db58e69aea4feb736ed5c5bf6f8b00e49ab40c0605391e"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":379,"selectedFiles":1,"sqlFiles":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"started":"2026-10-17T02:49:34.716Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/interview-thread-refresh-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-ygsMLJ","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec","supabase/sql/proposals/career_interview_entry_v1.sql":"a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"},"fixture":{"container":"upmore-career-integration-pg-ci-89e819c3d111d65e","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T02:49:57.076Z","pass":false}

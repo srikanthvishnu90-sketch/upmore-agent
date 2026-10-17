@@ -169,7 +169,9 @@ begin
   if r.state<>'started'or l.dispatched_payload is null then raise exception 'only started legs may settle usage';end if;
   valid:=p_outcome='recorded'and jsonb_typeof(p_receipt)='object'and octet_length(p_receipt::text)<=16384;
   if valid then
-   valid:=p_receipt->>'version'='gateway_usage_receipt/v1'and p_receipt->>'provider'=pol.provider and p_receipt->>'configured_model'=pol.model and p_receipt->>'response_model'=pol.model and coalesce(p_receipt->>'response_id','')~'^[A-Za-z0-9_-]{1,128}$'and p_receipt->>'request_body_sha256'=l.dispatched_payload and coalesce(p_receipt->>'response_body_sha256','')~'^[a-f0-9]{64}$'and jsonb_typeof(p_receipt->'usage')='object';
+   -- Finite reviewed response mapping. Configuration/pricing stay pinned to
+   -- the policy model; retain the observed snapshot in the original receipt.
+   valid:=p_receipt->>'version'='gateway_usage_receipt/v1'and p_receipt->>'provider'=pol.provider and p_receipt->>'configured_model'=pol.model and(p_receipt->>'response_model'=pol.model or(pol.model='gpt-5-nano'and p_receipt->>'response_model'='gpt-5-nano-2025-08-07'))and coalesce(p_receipt->>'response_id','')~'^[A-Za-z0-9_-]{1,128}$'and p_receipt->>'request_body_sha256'=l.dispatched_payload and coalesce(p_receipt->>'response_body_sha256','')~'^[a-f0-9]{64}$'and jsonb_typeof(p_receipt->'usage')='object';
    if p_receipt?'config_digest' and p_receipt->>'config_digest' is distinct from l.config_digest then valid:=false;end if;
    if exists(select 1 from jsonb_object_keys(p_receipt)t(k)where t.k not in('version','provider','configured_model','response_model','response_id','request_body_sha256','response_body_sha256','usage','config_digest'))then valid:=false;end if;
   end if;
@@ -185,7 +187,8 @@ begin
     if details is not null and details<>'null'::jsonb then
      if jsonb_typeof(details)is distinct from 'object'then valid:=false;
      else
-      if exists(select 1 from jsonb_object_keys(details)t(k)where t.k<>'cached_tokens')then valid:=false;end if;
+      if exists(select 1 from jsonb_object_keys(details)t(k)where t.k not in('cached_tokens','audio_tokens'))then valid:=false;end if;
+      if details?'audio_tokens'and(jsonb_typeof(details->'audio_tokens')is distinct from 'number'or coalesce(details->>'audio_tokens','')<>'0')then valid:=false;end if;
       if details?'cached_tokens'then if jsonb_typeof(details->'cached_tokens')is distinct from 'number'or coalesce(details->>'cached_tokens','')!~'^[0-9]{1,8}$'then valid:=false;else cached:=(details->>'cached_tokens')::bigint;end if;end if;
      end if;
     end if;
@@ -193,7 +196,12 @@ begin
     if details is not null and details<>'null'::jsonb then
      if jsonb_typeof(details)is distinct from 'object'then valid:=false;
      else
-      if exists(select 1 from jsonb_object_keys(details)t(k)where t.k<>'reasoning_tokens')then valid:=false;end if;
+      if exists(select 1 from jsonb_object_keys(details)t(k)where t.k not in('reasoning_tokens','audio_tokens','accepted_prediction_tokens','rejected_prediction_tokens'))then valid:=false;end if;
+      -- These documented fields are optional zeros for this text-only policy.
+      -- Nonzero, coerced or unsupported usage never becomes a known cheap bill.
+      foreach k in array array['audio_tokens','accepted_prediction_tokens','rejected_prediction_tokens']loop
+       if details?k and(jsonb_typeof(details->k)is distinct from 'number'or coalesce(details->>k,'')<>'0')then valid:=false;end if;
+      end loop;
       if details?'reasoning_tokens'then if jsonb_typeof(details->'reasoning_tokens')is distinct from 'number'or coalesce(details->>'reasoning_tokens','')!~'^[0-9]{1,8}$'then valid:=false;elsif(details->>'reasoning_tokens')::bigint>completion then valid:=false;end if;end if;
      end if;
     end if;

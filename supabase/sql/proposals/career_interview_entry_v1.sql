@@ -93,7 +93,7 @@ begin
  if a is null then return jsonb_build_object('error','artifact_unavailable');end if;t:=(a->>'thread_id')::uuid;
  c:=career_journey_context_read_v1(p_user,t);
  select state#>'{career,stores,interviewJourney}'into s from agent_flow_state where user_id=p_user and thread_id=t;
- pending:=a->'binding'=c#>'{context,binding}' and a->>'journey_revision'=s->>'revision' and a->>'action_id'=s#>>'{checkpoint,pending_artifact,action_id}';
+ pending:=coalesce(a->'delivery_binding',a->'binding')=c#>'{context,binding}' and a->>'journey_revision'=s->>'revision' and a->>'action_id'=s#>>'{checkpoint,pending_artifact,action_id}';
  verified:=a->'readable_binding'=c#>'{context,binding}' and a->>'readable_journey_revision'=s->>'revision'
   and s#>>'{completion,artifact,readback_status}'='verified' and s#>>'{completion,artifact,id}'=p_artifact::text
   and s#>'{completion,artifact,version}'=a->'version' and s#>>'{completion,artifact,sha256}'=a->>'sha256'
@@ -111,13 +111,19 @@ end $$;
 
 create function public.career_journey_readback_v1(p_user uuid,p_thread uuid,p_receipt uuid)
 returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
-declare r jsonb;c jsonb;
+declare r jsonb;c jsonb;a jsonb;s jsonb;
 begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
  c:=career_journey_context_read_v1(p_user,p_thread);if c ? 'error' then return c;end if;
  select value into r from career_watch_kv where user_id=p_user and key='career:journey-readback:'||p_receipt;
- if r is null or r#>>'{receipt,type}' is distinct from 'artifact_readback' or r#>>'{receipt,thread_id}' is distinct from p_thread::text or r#>'{artifact,binding}' is distinct from c#>'{context,binding}'then return jsonb_build_object('error','artifact_unavailable');end if;
- return r;
+ select value into a from career_watch_kv where user_id=p_user and key='career:journey-artifact:'||(r#>>'{receipt,artifact_id}');
+ select state#>'{career,stores,interviewJourney}'into s from agent_flow_state where user_id=p_user and thread_id=p_thread;
+ if r is null or a is null or r#>>'{receipt,type}' is distinct from 'artifact_readback' or r#>>'{receipt,thread_id}' is distinct from p_thread::text
+ or r#>'{artifact,binding}' is distinct from a->'binding' or coalesce(a->'delivery_binding',a->'binding')is distinct from c#>'{context,binding}'
+ or a->>'sha256' is distinct from r#>>'{receipt,sha256}' or a->>'action_id' is distinct from s#>>'{checkpoint,pending_artifact,action_id}'then return jsonb_build_object('error','artifact_unavailable');end if;
+ -- Revalidate identical previously opened bytes against the current owned
+ -- counter-only delivery binding; keep the original immutable open proof.
+ return jsonb_build_object('artifact',a,'receipt',(r->'receipt')||jsonb_build_object('original_validated_binding',r#>'{receipt,validated_binding}','validated_binding',(r#>'{receipt,validated_binding}')||(c#>'{context,binding}')));
 end $$;
 revoke all on function public.career_journey_context_read_v1(uuid,uuid),public.career_journey_turn_commit_v1(jsonb,jsonb,jsonb,jsonb),public.career_journey_artifact_open_v1(uuid,uuid),public.career_journey_readback_v1(uuid,uuid,uuid)from public,anon,authenticated;
 grant execute on function public.career_journey_context_read_v1(uuid,uuid),public.career_journey_turn_commit_v1(jsonb,jsonb,jsonb,jsonb),public.career_journey_artifact_open_v1(uuid,uuid),public.career_journey_readback_v1(uuid,uuid,uuid)to service_role;

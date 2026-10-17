@@ -1,0 +1,327 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"c5377299e01f000b","commit":"65ff58b16b8794513c1b169544d8d3442aaa1913","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/provider-receipt-compat-postgres.test.cjs":"60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":378,"selectedFiles":1,"sqlFiles":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"started":"2026-10-17T02:47:48.260Z","runs":[],"out":"/tmp/upmore-ci-node-gw1Wvo","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/provider-receipt-compat-postgres.test.cjs","database":"career_test_ci_c5377299e01f000b_0","marker":"upmore-ci-fixture:c5377299e01f000b"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-c5377299e01f000b","database":"career_test_ci_c5377299e01f000b_0","marker":"upmore-ci-fixture:c5377299e01f000b"}
+# (node:1009728) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1009728) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: documented zero auxiliary usage with approved response gpt-5-nano settles exact raw receipt once
+not ok 1 - documented zero auxiliary usage with approved response gpt-5-nano settles exact raw receipt once
+  ---
+  duration_ms: 1012.105121
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:21:37'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'unknown'
+    - 'recorded'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'recorded'
+  actual: 'unknown'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:21:194)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: documented zero auxiliary usage with approved response gpt-5-nano-2025-08-07 settles exact raw receipt once
+not ok 2 - documented zero auxiliary usage with approved response gpt-5-nano-2025-08-07 settles exact raw receipt once
+  ---
+  duration_ms: 968.516777
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:21:37'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'unknown'
+    - 'recorded'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'recorded'
+  actual: 'unknown'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:21:194)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unapproved exact response identity gpt-5-mini retains full hold
+ok 3 - unapproved exact response identity gpt-5-mini retains full hold
+  ---
+  duration_ms: 1228.053554
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity gpt-5-nano-2025-08-08 retains full hold
+ok 4 - unapproved exact response identity gpt-5-nano-2025-08-08 retains full hold
+  ---
+  duration_ms: 1667.279446
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity gpt-5-nano-2025-08-07-extra retains full hold
+ok 5 - unapproved exact response identity gpt-5-nano-2025-08-07-extra retains full hold
+  ---
+  duration_ms: 1233.149522
+  type: 'test'
+  ...
+# Subtest: unapproved exact response identity prefix-gpt-5-nano retains full hold
+ok 6 - unapproved exact response identity prefix-gpt-5-nano retains full hold
+  ---
+  duration_ms: 1278.517154
+  type: 'test'
+  ...
+# Subtest: a different configured model cannot use the nano policy or its price
+ok 7 - a different configured model cannot use the nano policy or its price
+  ---
+  duration_ms: 1354.161157
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+ok 8 - prompt_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1226.25235
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens negative remains unsupported and uncertain
+ok 9 - prompt_tokens_details.audio_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1210.177033
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens fractional remains unsupported and uncertain
+ok 10 - prompt_tokens_details.audio_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1221.952978
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens string remains unsupported and uncertain
+ok 11 - prompt_tokens_details.audio_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1209.078755
+  type: 'test'
+  ...
+# Subtest: prompt_tokens_details.audio_tokens null remains unsupported and uncertain
+ok 12 - prompt_tokens_details.audio_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1210.255048
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+ok 13 - completion_tokens_details.audio_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1229.803468
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens negative remains unsupported and uncertain
+ok 14 - completion_tokens_details.audio_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1208.854822
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens fractional remains unsupported and uncertain
+ok 15 - completion_tokens_details.audio_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1242.916718
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens string remains unsupported and uncertain
+ok 16 - completion_tokens_details.audio_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1329.691107
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.audio_tokens null remains unsupported and uncertain
+ok 17 - completion_tokens_details.audio_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1288.29062
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens nonzero remains unsupported and uncertain
+ok 18 - completion_tokens_details.accepted_prediction_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1353.952876
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens negative remains unsupported and uncertain
+ok 19 - completion_tokens_details.accepted_prediction_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1346.449473
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens fractional remains unsupported and uncertain
+ok 20 - completion_tokens_details.accepted_prediction_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1229.535307
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens string remains unsupported and uncertain
+ok 21 - completion_tokens_details.accepted_prediction_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1285.916231
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.accepted_prediction_tokens null remains unsupported and uncertain
+ok 22 - completion_tokens_details.accepted_prediction_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1222.619486
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens nonzero remains unsupported and uncertain
+ok 23 - completion_tokens_details.rejected_prediction_tokens nonzero remains unsupported and uncertain
+  ---
+  duration_ms: 1286.535262
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens negative remains unsupported and uncertain
+ok 24 - completion_tokens_details.rejected_prediction_tokens negative remains unsupported and uncertain
+  ---
+  duration_ms: 1233.537751
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens fractional remains unsupported and uncertain
+ok 25 - completion_tokens_details.rejected_prediction_tokens fractional remains unsupported and uncertain
+  ---
+  duration_ms: 1265.016801
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens string remains unsupported and uncertain
+ok 26 - completion_tokens_details.rejected_prediction_tokens string remains unsupported and uncertain
+  ---
+  duration_ms: 1310.495242
+  type: 'test'
+  ...
+# Subtest: completion_tokens_details.rejected_prediction_tokens null remains unsupported and uncertain
+ok 27 - completion_tokens_details.rejected_prediction_tokens null remains unsupported and uncertain
+  ---
+  duration_ms: 1257.357857
+  type: 'test'
+  ...
+# Subtest: negative prompt is never normalized into a known cheap bill
+ok 28 - negative prompt is never normalized into a known cheap bill
+  ---
+  duration_ms: 1188.595917
+  type: 'test'
+  ...
+# Subtest: fractional completion is never normalized into a known cheap bill
+ok 29 - fractional completion is never normalized into a known cheap bill
+  ---
+  duration_ms: 1184.685075
+  type: 'test'
+  ...
+# Subtest: string prompt is never normalized into a known cheap bill
+ok 30 - string prompt is never normalized into a known cheap bill
+  ---
+  duration_ms: 1176.591163
+  type: 'test'
+  ...
+# Subtest: inconsistent total is never normalized into a known cheap bill
+ok 31 - inconsistent total is never normalized into a known cheap bill
+  ---
+  duration_ms: 1185.794301
+  type: 'test'
+  ...
+# Subtest: string total is never normalized into a known cheap bill
+ok 32 - string total is never normalized into a known cheap bill
+  ---
+  duration_ms: 1167.532386
+  type: 'test'
+  ...
+# Subtest: cached overrun is never normalized into a known cheap bill
+ok 33 - cached overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1199.679865
+  type: 'test'
+  ...
+# Subtest: negative cached is never normalized into a known cheap bill
+ok 34 - negative cached is never normalized into a known cheap bill
+  ---
+  duration_ms: 1233.294557
+  type: 'test'
+  ...
+# Subtest: string cached is never normalized into a known cheap bill
+ok 35 - string cached is never normalized into a known cheap bill
+  ---
+  duration_ms: 1175.629207
+  type: 'test'
+  ...
+# Subtest: reasoning overrun is never normalized into a known cheap bill
+ok 36 - reasoning overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1179.346686
+  type: 'test'
+  ...
+# Subtest: fractional reasoning is never normalized into a known cheap bill
+ok 37 - fractional reasoning is never normalized into a known cheap bill
+  ---
+  duration_ms: 1206.672311
+  type: 'test'
+  ...
+# Subtest: string reasoning is never normalized into a known cheap bill
+ok 38 - string reasoning is never normalized into a known cheap bill
+  ---
+  duration_ms: 1153.689542
+  type: 'test'
+  ...
+# Subtest: unrecognized zero field is never normalized into a known cheap bill
+ok 39 - unrecognized zero field is never normalized into a known cheap bill
+  ---
+  duration_ms: 1184.383555
+  type: 'test'
+  ...
+# Subtest: input bound overrun is never normalized into a known cheap bill
+ok 40 - input bound overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1200.240077
+  type: 'test'
+  ...
+# Subtest: output bound overrun is never normalized into a known cheap bill
+ok 41 - output bound overrun is never normalized into a known cheap bill
+  ---
+  duration_ms: 1194.497966
+  type: 'test'
+  ...
+# Subtest: three malformed receipts preserve the shared stop for new admission and held checking
+ok 42 - three malformed receipts preserve the shared stop for new admission and held checking
+  ---
+  duration_ms: 1887.548498
+  type: 'test'
+  ...
+# Subtest: actual paired handler accepts documented usage and exact approved snapshot without config/pricing substitution or redispatch
+not ok 43 - actual paired handler accepts documented usage and exact approved snapshot without config/pricing substitution or redispatch
+  ---
+  duration_ms: 3984.023944
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:28:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs:28:1045)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 40
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 57000.421529
+{"token":"c5377299e01f000b","commit":"65ff58b16b8794513c1b169544d8d3442aaa1913","preflightDirtyFiles":"","harnessSha256":"64eddaba5e1be916f4869ea0202cb0c9ab37b81f6d464c1ed395e4dbf20b3ce9","testSourceSha256":{"career-critical-repairs/provider-receipt-compat-postgres.test.cjs":"60640e18ae44591dcdf7fefaf18dfcc0297b66e9c732e40f1e2abe4cf6ec5b22"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":378,"selectedFiles":1,"sqlFiles":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"started":"2026-10-17T02:47:48.260Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/provider-receipt-compat-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-gw1Wvo","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec","supabase/sql/proposals/career_interview_entry_v1.sql":"a6c318bdd700b4c6572204d2e7f13605c0bb9b9dab086b3beb7d46be4827601e","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f"},"fixture":{"container":"upmore-career-integration-pg-ci-c5377299e01f000b","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T02:48:50.596Z","pass":false}

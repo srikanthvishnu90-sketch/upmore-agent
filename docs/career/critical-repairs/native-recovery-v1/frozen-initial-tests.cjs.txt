@@ -1,0 +1,34 @@
+'use strict';
+// Frozen recovery expectations against the ordinary raw POST and real local SQL.
+// Controlled provider fixtures prove plumbing only; no paid calls or quality claim.
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const F=require('./interview-entry-fixture.cjs')(),N=require('./native-controlled-provider.cjs');
+const TEXT='Help me explain my class calculator honestly.',KEY='native-observation-recovery';
+function seed(){F.seed();F.sql(`insert into agent_flow_state(thread_id,user_id,state)values('${F.T}','${F.U}',${F.q({career:require('../helpers/career-model-fixture.cjs').initial(F.U)})}::jsonb)`);N.fund(F);}
+async function app(t,p){return await F.app(t,{env:N.env,dependencies:{nativePair:{request:p.request,evidenceLabel:'CONTROLLED_NATIVE_RESPONSES'}}});}
+const send=a=>a.requestBody({thread_id:F.T,turn_key:KEY,message:TEXT});
+const execution=()=>JSON.parse(F.sql(`select value from career_watch_kv where user_id='${F.U}'and key='career:native-execution:${F.T}:${KEY}'`));
+function fault(kind){F.sql(`create function native_observation_fault()returns trigger language plpgsql as $$begin if NEW.key like 'career:native-execution:%'and NEW.value#>'{observations,${kind}}'is distinct from OLD.value#>'{observations,${kind}}'then raise exception 'CONTROLLED ${kind} observation write fault';end if;return NEW;end$$;create trigger native_observation_fault before update on career_watch_kv for each row execute function native_observation_fault();`);}
+const clearFault=()=>F.sql('drop trigger native_observation_fault on career_watch_kv;drop function native_observation_fault();');
+function accounting(r,count){
+ assert.equal(r.status,200,JSON.stringify(r.body));const m=r.body.meta.career_model;
+ assert.equal(m.status,'unavailable');assert.equal(m.accounting_state,'settled');assert.equal(m.known_cost_micros,11*count);assert.equal(m.uncertain_micros,0);assert.equal(m.provider_calls_confirmed,count);assert.equal(m.provider_calls_possible,count);
+ assert.ok(!r.body.reply.includes('CONTROLLED native response'));assert.match(r.body.reply,/No generated advice is being published/);
+ for(const [i,kind]of ['generation','checker'].entries()){const leg=m.legs[kind];assert.equal(leg.final,true);assert.equal(leg.state,i<count?'recorded':'not_sent');assert.equal(leg.cost_micros,i<count?11:0);if(i<count){assert.deepEqual(leg.provider_request_ids,['chatcmpl-controlled-native-'+(i+1)]);assert.equal(leg.raw_usage_receipt.response_id,leg.provider_request_ids[0]);}}
+ assert.equal(F.sql('select count(*)from agent_usage'),String(count));assert.equal(F.sql('select sum(cost_micros)from career_model_reservations_v1'),String(11*count));assert.equal(F.sql("select count(*)from career_model_pairs_v2 where publication_state='published'"),'0');
+}
+for(const [kind,count]of [['generation',1],['verification',2]])test(kind+' observation storage failure settles once and returns truthful fallback on every exact retry',async t=>{
+ seed();const p=N.provider(),a=await app(t,p);fault(kind);let first;try{first=await send(a);}finally{clearFault();}
+ const before=F.sql('select current_micros from career_model_campaign_v1'),retry=await send(a),again=await send(a),e=execution();
+ console.log(JSON.stringify({evidence:'NATIVE_OBSERVATION_WRITE_FAILURE',kind,first,retry,again,observations:e.observations,pair:F.call('career_model_pair_read_v2',{p_user:F.U,p_pair:e.pair_id}),paidCalls:0}));
+ assert.equal(p.calls.length,count);assert.equal(F.sql('select current_micros from career_model_campaign_v1'),before);assert.equal(e.observations[kind],undefined);accounting(first,count);accounting(retry,count);assert.deepEqual(again.body,retry.body);
+});
+test('concurrent duplicate unknown is an as-of snapshot; exact retry reconciles settled usage without resending or changing memory',async t=>{
+ seed();let entered,release;const ready=new Promise(r=>entered=r),gate=new Promise(r=>release=r),p=N.provider({async onRequest({generation}){if(generation){entered();await gate;}}}),a=await app(t,p);
+ const first=send(a);await ready;let duplicate;try{duplicate=await send(a);}finally{release();}const original=await first;
+ assert.equal(duplicate.status,200);assert.equal(duplicate.body.meta.career_model.status,'unknown');assert.equal(duplicate.body.meta.career_model.legs.generation.final,false);assert.equal(original.status,409);assert.equal(p.calls.length,1);
+ const before=F.sql(`select jsonb_build_object('flow',(select state from agent_flow_state where thread_id='${F.T}'),'messages',(select jsonb_agg(to_jsonb(m)order by m.id)from agent_messages m),'context',(select value from career_watch_kv where key='career:native-context:${F.T}'),'version',(select value from career_watch_kv where key='career:account'))`);
+ const reconciled=await send(a),again=await send(a);
+ console.log(JSON.stringify({evidence:'DUPLICATE_AS_OF_UNKNOWN_AFTER_SETTLEMENT',duplicate,original,reconciled,again,paidCalls:0}));
+ accounting(reconciled,1);assert.deepEqual(again.body,reconciled.body);assert.equal(p.calls.length,1);assert.equal(F.sql(`select jsonb_build_object('flow',(select state from agent_flow_state where thread_id='${F.T}'),'messages',(select jsonb_agg(to_jsonb(m)order by m.id)from agent_messages m),'context',(select value from career_watch_kv where key='career:native-context:${F.T}'),'version',(select value from career_watch_kv where key='career:account'))`),before);
+});

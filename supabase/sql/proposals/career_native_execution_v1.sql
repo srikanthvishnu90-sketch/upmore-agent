@@ -111,11 +111,12 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));select value into e from career_watch_kv where user_id=p_user and key='career:native-execution:'||p_thread||':'||p_key for update;
  if e is null or e->>'execution_id' is distinct from p_execution::text or p_result->>'status'not in('generated','unavailable','unknown')or octet_length(p_result::text)>100000 then raise exception 'invalid native outcome';end if;
  if e->'result'=p_result then return jsonb_build_object('execution',e);end if;
- if e->>'pair_id'is not null then p:=career_model_pair_read_v2(p_user,(e->>'pair_id')::uuid);else p:=jsonb_build_object('accounting_state','settled','provider_calls_confirmed',0);end if;
+ if e->>'pair_id'is not null then p:=career_model_pair_read_v2(p_user,(e->>'pair_id')::uuid);else p:=jsonb_build_object('accounting_state','settled','provider_calls_confirmed',0,'provider_calls_possible',0,'known_cost_micros',0,'uncertain_micros',0);end if;
  if e?'result'and not(e#>>'{result,status}'='unknown'and p_result->>'status'='unavailable'and p->>'accounting_state'='settled')then raise exception 'terminal native outcome conflict';end if;
  if p_result#>>'{meta,contract}'is distinct from 'native_pair_v1'or p_result#>>'{meta,verification,cost_policy}'is distinct from 'paired_gateway_budgeted/v1'or p_result#>'{meta,pair_id}'is distinct from e->'pair_id'
  or p_result#>>'{meta,status}'is distinct from p_result->>'status'or p_result#>>'{meta,operation_id}'is distinct from e->>'execution_id'or p_result#>>'{meta,request_digest}'is distinct from e#>>'{spec,request_digest}'or p_result#>>'{meta,context_sha256}'is distinct from(((e#>>'{spec,canonical_request}')::jsonb)#>>'{context,binding,context_sha256}')
  or p_result#>'{meta,provider_calls_confirmed}'is distinct from p->'provider_calls_confirmed'or p_result#>>'{meta,accounting_state}'is distinct from p->>'accounting_state'
+ or p_result#>'{meta,provider_calls_possible}'is distinct from p->'provider_calls_possible'or p_result#>'{meta,known_cost_micros}'is distinct from p->'known_cost_micros'or p_result#>'{meta,uncertain_micros}'is distinct from p->'uncertain_micros'or p_result#>>'{meta,accounting_source}'is distinct from 'career_model_pair_read_v2'
  or p_result#>>'{meta,intent_sha256}'is distinct from e#>>'{spec,intent_sha256}'or p_result#>>'{meta,user_text_sha256}'is distinct from e#>>'{intent,user_text_sha256}'then raise exception 'native paid provenance mismatch';end if;
  foreach k in array array['generation','verification']loop
   role_name:=case when k='verification'then 'checker'else 'generation'end;leg:=p->k;reported:=p_result#>array['meta','legs',role_name];
@@ -130,6 +131,7 @@ begin
  if p_result->>'status'='generated'then
   checker:=(e#>>'{observations,verification,text}')::jsonb;check_input:=((e->>'verification_wire_body')::jsonb#>>'{messages,-1,content}')::jsonb;
   if e->>'state'is distinct from 'claimed'or p->>'accounting_state' is distinct from 'settled'or p->>'provider_calls_confirmed'is distinct from '2'or p->>'contextCurrent'is distinct from 'true'
+  or e#>'{observations,generation,receipt}'is distinct from p#>'{generation,raw_usage_receipt}'or e#>'{observations,verification,receipt}'is distinct from p#>'{verification,raw_usage_receipt}'
   or p_result->'candidate'is distinct from(e#>>'{observations,generation,text}')::jsonb or p_result->'candidate'is distinct from check_input->'candidate'
   or p_result->>'rendered_response'is distinct from check_input->>'rendered_response'or p_result->>'rendered_sha256'is distinct from check_input->>'rendered_sha256'
   or checker->>'version'is distinct from 'career_native_checker/v1'or checker->>'verdict'is distinct from 'supported'or checker->'whole_response_checked'is distinct from 'true'::jsonb or checker->'authority_safe'is distinct from 'true'::jsonb or checker->'unlisted_claims'is distinct from '[]'::jsonb
@@ -146,6 +148,43 @@ begin
  e:=e||jsonb_build_object('state',case when p->>'accounting_state'='uncertain'then 'unknown'else 'closed'end,'result',p_result);
  update career_watch_kv set value=e,updated_at=now()where user_id=p_user and key='career:native-execution:'||p_thread||':'||p_key;return jsonb_build_object('execution',e);
 end $$;
+
+-- Exact replay is an accounting readback, never another dispatch or a memory
+-- commit. A duplicate can save an uncertain snapshot before the original leg
+-- settles. Derive later readbacks from the same owner-bound pair, retaining
+-- the immutable fallback and never reconstructing missing provider text.
+create function public.career_native_replay_v1(p_user uuid,p_thread uuid,p_key text,p_hash text)
+returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare loaded jsonb;e jsonb;a jsonb;p jsonb;response jsonb;m jsonb;accounting jsonb;legs jsonb;leg jsonb;k text;role_name text;status text;as_of timestamptz;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ loaded:=career_host_load(p_user,p_thread,p_key,p_hash);if loaded?'error'then return loaded;end if;
+ if loaded->'replay'is null then return jsonb_build_object('error','native_replay_missing');end if;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if a->'paused'='true'::jsonb or career_model_replay_check_v2(p_user,p_thread,p_key,p_hash)->>'ok'is distinct from 'true'then return jsonb_build_object('error','career_model_context_changed');end if;
+ e:=career_native_read_v1(p_user,p_thread,p_key,p_hash);if e?'error'then return e;end if;e:=e->'execution';
+ response:=loaded->'replay';m:=response#>'{meta,career_model}';
+ if e is null or e->>'execution_id'is distinct from m->>'operation_id'or e->'pair_id'is distinct from m->'pair_id'or e->'result'is null or m->>'contract'is distinct from 'native_pair_v1'then return jsonb_build_object('error','native_replay_missing');end if;
+ -- Generated and already-final snapshots retain exact replay bytes. Existing
+ -- dialogue/epoch/pause checks above still revoke stale publication.
+ if m->>'status'<>'unknown'or e->>'pair_id'is null then return jsonb_build_object('response',response);end if;
+ p:=career_model_pair_read_v2(p_user,(e->>'pair_id')::uuid);
+ if p->>'ok'is distinct from 'true'then return jsonb_build_object('error','native_replay_missing');end if;
+ legs:='{"other":{"state":"not_sent","final":true,"cost_micros":0,"provider_request_ids":[]}}'::jsonb;
+ foreach k in array array['generation','verification']loop
+  role_name:=case when k='verification'then 'checker'else 'generation'end;leg:=p->k;
+  legs:=legs||jsonb_build_object(role_name,jsonb_build_object('state',leg->'state','final',leg->>'state'in('recorded','not_sent'),'cost_micros',case when leg->>'state'='recorded'then leg->'cost_micros'else '0'::jsonb end,'provider_request_ids',case when leg->>'state'='recorded'then jsonb_build_array(leg->>'provider_response_id')else '[]'::jsonb end)||case when leg->>'state'='recorded'then jsonb_build_object('raw_usage_receipt',leg->'raw_usage_receipt')else '{}'::jsonb end);
+ end loop;
+ accounting:=jsonb_build_object('legs',legs,'provider_calls_confirmed',p->'provider_calls_confirmed','provider_calls_possible',p->'provider_calls_possible','accounting_state',p->'accounting_state','known_cost_micros',p->'known_cost_micros','uncertain_micros',p->'uncertain_micros');
+ if m@>accounting then return jsonb_build_object('response',response);end if;
+ select max(settled_at)into as_of from career_model_pair_legs_v2 where pair_id=(e->>'pair_id')::uuid and user_id=p_user and thread_id=p_thread;
+ status:=case when p->>'accounting_state'='settled'then 'unavailable'else 'unknown'end;
+ m:=m||accounting||jsonb_build_object('status',status,'accounting_as_of',as_of,'accounting_source','career_model_pair_read_v2','failure_kind','reconciled_without_redispatch');
+ response:=jsonb_set(jsonb_set(response,'{meta,career_model}',m),'{reply}',case when status='unknown'then e#>'{spec,uncertain_reply}'else e#>'{spec,fallback_reply}'end);
+ return jsonb_build_object('response',response);
+end $$;
+revoke all on function public.career_native_replay_v1(uuid,uuid,text,text)from public,anon,authenticated;
+grant execute on function public.career_native_replay_v1(uuid,uuid,text,text)to service_role;
 
 create function public.career_native_turn_commit_v1(p_base jsonb)
 returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$

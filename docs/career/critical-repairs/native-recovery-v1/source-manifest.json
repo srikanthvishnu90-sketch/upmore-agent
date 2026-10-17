@@ -1,0 +1,29 @@
+{
+  "base": "200a0f09fdee9c2c14ddc951c6d0e658dc47098c",
+  "branch": "codex/native-recovery-20261017",
+  "sourceSha256": {
+    "supabase/functions/_shared/career_native_reasoner.ts": "a5ca7981bd12d0fdb2f5d63936e12d3979db8ee9ab90d2eabd2056f1247650a4",
+    "supabase/functions/agent-chat/handler-career.ts": "237b72b9c93e410d307f8d2ef4529a18445a1add10f65195d73df36a65acf654",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "b937f75e939508485a73fc16dcfce0514277ccaa15d3da6bf6eb5153101f8c9f",
+    "tests/career-critical-repairs/native-observation-recovery-postgres.test.cjs": "278e73edf57278a6a8549121012f500bd72bff2b89c674669269af4a7798773e"
+  },
+  "evidenceSha256": {
+    "first-repair.patch.txt": "4d0a44b14c8f33a9af5e66197c03ca96bf825bc87aa3bc4fe9710488794b25b7",
+    "deno-full.log": "0e481087bc567b38449ebfbcc5c3d586ba958d0978389ee05d54ec5a28b755aa",
+    "first-repair.log": "93f663850e606aa40e049cedb4794c20a7f820fc57d4c50c2f4734a9d89e6e1f",
+    "first-repair-summary.json": "fd9baf9c085421d7c441bcf9c01117d8ea2d3294f77c77cb42a29878b0978a63",
+    "expanded-repair.log": "69d50538b787bc13b6cfbf536d4e14e964edd88093d072bb66ca5e23a3fe2627",
+    "before-summary.json": "50f2056e9225384c145a9a88600f4cd9f0ee6c9503397193113fe91aee998a2a",
+    "deno-handler-remote-block.log": "2e1bfd6f634c981baf6a1ba7a4739b7fead88aac2035a4b859ca7c36eb86645e",
+    "frozen-initial-tests.cjs.txt": "13b7ea9ea583564c9c89851ab5992e9e3964b5b8f71c56d47e08ac5627d916da",
+    "deno-handler-type-only.log": "a66dafd23fce7836122024dc6f096837b3b3e8a757b2b3e60ca26bb07a12a721",
+    "archive-gate.log": "798430e3e40ae6cbbaa82c2d91f2656abfc297d3f1c28d95dfd427b702988b3d",
+    "deno-shared.log": "917e7530961663732ccfb16cb109796959823d505dd298065fb96272aee84867",
+    "expanded-repair-summary.json": "7df0473727b938dc9f181093ba50d47ccae3be9771cd7210e5f92d61fe34b08d",
+    "before.log": "f9d38e866958cabb15e51e512d6729c48a229123d5fb527d81d270609d165eed"
+  },
+  "paidCalls": 0,
+  "quality": "NOT_EVALUATED",
+  "fixtures": "Controlled provider bytes and owned PostgreSQL 16.15 network-none containers"
+}

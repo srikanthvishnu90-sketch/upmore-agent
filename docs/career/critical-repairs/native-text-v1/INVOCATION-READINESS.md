@@ -56,6 +56,16 @@ Its `request_sha256` must equal the evaluator's original body digest, not the
 enriched generation-request digest. `native_request_sha256` uses compact sorted
 JSON of those same three HTTP fields. No result is a fabricated typed command.
 
+Recorded-leg accounting comes from the authoritative owner-bound pair ledger,
+including when the separate provider observation write failed. This cannot
+recover missing provider text or authorize generated publication. A concurrent
+duplicate's unknown response is an as-of snapshot. An exact ordinary POST retry
+can return reconciled accounting from the same pair, with its settlement as-of
+time, without resending or writing conversation state. The frozen deterministic
+fallback remains the only publishable reply when observation proof is missing.
+Owner/request, privacy, pause and stale-dialogue checks still apply. See the
+[recovery checkpoint](../native-recovery-v1/README.md) for retained failure evidence.
+
 Operational blockers reported by the evaluator remain: the old-campaign/worker
 fence and a parent-verified secure invocation. New budget approval is not in
 doubt. The native implementation intentionally retains the existing reconciled

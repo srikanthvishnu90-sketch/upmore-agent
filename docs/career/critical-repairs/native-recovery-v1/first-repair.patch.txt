@@ -1,0 +1,105 @@
+diff --git a/supabase/functions/_shared/career_native_reasoner.ts b/supabase/functions/_shared/career_native_reasoner.ts
+index c69d8b63..b525c4f4 100644
+--- a/supabase/functions/_shared/career_native_reasoner.ts
++++ b/supabase/functions/_shared/career_native_reasoner.ts
+@@ -27,13 +27,13 @@ export async function nativePaidReply(d:any){
+  const result=()=>({reply:execution.result.rendered_response,meta:execution.result.meta,native:true,intent:execution.intent.host_intent,input:execution.intent.user_text,snapshot:execution.spec.host_snapshot});
+  const finish=async(status:string,failure:string,candidate:any=null,rendered:string|null=null,draftText='')=>{
+   const pair=await pairRead(),uncertain=pair.accounting_state==='uncertain';if(status!=='generated')status=uncertain?'unknown':'unavailable';
+-  const q=JSON.parse(execution.spec.canonical_request),meta:any={contract:'native_pair_v1',status,operation_id:execution.execution_id,pair_id:execution.pair_id,request_digest:execution.spec.request_digest,context_sha256:q.context.binding.context_sha256,intent_sha256:execution.spec.intent_sha256,user_text_sha256:execution.intent.user_text_sha256,native_request_sha256:await sha(canonical({thread_id:d.ctx.threadId,turn_key:d.turnKey,message:d.rawMessage??d.message})),provider_calls_confirmed:pair.provider_calls_confirmed||0,provider_calls_possible:pair.provider_calls_possible||0,accounting_state:pair.accounting_state,accounting_as_of:new Date().toISOString(),accounting_source:'career_model_pair_read_v2',parent_bound_micros:pair.parent_bound_micros||0,bounds_micros:{generation:pair.generation?.bound_micros||0,checker:pair.verification?.bound_micros||0,other:0},legs:Object.fromEntries(['generation','verification'].map(kind=>{const leg=pair[kind],r=execution.observations?.[kind]?.receipt;return [kind==='verification'?'checker':'generation',{state:leg?.state||'not_sent',final:!leg||['recorded','not_sent'].includes(leg.state),cost_micros:leg?.state==='recorded'?leg.cost_micros:0,provider_request_ids:leg?.state==='recorded'&&r?.response_id?[r.response_id]:[],...(leg?.state==='recorded'&&r?{raw_usage_receipt:r}:{})}];}).concat([['other',{state:'not_sent',final:true,cost_micros:0,provider_request_ids:[]}]])),known_cost_micros:pair.known_cost_micros||0,uncertain_micros:pair.uncertain_micros||0,failure_kind:failure||null,generator:deps.evidenceLabel||'gateway',verification:{cost_policy:'paired_gateway_budgeted/v1',prompt_version:CHECKER,status:status==='generated'?'supported':'not_accepted',quality:'not_established_by_contract_checks'}};
++  const q=JSON.parse(execution.spec.canonical_request),meta:any={contract:'native_pair_v1',status,operation_id:execution.execution_id,pair_id:execution.pair_id,request_digest:execution.spec.request_digest,context_sha256:q.context.binding.context_sha256,intent_sha256:execution.spec.intent_sha256,user_text_sha256:execution.intent.user_text_sha256,native_request_sha256:await sha(canonical({thread_id:d.ctx.threadId,turn_key:d.turnKey,message:d.rawMessage??d.message})),provider_calls_confirmed:pair.provider_calls_confirmed||0,provider_calls_possible:pair.provider_calls_possible||0,accounting_state:pair.accounting_state,accounting_as_of:new Date().toISOString(),accounting_source:'career_model_pair_read_v2',parent_bound_micros:pair.parent_bound_micros||0,bounds_micros:{generation:pair.generation?.bound_micros||0,checker:pair.verification?.bound_micros||0,other:0},legs:Object.fromEntries(['generation','verification'].map(kind=>{const leg=pair[kind],r=leg?.raw_usage_receipt;return [kind==='verification'?'checker':'generation',{state:leg?.state||'not_sent',final:!leg||['recorded','not_sent'].includes(leg.state),cost_micros:leg?.state==='recorded'?leg.cost_micros:0,provider_request_ids:leg?.state==='recorded'&&r?.response_id?[r.response_id]:[],...(leg?.state==='recorded'&&r?{raw_usage_receipt:r}:{})}];}).concat([['other',{state:'not_sent',final:true,cost_micros:0,provider_request_ids:[]}]])),known_cost_micros:pair.known_cost_micros||0,uncertain_micros:pair.uncertain_micros||0,failure_kind:failure||null,generator:deps.evidenceLabel||'gateway',verification:{cost_policy:'paired_gateway_budgeted/v1',prompt_version:CHECKER,status:status==='generated'?'supported':'not_accepted',quality:'not_established_by_contract_checks'}};
+   if(draftText)meta.current_draft={id:'D'+(await sha(canonical({turnKey:d.turnKey,candidate}))).slice(0,20),revision:(q.view.current_draft?.revision||0)+1,text:draftText,status:'draft_not_sent'};
+   const fallbackReply=uncertain?execution.spec.uncertain_reply:!pair.provider_calls_possible?execution.spec.no_call_reply:execution.spec.fallback_reply;
+   const r=await rpc(d.admin,'career_native_outcome_v1',{...identity,p_execution:execution.execution_id,p_result:{status,failure_kind:failure||null,rendered_response:rendered||fallbackReply,...(candidate?{candidate,rendered_sha256:await sha(rendered!)}:{}),meta}});execution=r.execution;return result();
+  };
+  if(execution){
+-  if(execution.result){if(execution.result.status==='generated'&&!(await pairRead()).contextCurrent)fail('career_model_context_changed');return result();}
++  if(execution.result){const pair=await pairRead();if(execution.result.status==='generated'&&!pair.contextCurrent)fail('career_model_context_changed');if(execution.result.status==='unknown'&&pair.accounting_state==='settled')return await finish('unavailable','reconciled_without_redispatch');return result();}
+   await rpc(d.admin,'career_native_fence_v1',{...identity,p_execution:execution.execution_id});
+   let pair=await pairRead();for(const kind of ['generation','verification']){if(pair[kind]?.state==='reserved')await settle(kind,'not_sent',null);else if(pair[kind]?.state==='started'&&execution.observations?.[kind]?.receipt)await settle(kind,'recorded',execution.observations[kind].receipt);pair=await pairRead();}
+   return await finish('unavailable','recovered_without_redispatch');
+diff --git a/supabase/functions/agent-chat/handler-career.ts b/supabase/functions/agent-chat/handler-career.ts
+index 91f12d4f..87dafd35 100644
+--- a/supabase/functions/agent-chat/handler-career.ts
++++ b/supabase/functions/agent-chat/handler-career.ts
+@@ -204,6 +204,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
+           const check=await admin.rpc('career_model_replay_check_v2',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
+           if(check.error||check.data?.ok!==true)throw Object.assign(new Error('career_context_changed'),{code:'career_model_context_changed'});
+         }
++        if (loaded.replay.meta?.career_model?.contract==='native_pair_v1') {
++          const reconciled=await admin.rpc('career_native_replay_v1',{p_user:user.id,p_thread:tid,p_key:turnKey,p_hash:requestHash});
++          if(reconciled.error||!reconciled.data?.response)throw Object.assign(new Error('native_replay_unavailable'),{code:reconciled.data?.error||'storage_unavailable'});
++          flowCtx.note=null;return json(cors,reconciled.data.response,200);
++        }
+         flowCtx.note = null; return json(cors, loaded.replay, 200);
+       }
+       // The existing pure JS host adds its documented state keys dynamically.
+diff --git a/supabase/sql/proposals/career_model_pair_budget_v2.sql b/supabase/sql/proposals/career_model_pair_budget_v2.sql
+index 9df90878..a36ad091 100644
+--- a/supabase/sql/proposals/career_model_pair_budget_v2.sql
++++ b/supabase/sql/proposals/career_model_pair_budget_v2.sql
+@@ -77,7 +77,7 @@ begin
+  perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+  select * into p from career_model_pairs_v2 where id=p_pair and user_id=p_user;
+  if p.id is null or not exists(select 1 from agent_threads where id=p.thread_id and user_id=p_user)then return jsonb_build_object('ok',false,'reason','not_found');end if;
+- select jsonb_object_agg(l.kind,jsonb_build_object('kind',l.kind,'ticket',r.id,'monthly_call_id',l.monthly_id,'bound_micros',r.bound_micros,'state',r.state,'cost_micros',r.cost_micros,'dispatch_payload',l.dispatched_payload,'config_digest',l.config_digest,'receipt_ref',case when l.settlement_request_hash is not null then l.ticket_id::text else null end)) into g
++ select jsonb_object_agg(l.kind,jsonb_build_object('kind',l.kind,'ticket',r.id,'monthly_call_id',l.monthly_id,'bound_micros',r.bound_micros,'state',r.state,'cost_micros',r.cost_micros,'dispatch_payload',l.dispatched_payload,'config_digest',l.config_digest,'raw_usage_receipt',case when r.state='recorded'then l.raw_usage_receipt else null end,'provider_response_id',case when r.state='recorded'then l.provider_response_id else null end,'settled_at',l.settled_at,'receipt_ref',case when l.settlement_request_hash is not null then l.ticket_id::text else null end)) into g
+  from career_model_pair_legs_v2 l join career_model_reservations_v1 r on r.id=l.ticket_id and r.user_id=l.user_id and r.thread_id=l.thread_id where l.pair_id=p.id and l.user_id=p_user and l.thread_id=p.thread_id;
+  v:=g->'verification';g:=g->'generation';
+  select coalesce(sum(r.cost_micros)filter(where r.state='recorded'),0),coalesce(sum(r.bound_micros)filter(where r.state='reserved'),0),coalesce(sum(r.bound_micros)filter(where r.state in('started','unknown')),0),count(*)filter(where r.state in('recorded','unknown','not_sent')),count(*)filter(where r.state in('started','recorded','unknown')),count(*)filter(where r.state='recorded'and l.raw_usage_receipt is not null)
+diff --git a/supabase/sql/proposals/career_native_execution_v1.sql b/supabase/sql/proposals/career_native_execution_v1.sql
+index 1abc4723..1339bee8 100644
+--- a/supabase/sql/proposals/career_native_execution_v1.sql
++++ b/supabase/sql/proposals/career_native_execution_v1.sql
+@@ -130,6 +130,7 @@ begin
+  if p_result->>'status'='generated'then
+   checker:=(e#>>'{observations,verification,text}')::jsonb;check_input:=((e->>'verification_wire_body')::jsonb#>>'{messages,-1,content}')::jsonb;
+   if e->>'state'is distinct from 'claimed'or p->>'accounting_state' is distinct from 'settled'or p->>'provider_calls_confirmed'is distinct from '2'or p->>'contextCurrent'is distinct from 'true'
++  or e#>'{observations,generation,receipt}'is distinct from p#>'{generation,raw_usage_receipt}'or e#>'{observations,verification,receipt}'is distinct from p#>'{verification,raw_usage_receipt}'
+   or p_result->'candidate'is distinct from(e#>>'{observations,generation,text}')::jsonb or p_result->'candidate'is distinct from check_input->'candidate'
+   or p_result->>'rendered_response'is distinct from check_input->>'rendered_response'or p_result->>'rendered_sha256'is distinct from check_input->>'rendered_sha256'
+   or checker->>'version'is distinct from 'career_native_checker/v1'or checker->>'verdict'is distinct from 'supported'or checker->'whole_response_checked'is distinct from 'true'::jsonb or checker->'authority_safe'is distinct from 'true'::jsonb or checker->'unlisted_claims'is distinct from '[]'::jsonb
+@@ -147,6 +148,43 @@ begin
+  update career_watch_kv set value=e,updated_at=now()where user_id=p_user and key='career:native-execution:'||p_thread||':'||p_key;return jsonb_build_object('execution',e);
+ end $$;
+ 
++-- Exact replay is an accounting readback, never another dispatch or a memory
++-- commit. A duplicate can save an uncertain snapshot before the original leg
++-- settles. Derive later readbacks from the same owner-bound pair, retaining
++-- the immutable fallback and never reconstructing missing provider text.
++create function public.career_native_replay_v1(p_user uuid,p_thread uuid,p_key text,p_hash text)
++returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
++declare loaded jsonb;e jsonb;a jsonb;p jsonb;response jsonb;m jsonb;accounting jsonb;legs jsonb;leg jsonb;k text;role_name text;status text;as_of timestamptz;
++begin
++ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
++ loaded:=career_host_load(p_user,p_thread,p_key,p_hash);if loaded?'error'then return loaded;end if;
++ if loaded->'replay'is null then return jsonb_build_object('error','native_replay_missing');end if;
++ select value into a from career_watch_kv where user_id=p_user and key='career:account';
++ if a->'paused'='true'::jsonb or career_model_replay_check_v2(p_user,p_thread,p_key,p_hash)->>'ok'is distinct from 'true'then return jsonb_build_object('error','career_model_context_changed');end if;
++ e:=career_native_read_v1(p_user,p_thread,p_key,p_hash);if e?'error'then return e;end if;e:=e->'execution';
++ response:=loaded->'replay';m:=response#>'{meta,career_model}';
++ if e is null or e->>'execution_id'is distinct from m->>'operation_id'or e->'pair_id'is distinct from m->'pair_id'or e->'result'is null or m->>'contract'is distinct from 'native_pair_v1'then return jsonb_build_object('error','native_replay_missing');end if;
++ -- Generated and already-final snapshots retain exact replay bytes. Existing
++ -- dialogue/epoch/pause checks above still revoke stale publication.
++ if m->>'status'<>'unknown'or e->>'pair_id'is null then return jsonb_build_object('response',response);end if;
++ p:=career_model_pair_read_v2(p_user,(e->>'pair_id')::uuid);
++ if p->>'ok'is distinct from 'true'then return jsonb_build_object('error','native_replay_missing');end if;
++ legs:='{"other":{"state":"not_sent","final":true,"cost_micros":0,"provider_request_ids":[]}}'::jsonb;
++ foreach k in array array['generation','verification']loop
++  role_name:=case when k='verification'then 'checker'else 'generation'end;leg:=p->k;
++  legs:=legs||jsonb_build_object(role_name,jsonb_build_object('state',leg->'state','final',leg->>'state'in('recorded','not_sent'),'cost_micros',case when leg->>'state'='recorded'then leg->'cost_micros'else '0'::jsonb end,'provider_request_ids',case when leg->>'state'='recorded'then jsonb_build_array(leg->>'provider_response_id')else '[]'::jsonb end)||case when leg->>'state'='recorded'then jsonb_build_object('raw_usage_receipt',leg->'raw_usage_receipt')else '{}'::jsonb end);
++ end loop;
++ accounting:=jsonb_build_object('legs',legs,'provider_calls_confirmed',p->'provider_calls_confirmed','provider_calls_possible',p->'provider_calls_possible','accounting_state',p->'accounting_state','known_cost_micros',p->'known_cost_micros','uncertain_micros',p->'uncertain_micros');
++ if m@>accounting then return jsonb_build_object('response',response);end if;
++ select max(settled_at)into as_of from career_model_pair_legs_v2 where pair_id=(e->>'pair_id')::uuid and user_id=p_user and thread_id=p_thread;
++ status:=case when p->>'accounting_state'='settled'then 'unavailable'else 'unknown'end;
++ m:=m||accounting||jsonb_build_object('status',status,'accounting_as_of',as_of,'accounting_source','career_model_pair_read_v2','failure_kind','reconciled_without_redispatch');
++ response:=jsonb_set(jsonb_set(response,'{meta,career_model}',m),'{reply}',case when status='unknown'then e#>'{spec,uncertain_reply}'else e#>'{spec,fallback_reply}'end);
++ return jsonb_build_object('response',response);
++end $$;
++revoke all on function public.career_native_replay_v1(uuid,uuid,text,text)from public,anon,authenticated;
++grant execute on function public.career_native_replay_v1(uuid,uuid,text,text)to service_role;
++
+ create function public.career_native_turn_commit_v1(p_base jsonb)
+ returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+ declare u uuid:=(p_base->>'p_user')::uuid;t uuid:=(p_base->>'p_thread')::uuid;e jsonb;saved jsonb;p jsonb;

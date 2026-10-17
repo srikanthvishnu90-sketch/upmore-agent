@@ -1,0 +1,3 @@
+Download https://jsr.io/@std/assert/meta.json
+error: JSR package manifest for '@std/assert' failed to load. Import 'https://jsr.io/@std/assert/meta.json' failed.
+    at file:///workspace/upmore-agent/tests/edge/year-in-money.test.ts:4:51

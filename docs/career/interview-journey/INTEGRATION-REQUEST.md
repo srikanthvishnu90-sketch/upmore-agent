@@ -1,6 +1,7 @@
 # Spec A / Muse integration request — blocked consumer boundary
 
-Latest B source and consumer proof: [ZERO-VERSIONS-20261017.md](ZERO-VERSIONS-20261017.md).
+Latest B control repairs and one actual-entry task: [ADVERSARIAL-20261017.md](ADVERSARIAL-20261017.md).
+Consumer proof: [ZERO-VERSIONS-20261017.md](ZERO-VERSIONS-20261017.md).
 Recovery protocol: [RECOVERY-20261017.md](RECOVERY-20261017.md).
 Use its exact tested source and preserve `checkpoint.outstanding_reasoning`
 through atomic persistence. A's current context-only projection has 23 passing

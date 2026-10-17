@@ -1,0 +1,25 @@
+{
+  "baseline_commit": "bdada1fa505fbdf81cbf110285baf453b9bd499c",
+  "command": [
+    "node",
+    "scripts/career/interview-journey/adversarial-pass.cjs",
+    "--output",
+    "/tmp/upmore-b7-baseline",
+    "--producer-ref",
+    "315158f5314360417266270ec6e6e9e71aad0af8"
+  ],
+  "exit_code": 1,
+  "counts": {
+    "completed": 6,
+    "failed": 5,
+    "blocked": 1
+  },
+  "files_sha256": {
+    "tests/career-interview-journey/adversarial-compositions.cjs": "0ea4506bd1711ccc662126792e8aeeba19e4927d080939df002879c4e3b7da22",
+    "tests/career-interview-journey/adversarial-compositions.test.cjs": "c0e47fbabfc570749f69f01c57250675f79db81f2210276710f8383bc78117f7",
+    "scripts/career/interview-journey/adversarial-pass.cjs": "194e5b5e1063a41e688e8d20f8320f280a497e6aef69a71e007ce6cc6b8e3a4d"
+  },
+  "provider_calls": 0,
+  "semantic_quality": "NOT_RUN",
+  "initial_run_note": "Initial first-case candidate referenced project version1 after correction to2; B correctly rejected that stale scripted draft. New harness emits current synthetic draft references; no product change was needed for it."
+}

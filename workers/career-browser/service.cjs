@@ -13,7 +13,7 @@ const bindingHash = value => hash(canonical(value));
 // portals; public research has a separate read-only origin policy.
 function createWorker({ store, resolveEquipment, authority, controlledPortals = [], nativePortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, retentionClock=Date.now, retentionSchedule=setTimeout, privateRetentionMs=900000, maxActions = 120, timeoutMs = 30000 }) {
   if (!store || ((controlledPortals.length || nativePortals.length) && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
-  for (const method of ["current", "claim", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
+  for (const method of ["current", "claim", "history", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
   if (!Number.isInteger(maxActions) || maxActions < 1 || maxActions > 1000 || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw fail("BUDGET_CONFIGURATION_INVALID");
   const portals = new Map(controlledPortals.map((p) => {
     const u = new URL(p.url), submit = new URL(p.submitUrl);

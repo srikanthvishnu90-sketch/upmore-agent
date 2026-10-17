@@ -6,24 +6,25 @@ const fs=require('node:fs'),crypto=require('node:crypto');
 const {createTaskAuthority}=require('../../workers/career-browser/authority.cjs');
 if(!process.env.CAREER_TEST_CONTAINER){test('durable application admissions',{skip:'explicit owned PostgreSQL required'},()=>{});}else{
  const db=require('../helpers/career-task-sql.cjs')(process.env.CAREER_TEST_CONTAINER,process.env.CAREER_TEST_DATABASE);
- const authority=createTaskAuthority(db),U='00000000-0000-4000-8000-000000000001',V='00000000-0000-4000-8000-000000000002',T='00000000-0000-4000-8000-000000000003';
+ const authority=createTaskAuthority(db),U='00000000-0000-4000-8000-000000000001',V='00000000-0000-4000-8000-000000000002',T='00000000-0000-4000-8000-000000000003',T2='00000000-0000-4000-8000-000000000006';
  const hash=s=>crypto.createHash('sha256').update(s).digest('hex'),q=s=>"'"+String(s).replaceAll("'","''")+"'";
  const baseline=process.env.UPMORE_TEST_ADMISSION_BASELINE==='1';
  if(!baseline&&db.sql("select to_regprocedure('career_application_admit_v1()') is null")==='t')db.sql(fs.readFileSync('supabase/sql/proposals/career_application_admissions_v1.sql','utf8'));
  let serial=0;
- beforeEach(()=>{serial=0;db.sql("truncate auth.users cascade;insert into auth.users values('"+U+"'),('"+V+"');insert into agent_threads values('"+T+"','"+U+"');insert into career_watch_kv(user_id,key,value)values('"+U+"','career:account','{\"version\":1,\"epoch\":0,\"paused\":false}');");});
- function grant(company,host='boards.greenhouse.io'){
+ beforeEach(()=>{serial=0;db.sql("truncate auth.users cascade;insert into auth.users values('"+U+"'),('"+V+"');insert into agent_threads values('"+T+"','"+U+"'),('"+T2+"','"+U+"');insert into career_watch_kv(user_id,key,value)values('"+U+"','career:account','{\"version\":1,\"epoch\":0,\"paused\":false}');");});
+ function grant(company,host='boards.greenhouse.io',thread=T){
   const key=String(++serial),taskId=hash('task'+key).slice(0,32),resume=hash('resume'),posting={company,url:'https://'+host+'/fixture/'+key,canonicalKey:'synthetic:'+key};
   const prepare={action:'prepare',resume_sha256:resume},approve={action:'approve',resume_sha256:resume};
   for(const [kind,binding,input]of [['prepare',prepare,{posting}],['approve',approve,null]]){
-   const id=hash(kind+key);db.sql('insert into career_task_intents_v1(user_id,intent_id,thread_id,turn_key,request_hash,event_hash,binding,private_input,authority_account_version,privacy_epoch,task_id,state)values('+[q(U),q(id),q(T),q(kind+key),q(hash('request'+kind+key)),q(hash('event'+kind+key)),q(JSON.stringify(binding)),input?q(JSON.stringify(input)):'null',1,0,q(taskId),q(kind==='prepare'?'completed':'queued')].join(',')+');');
+   const id=hash(kind+key);db.sql('insert into career_task_intents_v1(user_id,intent_id,thread_id,turn_key,request_hash,event_hash,binding,private_input,authority_account_version,privacy_epoch,task_id,state)values('+[q(U),q(id),q(thread),q(kind+key),q(hash('request'+kind+key)),q(hash('event'+kind+key)),q(JSON.stringify(binding)),input?q(JSON.stringify(input)):'null',1,0,q(taskId),q(kind==='prepare'?'completed':'queued')].join(',')+');');
   }
   return authority.claim({userId:U,intentId:hash('approve'+key),taskId,expected:{action:'approve'}});
  }
  const begin=g=>authority.begin(g,'submit',hash(g.taskId+'submit'));
  test('sixth same-vendor admission is denied across distinct tasks, threads and worker lifetimes',()=>{
-  for(let n=0;n<5;n++)begin(grant('Synthetic company '+n));
-  const sixth=grant('Synthetic company sixth');
+  for(let n=0;n<5;n++)begin(grant('Synthetic company '+n,'boards.greenhouse.io',n%2?T2:T));
+  assert.equal(db.sql("select count(distinct i.thread_id)from career_task_effects_v1 e join career_task_intents_v1 i using(user_id,intent_id)where e.operation='submit'"),'2');
+  const sixth=grant('Synthetic company sixth','boards.greenhouse.io',T2);
   assert.throws(()=>createTaskAuthority(db).begin(sixth,'submit',hash('sixth')),/TASK_SUBMISSION_CAP_REACHED|cap reached/);
  });
  if(!baseline){

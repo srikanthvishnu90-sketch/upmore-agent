@@ -88,6 +88,8 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
+- 2026-10-17 Codex batch continuation owns new `career_application_batch_v1.sql`, batch ingress/control/worker-answer seams and tests/docs, with existing task authority/effect ledger as the sole execution path. Also own the narrow `tests/career-claim-recovery-postgres.test.cjs` unknown-submit fixture setup (retain every assertion), actual cross-thread quota fixture and constructor history wiring. Batch workflow actions must not mutate shared profile context or invalidate healthy roles; changed payloads require a new exact approval.
+
 - 2026-10-17 Codex owns generated evaluator freshness outputs `docs/testing/agent-report.md`, `docs/capability-list/flow-evidence.md`, `evals/agent/results/latest.json` for the app-source change only; run the actual existing evaluator, preserve all assertions, NOT_RUNs and release gates.
 
 - 2026-10-17 Codex mass-application continuation explicitly owns `workers/career-browser/{authority,service}.cjs`, `packages/domain/149-career-portal-apply.js` admission-count seam, `tests/fixtures/owned-worker-authority.cjs`, new admissions SQL/tests, CI-node DDL selection and both regenerated router bundles. Atomic shared caps only; existing employer guards, model/native code and protected modules127/130/155 stay unchanged.

@@ -55,7 +55,8 @@ if(!process.env.CAREER_TEST_CONTAINER){test('owned claim recovery real PostgreSQ
   const ticket=foreign.begin(fresh,'open',hash('fresh'));expire();assert.throws(()=>foreign.consume(fresh,ticket));
  });
  test('unknown submit fence survives missing checkpoint and can never be reclaimed or repeated',()=>{
-  const i=commit();db.sql("update career_task_intents_v1 set binding=jsonb_set(binding,'{action}','\"approve\"');");
+  const prepared=commit();claim(owned,prepared);
+  const i=commit({},{action:'approve',task_id:TASK,event_id:'approval',payload_sha256:hash('synthetic-payload')});
   const g=owned.claim({userId:U,intentId:i.intent_id,taskId:TASK,expected:{action:'approve'}}),ticket=owned.begin(g,'submit',hash('submit'));owned.consume(g,ticket);
   assert.equal(owned.pending().length,0);assert.equal(db.call('career_task_claim_readback_v1',{p_user:U,p_intent:i.intent_id,p_worker:W,p_request:g.claimRequest}).state,'uncertain');expire();
   assert.throws(()=>db.call('career_task_claim_owned_v1',{p_user:U,p_intent:i.intent_id,p_task:TASK,p_worker:W,p_request:g.claimRequest,p_generation:g.generation}));

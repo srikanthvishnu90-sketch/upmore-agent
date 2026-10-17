@@ -77,3 +77,6 @@ Atomic application admission finding: the worker passed `log:{records:[]}` into1
 
 
 The app-source change invalidated the2026-10-12 visual fingerprint. CI0337c815 correctly rejected stale generated reports. Running the actual offline evaluator regenerated91/91 checks with the affected visual check honestly NOT_RUN, preserving three labeled gaps and three NOT_RUNs. No browser baseline/fingerprint was fabricated and no freshness assertion was weakened. Node24 compatibility generation/check is recorded separately from actual Deno CI. Committed runtime0337c815 full Node source passes4764/40skip.
+
+
+Independent mass-application review: corrected the claim of a cross-thread quota test by using two real thread rows, and made missing worker history a construction-time error. Full localSQL completed345 contracts with one stale fixture setup failure; its repair retains every original no-resubmit assertion and passes10/10. Quota cross-thread tests pass7/7. Do not infer full eligibility, resume reload restoration or career-fact confirmation from the contact-only applicant flow. A current employer internship is independently selected; its human check was not bypassed.

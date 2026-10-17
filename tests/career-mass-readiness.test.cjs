@@ -22,6 +22,11 @@ test('batch triage holds only the unresolved role and preserves its essential qu
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {fixture}=require('./fixtures/owned-worker-fixture.cjs');
 const {fail}=require('../workers/career-browser/store.cjs');
+test('worker rejects a missing durable history transport at construction',()=>{
+ const {createWorker}=require('../workers/career-browser/service.cjs');
+ const authority=Object.fromEntries(['current','claim','begin','consume','settle','finish','pending'].map(name=>[name,()=>{}]));
+ assert.throws(()=>createWorker({store:{},authority}),{code:'TASK_AUTHORITY_NOT_WIRED'});
+});
 test('durable cap history stops a role before opening a browser, without claiming a receipt',t=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'mass-quota-preflight-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const f=fixture(root);f.authority.history=()=>({records:Array.from({length:15},(_,i)=>({userId:'user-a',status:'submission_admitted',timestamp:new Date(f.clock.value).toISOString(),company:'Other '+i,vendor:'controlled_loopback'}))});

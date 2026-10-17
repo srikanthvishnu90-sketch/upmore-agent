@@ -60,9 +60,18 @@
       "denoJob": "failed at generated-report freshness; source checks passed; regenerated outputs committed next",
       "node": "in_progress",
       "requiredOriginalArchives": "failure"
-    }
+    },
+    "claimRecoveryFixtureRepair": "10/10 PASS: real prepare then real approve; every no-resubmit assertion retained",
+    "actualCrossThreadQuota": "7/7 PASS: two distinct owned threads observed in admitted effect rows",
+    "constructionHistory": "5/5 mass-readiness contracts PASS"
   },
   "paidCalls": 0,
   "employerSubmissions": 0,
-  "originalArchives": "MISSING, required gate not waived"
+  "originalArchives": "MISSING, required gate not waived",
+  "reviewFollowupSourceSha256": {
+    "workers/career-browser/service.cjs": "724d7fb9479da184f34b77710166e786b2571e431affe145f5798318a21190cd",
+    "tests/career-claim-recovery-postgres.test.cjs": "370b1dc76943a21f95c8cc5e9707d1979b1eddd1c62e7fbe1b073c0fe3fc38ac",
+    "tests/career-critical-repairs/application-admissions-postgres.test.cjs": "9d8b191e06640a4bc420dd8b1e28fccb969bee8a01b88e295b3b3ceb5eaa5ec1",
+    "tests/career-mass-readiness.test.cjs": "e6107a14343793e3874c1b18b171199cdf9b9414497dfa470b7624a1e96cdfc4"
+  }
 }

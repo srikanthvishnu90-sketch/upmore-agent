@@ -1,43 +1,87 @@
 {
-  "observedAt": "2026-10-17T16:36:17.960647+00:00",
+  "observedAt": "2026-10-17T17:27:11.368506+00:00",
   "branch": "codex/mass-applications-20261017",
-  "runtime": "abe6db57c519b042da218f1979ec72869aa8487c",
-  "publishedEvidenceParent": "a78ddeb3b75e1cccf66a0966ecd4678882e8a614",
-  "connectivity": "fresh shell and GitHub read/push succeeded",
-  "unpublishedImplementation": false,
+  "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
+  "sourcePublishedVerified": true,
+  "features": [
+    "ordinary text -> observed public ATS shortlist with cited fit",
+    "explicit application facts review/confirmation; no residence to authorization inference",
+    "exact selected roles -> existing durable batch authority",
+    "actual cards for review, role answers, UNKNOWN readback and status",
+    "owned claimed-intent profile/source equipment and private RPC closure"
+  ],
   "completed": {
-    "source": {
-      "head": "abe6db57c519b042da218f1979ec72869aa8487c",
-      "passed": 4782,
+    "currentDomainController": {
+      "passed": 9,
       "failed": 0,
-      "skipped": 40,
-      "summary": "evidence/abe6-full-source-summary.json",
-      "log": "evidence/abe6-full-source.log"
+      "log": "evidence/upmore-application-final-unit.log"
     },
-    "focusedSourceBuild": 8,
-    "workerControls": 28,
-    "focusedSQL": 10,
-    "priorRuntimeFullSQL": {
-      "head": "f74812b3dda211edbada9a5be604b65af2e09e50",
-      "passed": 352,
-      "files": 39,
+    "earlierFocused": {
+      "passed": 78,
       "failed": 0,
-      "fixtureRemoved": true
+      "log": "evidence/upmore-application-focused-final.log"
     },
-    "priorExactCI": 39047577375
+    "earlierActualControllerEdgeSQLWorker": {
+      "passed": 1,
+      "failed": 0,
+      "log": "evidence/upmore-application-conversation-full-path3.log",
+      "scope": "before final actual UI/negative coverage and facts-review replay refinement; not exact-head broad proof"
+    },
+    "compatibilityPrecommit": {
+      "passed": 13,
+      "failed": 1,
+      "failure": "source package correctly refuses dirty allowlist; rerun after source commit",
+      "log": "evidence/upmore-application-compatibility.log"
+    },
+    "activeFinalUI_SQL": {
+      "session": 91592,
+      "summaryDirectory": "/tmp/upmore-ci-node-4W7DgW",
+      "testHashAtStart": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
+      "laterNegativeTestExtension": "pending separate run"
+    },
+    "finalActualUIEdgeSQLWorker": {
+      "passed": 1,
+      "failed": 0,
+      "summary": "evidence/conversation-final-ui-sql-summary.json",
+      "log": "evidence/conversation-final-ui-sql.log",
+      "fixtureRemoved": true,
+      "testHash": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
+      "scope": "actual cards/controller, final facts-review refinement and actual Edge/SQL/pull-runner; expanded negative assertions run separately"
+    },
+    "workerBuild": {
+      "files": 41,
+      "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
+      "metadata": "evidence/worker-5b670524-build.json"
+    }
   },
   "active": {
-    "fullSQLSession": 7354,
-    "fullSQLSummaryDirectory": "/tmp/upmore-ci-node-9fTIsO",
-    "frozenWorktree": "/workspace/upmore-mass-flow",
-    "ci": 39049893782
+    "fullSource": {
+      "session": 23101,
+      "log": "/tmp/upmore-5b670524-full-source.log",
+      "head": "5b6705248dbad869ef8350b6ba861fa8221e29bb"
+    },
+    "expandedConversationSQL": {
+      "session": 62404,
+      "log": "/tmp/upmore-5b670524-conversation-sql.log",
+      "head": "5b6705248dbad869ef8350b6ba861fa8221e29bb"
+    },
+    "ci": 39053778940
+  },
+  "previousExactHeadCI": {
+    "head": "92dde8a8996e73fcccdbc43407fb882e316c2e17",
+    "run": 39050141942,
+    "node": "success",
+    "deno": "success",
+    "database": "success",
+    "archives": "failure"
   },
   "remaining": [
-    "Ordinary-text discovery/batch controls",
-    "Confirmed country/employer-specific eligibility collection",
-    "Muse source full commit publication; supplied ref missing on one fetch",
-    "Already-approved running normal-sandbox worker handoff; existing local sandbox helper aborts; exact-project Vercel sandbox403 remains stopped",
-    "Genuine original archives; required gate remains blocked"
+    "final expanded UI/Edge/SQL denial run",
+    "full clean source and40-file SQL",
+    "exact-head CI",
+    "normal sandbox browser blocked; existing Vercel403 stopped",
+    "Muse published source/ref and integration",
+    "missing original archives gate remains failed"
   ],
   "paidCalls": 0,
   "liveDatabaseMutations": 0,

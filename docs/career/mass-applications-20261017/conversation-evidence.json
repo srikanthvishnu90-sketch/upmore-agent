@@ -37,6 +37,20 @@
       "summaryDirectory": "/tmp/upmore-ci-node-4W7DgW",
       "testHashAtStart": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
       "laterNegativeTestExtension": "pending separate run"
+    },
+    "finalActualUIEdgeSQLWorker": {
+      "passed": 1,
+      "failed": 0,
+      "summary": "evidence/conversation-final-ui-sql-summary.json",
+      "log": "evidence/conversation-final-ui-sql.log",
+      "fixtureRemoved": true,
+      "testHash": "12637431a8986ecaa81d96a309d1760ef37b762513bcbf7a8f00f29625ef9697",
+      "scope": "actual cards/controller, final facts-review refinement and actual Edge/SQL/pull-runner; expanded negative assertions run separately"
+    },
+    "workerBuild": {
+      "files": 41,
+      "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
+      "metadata": "evidence/worker-5b670524-build.json"
     }
   },
   "sourceSha256": {
@@ -93,5 +107,11 @@
   "paidCalls": 0,
   "liveDatabaseMutations": 0,
   "deployments": 0,
-  "employerSubmissions": 0
+  "employerSubmissions": 0,
+  "runtime": "5b6705248dbad869ef8350b6ba861fa8221e29bb",
+  "ci": {
+    "id": 39053778940,
+    "state": "in_progress",
+    "exactHead": "5b6705248dbad869ef8350b6ba861fa8221e29bb"
+  }
 }

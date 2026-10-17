@@ -171,7 +171,7 @@ const CareerPortalBrowser = (() => {
     // DIFFERENT machine names (country / country_2, school / school_0)
     // for the same human question. Slug-derived question_keys are
     // unstable across duplicates, so only canonical keys count.
-    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
+    const semKeyFor = (kind, label) => [kind.kind, kind.profile_key || (["work_authorization", "sponsorship", "cover_note", "age_18_plus", "located_in_us", "education_level", "education_level_completed", "years_of_experience", "experience_3mo_plus", "prior_employment", "prior_application", "full_time_readiness", "outside_activities", "restrictive_agreements"].includes(kind.question_key) ? kind.question_key : ""), String(label || "").toLowerCase().replace(/\s+/g, " ").trim()].join("|");
 
     for (const f of raws) {
       if (consumed.has(f)) continue;
@@ -241,6 +241,11 @@ const CareerPortalBrowser = (() => {
     // (BUG-238 live addendum: the widget-Degree rule below never fired
     // on real boards because the raw label carries the asterisk).
     const eff = ((f && f.label ? String(f.label).toLowerCase() : "") || hay).replace(/[*✱]\s*$/, "").trim();
+    // R2 binding audit (2026-10-17): boards separate stacked
+    // qualifiers with slashes ("3+ months of internship / work
+    // experience") — the experience rules below read a slash-flattened
+    // copy so the qualifier stack collapses to plain words.
+    const effQ = eff.replace(/\s*\/\s*/g, " ");
     if (inputType === "file") {
       // File inputs are the exception to label-first: their visible
       // label is often just "Attach", and the binding carries no typed
@@ -251,8 +256,28 @@ const CareerPortalBrowser = (() => {
       return { kind: "unknown" };
     }
     if (/certif|attest|acknowledge|true and complete|provided.*true/.test(eff) && inputType === "checkbox") return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
-    if (/authori[sz]ed to work|legally authori[sz]ed|right to work/.test(eff)) return { kind: "screening", question_key: "work_authorization" };
+    if (/authori[sz]ed to work|legally authori[sz]ed|right to work|eligible to work|legally eligible/.test(eff)) return { kind: "screening", question_key: "work_authorization" };
     if (/sponsor/.test(eff)) return { kind: "screening", question_key: "sponsorship" };
+    // R2 binding audit (2026-10-17; Lane E re-drive record,
+    // submissions/redrive-r2-2026-10-16): question classes the R2 run
+    // stopped on although a confirmed source answers them. The first
+    // three keys are resolved by module 149 at fill time (the posting
+    // company + the bank's employer set / the application ledger /
+    // the graduation year); outside_activities is a deriveAnswers key.
+    // restrictive_agreements has NO derivation on purpose: it is a
+    // personal confirmation only the user can give — the rule exists
+    // so these labels can never fall through to the current-company
+    // rule below ("...restrictions with your current employer..." was
+    // one derivation away from being filled with a company name).
+    if (/non-?compete|non-?solicitation|post-?employment restrictions?|employment agreements|restrictive covenants?|subject to any agreement/.test(eff)) return { kind: "screening", question_key: "restrictive_agreements" };
+    // Prior employment AT THE POSTING FIRM. The federal/government
+    // carve-out is load-bearing: "have you ever been employed by the
+    // U.S. Federal Government..." asks about government work, not the
+    // firm, and must never take the employer-set resolution.
+    if (/have you (ever |previously )?(been employed by|been employed at|worked for|worked at|consulted for|performed services for)/.test(eff) && !/federal|government|military/.test(eff)) return { kind: "screening", question_key: "prior_employment" };
+    if (/previously applied|have you applied/.test(eff)) return { kind: "screening", question_key: "prior_application" };
+    if (/ready for full-?time employment/.test(eff)) return { kind: "screening", question_key: "full_time_readiness" };
+    if (/outside business activities|outside activities|other outside employment/.test(eff)) return { kind: "screening", question_key: "outside_activities" };
     // BUG-238 / FR-396: the bank-derived answer keys (module 149's
     // deriveAnswers) — the questions Drive Pass 2 stopped on although
     // the bank already answered them. Each rule names the key module
@@ -260,7 +285,7 @@ const CareerPortalBrowser = (() => {
     // stops as an ask, never a guess.
     if (/at least 18|18 (years of age|or older)|are you 18|over (the age of )?18/.test(eff)) return { kind: "screening", question_key: "age_18_plus" };
     if (/currently located in|presently located in|located in the (united states|u\.s\.|usa)|based in the (united states|u\.s\.)|do you live in the (united states|u\.s\.)/.test(eff)) return { kind: "screening", question_key: "located_in_us" };
-    if (inputType !== "textarea" && /3\s*\+?\s*months?\s*(of\s+)?(internship\s+|work\s+|professional\s+|relevant\s+)?experience|at least 3 months.*experience/.test(eff)) return { kind: "screening", question_key: "experience_3mo_plus" };
+    if (inputType !== "textarea" && /3\s*\+?\s*months?\s*(of\s+)?((internship|work|professional|relevant)\s+){0,2}experience|at least 3 months.*experience/.test(effQ)) return { kind: "screening", question_key: "experience_3mo_plus" };
     if (inputType !== "textarea" && /how many years.*experience|years?\s*of\s*(work\s+|professional\s+|relevant\s+|industry\s+)?experience|total years.*experience/.test(eff)) return { kind: "screening", question_key: "years_of_experience" };
     // EEO also matches on hay: the value carried is the decline
     // default (or the user's own EEO choice), never a bound fact, and
@@ -294,6 +319,12 @@ const CareerPortalBrowser = (() => {
     // text degree field keeps the degree name (education_degree).
     if (/^degree$/.test(eff) && f && /select__input/.test(f.cls || "")) return { kind: "screening", question_key: "education_level" };
     if (/\bdegree\b|bachelor/.test(eff)) return { kind: "standard", profile_key: "education_degree" };
+    // R2 audit: a bare Certifications field takes the bank's
+    // certification facts (document material the resume itself lists
+    // under Licenses & Certifications) — a STANDARD field, never a
+    // screening answer (the BUG-238 non-answer law stands for keys:
+    // certifications stay out of deriveAnswers' answers map).
+    if (/^(licenses?|certifications?)(\s*(\/|&|and)\s*(licenses?|certifications?))?$/.test(eff)) return { kind: "standard", profile_key: "certifications" };
     if (f && /^start_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_start_date" }; // Greenhouse's built-in education-entry fields slug to start_year_<n> / end_year_<n> (labels: "Start date year")
     if (f && /^end_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_end_date" };
     if (/(start|begin)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_start_date" };
@@ -301,11 +332,11 @@ const CareerPortalBrowser = (() => {
     // BUG-238: residence facts the bank carries (F-024 hometown /
     // basics.location) — state, time zone, date of birth get standard
     // keys so deriveAnswers' profile fields can fill them.
-    if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
+    if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|which (u\.s\. )?state or (canadian )?province|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
     if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
     if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };
-    if (/first name|last name|full name|your name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
+    if (/first name|last name|full name|your name|legal name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name"))) return { kind: "standard", profile_key: "name" };
     if (/e-?mail/.test(eff) || inputType === "email") return { kind: "standard", profile_key: "email" };
     if (/phone|mobile|telephone/.test(eff) || inputType === "tel") return { kind: "standard", profile_key: "phone" };
     if (/linkedin/.test(eff)) return { kind: "standard", profile_key: "linkedin" };

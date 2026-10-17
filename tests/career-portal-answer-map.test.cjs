@@ -199,3 +199,197 @@ test("end to end: remove the DOB fact and the SAME 18+ field stops the drive (no
   assert.equal(board.held[ageDef.field_id], undefined, "no fact, no fill — the field is asked, not answered");
   assert.equal(board.calls.submit, 0);
 });
+
+// ---------- R2 binding audit (2026-10-17): the questions Lane E's re-drive
+// stopped on although a confirmed source already answered them ----------
+// Audit of submissions/redrive-r2-2026-10-16 (25 applications, 20 parked).
+// Each guard below replays one verbatim employer label from that run.
+// Fail-first: every classification/derivation/resolution assertion in
+// this section is RED on the pre-fix tree (the bindings did not exist);
+// the federal-question guard and the Current Company classification are
+// pins (green before and after) that keep the widenings honest.
+const SYNTH_BANK = {
+  basics: { name: "Sam Synthetic", location: "Springfield, IL", country: "United States" },
+  defaults: { gpa: "3.5" },
+  facts: [
+    { id: "F-001", kind: "education", status: "confirmed", title: "Pursuing Bachelors in Computer Science, Synthetic University", org: "Synthetic University", start: "2025", end: "2029", text: "Pursuing Bachelors in Computer Science at Synthetic University, 2025 - 2029." },
+    { id: "F-002", kind: "experience", status: "confirmed", org: "Acme Corp", role: "Founder", title: "Founder, Acme Corp", start: "2025", end: "present", text: "Founder, Acme Corp, 2025 - present." },
+    { id: "F-003", kind: "experience", status: "confirmed", org: "Beta LLC", role: "Intern", title: "Intern, Beta LLC", start: "2024", end: "2025", text: "Intern, Beta LLC, 2024 - 2025." },
+    { id: "F-007", kind: "certification", status: "confirmed", org: "Synthetic Prep", title: "Synthetic Modeling Program", text: "Synthetic Modeling Program." },
+    { id: "F-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
+    { id: "F-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No" },
+  ],
+};
+const clsR2 = (label, inputType = "text", extra = {}) => {
+  const { defs } = BrowserBoard.classifyFields([Object.assign({ label, name: "", id: "", inputType, tag: "input", cls: "", selector: "#x", required: true }, extra)]);
+  return defs[0];
+};
+
+test("R2 classification: Chime's eligibility phrasing routes to work_authorization (Lane E's flagged miss)", () => {
+  assert.equal(clsR2("Are you currently eligible to work legally in the United States of America?").question_key, "work_authorization");
+});
+
+test("R2 classification: Sezzle's slash-qualified experience phrasing routes to experience_3mo_plus", () => {
+  assert.equal(clsR2("Do you have 3+ months of internship / work experience?").question_key, "experience_3mo_plus");
+});
+
+test("R2 classification: Affirm's state-or-province phrasing routes to state_of_residence", () => {
+  assert.equal(clsR2("Which U.S. State or Canadian Province do you reside in?").profile_key, "state_of_residence");
+});
+
+test("R2 classification: prior-employment phrasings (six employers, verbatim) route to prior_employment", () => {
+  const labels = [
+    "Have you been employed by Gemini in the past?",
+    "Have you ever worked for Figma before, as an employee or a contractor/consultant?",
+    "Have you previously been employed at Affirm for any length of time?",
+    "Have you previously worked at or consulted for GitLab?",
+    "Have you previously worked for Everpure (formerly Pure Storage)?",
+    "Have you ever been employed by or performed services for Ginkgo Bioworks Inc., a current subsidiary of Ginkgo Bioworks or a company acquired by Ginkgo Bioworks?",
+  ];
+  for (const l of labels) assert.equal(clsR2(l).question_key, "prior_employment", l);
+});
+
+test("R2 classification: the federal-employment question is NEVER prior_employment (it asks about government work, not the posting firm)", () => {
+  const fed = clsR2("Including your current position, have you ever been employed by the U.S. Federal Government, a contractor (including subsidiaries, parents, and affiliates) that performed work for the U.S. Federal Government, served in the Military, and/or were a Political Appointee?");
+  assert.notEqual(fed.question_key, "prior_employment");
+});
+
+test("R2 classification: Point72's prior-application phrasing routes to prior_application", () => {
+  assert.equal(clsR2("Have you previously applied to work at Point72?").question_key, "prior_application");
+});
+
+test("R2 classification: Virtu's full-time-readiness phrasing routes to full_time_readiness", () => {
+  assert.equal(clsR2("Will you be ready for full-time employment in 2028?").question_key, "full_time_readiness");
+});
+
+test("R2 classification: GCM's outside-activities phrasing routes to outside_activities", () => {
+  assert.equal(clsR2("Are you currently or do you expect to be engaged in any other outside business activities or employment once employed by GCM Grosvenor?").question_key, "outside_activities");
+});
+
+test("R2 classification: restrictive-agreement phrasings route to restrictive_agreements — and never to a fillable company key", () => {
+  const gitlab = clsR2("Are you subject to any employment agreements and/or post-employment restrictions with your current employer or a past employer?");
+  assert.equal(gitlab.question_key, "restrictive_agreements");
+  assert.equal(gitlab.profile_key, undefined, "the words 'current employer' inside a restrictions question must not bind the current-company value");
+  assert.equal(clsR2("Are you currently subject to any agreement with a former employer/third party (such as a non-solicitation or non-compete agreement) that may potentially limit your ability to perform the duties of the position you are applying for?").question_key, "restrictive_agreements");
+  assert.equal(clsR2("To your knowledge are you currently subject to any non-compete or non-solicitation restrictions?").question_key, "restrictive_agreements");
+});
+
+test("R2 classification: certifications and legal-name fields get their profile keys", () => {
+  assert.equal(clsR2("Certifications").profile_key, "certifications");
+  assert.equal(clsR2("Legal Name (if different than above)").profile_key, "name");
+  assert.equal(clsR2("Current Company").profile_key, "current_company", "pin: this classification already existed — the derivation below is the fix");
+});
+
+test("R2 derivation: current_company, employers, certifications and outside_activities derive from confirmed facts only", () => {
+  const d = Portal.deriveAnswers(SYNTH_BANK, NOW);
+  assert.equal(d.profileFields.current_company, "Acme Corp", "the current (end: present) experience fact's org");
+  assert.deepEqual(d.profileFields.employers, ["Acme Corp", "Beta LLC"], "the bank's complete employer set, in bank order");
+  assert.equal(d.profileFields.certifications, "Synthetic Modeling Program");
+  assert.equal(d.answers.outside_activities.value, "Yes", "a current venture is an outside business activity, stated by the fact itself");
+  assert.equal(d.answers.outside_activities.factId, "F-002");
+  const past = JSON.parse(JSON.stringify(SYNTH_BANK));
+  past.facts.find((f) => f.id === "F-002").end = "2026";
+  const d2 = Portal.deriveAnswers(past, NOW);
+  assert.equal(d2.profileFields.current_company, undefined, "no current role on file -> no current-company value, the field stays an ask");
+  assert.equal(d2.answers.outside_activities, undefined, "the Yes direction only: no current activity on file derives NOTHING (never a guessed No)");
+});
+
+test("R2 end to end: the Chime eligibility field is FILLED from F-020 (the exact R2 stop)", () => {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label: "Email", name: "email", id: "email", inputType: "email", tag: "input", cls: "", selector: "#email", required: true },
+    { label: "Are you currently eligible to work legally in the United States of America?", name: "q_elig", id: "q_elig", inputType: "text", tag: "input", cls: "select__input", selector: "#q_elig", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  const r = Portal.runApply(session, { posting: POSTING, profile: profileFromBank(BANK), log: { records: [] } });
+  const def = defs.find((d) => d.question_key === "work_authorization");
+  assert.ok(def, "the field classified to work_authorization");
+  assert.equal(board.held[def.field_id], Portal.deriveAnswers(BANK, NOW).answers.work_authorization.value, "filled with the bank's own F-020 value");
+  assert.ok(!(r.asks || []).some((a) => a.field_id === def.field_id), "no ask remains for the eligibility field");
+  assert.equal(board.calls.submit, 0);
+});
+
+test("R2 end to end: prior employment resolves No for a non-employer posting and stays an ask at (or near) a real employer", () => {
+  const gammaPosting = Object.assign({}, POSTING, { company: "Gamma Industries", canonicalKey: "greenhouse:gamma:1" });
+  const mk = (posting, label) => {
+    const { defs } = BrowserBoard.classifyFields([
+      { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+      { label, name: "q_prev", id: "q_prev", inputType: "text", tag: "input", cls: "select__input", selector: "#q_prev", required: true },
+    ]);
+    const board = stubBoard(defs);
+    const session = Portal.createPortalSession({ userId: "u-test", board });
+    const r = Portal.runApply(session, { posting, profile: profileFromBank(SYNTH_BANK), log: { records: [] } });
+    return { defs, board, r };
+  };
+  const hit = mk(gammaPosting, "Have you been employed by Gamma Industries in the past?");
+  const hitDef = hit.defs.find((d) => d.question_key === "prior_employment");
+  assert.ok(hitDef, "classified prior_employment");
+  assert.equal(hit.board.held[hitDef.field_id], "No", "Gamma is absent from the bank's complete employer set -> No, traced to the experience facts");
+  const own = mk(Object.assign({}, POSTING, { company: "Acme Corp", canonicalKey: "greenhouse:acme:1" }), "Have you been employed by Acme Corp in the past?");
+  const ownDef = own.defs.find((d) => d.question_key === "prior_employment");
+  assert.equal(own.board.held[ownDef.field_id], undefined, "at a real employer the product does NOT derive — the truthful answer there is the user's to state");
+  assert.ok((own.r.asks || []).some((a) => a.field_id === ownDef.field_id), "the field stays an ask at a real employer");
+  const near = mk(Object.assign({}, POSTING, { company: "Acme Corp Holdings", canonicalKey: "greenhouse:acmeh:1" }), "Have you been employed by Acme Corp Holdings in the past?");
+  const nearDef = near.defs.find((d) => d.question_key === "prior_employment");
+  assert.equal(near.board.held[nearDef.field_id], undefined, "a near-name of a real employer never derives a No (name-variant safety)");
+});
+
+test("R2 end to end: prior application resolves No only on the attested application record (ledger + armed manual set)", () => {
+  const gammaPosting = Object.assign({}, POSTING, { company: "Gamma Industries", canonicalKey: "greenhouse:gamma:2" });
+  const mk = (input) => {
+    const { defs } = BrowserBoard.classifyFields([
+      { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+      { label: "Have you previously applied to work at Gamma Industries?", name: "q_applied", id: "q_applied", inputType: "text", tag: "input", cls: "select__input", selector: "#q_applied", required: true },
+    ]);
+    const board = stubBoard(defs);
+    const session = Portal.createPortalSession({ userId: "u-test", board });
+    const r = Portal.runApply(session, Object.assign({ posting: gammaPosting, profile: profileFromBank(SYNTH_BANK), log: { records: [] } }, input));
+    return { defs, board, r };
+  };
+  const clean = mk({ manualApplications: [] });
+  const cleanDef = clean.defs.find((d) => d.question_key === "prior_application");
+  assert.ok(cleanDef, "classified prior_application");
+  assert.equal(clean.board.held[cleanDef.field_id], "No", "empty attested record -> No");
+  const manual = mk({ manualApplications: [{ company: "Gamma Industries", stage: "applied", source: "user statement" }] });
+  assert.equal(manual.board.held[cleanDef.field_id], undefined, "a hand-filed application on the manual set defeats the derivation");
+  const blind = mk({});
+  assert.equal(blind.board.held[cleanDef.field_id], undefined, "no manual set attested by the host -> no derivation (an unexamined record proves nothing)");
+  const ledger = mk({ manualApplications: [], log: { records: [{ userId: "u-test", company: "Gamma Industries", canonicalKey: "greenhouse:gamma:other", status: "submitted", timestamp: "2026-09-01T00:00:00Z" }] } });
+  assert.equal(ledger.board.held[cleanDef.field_id], undefined, "a submitted application in the product's own ledger defeats the derivation");
+});
+
+test("R2 end to end: full-time readiness resolves against the graduation year on the education fact", () => {
+  const mk = (label) => {
+    const { defs } = BrowserBoard.classifyFields([
+      { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+      { label, name: "q_ft", id: "q_ft", inputType: "text", tag: "input", cls: "select__input", selector: "#q_ft", required: true },
+    ]);
+    const board = stubBoard(defs);
+    const session = Portal.createPortalSession({ userId: "u-test", board });
+    Portal.runApply(session, { posting: POSTING, profile: profileFromBank(SYNTH_BANK), log: { records: [] } });
+    return { defs, board };
+  };
+  const before = mk("Will you be ready for full-time employment in 2028?");
+  const beforeDef = before.defs.find((d) => d.question_key === "full_time_readiness");
+  assert.ok(beforeDef, "classified full_time_readiness");
+  assert.equal(before.board.held[beforeDef.field_id], "No", "graduation year 2029 is after 2028 -> not ready in 2028");
+  const after = mk("Will you be ready for full-time employment in 2030?");
+  const afterDef = after.defs.find((d) => d.question_key === "full_time_readiness");
+  assert.equal(after.board.held[afterDef.field_id], "Yes", "graduation year 2029 is not after 2030 -> ready by then");
+});
+
+test("R2 end to end: the GitLab restrictions field is never filled with the current company (the misclassification trap)", () => {
+  const { defs } = BrowserBoard.classifyFields([
+    { label: "Full name", name: "name", id: "name", inputType: "text", tag: "input", cls: "", selector: "#name", required: true },
+    { label: "Are you subject to any employment agreements and/or post-employment restrictions with your current employer or a past employer?", name: "q_restr", id: "q_restr", inputType: "text", tag: "input", cls: "", selector: "#q_restr", required: true },
+  ]);
+  const board = stubBoard(defs);
+  const session = Portal.createPortalSession({ userId: "u-test", board });
+  const r = Portal.runApply(session, { posting: POSTING, profile: profileFromBank(SYNTH_BANK), log: { records: [] } });
+  const def = defs.find((d) => /restrictions/.test(d.label || ""));
+  assert.ok(def, "the restrictions field classified");
+  assert.equal(board.held[def.field_id], undefined, "no value is ever filled into a restrictions question by the company derivation");
+  assert.ok((r.asks || []).some((a) => a.field_id === def.field_id), "the restrictions question stays an honest ask");
+  assert.equal(board.calls.submit, 0);
+});

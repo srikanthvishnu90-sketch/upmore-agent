@@ -46508,6 +46508,7 @@ const CareerPortalApply = (() => {
     education_level: ["education"],    // the level token of the education fact's degree
     years_of_experience: ["experience"], // the span of the experience facts, in completed years
     experience_3mo_plus: ["experience"], // the same span against a 3-month threshold
+    outside_activities: ["experience"], // R2 audit: a confirmed experience fact with end "present" IS a current outside activity (the Yes direction only — no current activity on file derives nothing, never a guessed No)
   };
   // Fact kinds that are profile MATERIAL (documents, tailoring,
   // research) rather than portal screening answers — exempt from
@@ -46633,6 +46634,51 @@ const CareerPortalApply = (() => {
       if (months !== null && months >= 0) {
         put("years_of_experience", Math.floor(months / 12), earliest.id, `completed years across the experience span (earliest fact ${earliest.id}, ${earliest.start} -> run date)`);
         put("experience_3mo_plus", months >= 3 ? "Yes" : "No", earliest.id, `experience span is ${months} months at the run's date`);
+      }
+    }
+    // R2 binding audit (2026-10-17): the employer set itself. The
+    // resume the applications carry IS the person's complete
+    // employment history, so the org set of the confirmed experience
+    // facts is a fact, not an inference — module 149's fill step
+    // resolves prior-employment questions against the POSTING's
+    // company from it (and derives nothing when the company is, or
+    // nearly is, on the list). employers carries every confirmed
+    // experience org; current_company is the org of the role the
+    // facts mark current (end "present"), latest start winning when
+    // several run concurrently.
+    const allExp = bank.facts.filter((f) => f.kind === "experience" && confirmed(f));
+    const orgOf = (f) => f.org || f.title || f.name || null;
+    if (allExp.length) {
+      const orgs = allExp.map(orgOf).filter(Boolean);
+      if (orgs.length) {
+        out.profileFields.employers = orgs;
+        out.traces.employers = { factId: allExp.map((f) => f.id).join(","), how: "org of every confirmed experience fact — the bank's complete employer set" };
+      }
+      const current = allExp.filter((f) => String(f.end || "").toLowerCase() === "present");
+      if (current.length) {
+        const cur = current.reduce((a, b) => (String(a.start || "") >= String(b.start || "") ? a : b));
+        const org = orgOf(cur);
+        if (org) {
+          out.profileFields.current_company = org;
+          out.traces.current_company = { factId: cur.id, how: "org of the experience fact the bank marks current (end: present)" };
+          // A current confirmed venture/role is, verbatim, engagement
+          // in an outside business activity relative to any new
+          // employer — the Yes direction is stated by the fact itself.
+          put("outside_activities", "Yes", cur.id, "a confirmed experience fact is current (end: present) — the person is engaged in that activity now");
+        }
+      }
+    }
+    // certification facts as PROFILE MATERIAL for the boards'
+    // Certifications fields (a standard field, never a screening
+    // answer — the NON_ANSWER exemption above stands for keys; this
+    // is document content the resume itself lists under Licenses &
+    // Certifications, carried only into a field that asks for it).
+    const certs = bank.facts.filter((f) => f.kind === "certification" && confirmed(f));
+    if (certs.length) {
+      const titles = certs.map((f) => f.title || f.text || "").filter(Boolean);
+      if (titles.length) {
+        out.profileFields.certifications = titles.join("; ");
+        out.traces.certifications = { factId: certs.map((f) => f.id).join(","), how: "titles of the confirmed certification facts" };
       }
     }
     return out;
@@ -46860,6 +46906,69 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  // R2 binding audit (2026-10-17): screening questions whose answer is
+  // a property of the RECORD, not of a single bank fact — the fill
+  // step resolves them against the posting and the attested record,
+  // and derives NOTHING when the record does not settle the question:
+  //  - prior_employment: "No" only when the posting's company is
+  //    absent from the profile's employer set (the confirmed
+  //    experience facts — the employment history the applications
+  //    themselves carry) AND no employer name matches or nearly
+  //    matches it (exact, substring, or >= 0.5 token overlap all
+  //    refuse: a name variant of a real employer is the user's to
+  //    answer, never a derived No).
+  //  - prior_application: "No" only when the host attested the manual
+  //    set (manualApplications is an array — the MI-108 input) and
+  //    neither it nor the product's own submission ledger carries an
+  //    application to this company. No attested set, no derivation:
+  //    an unexamined record proves nothing.
+  //  - full_time_readiness: the label's year against the education
+  //    fact's graduation year (ready in year Y iff graduation <= Y);
+  //    no year in the label or no graduation year on file, no answer.
+  function resolveScreeningFromRecord(f, profile, posting, inp, log) {
+    const key = f && f.question_key;
+    const company = posting && posting.company ? String(posting.company) : "";
+    if (key === "prior_employment") {
+      const employers = profile && Array.isArray(profile.employers) ? profile.employers : null;
+      if (!employers || !employers.length || !company) return null;
+      const cNorm = normName(company);
+      if (!cNorm) return null;
+      const clash = employers.some((e) => {
+        const en = normName(e);
+        if (!en) return false;
+        return en === cNorm || en.includes(cNorm) || cNorm.includes(en) || titleTokenOverlap(e, company) >= 0.5;
+      });
+      if (clash) return null;
+      return { value: "No", how: "posting company absent from the bank's complete employer set (confirmed experience facts), no near-name match" };
+    }
+    if (key === "prior_application") {
+      if (!Array.isArray(inp.manualApplications) || !company) return null;
+      const cNorm = normName(company);
+      if (!cNorm) return null;
+      const inLedger = ((log && log.records) || []).some((r) => r && r.status === "submitted" && r.company && normName(r.company) === cNorm);
+      if (inLedger) return null;
+      const inManual = (inp.manualApplications || []).some((r) => {
+        if (!r || !r.company || normName(r.company) !== cNorm) return false;
+        if (r.applied === false) return false;
+        const origin = String(r.source || r.origin || "").toLowerCase();
+        if (PRODUCT_ORIGINS.has(origin)) return false;
+        return r.applied === true || APPLIED_STAGES.has(String(r.stage || r.status || "").toLowerCase());
+      });
+      if (inManual) return null;
+      return { value: "No", how: "no application to this company in the submission ledger or the host-attested manual set (MI-108 input)" };
+    }
+    if (key === "full_time_readiness") {
+      const m = String((f && f.label) || "").match(/\b(20\d{2})\b/);
+      const gy = profileValue(profile, "education_graduation_year");
+      if (!m || !gy) return null;
+      const gradYear = parseInt(String(gy), 10);
+      const askedYear = parseInt(m[1], 10);
+      if (!Number.isFinite(gradYear) || !Number.isFinite(askedYear)) return null;
+      return { value: gradYear <= askedYear ? "Yes" : "No", how: `graduation year ${gradYear} from the education fact against the question's year ${askedYear}` };
+    }
+    return null;
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
@@ -46957,7 +47066,17 @@ const CareerPortalApply = (() => {
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
           logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+        } else {
+          // R2 audit: record-derived resolutions (prior employment /
+          // prior application / full-time readiness) — a resolution
+          // exists only when the attested record settles the question;
+          // otherwise the field stays an ask exactly as before.
+          const derived = resolveScreeningFromRecord(f, profile, posting, inp, log);
+          if (derived) {
+            board.fill(f.field_id, derived.value); filled[f.field_id] = { value: derived.value, source: "derived_from_confirmed_record" };
+            logStep("fill", Object.assign({}, entry, { source: "derived_from_confirmed_record", question_key: f.question_key, how: derived.how }));
+          } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+        }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.draft === true) {

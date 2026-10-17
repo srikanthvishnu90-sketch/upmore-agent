@@ -1,0 +1,143 @@
+TAP version 13
+# (node:418556) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:418556) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: context consumer fixture keeps its pre-implementation frozen bytes
+ok 1 - context consumer fixture keeps its pre-implementation frozen bytes
+  ---
+  duration_ms: 1.305554
+  type: 'test'
+  ...
+# Subtest: canonical A snapshot converts into the unchanged B context validator
+ok 2 - canonical A snapshot converts into the unchanged B context validator
+  ---
+  duration_ms: 53.853741
+  type: 'test'
+  ...
+# Subtest: unchanged B reducer supports explicitly classified target through the adapter
+ok 3 - unchanged B reducer supports explicitly classified target through the adapter
+  ---
+  duration_ms: 19.276827
+  type: 'test'
+  ...
+# Subtest: a software-looking title alone never supplies role family or level
+ok 4 - a software-looking title alone never supplies role family or level
+  ---
+  duration_ms: 9.600185
+  type: 'test'
+  ...
+# Subtest: classification from a different source record does not bind the target
+ok 5 - classification from a different source record does not bind the target
+  ---
+  duration_ms: 8.699162
+  type: 'test'
+  ...
+# Subtest: ambiguous classification requires clarification rather than choosing a value
+ok 6 - ambiguous classification requires clarification rather than choosing a value
+  ---
+  duration_ms: 9.605634
+  type: 'test'
+  ...
+# Subtest: resume reference binds the owned source bytes, never a reported artifact label
+ok 7 - resume reference binds the owned source bytes, never a reported artifact label
+  ---
+  duration_ms: 11.413402
+  type: 'test'
+  ...
+# Subtest: stale/disputed/withdrawn personal evidence cannot enter B active facts
+ok 8 - stale/disputed/withdrawn personal evidence cannot enter B active facts
+  ---
+  duration_ms: 8.335094
+  type: 'test'
+  ...
+# Subtest: public-source provenance cannot turn a project fact into personal evidence
+ok 9 - public-source provenance cannot turn a project fact into personal evidence
+  ---
+  duration_ms: 8.811209
+  type: 'test'
+  ...
+# Subtest: actual source bytes must match the declared source digest
+ok 10 - actual source bytes must match the declared source digest
+  ---
+  duration_ms: 9.209549
+  type: 'test'
+  ...
+# Subtest: changed context bytes and foreign evidence fail closed
+ok 11 - changed context bytes and foreign evidence fail closed
+  ---
+  duration_ms: 8.709105
+  type: 'test'
+  ...
+# Subtest: absence never becomes available capability or execution proof
+ok 12 - absence never becomes available capability or execution proof
+  ---
+  duration_ms: 8.393531
+  type: 'test'
+  ...
+# Subtest: projection is immutable and leaves canonical input unchanged
+ok 13 - projection is immutable and leaves canonical input unchanged
+  ---
+  duration_ms: 8.189425
+  type: 'test'
+  ...
+# Subtest: explicit classification versions remain reducer dependencies
+ok 14 - explicit classification versions remain reducer dependencies
+  ---
+  duration_ms: 23.378986
+  type: 'test'
+  ...
+# Subtest: multiple targets require an explicit owned current selection
+ok 15 - multiple targets require an explicit owned current selection
+  ---
+  duration_ms: 10.537195
+  type: 'test'
+  ...
+# Subtest: unrelated goal changes never become interview target invalidations
+ok 16 - unrelated goal changes never become interview target invalidations
+  ---
+  duration_ms: 9.290891
+  type: 'test'
+  ...
+# Subtest: source supersession is resume replacement only for the selected resume source
+ok 17 - source supersession is resume replacement only for the selected resume source
+  ---
+  duration_ms: 9.963081
+  type: 'test'
+  ...
+# Subtest: an available canonical capability cannot bypass missing trusted result adapters
+ok 18 - an available canonical capability cannot bypass missing trusted result adapters
+  ---
+  duration_ms: 9.228036
+  type: 'test'
+  ...
+# Subtest: a new resume source version cannot silently retag the old selection as current
+not ok 19 - a new resume source version cannot silently retag the old selection as current
+  ---
+  duration_ms: 20.051632
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:29:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(!next.snapshot.facts.some(f=>f.id==='resume-1'))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/interview-context-compat.test.cjs:29:507)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 18
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 301.966574

@@ -76,3 +76,49 @@ Commands, passing test names, log hashes, source digests and preserved fail-firs
 logs are in `docs/testing/runs/career-worker-review-repair-20261017/results.json`.
 Shared release and the previous review branch were checked read-only and left
 unchanged. No merge or deployment was performed.
+
+## Follow-up independent review of c7da3699
+
+That review passed 53 focused tests and accepted the substantive initial fixes,
+then identified additional paths requiring repair:
+
+- The actual RPC helper retained its backend credential after abrupt parent
+  death. It now checks the exact parent before commands and responses, runs a
+  50-ms parent/deadline monitor, exits at its absolute TTL (maximum 15 minutes),
+  and removes private IPC. The transport supplies the parent PID/TTL, detects
+  expiry and fails closed. Three actual-helper/transport tests failed first and
+  now pass, using a dummy key and invalid IPC commands that never reach fetch.
+- Filtering a task after a global SQL LIMIT 50 starved approval/reconciliation.
+  The new service-only `career_task_pending_scoped_v1` binds owner, task and an
+  owned worker anchor in the current epoch **before** ordering/limiting. It
+  retains current-version, pause, expiry and uncertain-effect checks. Existing
+  per-command claim/effect authorization still rechecks under the owner lock.
+  Real PostgreSQL tests place 60 older unrelated intents ahead of the active
+  approval/reconciliation and exercise foreign-owner/worker and revocation
+  guards. Legacy transports without owned scope fail explicitly rather than
+  silently falling back to globally limited active-task polling.
+- Research `evidence_ready` and `insufficient_evidence` now terminate the pilot.
+  Separate counters report verified completed applications, evidence artifacts
+  and handoffs. Insufficient evidence never increments application completion.
+- The earlier post-stop janitor covered PNGs but retained private task JSON and
+  could not observe later account changes after closing RPC. Private **local**
+  task data now has a fixed 15-minute deadline from initial persistence, visible
+  as `privateDataExpiresAt`. Active polls enforce it; a referenced local timer
+  enforces it after polling ends with no backend credential or authority calls.
+  Expiry removes spec, review, result, asks, lease, approval details, frames and
+  orphaned atomic JSON scratch, retaining an opaque owner/task submit fence.
+  Expired state cannot submit, approve or reconstruct private data automatically.
+
+After RPC closure this janitor **does not detect a later account revocation**.
+Instead, it bounds residual local private data by the existing fixed deadline,
+at most 15 minutes from first persistence (plus a currently bounded command).
+Explicit worker shutdown purges immediately. While the polling worker runs,
+the earlier account-epoch audit continues to remove revoked data sooner.
+The authoritative SQL account/erase behavior remains A/Muse-owned and unchanged.
+
+The janitor is independent of the stopped poll runner, but still needs its
+unprivileged Node process and disk to be available. SIGKILL/host loss cannot run
+cleanup: an owner-approved supervisor/volume destruction or independently run
+retention service is still a deployment prerequisite. No such hosting policy,
+service, resource or credential binding was created or verified here. A denied
+Vercel sandbox-list request leaves existing-host availability **unknown**.

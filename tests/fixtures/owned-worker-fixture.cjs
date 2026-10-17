@@ -54,7 +54,7 @@ function fixture(root, options = {}) {
     return proof;
   };
   const authority = options.authority || mockAuthority(root);
-  const rawWorker = createWorker({ store, authority, evidenceRoot:options.evidenceRoot,evidenceRequired:options.evidenceRequired,resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {},
+  const rawWorker = createWorker({ store, authority, evidenceRoot:options.evidenceRoot,evidenceRequired:options.evidenceRequired,retentionClock:options.retentionClock,retentionSchedule:options.retentionSchedule,privateRetentionMs:options.privateRetentionMs,resolveEquipment: () => ({ userId: options.userId || "user-a", profile, resumePath, attestations: options.attestations || {},
     accountVersion: authority.current(options.userId||"user-a").version, privacyEpoch: authority.current(options.userId||"user-a").epoch }),
     controlledPortals: [{ url: posting.url, submitUrl: "http://localhost:8123/submit" }],
     boardFactory: options.boardFactory || boardFactory, readReceipt, now: () => clock.value,

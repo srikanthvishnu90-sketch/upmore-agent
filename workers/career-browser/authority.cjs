@@ -66,7 +66,15 @@ function createTaskAuthority({ call, workerId }) {
         return { state: "completed", reconciled: true };
       }
     },
-    pending() { return rpc(workerId?'career_task_pending_owned_v1':"career_task_pending_v1",workerId?{p_worker:workerId}:{}).intents || []; },
+    pending({userId,taskId,limit=50}={}) {
+      if(!Number.isInteger(limit)||limit<1||limit>50)throw fail('TASK_BATCH_LIMIT_INVALID');
+      if(taskId!==undefined){
+        if(!workerId)throw fail('TASK_SCOPED_PENDING_NOT_WIRED');
+        if(!UUID.test(userId||'')||!/^[a-f0-9]{32}$/.test(taskId))throw fail('TASK_SCOPE_INVALID');
+        return rpc('career_task_pending_scoped_v1',{p_worker:workerId,p_user:userId,p_task:taskId,p_limit:limit}).intents||[];
+      }
+      return rpc(workerId?'career_task_pending_owned_v1':"career_task_pending_v1",workerId?{p_worker:workerId}:{}).intents || [];
+    },
   };
 }
 module.exports = { createTaskAuthority };

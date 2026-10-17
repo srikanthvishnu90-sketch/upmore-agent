@@ -3,7 +3,7 @@ const {fail}=require('./store.cjs');
 function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=5000,maxTasks=1,maxRunMs=900000,maxErrors=3,idleTimeoutMs=600000,uncertainTimeoutMs=120000,maxTransitions=100,now=Date.now}){
   if(typeof worker?.runPending!=='function'||typeof store?.list!=='function'||!Number.isInteger(intervalMs)||intervalMs<1000||intervalMs>60000||!Number.isInteger(maxTasks)||maxTasks<1||maxTasks>50||!Number.isInteger(maxRunMs)||maxRunMs<1000||maxRunMs>3600000||!Number.isInteger(maxErrors)||maxErrors<1||maxErrors>10)throw fail('RUNNER_CONFIGURATION_INVALID');
   if(!Number.isInteger(idleTimeoutMs)||idleTimeoutMs<1000||idleTimeoutMs>3600000||!Number.isInteger(uncertainTimeoutMs)||uncertainTimeoutMs<1000||uncertainTimeoutMs>3600000||!Number.isInteger(maxTransitions)||maxTransitions<1||maxTransitions>1000)throw fail('RUNNER_CONFIGURATION_INVALID');
-  const started=now();let timer,stopped=false,busy=false,tasks=0,errors=0,activeTaskId,activeStatus,lastProgress=started,uncertainSince,transitions=0;
+  const started=now();let timer,stopped=false,busy=false,tasks=0,completed=0,evidenceReady=0,handoffs=0,errors=0,activeTaskId,activeStatus,lastProgress=started,uncertainSince,transitions=0;
   function event(type,result={}){
     const value={event:type,at:new Date(now()).toISOString(),tasks,errors};
     if(/^[a-f0-9]{32}$/.test(result.id||''))value.taskId=result.id;
@@ -28,7 +28,8 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
         if(result.status!==activeStatus){lastProgress=now();activeStatus=result.status;}
         if(result.status==='unknown_outcome')uncertainSince??=now();else uncertainSince=undefined;
         event('task_result',result);
-        if(['completed','cancelled','blocked','awaiting_user','failed'].includes(result.status)){
+        if(['completed','cancelled','blocked','awaiting_user','failed','evidence_ready','insufficient_evidence'].includes(result.status)){
+          if(result.status==='completed')completed++;else if(result.status==='evidence_ready')evidenceReady++;else handoffs++;
           tasks++;activeTaskId=undefined;activeStatus=undefined;uncertainSince=undefined;
         }
       }errors=0;
@@ -45,6 +46,6 @@ function createPullRunner({worker,store,emit=()=>{},onStop=()=>{},intervalMs=500
     // Restore checkpoints, never force a stalled/uncertain task to queued.
     tick();if(!stopped)timer=setInterval(tick,intervalMs);return api;
   }
-  const api={start,tick,stop,stats:()=>({stopped,tasks,errors,transitions,activeTaskId})};return api;
+  const api={start,tick,stop,stats:()=>({stopped,tasks,completed,evidenceReady,handoffs,errors,transitions,activeTaskId})};return api;
 }
 module.exports={createPullRunner};

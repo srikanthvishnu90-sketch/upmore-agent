@@ -10,7 +10,7 @@ const bindingHash = value => hash(canonical(value));
 // Receive -> Equip -> Execute -> Check. No model/provider call. Production
 // employer execution remains disabled. Applications use registered loopback
 // portals; public research has a separate read-only origin policy.
-function createWorker({ store, resolveEquipment, authority, controlledPortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, maxActions = 120, timeoutMs = 30000 }) {
+function createWorker({ store, resolveEquipment, authority, controlledPortals = [], evidenceRoot, evidenceRequired = false, researchOrigins = [], researchBoardFactory = Browser.createResearchBoard, boardFactory = Browser.createBrowserBoard, readReceipt, now = Date.now, retentionClock=Date.now, retentionSchedule=setTimeout, privateRetentionMs=900000, maxActions = 120, timeoutMs = 30000 }) {
   if (!store || (controlledPortals.length && typeof resolveEquipment !== "function")) throw fail("WORKER_NOT_WIRED");
   for (const method of ["current", "claim", "begin", "consume", "settle", "finish", "pending"]) if (typeof authority?.[method] !== "function") throw fail("TASK_AUTHORITY_NOT_WIRED");
   if (!Number.isInteger(maxActions) || maxActions < 1 || maxActions > 1000 || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw fail("BUDGET_CONFIGURATION_INVALID");
@@ -28,19 +28,22 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
   const evidenceCapture=evidenceRoot?require("./evidence.cjs").createEvidenceCapture(evidenceRoot):null;
   let auditCursor=0;
   let cancelEvidenceExpiry;
+  const retention=require('./private-retention.cjs').createPrivateRetention({store,eraseEvidence:id=>evidenceCapture?.erase(id),clock:retentionClock,schedule:retentionSchedule,ttlMs:privateRetentionMs});
   function markExpired(id,removed){store.withLock(id,()=>{const t=store.get(id);if(!t)return;for(const [stage,d]of Object.entries(t.evidence||{}))if(removed.includes(d.ref))t.evidence[stage]={stage,status:"EXPIRED"};save(t,"check");});}
   function releaseEvidence({immediate=false}={}){
-    if(!evidenceCapture)return;cancelEvidenceExpiry?.();
-    if(immediate){for(const id of store.list()){const removed=evidenceCapture.expire(id,Infinity);if(removed.length)markExpired(id,removed);}}
-    else cancelEvidenceExpiry=evidenceCapture.scheduleExpiry(markExpired);
+    cancelEvidenceExpiry?.();retention.cancel();
+    if(immediate)retention.sweep(true);
+    else {retention.arm();cancelEvidenceExpiry=evidenceCapture?.scheduleExpiry(markExpired);}
   }
   const save = (t, phase, detail = {}) => {
+    retention.stamp(t);
     t.phase = phase;
     t.checkpoints.push({ sequence: t.checkpoints.length + 1, phase, at: new Date(now()).toISOString(), ...detail });
     store.put(t);
   };
   const owned = (id, uid) => { const t = store.get(id); if (!t || t.userId !== uid) throw fail("TASK_NOT_FOUND"); return t; };
   function checkAuthority(t, readOnly = false) {
+    if(retention.expired(t)){if(t.privateExpiredAt===undefined)retention.expire(t);throw fail('PRIVATE_RETENTION_EXPIRED');}
     const current = authority.current(t.userId);
     if (!current.exists || current.epoch !== t.privacyEpoch) {
       t.spec = null; t.review = null; t.result = null; t.asks = []; t.authority = null;
@@ -100,6 +103,8 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     return clone({ version: "career_task/v1", kind: t.kind || "career_application", id: t.id, userId: t.userId, status: t.status, phase: t.phase, revision: t.revision,
       review: t.review || null, result: t.result || null, evidence:t.evidence||{}, asks: t.asks || [],
       blocker: t.blocker || null, budget: t.budget,
+      privateDataExpiresAt:Number.isFinite(t.privateExpiresAt)?new Date(t.privateExpiresAt).toISOString():null,
+      privateDataExpiredAt:Number.isFinite(t.privateExpiredAt)?new Date(t.privateExpiredAt).toISOString():null,
       authority: t.authority ? { intentId: t.authority.intentId, accountVersion: t.authority.accountVersion, privacyEpoch: t.authority.privacyEpoch } : null,
       capabilities: { browser: t.kind === "public_research/v1" ? "PUBLIC_READ_ONLY" : "CONTROLLED_LOCAL_ONLY", employer_submission: "NOT_WIRED" } });
   }
@@ -117,6 +122,7 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
     return store.withLock(id, () => {
       const specification = { posting: input.posting, artifactId: input.artifactId, resumeSha256: input.resumeSha256 };
       const existing = store.get(id);
+      if(existing&&retention.expired(existing)){if(existing.privateExpiredAt===undefined)retention.expire(existing);throw fail('PRIVATE_RETENTION_EXPIRED');}
       const grant = authority.claim({ userId, intentId: input.intentId, taskId: id,
         leaseToken: existing?.authority?.intentId === input.intentId ? existing.authority.leaseToken : null,
         expected: { action: "prepare", event_id: input.eventId, artifact_id: input.artifactId, resume_sha256: input.resumeSha256, destination: input.posting.url } });
@@ -353,10 +359,11 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       save(t, "check"); return finish(t);
     });
   }
-  return { receive, prepare, approve, reconcile, research, releaseEvidence, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;}return publicTask(t); },
+  return { receive, prepare, approve, reconcile, research, releaseEvidence, get: (userId, id) => { const t=owned(id,userId);try{checkAuthority(t,true);}catch(e){if(!["PRIVACY_EPOCH_REVOKED","PRIVATE_RETENTION_EXPIRED"].includes(e.code))throw e;}return publicTask(t); },
     runPending: ({limit=50,taskId}={}) => {
       if(!Number.isInteger(limit)||limit<1||limit>50)throw fail("TASK_BATCH_LIMIT_INVALID");
       if(taskId!==undefined&&!/^[a-f0-9]{32}$/.test(taskId))throw fail("TASK_ID_INVALID");
+      retention.sweep();
       // Polling observes revocation even while a task is idle at review. No
       // browser operation or task redispatch occurs in this authority audit.
       const auditIds=store.list().sort(),auditBatch=new Set(taskId?[taskId]:[]);
@@ -364,13 +371,17 @@ function createWorker({ store, resolveEquipment, authority, controlledPortals = 
       if(auditIds.length)auditCursor=(auditCursor+10)%auditIds.length;
       for(const id of auditBatch)store.withLock(id,()=>{
         const t=store.get(id);if(!t)return;
-        if(t.blocker==="PRIVACY_EPOCH_REVOKED")return;
+        if(t.blocker==="PRIVACY_EPOCH_REVOKED"||t.privateExpiredAt!==undefined)return;
         try{checkAuthority(t,true);}catch(e){if(e.code!=="PRIVACY_EPOCH_REVOKED")throw e;return;}
         const expired=evidenceCapture?.expire(id,now())||[];
         if(expired.length){for(const [stage,d]of Object.entries(t.evidence||{}))if(expired.includes(d.ref))t.evidence[stage]={stage,status:"EXPIRED"};save(t,"check");}
       });
       const results=[];
-      for(const intent of authority.pending().filter(i=>!taskId||i.taskId===taskId||i.binding?.task_id===taskId).slice(0,limit)) {
+      const scopedTask=taskId?store.get(taskId):null;
+      if(taskId&&!scopedTask)throw fail('TASK_NOT_FOUND');
+      if(scopedTask?.privateExpiredAt!==undefined)return [];
+      const pending=authority.pending({limit,...(scopedTask?{taskId,userId:scopedTask.userId}:{})});
+      for(const intent of pending.filter(i=>!taskId||(i.userId===scopedTask.userId&&(i.taskId===taskId||i.binding?.task_id===taskId))).slice(0,limit)) {
         try {
           const b=intent.binding;
           if(b.action==="research") { const task=receive(intent.userId,{action:"research",eventId:b.event_id,...b.research,intentId:intent.intentId});results.push(research(intent.userId,task.id)); }

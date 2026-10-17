@@ -54,6 +54,27 @@ create function public.career_task_pending_owned_v1(p_worker uuid) returns jsonb
  and i.expires_at>now() and i.authority_account_version=(a.value->>'version')::bigint and i.privacy_epoch=coalesce((a.value->>'epoch')::bigint,0) and (i.binding->>'action'='reconcile' or a.value->'paused' is distinct from 'true'::jsonb) order by i.created_at limit 50)i;
 $$;
 
+-- Scope precedes LIMIT. An owned task anchor in the current epoch authorizes
+-- inspection of that owner's queued approval/reconcile intents, even though a
+-- newer chat turn legitimately advanced the account version since preparation.
+create index career_task_owned_scope_v1 on public.career_task_intents_v1(user_id,task_id,claim_worker,privacy_epoch) where claim_worker is not null;
+create index career_task_pending_scope_v1 on public.career_task_intents_v1(user_id,(coalesce(task_id,binding->>'task_id')),created_at,intent_id) where state in ('queued','claimed');
+create function public.career_task_pending_scoped_v1(p_worker uuid,p_user uuid,p_task text,p_limit integer default 50) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+begin
+ if p_worker is null or p_user is null or coalesce(p_task,'') !~ '^[a-f0-9]{32}$' or p_limit is null or p_limit<1 or p_limit>50 then raise exception 'invalid task pending scope';end if;
+ return (
+  select jsonb_build_object('intents',coalesce(jsonb_agg(jsonb_build_object('userId',i.user_id,'intentId',i.intent_id,'taskId',i.task_id,'binding',i.binding,'request',i.private_input) order by i.created_at,i.intent_id),'[]'::jsonb)) from (
+   select i.* from career_task_intents_v1 i join career_watch_kv a on a.user_id=i.user_id and a.key='career:account'
+   where i.user_id=p_user and coalesce(i.task_id,i.binding->>'task_id')=p_task
+   and exists(select 1 from career_task_intents_v1 anchor where anchor.user_id=p_user and anchor.task_id=p_task and anchor.claim_worker=p_worker and anchor.privacy_epoch=coalesce((a.value->>'epoch')::bigint,0))
+   and (i.state='queued' or (i.state='claimed' and i.claim_worker=p_worker and not exists(select 1 from career_task_effects_v1 e where e.user_id=i.user_id and e.intent_id=i.intent_id)))
+   and i.expires_at>now() and i.authority_account_version=(a.value->>'version')::bigint and i.privacy_epoch=coalesce((a.value->>'epoch')::bigint,0)
+   and (i.binding->>'action'='reconcile' or a.value->'paused' is distinct from 'true'::jsonb)
+   order by i.created_at,i.intent_id limit p_limit
+  )i
+ );
+end $$;
+
 -- Existing reserve/consume functions already hold the account owner lock.
 -- Fence an expired owned lease before reservation or physical admission.
 create function public.career_task_owned_lease_fence_v1() returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
@@ -69,5 +90,5 @@ begin
 end $$;
 create trigger career_task_owned_effect_fence_v1 before insert or update on public.career_task_effects_v1 for each row execute function public.career_task_owned_lease_fence_v1();
 create trigger career_task_owned_finish_fence_v1 before update on public.career_task_intents_v1 for each row execute function public.career_task_owned_lease_fence_v1();
-revoke all on function public.career_task_owned_grant_v1(public.career_task_intents_v1),public.career_task_claim_owned_v1(uuid,text,text,uuid,uuid,uuid,integer),public.career_task_claim_readback_v1(uuid,text,uuid,uuid),public.career_task_pending_owned_v1(uuid),public.career_task_owned_lease_fence_v1() from public,anon,authenticated;
-grant execute on function public.career_task_owned_grant_v1(public.career_task_intents_v1),public.career_task_claim_owned_v1(uuid,text,text,uuid,uuid,uuid,integer),public.career_task_claim_readback_v1(uuid,text,uuid,uuid),public.career_task_pending_owned_v1(uuid),public.career_task_owned_lease_fence_v1() to service_role;
+revoke all on function public.career_task_owned_grant_v1(public.career_task_intents_v1),public.career_task_claim_owned_v1(uuid,text,text,uuid,uuid,uuid,integer),public.career_task_claim_readback_v1(uuid,text,uuid,uuid),public.career_task_pending_owned_v1(uuid),public.career_task_pending_scoped_v1(uuid,uuid,text,integer),public.career_task_owned_lease_fence_v1() from public,anon,authenticated;
+grant execute on function public.career_task_owned_grant_v1(public.career_task_intents_v1),public.career_task_claim_owned_v1(uuid,text,text,uuid,uuid,uuid,integer),public.career_task_claim_readback_v1(uuid,text,uuid,uuid),public.career_task_pending_owned_v1(uuid),public.career_task_pending_scoped_v1(uuid,uuid,text,integer),public.career_task_owned_lease_fence_v1() to service_role;

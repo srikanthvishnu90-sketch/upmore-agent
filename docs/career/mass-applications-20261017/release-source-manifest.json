@@ -1,6 +1,6 @@
 {
-  "runtime": "f74812b3dda211edbada9a5be604b65af2e09e50",
-  "observedAt": "2026-10-17T16:00:21.604421+00:00",
+  "runtime": "9a7027c49076fc310bb56c882790f5887b50d106",
+  "observedAt": "2026-10-17T16:10:17.500414+00:00",
   "status": "BLOCKED_SOURCE_HANDOFF_NOT_DEPLOYED",
   "branch": "codex/mass-applications-20261017",
   "project": {
@@ -200,14 +200,14 @@
   ],
   "staticInventoryLimitation": "Literal ESM import/export declarations only; bundled CommonJS require calls resolve internally and are not treated as filesystem imports; runtime config, installed schema, external dependencies and Auth/origins require operator verification. No credential values read.",
   "workerBuild": {
-    "output": "/tmp/upmore-worker-f74812b3-source.tgz",
-    "sha256": "9fa62e55b72fc1fc36a2b76c95a9569e86bfa7554317d975f1934bceeea9510c",
+    "output": "/tmp/upmore-worker-9a7027c4-source.tgz",
+    "sha256": "db391c5a385bc0cf2afbf4cc7692317795f59f7d32485721e6982d298149e52f",
     "files": 39,
-    "codeSha": "f74812b3dda211edbada9a5be604b65af2e09e50"
+    "codeSha": "9a7027c49076fc310bb56c882790f5887b50d106"
   },
   "workerManifest": {
     "version": "upmore_owned_worker_source/v1",
-    "codeSha": "f74812b3dda211edbada9a5be604b65af2e09e50",
+    "codeSha": "9a7027c49076fc310bb56c882790f5887b50d106",
     "verification": "SOURCE_ONLY_NOT_DEPLOYED",
     "files": [
       {
@@ -431,6 +431,12 @@
       "log": "/tmp/upmore-runner-full-postgres.log",
       "worktree": "/workspace/upmore-mass-next",
       "sourceGraphFrozen": true
+    },
+    "currentDockerCopyContract": {
+      "passed": 1,
+      "failed": 0,
+      "log": "evidence/image-copy-after.log",
+      "scope": "Actual COPY filesystem staging, dependency module loads and complete controlled preflight sources. No image built or browser run."
     }
   },
   "paidCalls": 0,
@@ -438,8 +444,8 @@
   "deployments": 0,
   "employerSubmissions": 0,
   "operatorSourceSha256": {
-    "workers/career-browser/deploy/Dockerfile.proposal": "42b3ae1b4037bc6ac05f92a5a7baa43eb401e2720f34aff10a858c15be6a17ab",
+    "workers/career-browser/deploy/Dockerfile.proposal": "03227202368fea23e46ba9a1d26bba04fcc3ad1b44ba16a280a2a725e108492c",
     "workers/career-browser/deploy/operator-config.example.cjs": "db518542a05ed07e522b429e145b926bd8cce430ad62f84e30d3c458d4380883"
   },
-  "imageProposalBlocker": "Dockerfile.proposal COPY closure predates batch/native dependencies. Source artifact closure is complete; no image was built or validated. Do not deploy this Dockerfile unchanged."
+  "imageProposalBlocker": "COPY closure repaired and contract-tested. Approved base image/runtime absent; no image build, browser or deployment verified."
 }

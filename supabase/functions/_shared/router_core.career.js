@@ -10228,6 +10228,12 @@ const CareerOnboarding = (() => {
         // answers both halves (it carries the honest worth state
         // inside the plan). A pure worth ask is served here as before.
         if (/\bpromotion\b|\bpromot\w*\b|\bcareer plan\b|\bgrowth plan\b|\bwhat'?s the plan\b|\bladder\b|\bnext level\b|\blevel up\b/.test(t)) return null;
+        // INTEGRATION (2026-10-16): a MULTI-ASK turn (worth + a watch
+        // to set + a tracker to show) belongs to the router's
+        // multi-intent composition, which delivers or names every
+        // part in the turn. This front door answering only the worth
+        // part silently dropped the other two.
+        if (!c._intentPartRun && /\bset a watch\b|\bwatch for\b|\bshow (me )?my applications\b|\bmy applications\b|\bshow (me )?my tracker\b/.test(t)) return null;
         const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
         const head = mv.estimate
           ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
@@ -10287,7 +10293,14 @@ const CareerOnboarding = (() => {
       // that same store, so it reports wins logged through either
       // door, in the user's own words (the packet's own lines).
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
-        if (/\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
+        // A log STATEMENT carries the win itself after the prefix
+        // ("log a win: I built the model…") — only that shape stands
+        // down. The bare method phrase ("I text wins all semester")
+        // is the feature's status ask (SC-275's canonical shape) and
+        // is served by the read below.
+        const stmt = t.match(/\b(?:log a win|add a win)\b[:\s—-]*(.*)$/);
+        const carriesWin = !!(stmt && stmt[1] && stmt[1].split(/\s+/).filter(Boolean).length >= 3);
+        if (carriesWin && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
         const lines = rp.count ? ` On the log: ${String(rp.text || "").split("\n").slice(0, 3).join(" ")}` : "";
@@ -17320,6 +17333,12 @@ const CareerRouter = (() => {
   function handlePlanRecap(text, ctx) {
     const t = lc(text);
     if (!/\bwhat'?s the plan\b|\bwhat is the plan\b|\bremind me (of|about) the plan\b|\bthe plan\?\s*$/.test(t)) return null;
+    // INTEGRATION (2026-10-16): when the same turn carries a worth /
+    // promotion ask, "the plan" is the CAREER plan — the path
+    // handler composes it with the honest worth state (Lane B C5).
+    // The campaign recap stands down unless a campaign plan
+    // actually stands on record.
+    if (!((ctx.plan || {}).kind === "campaign_plan") && /\bwhat am i worth\b|\bmy worth\b|\bunderpaid\b|\bpromotion\b|\bpromot\w*\b|\bmove up\b/.test(t)) return null;
     const plan = ctx.plan;
     if (plan && plan.kind === "campaign_plan") {
       const targetLine = plan.firms_named && plan.firms.length ? `targeting ${plan.firms.join(", ")}` : plan.firm_set ? `targeting the ${plan.firm_set.replace(/_/g, " ")} set (proposed — you named no firms)` : "targeting the plan's recorded set";
@@ -20400,6 +20419,7 @@ const CareerRouter = (() => {
     else if ((m = tn.match(/\bend up (?:in|as|being)\s+(?:an?\s+)?([a-z][a-z /&-]{1,34}?)(?:\s+someday\b|\s+one day\b|[.,;]|$)/))) to = m[1].trim();
     else if ((m = tn.match(/\bmove into\s+([a-z][a-z /&-]{1,34}?)(?:\s+eventually\b|\s+one day\b|[.,;]|$)/))) to = m[1].trim();
     else if ((m = tn.match(/\bmoving into\s+([a-z][a-z /&-]{1,34}?)(?:\s+one day\b|\s+eventually\b|[.,;]|$)/))) to = m[1].trim();
+    else if ((m = tn.match(/\b(?:thinking about|considering)\s+(?:an?\s+)?([a-z][a-z /&-]{1,34}?)(?:\s*[—–-]|[.,;?]|$)/))) to = m[1].trim();
     else if ((m = tn.match(/\brunning\s+([a-z][a-z /&-]{1,30}?)(?:\s+somewhere\b|[.,;]|$)/))) to = m[1].trim();
     else if ((m = tn.match(/\bget to\s+(?:be\s+)?(?:an?\s+)?([a-z][a-z /&-]{1,30}?)(?:[.,;]|$)/))) to = m[1].trim();
     if (from) from = from.replace(/\s+(at|for|with)$/, "").trim();
@@ -20497,8 +20517,8 @@ const CareerRouter = (() => {
     const pathActive = !!(pathState && (pathState.from || pathState.to));
     const tn2 = typoNorm(text);
     let hit =
-      /\bwant to be\s+(an?\s+)?[a-z]|\bwant to become\b|\bend up (in|as|being)\b|\bnext (two|few) moves\b|\bhow do i get from\b|\bget from\b[^.]*\bto\b|\bmove into\b[^.]*\b(eventually|someday|one day)\b|\bmoving into\b|\bthinking about (moving|going|getting) into\b|\bwant a promotion\b|\bpromotion this year\b|\bi'?m an?\s+[a-z][^.]*\bwant\b|\bbeen an?\s+[a-z][^.]*\bwanna\b|\bwanna (be|end up)\b|\brunning\b[^.]*\bsomewhere\b|\bwhat'?s the ladder\b|\bladder to\b/.test(tn2)
-      || (pathActive && /\bskills?\b|\bfirst\b|\bnext\b|\bhow long\b|\bcredential|\bcertif|\bcpa\b|\bcfa\b|\bshrm\b|\bmha\b|\bstep after\b|\bmove one\b|\bevidence\b|\bcollect|\bquit\b|\bprice\b|\brung\b|\bplan\b|\bdegree\b|\blicen[cs]e\b|\bstaying\b/.test(tn2));
+      /\bwant to be\s+(an?\s+)?[a-z]|\bwant to become\b|\bend up (in|as|being)\b|\bnext (two|few) moves\b|\bhow do i get from\b|\bget from\b[^.]*\bto\b|\bmove into\b[^.]*\b(eventually|someday|one day)\b|\bmoving into\b|\bthinking about (moving|going|getting) into\b|\b(thinking about|considering)\b[^.?!]*\b(real (move|path)|move from here|path from here)\b|\bis that (even )?a real (move|path)\b[^.?!]*\bfrom here\b|\bwant a promotion\b|\bpromotion this year\b|\bi'?m an?\s+[a-z][^.]*\bwant\b|\bbeen an?\s+[a-z][^.]*\bwanna\b|\bwanna (be|end up)\b|\brunning\b[^.]*\bsomewhere\b|\bwhat'?s the ladder\b|\bladder to\b/.test(tn2)
+      || (pathActive && /\bskills?\b|\blearn\b|\bfirst\b|\bnext\b|\bhow long\b|\bcredential|\bcertif|\bcpa\b|\bcfa\b|\bshrm\b|\bmha\b|\bstep after\b|\bmove one\b|\bevidence\b|\bcollect|\bquit\b|\bprice\b|\brung\b|\bplan\b|\bdegree\b|\blicen[cs]e\b|\bstaying\b/.test(tn2));
     if (!hit && late && /\bstart the plan\b|\bwhat'?s move one\b/.test(tn2)) { hit = true; ctx._pathPlanContinuation = true; }
     if (!hit) return null;
     return handleCareerPath(text, ctx);
@@ -20602,7 +20622,19 @@ const CareerRouter = (() => {
         "Quitting is the counterfactual, priced the same way: it beats staying only when the evidence file is strong and the ladder is demonstrably closed — a stuck FEELING is fixed by the two moves above first, for one review cycle, before it is priced as a stuck FACT.",
         sourceLine,
       ];
-      const reply = compose({ headline: "The ladder, and the two moves that climb it:", facts, nextStep: "Want move one started — the wins log opened on this thread's record?" });
+      // INTEGRATION (2026-10-16): a worth+plan turn ("what am I
+      // worth and what's the plan?") must carry BOTH halves — the
+      // plan above and the honest worth state, computed the same
+      // way 130's SC-271 computes it (sourced figures only; the
+      // unavailable state named, never a guessed number).
+      if (/\bwhat am i worth\b|\bunderpaid\b|\bmarket value\b/.test(lc(text)) && OS && typeof OS.marketValue === "function") {
+        try {
+          const mv = OS.marketValue(profile, []);
+          if (mv && mv.available && mv.text) facts.push(`And the worth half, from sourced figures only: ${mv.text}`);
+          else facts.push("And the worth half, honestly: no sourced market figure is on file for your role yet, so no number is quoted — a guessed figure would be worse than none. Paste a posting with a stated range and the read grounds itself.");
+        } catch { /* the plan half still stands */ }
+      }
+      const reply = compose({ headline: "The plan: the ladder, and the two moves that climb it:", facts, nextStep: "Want move one started — the wins log opened on this thread's record?" });
       return { intent: "career_os_plan", reply, resultStatus: "awaiting_user", sends: 0, payload: osRec(null, "career-ladder-plan", undefined) };
     }
     const reply = compose({ headline: "That lives in your career OS — here is the honest state of it.", facts: ["The OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only.", sourceLine], nextStep: "Ask for the timeline or the goals check-in and I will show it in full." });
@@ -22712,7 +22744,7 @@ const CareerRouter = (() => {
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
     const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t);
     const isStop = /\b(stop watching|remove (the )?watch|delete (the )?watch|unwatch)\b/.test(t);
-    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b/.test(t);
+    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b|\bwhat'?s on my watch\b|\bshow me my watch\b|\bshow my watch\b|\bwhat'?s my watch\b|\bon my watch\b/.test(t);
     if (!isPause && !isResume && !isStop && !isList) return null;
     const wp = loadWatchProfileSync(ctx);
     if (!wp) {
@@ -22916,7 +22948,7 @@ const CareerRouter = (() => {
     // ALERTS HOST WIRING (W4): alert-watch intents (152) — manage before
     // create, so "stop watching X" / "what am I watching" are never read as
     // new-watch asks. Both step aside when 152 is absent from the bundle.
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
@@ -23664,7 +23696,7 @@ const CareerRouter = (() => {
       const tn = typoNorm(text);
       const negSignal =
         /\bnegotiat|\bcounter\b[^.]*\boffer\b|\bcounter scripts?\b|\bscripts?\b[^.]*\bcounter\b|\boffer letter\b|\bshould i accept\b|\bdecline\b[^.]*\boffer\b|\bbenchmark\b[^.]*\boffer\b|\btwo offers\b|\boffers? compared\b|\bextension request\b|\bexploding offer\b|\bequity explainer\b|\bequity\b[^.]*\bworth\b|\bsigning[ -]bonus\b|\bbelow[ -]floor\b|\bcomp[ -]expectation\b|\bcompeting deadline\b|\bleverage\b|\bsalary talk\b|\bconversion play\b|\bwithdrawal drafts\b|\bgraceful withdrawal\b|\btax and legal\b/.test(t)
-        || /\boffered me\b|\boffer came in\b|\bgot an offer\b|\bgot the offer\b|\boffer'?s here\b|\boffer letter'?s here\b|\bexploding deadline\b|\bshould i take it\b|\btake it or (leave|negotiate|push)\b/.test(t)
+        || /\boffered me\b|\boffer came in\b|\bgot an offer\b|\bgot the offer\b|\boffer'?s here\b|\boffer letter'?s here\b|\boffer (just )?(landed|arrived|dropped)\b|\ban offer (just )?(landed|arrived|came)\b|\boffer letter (came|arrived|landed)\b|\bexploding deadline\b|\bshould i take it\b|\btake it or (leave|negotiate|push)\b/.test(t)
         || (/\$\s?\d|\b\d{2,3}\s?k\b/.test(t) && /\boffer/.test(t) && /\bshould i\b|\btake it\b|\baccept\b/.test(t))
         // DEPTH LANE B (MI-014): genuine-phrasing signal classes the
         // exam dialect never used — an expiring offer stated plainly,
@@ -23762,6 +23794,8 @@ const CareerRouter = (() => {
       // first move. Each stands down without its record.
       const rr = handleRecordRecall(text, c);
       if (rr) return rr;
+      const sr = handleStatedFactReadback(text, c);
+      if (sr) return sr;
       const ff = handleFitFollowUp(text, c);
       if (ff) return ff;
       const fd = handleFactDirection(text, c);
@@ -23792,6 +23826,12 @@ const CareerRouter = (() => {
       // never silence). This was the World-L silent-null mechanism.
       const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
+      // INTEGRATION (2026-10-16): an ask that NAMES internships is an
+      // internship search — the generic branch below claimed it first
+      // and served full-time roles, so handleInternship (bands
+      // intern/new-grad/junior, summer headline) was unreachable from
+      // the most natural phrasing, "find me internships".
+      if (/\binternships?\b/.test(t)) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
@@ -24144,6 +24184,27 @@ const CareerRouter = (() => {
     const all = statedFactsOf(ctx);
     const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+  }
+  // INTEGRATION (2026-10-16): a direct read-back question for one
+  // stated fact ("so what's my target firm?") was claimed by NOTHING
+  // and fell to the generic fallback — the record could be written
+  // and corrected but never read back by direct ask. Narrow gate:
+  // only the "what's my <fact kind>" family; the answer is the
+  // record itself (factLine), or the honest absence — never a guess.
+  function handleStatedFactReadback(text, ctx) {
+    const t = lc(text);
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null);
+    if (!m) return null;
+    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
+    const all = statedFactsOf(ctx);
+    const f = all.find((x) => x.kind === kind);
+    if (f) {
+      const reply = compose({ headline: "From your record — your words, as stated.", facts: [`On record: ${factLine(f)}.`], nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone" }[kind] || kind;
+    const reply = compose({ headline: "That is not on your record yet.", facts: [`You have not stated ${label} — the record holds only what you state, and nothing is assumed to fill it.`], nextStep: `State ${label} in your own words and it is recorded in this turn.` });
+    return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function handleFactSynthesis(text, ctx) {
     const t = lc(text);
@@ -24796,7 +24857,12 @@ const CareerRouter = (() => {
     // me what my tracker looks like") — the taxonomy only knew
     // tracking SETUP, so a status part in a mixed message was
     // silently dropped instead of served or queued.
-    add("tracking", "application tracking", /\bset up\b[^.]*\btrack|\btracking for\b|\btrack(ing)? my applications\b|\bset up tracking\b|\bcheck\b[^.]*\bstatus of my\b[^.]*\bapplications?\b|\bmy tracker\b|\bmy pipeline\b/);
+    add("tracking", "application tracking", /\bset up\b[^.]*\btrack|\btracking for\b|\btrack(ing)? my applications\b|\bset up tracking\b|\bcheck\b[^.]*\bstatus of my\b[^.]*\bapplications?\b|\bmy tracker\b|\bmy pipeline\b|\bshow (me )?my applications\b|\bwhat applications do i have\b|\blist my applications\b/);
+    // INTEGRATION (2026-10-16): the market-value ask is a part too —
+    // the taxonomy had no worth part, so a worth ask inside a mixed
+    // message was invisible to the accounting: neither served by the
+    // composition nor named as held.
+    add("worth", "the market-value read", /\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/);
     add("log", "the tracker log", /\blog\b[^.]*\b(applied|application)\b|\bi applied to\b/);
     add("watch", "the watch", /\bset up\b[^.]*\bwatch\b|\bwatch for\b|\bstart watching\b|\balert me\b[^.]*\broles?\b/);
     add("negotiation", "the negotiation", /\bnegotiat\w*\b/);
@@ -24829,6 +24895,18 @@ const CareerRouter = (() => {
         return { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0 };
       }
       if (part.key === "negotiation") return handleNegotiation(text, ctx);
+      if (part.key === "worth") {
+        // The sourced worth product lives in 130's front door
+        // (SC-271). Run it for this part alone: the _intentPartRun
+        // flag lifts 130's multi-ask stand-down for this call only.
+        try {
+          ctx._intentPartRun = true;
+          const r = Onboarding && typeof Onboarding.handleChat === "function" ? Onboarding.handleChat(text, ctx) : null;
+          delete ctx._intentPartRun;
+          if (r && r.intent === "career_os_market_value") return r;
+        } catch { try { delete ctx._intentPartRun; } catch { /* flag dies with the turn */ } }
+        return handleOS(text, ctx);
+      }
       if (part.key === "log") return handleTrackLog(text, ctx);
       if (part.key === "watch") return handleWatchCreate(text, ctx);
       if (part.key === "prep") return handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
@@ -24926,7 +25004,7 @@ const CareerRouter = (() => {
       return financeScopeResult();
     }
     if (multi && res && res.intent !== "career_fallback") {
-      const servedFamily = { career_discovery: "find", career_internship_discovery: "find", outreach_clarification: "networking", outreach_draft: "networking", tracking_status: "tracking", tracking_log: "tracking", negotiation_advice: "negotiation", negotiation_plan: "negotiation", negotiation_draft: "negotiation", prep_brief: "prep", prep_needs_profile: "prep", career_watch_create: "watch", career_watch_manage: "watch" }[res.intent] || null;
+      const servedFamily = { career_discovery: "find", career_internship_discovery: "find", outreach_clarification: "networking", outreach_draft: "networking", tracking_status: "tracking", tracking_log: "tracking", negotiation_advice: "negotiation", negotiation_plan: "negotiation", negotiation_draft: "negotiation", prep_brief: "prep", prep_needs_profile: "prep", career_watch_create: "watch", career_watch_manage: "watch", career_os_market_value: "worth" }[res.intent] || null;
       const unserved = parts.filter((p) => p.key !== servedFamily && p.key !== "finance" && !(p.key === "log" && servedFamily === "tracking"));
       const financePart = parts.find((p) => p.key === "finance");
       const additions = [];
@@ -24943,7 +25021,7 @@ const CareerRouter = (() => {
         // tests run the part in full on "next"), so the preview
         // never consumes it. A part whose handler stands down (or
         // falls back) is queued without a preview, never faked.
-        const INLINE_OK = new Set(["find", "prep", "tracking", "log", "negotiation", "networking"]);
+        const INLINE_OK = new Set(["find", "prep", "tracking", "log", "negotiation", "networking", "worth"]);
         const stillQueued = [];
         let inlined = 0;
         for (const p of unserved) {

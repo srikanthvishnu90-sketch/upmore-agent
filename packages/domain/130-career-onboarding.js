@@ -383,6 +383,12 @@ const CareerOnboarding = (() => {
         // answers both halves (it carries the honest worth state
         // inside the plan). A pure worth ask is served here as before.
         if (/\bpromotion\b|\bpromot\w*\b|\bcareer plan\b|\bgrowth plan\b|\bwhat'?s the plan\b|\bladder\b|\bnext level\b|\blevel up\b/.test(t)) return null;
+        // INTEGRATION (2026-10-16): a MULTI-ASK turn (worth + a watch
+        // to set + a tracker to show) belongs to the router's
+        // multi-intent composition, which delivers or names every
+        // part in the turn. This front door answering only the worth
+        // part silently dropped the other two.
+        if (!c._intentPartRun && /\bset a watch\b|\bwatch for\b|\bshow (me )?my applications\b|\bmy applications\b|\bshow (me )?my tracker\b/.test(t)) return null;
         const mv = OS.marketValue({ postings, cirs: c.cirs || [], as_of: iso.slice(0, 10) });
         const head = mv.estimate
           ? `Your market value, from sourced figures only: ${money(mv.estimate.low)}–${money(mv.estimate.high)} a year across ${mv.evidence.length} sourced figures, with a median midpoint of ${money(mv.estimate.median_midpoint)}. Every figure carries its source and date, and the estimate updates as soon as a new sourced figure lands.`
@@ -442,7 +448,14 @@ const CareerOnboarding = (() => {
       // that same store, so it reports wins logged through either
       // door, in the user's own words (the packet's own lines).
       if (/\bwins log\b|\blog a win\b|\bi text wins\b/.test(t)) {
-        if (/\blog a win\b|\badd a win\b|\bi text wins\b/.test(t) && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
+        // A log STATEMENT carries the win itself after the prefix
+        // ("log a win: I built the model…") — only that shape stands
+        // down. The bare method phrase ("I text wins all semester")
+        // is the feature's status ask (SC-275's canonical shape) and
+        // is served by the read below.
+        const stmt = t.match(/\b(?:log a win|add a win)\b[:\s—-]*(.*)$/);
+        const carriesWin = !!(stmt && stmt[1] && stmt[1].split(/\s+/).filter(Boolean).length >= 3);
+        if (carriesWin && !/\bshow\b|\blist\b|\bread\b/.test(t)) return null;
         const store = osStore(c); if (!store) return null;
         const rp = OS.reviewPacket(store, { now: iso });
         const lines = rp.count ? ` On the log: ${String(rp.text || "").split("\n").slice(0, 3).join(" ")}` : "";

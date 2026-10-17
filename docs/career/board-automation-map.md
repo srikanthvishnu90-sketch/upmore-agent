@@ -74,6 +74,35 @@ refused at the driver with DRIVER_HOST_REFUSED until its own seam lands.
   CTA is worded "I'm interested" — the helper's apply-control matcher
   covers it (including the curly-apostrophe rendering "I’m interested").
 
+### Neo Residency — portal.neo.com/residency (Bubble app) (MI-102)
+- What it is: Neo's bespoke application portal (fellowship census
+  2026-10-15 §5). The current cycle is **Winter 2027** — up to 20
+  startups + student teams, 3 months based at Neo's SF workspace with
+  a 2-week bootcamp (the current page says Texas). Terms: startups —
+  $750K uncapped SAFE + participation rights up to 5% of the next
+  equity round; students — $40K grants each + $100K+ in credits.
+- **Deadline/fields: NOT captured.** The application runs in Neo's
+  own portal, a JavaScript (Bubble) app whose form content does not
+  render in a text fetch — application status, deadline, and field
+  list are a recorded census gap, not guessed. The live portal's
+  fields are read at drive time through module 150; the sandbox
+  board's field set is staged from the census summary only
+  (identity/contact/education/resume = FACT; work-authorization/
+  sponsorship screening; the startup-vs-student applicant track is
+  the applicant's own choice and stays an ask until confirmed; the
+  project description and why-Neo fields are free-text owner asks
+  that fill only from the owner's own confirmed draft — never
+  invented).
+- Driver posture: **allowed** (MI-102, branch work/mi102-neo-bubble) —
+  host gate in 149 + 150 + the helper's navigation gate, end-anchored
+  so lookalikes (neo.* on another registrable domain) stay refused;
+  doorstep proven tier-2 over a captured-form fixture
+  (tests/career-neo-portal.test.cjs 9/9 +
+  tests/career-neo-browser.test.cjs). No live Neo form has been
+  driven and nothing has been submitted through this family; the
+  live doorstep proof (with the field list captured at drive time)
+  remains owed.
+
 ## Account-walled boards (not drivable in this build)
 
 ### Workday — *.myworkdayjobs.com

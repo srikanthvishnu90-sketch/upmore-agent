@@ -7,7 +7,8 @@
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
+       Lever, Ashby, SmartRecruiters, plus the Neo Bubble fellowship
+       portal family — MI-102); LinkedIn / Indeed apply automation
        is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
@@ -58,6 +59,11 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-102: Neo's bespoke portal (portal.neo.com/residency, a Bubble
+    // app; fellowship census 2026-10-15 §5). The pattern is anchored
+    // to the END of the hostname, so lookalikes (neo.example.com,
+    // notneo.com, neo.com.evil.com) do NOT match.
+    { re: /(^|\.)neo\.com$/, family: "neo" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -82,7 +88,7 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Neo) and registered sandbox boards may be driven (§6.3)" };
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -134,6 +140,80 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-102: the Neo sandbox board (TEST only) ----------
+  // Neo Residency (portal.neo.com/residency, a Bubble app): the
+  // current cycle is Winter 2027 — up to 20 startups + student teams,
+  // 3 months based at Neo's SF workspace with a 2-week bootcamp;
+  // startups get a $750K uncapped SAFE + participation rights,
+  // students $40K grants each + $100K+ in credits (fellowship census
+  // 2026-10-15 §5). The census could NOT capture the portal's field
+  // list or deadline read-only — the form content does not render in
+  // a text fetch — so this board's field set is staged from the
+  // census summary only; the live portal's fields are read at drive
+  // time by module 150 and this board is the faithful local seam for
+  // the pipeline, like the Greenhouse one. Identity/contact/
+  // education/resume + work-authorization/sponsorship screening fill
+  // from confirmed facts only; the startup-vs-student applicant
+  // track (the census's two tracks, with different terms) is the
+  // applicant's own choice, staged as a screening field that fills
+  // only from a confirmed answer and otherwise stays an ask; every
+  // free-text field fills ONLY from the owner's own confirmed draft
+  // — never invented; certify stays explicit-only.
+  const NEO_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "applicant_track", label: "Applicant track (Startup or Student)", kind: "screening", question_key: "applicant_track", required: false },
+    { field_id: "startup_or_project_description", label: "Startup or project description", kind: "free_text", question_key: "startup_or_project_description", required: false },
+    { field_id: "why_neo_residency", label: "Why Neo Residency", kind: "free_text", question_key: "why_neo_residency", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createNeoSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "neo",
+      host: "sandbox.neo-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: NEO_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-N-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -1023,6 +1103,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createNeoSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, NEO_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

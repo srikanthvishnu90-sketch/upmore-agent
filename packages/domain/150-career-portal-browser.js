@@ -100,6 +100,7 @@ const CareerPortalBrowser = (() => {
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      if (/(^|\.)neo\.com$/.test(host)) return "neo"; // MI-102: Neo's bespoke Bubble portal (portal.neo.com)
     } catch (e) { /* fall through */ }
     return null;
   }

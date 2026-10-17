@@ -405,7 +405,42 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-102 fixture: a Neo-shaped fellowship portal form (the Neo
+// Residency shape, staged from the census 2026-10-15 §5 — the live
+// Bubble portal's fields do not render in a text fetch and are
+// uncaptured, so this is a captured-form-SHAPE replay guard; in the
+// real product the live form's fields are read at drive time by
+// module 150). The free-text textareas are owner-writing only: the
+// drive must leave them untouched, and they are not required here so
+// the fact-only doorstep can be verified around them.
+const NEO_FORM = `<!doctype html><html><head><title>Neo Residency Application (TEST fixture)</title></head><body>
+<h1>Neo Residency — Winter 2027</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="school">School</label><input id="school" name="school" type="text"></div>
+  <div><label for="gy">Graduation Year</label><input id="gy" name="graduation_year" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="website">Portfolio / personal website</label><input id="website" name="website" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="track">Applicant track</label>
+    <select id="track" name="applicant_track"><option value="">Select...</option><option>Startup</option><option>Student</option></select></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="startup_or_project_description">Startup or project description</label><textarea id="startup_or_project_description" name="startup_or_project_description"></textarea></div>
+  <div><label for="why_neo_residency">Why Neo Residency</label><textarea id="why_neo_residency" name="why_neo_residency"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/neo-form": NEO_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

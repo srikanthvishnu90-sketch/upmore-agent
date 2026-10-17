@@ -62,8 +62,17 @@ Targeted source checks: 212 passed. Gateway checks: 47 passed, including seven
 new raw-receipt cases. Native paired-accounting checks: 29 passed. Native Deno
 checking passes. These are controlled structural results, not a quality score.
 The prior context/readback checkpoint 05e9d7ad has Node/Deno/database CI green;
-its required archival job remains blocked by missing original assets. Full
-combined regression on this new paired implementation follows publication.
+its required archival job remains blocked by missing original assets. The
+combined regression on this paired implementation is recorded below.
+
+Clean runtime commit 1adc7eed passed all **187 native SQL checks across 18
+files**, including these seven controlled entry cases, with both new execution
+and context proposals present. Its fresh provider-disabled conversation replay
+passed **969 checks across 165 turns** with zero network attempts. All fixture
+containers were removed. The decoded `happy-trace.json` and
+`unknown-retry-trace.json` and corresponding Markdown files come from that clean
+187-check run; exact byte length and SHA were independently rechecked after TAP
+chunk/escape decoding. Earlier prepared runs remain in their original logs.
 
 Reproduce an actual owned local journey with:
 

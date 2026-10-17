@@ -1,0 +1,14 @@
+{
+  "runtime_commit": "1adc7eed8c9d9c4b1c723f261d7adc338f741a7d",
+  "source_sha256": {
+    "supabase/functions/_shared/career_interview_reasoner.ts": "f29a0006de387a77c27a9e9955ee1cefa1f0b5ee6cc87011d9f1f8121a169455",
+    "supabase/sql/proposals/career_interview_execution_v1.sql": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f",
+    "supabase/functions/_shared/career_interview_entry.ts": "0946bdd50613a83c3a32ba477ae9ad69900870a66dfb6871c67d90481a54bb3a",
+    "supabase/functions/_shared/model_gateway.ts": "75621ee237cd12cc1d950c980f3c6b0674b16302642a1bac90a5555c8ec549f1",
+    "supabase/sql/proposals/career_model_pair_budget_v2.sql": "e18b987535850a1c501334a80e9c217dc006306ea6ce8f282b8ec7a1658bddec"
+  },
+  "evidence": "CONTROLLED_PROVIDER_RESPONSES_ACTUAL_STAGED_ENTRY_LOCAL_SQL",
+  "paid_calls": 0,
+  "actual_model_quality": "NOT_RUN",
+  "B_runtime": "b414b042254ad9764ff546906a32d4aec8bbfe4e"
+}

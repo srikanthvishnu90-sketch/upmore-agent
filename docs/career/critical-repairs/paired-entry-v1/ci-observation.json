@@ -1,0 +1,36 @@
+{
+  "runtime_commit": "1adc7eed8c9d9c4b1c723f261d7adc338f741a7d",
+  "run_id": 38993224440,
+  "jobs": [
+    {
+      "id": 117279929935,
+      "name": "deno",
+      "status": "completed",
+      "conclusion": "success",
+      "failed": []
+    },
+    {
+      "id": 117279930123,
+      "name": "database",
+      "status": "completed",
+      "conclusion": "success",
+      "failed": []
+    },
+    {
+      "id": 117279930143,
+      "name": "node",
+      "status": "completed",
+      "conclusion": "success",
+      "failed": []
+    },
+    {
+      "id": 117279930192,
+      "name": "Required original archival evidence",
+      "status": "completed",
+      "conclusion": "failure",
+      "failed": [
+        "Validate genuine original archives (missing assets block CI and release)"
+      ]
+    }
+  ]
+}

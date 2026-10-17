@@ -1,0 +1,2355 @@
+[
+  {
+    "caseId": "H09",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-17T02:04:07.026Z",
+    "input": {
+      "message": "Run a mock interview for a junior analyst.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_interview",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+        "action": null,
+        "turn_key": "H09-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-1",
+          "p_hash": "b38f8c8fc16a55245e22c9d6d83c1d4a7f9d20560b0b51011acd033dd8ad0074"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-1",
+          "p_hash": "b38f8c8fc16a55245e22c9d6d83c1d4a7f9d20560b0b51011acd033dd8ad0074",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {
+                  "role": {
+                    "value": "Run a mock interview for a junior analyst",
+                    "source": "Run a mock interview for a junior analyst.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "hypotheticals": [],
+                "mode": "interview",
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?"
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Run a mock interview for a junior analyst.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_interview",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-17T02:04:07.538Z",
+    "input": {
+      "message": "In my statistics project I checked a missing-value rule and repaired the import.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+        "action": null,
+        "turn_key": "H09-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "hypotheticals": []
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-2",
+          "p_hash": "369fe65a9a1ccd20f5da6065a023ac56509e88ccf1b13bf28e621512877db365"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-2",
+          "p_hash": "369fe65a9a1ccd20f5da6065a023ac56509e88ccf1b13bf28e621512877db365",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock interview for a junior analyst",
+                    "source": "Run a mock interview for a junior analyst.",
+                    "status": "user_reported"
+                  }
+                },
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "hypotheticals": [],
+                "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "projectSource": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-17T02:04:08.217Z",
+    "input": {
+      "message": "What is base salary?",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H09-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_explanation",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+        "action": null,
+        "turn_key": "H09-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "2cb297d7-9dcb-4ddf-bf8c-0058ee1e4518",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "7e560063-08e1-47a9-9b62-50a4c77dd8b3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-3",
+          "p_hash": "07e4f41901f6a9fd6aa35e9afecdeda5c0af96079a45c9054a4aa70c5dc07842"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-3",
+          "p_hash": "07e4f41901f6a9fd6aa35e9afecdeda5c0af96079a45c9054a4aa70c5dc07842",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock interview for a junior analyst",
+                    "source": "Run a mock interview for a junior analyst.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "hypotheticals": [],
+                "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "What is base salary?",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_explanation",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 4,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-17T02:04:08.768Z",
+    "input": {
+      "message": "We recovered 90 records, saving three hours.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-4",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_coaching",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nRecorded result: We recovered 90 records, saving three hours.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+        "action": null,
+        "turn_key": "H09-4",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "2cb297d7-9dcb-4ddf-bf8c-0058ee1e4518",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "7e560063-08e1-47a9-9b62-50a4c77dd8b3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "outcomes": [
+              "We recovered 90 records, saving three hours."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "2cb297d7-9dcb-4ddf-bf8c-0058ee1e4518",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "7e560063-08e1-47a9-9b62-50a4c77dd8b3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "2b1e7103-9f60-4a87-99c0-81a9d3620fcd",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nRecorded result: We recovered 90 records, saving three hours.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        },
+        {
+          "id": "6455c2a5-c5a7-43cc-9e6d-72130b88a390",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-4",
+          "p_hash": "eabf738274d8f74bb27abac18a39f9149a01bd7e07abe1dbbd42a3dac4533798"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-4",
+          "p_hash": "eabf738274d8f74bb27abac18a39f9149a01bd7e07abe1dbbd42a3dac4533798",
+          "p_revision": 3,
+          "p_account_version": 3,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock interview for a junior analyst",
+                    "source": "Run a mock interview for a junior analyst.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "sources": [],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "hypotheticals": [],
+                "projectSource": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "outcomes": [
+                  "We recovered 90 records, saving three hours."
+                ]
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "We recovered 90 records, saving three hours.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nRecorded result: We recovered 90 records, saving three hours.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-4",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_coaching",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H09",
+    "turn": 5,
+    "threadId": "00000000-0000-4000-8000-000000000109",
+    "at": "2026-10-17T02:04:09.282Z",
+    "input": {
+      "message": "Rewrite my project answer from the evidence I supplied.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H09-5",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Your interview answer, using only the facts you supplied:\n\nIn my statistics project I checked a missing-value rule and repaired the import. We recovered 90 records, saving three hours.\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H09-5",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000109",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "outcomes": [
+              "We recovered 90 records, saving three hours."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 4,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "2cb297d7-9dcb-4ddf-bf8c-0058ee1e4518",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "7e560063-08e1-47a9-9b62-50a4c77dd8b3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "2b1e7103-9f60-4a87-99c0-81a9d3620fcd",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nRecorded result: We recovered 90 records, saving three hours.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        },
+        {
+          "id": "6455c2a5-c5a7-43cc-9e6d-72130b88a390",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 4
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": []
+            }
+          },
+          "trackStore": {
+            "rows": []
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": "interview",
+            "facts": {
+              "role": {
+                "value": "Run a mock interview for a junior analyst",
+                "source": "Run a mock interview for a junior analyst.",
+                "status": "user_reported"
+              }
+            },
+            "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "sources": [],
+            "artifact": {
+              "kind": "interview_answer",
+              "text": "In my statistics project I checked a missing-value rule and repaired the import. We recovered 90 records, saving three hours.",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "In my statistics project I checked a missing-value rule and repaired the import.",
+                "We recovered 90 records, saving three hours."
+              ]
+            },
+            "outcomes": [
+              "We recovered 90 records, saving three hours."
+            ],
+            "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+            "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+            "hypotheticals": [],
+            "projectSource": "In my statistics project I checked a missing-value rule and repaired the import."
+          }
+        },
+        "revision": 5,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "69713105-bb0d-475c-9c4a-8e407f64e24c",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Let's practice one answer at a time. Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_interview",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-1"
+          },
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "98bbb709-9c0c-4a14-95ab-95fd046c5ff3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Run a mock interview for a junior analyst.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:06.918666+00:00"
+        },
+        {
+          "id": "70b4b50e-f5b8-4c16-ab64-9a59cd1ba905",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nThe single biggest weakness is the result: explain who benefited and how you observed the impact. A truthful qualitative result is useful if you did not measure a number.\nWhat evidence can you add from the actual project?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-2"
+          },
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "dd496ca0-793a-42bd-85ab-5171c0197c59",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "In my statistics project I checked a missing-value rule and repaired the import.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:07.448765+00:00"
+        },
+        {
+          "id": "2cb297d7-9dcb-4ddf-bf8c-0058ee1e4518",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Base salary is the fixed salary component stated in an offer. A bonus is additional compensation whose conditions and amount depend on the actual terms; it should not be treated as guaranteed base pay. What does your letter say about the bonus conditions?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_explanation",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-3"
+          },
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "7e560063-08e1-47a9-9b62-50a4c77dd8b3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "What is base salary?",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.121193+00:00"
+        },
+        {
+          "id": "2b1e7103-9f60-4a87-99c0-81a9d3620fcd",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "You described: In my statistics project I checked a missing-value rule and repaired the import.\nRecorded result: We recovered 90 records, saving three hours.\nThe next improvement is ownership and validation: distinguish what you did from the team's work and explain how you checked the result. Don't invent a metric to strengthen it.\nHow did you check that the result followed from your change?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_coaching",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-4"
+          },
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        },
+        {
+          "id": "6455c2a5-c5a7-43cc-9e6d-72130b88a390",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "We recovered 90 records, saving three hours.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:08.674359+00:00"
+        },
+        {
+          "id": "ad6d8560-9120-4e4c-a702-5cbc38d7d501",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "user",
+          "content": "Rewrite my project answer from the evidence I supplied.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:09.174296+00:00"
+        },
+        {
+          "id": "b8fae3ec-2145-4fc5-9290-6f69f46345c3",
+          "thread_id": "00000000-0000-4000-8000-000000000109",
+          "role": "assistant",
+          "content": "Your interview answer, using only the facts you supplied:\n\nIn my statistics project I checked a missing-value rule and repaired the import. We recovered 90 records, saving three hours.\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H09-5"
+          },
+          "created_at": "2026-10-17T02:04:09.174296+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 5
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000109",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-5",
+          "p_hash": "c4bfb74b7a9f298f149e0bf7bebf6d0c1e08e83cf6f9da044e3f803e18b711fc"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000109",
+          "p_key": "H09-5",
+          "p_hash": "c4bfb74b7a9f298f149e0bf7bebf6d0c1e08e83cf6f9da044e3f803e18b711fc",
+          "p_revision": 4,
+          "p_account_version": 4,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": []
+                }
+              },
+              "trackStore": {
+                "rows": []
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": "interview",
+                "facts": {
+                  "role": {
+                    "value": "Run a mock interview for a junior analyst",
+                    "source": "Run a mock interview for a junior analyst.",
+                    "status": "user_reported"
+                  }
+                },
+                "answer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "project": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "sources": [],
+                "outcomes": [
+                  "We recovered 90 records, saving three hours."
+                ],
+                "question": "Tell me about a class or work project where something went wrong: what did you do, and what happened?",
+                "lastAnswer": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "hypotheticals": [],
+                "projectSource": "In my statistics project I checked a missing-value rule and repaired the import.",
+                "artifact": {
+                  "kind": "interview_answer",
+                  "format": "text",
+                  "text": "In my statistics project I checked a missing-value rule and repaired the import. We recovered 90 records, saving three hours.",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "In my statistics project I checked a missing-value rule and repaired the import.",
+                    "We recovered 90 records, saving three hours."
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Rewrite my project answer from the evidence I supplied.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000109",
+            "reply": "Your interview answer, using only the facts you supplied:\n\nIn my statistics project I checked a missing-value rule and repaired the import. We recovered 90 records, saving three hours.\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H09-5",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

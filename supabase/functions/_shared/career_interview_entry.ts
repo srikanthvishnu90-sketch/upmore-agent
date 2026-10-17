@@ -1,4 +1,5 @@
-// Default-off actual-entry integration. No provider/test-result adapter here.
+// Default-off interview API. Server-selected paired execution and owned records
+// provide result authority; request JSON cannot supply a trusted model verdict.
 import {CareerInterviewJourney as J} from './router_core.career.js';
 import {toInterviewContextV1,interviewContextDigestV1} from '../../../packages/career-contracts/interview-context-compat-v1.ts';
 import {createCareerPersistence} from './career_persistence.js';
@@ -95,8 +96,8 @@ export async function interviewTurn({admin,userId,threadId,turnKey,message,raw,i
     if(pack.owner_id!==userId||pack.thread_id!==threadId||pack.journey_id!==state.journey_id||pack.epoch!==context.binding.epoch||manifest.sha256!==await sha(markdown)||manifest.structured_sha256!==await sha(canonical(pack))||manifest.byte_length!==new TextEncoder().encode(markdown).length||manifest.byte_length>262144||manifest.mime_type!=='text/markdown; charset=utf-8'||manifest.encoding!=='utf-8')throw Error('artifact_integrity_failed');
     artifact={id:crypto.randomUUID(),version:1,owner_id:userId,thread_id:threadId,journey_id:state.journey_id,journey_revision:state.revision,epoch:state.epoch,target_ref:state.target_ref,resume_ref:state.resume_ref,action_id:proposal.action_id,input_digest:proposal.input_digest,binding:next.binding,content:markdown,...manifest};
    }
-   // No coach/read-source proposal can be admitted by this provider-disabled
-   // entry. Their capabilities remain unavailable and B retains exact answers.
+   // Coach requests commit here before any execution. The separate paired
+   // processor admits dispatch; research still requires its own wired host.
    if(!['ask_question','create_draft','read_action_status',...(interviewReasoningAvailable(Deno.env)?['coach_answer']:[])].includes(proposal.type))throw Error('unsupported_host_action');
   }
   const savedSnapshot=clone(loaded.snapshot||{v:1,scope:{userId},stores:{}});savedSnapshot.stores=savedSnapshot.stores||{};savedSnapshot.stores.interviewJourney=state;

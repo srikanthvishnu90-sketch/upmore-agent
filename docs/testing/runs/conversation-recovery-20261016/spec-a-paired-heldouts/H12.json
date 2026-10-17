@@ -1,0 +1,1569 @@
+[
+  {
+    "caseId": "H12",
+    "turn": 1,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-17T02:04:18.189Z",
+    "input": {
+      "message": "Oakline offered me an analyst job at $69k.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H12-1",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "negotiation_advice",
+          "contained": false,
+          "result_status": "awaiting_user"
+        },
+        "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+        "action": null,
+        "turn_key": "H12-1",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            }
+          }
+        }
+      },
+      "messages": [],
+      "account": null
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Oakline",
+            "base_salary": 69000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Oakline",
+                  "base_salary": 69000
+                },
+                "lastWork": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "ask": "Oakline offered me an analyst job at $69k.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "firm": "Oakline",
+                  "role": "analyst job",
+                  "amount": 69000,
+                  "evidence": "Oakline offered me an analyst job at $69k."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "lastWork": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "ask": "Oakline offered me an analyst job at $69k.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "firm": "Oakline",
+                "role": "analyst job",
+                "amount": 69000,
+                "evidence": "Oakline offered me an analyst job at $69k."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "94329dbe-37f0-406a-ac11-aa059dd3cdcb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Oakline offered me an analyst job at $69k.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "ebc75bf4-b469-42ae-b6e6-fd28f8ba4294",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H12-1"
+          },
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-1",
+          "p_hash": "6e073f35d9da6e3cdcb1537a7973c9d2ae0ccd2889086611c9ccb96c44eae8e4"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-1",
+          "p_hash": "6e073f35d9da6e3cdcb1537a7973c9d2ae0ccd2889086611c9ccb96c44eae8e4",
+          "p_revision": 0,
+          "p_account_version": 0,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "negotiation": {
+                      "firm": "Oakline",
+                      "amount": 69000,
+                      "role": "analyst job",
+                      "at": "2026-10-17T02:04:17.978Z",
+                      "evidence": "Oakline offered me an analyst job at $69k."
+                    },
+                    "offer": {
+                      "company": "Oakline",
+                      "base_salary": 69000
+                    },
+                    "lastWork": {
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "ask": "Oakline offered me an analyst job at $69k.",
+                      "company": null,
+                      "at": "2026-10-17T02:04:17.978Z"
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "negotiation": {
+                    "firm": "Oakline",
+                    "amount": 69000,
+                    "role": "analyst job",
+                    "at": "2026-10-17T02:04:17.978Z",
+                    "evidence": "Oakline offered me an analyst job at $69k."
+                  },
+                  "offer": {
+                    "company": "Oakline",
+                    "base_salary": 69000
+                  },
+                  "lastWork": {
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "ask": "Oakline offered me an analyst job at $69k.",
+                    "company": null,
+                    "at": "2026-10-17T02:04:17.978Z"
+                  }
+                }
+              },
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Oakline offered me an analyst job at $69k.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H12-1",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "negotiation_advice",
+              "result_status": "awaiting_user",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H12",
+    "turn": 2,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-17T02:04:18.697Z",
+    "input": {
+      "message": "Draft an extension email but I have not chosen a date.",
+      "contains": [],
+      "absent": [],
+      "restart": false
+    },
+    "requestKey": "H12-2",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_draft",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "Draft for Oakline, $69,000 base; nothing has been sent.\n\nSubject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+        "action": null,
+        "turn_key": "H12-2",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Oakline",
+            "base_salary": 69000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Oakline",
+                  "base_salary": 69000
+                },
+                "lastWork": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "ask": "Oakline offered me an analyst job at $69k.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "firm": "Oakline",
+                  "role": "analyst job",
+                  "amount": 69000,
+                  "evidence": "Oakline offered me an analyst job at $69k."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "lastWork": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "ask": "Oakline offered me an analyst job at $69k.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "firm": "Oakline",
+                "role": "analyst job",
+                "amount": 69000,
+                "evidence": "Oakline offered me an analyst job at $69k."
+              }
+            }
+          }
+        },
+        "revision": 1,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "94329dbe-37f0-406a-ac11-aa059dd3cdcb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Oakline offered me an analyst job at $69k.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "ebc75bf4-b469-42ae-b6e6-fd28f8ba4294",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H12-1"
+          },
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 1
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Oakline",
+            "base_salary": 69000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Oakline",
+                  "base_salary": 69000
+                },
+                "lastWork": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "ask": "Oakline offered me an analyst job at $69k.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "firm": "Oakline",
+                  "role": "analyst job",
+                  "amount": 69000,
+                  "evidence": "Oakline offered me an analyst job at $69k."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "lastWork": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "ask": "Oakline offered me an analyst job at $69k.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "firm": "Oakline",
+                "role": "analyst job",
+                "amount": 69000,
+                "evidence": "Oakline offered me an analyst job at $69k."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Draft an extension email but I have not chosen a date.",
+                "Oakline"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "source": "Draft an extension email but I have not chosen a date."
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "94329dbe-37f0-406a-ac11-aa059dd3cdcb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Oakline offered me an analyst job at $69k.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "ebc75bf4-b469-42ae-b6e6-fd28f8ba4294",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H12-1"
+          },
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "2eca4d15-8ed7-49c8-b380-76ebfed6d29f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Draft for Oakline, $69,000 base; nothing has been sent.\n\nSubject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H12-2"
+          },
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        },
+        {
+          "id": "6624f83e-d7d5-4bbc-9ebe-98253a2684f7",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Draft an extension email but I have not chosen a date.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-2",
+          "p_hash": "7fce6e2f9fb47569db72c1f2dd89e531098f04022491cf2192c4caceb0b8026d"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-2",
+          "p_hash": "7fce6e2f9fb47569db72c1f2dd89e531098f04022491cf2192c4caceb0b8026d",
+          "p_revision": 1,
+          "p_account_version": 1,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Oakline",
+                      "base_salary": 69000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-17T02:04:17.978Z",
+                      "ask": "Oakline offered me an analyst job at $69k.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-17T02:04:17.978Z",
+                      "firm": "Oakline",
+                      "role": "analyst job",
+                      "amount": 69000,
+                      "evidence": "Oakline offered me an analyst job at $69k."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Oakline",
+                    "base_salary": 69000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-17T02:04:17.978Z",
+                    "ask": "Oakline offered me an analyst job at $69k.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-17T02:04:17.978Z",
+                    "firm": "Oakline",
+                    "role": "analyst job",
+                    "amount": 69000,
+                    "evidence": "Oakline offered me an analyst job at $69k."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "conversationState": {
+                "v": 1,
+                "facts": {},
+                "sources": [],
+                "hypotheticals": [],
+                "mode": null,
+                "extension": {
+                  "source": "Draft an extension email but I have not chosen a date.",
+                  "draft": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]"
+                },
+                "artifact": {
+                  "kind": "extension_email",
+                  "format": "text",
+                  "text": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Draft an extension email but I have not chosen a date.",
+                    "Oakline"
+                  ]
+                }
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Draft an extension email but I have not chosen a date.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "Draft for Oakline, $69,000 base; nothing has been sent.\n\nSubject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H12-2",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_draft",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "H12",
+    "turn": 3,
+    "threadId": "00000000-0000-4000-8000-000000000112",
+    "at": "2026-10-17T02:04:19.407Z",
+    "input": {
+      "message": "Do not invent the requested date. Show a placeholder or ask me.",
+      "contains": [],
+      "absent": [],
+      "restart": true
+    },
+    "requestKey": "H12-3",
+    "result": {
+      "status": 200,
+      "body": {
+        "meta": {
+          "career": true,
+          "intent": "conversation_extension_date_unknown",
+          "contained": false,
+          "result_status": "prepared"
+        },
+        "reply": "The requested extension date is unknown. The draft must retain a date placeholder until you choose it; no date was promised or sent. What date would you like to request?",
+        "action": null,
+        "turn_key": "H12-3",
+        "reminders": [],
+        "thread_id": "00000000-0000-4000-8000-000000000112",
+        "capabilities": {
+          "portal_browser": {
+            "reason": "The Node browser worker is not connected to this Edge handler.",
+            "status": "NOT_WIRED"
+          },
+          "job_alert_delivery": {
+            "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders.",
+            "status": "NOT_WIRED"
+          }
+        }
+      },
+      "networkAttempts": 0,
+      "logs": []
+    },
+    "checks": [
+      {
+        "name": "HTTP status 200",
+        "pass": true
+      },
+      {
+        "name": "no external network attempts",
+        "pass": true
+      },
+      {
+        "name": "no external action returned",
+        "pass": true
+      },
+      {
+        "name": "non-empty substantive reply",
+        "pass": true
+      },
+      {
+        "name": "not generic unmatched fallback",
+        "pass": true
+      }
+    ],
+    "before": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Oakline",
+            "base_salary": 69000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Oakline",
+                  "base_salary": 69000
+                },
+                "lastWork": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "ask": "Oakline offered me an analyst job at $69k.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "firm": "Oakline",
+                  "role": "analyst job",
+                  "amount": 69000,
+                  "evidence": "Oakline offered me an analyst job at $69k."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "lastWork": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "ask": "Oakline offered me an analyst job at $69k.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "firm": "Oakline",
+                "role": "analyst job",
+                "amount": 69000,
+                "evidence": "Oakline offered me an analyst job at $69k."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Draft an extension email but I have not chosen a date.",
+                "Oakline"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "source": "Draft an extension email but I have not chosen a date."
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 2,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "94329dbe-37f0-406a-ac11-aa059dd3cdcb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Oakline offered me an analyst job at $69k.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "ebc75bf4-b469-42ae-b6e6-fd28f8ba4294",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H12-1"
+          },
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "2eca4d15-8ed7-49c8-b380-76ebfed6d29f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Draft for Oakline, $69,000 base; nothing has been sent.\n\nSubject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H12-2"
+          },
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        },
+        {
+          "id": "6624f83e-d7d5-4bbc-9ebe-98253a2684f7",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Draft an extension email but I have not chosen a date.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 2
+      }
+    },
+    "after": {
+      "snapshot": {
+        "v": 1,
+        "scope": {
+          "userId": "00000000-0000-4000-8000-000000000001"
+        },
+        "stores": {
+          "offer": {
+            "company": "Oakline",
+            "base_salary": 69000
+          },
+          "profile": {
+            "facts": [
+              {
+                "end": "2028-05",
+                "org": "Synthetic University",
+                "kind": "education",
+                "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                "title": "B.A. Economics",
+                "fact_id": "REC-E1",
+                "evidence": [
+                  "synthetic fixture supplied education"
+                ],
+                "unproven": false
+              },
+              {
+                "kind": "skill",
+                "name": "Python",
+                "text": "Class Python CSV parser",
+                "fact_id": "REC-S1",
+                "evidence": [
+                  "synthetic class project"
+                ],
+                "unproven": false
+              }
+            ],
+            "basics": {
+              "name": "Synthetic Recovery Learner",
+              "location": "Chicago, IL"
+            },
+            "constraints": {},
+            "preferences": {
+              "locations": [
+                "Chicago"
+              ],
+              "starredCompanies": []
+            },
+            "_careerTrackStore": {
+              "rows": [],
+              "_careerThread": {
+                "offer": {
+                  "company": "Oakline",
+                  "base_salary": 69000
+                },
+                "lastWork": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "ask": "Oakline offered me an analyst job at $69k.",
+                  "kind": "negotiation",
+                  "intent": "negotiation_advice",
+                  "company": null
+                },
+                "negotiation": {
+                  "at": "2026-10-17T02:04:17.978Z",
+                  "firm": "Oakline",
+                  "role": "analyst job",
+                  "amount": 69000,
+                  "evidence": "Oakline offered me an analyst job at $69k."
+                }
+              }
+            }
+          },
+          "trackStore": {
+            "rows": [],
+            "_careerThread": {
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "lastWork": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "ask": "Oakline offered me an analyst job at $69k.",
+                "kind": "negotiation",
+                "intent": "negotiation_advice",
+                "company": null
+              },
+              "negotiation": {
+                "at": "2026-10-17T02:04:17.978Z",
+                "firm": "Oakline",
+                "role": "analyst job",
+                "amount": 69000,
+                "evidence": "Oakline offered me an analyst job at $69k."
+              }
+            }
+          },
+          "conversationState": {
+            "v": 1,
+            "mode": null,
+            "facts": {},
+            "sources": [],
+            "artifact": {
+              "kind": "extension_email",
+              "text": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "format": "text",
+              "status": "draft_not_sent",
+              "sourceQuotes": [
+                "Draft an extension email but I have not chosen a date.",
+                "Oakline"
+              ]
+            },
+            "extension": {
+              "draft": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+              "source": "Draft an extension email but I have not chosen a date."
+            },
+            "hypotheticals": []
+          }
+        },
+        "revision": 3,
+        "privacy_epoch": 0
+      },
+      "messages": [
+        {
+          "id": "94329dbe-37f0-406a-ac11-aa059dd3cdcb",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Oakline offered me an analyst job at $69k.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "ebc75bf4-b469-42ae-b6e6-fd28f8ba4294",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe number on the table is $69,000 from Oakline — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone. The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed — source class: company file compensation notes, checked as of 2026-10-17.\nTell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it.",
+          "meta": {
+            "career": true,
+            "intent": "negotiation_advice",
+            "contained": false,
+            "result_status": "awaiting_user",
+            "career_turn_key": "H12-1"
+          },
+          "created_at": "2026-10-17T02:04:18.084155+00:00"
+        },
+        {
+          "id": "2eca4d15-8ed7-49c8-b380-76ebfed6d29f",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "Draft for Oakline, $69,000 base; nothing has been sent.\n\nSubject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]\n\nTell me what to change; no message or application was sent.",
+          "meta": {
+            "career": true,
+            "intent": "conversation_draft",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H12-2"
+          },
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        },
+        {
+          "id": "6624f83e-d7d5-4bbc-9ebe-98253a2684f7",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Draft an extension email but I have not chosen a date.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:18.608187+00:00"
+        },
+        {
+          "id": "4510382f-f60e-446d-b37f-a11c7b6f9310",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "user",
+          "content": "Do not invent the requested date. Show a placeholder or ask me.",
+          "meta": null,
+          "created_at": "2026-10-17T02:04:19.312836+00:00"
+        },
+        {
+          "id": "fb2d3f09-ab71-4cd5-9698-76303d5d7a08",
+          "thread_id": "00000000-0000-4000-8000-000000000112",
+          "role": "assistant",
+          "content": "The requested extension date is unknown. The draft must retain a date placeholder until you choose it; no date was promised or sent. What date would you like to request?",
+          "meta": {
+            "career": true,
+            "intent": "conversation_extension_date_unknown",
+            "contained": false,
+            "result_status": "prepared",
+            "career_turn_key": "H12-3"
+          },
+          "created_at": "2026-10-17T02:04:19.312836+00:00"
+        }
+      ],
+      "account": {
+        "epoch": 0,
+        "version": 3
+      }
+    },
+    "transportTrace": [
+      {
+        "kind": "upsert",
+        "table": "profiles",
+        "row": {
+          "id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "agent_rl_bump",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_limit": 60
+        }
+      },
+      {
+        "kind": "select",
+        "table": "agent_threads",
+        "filters": {
+          "id": "00000000-0000-4000-8000-000000000112",
+          "user_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_load",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-3",
+          "p_hash": "fc8babe99a0f4767b40bf1da44716eaa5f0ff1347b402bee7fa62952e6f4e86a"
+        }
+      },
+      {
+        "kind": "rpc",
+        "name": "career_host_commit",
+        "args": {
+          "p_user": "00000000-0000-4000-8000-000000000001",
+          "p_thread": "00000000-0000-4000-8000-000000000112",
+          "p_key": "H12-3",
+          "p_hash": "fc8babe99a0f4767b40bf1da44716eaa5f0ff1347b402bee7fa62952e6f4e86a",
+          "p_revision": 2,
+          "p_account_version": 2,
+          "p_snapshot": {
+            "v": 1,
+            "scope": {
+              "userId": "00000000-0000-4000-8000-000000000001"
+            },
+            "stores": {
+              "profile": {
+                "facts": [
+                  {
+                    "end": "2028-05",
+                    "org": "Synthetic University",
+                    "kind": "education",
+                    "text": "Junior B.A. Economics at Synthetic University, graduating May 2028",
+                    "title": "B.A. Economics",
+                    "fact_id": "REC-E1",
+                    "evidence": [
+                      "synthetic fixture supplied education"
+                    ],
+                    "unproven": false
+                  },
+                  {
+                    "kind": "skill",
+                    "name": "Python",
+                    "text": "Class Python CSV parser",
+                    "fact_id": "REC-S1",
+                    "evidence": [
+                      "synthetic class project"
+                    ],
+                    "unproven": false
+                  }
+                ],
+                "basics": {
+                  "name": "Synthetic Recovery Learner",
+                  "location": "Chicago, IL"
+                },
+                "constraints": {},
+                "preferences": {
+                  "locations": [
+                    "Chicago"
+                  ],
+                  "starredCompanies": []
+                },
+                "_careerTrackStore": {
+                  "rows": [],
+                  "_careerThread": {
+                    "offer": {
+                      "company": "Oakline",
+                      "base_salary": 69000
+                    },
+                    "lastWork": {
+                      "at": "2026-10-17T02:04:17.978Z",
+                      "ask": "Oakline offered me an analyst job at $69k.",
+                      "kind": "negotiation",
+                      "intent": "negotiation_advice",
+                      "company": null
+                    },
+                    "negotiation": {
+                      "at": "2026-10-17T02:04:17.978Z",
+                      "firm": "Oakline",
+                      "role": "analyst job",
+                      "amount": 69000,
+                      "evidence": "Oakline offered me an analyst job at $69k."
+                    }
+                  }
+                }
+              },
+              "trackStore": {
+                "rows": [],
+                "_careerThread": {
+                  "offer": {
+                    "company": "Oakline",
+                    "base_salary": 69000
+                  },
+                  "lastWork": {
+                    "at": "2026-10-17T02:04:17.978Z",
+                    "ask": "Oakline offered me an analyst job at $69k.",
+                    "kind": "negotiation",
+                    "intent": "negotiation_advice",
+                    "company": null
+                  },
+                  "negotiation": {
+                    "at": "2026-10-17T02:04:17.978Z",
+                    "firm": "Oakline",
+                    "role": "analyst job",
+                    "amount": 69000,
+                    "evidence": "Oakline offered me an analyst job at $69k."
+                  }
+                }
+              },
+              "offer": {
+                "company": "Oakline",
+                "base_salary": 69000
+              },
+              "conversationState": {
+                "v": 1,
+                "mode": null,
+                "facts": {},
+                "sources": [],
+                "artifact": {
+                  "kind": "extension_email",
+                  "text": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+                  "format": "text",
+                  "status": "draft_not_sent",
+                  "sourceQuotes": [
+                    "Draft an extension email but I have not chosen a date.",
+                    "Oakline"
+                  ]
+                },
+                "extension": {
+                  "draft": "Subject: Decision deadline — Oakline\n\nHi [Recruiter name],\n\nThank you for the offer from Oakline. Would it be possible to extend my decision deadline to [requested date — please confirm]? I would appreciate the time to review the offer carefully.\n\nThank you,\n[Your name]",
+                  "source": "Draft an extension email but I have not chosen a date."
+                },
+                "hypotheticals": []
+              }
+            }
+          },
+          "p_patch": {},
+          "p_input": "Do not invent the requested date. Show a placeholder or ask me.",
+          "p_response": {
+            "thread_id": "00000000-0000-4000-8000-000000000112",
+            "reply": "The requested extension date is unknown. The draft must retain a date placeholder until you choose it; no date was promised or sent. What date would you like to request?",
+            "action": null,
+            "capabilities": {
+              "portal_browser": {
+                "status": "NOT_WIRED",
+                "reason": "The Node browser worker is not connected to this Edge handler."
+              },
+              "job_alert_delivery": {
+                "status": "NOT_WIRED",
+                "reason": "No alert scheduler or delivery worker is connected to this Edge handler. Saving a watch does not start polling or deliver reminders."
+              }
+            },
+            "turn_key": "H12-3",
+            "reminders": [],
+            "meta": {
+              "career": true,
+              "intent": "conversation_extension_date_unknown",
+              "result_status": "prepared",
+              "contained": false
+            }
+          }
+        }
+      }
+    ]
+  }
+]

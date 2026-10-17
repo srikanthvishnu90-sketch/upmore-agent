@@ -7,7 +7,7 @@ type SemanticVerifier = {
   costPolicy: 'local_no_external_calls';
   verify: (request: any, signal: AbortSignal) => Promise<any>;
 };
-export type CareerModelDependencies = { semanticVerifier?: SemanticVerifier; interview?:import('./career_interview_reasoner.ts').InterviewDependencies };
+export type CareerModelDependencies = { semanticVerifier?: SemanticVerifier; interview?:import('./career_interview_reasoner.ts').InterviewDependencies; nativePair?:import('./career_native_reasoner.ts').NativePairDependencies };
 const record=(x:any)=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const keys=(x:any,k:string[])=>record(x)&&Object.keys(x).sort().join(',')===[...k].sort().join(',');
 const copy=(x:any)=>JSON.parse(JSON.stringify(x));
@@ -20,7 +20,7 @@ export function contextText(x:any,max=1600):string {
   if(typeof x==='boolean'||typeof x==='number')return String(x);
   return typeof x==='string'?redactIdentity(x).text.replace(/[\x00-\x08\x0b-\x1f\x7f]/g,' ').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[contact omitted]').replace(/\bsk-[a-zA-Z0-9_-]{8,}\b/g,'[credential omitted]').trim().slice(0,max):'';
 }
-export const groundedEnabled=(env:any)=>env.get('CAREER_MODEL_CONTRACT')==='grounded_v2';
+export const groundedEnabled=(env:any)=>['grounded_v2','native_pair_v1'].includes(env.get('CAREER_MODEL_CONTRACT'));
 const BARRIER=/\b(?:forget|erase|delete|stop|actually|correction|correct that|instead|no longer|not true|old (?:resume|one).*(?:wrong|incorrect)|use the new)\b/i;
 export function dialogueStamp(d:any) {
   const barrier=!!d.ctx._hostPatch||BARRIER.test(d.message)||/correction|forget|erased|paused|facts|nonactual/.test(d.out.intent||'');
@@ -86,6 +86,10 @@ export async function prepareGroundedReply(d:any) {
   const view=freeze(copy(groundedContext(d,r)));
   return {view,system:SYSTEM,max_tokens:2048,render:(raw:string)=>verifyGroundedReply(raw,view,verifier,d.turnKey)};
 }
+
+// Shared prompt text does not grant verification authority. The native paid
+// executor has its own policy/configuration identity and budgeted checker.
+export const GROUNDED_SYSTEM=SYSTEM;
 
 export async function verifyGroundedReply(raw:string,view:any,verifier:any,turnKey:string) {
   if(!verifierAvailable(verifier))throw Error('semantic_verifier_unavailable');

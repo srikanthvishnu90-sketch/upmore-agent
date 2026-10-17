@@ -1,0 +1,286 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"654049f0681cfcf8","commit":"3778dd778939f30d35762fb1221d3dbe9db48a25","preflightDirtyFiles":"","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/native-text-entry-postgres.test.cjs":"59821894b3e0614871a3d08eee3d0cd37cd57cf72a42e27a23274a795e92034c"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":381,"selectedFiles":1,"sqlFiles":["career-critical-repairs/native-text-entry-postgres.test.cjs"],"started":"2026-10-17T03:53:52.105Z","runs":[],"out":"/tmp/upmore-ci-node-jeoxyD","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/native-text-entry-postgres.test.cjs","database":"career_test_ci_654049f0681cfcf8_0","marker":"upmore-ci-fixture:654049f0681cfcf8"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-654049f0681cfcf8","database":"career_test_ci_654049f0681cfcf8_0","marker":"upmore-ci-fixture:654049f0681cfcf8"}
+# (node:1672042) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1672042) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: the same safe original wording reaches real host intent, canonical context and both budgeted provider legs
+not ok 1 - the same safe original wording reaches real host intent, canonical context and both budgeted provider legs
+  ---
+  duration_ms: 1350.725828
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:12:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:14:122)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: raw multi-turn corrections and hypothetical statements reach the owned context without model-authored facts
+not ok 2 - raw multi-turn corrections and hypothetical statements reach the owned context without model-authored facts
+  ---
+  duration_ms: 1201.254571
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:19:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'contract')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:21:173)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: fresh sessions revise the owned checked draft while preserving original user wording
+not ok 3 - fresh sessions revise the owned checked draft while preserving original user wording
+  ---
+  duration_ms: 1261.637683
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:28:161)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: exact request replay is free and conflicting original wording cannot reuse the same paid operation
+not ok 4 - exact request replay is free and conflicting original wording cannot reuse the same paid operation
+  ---
+  duration_ms: 1419.631639
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:30:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:31:128)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unfunded or unreconciled admission runs neither paid leg and preserves a truthful native no-call outcome
+not ok 5 - unfunded or unreconciled admission runs neither paid leg and preserves a truthful native no-call outcome
+  ---
+  duration_ms: 1288.101283
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:33:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'contract')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:34:193)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: rejected checker cannot publish the generated native response
+not ok 6 - rejected checker cannot publish the generated native response
+  ---
+  duration_ms: 1335.444029
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:36:168'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(p.calls.length>=1)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:37:131)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: wrong checker input digest cannot publish the generated native response
+not ok 7 - wrong checker input digest cannot publish the generated native response
+  ---
+  duration_ms: 1245.034183
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:36:168'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(p.calls.length>=1)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:37:131)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: invalid raw usage cannot publish the generated native response
+not ok 8 - invalid raw usage cannot publish the generated native response
+  ---
+  duration_ms: 1287.16413
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:36:168'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(p.calls.length>=1)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:37:131)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unknown generation keeps its full hold and the exact raw request cannot redispatch it
+not ok 9 - unknown generation keeps its full hold and the exact raw request cannot redispatch it
+  ---
+  duration_ms: 1214.742459
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:39:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:40:159)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: privacy erase between provider legs prevents checking and native context resurrection while retaining accounting
+not ok 10 - privacy erase between provider legs prevents checking and native context resurrection while retaining accounting
+  ---
+  duration_ms: 1252.483469
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:42:1'
+  failureType: 'testCodeFailure'
+  error: 'Expected "actual" to be strictly unequal to: 200'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 200
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:43:615)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# {"failedRpc":"agent_model_call_reserve","error":{"message":"invalid test RPC"}}
+# Subtest: paused and foreign-owned native requests cannot dispatch or read another owner context
+not ok 11 - paused and foreign-owned native requests cannot dispatch or read another owner context
+  ---
+  duration_ms: 2151.226091
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:45:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /paused/i. Input:
+    
+    'Recorded from your words: target city: Raleigh; background: I am a fresher. Help me explain my class calculator without overstating my contribution.. These are user-reported constraints, not independently verified credentials. What should we work on next?'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Recorded from your words: target city: Raleigh; background: I am a fresher. Help me explain my class calculator without overstating my contribution.. These are user-reported constraints, not independently verified credentials. What should we work on next?'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:46:393)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: identity redaction is explicit and secret digits reach neither durable native trace nor provider request
+not ok 12 - identity redaction is explicit and secret digits reach neither durable native trace nor provider request
+  ---
+  duration_ms: 1244.472457
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:48:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:49:197)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: client-supplied intent, verifier and model settings cannot replace the server native authority
+not ok 13 - client-supplied intent, verifier and model settings cannot replace the server native authority
+  ---
+  duration_ms: 1152.606049
+  type: 'test'
+  location: '/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:51:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/workspace/upmore-critical-repairs/tests/career-critical-repairs/native-text-entry-postgres.test.cjs:52:320)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 0
+# fail 13
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17579.915381
+{"token":"654049f0681cfcf8","commit":"3778dd778939f30d35762fb1221d3dbe9db48a25","preflightDirtyFiles":"","harnessSha256":"4851a8849886861ab28b2b100ec940b69d64a87cb2c4b39f430b79555d2183ad","testSourceSha256":{"career-critical-repairs/native-text-entry-postgres.test.cjs":"59821894b3e0614871a3d08eee3d0cd37cd57cf72a42e27a23274a795e92034c"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":381,"selectedFiles":1,"sqlFiles":["career-critical-repairs/native-text-entry-postgres.test.cjs"],"started":"2026-10-17T03:53:52.105Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/native-text-entry-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/native-text-entry-postgres.test.cjs"],"exitCode":1}],"out":"/tmp/upmore-ci-node-jeoxyD","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837","supabase/sql/proposals/career_interview_entry_v1.sql":"b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f","supabase/sql/proposals/career_interview_context_refresh_v1.sql":"a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780"},"fixture":{"container":"upmore-career-integration-pg-ci-654049f0681cfcf8","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T03:54:16.883Z","pass":false}

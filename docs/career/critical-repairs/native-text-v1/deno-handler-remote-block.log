@@ -1,0 +1,6 @@
+Download https://esm.sh/@supabase/supabase-js@2.117.1
+error: Import 'https://esm.sh/@supabase/supabase-js@2.117.1' failed.
+    0: error sending request for url (https://esm.sh/@supabase/supabase-js@2.117.1): client error (Connect): unsuccessful tunnel
+    1: client error (Connect)
+    2: unsuccessful tunnel
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:34:30

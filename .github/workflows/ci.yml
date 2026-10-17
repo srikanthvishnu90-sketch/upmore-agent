@@ -78,7 +78,7 @@ jobs:
         run: deno run -A evals/agent/mutations.ts
       - name: Type-check the functions this branch deploys
         if: always()
-        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/agent-proactive/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts supabase/functions/manual-connect/index.ts supabase/functions/gmail-oauth/career.ts
+        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/agent-chat/handler-career.ts supabase/functions/model-health/index.ts supabase/functions/agent-proactive/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts supabase/functions/manual-connect/index.ts supabase/functions/gmail-oauth/career.ts
   database:
     runs-on: ubuntu-24.04
     steps:

@@ -1,0 +1,58 @@
+{
+  "frozenHead": "0207136ed704f80d128848ff78050b543f9630ef",
+  "runtimeState": "uncommitted implementation on frozen control head",
+  "sourceSha256": {
+    ".github/workflows/ci.yml": "e221fb216f9bc6647005925e0041d22aa4ba05b70fa23c23e22b9f10eda03d58",
+    "scripts/career/critical-repairs/ci-node.cjs": "396d3b63542a0c5529da49e078bd0c81286fe1bf8d2b5a0125c044cb5d726f15",
+    "supabase/functions/agent-chat/handler-career.ts": "35b21e7b1a6dc5cd6cabc93ff1bd018ec1b50130dbeceeb28888d3760fd8c3d6",
+    "supabase/functions/_shared/career_model_reply.ts": "316711dd44be75005bc9fad806fc77081ec8d26cff30c933e680d9caf1545d32",
+    "supabase/functions/_shared/career_model_grounded.ts": "d0cffdcb6a75cd97228a012360647ca686a4b6a1c742dd5e65700f64562ad588",
+    "supabase/functions/_shared/career_persistence.js": "e38f82a283a5e0eb7014564fba684f1c8d66959d96a913151d9ee1a6613952f1",
+    "supabase/functions/_shared/career_grounded_candidate.ts": "248d70272bac1cbd5069d48807942d7fd15f0b4f1e523b1e7f4c223ef686aa28",
+    "supabase/functions/_shared/career_native_context.ts": "36a9c6be672ef9a11645b28a2171a3dc8db8f56b3b2fcbfce6296ffca970e484",
+    "supabase/functions/_shared/career_native_reasoner.ts": "00da99e5f78c64277a7cd42406181ca93100c7d9025a600d3a522df767c130aa",
+    "supabase/sql/proposals/career_native_execution_v1.sql": "f7c315ec0d493098f959904c0708a0d2d1fc266af87c4fac326354a9c0dbd1f3",
+    "tests/career-critical-repairs/native-controlled-provider.cjs": "ebbad79f2dbbbd58f5b30b7efb40f76202b2300950ed428eaa763a357050ad1e",
+    "tests/career-critical-repairs/native-text-entry-postgres.test.cjs": "716efcb5d0d4817c6bff3425d5db03718a753818abcc85f6fedd220b7fd563e6",
+    "tests/career-critical-repairs/native-text-authority-postgres.test.cjs": "f58eb8fd024d3b60c622403961c3269ef8b4611a11574499fe80a53719389a4c"
+  },
+  "evidenceSha256": {
+    "before-original-0-of-13.log": "e629f2b1af388377690306f1b10bf13209de11f58a3469f952401f19e20ae333",
+    "before-stop-fixture-1-of-13.log": "ccb3f894a980af8e927736dac494f92deb17e8d366de830d75b9643bd758416b",
+    "prototype-whitespace-12-of-13.log": "a5526597283d03bc8cd21d97a929d2044c96ade49449067fa7eea6197aa857bb",
+    "prototype-sql-setup-error.log": "1a4399c2a7d372cf6c13227ab17c5c9114febf8f4e879daca0fcbc367c58fdfe",
+    "prototype-sql-setup.sql.txt": "8df76b4aa509055df9910c2661a0a2d3d076539f082fdb989f5fdb33dca6ef90",
+    "prototype-native-13-of-13.log": "405dd56c05a33c9808282e3be06f86bc154f5c015d6ad223b484e101153450ca",
+    "authority-before-4-of-5.log": "9a82ce0252699f0717caaae8bf9dd82736ce1aed6b9caead901c76e5525b0952",
+    "authority-before.sql.txt": "1743370776fb8b1295e36b581db45d729f8ed5440635af7cdb3ad5f2b1dde653",
+    "native-final-13-of-13.log": "bb28b0be04195aa8985f6378de68f5164a226d902f8d5ed0283dc80fdf8a30cd",
+    "authority-final-5-of-5.log": "35e01e9d2deb7904f4aa35c6f10cc9db303690f8c957891c230e482f44c4f6c1",
+    "safe-source-212-of-212.log": "04407a0d665075d1b5ada537ace5a30f0c99d89fcb9fff186fdc52bd7f0d78ae",
+    "legacy-model-84-of-84.log": "1c96dbc5d6e75e2f1ab2acef015cb31f3f7cd1eb39b5b126c827dd447f92918c",
+    "stage-bundle-4-of-4.log": "cb450e5426bbccf709a0d88bcfeef5fe38ee742055ce6b25232c194d4c72b6b0",
+    "deno-shared.log": "e4d08a2970efc5c7878c7ed673f581618b58c265e13fabea8a787d12791e4dd0",
+    "deno-handler-remote-block.log": "cfa5f9f53830d2d0053fd8e34aee1380ecf06a6cd2c1249c580eeac03c300812",
+    "deno-handler-type-before.log": "c1ec21d47613a6a6bbc483818df0c3f3a01c72d632e669815844d6c4a28acfaa",
+    "deno-handler-local-type.log": "a66dafd23fce7836122024dc6f096837b3b3e8a757b2b3e60ca26bb07a12a721",
+    "type-only-supabase-stub.ts.txt": "fdb679db8e94968689f7a2a18908a2310aaedf94f883d70c56d8bc3f2ff93cf7",
+    "type-only-import-map.json": "83213b8ef0e8b1197e52e08fe0a1894a12d15c8320cc77df094506fb985dcf6a"
+  },
+  "evidenceTier": "ACTUAL_STAGED_ENTRY_CONTROLLED_PROVIDER_NATIVE_POSTGRES",
+  "nativeBodyFields": [
+    "thread_id",
+    "turn_key",
+    "message"
+  ],
+  "harnessTypedTranslation": false,
+  "paidCalls": 0,
+  "providerLiabilities": 0,
+  "browserOutcomes": 0,
+  "productionMutations": 0,
+  "sealedEvaluatorScenariosRead": false,
+  "actualSecureInvocationAttested": false,
+  "wholeInvocationCeilingMicros": {
+    "generation": 25000,
+    "checker": 25000,
+    "other": 0
+  }
+}

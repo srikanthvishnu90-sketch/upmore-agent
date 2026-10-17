@@ -39,13 +39,13 @@ export function createCareerPersistence(client) {
       else if(!Number.isSafeInteger(data.revision)||data.revision<0||!Number.isSafeInteger(data.accountVersion)||data.accountVersion<0||!record(data.account)||!record(data.watchState)||!Array.isArray(data.reminders)||(data.snapshot!==null&&!record(data.snapshot)))unavailable();
       return data;
     },
-    async commit({ userId, threadId, turnKey, requestHash, revision, accountVersion, snapshot, patch, input, response, taskIntent }) {
+    async commit({ userId, threadId, turnKey, requestHash, revision, accountVersion, snapshot, patch, input, response, taskIntent, native=false }) {
       const base={
         p_user:userId,p_thread:threadId,p_key:turnKey,p_hash:requestHash,
         p_revision:revision,p_account_version:accountVersion,
         p_snapshot:snapshot,p_patch:patch||{},p_input:input,p_response:response,
       };
-      const data=taskIntent?await call('career_task_turn_commit_v1',{p_base:base,p_intent:taskIntent}):await call('career_host_commit',base);
+      const data=native?await call('career_native_turn_commit_v1',{p_base:base}):taskIntent?await call('career_task_turn_commit_v1',{p_base:base,p_intent:taskIntent}):await call('career_host_commit',base);
       if(!validResponse(data.response,threadId,turnKey,userId))unavailable();
       return data;
     },
@@ -58,6 +58,7 @@ export function createCareerPersistence(client) {
   };
 }
 
+/** @param {unknown} message @param {unknown} images @param {unknown} careerTask */
 export async function careerRequestHash(message, images, careerTask=null) {
   const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
   const bytes = new TextEncoder().encode(JSON.stringify(canonical({version:'career_turn/v2',message,acceptedImages:images||null,careerTask})));

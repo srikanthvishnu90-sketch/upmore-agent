@@ -1,4 +1,4 @@
-# Native text entry contract (implementation in progress)
+# Native text entry contract (implemented review source)
 
 Evaluator-facing boundary: the actual career `POST` entry accepts
 `{thread_id, turn_key, message}` with a verified owner bearer token. No

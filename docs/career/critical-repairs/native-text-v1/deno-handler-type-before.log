@@ -1,0 +1,116 @@
+Check supabase/functions/agent-chat/handler-career.ts
+TS2345 [ERROR]: Argument of type '{ version: string; action: any; } | null' is not assignable to parameter of type 'null | undefined'.
+  Type '{ version: string; action: any; }' is not assignable to type 'null | undefined'.
+    const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask);
+                                                                         ~~~~~~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:197:74
+
+TS2339 [ERROR]: Property 'intent' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'intent' does not exist on type '{ handler: string; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:213:122
+
+TS2339 [ERROR]: Property '_hostPatch' does not exist on type '{ now: any; userId: any; threadId: any; postings: any; containmentRecords: never[]; workerCapabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; accountPersistence: boolean; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:213:157
+
+TS2322 [ERROR]: Type '{ reply: any; intent: string; resultStatus: any; contained: boolean; task: null; capabilities: any; result: { task: null; sends: number; }; }' is not assignable to type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'handler' is missing in type '{ reply: any; intent: string; resultStatus: any; contained: boolean; task: null; capabilities: any; result: { task: null; sends: number; }; }' but required in type '{ reply: any; intent: any; resultStatus: any; handler: null; contained: boolean; result: any; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; }'.
+        out = plan.out; taskIntent = plan.intent;
+        ~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:217:9
+
+    'handler' is declared here.
+            handler,
+            ~~~~~~~
+        at file:///workspace/upmore-critical-repairs/supabase/functions/_shared/career_host.js:226:9
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+      const reply = model?.native ? model.reply : flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+                           ~~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:222:28
+
+TS2339 [ERROR]: Property 'reply' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'reply' does not exist on type '{ handler: string; }'.
+      const reply = model?.native ? model.reply : flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+                                                                                        ~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:222:89
+
+TS2339 [ERROR]: Property 'reply' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'reply' does not exist on type '{ handler: string; }'.
+      const reply = model?.native ? model.reply : flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+                                                                                                      ~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:222:103
+
+TS2339 [ERROR]: Property '_hostPatch' does not exist on type '{ now: any; userId: any; threadId: any; postings: any; containmentRecords: never[]; workerCapabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; accountPersistence: boolean; }'.
+      const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
+                                                                                   ~~~~~~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:223:84
+
+TS2339 [ERROR]: Property 'intent' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'intent' does not exist on type '{ handler: string; }'.
+      const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
+                                                                                                     ~~~~~~
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:223:102
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:225:35
+
+TS2339 [ERROR]: Property 'capabilities' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'capabilities' does not exist on type '{ handler: string; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:95
+
+TS2339 [ERROR]: Property 'task' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'task' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:147
+
+TS2339 [ERROR]: Property 'task' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'task' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:166
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:217
+
+TS2339 [ERROR]: Property 'intent' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'intent' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:230
+
+TS2339 [ERROR]: Property 'intent' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'intent' does not exist on type '{ handler: string; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:241
+
+TS2339 [ERROR]: Property 'resultStatus' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'resultStatus' does not exist on type '{ handler: string; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:268
+
+TS2339 [ERROR]: Property 'contained' does not exist on type '{ action: null; handler: string; contained: boolean; capabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; intent: string; reply: string; resultStatus?: undefined; } | { ...; } | { ...'.
+  Property 'contained' does not exist on type '{ handler: string; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:226:297
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:185
+
+TS2339 [ERROR]: Property 'snapshot' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'snapshot' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:198
+
+TS2339 [ERROR]: Property '_hostPatch' does not exist on type '{ now: any; userId: any; threadId: any; postings: any; containmentRecords: never[]; workerCapabilities: Readonly<{ portal_browser: Readonly<{ status: "NOT_WIRED"; reason: "The Node browser worker is not connected to this Edge handler."; }>; job_alert_delivery: Readonly<...>; }>; accountPersistence: boolean; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:245
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:271
+
+TS2339 [ERROR]: Property 'input' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'input' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:284
+
+TS2339 [ERROR]: Property 'native' does not exist on type '{ reply: any; meta: any; native: boolean; intent: any; input: any; snapshot: any; } | { reply: any; meta: any; }'.
+  Property 'native' does not exist on type '{ reply: any; meta: any; }'.
+    at file:///workspace/upmore-critical-repairs/supabase/functions/agent-chat/handler-career.ts:230:339
+
+Found 24 errors.
+
+error: Type checking failed.

@@ -2,6 +2,7 @@ import { careerModelReply } from "../_shared/career_model_reply.ts";
 import { dialogueStamp, groundedEnabled, type CareerModelDependencies } from "../_shared/career_model_grounded.ts";
 import { researchCommand } from "../_shared/career_research_policy.js";
 import {interviewTurn,interviewArtifact} from '../_shared/career_interview_entry.ts';
+import {nativeInput} from '../_shared/career_native_context.ts';
 // Upmore agent-chat edge function — CAREER-ONLY entry handler.
 //
 // Owner decision 2026-10-15: "Prune the shelved finance half from the
@@ -152,8 +153,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
     if (!input.ok) return json(cors, { error: input.error }, 400);
-    const { message, userContent, imageBlocks } = input;
+    let { message, userContent } = input;const {imageBlocks}=input;
     flowCtx.note = redactionNote(input.redacted);
+    if(Deno.env.get('CAREER_MODEL_ENABLED')==='true'&&Deno.env.get('CAREER_MODEL_CONTRACT')==='native_pair_v1'){
+      if(typeof rawMessage==='string'&&rawMessage.length>MAX_MESSAGE_LEN)return json(cors,{error:'native_input_too_large'},400);
+      const safe=nativeInput(rawMessage,message);message=safe.text.trim()||message;userContent=imageBlocks.length?`[photo attached] ${message}`:safe.text;
+      if(safe.transformations.some(x=>x!=='identity_redaction'))flowCtx.note=[flowCtx.note,'(I omitted contact or credential text from this coaching request.)'].filter(Boolean).join(' ');
+    }
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -200,9 +206,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
         }
         flowCtx.note = null; return json(cors, loaded.replay, 200);
       }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
+      // The existing pure JS host adds its documented state keys dynamically.
+      const ctx:any = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
       const publicResearch = careerTask && ["research", "research_status"].includes(careerTask.action);
-      let out = publicResearch ? (host.runTaskGate(message, ctx) || { handler: "CareerPublicResearch" }) : host.runTurn(message, ctx);
+      let out:any = publicResearch ? (host.runTaskGate(message, ctx) || { handler: "CareerPublicResearch" }) : host.runTurn(message, ctx);
       let taskIntent = null;
       const pausedReadback = careerTask && ["status", "research_status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
       if (careerTask && (out.handler !== "CareerHostControl" || pausedReadback)) {
@@ -210,18 +217,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx, dependencies: Car
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence });
         out = plan.out; taskIntent = plan.intent;
       }
-      const model = await careerModelReply({env:Deno.env,admin,ctx,out,careerTask,message,loaded,turnKey,requestHash,dependencies});
+      const model = await careerModelReply({env:Deno.env,admin,ctx,out,careerTask,message,rawMessage,imageBlocks,note:flowCtx.note,hostSnapshot:host.extractSnapshot(ctx),loaded,turnKey,requestHash,dependencies});
       if (model) out = {...out,reply:model.reply};
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
-      const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+      const reply = model?.native ? model.reply : flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const researchObservation = careerTask?.action === "research_status" && !ctx._hostPatch && out.intent === "career_browser_task";
       const reminders = !researchObservation && Array.isArray(loaded.reminders) ? loaded.reminders : [];
-      const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(model ? { career_model:model.meta } : {}), ...(groundedEnabled(Deno.env)&&Deno.env.get('CAREER_MODEL_ENABLED')==='true'?{career_dialogue:dialogueStamp({ctx,out,loaded,message})}:{}) } };
+      const visibleReply = model?.native ? reply : [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), meta: { career: true, intent: model?.native?model.intent:out.intent, result_status: out.resultStatus, contained: out.contained, ...(model ? { career_model:model.meta } : {}), ...(groundedEnabled(Deno.env)&&Deno.env.get('CAREER_MODEL_ENABLED')==='true'?{career_dialogue:dialogueStamp({ctx,out,loaded,message})}:{}) } };
       // Observation cannot revoke its own queued research by bumping the
       // shared account version. It creates no turn receipt or memory write.
       if (researchObservation) { flowCtx.note = null; return json(cors, { ...response, read_only: true }, 200); }
-      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent });
+      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: model?.native?model.snapshot:host.extractSnapshot(ctx), patch: ctx._hostPatch, input: model?.native?model.input:userContent, response, taskIntent, native:model?.native===true });
       flowCtx.note = null;
       return json(cors, saved.response, 200);
     } catch (error) {

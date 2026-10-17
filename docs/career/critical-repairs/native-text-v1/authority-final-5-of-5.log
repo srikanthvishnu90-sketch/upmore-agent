@@ -1,0 +1,50 @@
+{"preflight":"LOCAL_SYNTHETIC_CI_FIXTURE","token":"fe0e370ae99a5d64","commit":"0207136ed704f80d128848ff78050b543f9630ef","preflightDirtyFiles":"M .github/workflows/ci.yml\n M docs/instinct-spec-series/BUILD-STATUS.md\n M scripts/career/critical-repairs/ci-node.cjs\n M supabase/functions/_shared/career_model_grounded.ts\n M supabase/functions/_shared/career_model_reply.ts\n M supabase/functions/_shared/career_persistence.js\n M supabase/functions/agent-chat/handler-career.ts\n?? docs/career/critical-repairs/native-text-v1/INVOCATION-READINESS.md\n?? supabase/functions/_shared/career_grounded_candidate.ts\n?? supabase/functions/_shared/career_native_context.ts\n?? supabase/functions/_shared/career_native_reasoner.ts\n?? supabase/sql/proposals/career_native_execution_v1.sql","harnessSha256":"396d3b63542a0c5529da49e078bd0c81286fe1bf8d2b5a0125c044cb5d726f15","testSourceSha256":{"career-critical-repairs/native-text-authority-postgres.test.cjs":"f58eb8fd024d3b60c622403961c3269ef8b4611a11574499fe80a53719389a4c"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":382,"selectedFiles":1,"sqlFiles":["career-critical-repairs/native-text-authority-postgres.test.cjs"],"started":"2026-10-17T04:13:48.663Z","runs":[],"out":"/tmp/upmore-ci-node-oAcPRX","paidCalls":0,"browserOutcomes":0}
+{"fixture":"LOCAL_NETWORK_NONE_SYNTHETIC","file":"career-critical-repairs/native-text-authority-postgres.test.cjs","database":"career_test_ci_fe0e370ae99a5d64_0","marker":"upmore-ci-fixture:fe0e370ae99a5d64"}
+TAP version 13
+# {"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-fe0e370ae99a5d64","database":"career_test_ci_fe0e370ae99a5d64_0","marker":"upmore-ci-fixture:fe0e370ae99a5d64"}
+# (node:1744764) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:1744764) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# {"failedRpc":"career_native_turn_commit_v1","error":{"message":"ERROR:  CONTROLLED native commit fault\\nCONTEXT:  PL/pgSQL function native_reject_save() line 1 at RAISE\\nSQL statement \\"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\\"\\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\\nPL/pgSQL function career_native_turn_commit_v1(jsonb) line 11 at assignment\\n"}}
+# Subtest: accepted native provider result survives an atomic save fault without another dispatch on exact retry
+ok 1 - accepted native provider result survives an atomic save fault without another dispatch on exact retry
+  ---
+  duration_ms: 4375.325587
+  type: 'test'
+  ...
+# {"failedRpc":"career_native_turn_commit_v1","error":{"message":"ERROR:  CONTROLLED native commit fault\\nCONTEXT:  PL/pgSQL function native_reject_save() line 1 at RAISE\\nSQL statement \\"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\\"\\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\\nPL/pgSQL function career_native_turn_commit_v1(jsonb) line 11 at assignment\\n"}}
+# Subtest: an older uncertain native snapshot cannot overwrite a later owned turn when its failed save is retried
+ok 2 - an older uncertain native snapshot cannot overwrite a later owned turn when its failed save is retried
+  ---
+  duration_ms: 3399.986749
+  type: 'test'
+  ...
+# {"failedRpc":"career_native_checker_prepare_v1","error":{"message":"ERROR:  invalid immutable native checker request\\nCONTEXT:  PL/pgSQL function career_native_checker_prepare_v1(uuid,uuid,text,uuid,text) line 16 at RAISE\\n"}}
+# Subtest: two simultaneous identical raw requests never dispatch the same native operation twice
+ok 3 - two simultaneous identical raw requests never dispatch the same native operation twice
+  ---
+  duration_ms: 3540.925772
+  type: 'test'
+  ...
+# Subtest: client roles cannot invoke native authority RPCs or read the private execution context
+ok 4 - client roles cannot invoke native authority RPCs or read the private execution context
+  ---
+  duration_ms: 1189.768266
+  type: 'test'
+  ...
+# Subtest: paid checker provenance cannot be replaced by a local-cost receipt even with both real controlled usage records
+ok 5 - paid checker provenance cannot be replaced by a local-cost receipt even with both real controlled usage records
+  ---
+  duration_ms: 3204.242466
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15911.957965
+{"token":"fe0e370ae99a5d64","commit":"0207136ed704f80d128848ff78050b543f9630ef","preflightDirtyFiles":"M .github/workflows/ci.yml\n M docs/instinct-spec-series/BUILD-STATUS.md\n M scripts/career/critical-repairs/ci-node.cjs\n M supabase/functions/_shared/career_model_grounded.ts\n M supabase/functions/_shared/career_model_reply.ts\n M supabase/functions/_shared/career_persistence.js\n M supabase/functions/agent-chat/handler-career.ts\n?? docs/career/critical-repairs/native-text-v1/INVOCATION-READINESS.md\n?? supabase/functions/_shared/career_grounded_candidate.ts\n?? supabase/functions/_shared/career_native_context.ts\n?? supabase/functions/_shared/career_native_reasoner.ts\n?? supabase/sql/proposals/career_native_execution_v1.sql","harnessSha256":"396d3b63542a0c5529da49e078bd0c81286fe1bf8d2b5a0125c044cb5d726f15","testSourceSha256":{"career-critical-repairs/native-text-authority-postgres.test.cjs":"f58eb8fd024d3b60c622403961c3269ef8b4611a11574499fe80a53719389a4c"},"evidenceTier":"MOCK_CONTRACT_AND_LOCAL_POSTGRES","selection":"DIAGNOSTIC_SINGLE_SQL_FILE","rootFiles":382,"selectedFiles":1,"sqlFiles":["career-critical-repairs/native-text-authority-postgres.test.cjs"],"started":"2026-10-17T04:13:48.663Z","runs":[{"label":"postgres-0","files":["career-critical-repairs/native-text-authority-postgres.test.cjs"],"command":["/tmp/upmore-spec-a-node22/node","--experimental-vm-modules","--test","--test-concurrency=1","tests/career-critical-repairs/native-text-authority-postgres.test.cjs"],"exitCode":0}],"out":"/tmp/upmore-ci-node-oAcPRX","paidCalls":0,"browserOutcomes":0,"ddlSha256":{"tests/fixtures/career-persistence-schema.sql":"589915fa4c5dd3b0b3147c0107a3efcce25332ccaa46be011f7b4f2749192486","supabase/migrations/20261015020000_career_watch_kv.sql":"86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a","supabase/migrations/20261015234000_career_task_intents_v1.sql":"7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa","supabase/sql/proposals/career_public_research_v1.sql":"9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6","supabase/sql/proposals/career_model_budget_v1.sql":"0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4","supabase/sql/proposals/career_model_context_v2.sql":"bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb","tests/fixtures/model-gateway-independent/monthly-schema.sql":"52f496804297dde6fbb038fb6fab1d58101e43ee86a96c50c0dc5efedc0973cb","supabase/migrations/20261010110000_model_call_budget.sql":"e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9","supabase/sql/proposals/career_model_pair_budget_v2.sql":"8d95257e2548812deed3f0e7e9cef1a1a98154bc1097a4cea5d63c730a4db837","supabase/sql/proposals/career_interview_entry_v1.sql":"b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c","supabase/sql/proposals/career_interview_context_write_v1.sql":"7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474","supabase/sql/proposals/career_interview_execution_v1.sql":"5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f","supabase/sql/proposals/career_interview_context_refresh_v1.sql":"a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780","supabase/sql/proposals/career_native_execution_v1.sql":"f7c315ec0d493098f959904c0708a0d2d1fc266af87c4fac326354a9c0dbd1f3"},"fixture":{"container":"upmore-career-integration-pg-ci-fe0e370ae99a5d64","network":"none","image":"postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d","databaseVersion":"PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"},"ownedFixtureRemoved":true,"finished":"2026-10-17T04:14:13.851Z","pass":true}

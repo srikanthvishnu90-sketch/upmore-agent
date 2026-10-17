@@ -1,0 +1,1 @@
+export function createClient(..._args: any[]): any { throw Error("TYPECHECK_ONLY_NOT_EXECUTED"); }

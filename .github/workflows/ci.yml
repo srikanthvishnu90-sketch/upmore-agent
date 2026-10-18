@@ -14,11 +14,13 @@ jobs:
         with: { node-version: "22.23.3" }
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
-      - name: Install career test tooling and Chromium
+      - name: Install tooling and use the runner's packaged Chrome
         run: |
           npm install --prefix "$RUNNER_TEMP/wo001-tools" --no-audit --no-fund playwright@1.64.1 esbuild@0.25.12
-          "$RUNNER_TEMP/wo001-tools/node_modules/.bin/playwright" install --with-deps chromium
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
           echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
           echo "ESBUILD_BIN=$RUNNER_TEMP/wo001-tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
       - name: Career gate
         run: bash scripts/gate.sh

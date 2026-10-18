@@ -2333,6 +2333,14 @@ const CareerRouter = (() => {
     // DEPTH WAVE (BUG-213): "at <City>" names a place, not a company
     // (see the loose-fallback note below) — the guess falls through.
     if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) return m[1].replace(/[?.!,]+$/, "");
+    // PREP-KB ROUTING (LF-02, custom battery 2026-10-18, P4): the
+    // possessive frame — "my Deloitte application" — names the
+    // company with no preposition before it, so every frame above
+    // missed it and an application-status ask fell through to the
+    // company FILE. A capitalized name directly before application /
+    // interview / offer is company-shaped by construction.
+    const pm = s(text).match(/\bmy\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)\s+(?:application|interview|offer)\b/);
+    if (pm && !FACT_CITIES.some((ct) => lc(ct) === lc(pm[1].trim()))) return pm[1].replace(/[?.!,]+$/, "");
     // Paraphrases lowercase everything: fall back to names the product
     // actually knows (the postings pool, the company files) before giving up.
     const t = lc(text);
@@ -2346,7 +2354,15 @@ const CareerRouter = (() => {
     // company — "aiming at Seattle firms" used to resolve the
     // company as "seattle" and hand a career-plan ask to the intel
     // route. Places are excluded from the company guess.
-    const loose = t.match(/\bat\s+([a-z][a-z0-9&.'-]{2,})/);
+    // PREP-KB ROUTING (LF-02, custom battery 2026-10-18, Block 2 t3):
+    // the guess is a PEOPLE-context guess — it exists for paraphrases
+    // of "who do I know at X" — but it fired on ANY turn containing
+    // "at <word>", so a prep critique's trailing "…before looking at
+    // costs" minted a company named "costs" and the intel branch
+    // answered "costs has no company file yet". A bare token after
+    // "at" is company-shaped only inside a people/graph-shaped turn;
+    // everywhere else a common noun stays a common noun.
+    const loose = /\bwho\b|\banyone\b|\bknow at\b|\bpath (into|to|in)\b|\bintro\b|\breferr|\bcontact/.test(t) ? t.match(/\bat\s+([a-z][a-z0-9&.'-]{2,})/) : null;
     if (loose && !/^(my|the|a|an|least|most|work|school|home|once|first|that|this|it)$/.test(loose[1]) && !FACT_CITIES.some((ct) => lc(ct) === loose[1] || lc(ct).split(" ")[0] === loose[1]) && !/^(nyc|sf|la)$/.test(loose[1])) return loose[1].replace(/[?.!,]+$/, "");
     return null;
   }
@@ -2705,6 +2721,24 @@ const CareerRouter = (() => {
     };
     let candidates = qs.filter(inSector);
     if (!candidates.length) candidates = qs.filter((row) => !/^generic_behavioral/.test(s(row && row.source && row.source.type)));
+    // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t2):
+    // the serve must match the KIND of ask. A case-question ask is
+    // served from the bank's CASE sections only (canonical case types
+    // + the firms' official sample cases) — the structure steps
+    // ("Clarify the objective", "Build a case-specific issue tree")
+    // are method cards, not cases, and one of them was served as
+    // "Your case:" because its detail happened to contain the word
+    // "ask". A behavioural ask likewise draws only from the
+    // behavioural rows. The section lives on the bank row's source
+    // (127 sets source.section; row.round carries the same label).
+    const rowSectionOf = (row) => lc((row && row.source && row.source.section) || (row && row.round) || (row && row.section) || "");
+    if (sector === "consulting" && /\bcases?\b/.test(tn)) {
+      const casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
+      if (casePool.length) candidates = casePool;
+    } else if (/\bbehavioral\b|\bbehavioural\b/.test(tn)) {
+      const behPool = candidates.filter((row) => /behavioural|behavioral/.test(rowSectionOf(row)) || (row.source && row.source.type === "generic_behavioral_bank") || row.round === "behavioral");
+      if (behPool.length) candidates = behPool;
+    }
     let fresh = candidates.filter((row) => !served.has(norm(row.q)));
     let cycled = false;
     if (!fresh.length && candidates.length) { fresh = candidates; cycled = true; }
@@ -2788,7 +2822,12 @@ const CareerRouter = (() => {
         "Grounded in the finance drill bank's own answer keys — the same ground truth (fin-1) your practice answers are graded against, not a paraphrase invented for this reply.");
     }
     const isCase = sector === "consulting";
-    return { intent: "prep_brief", reply: compose({ headline: explainTS ? "The three financial statements, walked through — statements, linkages, and the flow-through." : `${isCase ? "Your case" : `Your ${kindLabel}`}: ${qText}`, facts, nextStep: explainTS ? "Now say it back as your own answer — I will grade it against the drill key (fin-1)." : isCase ? "Work it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch." : "Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next." }), resultStatus: "running", sends: 0, question: { kind: "bank_question", q: qText, sector, bank_item: row.source || null } };
+    // PREP-KB ROUTING (LF-07): the serve is labeled by the ROW's kind,
+    // not only the sector — a behavioural row served in a consulting
+    // session is a behavioral question, not a "case".
+    const pickedBehavioral = /behavioural|behavioral/.test(lc((row.source && row.source.section) || row.round || "")) || (row.source && row.source.type === "generic_behavioral_bank") || row.round === "behavioral";
+    const serveLabel = pickedBehavioral ? "Your behavioral question" : isCase ? "Your case" : `Your ${kindLabel}`;
+    return { intent: "prep_brief", reply: compose({ headline: explainTS ? "The three financial statements, walked through — statements, linkages, and the flow-through." : `${serveLabel}: ${qText}`, facts, nextStep: explainTS ? "Now say it back as your own answer — I will grade it against the drill key (fin-1)." : pickedBehavioral ? "Answer it the way you would in the room — situation, task, action, result — I will score it against the rubric and drill the weakest part next." : isCase ? "Work it out loud: clarify the objective, build the tree, state a hypothesis — I will push on the weakest branch." : "Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next." }), resultStatus: "running", sends: 0, question: { kind: "bank_question", q: qText, sector, bank_item: row.source || null } };
   }
   // COMPLEXITY WAVE (BUG-173): the night-before shape ("interview
   // tomorrow, I'm so nervous I can't sleep — what do I do") — a
@@ -3378,13 +3417,27 @@ const CareerRouter = (() => {
     // off the cap.
     const sentsOf = (t) => String(t || "").replace(/\b(Inc|Corp|Ltd|Sr|Jr|Dr|Mr|Mrs|Ms|St|vs|U\.S|D\.C|e\.g|i\.e)\./g, "$1\u0001").split(/(?<=[.!?])\s+/).map((x) => x.trim().split("\u0001").join(".")).filter(Boolean);
     let cir = cirFor(text, ctx);
+    // PREP-KB ROUTING (LF-02, custom battery 2026-10-18, Block 3 t2):
+    // a FULL role-evidence ask — a complete question that names its
+    // role ("what does it actually take to get hired as a data
+    // analyst? Give me the real numbers…") — is a question about the
+    // ROLE, not a follow-up about the last-discussed firm. Its stray
+    // pronouns ("…if you have them") point at the numbers, so the
+    // memo resolutions below must not re-anchor the turn to the
+    // stored firm; the role branch further down answers it from the
+    // knowledge library instead. Short elliptical follow-ups ("and
+    // for PM?", "and what's their cutoff?") are the memo's home
+    // ground and keep it — the length gate separates the two shapes,
+    // and a firm named in THIS turn (cir above) always wins.
+    const roleShape = /\bwhat does it take\b|\bwhat (do|does)\b[^.?!]*\b(postings?|roles?)\b|\bwhat skills\b|\bpostings (name|ask|require|usually|emphasize)\b|\bget hired as\b|\bbecome an?\b|\bwhat (are|is)\b[^.?!]*\b(postings?|requirements?|skills?)\b|\blook for in\b|\bwhat about\b[^.?!]*\bfor\b|\bmost common\b[^.?!]*\b(requirements?|skills?)\b|\bwhat\b[^.?!]*\bpostings\b[^.?!]*\b(require|required|ask|name|emphasize|look for|usually|matter)\b/i;
+    const fullRoleAsk = !cir && s(text).length > 60 && roleShape.test(s(text));
     if (!cir) {
       // COMPLEXITY WAVE (BUG-174): a pronoun follow-up ("and what's
       // THEIR gpa cutoff?") resolves against the firm this thread
       // last discussed — the record lives in the discovery store,
       // which survives the snapshot round trip.
       const stored = ctx.discovery && ctx.discovery.lastIntelCompany;
-      if (stored && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
+      if (stored && !fullRoleAsk && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
       // Depth Lane C: an elliptical role follow-up ("and for PM?",
       // "and what about for software engineers?") names no firm at
       // all — it continues the firm this thread last discussed, and
@@ -3415,7 +3468,7 @@ const CareerRouter = (() => {
       // no-file branch is the only place this frame is read, so a
       // wider net here cannot mint companies for state writers.
       if (!comp) { const dm = s(text).match(/\b(?:does|do|did)\s+([A-Z][A-Za-z0-9&.'-]{2,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)\s+(?:look|hire|want|need|post|seek)\b/); if (dm) comp = dm[1].replace(/[?.!,]+$/, ""); }
-      if (!comp && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
+      if (!comp && !fullRoleAsk && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
       if (!comp) {
         // MI-020 (Depth Lane C): no company is named, but the ask can
         // still be a ROLE-evidence ask ("what does it take for data
@@ -3425,8 +3478,7 @@ const CareerRouter = (() => {
         // no-data answer. Neither may fall through to the generic
         // fallback, and no neighbouring role's numbers are ever
         // borrowed (153 returns found:false rather than a neighbour).
-        const roleShape = /\bwhat does it take\b|\bwhat (do|does)\b[^.?!]*\b(postings?|roles?)\b|\bwhat skills\b|\bpostings (name|ask|require|usually|emphasize)\b|\bget hired as\b|\bbecome an?\b|\bwhat (are|is)\b[^.?!]*\b(postings?|requirements?|skills?)\b|\blook for in\b|\bwhat about\b[^.?!]*\bfor\b|\bmost common\b[^.?!]*\b(requirements?|skills?)\b|\bwhat\b[^.?!]*\bpostings\b[^.?!]*\b(require|required|ask|name|emphasize|look for|usually|matter)\b/i.test(s(text));
-        if (roleShape && Intel.roleKbStats && Intel.kbStatsText) {
+        if (roleShape.test(s(text)) && Intel.roleKbStats && Intel.kbStatsText) {
           let kst = null;
           try { kst = Intel.roleKbStats(s(text)); } catch { kst = null; }
           if (!kst && Intel.detectRole) {
@@ -3889,7 +3941,10 @@ const CareerRouter = (() => {
     const cp = (c.careerPath && typeof c.careerPath === "object") ? c.careerPath : null;
     if (cp && (cp.from || cp.to)) pairs.push(["path", cp]);
     const pt = (c.prepThread && typeof c.prepThread === "object") ? c.prepThread : null;
-    if (pt && (pt.sector || pt.company)) pairs.push(["prep", pt]);
+    // PREP-KB ROUTING (LF-07): a live mock session is a real prep
+    // record too — it must ride the mirror even in a thread where no
+    // sector/company serve has landed yet.
+    if (pt && (pt.sector || pt.company || pt.prepMock)) pairs.push(["prep", pt]);
     if (c._careerLastWork && typeof c._careerLastWork === "object" && c._careerLastWork.kind) pairs.push(["lastWork", c._careerLastWork]);
     if (c.globalPause && typeof c.globalPause === "object") pairs.push(["pause", c.globalPause]);
     else if (c.globalPause === true) { const ex = threadMirrorOf(c); if (!ex || !ex.pause) pairs.push(["pause", { set: true, at: nowOf(c) }]); }
@@ -5773,7 +5828,23 @@ const CareerRouter = (() => {
   // with proof ids) — not from the company's public file.
   function handleApplicationStatus(text, ctx) {
     if (!Apply3 || !Apply3.statusAnswer) return null;
-    const company = companyFromText(text, ctx);
+    let company = companyFromText(text, ctx);
+    // PREP-KB ROUTING (LF-02, daily battery P4, standing since v222):
+    // when the text frames miss the name, the TRACKER's own rows are
+    // the authority — a company on a recorded application row is
+    // company-shaped by construction, and a status ask that names
+    // one of them is about that row. Without this, "what's the
+    // status of my Deloitte application?" extracted nothing, this
+    // handler stepped aside, and the intel branch served the
+    // Deloitte company FILE in the thread that had just recorded
+    // the application's rejection.
+    if (!company) {
+      try {
+        const rows = (trackStoreOf(ctx) || {}).rows || [];
+        const hit = rows.find((r) => r && r.company && lc(text).includes(lc(r.company)));
+        if (hit) company = hit.company;
+      } catch { /* the record lookup is best-effort */ }
+    }
     if (!company) return null;
     let rows = null;
     try { rows = Apply3.statusAnswer(applyLogOf(ctx), ctx.inbox || { messages: [] }, company); } catch { rows = null; }
@@ -6292,14 +6363,36 @@ const CareerRouter = (() => {
     const tips = { structure: "Order the next one as situation, task, action, result.", evidence: "Add one number and how you know it.", specificity: "Name the tool, the constraint, and your exact part." };
     return [`Rubric on that answer: structure ${sc.structure || 0} of 5, evidence ${sc.evidence || 0} of 5, specificity ${sc.specificity || 0} of 5.`, tips[weakest] || ""].filter(Boolean);
   }
-  function handlePrepStart(_text, ctx) {
+  function handlePrepStart(text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || null;
     const bank = Prep.questionBank({ company: posting ? posting.company : null, role: posting ? posting.title : null });
     const store = Prep.makePrepStore();
     const mock = Prep.startMock(store, { bank, count: 5 });
+    // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t6):
+    // when the user NAMES the opener ("Start with 'Why Deloitte?'"),
+    // the mock poses THAT question first — the ask named the first
+    // question explicitly, and serving a different one would ignore
+    // the one instruction the turn carried. The named question takes
+    // the first slot of the mock's own question list, so the answer
+    // is graded against it like any other opener.
+    try {
+      const openerM = s(text).match(/\bstart with\s+['"]([^'"]{2,90})['"]/i) || s(text).match(/\bfirst question\s*(?:is|:)\s*['"]([^'"]{2,90})['"]/i);
+      if (openerM && mock.questions && mock.questions.length) mock.questions[0] = Object.assign({}, mock.questions[0], { q: openerM[1].trim() });
+    } catch { /* the bank's own opener stands */ }
     const state = { store, mockId: mock.mock_id, phase: "question", currentQ: mock.questions[0].q, role: posting ? { title: posting.title, company: posting.company } : null };
     if (profile && typeof profile === "object") profile._careerRouterPrep = state;
+    // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t6):
+    // the mock state ALSO lives on the prep-thread record, which
+    // rides the thread mirror across turns. The profile copy alone
+    // does not survive: for any user with stated facts on record,
+    // dispatch replaces ctx.profile with the thin stated-facts
+    // bridge at the top of EVERY turn, so a profile-carried session
+    // died at the turn boundary and the user's first answer landed
+    // in unrelated routes. The thread record is the same home the
+    // prep session's own state (sector / served / lastQ) already
+    // survives in.
+    try { prepThreadForWrite(ctx).prepMock = state; } catch { /* profile copy stands */ }
     const facts = [];
     if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
     facts.push(`Grounded in your own profile record and public interview-pattern data, as of ${asOfMonthYear(ctx)}.`);
@@ -6312,7 +6405,11 @@ const CareerRouter = (() => {
   }
   function handlePrepAnswer(text, ctx) {
     const profile = ctx.profile;
-    const state = profile._careerRouterPrep;
+    // PREP-KB ROUTING (LF-07): the session state resolves from the
+    // prep-thread record first (it survives the turn boundary — see
+    // handlePrepStart); the profile copy is the same-turn fallback.
+    const threadState = (() => { try { const th = prepThreadOf(ctx); return th && th.prepMock ? th.prepMock : null; } catch { return null; } })();
+    const state = threadState || profile._careerRouterPrep;
     if (/^\s*(i\s+)?(don'?t know|do not know|no idea|not sure|pass)\b/i.test(text)) {
       const story = ((profile.facts) || []).find((f) => ["experience", "project"].includes(f.kind));
       const facts = ["That is fine — we build it from your real work instead of guessing."];
@@ -6350,6 +6447,7 @@ const CareerRouter = (() => {
       const summary = Prep.mockSummary(state.store, state.mockId);
       const reply = compose({ headline: "That is the set for now.", facts: [...facts, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`], nextStep: "Want to retry your weakest answer once more?" });
       if (profile) profile._careerRouterPrep = null;
+      try { const th = prepThreadForWrite(ctx); if (th) delete th.prepMock; } catch { /* the profile clear stands */ }
       return { intent: "prep_mock_complete", reply, resultStatus: "prepared", graded, contradiction: contra, summary };
     }
     state.currentQ = res.next_question;
@@ -7372,17 +7470,30 @@ const CareerRouter = (() => {
     // wins over a pending mock answer: without this guard, one started
     // mock poisons every later unrelated turn in the session (found by
     // the full-300 routing grade: SC-178's mock ate SC-221+ whole).
-    if (profile && profile._careerRouterPrep) {
+    // PREP-KB ROUTING (LF-07): the pending session resolves from the
+    // prep-thread record as well as the profile — the record is the
+    // copy that survives the turn boundary (see handlePrepStart).
+    const pendingMock = (() => { try { const th = prepThreadOf(c); if (th && th.prepMock) return th.prepMock; } catch { /* fall through */ } return profile && profile._careerRouterPrep ? profile._careerRouterPrep : null; })();
+    if (pendingMock) {
       // Capture ONLY narrative-led turns (a person answering: "I built...",
       // "In my last role...", "The hardest part was..."). Anything else —
       // label-led, noun-led, question, instruction — is a new task and the
       // mock simply stays pending. Defaulting to release is the safe side:
       // a released answer can be re-given; a swallowed task cannot.
       const firstTok = (t.split(/\s+/)[0] || "").replace(/[^a-z']/g, "");
-      const narrativeLed = ["i", "in", "my", "the", "that", "this", "it", "we", "one", "so", "well", "yes", "no", "honestly", "basically", "last", "during", "after", "when", "while", "for", "at", "on", "there", "here", "our", "they", "he", "she", "an", "a", "once", "first", "then", "but", "and", "from", "with", "back", "over"].includes(firstTok);
-      const taskShaped = !narrativeLed || /^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text) || /^(i have|i got|i'm a|i am a)\b/.test(t);
+      const narrativeLed = ["i", "in", "my", "the", "that", "this", "it", "we", "one", "so", "well", "yes", "no", "honestly", "basically", "because", "last", "during", "after", "when", "while", "for", "at", "on", "there", "here", "our", "they", "he", "she", "an", "a", "once", "first", "then", "but", "and", "from", "with", "back", "over"].includes(firstTok);
+      // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t7):
+      // a LONG narrative-led turn is an answer even when it carries a
+      // mid-sentence dash, a colon, or a trailing feedback ask ("…
+      // How was that answer?") — those are how a person answers a
+      // mock question and requests the critique in the same breath.
+      // The release shapes below still govern short turns, which is
+      // where a new task actually lives (the SC-178 poisonings were
+      // task-shaped asks, not 100+ character first-person answers).
+      const answerShaped = narrativeLed && s(text).length >= 120 && !/^(i have|i got|i'm a|i am a)\b/.test(t);
+      const taskShaped = !narrativeLed || (!answerShaped && (/^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text))) || /^(i have|i got|i'm a|i am a)\b/.test(t);
       if (!taskShaped) {
-        try { return handlePrepAnswer(text, c); } catch { profile._careerRouterPrep = null; }
+        try { return handlePrepAnswer(text, c); } catch { if (profile) profile._careerRouterPrep = null; try { const th = prepThreadForWrite(c); if (th) delete th.prepMock; } catch { /* ignore */ } }
       }
     }
     // IB-TN-9: roleplay asks belong to 128's negotiation roleplay —
@@ -7399,7 +7510,14 @@ const CareerRouter = (() => {
     // mock matcher and covers the natural phrasings (talk out loud,
     // out loud, speak it), not just the exam's two shapes.
     if (/\bvoice mock\b|\bmock\b[^.]*\bby voice\b|\btalk out loud\b|\b(mock|interview|practice)\b[^.]*\b(out loud|aloud|by voice|with voice)\b|\bvoice\b[^.]{0,24}\b(mock|interview|practice)\b|\b(out loud|aloud)\b[^.]{0,24}\b(mock|interview|practice)\b/.test(t)) return handleVoiceMockUnavailable(text, c);
-    if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t)) {
+    // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t6):
+    // the verb-led shapes count too — "Let's do a quick mock" named
+    // the activity as plainly as "mock interview" does, but matched
+    // none of the noun phrases, so the turn fell to a bank-card serve
+    // and no mock ever ran (the user's answer next turn then had no
+    // session to land in). A verb (let's / do / run / start / begin /
+    // give me) within a few words of "mock" is a start request.
+    if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t) || /\b(let'?s|do|run|start|begin|give me)\b[^.?!]{0,24}\bmock\b/.test(t) || /\bmock\b[^.?!]{0,16}\b(start|begin|now)\b/.test(t)) {
       if (!profile) return { intent: "prep_needs_profile", reply: compose({ headline: "I need your profile record to run a mock from your real work." }) };
       return handlePrepStart(text, c);
     }
@@ -7619,8 +7737,18 @@ const CareerRouter = (() => {
     // version") was misread as a people ask (SC-208's theft). And the
     // mini-campaign shape (one company, a counted set, warm-first)
     // belongs to the graph family's sequencer, not the plan.
+    // PREP-KB ROUTING (LF-02, custom battery 2026-10-18, Block 3 t2):
+    // a hiring-bar / role-evidence question is NOT a people ask even
+    // when it carries a sourcing verb and a people noun — "what does
+    // it actually take to GET hired as a data ANALYST? Give me the
+    // real numbers" was planned as a networking list ("Building the
+    // list now: analysts at <on-record firm>…"), silently anchored
+    // on the record's firm. Role-evidence shapes stand this gate
+    // down; the intel branch's KB role branch answers them with the
+    // library's numbers and n.
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
+      && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
@@ -7940,7 +8068,17 @@ const CareerRouter = (() => {
         || (pthB.lastQ && /\banother\b|\bnext\b|\bharder\b|\bmodel answer\b|\bone more\b|\bhit me\b|\bgive me\b|\bagain\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && /\bthree (financial )?statements\b|\bdcf\b|\blbo\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && s(text).length < 70 && /\bone\b|\bfocus\b|\bweakest\b|\bsql\b|\bethics\b|\bmarket[- ]making\b|\bprobability\b|\bcomps\b/.test(tnB))
-        || (pthB.lastQ && pthB.lastQ.drillId && s(text).length > 40 && /\bincome statement|balance sheet|cash flow|net income|retained earnings\b/.test(tnB));
+        || (pthB.lastQ && pthB.lastQ.drillId && s(text).length > 40 && /\bincome statement|balance sheet|cash flow|net income|retained earnings\b/.test(tnB))
+        // PREP-KB ROUTING (LF-07/LF-02, custom battery 2026-10-18,
+        // Block 2 t3/t4): a LIVE session also owns its behavioural
+        // asks and its answer/critique continuations. Neither shape
+        // was claimed before: the critique turn fell through to the
+        // intel branch (which minted a "company" from its trailing
+        // words), and the behavioural ask fell through behind it —
+        // byte-identical. Both arms are session-gated, so a cold
+        // turn's routing is untouched.
+        || ((pthB.sector || pthB.lastQ) && /\bbehavioral\b|\bbehavioural\b/.test(tnB))
+        || (pthB.lastQ && /\bmy (answer|approach|take)\b|\bcritique\b|\bfeedback\b|\bhow'?s (that|this|it)\b|\bscore (it|that|this|me)\b|\bgrade (it|that|this|me)\b/.test(tnB));
       if (sessionShape) { const ps = handlePrepSession(text, c); if (ps) return ps; }
     }
     // COMPLEXITY WAVE (BUG-173): single-question and night-before

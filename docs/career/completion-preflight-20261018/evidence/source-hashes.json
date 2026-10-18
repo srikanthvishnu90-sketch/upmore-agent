@@ -17,7 +17,8 @@
   },
   "forwardPlanSha256": "065cc33333d3f1369a562d28fe61c769d0d75636b00b6851a22d3400d09cb6d3",
   "targetedSQLSummary": "upgrade-final.summary.json",
-  "fullSourceAndPostgres": "BROAD_SOURCE_4805_PASS_40_SKIP_0_FAIL; FULL_POSTGRES_RUNNING; FINAL_METADATA_SOURCE_RECHECK_NEXT",
+  "fullSourceAndPostgres": "CLEAN_c00745a8_SOURCE_4805_PASS_40_SKIP_0_FAIL; FULL_POSTGRES_RUNNING",
   "archiveRequirementSatisfied": false,
-  "liveCompatibility": "UNREVIEWED_REFUSES_UNKNOWN_METADATA"
+  "liveCompatibility": "UNREVIEWED_REFUSES_UNKNOWN_METADATA",
+  "fullSourceSummary": "source-final.summary.json"
 }

@@ -14,9 +14,10 @@ real texting channel is last (D-009).
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | ready | 001 | M2 | Muse |
 | [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | ready | 004, 006 | M2 | Muse |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
-| 009 | Batch apply: approved, tailored applications through a hosted browser, employer-confirmed (needs D-003) | drafting | 005, 006, 008 | M4 | Codex |
+| [009](WO-009-real-submissions.md) | Real submissions: self-hosted apply worker, employer-confirmed outcomes, captcha handoff (live run needs D-010) | ready | 005, 006 | M4 | Codex |
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled | drafting | 002 | M5 | Codex |
 | 011 | Delete shelved finance code and its tests | drafting | 001 | M0 | any |
 | 012 | Trainee web app replaces the finance app (pipeline, jobs, resume, approvals) | drafting | 005 | M6 | any |
 | 013 | LoopMessage channel: Supabase-backed store, webhook -> handleInbound, delivery with receipts, proactive sends, attachments | drafting | 004, 007 | M6 | Muse |
 | 014 | SMS/RCS for Android | drafting | 013 | M6 | Muse |
+| 015 | Inbox proof: read-only Gmail scan upgrades submitted_unconfirmed to confirmed and uses an employer's emailed code once (never stored, never in chat) | drafting | 009 | M4 | Codex |

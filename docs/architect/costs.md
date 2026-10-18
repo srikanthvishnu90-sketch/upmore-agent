@@ -10,3 +10,15 @@
 
 Bottom line: the model costs well under $1 per active user per month; applying costs about a cent per application; texting is the
 cost and scale constraint, not intelligence.
+
+## Applying at scale (2026-10-18)
+Assume a drive takes ~4 browser-minutes and 2M people average 3 applications a week (~26M a month, ~1.7M browser-hours).
+| Option | Rate | Per application | 26M a month |
+|---|---|---|---|
+| Browserbase Startup/Developer overage | $0.10–$0.12 per browser-hour; Scale tier "custom" | ~$0.007–$0.008 | ~$170k–$210k |
+| Self-hosted (4 vCPU / 8 GB VM, ~€11/month, ~6 concurrent browsers ≈ 4,300 browser-hours/month) | ~$0.003 per browser-hour | ~$0.0002 | ~$5k (≈400 VMs) plus operations |
+| Residential proxies (not used) | ~$1–5 per GB, ~3–5 MB per drive | ~$0.01 | would erase the saving |
+The binding constraint is not compute: it is fill reliability, captcha / emailed-code checks (Greenhouse scores every form with
+reCAPTCHA and may ask for an emailed code; employers set the strictness) and proof of submission.
+Sources: docs.browserbase.com/guides/plans-and-pricing; vpsbenchmarks.com/hosters/hetzner/plans/cpx31 and bitdoze.com (Hetzner 2026
+repricing, CPX32 €10.99); support.greenhouse.io/hc/en-us/articles/115005448066.

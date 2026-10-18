@@ -37353,22 +37353,75 @@ const CareerRouter = (() => {
     const reply = compose({ headline: `The decline for ${offer.company || "the firm"} is drafted — warm, final, and held.`, facts: [dd.draft, "It declines on fit, thanks the team specifically, and leaves the door open — the three moves that keep a relationship alive after a no. It sends only when you approve it, like every other send."], nextStep: "Want the tone warmer, firmer, or shorter before it is held for your approval?" });
     return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: dd, decline: { company: offer.company, role: offer.role } };
   }
+  // MI-123 (S1): stated figures are separated BY KIND. An hourly rate
+  // stays an hourly rate, an annual figure stays annual, and a signing
+  // bonus is a bonus — never the headline amount. The parse masks each
+  // figure as it claims it (signing first, hourly second, annual last),
+  // so one figure can never be counted as another kind.
+  function parseOfferFigures(text) {
+    const out = { hourly: null, hourlyText: null, annual: null, annualText: null, signing: null, signingText: null };
+    let work = s(text);
+    const num = (v) => Number(String(v).replace(/,/g, ""));
+    let m = work.match(/\$\s?([\d,]{3,}|\d{1,3}\s?k)\s*(?:signing|sign-on|sign on)\b/i)
+      || work.match(/\b(?:signing|sign-on|sign on)(?:\s+bonus)?\s*(?:of|is|at|:)?\s*\$\s?([\d,]{3,}|\d{1,3}\s?k)/i);
+    if (m) {
+      out.signing = /k/i.test(m[1]) ? num(m[1].replace(/\s?k/i, "")) * 1000 : num(m[1]);
+      out.signingText = `$${out.signing.toLocaleString()} signing bonus`;
+      work = work.replace(m[0], " ");
+    }
+    m = work.match(/\$\s?(\d{1,3}(?:\.\d{1,2})?)\s*(?:an?\s+hour|\/\s?h(?:ou)?r\b|per\s+hour)/i);
+    if (m) { out.hourly = Number(m[1]); out.hourlyText = m[0].replace(/\s+/g, " ").trim(); work = work.replace(m[0], " "); }
+    const mk = work.match(/\$\s?(\d{2,3})\s?k\b/i);
+    if (mk) out.annual = Number(mk[1]) * 1000;
+    else { const mp = work.match(/\$\s?([\d,]{4,})/); if (mp) out.annual = num(mp[1]); }
+    if (out.annual) out.annualText = `$${out.annual.toLocaleString()}`;
+    return out;
+  }
+  // The offer's headline figure in the USER'S OWN units — the phrase
+  // every reply quotes, so an hourly offer is never restated as an
+  // annual salary (or as its own signing bonus).
+  function offerFigureText(thread, offer) {
+    const th = thread || {};
+    const of = offer || {};
+    const hourly = th.hourly || of.hourly_rate || null;
+    if (hourly) return `$${Number(hourly)} an hour`;
+    const amt = th.amount || of.base_salary || null;
+    if (amt) return `$${Number(amt).toLocaleString()}`;
+    return null;
+  }
+
   function handleOfferDetail(text, ctx) {
     const t = lc(text);
     const hasOfferCue = /\boffer\b/.test(t) || (ctx.offer && typeof ctx.offer === "object");
     if (!hasOfferCue) return null;
-    const statement = /\bthe offer is\b|\boffer is from\b|\bdeadline to decide\b|\bdecide by\b|\bsign-on\b|\bsigning bonus\b|\bbase (is|of|salary)\b/.test(t);
+    // MI-123 (mechanism 3): the "base is" frame is a SALARY frame —
+    // it needs base pay wording or a figure after it. The bare frame
+    // matched prose ("the scale of the client base is a draw") and
+    // consumed a prep mock-feedback turn as an offer capture.
+    const statement = /\bthe offer is\b|\boffer is from\b|\bdeadline to decide\b|\bdecide by\b|\bsign-on\b|\bsigning bonus\b|\bbase salary\b|\bbase of\b|\bbase is \$\s?\d/.test(t);
     const question = /\?\s*$/.test(s(text).trim()) && !statement;
     if (!statement || question) return null;
+    // MI-123 (mechanism 3): a DRAFT ask or a REVISION ask is not an
+    // offer report. The drafting routes own those turns (the counter
+    // draft in handleNegotiation, the revision capture beside this
+    // block); consumed here, a draft request's own words were written
+    // onto the offer record as if they were the offer (battery t3).
+    if (/\b(draft|write|compose|redraft)\b[^.]*\b(counter|email|letter|reply|extension|draft)\b/.test(t) || /\bmake it\s+\$?\s?\d/.test(t) || /\bchange (it|the counter|the ask|the figure|the number)\b/.test(t)) return null;
     const prev = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
-    const merged = Object.assign({}, prev);
     const firmM = s(text).match(/\boffer is from\s+(?:a\s+|an\s+|the\s+)?(.+?)(?:,|\s+deadline|\s+role|\s*$)/i);
-    if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) { merged.company_description = firmM[1].trim(); if (!merged.company) merged.company = firmM[1].trim(); }
     // DEPTH WAVE (BUG-213): the same statement in genuine phrasing —
     // "<Firm> offered me ...": the firm that DID the offering is the
     // offer's firm, and a weekday or a "$NNk" figure is recorded the
     // same way as the exam dialect's "N days" and "$NN,NNN".
     const offeredM = s(text).match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/);
+    // MI-123 (mechanism 1): a statement naming a DIFFERENT firm is a
+    // NEW offer report — the record re-bases from this statement's
+    // own fields; nothing from the prior offer (its amount above
+    // all) carries into the new offer's record. A same-firm detail
+    // statement keeps merging, exactly as before.
+    const namedFirm = (offeredM && offeredM[1].trim()) || (firmM && !/^(a|an|the)$/i.test(firmM[1].trim()) ? firmM[1].trim() : null);
+    const merged = (namedFirm && prev.company && lc(namedFirm) !== lc(prev.company)) ? {} : Object.assign({}, prev);
+    if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) { merged.company_description = firmM[1].trim(); if (!merged.company) merged.company = firmM[1].trim(); }
     if (offeredM) { if (!merged.company) merged.company = offeredM[1].trim(); if (!merged.company_description) merged.company_description = offeredM[1].trim(); }
     const roleM = s(text).match(/\b(analyst|associate|intern|software engineer|consultant|product manager)\s+role\b/i) || s(text).match(/\brole\s*(?:is|:)\s*(?:a\s+|an\s+)?([a-z ]{3,30}?)(?:,|\s+deadline|$)/i);
     if (roleM) merged.role = (roleM[1] || roleM[0]).replace(/\s+role$/i, "").trim();
@@ -37376,12 +37429,25 @@ const CareerRouter = (() => {
     if (daysM) merged.decide_deadline_days = Number(daysM[1]);
     const weekdayM = t.match(/\bdecide by\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/) || t.match(/\bexploding deadline\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/);
     if (weekdayM && !merged.decide_deadline_text) merged.decide_deadline_text = weekdayM[1];
-    const moneyM = s(text).match(/\$\s?([\d,]{4,})/);
-    if (moneyM) merged.stated_figure = `$${moneyM[1]}`;
+    // MI-123 (mechanism 2): the figures are recorded BY KIND — the
+    // signing figure lands as the bonus (never as the headline
+    // stated_figure), an hourly rate as the rate in the user's own
+    // units, an annual figure as the stated figure. (The old single
+    // money regex read the first $X,XXX in the turn — on the
+    // battery's offer that was the $4,000 bonus, and the $52/hr was
+    // recorded nowhere.)
+    const figs = parseOfferFigures(s(text));
+    if (figs.signing) merged.signing_bonus = figs.signing;
+    if (figs.hourly) { merged.hourly_rate = figs.hourly; merged.stated_figure = figs.hourlyText; }
+    else if (figs.annual) merged.stated_figure = figs.annualText;
     else { const kM = s(text).match(/\$\s?(\d{2,3})\s?k\b/i); if (kM && !merged.stated_figure) merged.stated_figure = `$${(Number(kM[1]) * 1000).toLocaleString()}`; }
     merged.updated_from_user_words = s(text).slice(0, 240);
     ctx.offer = merged;
-    const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : merged.decide_deadline_text ? `, decide by ${merged.decide_deadline_text}` : ""}${merged.stated_figure ? `, at ${merged.stated_figure}` : ""}.`];
+    const figParts = [];
+    if (merged.hourly_rate) figParts.push(`at $${Number(merged.hourly_rate)} an hour`);
+    else if (merged.stated_figure) figParts.push(`at ${merged.stated_figure}`);
+    if (merged.signing_bonus) figParts.push(`plus a $${Number(merged.signing_bonus).toLocaleString()} signing bonus`);
+    const facts = [`Recorded on the offer, in your words: ${merged.company_description ? `from ${merged.company_description}` : "the firm as you described it"}${merged.role ? `, ${merged.role} role` : ""}${merged.decide_deadline_days ? `, ${merged.decide_deadline_days} days to decide` : merged.decide_deadline_text ? `, decide by ${merged.decide_deadline_text}` : ""}${figParts.length ? `, ${figParts.join(", ")}` : ""}.`];
     // DEPTH LANE B (MI-014): a detail statement that ALSO asks a
     // question ("the bank one has a $5k signing bonus — does that
     // change the picture?") gets the question answered in the same
@@ -37403,6 +37469,62 @@ const CareerRouter = (() => {
     facts.push("Nothing about the offer is shared or acted on from this record — it exists so the advice you get is about YOUR offer, not a generic one.");
     const reply = compose({ headline: "Offer updated — the advice now runs on your actual numbers.", facts, nextStep: "Want the counter drafted against this deadline, or the interview prep scheduled inside the window first?" });
     return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0, offer: merged };
+  }
+
+  // MI-123 (mechanism 3): a REVISION of the standing counter, in
+  // plain words ("make it $54 an hour instead, and add a request to
+  // start June 8"). The revision updates exactly the fields it names
+  // on the thread's counter record and acks in the user's own units;
+  // a counter revision never rewrites the original offer. With no
+  // negotiation context on record the turn is honestly deflected,
+  // naming what is missing — it never falls to the generic fallback
+  // (battery t4).
+  function handleCounterRevision(text, ctx) {
+    const t = lc(text);
+    const figs = parseOfferFigures(text);
+    const figAsk = /\bmake it\s+\$?\s?\d/.test(t) || /\bchange it to\s+\$?\s?\d/.test(t) || /\b(?:raise|lower|drop|bump) it to\s+\$?\s?\d/.test(t);
+    const addAsk = /\badd a request\b|\badd an ask\b|\balso ask\b/.test(t);
+    if (!figAsk && !addAsk) return null;
+    const th = negotiationThreadOf(ctx);
+    const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
+    const hasCtx = !!((th && (th.firm || th.amount || th.hourly || th.deadline || th.counter)) || off.company || off.base_salary || off.hourly_rate);
+    if (!hasCtx) {
+      if (!figAsk) return null;
+      return { intent: "negotiation_revision", resultStatus: "needs_context", sends: 0, reply: compose({ headline: "There is no counter on record here to revise yet.", facts: ["This conversation holds no offer and no counter yet, so there is nothing for the new figure to attach to — a revision never invents the record it revises."], nextStep: "Tell me the offer first — the firm, the figures exactly as stated, and the deadline — and the counter gets recorded against it." }) };
+    }
+    const startM = s(text).match(/\bstart(?:ing)?\s+(?:on\s+)?((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})\b/i);
+    const thw = negotiationThreadForWrite(ctx);
+    const counter = (thw.counter && typeof thw.counter === "object") ? Object.assign({}, thw.counter) : {};
+    const changes = [];
+    if (figs.hourly) { changes.push(counter.hourly && counter.hourly !== figs.hourly ? `the counter figure moves from $${Number(counter.hourly)} an hour to $${Number(figs.hourly)} an hour` : `the counter figure is set at $${Number(figs.hourly)} an hour`); counter.hourly = figs.hourly; delete counter.amount; }
+    else if (figs.annual) { changes.push(counter.amount && counter.amount !== figs.annual ? `the counter figure moves from $${Number(counter.amount).toLocaleString()} to ${figs.annualText}` : `the counter figure is set at ${figs.annualText}`); counter.amount = figs.annual; delete counter.hourly; }
+    if (startM) { const sd = startM[1].replace(/\s+/g, " ").trim(); counter.start = sd.charAt(0).toUpperCase() + sd.slice(1); changes.push(`a start-date request is added: start ${counter.start}`); }
+    if (!changes.length) return null;
+    thw.counter = counter;
+    thw.topic = "counter";
+    const signing = thw.signing || off.signing_bonus || null;
+    const origFig = offerFigureText(thw, off);
+    const facts = [`Counter updated: ${changes.join("; ")}.`];
+    if (signing) facts.push(`Everything else stays, as you said: the $${Number(signing).toLocaleString()} signing bonus is kept as recorded${origFig ? `, and the original offer stands at ${origFig}` : ""} — a counter revision never rewrites the offer itself.`);
+    else if (origFig) facts.push(`The original offer is untouched: it stands at ${origFig}, exactly as stated.`);
+    const reply = compose({ headline: "The counter is revised — on the record, in your units.", facts, nextStep: "Want the counter email redrafted on the revised counter? It stays held for your approval — nothing sends." });
+    return { intent: "negotiation_revision", reply, resultStatus: "recorded", sends: 0, payload: { kind: "counter_revision" } };
+  }
+
+  // MI-123 (mechanism 3): a draft ask on an offer thread ("draft the
+  // counter email for me") belongs to the negotiation family's own
+  // draft machinery, not to the offer-detail capture that shares the
+  // drafting block. Delegates only when the thread (or the offer
+  // record) carries a negotiation context; stands down otherwise.
+  function handleCounterDraftAsk(text, ctx) {
+    const t = lc(text);
+    if (!/\b(draft|write|compose)\b/.test(t)) return null;
+    if (!/\bcounter\b|\bextension\b/.test(t) && !/\b(email|letter)\b/.test(t)) return null;
+    const th = negotiationThreadOf(ctx);
+    const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
+    const hasCtx = !!((th && (th.firm || th.amount || th.hourly || th.deadline)) || off.company || off.base_salary || off.hourly_rate);
+    if (!hasCtx) return null;
+    return handleNegotiation(text, ctx);
   }
 
   // COMPLEXITY WAVE (BUG-174): a firm correction aimed at the PLAN
@@ -39984,6 +40106,42 @@ const CareerRouter = (() => {
   }
 
   // ---------- negotiation (128; family Negotiation: R-C5) --------------------
+  // MI-123 (mechanism 4): a RECALL question — the deadline they gave
+  // me, what the original offer was, what my final counter is — is
+  // answered FROM THE COMMITTED RECORD, every part asked, in the
+  // user's own units. A part that is not on record is named as not
+  // on record; nothing is filled from another offer or invented.
+  // (Battery t6 got a counter-strategy paragraph on the stale figure
+  // and answered none of the three.)
+  function handleNegotiationRecall(text, ctx) {
+    const t = lc(text);
+    const asksDeadline = /\bdeadline\b/.test(t) && /\bwhat|when\b/.test(t);
+    const asksOriginal = /\bwhat (?:was|is) the original offer\b/.test(t);
+    const asksCounter = /\bmy (?:final )?counter\b/.test(t) && /\bwhat\b/.test(t);
+    if (!asksDeadline && !asksOriginal && !asksCounter) return null;
+    const th = negotiationThreadOf(ctx);
+    const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
+    if (!((th && (th.firm || th.amount || th.hourly || th.deadline)) || off.company || off.base_salary || off.hourly_rate)) return null;
+    const firm = (th && th.firm) || off.company || null;
+    const role = (th && th.role) || off.role || null;
+    const deadline = (th && th.deadline) || null;
+    const signing = (th && th.signing) || off.signing_bonus || null;
+    const facts = [];
+    if (asksDeadline) facts.push(deadline ? `The deadline they gave you: ${deadline}.` : "No deadline is on the record for this offer — one was never stated.");
+    if (asksOriginal) {
+      const fig = offerFigureText(th, off);
+      facts.push(fig ? `The original offer: ${fig}${signing ? `, plus a $${Number(signing).toLocaleString()} signing bonus` : ""}${firm ? ` from ${firm}` : ""}${role ? ` — the ${role}` : ""}.` : "No offer figures are on the record yet — the offer itself was never stated in figures.");
+    }
+    if (asksCounter) {
+      const c = th && th.counter;
+      if (c && (c.hourly || c.amount)) facts.push(`Your final counter: ${c.hourly ? `$${Number(c.hourly)} an hour` : `$${Number(c.amount).toLocaleString()}`}${c.start ? `, plus a request to start ${c.start}` : ""}${signing ? `, with the $${Number(signing).toLocaleString()} signing bonus kept as is` : ""}.`);
+      else facts.push("No counter is on the record yet — you have not set a counter figure.");
+    }
+    facts.push(`Source class: your offer record, as you stated it, checked as of ${new Date(nowOf(ctx)).toISOString().slice(0, 10)}.`);
+    const reply = compose({ headline: "From your offer record — exactly as recorded.", facts, nextStep: "Want the counter email redrafted on those numbers, or the whole plan in one place?" });
+    return { intent: "negotiation_recall", reply, resultStatus: "answered", sends: 0, payload: { kind: "negotiation_recall" } };
+  }
+
   function handleNegotiation(text, ctx) {
     // IB-TN-8: plumb the offer + the company file from wherever the
     // turn carries them — ctx fields, or the ask itself when it quotes
@@ -40052,6 +40210,33 @@ const CareerRouter = (() => {
             }
           } catch { /* fall through to the counter/advice paths */ }
         }
+        // MI-123 (mechanisms 2+3): an HOURLY offer counters in hourly
+        // terms. 128's counter email speaks annual base — run on an
+        // hourly record it would print a base of $0 and never name
+        // the rate. This email is composed from the thread's own
+        // record: the offer restated exactly as the user stated it,
+        // the ask the user named this turn (recorded as the standing
+        // counter), the signing bonus kept where the user said keep
+        // it, and the deadline the record carries.
+        if (!extensionContext && (thread.hourly || (ctx.offer && ctx.offer.hourly_rate) || parseOfferFigures(text).hourly)) {
+          const askFigs = parseOfferFigures(text);
+          const hourlyBase = thread.hourly || (ctx.offer && ctx.offer.hourly_rate) || null;
+          const company = offerObj.company || thread.descriptor || "the firm";
+          const role = offerObj.role || null;
+          const signing = thread.signing || (ctx.offer && ctx.offer.signing_bonus) || null;
+          if (askFigs.hourly) {
+            try { const thw = negotiationThreadForWrite(ctx); const pc = (thw.counter && typeof thw.counter === "object") ? thw.counter : {}; thw.counter = Object.assign({}, pc, { hourly: askFigs.hourly }); thw.topic = "counter"; } catch { /* the draft stands */ }
+          }
+          const counterFig = askFigs.hourly || (thread.counter && thread.counter.hourly) || null;
+          const keepSigning = /\bkeep\b[^.]*\bsigning\b|\bsigning bonus as is\b/i.test(tt);
+          const restate = `${hourlyBase ? `$${Number(hourlyBase)} an hour` : "the rate as stated"}${signing ? `, plus a $${Number(signing).toLocaleString()} signing bonus` : ""}`;
+          const body = `Subject: ${role ? `${role.charAt(0).toUpperCase() + role.slice(1)} offer` : "Offer"} — ${company}\n\nDear ${company} team,\n\nThank you for the offer — ${restate}${role ? ` for the ${role}` : ""}. I am excited about the role and the team.\n\n${counterFig ? `Would you be able to meet me at $${Number(counterFig)} an hour? ` : "Would you be open to discussing the hourly rate? "}${keepSigning && signing ? "The signing bonus as it stands works for me. " : ""}With that, I am ready to sign${thread.deadline ? ` ahead of the ${thread.deadline} deadline` : ""}.\n\nThank you again for the opportunity — I look forward to your reply.\n\n[Your name]`;
+          const facts = ["The counter email itself, composed from your offer record — held on its card, nothing sent:", body];
+          if (counterFig) facts.push(`It asks for $${Number(counterFig)} an hour${keepSigning && signing ? ` and keeps the $${Number(signing).toLocaleString()} signing bonus as is, exactly as you set it` : ""} — the ask is your figure, in your units, never converted to an annual number.`);
+          const reply = compose({ headline: "The counter email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the figure or the tone to change." });
+          const offerOut = Object.assign({}, offerObj, { hourly_rate: hourlyBase, base_salary: null });
+          return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: { kind: "counter_email", body }, offer: offerOut, payload: offerOut };
+        }
         if (!extensionContext && Negotiation.counterStrategy) {
           try {
             const strat = Negotiation.counterStrategy(offerObj, bench, {});
@@ -40063,7 +40248,7 @@ const CareerRouter = (() => {
               // ("counter at 130") is the draft's target — named in
               // the reply as their figure, never a benchmark claim.
               const targetM = tt.match(/\bcounter\s+(?:at|to)\s+\$?\s?(\d{2,3}(?:,\d{3})?|\d{2,3}\s?k)\b/);
-              if (targetM) { const tv = targetM[1].includes("k") ? Number(targetM[1].replace(/\s?k/i, "")) * 1000 : Number(targetM[1].replace(/,/g, "")); facts.splice(1, 0, `Your target, as you named it: $${tv.toLocaleString()} — the draft is written to land the counter at that figure.`); }
+              if (targetM) { const tv = targetM[1].includes("k") ? Number(targetM[1].replace(/\s?k/i, "")) * 1000 : Number(targetM[1].replace(/,/g, "")); facts.splice(1, 0, `Your target, as you named it: $${tv.toLocaleString()} — the draft is written to land the counter at that figure.`); try { const thw = negotiationThreadForWrite(ctx); const pc = (thw.counter && typeof thw.counter === "object") ? thw.counter : {}; thw.counter = Object.assign({}, pc, { amount: tv }); thw.topic = "counter"; } catch { /* the draft stands */ } }
               const reply = compose({ headline: "The counter email, written out — the real words, held for your approval.", facts, nextStep: "Approve it as written, or tell me the figure or the tone to change." });
               return { intent: "negotiation_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: strat.scripts, strategy: strat, offer: offerObj, payload: offerObj };
             }
@@ -40146,6 +40331,9 @@ const CareerRouter = (() => {
         } catch { /* fall through to the advice answer */ }
       }
     }
+    // MI-123 (mechanism 4): recall questions are answered from the
+    // record before any advice shape can speak over them.
+    { const recall = handleNegotiationRecall(text, ctx); if (recall) return recall; }
     const advice = negotiationAdvice(text, ctx, bench, benchSentence);
     // DEPTH WAVE (BUG-213): the advice answer names the thread's
     // firm when the reply itself does not (a negotiation answer
@@ -40154,7 +40342,11 @@ const CareerRouter = (() => {
     {
       const thread = negotiationThreadOf(ctx);
       if (thread.firm && advice && Array.isArray(advice.facts) && !lc([advice.headline || "", ...advice.facts].join(" ")).includes(lc(thread.firm))) {
-        advice.facts = [`This runs on your ${thread.firm} offer${thread.amount ? ` — $${Number(thread.amount).toLocaleString()}` : ""}${thread.deadline ? `, decide by ${thread.deadline}` : ""} — the one on this thread's record.`, ...advice.facts];
+        // MI-123 (mechanism 2): the figure quoted is the record's own,
+        // in the user's units — an hourly offer names its rate here,
+        // never an annual figure carried from another offer.
+        const figLine = offerFigureText(thread, ctx.offer);
+        advice.facts = [`This runs on your ${thread.firm} offer${figLine ? ` — ${figLine}` : ""}${thread.deadline ? `, decide by ${thread.deadline}` : ""} — the one on this thread's record.`, ...advice.facts];
       }
     }
     const reply = compose(advice);
@@ -40253,10 +40445,12 @@ const CareerRouter = (() => {
       // (a) Parse / what's missing — the thread record IS the parse:
       // stated fields named, absent fields named as absent from what
       // the user stated (never as facts about the letter itself).
-      if (/\bparse\b|\bwhat'?s missing\b|\bmissing from\b/.test(t) && (th.amount || th.firm || th.descriptor || (ctx.offer && ctx.offer.base_salary))) {
+      if (/\bparse\b|\bwhat'?s missing\b|\bmissing from\b/.test(t) && (th.amount || th.hourly || th.firm || th.descriptor || (ctx.offer && (ctx.offer.base_salary || ctx.offer.hourly_rate)))) {
         const stated = [];
         const base = th.amount || (ctx.offer && ctx.offer.base_salary);
         if (base) stated.push(`base ${money(base)}`);
+        // MI-123: an hourly rate on the record is stated AS a rate.
+        if (th.hourly || (ctx.offer && ctx.offer.hourly_rate)) stated.push(`$${Number(th.hourly || ctx.offer.hourly_rate)} an hour`);
         if (th.signing || (ctx.offer && ctx.offer.signing_bonus)) stated.push(`signing ${money(th.signing || ctx.offer.signing_bonus)}`);
         if (th.start) stated.push(`starts ${th.start}`);
         if (th.deadline) stated.push(`expires ${th.deadline}`);
@@ -40405,9 +40599,13 @@ const CareerRouter = (() => {
     // the deadline where it does not.
     {
       const thread = (ctx && ctx.negotiationThread && typeof ctx.negotiationThread === "object") ? ctx.negotiationThread : null;
-      const amt = thread && thread.amount ? Number(thread.amount) : null;
       const facts = ["The method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line.", benchSentence];
-      if (amt) facts.unshift(`The number on the table is $${amt.toLocaleString()}${thread.firm ? ` from ${thread.firm}` : ""}${thread.deadline ? `, with a decision due by ${thread.deadline}` : ""} — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone.`);
+      // MI-123 (mechanism 2): the number on the table is the record's
+      // own figure in the user's units — an hourly offer is judged on
+      // its rate (plus its bonus), never on an annual figure.
+      const figT = offerFigureText(thread, ctx && ctx.offer);
+      const signT = (thread && thread.signing) || (ctx && ctx.offer && ctx.offer.signing_bonus) || null;
+      if (figT) facts.unshift(`The number on the table is ${figT}${signT ? `, plus a $${Number(signT).toLocaleString()} signing bonus` : ""}${thread.firm ? ` from ${thread.firm}` : ""}${thread.deadline ? `, with a decision due by ${thread.deadline}` : ""} — so the take-it-or-push question is decided by the sourced range above and by whether the deadline leaves room to run a counter, not by the headline figure alone.`);
       return { headline: "Negotiation runs on sourced numbers, one written counter, and no bluffing.", facts, nextStep: "Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it." };
     }
   }
@@ -43126,6 +43324,14 @@ const CareerRouter = (() => {
     {
       const dg = handleDeclineDraft(text, c);
       if (dg) return dg;
+      // MI-123 (mechanism 3): counter revisions and counter-draft
+      // asks are owned BEFORE the offer-detail capture in this block —
+      // neither is an offer report, and the capture consumed both
+      // (battery t3/t4).
+      const rv = handleCounterRevision(text, c);
+      if (rv) return rv;
+      const cd = handleCounterDraftAsk(text, c);
+      if (cd) return cd;
       const od = handleOfferDetail(text, c);
       if (od) return od;
       const dc = handleDraftContinuation(text, c);
@@ -44257,7 +44463,14 @@ const CareerRouter = (() => {
       // ("did I get an offer?", "what if I got an offer at 90k?")
       // opens with the auxiliary/question word and still records
       // nothing — the BUG-169 speech-act line is unchanged.
-      const offerClauses = [...factClausesOf(raw)];
+      // MI-123 (mechanism 2): figures are comma-formatted by nature
+      // ("$85,000", "$4,000 signing bonus") — the shared clause
+      // splitter cuts at those commas, so the figure parse saw "$4"
+      // and "000 signing bonus" as separate clauses and neither the
+      // bonus nor the rate ever landed whole. THIS capture also reads
+      // comma-safe clauses (sentence / semicolon / em-dash splits
+      // only); the shared splitter's clauses ride along as before.
+      const offerClauses = [...s(unquotedText(raw)).split(/(?<=[.!?])\s+|;\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean), ...factClausesOf(raw)];
       for (const sent of s(raw).split(/(?<=[.!?])\s+/)) {
         const st = sent.trim();
         if (!/\?+$/.test(st)) continue;
@@ -44280,11 +44493,26 @@ const CareerRouter = (() => {
         if ((m = cl.match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/))) rec.firm = m[1].trim();
         else if ((m = cl.match(/\boffer\b[^.!?]*?\b(?:from|at)\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/)) && !NOT_A_FIRM.test(m[1].trim())) rec.firm = m[1].trim();
         if (!rec.firm && !rec.descriptor && (m = cl.match(/\boffer\b[^.!?]*?\bfrom\s+an?\s+([a-z][a-z -]{1,28}?\b(?:startup|company|firm|bank|fund|agency|studio|shop|co|insurer|practice|group))\b/i))) rec.descriptor = m[1].trim();
-        if ((m = cl.match(/\boffer\w*\b[^.]*?\$\s?(\d{2,3})\s?k\b/i)) || (m = cl.match(/\b(\d{2,3})\s?k\b[^.]*\boffer/i))) rec.amount = Number(m[1]) * 1000;
-        else if ((m = cl.match(/\$\s?(\d[\d,]{3,})/))) rec.amount = Number(m[1].replace(/,/g, ""));
-        else if (rec.amount == null && !/\bsigning\b/i.test(cl) && (/\boffer|base|salary|came back\b/i.test(cl) || /\boffer/i.test(raw)) && (m = cl.match(/\b(\d{2,3}(?:\.\d)?)\s?k\b/i))) rec.amount = Number(m[1]) * 1000;
+        // MI-123 (mechanism 2): figures land BY KIND — an hourly rate
+        // is recorded as a rate, a signing figure as the bonus, an
+        // annual figure as the amount. A figure the clause frames as
+        // the user's ASK ("ask for $56 an hour", "make it $54") is a
+        // counter target, not the offer's figure, and is never
+        // captured as one. The legacy patterns below run only for the
+        // forms the kind parse does not carry (the $-less k forms:
+        // "85k", "came back at 120k").
+        const askFramed = /\bask(?:ing)? for\s+(?:a\s+|an\s+)?\$?\s?\d|\bcounter\s+(?:at|of|to)\s+\$?\s?\d|\bmake it\s+\$?\s?\d/i.test(cl);
+        const figs = askFramed ? { hourly: null, signing: null, annual: null } : parseOfferFigures(cl);
+        if (figs.hourly) rec.hourly = figs.hourly;
+        if (figs.signing) rec.signing = figs.signing;
+        if (figs.annual) rec.amount = figs.annual;
         if ((m = cl.match(/\bcame back\s+(?:at\s+)?\$?(\d{2,3})\s?k\b/i))) rec.amount = Number(m[1]) * 1000;
-        if ((m = cl.match(/\bsigning(?:\s+bonus)?\s*(?:of\s*)?\$?(\d{1,3})\s?k\b/i)) || (m = cl.match(/\$\s?(\d{1,3})\s?k\s+signing\b/i))) rec.signing = Number(m[1]) * 1000;
+        if (!figs.annual && !figs.signing && !figs.hourly) {
+          if ((m = cl.match(/\boffer\w*\b[^.]*?\$\s?(\d{2,3})\s?k\b/i)) || (m = cl.match(/\b(\d{2,3})\s?k\b[^.]*\boffer/i))) rec.amount = Number(m[1]) * 1000;
+          else if ((m = cl.match(/\$\s?(\d[\d,]{3,})/))) rec.amount = Number(m[1].replace(/,/g, ""));
+        }
+        if (rec.amount == null && !figs.annual && !/\bsigning\b/i.test(cl) && (/\boffer|base|salary|came back\b/i.test(cl) || /\boffer/i.test(raw)) && (m = cl.match(/\b(\d{2,3}(?:\.\d)?)\s?k\b/i))) rec.amount = Number(m[1]) * 1000;
+        if (!figs.signing && ((m = cl.match(/\bsigning(?:\s+bonus)?\s*(?:of\s*)?\$?(\d{1,3})\s?k\b/i)) || (m = cl.match(/\$\s?(\d{1,3})\s?k\s+signing\b/i)))) rec.signing = Number(m[1]) * 1000;
         if ((m = cl.match(/\b([\d,]{3,})\s+shares\b/i))) rec.shares = m[1];
         if ((m = cl.match(/\bstarts?\s+(?:on\s+)?([A-Z][a-z]+\s+\d{1,2})\b/))) rec.start = m[1];
         if ((m = cl.match(/\b(?:said|told them|quoted|gave|expect(?:ed|ing)?)\s+(?:them\s+)?\$?(\d{2,3})\s?[-–]\s?\$?(\d{2,3})\s?k\b/i))) rec.expectation = `${m[1]}-${m[2]}k`;
@@ -44316,14 +44544,33 @@ const CareerRouter = (() => {
         const hit = pool.find((d) => { const key = lc(d).split(/\s+/).pop(); return key && key.length > 2 && lc(raw).includes(key); });
         if (hit) rec.signingFor = hit;
       }
-      if (rec.firm || rec.amount || rec.deadline || rec.descriptor || rec.signing || rec.expectation || (Array.isArray(rec.amounts) && rec.amounts.length)) {
+      if (rec.firm || rec.amount || rec.hourly || rec.deadline || rec.descriptor || rec.signing || rec.expectation || (Array.isArray(rec.amounts) && rec.amounts.length)) {
         const thread = negotiationThreadForWrite(ctx);
+        // MI-123 (mechanism 1): a report naming a DIFFERENT offer — a
+        // firm the record does not carry, a descriptor against a named
+        // record, or any named firm while the record is still the
+        // account-seeded prior offer — starts a NEW record: every
+        // figure field re-bases from THIS report alone, so the prior
+        // offer's amount can never ride into the new offer's record
+        // (the battery's record held the prior offer's 85000 under
+        // the new offer's firm). A report naming no new identity (a
+        // detail about the same offer, in this thread or seeded from
+        // the account) still merges, field by field.
+        const newIdentity = !!((rec.firm && thread.firm && lc(rec.firm) !== lc(thread.firm))
+          || (rec.firm && thread.fromAccount && lc(rec.firm) !== lc(thread.firm || ""))
+          || (rec.firm && !thread.firm && !!thread.descriptor)
+          || (rec.descriptor && !!thread.firm));
+        if (newIdentity) {
+          for (const k of ["firm", "descriptor", "descriptors", "amount", "amounts", "hourly", "signing", "signingFor", "deadline", "role", "start", "shares", "expectation", "counter", "requestedDay", "topic", "fromAccount"]) delete thread[k];
+          ctx.offer = {};
+        }
         Object.assign(thread, rec, { at: new Date(nowOf(ctx)).toISOString(), evidence: raw.slice(0, 200) });
-        if (thread.firm || thread.amount) {
+        if (thread.firm || thread.amount || thread.hourly) {
           const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
           if (thread.firm && !off.company) off.company = thread.firm;
           if (thread.descriptor && !off.company && !off.descriptor) off.descriptor = thread.descriptor;
           if (thread.amount && !off.base_salary) off.base_salary = thread.amount;
+          if (thread.hourly && !off.hourly_rate) off.hourly_rate = thread.hourly;
           if (thread.signing && !off.signing_bonus) off.signing_bonus = thread.signing;
           ctx.offer = off;
         }

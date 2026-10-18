@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-10-18 (D-006): frozen, read-only. Do not add entries. The current design is `docs/architect/ARCHITECTURE.md`; work is in `docs/architect/work-orders/`.**
+
 # The Forbidden Register — Upmore Career Agent
 
 Owner order 2026-10-14: every bug becomes a FORBIDDEN rule with permanent enforcement, so it can never happen again. This register is the single list the product is checked against. It inventories every defect in `docs/bug-ledger.md` (BUG-001…BUG-049, the finisher pass, and Registers 3–8 + the 2026-10-14 integrator wave) and in the integrator packs and lane reports named at the head of each section.

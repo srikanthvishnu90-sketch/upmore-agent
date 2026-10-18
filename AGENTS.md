@@ -1,36 +1,44 @@
-# Upmore
+# Trainee — instructions for Codex (the builder)
 
-Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status and the rules both agents follow: `docs/instinct-spec-series/BUILD-STATUS.md`. Read it before editing anything.
+You implement work orders. The architect (Claude) designs; the owner (Vishnu) decides product,
+money, credentials and deploys. Read `docs/architect/ARCHITECTURE.md` and `docs/architect/DECISIONS.md` once,
+then work only from `docs/architect/work-orders/`.
 
-## Commands (all verified on a clean clone; no root package.json, no pnpm)
-- App build: `python3 src/build-app.py` (edit `src/upmore-app-template.html`, never `index.html`; commit generated files)
-- Domain + registry tests: `node --test tests/*.cjs`
-- Edge function tests: `deno test -A --no-check tests/edge/`
-- SQL migrations + tests: `bash tests/db/run.sh` (needs Postgres binaries on PATH or `PGBIN=`; must not run as root)
-- Agent100 dry run: `cd tests/agent100 && node harness/runner.js --mode dry --all` (must stay 103/103)
-- Cancel outcome tests, real Chromium: `node tests/execution/live-local/run-live-local.js`
-- Python tests: `python3 tests/<name>.test.py`
-- Capability inventory: `scripts/capabilities --status | --domain BILL | --ask BILL-003 | --backlog [doc|group]` (regenerate: `python3 scripts/build-backlog.py && python3 scripts/build-capability-registry.py`)
-- Datasets (doc 12): `node evals/data/validate.cjs` (schemas + privacy lint), `node evals/data/run-adversarial.cjs` (injection + traps through the agent), generators under `evals/data/generators/`; news relevance benchmark (doc 10 bar): `node evals/news/benchmark.cjs`
-- Parity matrix (doc 03): `node evals/parity/build-matrix.cjs` (regenerate + coverage per app; `--check` fails on a stale matrix, an unaccounted outcome, or a coverage decrease)
-- Eval harness (doc 13): `node evals/runner.cjs` (release verdict, results under `evals/results/`), `node evals/runner.cjs --mutations` (the 10 planted defects must all be caught)
-- Depth protocol (one capability at a time): `node --test tests/depth-<ID>.test.cjs && node evals/depth/run.cjs <ID>` (15 sub-capabilities, each test proven to fail under its planted defect; results into `docs/depth/<ID>.md`)
-- Real-world 206 audit (docs/realworld): `node --test tests/realworld.test.cjs && node scripts/realworld-audit.cjs --check` (regenerate the report: `node scripts/realworld-audit.cjs`)
-- Rails (one at a time, same depth runner): Rail 1 recipients `node --test tests/depth-RAIL-1.test.cjs && node evals/depth/run.cjs RAIL-1` (table + RLS in `bash tests/db/run.sh`); Rail 2 Alpaca, LIVE in the person's own account (mock server) `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL-2`; Rail 3 merchant terms (synthetic pages) `node --test tests/depth-RAIL-3.test.cjs && node evals/depth/run.cjs RAIL-3`
-- Brokerage connect (own account, OAuth, live only, $5 cap): `node --test tests/depth-BROKER-CONNECT.test.cjs && node evals/depth/run.cjs BROKER-CONNECT`; UI `node --test tests/broker-ui.test.cjs`; HTTP `deno test -A --no-check tests/edge/broker-connect.test.ts`; table, RLS and Vault in `bash tests/db/run.sh`
-- Phase 1 wiring: router contract `node --test tests/router.test.cjs`; handler wiring `deno test -A --no-check tests/edge/flow-router.test.ts`; rebuild the Deno bundle after any change to packages/domain `python3 scripts/build-router-core.py` (`--check` in tests/router-bundle.test.cjs); gauntlet against the LIVE handler only `UPMORE_CHAT_URL=... UPMORE_TEST_JWT=... node evals/gauntlet/run-live.cjs --suite sloppy|spec16|l3 --label <label>` (`--resume <label>` finishes the 3-hours-late case) (prints NOT RUN without them; never scores the modules)
-- Record a check: `python3 scripts/capture-checks.py` writes `docs/testing/evidence-ledger.json`
+## The loop
+1. Take the lowest-numbered work order whose status is `ready` and whose `Depends on` are all `done`.
+   One work order at a time.
+2. Branch from the latest `trunk`: `wo/<NNN>-<slug>` (e.g. `wo/002-agent-loop`).
+3. Do exactly what the order says. Touch only the files it lists under **Files**. If you must touch
+   another file, stop and say why in the PR instead of doing it.
+4. Its acceptance tests live in `tests/architect/pending/wo-<NNN>-*.test.*`. Move them to
+   `tests/architect/` in your PR and make them pass. **Never edit an architect test.** If one is
+   wrong, say so in the PR and stop; the architect fixes it.
+5. Run the gate locally (`bash scripts/gate.sh` once WO-001 lands) and paste the summary lines in the PR.
+6. Open a PR into `trunk` titled `WO-<NNN>: <title>`, with: what changed (bullets), the gate output,
+   the order's demo steps and what you saw, anything you could not do and why.
+7. Do not merge. The architect reviews; changes requested come back as review comments on the PR.
 
-## Rules
-- Everything is LIVE (owner, standing since 2026-10-11): no paper trading, paper accounts, paper labels or paper fallback anywhere. Trades run only in the person's own live brokerage account, behind a fresh approval and the $5 per-order cap until the owner raises it in writing. Mocks exist only inside tests and are labeled mock.
-- Money paths stay gated. No provider adapter, migration push to the live project, deploy, or production credential without the owner doing it himself.
-- Docs follow the code: any session that finds docs-vs-code drift (a playbook, spec, BUILD-STATUS or README claim the repo or the live project contradicts) fixes the doc in the same commit as the finding and logs it in `docs/playbook-drift-<date>.md` (what the doc said, what is true, the source). Owner rule, 2026-10-11.
-- A live failure is a test: every FAIL from a live gauntlet run is recorded by `evals/gauntlet/record-replays.cjs` and replayed by `tests/edge/live-replays.test.ts`; it stays red until fixed or triaged in writing (precondition, not_built, grader). Merge to main only after the live gauntlet passes on the exact commit.
-- Never fake a connector or outcome: a rail that is not live returns NOT_WIRED; a cancel is done when the merchant's record says cancelled; a fee is recovered when the credit posts.
-- Every user-facing money statement cites its data source and as-of time. The model explains numbers; functions over real rows produce them.
-- `packages/capabilities/registry.json` is the source of truth. Status rises only via `status-overlay.json` with a `test_ref` that exists and passes.
-- One owner per file (BUILD-STATUS "Claimed files"). Claim before editing; never edit the other agent's files, leave a Request instead.
-- Never store OTPs, passwords or identity digits. One explicit approval per cancellation. No phone calls. No securities advice.
+## Never
+- Design, re-scope, or start work no order asks for. No new lanes, crews, registries, ledgers,
+  rule registers, merge records, MI/FR/BUG numbers or status essays. A PR description is the record.
+- Write to the archive (`docs/bug-ledger.md`, `docs/career/forbidden-rules.md`,
+  `docs/instinct-spec-series/BUILD-STATUS.md`, merge records, gauntlet ledgers).
+- Deploy, apply migrations to a live project, create credentials, or spend money.
+- Send, submit or message anything to a real person or employer outside a work order that
+  says so, and never without the user's approval of that exact payload.
+- Invent a user's fact or a form answer. Answers come only from facts the user confirmed (D-007).
+- Automate LinkedIn or Indeed, solve captchas, or log into a user's account for them.
+- Put a password, one-time code, API key or full card/ID number in chat, logs or the repo.
+- Skip, disable or weaken a test to get green.
+- Add hard-coded reply prose to make a phrasing pass. The brain is a model calling tools.
+
+## Commands
+- Gate (after WO-001): `bash scripts/gate.sh`
+- Architect tests: `deno test -A --no-check --ignore=tests/architect/pending tests/architect/`
+- Career domain tests: `node --test tests/career-*.test.cjs`
+- Career bundle (only while 142 still ships): `python3 scripts/build-router-core.py --career-only` (`--check` to verify)
+- App build: `python3 src/build-app.py` (edit `src/upmore-app-template.html`, never `index.html`)
 
 ## Done means
-- The packet's own check command was run and its output pasted, then recorded in the evidence ledger. Tests pass here, not only on one machine: no hardcoded `/home/<user>` paths.
+The order's acceptance tests pass in CI on your PR, the gate is green, the demo steps were run and
+reported, and the diff touches only the listed files.

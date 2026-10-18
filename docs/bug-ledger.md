@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-10-18 (D-006): frozen, read-only. Do not add entries. The current design is `docs/architect/ARCHITECTURE.md`; work is in `docs/architect/work-orders/`.**
+
 # Bug Ledger — Upmore Career (separate from the scenario count, per owner rule)
 
 Bugs found during the scenario program live here — never blended into scenario statuses.

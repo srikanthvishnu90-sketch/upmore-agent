@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-10-18 (D-006): frozen, read-only. Do not add entries. The current design is `docs/architect/ARCHITECTURE.md`; work is in `docs/architect/work-orders/`.**
+
 # Instinct spec series: build status and ownership
 
 Claude runs point. Codex helps. Two agents edit this repo at once, so every doc has one owner and every file has one owner. Before editing a file not listed under your name, add it to your "claimed files" line here first. Never edit the other agent's files; leave a note under "Requests" instead.

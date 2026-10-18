@@ -28,6 +28,12 @@ Corpus pass rates written by the builders are not product metrics. A number with
 
 ## 3. System
 
+Every channel goes through one conversation interface (`_shared/conversation.ts`, WO-004): a contact texts, the
+person is found or created, the brain answers, the reply is split into bubbles; agent-initiated messages (alerts,
+reports, nudges) are queued per person and delivered through the same path. The text simulator drives this
+interface from a terminal, so every capability is built and tested exactly as it will be texted. The real channel
+(LoopMessage, D-009) is a thin adapter built last.
+
 ```
  Channels: iMessage/SMS (agent-message-*), web app (src/ -> index.html)
         │
@@ -101,12 +107,12 @@ Corpus pass rates written by the builders are not product metrics. A number with
 | M | Outcome the owner can try | Work orders |
 |---|---|---|
 | M0 | One trunk, green CI, Codex working from orders | WO-001 |
-| M1 | Text the agent anything career-related and get a real, specific answer (AI brain behind a flag, eval ≥ bar) | WO-002, WO-003, WO-004 |
+| M1 | In the text simulator, text the agent anything career-related and get a real, specific answer; approve by replying yes (AI brain, eval ≥ bar) | WO-002..005 |
 | M2 | Real jobs: new postings from 500+ boards land in minutes; daily report and instant alerts by text | WO-005.. |
 | M3 | Resume and cover letter tailored per job from confirmed facts, PDF out | |
 | M4 | Batch apply: approve 10 tailored applications in one tap; proven submissions on Greenhouse/Lever/Ashby | |
 | M5 | Training: mock interviews graded, weak spots drilled | |
-| M6 | Trainee web app replaces the finance app; 10 then 100 real users; outcome rate measured | |
+| M6 | Real texting over LoopMessage (then SMS), the Trainee web app, 10 then 100 real users; outcome rate measured | WO-011..014 |
 
 ## 6. Archive
 `docs/bug-ledger.md`, `docs/career/forbidden-rules.md`, `docs/instinct-spec-series/BUILD-STATUS.md`,

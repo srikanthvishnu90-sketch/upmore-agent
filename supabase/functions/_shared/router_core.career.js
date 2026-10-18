@@ -18531,6 +18531,27 @@ const CareerRouter = (() => {
       if (maxTs > 0) { const matched = pool.filter((p) => p.ts === maxTs); pick = matched[matched.length - 1]; }
       else pick = pool[Math.min(pool.length - 1, 1 + Math.floor(pool.length / 3))];
     }
+    // v229 INTEGRATION composition: when the turn names a weakness
+    // (focus) and asks harder, but the focus's own case was already
+    // served this session (the fixed t2 serve takes the real case,
+    // where the pre-fix serve burned a framework card and left it
+    // fresh), the harder pick must not jump to an unrelated topic
+    // and drop the stated weakness entirely. Cycle WITHIN the topic
+    // instead — the bank's focus ordering drills the weak spot
+    // first — and the reply names the repeat via the cycled framing
+    // below. (Lane B P-A t3 regression, prep lane alone; base passed
+    // only because its t2 serve was the LF-07 card bug.)
+    if (harder && focus && !cycled) {
+      const focusWord = lc(focus).split(/\s+/)[0];
+      const pickHay = lc(`${pick.row.q} ${pick.row.detail || ""}`);
+      if (focusWord && !pickHay.includes(focusWord)) {
+        const topicRows = candidates.filter((row) => lc(`${row.q} ${row.detail || ""}`).includes(focusWord));
+        if (topicRows.length && topicRows.every((row) => served.has(norm(row.q)))) {
+          pick = { row: topicRows[topicRows.length - 1], i: -1, ts: 0 };
+          cycled = true;
+        }
+      }
+    }
     const row = pick.row;
     const qText = s(row.q);
     const detail = s(row.detail || "");
@@ -20113,6 +20134,16 @@ const CareerRouter = (() => {
     const asksOriginal = /\bwhat (?:was|is) the original offer\b/.test(t);
     const asksCounter = /\bmy (?:final )?counter\b/.test(t) && /\bwhat\b/.test(t);
     if (!asksDeadline && !asksOriginal && !asksCounter) return null;
+    // v229 INTEGRATION composition: a conditional frame ahead of the
+    // question ("if they say no to Tuesday, what's my counter on the
+    // base?") asks what the counter SHOULD be — a hypothetical ADVICE
+    // ask about a counter not yet set — not what the record holds.
+    // The recall owns unhedged record questions (the battery's t6
+    // shape opens with the question itself); the advice shapes own
+    // the hypothetical. (Lane B N1 t4 regression, negotiation lane
+    // alone; base served the advice branch.)
+    const firstWhat = t.search(/\bwhat\b/);
+    if (firstWhat > 0 && /\bif\b/.test(t.slice(0, firstWhat))) return null;
     const th = negotiationThreadOf(ctx);
     const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
     if (!((th && (th.firm || th.amount || th.hourly || th.deadline)) || off.company || off.base_salary || off.hourly_rate)) return null;

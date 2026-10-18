@@ -10,8 +10,8 @@ real texting channel is last (D-009).
 | [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | ready | 001 | M1 | Codex |
 | [003](WO-003-eval-runner.md) | Eval runner and rubric judge | ready | 001 | M1 | Muse |
 | [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | ready | 001 | M1 | Muse |
-| 005 | Brain v2: approvals by reply ("yes" approves the exact card), outreach drafts, tailoring tools | drafting | 002, 004 | M1 | Codex |
-| 006 | Job ingestion in the cloud: boards -> postings table, ranking with scoreFit, search_jobs on real data | drafting | 001 | M2 | Muse |
+| [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
+| [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | ready | 001 | M2 | Muse |
 | 007 | Alerts and daily/weekly job reports as proactive messages (simulator `/clock`) | drafting | 004, 006 | M2 | Muse |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
 | 009 | Batch apply: approved, tailored applications through a hosted browser, employer-confirmed (needs D-003) | drafting | 005, 006, 008 | M4 | Codex |

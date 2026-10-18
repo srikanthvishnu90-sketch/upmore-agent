@@ -38,6 +38,12 @@ import { createCareerPersistence, careerRequestHash } from "../_shared/career_pe
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
+// Host routes and task/batch planners share this existing JSON reply boundary.
+type CareerTurnResult = {
+  intent: string; reply: string; handler?: string; resultStatus?: string;
+  contained?: boolean; capabilities?: unknown; action?: unknown;
+  result?: Record<string, unknown>; task?: unknown; batch?: unknown;
+};
 
 export async function handleChat(req: Request): Promise<Response> {
   const ctx: TurnCtx = { note: null, user: null, thread: null };
@@ -208,8 +214,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
-      let out = host.runTurn(message, ctx);
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState }) as ReturnType<typeof host.createTurnCtx> & {
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown;
+      };
+      let out: CareerTurnResult = host.runTurn(message, ctx);
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
@@ -229,7 +237,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (careerBatch && (out.handler !== "CareerHostControl" || pausedBatchReadback)) {
         const plan = await planCareerBatchIntent({ batchRequest: careerBatch, message, userId: user.id, threadId: tid,
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence,
-          summarizeRun: (run) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
+          summarizeRun: (run: unknown) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
         out = plan.out; batchIntent = plan.intent;
       } else if (delegateBatch && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
         const plan = await planCareerBatchPrepare({ run: ctx.batchApplyState, userId: user.id, threadId: tid,

@@ -1,0 +1,23 @@
+{
+  "version": "completion_preflight_source/v1",
+  "base": "834e0bc86b7f540952cf1fc280eb8bf0ce6d4980",
+  "runtime": "d9419241a82d21087871214df01ab63d4fa1e462",
+  "proofScope": "LOCAL_SYNTHETIC_SOURCE_AND_POSTGRES_ONLY",
+  "paidCalls": 0,
+  "realSubmissions": 0,
+  "liveWrites": 0,
+  "files": {
+    "scripts/career/forward-upgrade/build.cjs": "a35142e2837267591a1dd33d9a63eaa00642e244a12bd85cd576bfa216b7e412",
+    "scripts/career/forward-upgrade/collect-catalog.sql": "9ad13f0b6bf74dfca05494b58d632f9fc82fd4083b0e35b3a43217449cfd0ccf",
+    "scripts/career/forward-upgrade/reference-catalog.json": "9b3d501a216ed632154b17f3738356773b27c88296441d4d1939d96494672aff",
+    "tests/career-forward-upgrade.test.cjs": "a0c55c9b511c83738e0861feef60c969d4573b6399450b928ec8d4f141a7755c",
+    "tests/career-critical-repairs/forward-upgrade-postgres.test.cjs": "636838486248d8ce0fe955dc903dc8152ce107f85e406e42e969e3711fe03c20",
+    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql": "e0f2a07160e54031a74574bc592ad6b767d40123b9c132ec0081ca1aec0611e5",
+    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql.manifest.json": "4d230038b014e00375e85404f20f8cb71d9892555c73df7f603ffe46db926964"
+  },
+  "forwardPlanSha256": "1f6851c1b9aca73bedb1b1d7f72316c3b44eeb8658c9844f1254e833a2754373",
+  "targetedSQLSummary": "upgrade-final.summary.json",
+  "fullSourceAndPostgres": "RUNNING_AT_FIRST_CHECKPOINT",
+  "archiveRequirementSatisfied": false,
+  "liveCompatibility": "UNREVIEWED_REFUSES_UNKNOWN_METADATA"
+}

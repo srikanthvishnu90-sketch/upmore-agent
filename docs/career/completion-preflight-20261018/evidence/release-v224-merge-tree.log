@@ -1,0 +1,35 @@
+60a344f809c61e59fcc3a64b3eb1fcee7f8c5167
+docs/depth/MUTATION-COVERAGE.md
+packages/domain/142-career-router.js
+packages/domain/150-career-portal-browser.js
+scripts/build-router-core.py
+scripts/career/portal-browser-helper.cjs
+supabase/functions/_shared/career_host.js
+supabase/functions/_shared/career_persistence.js
+supabase/functions/_shared/router_core.career.js
+supabase/functions/_shared/router_core.js
+supabase/functions/agent-chat/handler-career.ts
+
+Auto-merging docs/depth/MUTATION-COVERAGE.md
+CONFLICT (content): Merge conflict in docs/depth/MUTATION-COVERAGE.md
+Auto-merging docs/instinct-spec-series/BUILD-STATUS.md
+Auto-merging packages/domain/142-career-router.js
+CONFLICT (content): Merge conflict in packages/domain/142-career-router.js
+Auto-merging packages/domain/149-career-portal-apply.js
+Auto-merging packages/domain/150-career-portal-browser.js
+CONFLICT (content): Merge conflict in packages/domain/150-career-portal-browser.js
+Auto-merging scripts/build-router-core.py
+CONFLICT (content): Merge conflict in scripts/build-router-core.py
+Auto-merging scripts/career/portal-browser-helper.cjs
+CONFLICT (content): Merge conflict in scripts/career/portal-browser-helper.cjs
+Auto-merging supabase/functions/_shared/career_host.js
+CONFLICT (content): Merge conflict in supabase/functions/_shared/career_host.js
+Auto-merging supabase/functions/_shared/career_persistence.js
+CONFLICT (content): Merge conflict in supabase/functions/_shared/career_persistence.js
+Auto-merging supabase/functions/_shared/career_task_bridge.js
+Auto-merging supabase/functions/_shared/router_core.career.js
+CONFLICT (content): Merge conflict in supabase/functions/_shared/router_core.career.js
+Auto-merging supabase/functions/_shared/router_core.js
+CONFLICT (content): Merge conflict in supabase/functions/_shared/router_core.js
+Auto-merging supabase/functions/agent-chat/handler-career.ts
+CONFLICT (content): Merge conflict in supabase/functions/agent-chat/handler-career.ts

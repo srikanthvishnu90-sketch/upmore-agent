@@ -1,0 +1,1276 @@
+{
+  "version": "career_forward_upgrade/v1",
+  "sourceRuntime": "d9419241a82d21087871214df01ab63d4fa1e462",
+  "planSha256": "1f6851c1b9aca73bedb1b1d7f72316c3b44eeb8658c9844f1254e833a2754373",
+  "sqlSha256": "e0f2a07160e54031a74574bc592ad6b767d40123b9c132ec0081ca1aec0611e5",
+  "defaultRefusesWithoutCatalog": false,
+  "skippedExistingAuthorityUnits": [
+    {
+      "path": "supabase/migrations/20261015020000_career_watch_kv.sql",
+      "sha256": "86b3bcf0372ec0f2eee825939d6b69e0919b78fa5f08a210ddb59112d7d02b9a"
+    },
+    {
+      "path": "supabase/migrations/20261015234000_career_task_intents_v1.sql",
+      "sha256": "7f2ee6721515945449cfa0f2fd7da68ae1b327f23a6656c9cbe0f289a72edffa"
+    },
+    {
+      "path": "supabase/migrations/20261010110000_model_call_budget.sql",
+      "sha256": "e1527b2c173521d100f0f7c2dd5116ca7b8878d5e196e39497775c9db10395e9"
+    }
+  ],
+  "orderedForwardUnits": [
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "sha256": "9c76d4a770ea9ef205c94f29b1c2bef0e46377d7eca075f757a7eec2f7b414a6",
+      "statements": 3
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "sha256": "0f8978c59ed60ac576f19fbce2db63b92560d5bfb6538dcfdfde55504703dce4",
+      "statements": 16
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "sha256": "bbb658f554058a76753a46e89950911440869cb2fca206523185517fbd0047cb",
+      "statements": 9
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "sha256": "5ac37040e352190361c98eb32678a52334f1c3e69a7cecd99ae0bab5508c40ea",
+      "statements": 26
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "sha256": "b7f1f8e2dd6370ab480c3ccd40970e6fafb6a4d8c9285cb909a3ed4562704e4c",
+      "statements": 6
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "sha256": "7e8472fd5b365ea420ac7f6b6fc1d987d7ccf6b5c708e0d8d69d1cb3bd2f2474",
+      "statements": 4
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "sha256": "5acfc1c2bb02bc9a360bdc270417d46ff89a5fff6bd411528df9b096ee51fc7f",
+      "statements": 11
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "sha256": "a8d8d1dbf5b40877dec31597d39a5da2a361990e34407f713997c0b76d64b780",
+      "statements": 12
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "sha256": "21bc9997661374aa2e5a25a8bd9958ae253bd6a92bd69d9446495b08279cf119",
+      "statements": 13
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "sha256": "87b4340ec038ebb9b10d130890b439e40b0e9839a75729a772424288efcbcc71",
+      "statements": 13
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "sha256": "f7e570e858eba160bc1928e480e0bedde2e1ab3eaff5c120bfbc531ba31145e7",
+      "statements": 11
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "sha256": "b0f5338e3a9c1ca02004d25bb1fde1998cef64fa287b5098f4d44c4766819508",
+      "statements": 14
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "sha256": "bcf68d1d3e0fd5e22bc1f63be31e71383f1e86938cecc7322f5cfd49c542903d",
+      "statements": 15
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "sha256": "7d90839e9c4ec5b6252875b33198b1b98b8f53e26fc4e8a547a38c49dca7b85f",
+      "statements": 21
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "sha256": "8b6a282a821d431e3a17c0d30e42fddc40dbff7a829b4c20c46e8421fa0b6811",
+      "statements": 28
+    }
+  ],
+  "scope": {
+    "relations": [
+      "agent_model_calls",
+      "career_applicant_resumes_v1",
+      "career_applicant_uploads_v1",
+      "career_application_admissions_v1",
+      "career_application_batch_commands_v1",
+      "career_application_batch_reviews_v1",
+      "career_application_batch_roles_v1",
+      "career_application_batches_v1",
+      "career_application_profile_reviews_v1",
+      "career_application_scope_requests_v1",
+      "career_application_search_scopes_v1",
+      "career_application_searches_v1",
+      "career_model_campaign_v1",
+      "career_model_pair_legs_v2",
+      "career_model_pair_policy_v2",
+      "career_model_pairs_v2",
+      "career_model_reservations_v1",
+      "career_reminder_outbox",
+      "career_task_effects_v1",
+      "career_task_intents_v1",
+      "career_watch_kv"
+    ],
+    "functions": [
+      "agent_model_call_record",
+      "agent_model_call_reserve",
+      "career_applicant_canonical_v1",
+      "career_applicant_confirm_turn_v1",
+      "career_applicant_equipment_resolve_base_v1",
+      "career_applicant_equipment_resolve_v1",
+      "career_applicant_resume_confirm_v1",
+      "career_applicant_resume_erase_v1",
+      "career_applicant_review_v1",
+      "career_applicant_status_v1",
+      "career_applicant_turn_version_v1",
+      "career_applicant_upload_erase_v1",
+      "career_applicant_upload_sweep_v1",
+      "career_applicant_upload_turn_v1",
+      "career_application_admission_history_v1",
+      "career_application_admit_v1",
+      "career_application_approval_source_guard_v1",
+      "career_application_batch_answers_v1",
+      "career_application_batch_context_v1",
+      "career_application_batch_control_v1",
+      "career_application_batch_erase_v1",
+      "career_application_batch_lookup_v1",
+      "career_application_batch_progress_v1",
+      "career_application_batch_queue_v1",
+      "career_application_chat_context_v1",
+      "career_application_conversation_erase_v1",
+      "career_application_profile_confirm_v1",
+      "career_application_profile_review_v1",
+      "career_application_search_prepare_v1",
+      "career_application_search_scope_v1",
+      "career_application_search_store_v1",
+      "career_application_source_refresh_context_v1",
+      "career_application_source_refresh_v1",
+      "career_application_task_context_v1",
+      "career_host_commit",
+      "career_host_load",
+      "career_journey_action_claim_v1",
+      "career_journey_action_read_v1",
+      "career_journey_artifact_open_v1",
+      "career_journey_artifact_scope_v1",
+      "career_journey_checker_prepare_v1",
+      "career_journey_context_basis_v1",
+      "career_journey_context_commit_v1",
+      "career_journey_context_content_v1",
+      "career_journey_context_cursor_v1",
+      "career_journey_context_load_v2",
+      "career_journey_context_read_v1",
+      "career_journey_context_refresh_commit_v1",
+      "career_journey_context_refresh_load_v1",
+      "career_journey_execution_fence_v1",
+      "career_journey_leg_consume_v1",
+      "career_journey_observe_v1",
+      "career_journey_outcome_record_v1",
+      "career_journey_readback_v1",
+      "career_journey_turn_commit_v1",
+      "career_model_budget_consume_v1",
+      "career_model_budget_reserve_v1",
+      "career_model_budget_settle_v1",
+      "career_model_context_barrier_v2",
+      "career_model_context_current_v1",
+      "career_model_context_read_v2",
+      "career_model_leg_consume_v2",
+      "career_model_leg_settle_v2",
+      "career_model_pair_read_v2",
+      "career_model_pair_reserve_v2",
+      "career_model_replay_check_v2",
+      "career_native_checker_prepare_v1",
+      "career_native_claim_v1",
+      "career_native_fence_v1",
+      "career_native_leg_consume_v1",
+      "career_native_observe_v1",
+      "career_native_outcome_v1",
+      "career_native_read_v1",
+      "career_native_replay_v1",
+      "career_native_turn_commit_v1",
+      "career_reminder_ack",
+      "career_reminder_allowed",
+      "career_reminder_claim",
+      "career_reminder_enqueue",
+      "career_reminder_list",
+      "career_reminder_status",
+      "career_task_account_v1",
+      "career_task_begin_effect_v1",
+      "career_task_claim_owned_v1",
+      "career_task_claim_readback_v1",
+      "career_task_claim_v1",
+      "career_task_consume_effect_v1",
+      "career_task_control_hook_v1",
+      "career_task_effect_status_v1",
+      "career_task_finish_v1",
+      "career_task_owned_grant_v1",
+      "career_task_owned_lease_fence_v1",
+      "career_task_pending_owned_v1",
+      "career_task_pending_scoped_v1",
+      "career_task_pending_v1",
+      "career_task_result_v1",
+      "career_task_settle_effect_v1",
+      "career_task_turn_commit_v1",
+      "career_watch_cycle_commit",
+      "career_watch_read",
+      "career_watch_write"
+    ],
+    "dependencies": {
+      "auth.users": [
+        "id"
+      ],
+      "public.profiles": [
+        "id"
+      ],
+      "public.agent_threads": [
+        "id",
+        "user_id"
+      ],
+      "public.agent_flow_state": [
+        "thread_id",
+        "user_id",
+        "state",
+        "updated_at"
+      ],
+      "public.agent_messages": [
+        "id",
+        "thread_id",
+        "role",
+        "content",
+        "meta",
+        "created_at"
+      ],
+      "public.agent_usage": [
+        "id",
+        "user_id",
+        "thread_id",
+        "model",
+        "call_id",
+        "input_tokens",
+        "output_tokens",
+        "cache_read_tokens",
+        "cache_write_tokens",
+        "created_at"
+      ]
+    }
+  },
+  "operations": [
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "ordinal": 1,
+      "sha256": "7a5bb41eb49d1a4362c169d0d696a9dc64e307213436c80a26027cd3d1429a6c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "ordinal": 2,
+      "sha256": "26ba4a6e34000b7a4fb222fc4c4ba907715a72714ad4450a76454f4fe3db5b1b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_public_research_v1.sql",
+      "ordinal": 3,
+      "sha256": "99d1aa83f7002151e8745fb75fd0a2c71455dd52f13c034590679a28b9941af4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 1,
+      "sha256": "3d21cb91c91d19b88358094868c5e3c2e0b4bc67b0c1ac3dbfa889a5a52dd8bb"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 2,
+      "sha256": "09b6cbef75e6cae708e4d898966deb24288073471ac8ae5d0d357866b74341b1"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 3,
+      "sha256": "d90672fa9d1761e9ceb15f14a1d3e2bc28a99b23fe58f44f9f00fb3c3dc0a6cd"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 4,
+      "sha256": "a8ee4be268e1489213152daa7baacb3ae5e7bfad5d66c837e4086823fda16722"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 5,
+      "sha256": "2a8d4f5780ccdac3e0570ffb3a103e81044e7b919b8daa5e308066e3751a807a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 6,
+      "sha256": "bcc3e2d7122f6f7a9216259ac0bf37b347509bad00790be891060dc6c689e1cc"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 7,
+      "sha256": "d20cf1ab2627f2bbf2a56c7f6d6a633eebf0d0b1ccb8e07c1c9855bc8a9a6150"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 8,
+      "sha256": "8bef09749a394059fb46b0d579b180271ec62216184098b0baf68ab194ab2ed2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 9,
+      "sha256": "a72f443524411cdda25cce02ed29abf165179e80b52b16da929aa9ff9395e91f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 10,
+      "sha256": "0a76128adeb6f44f7e6dd0bd6306efd6836d52efd7b0ead05254b11e23987d86"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 11,
+      "sha256": "6ade12624214f568526ee9078bdc26810864cd28b01bd64601bb5e809311ab79"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 12,
+      "sha256": "855c2bf7e623a8a56358a9d1714cadac0f05361acbe6dc6feee42aefd2be8a74"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 13,
+      "sha256": "788e48df93c13f8a2c93def6cd688df285c678c50695b936880116fd7fedf9a5"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 14,
+      "sha256": "a0cbcdc42595b31a22e0c7318499f1d8ff2f2e0ca4cab9a07c44d4d28a2a0df2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 15,
+      "sha256": "b97778f190960d43dc0b7868c6574b84dd95109277fd383ca14292244f21b38a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_budget_v1.sql",
+      "ordinal": 16,
+      "sha256": "d252fe626135c415fbdef7c41da2bf936890246ba34c53fd59f3e8c54246b504"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 1,
+      "sha256": "19b0ce459629cc65636f98fb30fe83afbb9e0cf31148f79e87440ffc0e22108d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 2,
+      "sha256": "f1465d3a8c18d778af78c213a0085e090941333ea38ff8bdfce0355ed85225da"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 3,
+      "sha256": "76688272984b7889e058bf18b7b7796f55910a6a4a886eb984438d8b5588416a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 4,
+      "sha256": "e6ea281285ad2b952b5ddc34cf6da75d21bb66eb0a7cebc1dbe1d5833c277c69"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 5,
+      "sha256": "a4ce7ee7cec7303fc9a741405c096e937d0e2e1c4c1dd18c3ccd7a00085a6b67"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 6,
+      "sha256": "748e7c8c04d08cbe8f3813051b944e3a8dd3cc0fd0e46fb3d725a2d3ee78c0d6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 7,
+      "sha256": "cde53bbd3fc56e2d96d4ac758a7f8fc111dc8cc66cc22bce73de55c6eaf17857"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 8,
+      "sha256": "bb4ae0f79683edc72b61bc1a3d6f980e28f2bbdcd15be724017ade0f158e87f4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_context_v2.sql",
+      "ordinal": 9,
+      "sha256": "65aea9d1d345875ccff66b6f5e39a216ad629edda6b6ae3fe7aaa27ee1addd2a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 1,
+      "sha256": "0618ad49307acb20b4f37da3f51f5d6df164f22f0ed5e8d7f8d4f673e6a8d26f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 2,
+      "sha256": "d09a7b48ea17f7cee9da4aea40d50a97da06b649742d50ab8fd1a07d276211e1"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 3,
+      "sha256": "8cfb0c8e3a6055666c691d5dc9c84c0c5d3d04ef76a5c6ff61f7415088ddd889"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 4,
+      "sha256": "a67f682356d15c3c5d24e5c11779f99b97117a0d55d6d2fcdbd230e70f1614a4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 5,
+      "sha256": "bd8f6100015b4e16934efecc6fd4f5cd52052c219eba241386d17be3aa2f29a0"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 6,
+      "sha256": "cd7fc2be8b50cfead0e5bb9b3486475ca7a3dd04e64ab8875ac7d9caaa100570"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 7,
+      "sha256": "5382e1719cdcc229e75911d6fd12f1c16c46b8119e7c736258b9807656a2377f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 8,
+      "sha256": "2dc98044324d676a48d7d8ef218402930e2f930a74d206067f6311cd09116f66"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 9,
+      "sha256": "2f61c9f6d09367d6986638651364a0f7ace7843e7fc795846d2d513be9d740fb"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 10,
+      "sha256": "faf20a33468af5e68c3bbfe192288b5ddccd6e7aa8da13805345b6d4c8fe6e85"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 11,
+      "sha256": "ea539a22692159567323ab9fed94dda9d444c12411919d59edef6ead8e0e9577"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 12,
+      "sha256": "0c9239155c064b41a7ca693bc6437cdacdbd9df30ac842908feedcb63b2b1649"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 13,
+      "sha256": "8950f229aa34f69f518faa12ce3eb09f203041f778d61a374541d5bc2e8fa5a2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 14,
+      "sha256": "b48e75092622f6a2e24a69f79fa3ef4b3aff06a0aa6e1d6477d59a19a896a4d8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 15,
+      "sha256": "6ac599bf1375abb000d8884b0fddb4e9d02a3343225a9647dc60aaaa07e4f7d7"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 16,
+      "sha256": "568ec6ccf4ab5c508b2767b0fcef465242aeefb85c2d517b725fddc73a6810b2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 17,
+      "sha256": "6cd665b959470803db2691d8411719b9c06032102e3b09d2f1162138eb4a7e83"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 18,
+      "sha256": "7884c7580bcc32bde52c6e05df9c3c4edb3f7464f34add67b394152eff97fed9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 19,
+      "sha256": "08d9911ecddb4e8f8dd5bb21405aeb12c73221101516ecbf3e74d4df1000351f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 20,
+      "sha256": "cf42bb6565dee3ccbf7a8dda1f89b507ef1922733342c5592d01a03b1d62382a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 21,
+      "sha256": "b5b409f020640d2e7d5c3897da9b2ad2571478e6efaa97c4d25dbf5ac39c64c2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 22,
+      "sha256": "cfafcc8b401a150a99a889bd1d6235f72ef8194a2a9003ad29edebd127b0d539"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 23,
+      "sha256": "494ed021fc73bfcafd8feeed9487cf946a038d9ceb250f13949a4327082af76e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 24,
+      "sha256": "7df7b4fc18afdd576d8793b83d30c23d21ea2fccc967b49f4dc18df66d47ca4d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 25,
+      "sha256": "8bfca92a320e14fba8214f579829b6d14dce8067906037a467ec1192b79a6c01"
+    },
+    {
+      "path": "supabase/sql/proposals/career_model_pair_budget_v2.sql",
+      "ordinal": 26,
+      "sha256": "a06ea212774cd8b45578658b12370fa437dbb0d060f393aef4016908d2084b62"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 1,
+      "sha256": "4eab39b303e69e4cb7a7f6ce8cad02afae5704a04c3d0c7d0441e7d2c4addfd9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 2,
+      "sha256": "8c592253f1096a22ab570fa8d8c77526c35c6cb2f7f7159360bd170f02adad95"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 3,
+      "sha256": "375d9ef8bbe7e74ac8deedae0d7f48a35c11123d69a57aaacbbe2c13c4bc3db9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 4,
+      "sha256": "bb7695d63a23ccf54f56d108a08070289f70c165ba716c7617bd96a4c8ba5927"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 5,
+      "sha256": "6cec05df76e7fa77beecd22bdcbffaa0cf74aacf41e7c4dcc0d3e423350d423a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_entry_v1.sql",
+      "ordinal": 6,
+      "sha256": "89d09bf74595944690439361017849e06b6ec4789eb7021b09900b7e60611a57"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "ordinal": 1,
+      "sha256": "2189e61dc3d40cec8b082e677fe2d20efe42b8e19e9ea787e8f47964d417adf8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "ordinal": 2,
+      "sha256": "27aa5411420194bd685156b4d704bd7c16d2a02f41b0ed69a4b885b9b9cb2c77"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "ordinal": 3,
+      "sha256": "ae6cee0e17a1f2be2d64408b2705142d92605de4dec622d863152240f7fe77c9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_write_v1.sql",
+      "ordinal": 4,
+      "sha256": "1facdb06be7190b6ea78824c1e615920608242fa5fdf2008f09530f311fc9b0d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 1,
+      "sha256": "3eebad1f804601000515e615595bc990c7fcc250d0edf9975492cb1bdef7187f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 2,
+      "sha256": "935f25185d3604da52e251aeea87f30c75752370c6d282dd0f91c067a7ac38d9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 3,
+      "sha256": "76b694eaa0fc1f79aca46ad776f1c57c3473c3fde3813d3e58f8d95b2f1ab96d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 4,
+      "sha256": "bd63e5c9248ca4cc9d1c30d7885b4e5a1100e165c90eb792a013081fbe4aa8f6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 5,
+      "sha256": "c679cfbb021a390815cb1483407ee4faf4e92a4bf680eb9d1b39df1a452d4172"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 6,
+      "sha256": "d97009e3a67a349d8467f66ca541a24bfd1baa28033362a8d16fd6a13f2ce7da"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 7,
+      "sha256": "7063323f834b1fa18608785b51b68b4f5ac657d5d8cef0093bd3307e667730a3"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 8,
+      "sha256": "52ae736b7f707e195085369838a024200d11afbec0cbf09f952caf189df01139"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 9,
+      "sha256": "9c4847e22fd65cd8ce7ee40793a58af9431b89e7b380ba2b33452094d3a67294"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 10,
+      "sha256": "a82fd84286ce0e6a0e7c2cd19d3a8a121dbbd83e036b97ea8afe7b9f501a6993"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_execution_v1.sql",
+      "ordinal": 11,
+      "sha256": "af66f434caff038a755b26e109c99ad4087ff591db474650ebddb76920334370"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 1,
+      "sha256": "1d929c5a676687e1cfc91a57fdbf91a106e2a3de71a64dbfcb62aa76d43c6652"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 2,
+      "sha256": "d4486f31ffec79033b3f1794e99fe46d5bb2475184c0f35a48399fcb0e8c334b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 3,
+      "sha256": "47002d5f2f79ac16feaa6b30a3bb556564d1e026d79032e0a6039238f0dc3a66"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 4,
+      "sha256": "f42a511bd40a6362c26b7e5ff46038021a0f739bab4693adf6d547b4cda3652b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 5,
+      "sha256": "2747c4a622919cccd22a212c171d835f8ed524560e6325405ff81c2fe1d6e20d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 6,
+      "sha256": "d2b1f513dcce44730118e0406565fcbc702137b2ec369e00274587906584455e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 7,
+      "sha256": "69a82d5b03561b1e50e60272486e17acd9fc0b3dfeb1c3e2b43c4b867295fe38"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 8,
+      "sha256": "1da01e2e1cc7975e6c7e17ba16bbe076a1a24b010734de36f409d01afbdea97e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 9,
+      "sha256": "ccd6472ef6fbb952284b3aa58bdd0203b3bd183d441a2d77e3794bbcaaa0a424"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 10,
+      "sha256": "333c2de255e20ca25424de8a9457fcc27356868377a62da1c97e58f0de46915d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 11,
+      "sha256": "6e446da3ca644cdf8286c9727d3593bb39dd3b04de094f0780999cce9408053c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_interview_context_refresh_v1.sql",
+      "ordinal": 12,
+      "sha256": "26a9ccacc364475582c2df84658e27ba1938ea3fd13ae9cbac51c52187b4c4e9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 1,
+      "sha256": "c766473e4054ce3b1d3eeb1ca4c9252cbe27b6491a521ca2cce1f7165b380bb8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 2,
+      "sha256": "5971fd5cd74eb6407aa6a2233a1dfd0e5b0113484b94d38fa2fabe5feec76993"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 3,
+      "sha256": "88a6732bf19ce69099214823fd544dc79fededa5101b38228a832d6ed57f2f4f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 4,
+      "sha256": "ebe1af8726731ace608f1d65b6cc900091b5d2f9aeea78aa972e90021e5266d0"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 5,
+      "sha256": "6ac92cfee6ad8fd94cd46bf509821a61d28039ed9aefc7e8e36c7097b6ca50f2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 6,
+      "sha256": "f1c123933a5ae40a37f96e1ba42925d89348dbbd8d2b19a6c7c15241b6a58eb5"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 7,
+      "sha256": "14fbd2b323367b359eb7df9e7bca3d0b0c98eae7015e6c75195d8ebfbf4eca38"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 8,
+      "sha256": "d1ed66ea75c737266d7b4e5f1e0c51d4129a258239d167615a9df7fbcaa06332"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 9,
+      "sha256": "10b61eac2ca1a88b41d98e2c4a5fc3c473f27996cc7fdd199b6d8a56472b5c6f"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 10,
+      "sha256": "1cf230756bafece36ad78cc9d568493bcdb0d5d67a9ebff08f6450f84884fb73"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 11,
+      "sha256": "10b8c7c338493763de7b532630b9062448b324f0ef61440cef47a9ecc3c40fe3"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 12,
+      "sha256": "f46528cc2281c7c558743debc18304e7ba4097c975170c41cdd5a652e63113ff"
+    },
+    {
+      "path": "supabase/sql/proposals/career_native_execution_v1.sql",
+      "ordinal": 13,
+      "sha256": "7bba45e40c3d330917fd3a38114e18c26bea4c95ab1f6d21ec5840182a7ed5c6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 1,
+      "sha256": "c60aa441ee8764cb0d71e606f12e78a5802fa33023d00789ec9de9c0b043b69a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 2,
+      "sha256": "64ac5afdfda53696ffbd7e8d74ee3955870a39d55bb345c6056d558b554a3633"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 3,
+      "sha256": "4079712088e44e85d668249f6fa96fd70d5664d794581211fa58d12aea4f331e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 4,
+      "sha256": "a0c5aed45e8c0345c3a1835a092f0907560457bc1646e096b14f39dd42e7313c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 5,
+      "sha256": "a744d798cad92cb1f9a457c39ea4d1c8ae6f13abadbd7e16cf6e9304cf28c2fe"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 6,
+      "sha256": "b7fac35aedeffcf099b3f6a55e8a35964c0a780072ba1928350007e0d4f59fac"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 7,
+      "sha256": "8b9f1f3399e0f0da8ac6620d98096bc29b1f4d5b1b2409403c4295961a160046"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 8,
+      "sha256": "339348505c64430e93fa824c73af6d0fa0ab75867021a5615fbdbcd3b0e7cf12"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 9,
+      "sha256": "803c8624675ede275a414820aff72fb408a7598b315a27a6534e59b840996f41"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 10,
+      "sha256": "40a85469126c3a89f2adb5b3ed93767d2d413a02caa602e7df1d81dc1782db4c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 11,
+      "sha256": "1d18c227dc2883af569df0c19b22ea9924d89e84b021af6809912d431b3559b4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 12,
+      "sha256": "3df5ac5e8b86e529711c99f566973b46dcab114abf8c8cbead468975231f7314"
+    },
+    {
+      "path": "supabase/sql/proposals/career_owned_claim_recovery_v1.sql",
+      "ordinal": 13,
+      "sha256": "75817fd1eb8449c0b8311b3aea9fabc07f5b9a333f9ff291a67754f141c0aee3"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 1,
+      "sha256": "fc427d67c449efbb681f1bc7bfb380c272e730f3a8f1844c8791d7f46259fe9b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 2,
+      "sha256": "91cea31442039889c65c25081659f45f9be6efd43a3752f5bdc3be9bbad058c8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 3,
+      "sha256": "bdc81ef3bea0a21089c35d5250807291f4c025abab70af051d02898deffd91a4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 4,
+      "sha256": "5dc761127fa13cdc0bc918c34839726a88d837389540d02530def132b0b0c811"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 5,
+      "sha256": "87a6f49ef2629883f6b2c9d0159bf70fd74d98a801ce26805657b379ed1ab071"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 6,
+      "sha256": "45224eac2cba03a8d2043b7fa3470061a60b7f51b6b5dd437bbf05d845220d2b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 7,
+      "sha256": "a73e76e06d3a829f1cdcad01260cb5334b9931d8467aa59bd58e6179cf6b59c6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 8,
+      "sha256": "99779f7114165e80fb70885258c03c25be20f8b1706caa27ae2bbdd53a6b68d6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 9,
+      "sha256": "d84eb2869cbe37bf303f4c6597ba6f26d68296fefcbeaf5206d08b0439a31633"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 10,
+      "sha256": "adad74b544202937b1fdb18b9c81f12d5896a875aa57dfdf33cca34eaac6dbe3"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_admissions_v1.sql",
+      "ordinal": 11,
+      "sha256": "21d1684b22da55b9a2dbbc9760e3ddd7981ada07849bc178e664f2da92ba7432"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 1,
+      "sha256": "9168e9ba1e3a23c2da77c1353dcc61adb82124c12d1772b8581e48ddc635632e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 2,
+      "sha256": "40f6a2703068ff1e222f13c2d7c2758d7afc46aa55d69c9e611e169108d3f99c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 3,
+      "sha256": "ea9f44b92490d2c359a8de91e73feaafcff54719801624c3c6aa4f1e81850ae9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 4,
+      "sha256": "c3a0eec7435b3a36cdc160ea0bcc2700209bb12b728b023fd8f7781166831640"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 5,
+      "sha256": "a15ccd63d5f3ef825bf3366a5de8bd3abbd168d35172eb9c6b2edad0387d857d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 6,
+      "sha256": "2cdc7612fe4614f8c20ed11e4e88bc943e7614539df147e22024861b627003ec"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 7,
+      "sha256": "42c47cbc01259ab2c0998316761ab29880a6b8568a578bc1d742524c10cb562e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 8,
+      "sha256": "9b8714683a4274c83c6f6425b006d70599d0c5991d8648dc357c54e0b4d53b26"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 9,
+      "sha256": "7ebe4073d4a089f7bae95fcbc1f34fc03ff8962e0b0b96faaecad96e7f7c1240"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 10,
+      "sha256": "63c0d562d775e4f6e24757ba749c410eeed387cd2ee0c829a0b595031f01b2ea"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 11,
+      "sha256": "484f87c8b3fd251d9bca03bdff435667dd59a0a9315d18adb0d427f2c0081531"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 12,
+      "sha256": "b4adedf489d29a32f0a1c098896a7210196a89c73349dad08f06e50b5a1fb4e4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 13,
+      "sha256": "6f01aecade1c978b974e17c83d3b0b8ed4f7e78fef847bb96ef1573744e414a6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_batch_v1.sql",
+      "ordinal": 14,
+      "sha256": "b3fd1c7162ba85d4b69c265ffdf3e04b006d48d7c19fbe8b025d837c7d368e1d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 1,
+      "sha256": "ca4978367edfe0e3b219eb88608d8db7364888b36131ad276b0cc4a76dbc8042"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 2,
+      "sha256": "6d9c927fbba17878055aa33bee0610f8b5bb16448f736220279da560c2f06506"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 3,
+      "sha256": "13c1033049a6cecf6d6bb2f64f0f89af4ce9e91ed25d57ecdc2aadd816b212cd"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 4,
+      "sha256": "f6f7c224d0493e3f084fc06d619dce807571cc4cfc7f0b43469fa9da8e0d3d3a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 5,
+      "sha256": "adc8be4f47e9e929691550ed042f8615686966c55eacbcd84825f15a9790889c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 6,
+      "sha256": "5b56bf7227ed3ef6ff440a2445b2af470c6642dfe282e8252437d603b41e2ad6"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 7,
+      "sha256": "55a2dbc025bf12d8f8d70a420206f83c11891fa3be5da42394413e5f04388121"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 8,
+      "sha256": "e4fe475748ea85a20bfc584d6f8c419a9baf23dd1e78d526caa7494c8ea77d56"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 9,
+      "sha256": "9d2f1955bdf84499c11b1a55f86855b5798fe182fda2fec6e097b397927b3e51"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 10,
+      "sha256": "d8da3546bdb9094c7885f5d13ff47bc9df3f19b8f73919a611f767e59bc0f0e8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 11,
+      "sha256": "31fed7bd08bd576b01175fd19ebe58f54495ea59c24167d7b42ed655e64c6838"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 12,
+      "sha256": "9b4c2239b0ae5ad9e4fffc2689c59bb4b9aafbef9f55221b7df1da030461c54a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 13,
+      "sha256": "685a4987607f5fc62e0a25aa074a1e9c264b92bb84771f303b88e0200af8012b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 14,
+      "sha256": "2da3df4e9c29e19d1944c50b71ca0b3ba2af1fa075a2316221e67458dc91fc51"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_resume_store_v1.sql",
+      "ordinal": 15,
+      "sha256": "877851aa644db648ba5ab9c26376d81875b315a40f1d72ab32ab4a8745fd119b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 1,
+      "sha256": "be94a23f747491122d72e411b0c5bfdc54b06303ee5bb6fe3534c17cb3bb4388"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 2,
+      "sha256": "de80dffbf073bdf15e6b1a65b80c2ece55eedd81e515fc95b0299be8ecd5599e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 3,
+      "sha256": "87cdd8c3ed031e44448ca2cac6f110df40190ff042ff3c936063f9592735a10e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 4,
+      "sha256": "c5d97d10473f03f2077d36d75b8e5dc8cf17071afeddae7b4939e46fc8dc8eb1"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 5,
+      "sha256": "fa7c02f7a84f2fa3104d96d7ded7c893a44bddc26774abf65271b5b3a43273db"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 6,
+      "sha256": "18dc018a43fb43095fba088b4a33c46bb6b90a0e6de7413c0f58e212ab3dc81b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 7,
+      "sha256": "47ad34f5f8342edb3b1883e29d01a6a532aba3b15b5bd6c25568b6114f624825"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 8,
+      "sha256": "a09d522930ee22817aca62e20d166a333329bd91592479bd78d7d0af793f3ccf"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 9,
+      "sha256": "c319eed2a675ec308429119b652830535a5958cd28385e2d2234a033eff4222e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 10,
+      "sha256": "79dec4271db604199d943634cade34b36508e861abf8a88afed7e00372a6d0a2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 11,
+      "sha256": "cde0885c50e69e8f19ee463e9d3498157e06b2ceccd62b91796975c4e305304c"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 12,
+      "sha256": "791cbb40ab5d4a91f6b7fce2b11b8e96929a5ae8d2bdc793b4362d0b977a5a61"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 13,
+      "sha256": "dafb42304b8300572fbaa94cb4cd0662517a7cb436ab4b8ff1375a868c7288b7"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 14,
+      "sha256": "80f01e084a21e29857fdf046a485aa744604eebf89057ce5e2541d78719bd5bc"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 15,
+      "sha256": "adb898bf1d88a30053c0d0c1d6a180db450c40d20f557072ca833d9bafff20ea"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 16,
+      "sha256": "a3fc0998776f364970645997187b855b3d4ad81c357bf94297404b6fc6e6d805"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 17,
+      "sha256": "1ba0f9941b038fc96b789adbd3f8441a4585f09e1651768759e8e6f643ccbe0d"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 18,
+      "sha256": "70f8aa5b3df2ce85586a63159f9f72ed763825f9a1723e9b95e37f4df2c7040a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 19,
+      "sha256": "05a3af52538a265a57f0ac2df6c097c09ad324e880e4ef33b7e3fc0c92eb2b28"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 20,
+      "sha256": "21a6a6dc980faef6c137541a1f1f550227ed699f94781cfc371184d095e85ee4"
+    },
+    {
+      "path": "supabase/sql/proposals/career_applicant_ingress_v1.sql",
+      "ordinal": 21,
+      "sha256": "16f88aad33a1b1fce0c2db899e95e315895d7afbf26166e436e88809ce8623df"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 1,
+      "sha256": "18357fc3c6cd69c90a9d62e234489d709f1bbe51fd466ce1f0cc12354cd28110"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 2,
+      "sha256": "b83d798b15aaca95c8a3e3057ba8b7da9db35284550af31c9b11cc2c89af611b"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 3,
+      "sha256": "d0360b08e256ab605f7af913098fbc512623322959bf26f3ca80c044ef16d031"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 4,
+      "sha256": "1806dc0985327d3a269b72bc544692654adea619d49332fe33167eee01cd6a37"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 5,
+      "sha256": "161f2483fac3a6ffb4cf60893528f2eb781a5d7adfa433bb36a83dab0f8719ef"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 6,
+      "sha256": "3d9247fc5959fc452c3f3be49c0c1919269f1fb451b5ca44c232ac57f4b7c761"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 7,
+      "sha256": "b34bd3f3a5876be3356328b89cb7181618d09ee161e449187dd43a2bd593b4a8"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 8,
+      "sha256": "cb394f319ddd66ed72cd29354da66e2b94643f1394d931d6260735eb20f0e89a"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 9,
+      "sha256": "40de18f943b8f3a1f8ff48a08369ed1e471675c5e771fb0eb73f389e10060209"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 10,
+      "sha256": "3c0dff9f8ce9225b48f044c80cb456a7f0c08913fde026e1710ac34f6878d7bb"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 11,
+      "sha256": "63e919a77b98bf8266c815ee7f81d9e0bd3aefdfb6f5ed2004ba3e14d62981ef"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 12,
+      "sha256": "9dbf4ba233dd889e10e6178d64809925d11d381565ea76357ee13387dbbbc014"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 13,
+      "sha256": "ba2ede9c8fa8c5dccf5f18ed5dd345f6ad7013624df1511a4f4edd6ad1c03eda"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 14,
+      "sha256": "e48f2d61a5d2238a48349f93fcf86649b455574508dc0f57e3e5223558f59ba9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 15,
+      "sha256": "f79a924be3453a1a3e4e8bf8fdeaf188980b755ab436a4b4b08d5d49e28f5ab9"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 16,
+      "sha256": "0f638f3d2eeeebcc8677565bf50619f14d131673d62369e78931640f06a04466"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 17,
+      "sha256": "e14af76568d6154eee1ddeb69749775f8413753b7c528909eec177225bc0d9f7"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 18,
+      "sha256": "14810069fc2eabf8386e192e7be50d3cf0eb4c246c3c1c9d07c82598823548e2"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 19,
+      "sha256": "0a747669be6b56e4792c9ab0b812b1402473b6a70f8fe18c0db5b0f4c6876276"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 20,
+      "sha256": "fbab12c23b2aa0ef48e72cf904b747777b50377dfa3bf8273979f67dd1b53865"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 21,
+      "sha256": "4048b2194cdeafa087e8c24222682a35651c34bca328d8e4d1db7a3b9f1cc9fd"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 22,
+      "sha256": "37de75a7f44abe11dbd10b7f8526ce7d9c981fbc3a7ab62a595300c5d45ab23e"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 23,
+      "sha256": "843731a74640c2707c2a101ce327bf91104754ae46c5426948996e2734e4cf12"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 24,
+      "sha256": "11e36e563ba8f227af24869d29de5dd2357685504e6c6e0cd013782632681386"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 25,
+      "sha256": "db89d398687724c9f0dcd93df477c2d1f8bc7d0ff5050a1ddce3443acc5878d0"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 26,
+      "sha256": "b5e9b96cb6674c772ae4e61f8a4ce790f1a740c9485e2f47fd33953960f171dc"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 27,
+      "sha256": "d19223039f60f5bc9ccb0661ffc6413e8501e1940684902fe3f8312943a6b756"
+    },
+    {
+      "path": "supabase/sql/proposals/career_application_conversation_v1.sql",
+      "ordinal": 28,
+      "sha256": "e971db4457da3e4cdd629369943d3d2de51808fc0e63cf95a0cff2240c3d1999"
+    }
+  ]
+}

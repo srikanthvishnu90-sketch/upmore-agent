@@ -1,0 +1,98 @@
+{
+  "mass": "834e0bc86b7f540952cf1fc280eb8bf0ce6d4980",
+  "sharedRefsUnmodified": true,
+  "workingTreeUnmodified": true,
+  "method": "git merge-tree --write-tree in isolated bare object store with read-only alternates; no merge/checkout/ref update in shared release",
+  "outputDirectory": "/tmp/upmore-completion-preflight-__n2t607",
+  "targets": {
+    "release-v224": {
+      "target": "b7762d388f1534d6fd5d16325da2c4735d08dc17",
+      "mergeBase": "f67db048599db308f2691a7be7feada841143da5",
+      "exclusiveCommitCountsMassThenTarget": [
+        "226",
+        "19"
+      ],
+      "massChangedPaths": 2922,
+      "targetChangedPaths": 33,
+      "overlappingPaths": [
+        "docs/depth/MUTATION-COVERAGE.md",
+        "docs/instinct-spec-series/BUILD-STATUS.md",
+        "packages/domain/142-career-router.js",
+        "packages/domain/149-career-portal-apply.js",
+        "packages/domain/150-career-portal-browser.js",
+        "scripts/build-router-core.py",
+        "scripts/career/portal-browser-helper.cjs",
+        "supabase/functions/_shared/career_host.js",
+        "supabase/functions/_shared/career_persistence.js",
+        "supabase/functions/_shared/career_task_bridge.js",
+        "supabase/functions/_shared/router_core.career.js",
+        "supabase/functions/_shared/router_core.js",
+        "supabase/functions/agent-chat/handler-career.ts"
+      ],
+      "mergeTreeExit": 1,
+      "mergeTreeConflicts": [
+        "docs/depth/MUTATION-COVERAGE.md",
+        "packages/domain/142-career-router.js",
+        "packages/domain/150-career-portal-browser.js",
+        "scripts/build-router-core.py",
+        "scripts/career/portal-browser-helper.cjs",
+        "supabase/functions/_shared/career_host.js",
+        "supabase/functions/_shared/career_persistence.js",
+        "supabase/functions/_shared/router_core.career.js",
+        "supabase/functions/_shared/router_core.js",
+        "supabase/functions/agent-chat/handler-career.ts"
+      ],
+      "conflictMessages": [
+        "CONFLICT (content): Merge conflict in docs/depth/MUTATION-COVERAGE.md",
+        "CONFLICT (content): Merge conflict in packages/domain/142-career-router.js",
+        "CONFLICT (content): Merge conflict in packages/domain/150-career-portal-browser.js",
+        "CONFLICT (content): Merge conflict in scripts/build-router-core.py",
+        "CONFLICT (content): Merge conflict in scripts/career/portal-browser-helper.cjs",
+        "CONFLICT (content): Merge conflict in supabase/functions/_shared/career_host.js",
+        "CONFLICT (content): Merge conflict in supabase/functions/_shared/career_persistence.js",
+        "CONFLICT (content): Merge conflict in supabase/functions/_shared/router_core.career.js",
+        "CONFLICT (content): Merge conflict in supabase/functions/_shared/router_core.js",
+        "CONFLICT (content): Merge conflict in supabase/functions/agent-chat/handler-career.ts"
+      ],
+      "targetOnlyCommits": [
+        "b7762d388f1534d6fd5d16325da2c4735d08dc17 Registry pass (Crew A, 2026-10-17, hourly run 9): BUG-256\u00b7FR-414 (MI-106 repost/stale cluster (i)\u2013(iii), fixed on work/mi106-repost-stale @ 02e3b50, guard career-mi106-repost-stale 11/11) \u00b7 BUG-257\u00b7FR-415 (MI-106 first-cut live-seat fold, guard R5) \u00b7 BUG-258\u00b7FR-416 (depth-runner TAP-parsing defect under Node 24 \u2014 OPEN, UNENFORCED, fix+guard owed) + disposition row for the 154-substance observation (no allocation, unproven); header NEXT FREE advanced to FR-417 \u00b7 BUG-259. Register blocks live in the shared register (407 total / 312 enforced / 94 unenforced); master list Registry note 9 carries the allocation of record + the verification that the v223/v224 combine allocations (Registry note 6, BUG-241\u2026250) stand complete with no re-allocation. Records only, no code.",
+        "3c11e838ce7e405166e9e22e9bc08d89dbeb5783 Registry: MI-121 third-writer allocation (Crew A, 2026-10-16) \u2014 BUG-255 + FR-413 for the FR-410 class's third writer entry (142 handleTrackMove/handleTrackCorrection mined raw turn text; found by MI-121's done-test, fixed on work/mi121-pasted-email @ b747db6, guard tests/career-prompt-injection.test.cjs PE-6 in the 33/33 suite); header NEXT FREE advanced to FR-414 \u00b7 BUG-256. Register block lives in the shared register (404 total / 310 enforced); master list Registry note 8 carries the allocation of record. Records only, no code.",
+        "3e00c965672e3077b82557076cb3aca94d9e9ffe Registry: MI-114 allocation pass (Crew A, 2026-10-16) \u2014 BUG-251\u2026BUG-254 + FR-409\u2026FR-412 for the four MI-114 prompt-injection holes (HOLE-1 false-confirmation S1 \u00b7 HOLE-4 paste-mining S1 \u00b7 HOLE-2 company-fold S2 \u00b7 HOLE-3 knockout-evasion S2), fixed on work/mi114-injection @ b572140 with tests/career-prompt-injection.test.cjs 24/24 as guard; header NEXT FREE advanced to FR-413 \u00b7 BUG-255. Register blocks live in the shared register (403 total / 309 enforced); master list Registry note 7 carries the allocation of record + the injection-standard ratification + the pasted-email ruling (MI-121). Records only, no code.",
+        "c259cf65b3185603334baa74ef4916eed85622d0 Registry completion pass (Crew A, 2026-10-16): BUG-241\u2026BUG-250 + FR-399\u2026FR-408 \u2014 full write-ups of the v223 combine \u00a73 clusters (i)\u2013(vi) and the v224 combine C-1/C-2/C-4/C-5, plus no-allocation disposition rows for \u00a73(vii) (test-side) and C-3 (environment); header NEXT FREE advanced to FR-409 \u00b7 BUG-251 with the FR-397/398 \u00b7 BUG-239/240 allocation history (Registry notes 5 + 6). Register blocks live in the shared register (399 total / 305 enforced / 93 unenforced); repo-register carry is the next merge owner's step, per standing discipline. Records only, no code.",
+        "3e163f6a9121d1054ebed1051497a6971a76ea93 v224 combine: merge record + deploy-readiness packet (final measured commit b45c06b; sweep 4,295/4,253/3/39 vs baseline 4,235/4,194/2/39, every flip named)",
+        "b45c06bd3237edeece29c9ecef2b3fbe25986025 v224 combine: mutation report regenerated on the final tree (129 modules, 155 recorded as a gap, 1539/1539 planted defects unchanged; mutation-report suite 2/2) + BUILD-STATUS combine claim",
+        "1fa4e120df5c4eec90aa504eec2b39aa6a88bdae v224 combine privacy fix: R-2 answer-map fixture bank anonymized (it mirrored the owner's real fact bank verbatim incl. sensitive F-023 DOB + F-024 hometown \u2014 values now synthetic, same shapes/IDs; bank-coupled assertions read from the loaded bank; suite 8/8 against BOTH the real bank and the mini bank)",
+        "338ed192ae180bf9ea39f38ac6d8d4141de24f3f v224 combine: register carry-over finalized \u2014 FR-395/396 (Crew A allocation, drive-blockers lane) carried into the SHARED register (blocks + summary rows + totals 387/295/91 with provenance), shared copy copied to repo register, cmp-verified byte-identical",
+        "93b2d4b8cd786c8014e41376eaceec35df6281b6 Merge work/loop-acceptance into release/career-v224 (module 155 batch apply + J8 bridge + J9 board provider + Leg-1 approvalRef + J10 batch delegation)",
+        "a019bae1d6550f6ae09eea271cba5b0110106d14 v224 combine composition (merge 1): FR-395 rendered-value equivalence plumbed helper->150 (renderedValues) ->149 observation check; readback re-observe recovery (helper reresolveBinding + 150 answers() stale retry, the protocol's own answer to STALE_OBSERVATION); file ladder verdict returns inside the 60s call ceiling; 149 review FORM_VALIDATION_FAILED defers to the doorstep repair and is re-checked once (not a \u00a76.3 hop). Proof: career-portal-submit-integrity 18/18 on the composed tree (sandbox opt-out env \u2014 this VM cannot run sandboxed Chromium for any user), portal stub/worker/bridge suites 68/68",
+        "83b114e4467c3821f6a48cab1eee842e0e4466a1 v224 combine fixups (merge 1): 149 observation-layer composition (persistence absence -> doorstep repair + D13 gate, BUG-207/209 graders win the conflict); helper playwright-resolution fallback restored (release removal stranded the repo's own browser-tier suites); Chromium sandbox posture env-gated (default sandboxed, UPMORE_CHROMIUM_SANDBOX=off explicit + recorded in ready.json \u2014 this VM cannot run sandboxed Chromium for any user)",
+        "5efa8837b85486e366ee9c0026924750d98c328c Merge work/drive-blockers into release/career-v224 (R-1 BUG-237/FR-395 widget persistence + R-2 BUG-238/FR-396 answer map)",
+        "5c4610bacd9b71590ddfeee72eec0b88a30de3de Loop tier-1 final legs: Leg 1 approvalRef seam (155) + J10 batch delegation (worker executes from committed batch intents)",
+        "c1ade81a884a5e450d2955769f11c6a8e2beec7b BUG-237/238 paperwork: contracts, bug-ledger rows, FR-395/396 enforcement blocks, BUILD-STATUS claim (Crew B drive-blockers lane)",
+        "cc548a3dc6e115262127062b6ed04989d42cfbcc BUG-237 + BUG-238 (FR-395/396): current-UI widget drive + derived answer map on the S2 lineage",
+        "b6c58fb045c5db96821ff3b56c7ffd82d6561c79 Loop J9 \u2014 the worker board provider (Crew B, 2026-10-15): board-service.cjs in the worker process (module-150 sessions behind timing-safe secret auth, per-user binding with cross-user refusal, idle-TTL expiry, fail-closed R-1 family-verdict gate at creation) + board-transport.cjs synchronous HTTP transport for Node roots (worker_threads fetch pump, no new deps) + createWorkerBoardProvider in career_task_bridge (null without url/secret/user/sync transport; coded failures flow through createCareerBoardFor to BOARD_NOT_WIRED) + handler-career.ts env install bound to the authenticated user (resolves null in the Edge runtime today \u2014 no sync transport there yet, behavior identical to J8). Proof: tests/career-board-provider.test.cjs 11/11 (incl. real-wire drive against the service in a child process); loop suite 18/18 (wired case re-composed through provider+service, submits 13; new mid-batch-death and session-expiry trajectories); sweep 4,245/4,201/5/39 vs d608828 4,232/4,188/5/39 \u2014 zero flips",
+        "d608828e745f3e674d63256595b88bf425b9f7a2 Loop J8 \u2014 the tier-1 join (Crew B, 2026-10-15): boardFor resolves through career_task_bridge into the host and the Edge handler's composition root",
+        "bb8f35ae9c1863159890478763a533172f070f1f Mutation coverage: account for modules 154 + 155 under Gaps (regenerated report)",
+        "c4a8ac75fab19f9acd064d4d283bf69bd309fe63 Loop acceptance build (Crew B, 2026-10-15): module 155 batch-apply + 142 chat seam + host batchApplyState key"
+      ]
+    },
+    "build-v1": {
+      "target": "192132dfd83f6f9834a7e8c962be91f570f6bbc7",
+      "mergeBase": "5e033cb16a504ca6f8f939a8a51bfd90b0c00c3c",
+      "exclusiveCommitCountsMassThenTarget": [
+        "798",
+        "2"
+      ],
+      "massChangedPaths": 4124,
+      "targetChangedPaths": 7,
+      "overlappingPaths": [],
+      "mergeTreeExit": 0,
+      "mergeTreeConflicts": [],
+      "conflictMessages": [],
+      "targetOnlyCommits": [
+        "192132dfd83f6f9834a7e8c962be91f570f6bbc7 go-live 39cf441 (5e033cb + the S16-08 roth fact): live gauntlet results \u2014 spec16 9/19 (7 blocked by the test account's missing data, 1 not run; S16-15, S16-17, S16-19 the triaged remainder), sloppy 13/20 understood (13 not carded only because the test account has no data for them), L3 8/8 with L3-04 saved (resume after 2026-10-13T06:19:20Z); security checks 3/3 live; agent-chat v219, manual-connect v1 deployed; all 15 new replay fixtures triaged in writing, live-replays 35/35",
+        "39cf441d5cc2eb048f3f9a9804080187fc3ca87f S16-08: 'what's a roth ira' got the can't-verify deflection \u2014 no FINANCE_FACT defined a Roth IRA, so the question matched no fact, the model answered ungrounded and the grounding guard replaced the whole reply (it never mentioned Roth). Add the roth-ira-basics fact (definition only, no figures to allowlist); the question now answers in finance mode from a verified source. Test: tests/edge/finance-facts.test.ts, red before, green after; found on the go-live-5e033cb live run."
+      ]
+    }
+  }
+}

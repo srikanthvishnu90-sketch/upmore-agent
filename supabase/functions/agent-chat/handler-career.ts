@@ -40,7 +40,7 @@ const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
 // Host routes and task/batch planners share this existing JSON reply boundary.
 type CareerTurnResult = {
-  intent: string; reply: string; handler?: string; resultStatus?: string;
+  intent: string; reply: string; handler?: string | null; resultStatus?: string;
   contained?: boolean; capabilities?: unknown; action?: unknown;
   result?: Record<string, unknown>; task?: unknown; batch?: unknown;
 };

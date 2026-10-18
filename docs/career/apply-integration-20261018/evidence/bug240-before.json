@@ -1,0 +1,13 @@
+{
+  "publishedFix": "56a0285fa71212b98e955781fa92ec49c4323d53",
+  "publishedTestPath": "tests/career-batch-live-shape.test.cjs",
+  "retainedGuardSHA256": "c84f496184662f2dab2a1f99539ed59dd0b94892fd359d9e894f2976f1749dd6",
+  "base": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "routerSHA256": "e8b3d0b03298d529db4cfbf096cd0953a71d3e7c0465bca9ef1ec7e1c1c3e79e",
+  "exitCode": 1,
+  "cases": 4,
+  "criticalFail": 2,
+  "controlsPass": 2,
+  "browserLaunches": 0,
+  "externalRequests": 0
+}

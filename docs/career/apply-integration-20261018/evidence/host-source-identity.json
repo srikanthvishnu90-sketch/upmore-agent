@@ -1,0 +1,15 @@
+{
+  "sourceMigration": "supabase/migrations/20261016120000_career_account_stated_facts.sql",
+  "introducedBy": "4779719e3bb47462bdc4f5764792307c2b86f53d",
+  "verifiedIn": [
+    "671f83314cb590adb7116a7ee3951acd4d724e50",
+    "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649"
+  ],
+  "publishedFileSHA256": "61e7cdfccbab18cec202756b70e2fc86f0daaf6ca0d005ec708965908b53b9dc",
+  "hostBodySHA256": "6e49b56471803ec0f72a0618405cc4019007bb5e25aabb2a9815977318519c1b",
+  "result": "MATCHES_PREVIOUSLY_REVIEWED_BODY_HASH",
+  "liveReads": 0,
+  "liveWrites": 0,
+  "deployedEdgeSourceIdentity": "UNVERIFIED",
+  "PG17RuntimeApproval": false
+}

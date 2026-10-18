@@ -1,0 +1,45 @@
+✖ FR-398 live shape: the batch ask is claimed and names its missing prerequisite — never the fallback (3185.738186ms)
+✔ FR-398 live shape: the claim is scoped — a count-less apply ask is not grabbed by the batch route (818.696045ms)
+✖ FR-398 live shape, delegate mode: no thread profile is required — the ask delegates to the worker (509.900965ms)
+✔ FR-398 control: with a profile in the thread, the in-turn path still runs through the real handler (485.239959ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5045.630117
+
+✖ failing tests:
+
+test at tests/career-batch-live-shape.test.cjs:153:1
+✖ FR-398 live shape: the batch ask is claimed and names its missing prerequisite — never the fallback (3185.738186ms)
+  AssertionError [ERR_ASSERTION]: the batch ask must never land on the generic fallback
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-batch-live-shape.test.cjs:159:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'career_fallback',
+    expected: 'career_fallback',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-batch-live-shape.test.cjs:182:1
+✖ FR-398 live shape, delegate mode: no thread profile is required — the ask delegates to the worker (509.900965ms)
+  AssertionError [ERR_ASSERTION]: delegate mode must not fall back either
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-batch-live-shape.test.cjs:188:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'career_fallback',
+    expected: 'career_fallback',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+(node:1617) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1617) ExperimentalWarning: VM Modules is an experimental feature and might change at any time

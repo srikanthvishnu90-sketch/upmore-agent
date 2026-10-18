@@ -6,5 +6,6 @@
   "integrationBase": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
   "contextBranchObserved": "651e41462cdf700383e3395f239b4bb95d19f1d9",
   "contextPinned": "fb1321a2c181f8a96a31b79b9e44495b9a02e9d9",
-  "guardedPackage": "efe7ab03c04d8887be7e409e0e93eaa8311d6f2b"
+  "guardedPackage": "efe7ab03c04d8887be7e409e0e93eaa8311d6f2b",
+  "bug240PublishedFix": "56a0285fa71212b98e955781fa92ec49c4323d53"
 }

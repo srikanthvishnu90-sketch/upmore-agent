@@ -14,15 +14,20 @@ The verified legacy authority is `career_batch_intents_v1`, `career_batch_runs_v
 
 The prior private metadata/provenance review verified all three tables and nine routine bodies against the published migration, with additional existing grants preserved for explicit review. No live snapshot, definition or owner fact bank is copied into this public checkpoint.
 
+The host-extension source question is now closed: `supabase/migrations/20261016120000_career_account_stated_facts.sql`, introduced by4779719e3bb47462bdc4f5764792307c2b86f53d and present in both supplied v227671f833 and base4ba9351, has the exact previously verified host-body SHA-256 `6e49b56471803ec0f72a0618405cc4019007bb5e25aabb2a9815977318519c1b`. This is source identity, not deployed Edge-source identity or PG17 runtime approval. Public-source evidence is retained in `evidence/host-source-identity.json`; no private definition is included.
+
 ## Actual checks and retained failures
 
 - Exact-base CI39162171931: Node root TAP **4,204 passed / 52 failed / 69 skipped**, 4,327 tests; Deno **21 type errors**; database passed. Raw Node/Deno logs and summary are retained. The Node log has54 nested/wrapper failure-report entries; those are not mislabeled as54 root failures. This baseline is red and no inherited failure has been waived.
 - Local answer-map/apply/caps/payload-binding/unknown-resolution selection: **87/87 passed**, no skips.
 - Explicit pure R3/submit-integrity selection: **11/11 passed**, no skips. This is not the browser tier.
 - New synthetic provenance regressions: **8/8 failed first** against the unchanged4ba9351 runtime. `status:confirmed` plus the documented test-generation provenance was promoted into factual answers, including a required question reaching `prepared` instead of a named ask. Source/test hashes and actual exit1 are retained in `evidence/provenance-before.json`; no actual applicant facts were used.
+- Existing BUG-240 fix56a0285 was found and its exact staged-handler guard retained: **2 critical failures / 2 passing controls** on unchanged4ba9351. A new permanent wrapper enforces that published guard without editing another lane's test file. Critical cases use empty stores and no injected business dependencies. Source fix composition is pending142/bundle claim release; this is not a repaired or product-proven outcome.
 - An earlier test-name filter also selected three browser cases. They failed before a browser started because the expected Playwright Chromium executable was absent. This is retained as prerequisite evidence; no install, relay, trust change or sandbox-off retry was used. A corrected pure selection follows it in the evidence directory.
 
 The contract `docs/career/contracts/mi-038-r3-delegated-answers.md` explicitly treats an instruction to generate answers “For test” as factual confirmation. That narrative is not evidence those answers are true. Preserve technical answer matching, but actual owner statements/employer records must substantiate a real packet; generated/test answers must remain unconfirmed and uncovered required questions must be named asks holding only the affected job. Existing closed answer-map tests prove technical mappings, not real applicant truth. The new regression stays red until the claimed implementation scope is released and corrected.
+
+`STAGES.md` preserves the six ordered outcome gates. `CAPACITY-SOURCES.md` records source-only quota paths; no sustainable throughput or concurrency result was measured. Operational user/window/request observations remain private. Email remains disabled and the shared $7 cap is not a fresh allocation.
 
 ## Claim coordination and merge boundary
 

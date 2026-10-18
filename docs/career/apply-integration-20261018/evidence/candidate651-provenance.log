@@ -1,0 +1,16 @@
+✔ test-generated restrictive_agreements cannot become a confirmed applicant answer (1.60912ms)
+✔ test-generated gender_identity cannot become a confirmed applicant answer (0.155981ms)
+✔ test-generated twelve_week_availability cannot become a confirmed applicant answer (0.140877ms)
+✔ test-generated acknowledgment_receipt cannot become a confirmed applicant answer (0.199945ms)
+✔ test-generated relocation_required cannot become a confirmed applicant answer (0.209302ms)
+✔ test-generated work_authorization_other_region cannot become a confirmed applicant answer (0.10181ms)
+✔ test-generated citizenship cannot produce citizenship/export/visa assertions (0.270619ms)
+✔ unproven required answer becomes a named ask for that job; another job remains independent (2.449096ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.703424

@@ -1,0 +1,69 @@
+{
+  "source": "651e41462cdf700383e3395f239b4bb95d19f1d9",
+  "comparisonCheckpoint": "20057c8a200f50e935c34e678b7413901a0dabfd",
+  "runtimeEdited": false,
+  "scratchSourceEdits": 0,
+  "testsAddedToScratch": [
+    "tests/career-batch-live-shape.test.cjs",
+    "tests/career-apply-fact-provenance.test.cjs",
+    "tests/career-chat-quota-boundary.test.cjs"
+  ],
+  "results": {
+    "bug240": {
+      "pass": 2,
+      "fail": 2,
+      "skip": 0,
+      "exitCode": 1
+    },
+    "provenance": {
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "exitCode": 0,
+      "limitation": "Older tree lacks the later R3 derivations; not proof of assertion-backed newer bindings"
+    },
+    "quota": {
+      "pass": 6,
+      "fail": 2,
+      "skip": 0,
+      "exitCode": 1
+    }
+  },
+  "publishedBUG240Ancestor": false,
+  "initialGuardSetup": "Original651 snapshot lacks published guard; copied exact published test then executed four cases",
+  "initialConnectivity": "First parallel launch attempts returned exec-server transport disconnected; subsequent sequential commands completed with retained output",
+  "capProbe": {
+    "syntheticOnly": true,
+    "sources": [
+      "651e414",
+      "20057c8/4ba runtime"
+    ],
+    "vendor": "greenhouse",
+    "priorSameDayConfirmations": 5,
+    "sixthSameDayBlocked": true,
+    "caps": {
+      "perDay": 15,
+      "perVendorPerDay": 5,
+      "perCompanyPer30Days": 1
+    }
+  },
+  "candidateSourceSHA256": {
+    "packages/domain/142-career-router.js": "a9cd1402c9516581e37a8e11849dce4cbc075ce2a41c6d156a8d1b977aa87fc6",
+    "packages/domain/149-career-portal-apply.js": "c00db371b07e6897db35c6e8074337847c6b1d5eae46598497c6e52fb0f3499c",
+    "packages/domain/150-career-portal-browser.js": "d9108f862a709b65b32a554954934a63f46cd8c910c7217a289e64b7a88363c0",
+    "scripts/career/portal-browser-helper.cjs": "b1c0cde4a14276ba5d63a448b64013ecc5968910008c477f1775b6517867c77a",
+    "supabase/functions/agent-chat/handler-career.ts": "3b00aa00c02a38f4df8f5cfeb22c48a382003e0ca2166005a2ef58f3dff91048",
+    "supabase/functions/_shared/router_core.career.js": "144dbf83b478a4c0354815f4b0c1405d61f4f756dcb93ed1476eafa8cc147293",
+    "workers/career-browser/board-service.cjs": "4f79d6a6b9e914250f260c5ed83de6237666f04fd70af08bc02f15eb61fb80ab",
+    "workers/career-browser/batch-executor.cjs": "71e6dd8bdb51eff7b07de01317b03b3d27b5cadda0cf3dbf3c4a708811f5dd3f"
+  },
+  "executedGuardSHA256": {
+    "tests/career-batch-live-shape.test.cjs": "c84f496184662f2dab2a1f99539ed59dd0b94892fd359d9e894f2976f1749dd6",
+    "tests/career-apply-fact-provenance.test.cjs": "3d60c33e328b14f3e52b24329505dd605fff677add8641db351e3cdc07d736aa",
+    "tests/career-chat-quota-boundary.test.cjs": "a1db6e59a0fd1bf3af040590fb351f6c09134e7638201a80bae079cbceae88e1"
+  },
+  "paidCalls": 0,
+  "employerRequests": 0,
+  "browserLaunches": 0,
+  "deployments": 0
+}

@@ -31,6 +31,8 @@ The contract `docs/career/contracts/mi-038-r3-delegated-answers.md` explicitly t
 
 The independent unclaimed quota-boundary test adds six passing controls and two meaningful fail-first validation cases through the real staged handler. Runtime remains unchanged. `MUSE-ADOPTION.md` gives the exact published BUG-240 repair, source-adoption/bundle/guard requirements and per-stage remaining dependencies. Claim ambiguity is historical scope handoff, not verified active collision or tool denial; only a narrow transfer or Muse application is requested.
 
+`CANDIDATE-COMPARISON.md` records the focused isolated651e414 assessment: BUG-240 still2critical failures/2controls passing, older unsupported R3 paths make provenance8/8pass, quota6pass/2fail.651 lacks the later R3 stack and is not a deploy-ready substitute. Both trees were executed against a synthetic five-confirmation Greenhouse ledger: the sixth same-day Greenhouse submission is blocked under the unchanged ATS-vendor cap. No private material is part of this source comparison.
+
 ## Claim coordination and merge boundary
 
 AGENTS.md requires a claim before editing and says to never edit another agent's files, leaving a Request instead. BUILD-STATUS contains closing notes plus stale NOT-pushed text for the completed portal work, without an explicit release. A scoped request is recorded there and sent for clarification. Pending scopes: `packages/domain/142-career-router.js`, `149-career-portal-apply.js`, `150-career-portal-browser.js`, `scripts/career/portal-browser-helper.cjs`, `tests/fixtures/portal-fixture-server.cjs`, generated `router_core.js`/`router_core.career.js`, and the corresponding delegated-answer documentation. Registry allocation files remain Crew A-owned; no numbers were self-allocated.

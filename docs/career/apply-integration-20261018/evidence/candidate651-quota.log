@@ -1,0 +1,55 @@
+(node:2805) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2805) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ missing bearer is 401 and spends no quota (373.280451ms)
+✔ unverified bearer is 401 and spends no quota (97.551261ms)
+✔ profile storage failure is 500, never a quota denial (90.379371ms)
+✔ quota RPC error is 500, never a quota denial (100.992657ms)
+✔ normal JWT quota denial is 429 scoped to verified owner, before business work (91.90503ms)
+✔ service bridge denial uses explicit verified owner quota (102.541774ms)
+✖ empty input is rejected without spending work allowance (101.821821ms)
+✖ invalid turn key remains a named 400 even when work quota is exhausted (95.148089ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1250.293189
+
+✖ failing tests:
+
+test at tests/career-chat-quota-boundary.test.cjs:70:2
+✖ empty input is rejected without spending work allowance (101.821821ms)
+  AssertionError [ERR_ASSERTION]: invalid work must not consume the valid-work allowance; preserve a separate abuse guard
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/tmp/upmore-651e414-assess-irzaegiv/tests/career-chat-quota-boundary.test.cjs:71:163)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-chat-quota-boundary.test.cjs:73:2
+✖ invalid turn key remains a named 400 even when work quota is exhausted (95.148089ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  429 !== 400
+  
+      at TestContext.<anonymous> (/tmp/upmore-651e414-assess-irzaegiv/tests/career-chat-quota-boundary.test.cjs:74:74)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 429,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

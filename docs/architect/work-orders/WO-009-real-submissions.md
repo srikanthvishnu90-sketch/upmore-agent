@@ -1,6 +1,6 @@
 # WO-009: Real submissions — the apply worker
 
-Status: ready (architecture) · blocked for the live run on D-010 (the first VM) · Depends on: WO-005, WO-006 · Assignee: Codex
+Status: ready · Depends on: WO-001 only (the chat hookup waits for WO-005) · live run needs D-010 · Assignee: Codex · **Codex's next order after WO-001** (owner priority: genuine submissions)
 Size cap: ~900 lines excluding the architect tests (reuse 149/150 and `workers/career-browser/`; do not rewrite them)
 
 ## Why
@@ -25,7 +25,16 @@ is genuine task completion, so this order makes submission real and makes "submi
 - **Evidence per attempt:** screenshots before and after submit (stored privately), field readback, final URL, page text
   excerpt, outcome. The person can ask "show me what you sent to Acme".
 
+## Order of work inside this WO
+1. `career_apply.ts` (the tests), the queue table, the worker pull loop, live view.
+2. **`scripts/apply.ts`** — the first real submission without the chat: `deno run -A scripts/apply.ts --url <posting url> --facts <confirmed-facts.json> --resume <file.pdf>`.
+   It drives the form to the last page, prints EVERY field it will submit with the confirmed fact each came from, the resume hash and the destination,
+   asks `Submit this application to <employer>? (yes/no)` on the terminal, and only on `yes` clicks submit, then prints the classified outcome and
+   saves the evidence. The owner runs it for his own applications first.
+3. `submit_application` / `application_status` tools, once WO-005 has landed.
+
 ## Files
+- `scripts/apply.ts` (new): the terminal path above
 - `supabase/functions/_shared/career_apply.ts` (new): `classifyOutcome`, `admitApplication` (pure; tests pin them)
 - `supabase/migrations/20261020000000_career_apply_jobs.sql` (new): `career_apply_jobs(id, user_id, job_id, company, payload jsonb,
   payload_hash, approval_hash, state, reason, confirmation_id, attempts, created_at, updated_at, evidence jsonb)`; RLS: owner reads own rows

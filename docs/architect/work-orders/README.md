@@ -1,6 +1,7 @@
 # Work-order queue
 
 Each builder takes the lowest `ready` order assigned to it (or `any`) whose dependencies are `done`.
+**Codex's sequence (owner priority, genuine submissions first): 001 → 009 → 002 → 005 → 008 → 010.** Muse: 003 → 004 → 006 → 007.
 Only the architect edits this table. Every capability is tested through the text simulator (WO-004); the
 real texting channel is last (D-009).
 
@@ -14,7 +15,7 @@ real texting channel is last (D-009).
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | ready | 001 | M2 | Muse |
 | [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | ready | 004, 006 | M2 | Muse |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
-| [009](WO-009-real-submissions.md) | Real submissions: self-hosted apply worker, employer-confirmed outcomes, captcha handoff (live run needs D-010) | ready | 005, 006 | M4 | Codex |
+| [009](WO-009-real-submissions.md) | Real submissions: self-hosted apply worker, employer-confirmed outcomes, captcha handoff (live run needs D-010) | ready | 001 (chat hookup after 005) | M4 | Codex (next after 001) |
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled | drafting | 002 | M5 | Codex |
 | 011 | Delete shelved finance code and its tests | drafting | 001 | M0 | any |
 | 012 | Trainee web app replaces the finance app (pipeline, jobs, resume, approvals) | drafting | 005 | M6 | any |

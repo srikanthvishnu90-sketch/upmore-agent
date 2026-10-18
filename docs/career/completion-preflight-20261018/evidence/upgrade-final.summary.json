@@ -1,10 +1,10 @@
 {
-  "token": "a475bd5aed267ace",
-  "commit": "834e0bc86b7f540952cf1fc280eb8bf0ce6d4980",
-  "preflightDirtyFiles": "M docs/instinct-spec-series/BUILD-STATUS.md\n?? docs/career/completion-preflight-20261018/\n?? docs/playbook-drift-20261018.md\n?? scripts/career/forward-upgrade/\n?? tests/career-critical-repairs/forward-upgrade-postgres.test.cjs\n?? tests/career-forward-upgrade.test.cjs",
+  "token": "915e4faf2db1da3f",
+  "commit": "2d50c6c24a25a9c8f5a62e3b30d0d06568fe714a",
+  "preflightDirtyFiles": "M scripts/career/forward-upgrade/build.cjs\n M scripts/career/forward-upgrade/collect-catalog.sql\n D scripts/career/forward-upgrade/reference-catalog.json\n M tests/career-critical-repairs/forward-upgrade-postgres.test.cjs",
   "harnessSha256": "a167cac44fbac9f64b74cd313fdc272eb8c8f03e3a7efed29a57387ab1b5f628",
   "testSourceSha256": {
-    "career-critical-repairs/forward-upgrade-postgres.test.cjs": "636838486248d8ce0fe955dc903dc8152ce107f85e406e42e969e3711fe03c20"
+    "career-critical-repairs/forward-upgrade-postgres.test.cjs": "0fad0e1ab5477e8789c1d97c5c8f2693ea5a72e554caa644a6e8e44edef67181"
   },
   "evidenceTier": "MOCK_CONTRACT_AND_LOCAL_POSTGRES",
   "selection": "DIAGNOSTIC_SINGLE_SQL_FILE",
@@ -13,7 +13,7 @@
   "sqlFiles": [
     "career-critical-repairs/forward-upgrade-postgres.test.cjs"
   ],
-  "started": "2026-10-18T05:10:59.146Z",
+  "started": "2026-10-18T05:14:26.731Z",
   "runs": [
     {
       "label": "postgres-0",
@@ -30,7 +30,7 @@
       "exitCode": 0
     }
   ],
-  "out": "/tmp/upmore-ci-node-cPfrOw",
+  "out": "/tmp/upmore-ci-node-sPPA7h",
   "paidCalls": 0,
   "browserOutcomes": 0,
   "ddlSha256": {
@@ -56,12 +56,12 @@
     "supabase/sql/proposals/career_application_conversation_v1.sql": "8b6a282a821d431e3a17c0d30e42fddc40dbff7a829b4c20c46e8421fa0b6811"
   },
   "fixture": {
-    "container": "upmore-career-integration-pg-ci-a475bd5aed267ace",
+    "container": "upmore-career-integration-pg-ci-915e4faf2db1da3f",
     "network": "none",
     "image": "postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
     "databaseVersion": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
   },
   "ownedFixtureRemoved": true,
-  "finished": "2026-10-18T05:12:36.519Z",
+  "finished": "2026-10-18T05:16:09.201Z",
   "pass": true
 }

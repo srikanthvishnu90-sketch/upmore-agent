@@ -74,6 +74,8 @@ test('forward upgrade: supported baseline, preservation, transaction rollback an
 });
 test('forward upgrade: unknown function, grant, policy and partial schema refuse without overwrite',{skip:!enabled},()=>{
  const cases=[
+  'alter default privileges in schema public grant select on tables to authenticated',
+  'revoke create on schema public from pg_database_owner',
   'create function career_task_control_hook_v1(text)returns text language sql as $$select $1$$',
   "alter function career_task_control_hook_v1() set statement_timeout='2s'",
   'grant execute on function career_task_control_hook_v1()to anon',

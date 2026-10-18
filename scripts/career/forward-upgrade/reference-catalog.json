@@ -16,6 +16,18 @@
       "bypassRLS": false
     }
   ],
+  "schemas": [
+    {
+      "name": "auth",
+      "owner": "postgres",
+      "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+    },
+    {
+      "name": "public",
+      "owner": "pg_database_owner",
+      "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+    }
+  ],
   "version": "career_forward_catalog/v1",
   "functions": [
     {
@@ -1269,9 +1281,22 @@
             "PUBLIC"
           ],
           "command": "r",
+          "schemas": [
+            {
+              "name": "auth",
+              "owner": "postgres",
+              "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+            },
+            {
+              "name": "public",
+              "owner": "pg_database_owner",
+              "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+            }
+          ],
           "checkSha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
           "usingSha": "aa06a7622e21fd0ea5f47a3ca5c3ecaa67b99d6b9a6b8bc049f59a9f12f957cb",
-          "permissive": true
+          "permissive": true,
+          "defaultPrivileges": []
         }
       ],
       "triggers": [],
@@ -1764,9 +1789,22 @@
             "service_role"
           ],
           "command": "*",
+          "schemas": [
+            {
+              "name": "auth",
+              "owner": "postgres",
+              "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+            },
+            {
+              "name": "public",
+              "owner": "pg_database_owner",
+              "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+            }
+          ],
           "checkSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
           "usingSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
-          "permissive": true
+          "permissive": true,
+          "defaultPrivileges": []
         }
       ],
       "triggers": [],
@@ -1984,9 +2022,22 @@
             "service_role"
           ],
           "command": "*",
+          "schemas": [
+            {
+              "name": "auth",
+              "owner": "postgres",
+              "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+            },
+            {
+              "name": "public",
+              "owner": "pg_database_owner",
+              "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+            }
+          ],
           "checkSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
           "usingSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
-          "permissive": true
+          "permissive": true,
+          "defaultPrivileges": []
         }
       ],
       "triggers": [],
@@ -2294,9 +2345,22 @@
             "service_role"
           ],
           "command": "*",
+          "schemas": [
+            {
+              "name": "auth",
+              "owner": "postgres",
+              "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+            },
+            {
+              "name": "public",
+              "owner": "pg_database_owner",
+              "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+            }
+          ],
           "checkSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
           "usingSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
-          "permissive": true
+          "permissive": true,
+          "defaultPrivileges": []
         }
       ],
       "triggers": [],
@@ -2464,9 +2528,22 @@
             "service_role"
           ],
           "command": "*",
+          "schemas": [
+            {
+              "name": "auth",
+              "owner": "postgres",
+              "aclSha": "6e9abca1fdd8564991b445e192fd00047f5bbb933e174906754717864cbde85c"
+            },
+            {
+              "name": "public",
+              "owner": "pg_database_owner",
+              "aclSha": "c5a6966a33c1b16ee146719e45fc9bf9206f1ec04124d1ce24af1853a0557267"
+            }
+          ],
           "checkSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
           "usingSha": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
-          "permissive": true
+          "permissive": true,
+          "defaultPrivileges": []
         }
       ],
       "triggers": [
@@ -2669,5 +2746,6 @@
         }
       ]
     }
-  ]
+  ],
+  "defaultPrivileges": []
 }

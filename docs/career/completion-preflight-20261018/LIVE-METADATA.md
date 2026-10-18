@@ -2,6 +2,7 @@
 
 Run `scripts/career/forward-upgrade/collect-catalog.sql` as the approved database owner in a read-only transaction. Its JSON contains no customer rows, raw function bodies, policy expressions, passwords or connection strings. The compiler's supported baseline is local and deliberately strict; live differences refuse.
 
+- Schema ownership/ACL hashes and global/public/auth default-privilege hashes. Inherited default grants must not bypass source-only private storage assumptions.
 - PostgreSQL major version; existence and bypass-RLS flags for `anon`, `authenticated` and `service_role`.
 - Each of the twenty-one scoped authority/target tables: existence, kind, owner, RLS flags, ordered columns/types/nullability/default hashes and column ACLs, constraints, index-definition hashes, policies and role names with expression hashes, trigger definitions/enabled flags, ACL grantees/privileges/grant options.
 - All overloads of the 101 scoped functions: identity arguments, result type, owner, language, invoker/definer, volatility, parallel/strict flags, full definition and body hashes, configuration/default hashes and execute ACL. Unexpected overloads are differences too.

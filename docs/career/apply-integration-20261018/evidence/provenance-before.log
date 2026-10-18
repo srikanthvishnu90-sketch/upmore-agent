@@ -1,0 +1,228 @@
+✖ test-generated restrictive_agreements cannot become a confirmed applicant answer (3.571191ms)
+✖ test-generated gender_identity cannot become a confirmed applicant answer (0.495774ms)
+✖ test-generated twelve_week_availability cannot become a confirmed applicant answer (0.365814ms)
+✖ test-generated acknowledgment_receipt cannot become a confirmed applicant answer (0.213151ms)
+✖ test-generated relocation_required cannot become a confirmed applicant answer (0.261559ms)
+✖ test-generated work_authorization_other_region cannot become a confirmed applicant answer (0.177138ms)
+✖ test-generated citizenship cannot produce citizenship/export/visa assertions (0.408929ms)
+✖ unproven required answer becomes a named ask for that job; another job remains independent (4.005521ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 0
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.361439
+
+✖ failing tests:
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated restrictive_agreements cannot become a confirmed applicant answer (3.571191ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-restrictive_agreements',
+  +   value: 'No'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'No', confirmed: true, factId: 'SYNTHETIC-restrictive_agreements' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated gender_identity cannot become a confirmed applicant answer (0.495774ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-gender_identity',
+  +   value: 'SYNTHETIC TEST VALUE'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'SYNTHETIC TEST VALUE', confirmed: true, factId: 'SYNTHETIC-gender_identity' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated twelve_week_availability cannot become a confirmed applicant answer (0.365814ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-twelve_week_availability',
+  +   value: 'Yes'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'Yes', confirmed: true, factId: 'SYNTHETIC-twelve_week_availability' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated acknowledgment_receipt cannot become a confirmed applicant answer (0.213151ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-acknowledgment_receipt',
+  +   value: true
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: true, confirmed: true, factId: 'SYNTHETIC-acknowledgment_receipt' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated relocation_required cannot become a confirmed applicant answer (0.261559ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-relocation_required',
+  +   value: 'Yes'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'Yes', confirmed: true, factId: 'SYNTHETIC-relocation_required' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:11:2
+✖ test-generated work_authorization_other_region cannot become a confirmed applicant answer (0.177138ms)
+  AssertionError [ERR_ASSERTION]: confirmed status cannot launder a test-generation directive into personal truth
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-work_authorization_other_region',
+  +   value: 'No'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:12:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'No', confirmed: true, factId: 'SYNTHETIC-work_authorization_other_region' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:15:1
+✖ test-generated citizenship cannot produce citizenship/export/visa assertions (0.408929ms)
+  AssertionError [ERR_ASSERTION]: citizenship_status needs an actual owner/employer assertion
+  + actual - expected
+  
+  + {
+  +   confirmed: true,
+  +   factId: 'SYNTHETIC-CITIZENSHIP',
+  +   value: 'United States citizen'
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:17:145)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: { value: 'United States citizen', confirmed: true, factId: 'SYNTHETIC-CITIZENSHIP' },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-apply-fact-provenance.test.cjs:21:1
+✖ unproven required answer becomes a named ask for that job; another job remains independent (4.005521ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'prepared'
+  - 'awaiting_user'
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-apply-fact-provenance.test.cjs:28:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'prepared',
+    expected: 'awaiting_user',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

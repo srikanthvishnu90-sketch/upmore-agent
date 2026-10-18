@@ -1,0 +1,5 @@
+# Playbook drift — 2026-10-18 apply-stack integration
+
+- Published BUILD-STATUS still describes completed source as NOT pushed, while owner-supplied GitHub refs resolve to those commits. This checkpoint records verified refs and a scoped ownership-coordination request instead of assuming the historical text releases active claims.
+- The delegated-answer contract treats a test-generation instruction as confirmed personal truth. New synthetic regressions show those values become confirmed answers and a required field reaches prepared. That is a specific unresolved source defect, not evidence the owner asserted the facts. Runtime/contract files remain unedited pending scoped ownership release; the drift and requested correction are documented together with fail-first evidence.
+- The specified base is not green: CI39162171931 has52 root Node failures and21 Deno errors. Its failure baseline is retained and not replaced by the historical full-sweep claims. Doorstep counts, screenshots and81 facts are outside the supplied source tree and have not been read, so no actual application is represented as ready.

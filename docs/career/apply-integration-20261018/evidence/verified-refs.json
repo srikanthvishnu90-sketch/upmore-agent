@@ -1,0 +1,10 @@
+{
+  "v227": "671f83314cb590adb7116a7ee3951acd4d724e50",
+  "v227Tag": "671f83314cb590adb7116a7ee3951acd4d724e50",
+  "readiness": "5e09d927ec1809b4fe91082b3ec30c74f9b6dbff",
+  "answerBindings": "c4014fa2b896c7a0e5c1ef149b3f3de4e96942a7",
+  "integrationBase": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "contextBranchObserved": "651e41462cdf700383e3395f239b4bb95d19f1d9",
+  "contextPinned": "fb1321a2c181f8a96a31b79b9e44495b9a02e9d9",
+  "guardedPackage": "efe7ab03c04d8887be7e409e0e93eaa8311d6f2b"
+}

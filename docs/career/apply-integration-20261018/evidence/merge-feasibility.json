@@ -1,0 +1,25 @@
+{
+  "base": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "method": "isolated bare merge-tree object store with read-only alternates; no worktree/ref changes",
+  "actualSourceFilesEdited": false,
+  "pairs": {
+    "v227": {
+      "source": "671f83314cb590adb7116a7ee3951acd4d724e50",
+      "exitCode": 1,
+      "proposedTree": "46f65da870be11380f01683f1f164d649be2eaa1",
+      "conflictedPaths": [
+        "docs/bug-ledger.md"
+      ]
+    },
+    "readiness": {
+      "source": "5e09d927ec1809b4fe91082b3ec30c74f9b6dbff",
+      "exitCode": 1,
+      "proposedTree": "1aab69be9d0bc80d6c1a356f88da3e19a0bbee18",
+      "conflictedPaths": [
+        "docs/bug-ledger.md",
+        "docs/instinct-spec-series/BUILD-STATUS.md",
+        "tests/fixtures/portal-fixture-server.cjs"
+      ]
+    }
+  }
+}

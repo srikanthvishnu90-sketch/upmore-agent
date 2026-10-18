@@ -1,0 +1,92 @@
+✔ R3-D3 pin: an observed value that diverges from the confirmed draft still stops ANSWER_OBSERVATION_MISMATCH (369.938202ms)
+✔ R3-D3 pin: a capped observed prefix is drift when the driver never verified a capped rendering — the seam never truncates on its own (0.603ms)
+✔ D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved (386.549638ms)
+✔ D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD (0.984793ms)
+✔ D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes (1.573022ms)
+✔ D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval (0.511531ms)
+✔ D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked (0.518833ms)
+✖ D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked (543.705729ms)
+✖ D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep (578.8232ms)
+✖ D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands (571.105787ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 7
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2190.117232
+
+✖ failing tests:
+
+test at tests/career-portal-submit-integrity.test.cjs:339:1
+✖ D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked (543.705729ms)
+  Error: browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+  ╔════════════════════════════════════════════════════════════╗
+  ║ Looks like Playwright was just installed or updated.       ║
+  ║ Please run the following command to download new browsers: ║
+  ║                                                            ║
+  ║     npx playwright install                                 ║
+  ║                                                            ║
+  ║ <3 Playwright Team                                         ║
+  ╚════════════════════════════════════════════════════════════╝
+      at coded (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:74:50)
+      at call (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:573:25)
+      at Object.open (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:664:19)
+      at prepareRound (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:881:43)
+      at Object.runApply (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:839:12)
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-portal-submit-integrity.test.cjs:343:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'DRIVER_ERROR'
+  }
+
+test at tests/career-portal-submit-integrity.test.cjs:394:1
+✖ D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep (578.8232ms)
+  Error: browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+  ╔════════════════════════════════════════════════════════════╗
+  ║ Looks like Playwright was just installed or updated.       ║
+  ║ Please run the following command to download new browsers: ║
+  ║                                                            ║
+  ║     npx playwright install                                 ║
+  ║                                                            ║
+  ║ <3 Playwright Team                                         ║
+  ╚════════════════════════════════════════════════════════════╝
+      at coded (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:74:50)
+      at call (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:573:25)
+      at Object.open (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:664:19)
+      at prepareRound (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:881:43)
+      at Object.runApply (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:839:12)
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-portal-submit-integrity.test.cjs:398:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'DRIVER_ERROR'
+  }
+
+test at tests/career-portal-submit-integrity.test.cjs:416:1
+✖ D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands (571.105787ms)
+  Error: browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+  ╔════════════════════════════════════════════════════════════╗
+  ║ Looks like Playwright was just installed or updated.       ║
+  ║ Please run the following command to download new browsers: ║
+  ║                                                            ║
+  ║     npx playwright install                                 ║
+  ║                                                            ║
+  ║ <3 Playwright Team                                         ║
+  ╚════════════════════════════════════════════════════════════╝
+      at coded (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:74:50)
+      at call (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:573:25)
+      at Object.open (/workspace/upmore-apply-integration-20261018/packages/domain/150-career-portal-browser.js:664:19)
+      at prepareRound (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:881:43)
+      at Object.runApply (/workspace/upmore-apply-integration-20261018/packages/domain/149-career-portal-apply.js:839:12)
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-portal-submit-integrity.test.cjs:420:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'DRIVER_ERROR'
+  }

@@ -1,0 +1,16 @@
+{
+  "branch": "codex/forward-upgrade-preflight-20261018",
+  "commit": "efe7ab03c04d8887be7e409e0e93eaa8311d6f2b",
+  "ci": 39101404251,
+  "ciJobs": {
+    "node": "success",
+    "deno": "success",
+    "database": "success",
+    "requiredArchives": "failure"
+  },
+  "compilerSHA256": "c3d7c6cd66b41a786de084f0379d3b473c0bb63bad735a6ee2f4fd503ed88e9c",
+  "planSHA256": "b89ea707b0696a148cb41317c46b43482598ee8a1b765c903c4e20baaa10ea4d",
+  "sqlSHA256": "69b011028beb53932262fc2eb2160648a7863f80b737ec5eb1bbbb0dee395a7a",
+  "supportedBaseline": "KNOWN_LOCAL_PG16_ONLY",
+  "liveApplied": false
+}

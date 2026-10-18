@@ -1,0 +1,47 @@
+{
+  "version": "apply_stack_audit_checkpoint/v1",
+  "observedAt": "2026-10-18T20:48:33.900679+00:00",
+  "integrationBase": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "branch": "codex/apply-stack-integration-20261018",
+  "runtimeChangedPaths": [],
+  "sourceComposition": "PENDING_CLAIM_COORDINATION",
+  "localBaselinePure": {
+    "pass": 87,
+    "fail": 0
+  },
+  "localIntegrityPure": {
+    "pass": 11,
+    "fail": 0
+  },
+  "newProvenanceFailFirst": {
+    "pass": 0,
+    "fail": 8
+  },
+  "browserPrerequisiteAttempts": {
+    "startedBrowsers": 0,
+    "missingExecutableFailures": 3
+  },
+  "liveActions": 0,
+  "paidCalls": 0,
+  "files": {
+    "docs/instinct-spec-series/BUILD-STATUS.md": "6026e2966d4431dd17fb7eb97eccb250fef2a53abb602419ccf30cdb19fcb94a",
+    "tests/career-apply-fact-provenance.test.cjs": "3d60c33e328b14f3e52b24329505dd605fff677add8641db351e3cdc07d736aa",
+    "docs/career/apply-integration-20261018/LEDGER.md": "c335c2802b648a8acbc589babaf05cb9d526ba66c39b3da298074714db584327",
+    "docs/career/apply-integration-20261018/STAGES.md": "56538303970b22f9f56e2e542d3691c6be225572060586aef6d6aaeca49a2194",
+    "docs/career/apply-integration-20261018/CLAIMS-AND-NEXT.md": "81bf6a81260a701f3f7526cfb674ae6d19e64baf8a473d825ba0ad4feae3787c",
+    "docs/career/apply-integration-20261018/README.md": "e4484267e73ce34e3912e81ba56bb7a3a6f8463a39396de33e5778e8e3c333f6",
+    "docs/career/apply-integration-20261018/evidence/base-deno-ci39162171931.log": "c7455136b0b0acba62761ee49371600f53bdc8ded56d9037480fdc6e43c89788",
+    "docs/career/apply-integration-20261018/evidence/verified-refs.json": "5f9272f182f2b1579c0cd70bf8996152aee96ab57d388f03aa453e02b0f7ea2a",
+    "docs/career/apply-integration-20261018/evidence/base-ci-summary.json": "443bfd94e500c77d688b0285f8d840a5dd097bd7c57dc4afd7f6758de319c6b8",
+    "docs/career/apply-integration-20261018/evidence/provenance-before.json": "9b1f647d101923ffb316f1758b5355aa9b36f9a84148b6b5661466e6d839a723",
+    "docs/career/apply-integration-20261018/evidence/merge-tree-v227.log": "33597acdecc5dae62ca9d2896a7ee40c9f8cc64c1777606541cc4be0a18d181c",
+    "docs/career/apply-integration-20261018/evidence/guarded-package-identity.json": "35c8102ec1edd1340eb50d587c43068fe6a75964a95e6522692e9fc71472b0b9",
+    "docs/career/apply-integration-20261018/evidence/browser-prerequisite-failures.log": "944a99b8b4d1cc8d3cbe1e72a8c24d3e23003deff790fe34e5091f4bbe4fb725",
+    "docs/career/apply-integration-20261018/evidence/base-integrity-pure.log": "581173cd34935ca6ffbc3d06b84924d1ee7f051f5d7f3a0cb5e321f1da5d3476",
+    "docs/career/apply-integration-20261018/evidence/merge-tree-readiness.log": "b57a7e276353e2270b55ef88b7fb706ad3ca5b2fa9718f6bcd0c2d9e85d19bca",
+    "docs/career/apply-integration-20261018/evidence/merge-feasibility.json": "b3f40bc0dbc44e3aea1f97b0d4f4d36c38041c93b4e8de11f214a3c70f0b30e2",
+    "docs/career/apply-integration-20261018/evidence/base-answer-apply-caps-unknown.log": "da62ebd7e9caf4f1b1694b6d84984cde376d97d74f3d7ef496bf9791860b709b",
+    "docs/career/apply-integration-20261018/evidence/base-node-ci39162171931.log": "b2f1526b870300826ca028459fc6aefe7d45b132f01e658f9f3a77ef123d3a3e",
+    "docs/career/apply-integration-20261018/evidence/provenance-before.log": "f7be61078a6fd70af33fcaff99dc00be6870eedf3798b1b07c80a563cee00607"
+  }
+}

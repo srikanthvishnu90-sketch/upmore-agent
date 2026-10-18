@@ -1,0 +1,16 @@
+{
+  "scope": "SYNTHETIC_LOCAL_ONLY",
+  "base": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "command": [
+    "node",
+    "--test",
+    "tests/career-apply-fact-provenance.test.cjs"
+  ],
+  "exitCode": 1,
+  "testSha256": "3d60c33e328b14f3e52b24329505dd605fff677add8641db351e3cdc07d736aa",
+  "module149Sha256": "c0cd3ad870684be1219d7154f84d01cf14430a1ae3fa9363ab337e28514213bc",
+  "module150Sha256": "39e951f29518b69e6a1df6bf511aec751ae142ef2adb4487bfb5583a7fb4dfcb",
+  "employerCalls": 0,
+  "browserLaunches": 0,
+  "paidCalls": 0
+}

@@ -1,0 +1,19 @@
+✔ R3-D3 pin: an observed value that diverges from the confirmed draft still stops ANSWER_OBSERVATION_MISMATCH (77.746527ms)
+✔ R3-D3 pin: a capped observed prefix is drift when the driver never verified a capped rendering — the seam never truncates on its own (0.795086ms)
+✔ D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved (78.497214ms)
+✔ D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD (1.73536ms)
+✔ D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes (1.250794ms)
+✔ D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval (0.583288ms)
+✔ D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked (0.627896ms)
+✔ D12 (BUG-208): extractConfirmation is exported and mints NOTHING from posting prose, headers, or unrelated IDs (0.724728ms)
+✔ D12 (BUG-208): the exact Labelbox mint — the word after 'application' — is refused; a bare unlabeled number is refused; a digit-less token is refused (0.445465ms)
+✔ D12 (BUG-208): genuinely labeled confirmations still extract — the fix refuses prose, not evidence (0.441335ms)
+✔ D12 (BUG-208): a still-open form vetoes EVERYTHING — labeled IDs and success wording on a page still showing the unsubmitted form mint nothing (0.675366ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 220.331736

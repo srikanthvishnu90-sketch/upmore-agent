@@ -1,0 +1,39 @@
+# Apply-stack integration checkpoint — 2026-10-18
+
+**AUDIT CHECKPOINT; NOT A MERGED OR LIVE-READY CANDIDATE.** The isolated branch is `codex/apply-stack-integration-20261018`, created directly from the owner's specified `4ba9351c0f4cf207b35bdda49f41c98e8e9a7649`. Existing runtime files remain unchanged while scoped claim ownership is coordinated. No relay, certificate/proxy change, sandbox-off launch, credentials, live migration, privilege change, model call or employer operation was performed.
+
+## Verified source/package identity
+
+`evidence/verified-refs.json` records the GitHub-verified refs. Answer bindings c4014fa is an ancestor of4ba9351 by three commits. Readiness5e09d92 and target-firm/v227671f833 diverge from4ba9351 and need deliberate composition. The v227 tag and source branch both resolve to671f83314cb590adb7116a7ee3951acd4d724e50. The context branch advanced to651e414; the supplied fb1321a remains pinned context only.
+
+The separately published guarded package remains `codex/forward-upgrade-preflight-20261018` at `efe7ab03c04d8887be7e409e0e93eaa8311d6f2b`, exact CI39101404251 Node/Deno/database pass and required archives fail. Its compiler/plan/SQL hashes are retained in `evidence/guarded-package-identity.json`. It accepts only the known local PG16 baseline, was not applied live, and must not be treated as an approved migration for production PG17. Do not bulk-merge its divergent application/backend authority into this existing apply stack.
+
+## Existing production authority/source boundary
+
+The verified legacy authority is `career_batch_intents_v1`, `career_batch_runs_v1`, `career_batch_ledgers_v1`, with nine routines: `career_batch_control_hook_v1`, `career_batch_turn_commit_v1`, `career_batch_pending_v1`, `career_batch_claim_v1`, `career_batch_finish_v1`, `career_batch_save_run_v1`, `career_batch_result_v1`, `career_batch_ledger_v1`, `career_batch_save_ledger_v1`. Source: `supabase/migrations/20261016010000_career_batch_intents_v1.sql`, `workers/career-browser/batch-executor.cjs`, `packages/domain/155-career-batch-apply.js`, the host/persistence/task bridge and handler composition. Preserve the existing account hook, claim-once behavior, uncertain outcomes and ledger history; introduce no competing batch authority.
+
+The prior private metadata/provenance review verified all three tables and nine routine bodies against the published migration, with additional existing grants preserved for explicit review. No live snapshot, definition or owner fact bank is copied into this public checkpoint.
+
+## Actual checks and retained failures
+
+- Exact-base CI39162171931: Node root TAP **4,204 passed / 52 failed / 69 skipped**, 4,327 tests; Deno **21 type errors**; database passed. Raw Node/Deno logs and summary are retained. The Node log has54 nested/wrapper failure-report entries; those are not mislabeled as54 root failures. This baseline is red and no inherited failure has been waived.
+- Local answer-map/apply/caps/payload-binding/unknown-resolution selection: **87/87 passed**, no skips.
+- Explicit pure R3/submit-integrity selection: **11/11 passed**, no skips. This is not the browser tier.
+- New synthetic provenance regressions: **8/8 failed first** against the unchanged4ba9351 runtime. `status:confirmed` plus the documented test-generation provenance was promoted into factual answers, including a required question reaching `prepared` instead of a named ask. Source/test hashes and actual exit1 are retained in `evidence/provenance-before.json`; no actual applicant facts were used.
+- An earlier test-name filter also selected three browser cases. They failed before a browser started because the expected Playwright Chromium executable was absent. This is retained as prerequisite evidence; no install, relay, trust change or sandbox-off retry was used. A corrected pure selection follows it in the evidence directory.
+
+The contract `docs/career/contracts/mi-038-r3-delegated-answers.md` explicitly treats an instruction to generate answers “For test” as factual confirmation. That narrative is not evidence those answers are true. Preserve technical answer matching, but actual owner statements/employer records must substantiate a real packet; generated/test answers must remain unconfirmed and uncovered required questions must be named asks holding only the affected job. Existing closed answer-map tests prove technical mappings, not real applicant truth. The new regression stays red until the claimed implementation scope is released and corrected.
+
+## Claim coordination and merge boundary
+
+AGENTS.md requires a claim before editing and says to never edit another agent's files, leaving a Request instead. BUILD-STATUS contains closing notes plus stale NOT-pushed text for the completed portal work, without an explicit release. A scoped request is recorded there and sent for clarification. Pending scopes: `packages/domain/142-career-router.js`, `149-career-portal-apply.js`, `150-career-portal-browser.js`, `scripts/career/portal-browser-helper.cjs`, `tests/fixtures/portal-fixture-server.cjs`, generated `router_core.js`/`router_core.career.js`, and the corresponding delegated-answer documentation. Registry allocation files remain Crew A-owned; no numbers were self-allocated.
+
+Scratch merge-tree checks used an isolated bare object store with read-only alternates, changing no worktree or shared ref. Base+v227 conflicts in `docs/bug-ledger.md`; base+readiness conflicts in that ledger, BUILD-STATUS and the fixture server. These pairwise results do not prove a final three-way behavior composition. Do not resolve by bulk ours/theirs or merge generated blobs; reconcile handwritten behavior after ownership is released, then regenerate both router bundles and run --check. Security tooling in readiness is source material to inspect, not permission to execute relay/SPKI wrappers.
+
+## Actual-record and runtime prerequisites before external execution
+
+Gusto8257115 is the first **audit candidate**, not a selected verified queue record. Its private record, fact-bank.json, answered owner sheet, original resume/packet, screenshots and finish kit remain untransferred. The declared local fact-bank path is absent; Library exact-title queries found no matching bank/answered-sheet/finish-kit file. Two unrelated fuzzy results were not treated as the packet. F-082/F-083,81 confirmed facts and18 doorsteps remain claims until those private records are read and their assertion provenance verified.
+
+Before any external action, report the exact queue item/canonical employer destination, current posting/eligibility facts, resume and field-source hashes, unanswered required asks, approval scope, prior submitted/unknown history and caps (15/day,5/vendor/day,1/company/30days), and an approved Upmore-only runtime/security configuration. Browser executable/runtime access is currently unverified; relay, sandbox-off and certificate/proxy changes require their separate applicable approval and must not bypass earlier restrictions. Only project `mrwngntwmnaqrqhupvlt` is in scope; never Sporv.
+
+Only employer confirmation can yield submitted. Unknown outcomes must not be blindly retried. CAPTCHA/login walls require handoff; the product must not solve them. No test persona may be sent to an employer. Anthropic Fellows requires the official partner form; a Greenhouse doorstep alone cannot be counted as its application. No real application or readiness claim is made by this checkpoint.

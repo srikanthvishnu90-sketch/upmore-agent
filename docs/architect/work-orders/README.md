@@ -9,7 +9,7 @@ real texting channel is last (D-009).
 | WO | Title | Status | Depends on | Milestone | Assignee |
 |---|---|---|---|---|---|
 | [001](WO-001-green-gate.md) | One green gate on trunk | ready | — | M0 | Codex |
-| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | in progress | 001 | M1 | Claude |
+| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | in review | 001 | M1 | Claude |
 | [003](WO-003-eval-runner.md) | Eval runner and rubric judge | ready | 001 | M1 | Muse |
 | [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | in progress | 001 | M1 | Claude |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |

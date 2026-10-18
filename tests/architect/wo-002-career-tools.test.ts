@@ -2,7 +2,7 @@
 // The first career tools: thin wrappers over the existing domain modules, operating on the same per-thread
 // career state the router uses (the CareerHost snapshot stores), so either brain can run on a thread.
 // Contract in docs/architect/work-orders/WO-002.md. Run: deno test --no-check tests/architect/
-import { careerTools } from "../../../supabase/functions/_shared/agent/career_tools.ts";
+import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

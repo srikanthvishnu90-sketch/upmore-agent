@@ -7,7 +7,7 @@ import {
   MODEL_ERROR_REPLY,
   type ToolSpec,
   type ModelFn,
-} from "../../../supabase/functions/_shared/agent/loop.ts";
+} from "../../supabase/functions/_shared/agent/loop.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

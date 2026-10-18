@@ -34,6 +34,8 @@ import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerRep
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
+import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
+import { chooseBrain, agentTurn } from "./career_brain.ts";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -209,7 +211,33 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
-      let out = host.runTurn(message, ctx);
+      // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
+      // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
+      let out: any;
+      let agentMeta: Record<string, unknown> | null = null;
+      if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent") {
+        const meter = newMeter();
+        const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const hist = await admin.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20);
+        const history = ((hist.data || []) as any[]).reverse()
+          .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
+        const turn = await agentTurn({ message, history, stores: ctx as Record<string, unknown>, userId: user.id, threadId: tid, now: Date.now(),
+          model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) });
+        if (meter.calls) {
+          const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
+          if (costErr) console.error("agent turn cost not recorded:", costErr.message);
+        }
+        if (turn.stopped === "model_error") {
+          console.error("agent brain: model unavailable, answering with the router");
+          out = host.runTurn(message, ctx);
+        } else {
+          out = { reply: turn.reply, intent: "agent", resultStatus: turn.stopped, contained: false, handler: "agent" };
+          agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
+        }
+      } else {
+        out = host.runTurn(message, ctx);
+      }
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
@@ -240,7 +268,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       flowCtx.note = null;
       return json(cors, saved.response, 200);

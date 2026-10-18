@@ -45,3 +45,64 @@ systemctl list-timers upmore-alerts-scheduler.timer   # next fire ≤15 min out
 sudo systemctl start upmore-alerts-scheduler.service  # one manual cycle
 tail ~/workspace/alerts-scheduler/logs/cycles.jsonl    # expect a 107-board ok cycle
 ```
+
+## Self-healing (added 2026-10-18): the wipe now restores itself
+
+The units were wiped THREE times (2026-10-17 ×2, 2026-10-18) and each time
+polling stopped silently until an agent noticed — the worst gap was ~11h.
+systemd cannot heal this itself: the thing being wiped IS systemd's unit
+directory. The surviving pieces are (a) the persistent home directory and
+(b) saved runtime state — the runtime restores its saved jobs and hooks
+after a replacement. So the watchdog is a runtime **hook**:
+
+- Hook id `upmore-alerts-scheduler-watchdog`, script
+  `~/hooks/scripts/upmore-alerts-scheduler-watchdog.sh`, state under
+  `~/hooks/state/upmore-alerts-scheduler-watchdog/` (heal history in
+  `heals.jsonl`). Polls every 60 seconds; each poll is a few local
+  `systemctl`/`cmp` probes (~0.2s).
+- HEALTHY (both unit files present, byte-identical to these sources,
+  timer enabled AND active) → silent no-op. It never restarts the
+  service, never touches a running cycle — the heal path only recreates
+  unit files and the timer, which cannot disturb a running oneshot.
+- UNHEALTHY and conclusive (files missing or drifted, or timer not
+  enabled/active) → runs the reinstall one-liner above verbatim from
+  these sources, re-verifies, and wakes a worker to REPORT the heal
+  (the heal never waits for an agent). If the install lands but
+  verification fails, it wakes once per incident and keeps retrying
+  silently on later polls.
+- INCONCLUSIVE (files perfect but `systemctl` itself unreachable —
+  early boot, bus not up yet) → does nothing, retries next poll.
+
+### Proof — simulated wipe, 2026-10-18
+
+Between cycles (service inactive), both installed unit files were
+deleted + `daemon-reload` → timer LoadState `not-found`, the exact
+post-replacement state.
+
+- 20:22:19Z — wipe executed.
+- 20:23:17Z — watchdog healed (its own log: diagnosis
+  `files_missing=1`, install 2s). Externally observed wipe→timer-active:
+  **59s** (bounded by the 60s poll). No timer tick was missed: the
+  window fell between the 20:18 cycle and the 20:30 tick.
+- Post-heal: installed files byte-identical to these sources (`cmp`),
+  timer `enabled`, next elapse 20:30Z. Manual due-cycle ran clean;
+  forced full cycle (launcher `--cadence=all`, the unit's own env) at
+  20:25:43Z: starred ok + default ok, **107/107 boards, 0 errors**.
+- Polls after the heal: silent/healthy — the no-op path verified on a
+  healthy system, before and after the wipe test.
+
+### Residual gaps (honest)
+
+- The watchdog's own survival across a REAL replacement rests on the
+  runtime's documented recovery of saved hooks + home persistence; all
+  three observed wipes hit `/etc` only, but no replacement has occurred
+  since the hook was installed, so that half is documented-platform
+  behavior, not yet observed end-to-end. The `/etc`-loss half is proven
+  above. If hook definitions were ever lost too, the fallback signal is
+  Crew A noticing missing cycles — detection, not a heal.
+- A replacement that lands MID-cycle kills that cycle; the watchdog
+  restores the timer and the grid-anchored cadence runs the next due
+  slot — the killed cycle itself is not replayed.
+- Per the convention above, a heal recreates the units, so treat any
+  clean-48h measurement as restarting from the heal; the watchdog's
+  report-back wake says so each time.

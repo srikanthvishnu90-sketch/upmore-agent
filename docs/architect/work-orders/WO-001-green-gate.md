@@ -54,3 +54,10 @@ purpose locally (e.g. change an expected stage in `tests/career-track*.test.cjs`
 
 ## Out of scope
 Deleting finance code (WO-007), any product behavior change other than the regex rewrite.
+
+## Architect hint (2026-10-18, after the first four CI runs)
+GitHub's `ubuntu-24.04` runners restrict unprivileged user namespaces through AppArmor
+(`kernel.apparmor_restrict_unprivileged_userns=1`), which stops Chromium's sandbox from starting. Keep the sandbox ON and
+lift the restriction for the job instead, before `scripts/gate.sh`:
+`sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`. Do not use `--no-sandbox` or `chromiumSandbox: false`.
+If a different step is the failure, say which in the PR.

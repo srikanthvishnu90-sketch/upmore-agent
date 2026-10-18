@@ -1,0 +1,21 @@
+{
+  "sourceCheckpoint": "5dbc43749c1663e423f919fc570ad7e12435506d",
+  "runtimeBase": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
+  "command": "node --experimental-vm-modules --test tests/career-chat-quota-boundary.test.cjs",
+  "exitCode": 1,
+  "tests": 8,
+  "pass": 6,
+  "fail": 2,
+  "skip": 0,
+  "externalRequests": 0,
+  "businessStateAccess": 0,
+  "paidCalls": 0,
+  "runtimeChangedPaths": [],
+  "files": {
+    "tests/career-chat-quota-boundary.test.cjs": "a1db6e59a0fd1bf3af040590fb351f6c09134e7638201a80bae079cbceae88e1",
+    "scripts/career/stage-career.cjs": "6c82197a5e0e9293a423621fa317472fcd1056a374df68fac778a7c88d46620f",
+    "supabase/functions/agent-chat/index-career.ts": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7",
+    "supabase/functions/agent-chat/handler-career.ts": "3b00aa00c02a38f4df8f5cfeb22c48a382003e0ca2166005a2ef58f3dff91048",
+    "supabase/functions/agent-chat/_shared/chat_input.ts": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662"
+  }
+}

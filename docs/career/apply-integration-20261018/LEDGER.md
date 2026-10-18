@@ -1,5 +1,12 @@
 # Integration defect ledger
 
+## Work quota consumed before cheap input validation — OPEN
+
+- Reproduced through the real staged handler: an authenticated empty message returns400 after calling the work limiter; an invalid turn key at exhausted quota returns429 instead of named400.
+- Permanent guard: new unclaimed `tests/career-chat-quota-boundary.test.cjs`;2fail-first cases/6passing protocol and owner-binding controls, no skips. No runtime fix claimed.
+- Required correction after handler scope coordination: cheap input validation before valid-work allowance, with a separate abuse guard preserved. Do not remove limits or claim measured capacity.
+- Evidence: `evidence/quota-boundary-before.log` and `.json` retain actual result and exact source/test/stager hashes. No external fetch, business-state read, model or browser call occurs.
+
 ## Factual confirmation from a test-generation directive — OPEN
 
 - Trigger: an application/profile fact is marked status=confirmed but its documented provenance is an owner delegation to generate answers “For test.”

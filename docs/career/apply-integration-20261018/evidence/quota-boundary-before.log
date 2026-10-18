@@ -1,0 +1,55 @@
+(node:2329) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2329) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ missing bearer is 401 and spends no quota (196.96723ms)
+✔ unverified bearer is 401 and spends no quota (93.652609ms)
+✔ profile storage failure is 500, never a quota denial (92.095291ms)
+✔ quota RPC error is 500, never a quota denial (93.138683ms)
+✔ normal JWT quota denial is 429 scoped to verified owner, before business work (102.92429ms)
+✔ service bridge denial uses explicit verified owner quota (119.412133ms)
+✖ empty input is rejected without spending work allowance (101.805637ms)
+✖ invalid turn key remains a named 400 even when work quota is exhausted (101.038617ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1060.019729
+
+✖ failing tests:
+
+test at tests/career-chat-quota-boundary.test.cjs:70:2
+✖ empty input is rejected without spending work allowance (101.805637ms)
+  AssertionError [ERR_ASSERTION]: invalid work must not consume the valid-work allowance; preserve a separate abuse guard
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-chat-quota-boundary.test.cjs:71:163)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-chat-quota-boundary.test.cjs:73:2
+✖ invalid turn key remains a named 400 even when work quota is exhausted (101.038617ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  429 !== 400
+  
+      at TestContext.<anonymous> (/workspace/upmore-apply-integration-20261018/tests/career-chat-quota-boundary.test.cjs:74:74)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 429,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,6 +1,6 @@
 {
-  "version": "apply_stack_audit_checkpoint/v2",
-  "observedAt": "2026-10-18T21:02:12.295302+00:00",
+  "version": "apply_stack_audit_checkpoint/v3",
+  "observedAt": "2026-10-18T21:06:04.813862+00:00",
   "integrationBase": "4ba9351c0f4cf207b35bdda49f41c98e8e9a7649",
   "branch": "codex/apply-stack-integration-20261018",
   "runtimeChangedPaths": [],
@@ -24,14 +24,16 @@
   "liveActions": 0,
   "paidCalls": 0,
   "files": {
-    "docs/instinct-spec-series/BUILD-STATUS.md": "baa3d54dc7f4cf6623f75d9f489714fa33678cb3d61ad671adf0f8c81fa0a1ec",
+    "docs/instinct-spec-series/BUILD-STATUS.md": "d554b98782ec874b67b4f19eda52a02eaf6548ca6d278b5fe79573dbc6812fe3",
     "docs/playbook-drift-20261018.md": "836dc0947928718e9a002ee8e0ba20d777948ad887a324a999c66dba53bf2df5",
     "tests/career-apply-fact-provenance.test.cjs": "3d60c33e328b14f3e52b24329505dd605fff677add8641db351e3cdc07d736aa",
     "tests/career-apply-batch-live-shape.test.cjs": "7c3396a85721f1bfbb41dc6dc0c2c1c2a3d81b4e5ebbb0d262c7d54158130520",
+    "tests/career-chat-quota-boundary.test.cjs": "a1db6e59a0fd1bf3af040590fb351f6c09134e7638201a80bae079cbceae88e1",
     "docs/career/apply-integration-20261018/CAPACITY-SOURCES.md": "13de7093201d7c12a9130369fe24a27371bc202b59461d727c50996a1a4bcbad",
     "docs/career/apply-integration-20261018/CLAIMS-AND-NEXT.md": "e377f17856649a4aedca70cf1644a8bc16c8ee4d40f2705476c045555854a54e",
-    "docs/career/apply-integration-20261018/LEDGER.md": "e7b85f770b970b4a653e2e2cc164e0a084d7c70ef3530c5aba8c042db2afd926",
-    "docs/career/apply-integration-20261018/README.md": "4081966ed23f35739c5f18dd205117770c571763fce308e2940a01e5bf004307",
+    "docs/career/apply-integration-20261018/LEDGER.md": "18f6ad9031e145df2a714415d027382caa216beab8730d6608b2a66be1c69127",
+    "docs/career/apply-integration-20261018/MUSE-ADOPTION.md": "7364be30eb3ea46526b6a058cd5c8741adb0aad9142182a80ffc0d3fa4ee0f57",
+    "docs/career/apply-integration-20261018/README.md": "f03c24599ee7940513b243ddf91d349bf8129f2b5c03d92841eb8bad26e64a12",
     "docs/career/apply-integration-20261018/STAGES.md": "70def5deeb9ba340ed0c7784e8f6c437bf13f1794502e7955baa0443447eb0e7",
     "docs/career/apply-integration-20261018/evidence/base-answer-apply-caps-unknown.log": "da62ebd7e9caf4f1b1694b6d84984cde376d97d74f3d7ef496bf9791860b709b",
     "docs/career/apply-integration-20261018/evidence/base-ci-summary.json": "443bfd94e500c77d688b0285f8d840a5dd097bd7c57dc4afd7f6758de319c6b8",
@@ -50,6 +52,8 @@
     "docs/career/apply-integration-20261018/evidence/merge-tree-v227.log": "33597acdecc5dae62ca9d2896a7ee40c9f8cc64c1777606541cc4be0a18d181c",
     "docs/career/apply-integration-20261018/evidence/provenance-before.json": "9b1f647d101923ffb316f1758b5355aa9b36f9a84148b6b5661466e6d839a723",
     "docs/career/apply-integration-20261018/evidence/provenance-before.log": "f7be61078a6fd70af33fcaff99dc00be6870eedf3798b1b07c80a563cee00607",
+    "docs/career/apply-integration-20261018/evidence/quota-boundary-before.json": "fafee33e7fa587c7b51a0442efecef34b80b17c98b4d616c2b208a2788f215d9",
+    "docs/career/apply-integration-20261018/evidence/quota-boundary-before.log": "cee492dc106d195db442784d22bbc433df182e0f81b973ffa7601b10c1526c24",
     "docs/career/apply-integration-20261018/evidence/verified-refs.json": "7b6be697ed6e15794d56eb5cebf3573b2a3d73cf9d6677b7471ebaf648fc5e35",
     "scripts/career/apply-integration/replay-published-guard.cjs": "69e5697d4186997b347319ad7a524eea24f957cfb95ab0a85c01c9d51711d132"
   },
@@ -59,5 +63,11 @@
     "wrapperExitCode": 1,
     "sourceFixComposed": false
   },
-  "hostExtensionSource": "MATCHED_PUBLISHED_BODY"
+  "hostExtensionSource": "MATCHED_PUBLISHED_BODY",
+  "newQuotaBoundaryFailFirst": {
+    "pass": 6,
+    "fail": 2,
+    "skip": 0,
+    "runtimeFixComposed": false
+  }
 }

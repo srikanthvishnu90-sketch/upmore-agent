@@ -29,6 +29,8 @@ The contract `docs/career/contracts/mi-038-r3-delegated-answers.md` explicitly t
 
 `STAGES.md` preserves the six ordered outcome gates. `CAPACITY-SOURCES.md` records source-only quota paths; no sustainable throughput or concurrency result was measured. Operational user/window/request observations remain private. Email remains disabled and the shared $7 cap is not a fresh allocation.
 
+The independent unclaimed quota-boundary test adds six passing controls and two meaningful fail-first validation cases through the real staged handler. Runtime remains unchanged. `MUSE-ADOPTION.md` gives the exact published BUG-240 repair, source-adoption/bundle/guard requirements and per-stage remaining dependencies. Claim ambiguity is historical scope handoff, not verified active collision or tool denial; only a narrow transfer or Muse application is requested.
+
 ## Claim coordination and merge boundary
 
 AGENTS.md requires a claim before editing and says to never edit another agent's files, leaving a Request instead. BUILD-STATUS contains closing notes plus stale NOT-pushed text for the completed portal work, without an explicit release. A scoped request is recorded there and sent for clarification. Pending scopes: `packages/domain/142-career-router.js`, `149-career-portal-apply.js`, `150-career-portal-browser.js`, `scripts/career/portal-browser-helper.cjs`, `tests/fixtures/portal-fixture-server.cjs`, generated `router_core.js`/`router_core.career.js`, and the corresponding delegated-answer documentation. Registry allocation files remain Crew A-owned; no numbers were self-allocated.

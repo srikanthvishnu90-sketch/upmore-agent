@@ -31,12 +31,11 @@
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/+esm";
+import { toBubbles } from "../_shared/conversation.ts";
 
 const ALLOWED_SENDER_DIGITS = "12246029341"; // Vishnu's phone, E.164 digits
 const BRIDGE_USER_ID = "c38e413f-6937-47bc-9e4a-5e19fafb3069"; // Vishnu's Upmore user id (identifier, not a secret)
 const LOOPMESSAGE_SEND_URL = "https://a.loopmessage.com/api/v1/message/send/";
-const MAX_BUBBLES = 4;
-const BUBBLE_CHARS = 700;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -75,84 +74,7 @@ function isInboundText(event: string): boolean {
   return /message|inbound|received/.test(event) && !/status|deliver|sent|read|typing/.test(event);
 }
 
-// ---- bubble formatting (own implementation) ----
-// Short texting-sized bubbles on sentence boundaries; each bare URL gets its
-// own bubble so iMessage renders a link preview card; at most 4 bubbles.
-const URL_RE = /https?:\/\/[^\s<>"']+/g;
-const isLinkBubble = (s: string) => /^https?:\/\/\S+$/.test(s.trim());
-
-function splitLong(text: string, max: number): string[] {
-  const t = text.trim();
-  if (t.length <= max) return [t];
-  // Chunk on existing line breaks first (the model structures replies with
-  // newlines), then word-wrap overlong lines. Cuts happen ONLY at spaces,
-  // so numbers (15.49), domains (netflix.com) and URLs are never split.
-  const out: string[] = [];
-  for (const line of t.split("\n")) {
-    let rest = line.trim();
-    if (!rest) continue;
-    while (rest.length > max) {
-      let cut = rest.lastIndexOf(" ", max);
-      if (cut < max * 0.4) cut = max; // no good break: hard cut (rare)
-      out.push(rest.slice(0, cut).trim());
-      rest = rest.slice(cut).trim();
-    }
-    if (rest) out.push(rest);
-  }
-  return out.length ? out : [t.slice(0, max)];
-}
-
-function toBubbles(reply: string): string[] {
-  // Strip hidden markers (exec-offer etc.) — they'd render as raw text in iMessage.
-  const clean = reply.replace(/<!--[\s\S]*?-->/g, "").trim();
-  if (!clean) return [];
-  const urls = clean.match(URL_RE) ?? [];
-  if (urls.length > 2) return splitLong(clean, BUBBLE_CHARS).slice(0, MAX_BUBBLES);
-  const raw: string[] = [];
-  for (const para of clean.split(/\n\s*\n/)) {
-    let buf = "";
-    const flush = () => {
-      const t = buf.trim();
-      if (t) raw.push(t);
-      buf = "";
-    };
-    for (const line of para.split("\n")) {
-      const lineUrls = line.match(URL_RE);
-      if (!lineUrls) {
-        buf += (buf ? "\n" : "") + line;
-        continue;
-      }
-      let rest = line;
-      for (const u of lineUrls) {
-        const i = rest.indexOf(u);
-        const before = rest.slice(0, i).replace(/[\s:–—-]+$/, "").trim();
-        if (before) buf += (buf ? "\n" : "") + before;
-        flush();
-        raw.push(u);
-        rest = rest.slice(i + u.length).replace(/^[\s.,;)]+/, "");
-      }
-      if (rest.trim()) buf += (buf ? "\n" : "") + rest.trim();
-    }
-    flush();
-  }
-  const sized: string[] = [];
-  for (const b of raw) {
-    if (isLinkBubble(b) || b.length <= BUBBLE_CHARS) sized.push(b);
-    else sized.push(...splitLong(b, BUBBLE_CHARS));
-  }
-  while (sized.length > MAX_BUBBLES) {
-    let k = -1;
-    for (let i = 0; i < sized.length - 1; i++) {
-      if (!isLinkBubble(sized[i]) && !isLinkBubble(sized[i + 1])) {
-        k = i;
-        break;
-      }
-    }
-    if (k < 0) break;
-    sized.splice(k, 2, sized[k] + "\n\n" + sized[k + 1]);
-  }
-  return sized;
-}
+// Bubble formatting is shared with every channel: _shared/conversation.ts (WO-004).
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok");

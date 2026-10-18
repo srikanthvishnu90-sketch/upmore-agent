@@ -1,16 +1,17 @@
 # Work-order queue
 
 Each builder takes the lowest `ready` order assigned to it (or `any`) whose dependencies are `done`.
-**Codex's sequence (owner priority, genuine submissions first): 001 → 009 → 002 → 005 → 008 → 010.** Muse: 003 → 004 → 006 → 007.
+**Codex: 001 → 009 → 005 → 008 → 010.** **Claude (architect, also building): 002 → 004.** **Muse: 003 → 006 → 007.**
+The architect's own PRs are reviewed by Codex against the same order before merge.
 Only the architect edits this table. Every capability is tested through the text simulator (WO-004); the
 real texting channel is last (D-009).
 
 | WO | Title | Status | Depends on | Milestone | Assignee |
 |---|---|---|---|---|---|
 | [001](WO-001-green-gate.md) | One green gate on trunk | ready | — | M0 | Codex |
-| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | ready | 001 | M1 | Codex |
+| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | in progress | 001 | M1 | Claude |
 | [003](WO-003-eval-runner.md) | Eval runner and rubric judge | ready | 001 | M1 | Muse |
-| [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | ready | 001 | M1 | Muse |
+| [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | in progress | 001 | M1 | Claude |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | ready | 001 | M2 | Muse |
 | [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | ready | 004, 006 | M2 | Muse |

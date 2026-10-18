@@ -1,6 +1,7 @@
-# Trainee — instructions for Codex (the builder)
+# Trainee — instructions for the builders (Codex, Muse)
 
-You implement work orders. The architect (Claude) designs; the owner (Vishnu) decides product,
+You implement work orders. Each order names its builder in the queue (`Assignee`); take only orders assigned to you
+or to `any`. The architect (Claude) designs; the owner (Vishnu) decides product,
 money, credentials and deploys. Read `docs/architect/ARCHITECTURE.md` and `docs/architect/DECISIONS.md` once,
 then work only from `docs/architect/work-orders/`.
 

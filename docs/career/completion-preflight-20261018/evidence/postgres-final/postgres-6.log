@@ -1,0 +1,22 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_6","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:198961) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:198961) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"failedRpc":"career_application_batch_control_v1","error":{"message":"ERROR:  application source observation expired; refresh and review required\nCONTEXT:  PL/pgSQL function career_application_approval_source_guard_v1() line 8 at RAISE\nSQL statement \"insert into career_task_intents_v1(user_id,intent_id,thread_id,turn_key,request_hash,event_hash,binding,private_input,authority_account_version,privacy_epoch,task_id,expires_at)\n values(p_user,id,b.thread_id,event,id,encode(sha256(convert_to(p_user::text||':'||event,'UTF8')),'hex'),binding,payload,b.account_version,b.privacy_epoch,p_task,expiry)\"\nPL/pgSQL function career_application_batch_queue_v1(uuid,uuid,text,text,jsonb) line 31 at SQL statement\nSQL statement \"SELECT career_application_batch_queue_v1(p_user,batch,r.task_id,'approve',entry->'review')\"\nPL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 59 at PERFORM\n"}}
+{"failedRpc":"career_application_search_scope_v1","error":{"message":"ERROR:  application search scope changed\nCONTEXT:  PL/pgSQL function career_application_search_scope_v1(uuid,uuid,text,text,bigint,bigint,jsonb) line 11 at RAISE\n"}}
+{"failedRpc":"career_application_batch_control_v1","error":{"message":"ERROR:  batch search scope changed\nCONTEXT:  PL/pgSQL function career_application_batch_context_v1(uuid,uuid,uuid) line 7 at RAISE\nPL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 14 at assignment\n"}}
+{"failedRpc":"career_application_batch_control_v1","error":{"message":"ERROR:  exact fresh batch approval required\nCONTEXT:  PL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 54 at RAISE\n"}}
+{"failedRpc":"career_application_search_prepare_v1","error":{"message":"ERROR:  application context revoked\nCONTEXT:  PL/pgSQL function career_application_search_prepare_v1(uuid,uuid,text,uuid,jsonb) line 7 at RAISE\n"}}
+{"failedRpc":"career_application_search_prepare_v1","error":{"message":"ERROR:  application selection conflict\nCONTEXT:  PL/pgSQL function career_application_search_prepare_v1(uuid,uuid,text,uuid,jsonb) line 9 at RAISE\n"}}
+{"failedRpc":"career_application_batch_control_v1","error":{"message":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_context_v1(uuid,uuid,uuid) line 5 at RAISE\nPL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 14 at assignment\n"}}
+{"failedRpc":"career_application_batch_control_v1","error":{"message":"ERROR:  batch context revoked\nCONTEXT:  PL/pgSQL function career_application_batch_context_v1(uuid,uuid,uuid) line 5 at RAISE\nPL/pgSQL function career_application_batch_control_v1(uuid,uuid,text,text,jsonb) line 14 at assignment\n"}}
+{"evidence":"ACTUAL_APP_CONTROLLER_EDGE_SQL_PULL_RUNNER_SYNTHETIC_EXECUTION","sourcedSyntheticMatches":10,"sourceReads":69,"shortfallRequested":100,"shortfallMatched":9,"ownerStalePauseEraseDenials":true,"expiredSourceRefreshAndRereview":true,"oldApprovalRevokedByConstraints":true,"changedSourceHeld":true,"independentHealthyRoles":9,"roleAnswerContinued":1,"exactBatchApprovedRoles":10,"lostApprovalRecovered":true,"reloadUnknownRoles":5,"quotaBlockedRoles":5,"physicalSyntheticSubmits":5,"employerReceipts":0,"modelCalls":0,"employerSubmissions":0}
+✔ ordinary text collects confirmed facts/resume and saves a sourced shortlist with exact selection into the batch queue (255463.084484ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 255657.210276

@@ -1,0 +1,17 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_15","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:350186) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:350186) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ checker rejection records both paid obligations and preserves an unassessed exact attempt (5864.818236ms)
+{"failedRpc":"career_journey_turn_commit_v1","error":{"message":"ERROR:  CONTROLLED final commit fault\nCONTEXT:  PL/pgSQL function interview_result_reject() line 1 at RAISE\nSQL statement \"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\"\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\nPL/pgSQL function career_journey_turn_commit_v1(jsonb,jsonb,jsonb,jsonb) line 42 at assignment\n"}}
+✔ failed final turn commit reuses durable checked result after restart without another provider dispatch (6648.032852ms)
+✔ terminal no-call fence prevents late consumption and old-action admission after funding changes (4935.067847ms)
+✔ erase removes private action payload while preserving already-started accounting uncertainty (6076.483679ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23724.376872

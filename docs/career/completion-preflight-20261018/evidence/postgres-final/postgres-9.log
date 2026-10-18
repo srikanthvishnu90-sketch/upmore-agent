@@ -1,0 +1,15 @@
+(node:286633) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:286633) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"evidence":"COMBINED_REAL_SQL_PUBLICATION_SUPERVISOR","centralState":"claimed","centralResultMissing":true,"localStatus":"evidence_ready","localBlocker":"TASK_RESULT_UNCONFIRMED","publicationPending":true,"supervisor":{"stopped":false,"tasks":0,"completed":0,"evidenceReady":0,"handoffs":0,"errors":0,"transitions":1,"activeTaskId":"4b012724934431b3e9a48d6d229f6391"},"reads":1,"finishes":1,"effects":[{"state":"completed","operation":"read_public_page"}],"paidCalls":0,"actualBrowserEffects":0}
+✔ combined legacy pull supervisor cannot stop before an actual central research result is published (2824.851506ms)
+{"evidence":"COMBINED_REAL_SQL_PUBLICATION_SUPERVISOR","centralState":"claimed","centralResultMissing":true,"localStatus":"evidence_ready","localBlocker":"TASK_RESULT_UNCONFIRMED","publicationPending":true,"supervisor":{"stopped":false,"tasks":0,"completed":0,"evidenceReady":0,"handoffs":0,"errors":0,"transitions":1,"activeTaskId":"4b012724934431b3e9a48d6d229f6391"},"reads":1,"finishes":1,"effects":[{"state":"completed","operation":"read_public_page"}],"paidCalls":0,"actualBrowserEffects":0}
+✔ combined owned pull supervisor cannot stop before an actual central research result is published (2647.612335ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5562.235896

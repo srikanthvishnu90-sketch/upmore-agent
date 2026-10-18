@@ -1,0 +1,14 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_8","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:282752) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:282752) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"evidence":"COMBINED_NATIVE_CHAT_CONFIRMATION_EQUIPMENT_AUTHORITY","confirmationUsedNative":true,"confirmationStamp":"2","resumeSha256":"e9f69984dc7bd8d9046471cf238f96e55a1d90fcdc322ad8d29c793daed8f6a9","bytes":843,"callsAfterConfirmation":4,"controlledProviderCalls":6,"erasedResumeRows":0,"paidCalls":0,"browserEffects":0,"unprovenFactsNotMapped":true}
+✔ native-enabled owner chat -> exact confirmation stamp -> browser task/lease -> immutable resume bytes; later native turn and STOP/erase revoke authority (11103.380523ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11299.101462

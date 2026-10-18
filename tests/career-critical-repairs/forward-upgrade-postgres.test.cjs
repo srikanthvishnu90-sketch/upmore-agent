@@ -47,6 +47,12 @@ test('forward upgrade: supported baseline, preservation, transaction rollback an
  }
  assert.deepEqual(build.canonical(reference),build.canonical(JSON.parse(fs.readFileSync(referenceFile,'utf8'))));
  const before=f.rows(),baseline=f.catalog(),candidate=build.render({catalog:reference}).sql;
+ const probe=JSON.parse(f.sql(fs.readFileSync(path.join(build.ROOT,'scripts/career/forward-upgrade/collect-compatibility.sql'),'utf8')));
+ assert.equal(probe.readOnly,true);assert.equal(probe.dependencies.length,6);
+ const messageId=probe.dependencies.find(x=>x.name==='public.agent_messages').columns.find(x=>x.name==='id');
+ assert.equal(messageId.type,'uuid');assert.equal(messageId.hasDefault,true);
+ assert.ok(probe.accountTriggers.every(x=>x.definitionSha&&!('body'in x)));
+ assert.deepEqual(f.rows(),before);
  denied(()=>f.sql(fs.readFileSync(path.join(build.ROOT,[...build.SKIP][1]),'utf8')),/already exists/);
  denied(()=>f.sql(build.render().sql),/UPGRADE_REVIEWED_CATALOG_REQUIRED/);
  assert.deepEqual(f.rows(),before);assert.deepEqual(f.catalog(),baseline);
@@ -60,6 +66,9 @@ test('forward upgrade: supported baseline, preservation, transaction rollback an
  assert.deepEqual(f.rows(),before);
  assert.equal(f.sql('select count(*)from career_model_pair_policy_v2'),'0');
  assert.equal(f.sql('select count(*)from career_model_campaign_v1'),'0');
+ for(const [grant,revoke]of [['grant update on career_forward_upgrade_v1 to service_role','revoke update on career_forward_upgrade_v1 from service_role'],['grant truncate on career_forward_upgrade_v1 to public','revoke truncate on career_forward_upgrade_v1 from public'],['grant select(plan_sha256)on career_forward_upgrade_v1 to authenticated','revoke select(plan_sha256)on career_forward_upgrade_v1 from authenticated']]){
+  f.sql(grant);denied(()=>f.sql(candidate),/UPGRADE_JOURNAL_PRIVILEGE_DRIFT/);assert.deepEqual(f.rows(),before);f.sql(revoke);
+ }
  const installed=f.catalog();assert.equal(installed.relations.filter(r=>r.exists).length,build.inventory().scope.relations.length);
  for(const r of installed.relations.filter(r=>!baseline.relations.find(b=>b.name===r.name).exists)){
   assert.equal(r.rls,true,r.name);

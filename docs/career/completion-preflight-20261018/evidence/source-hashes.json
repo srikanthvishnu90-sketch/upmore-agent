@@ -7,18 +7,21 @@
   "realSubmissions": 0,
   "liveWrites": 0,
   "files": {
-    "scripts/career/forward-upgrade/build.cjs": "9826cbe38739cd2548c0cc3be6c6934027846befe0a7e3c26f9113a2420c9c4d",
+    "scripts/career/forward-upgrade/build.cjs": "c3d7c6cd66b41a786de084f0379d3b473c0bb63bad735a6ee2f4fd503ed88e9c",
     "scripts/career/forward-upgrade/collect-catalog.sql": "13555d629ae0688006c3b1cb80bb5156e2a9b5eead0c67abeb5d483f1b7b14bc",
     "scripts/career/forward-upgrade/reference-catalog.json": "5b01923af6c6c8769b86e820693ee707dc568aeaa19ae6c1e7a6171ecd3cd4fb",
-    "tests/career-forward-upgrade.test.cjs": "a0c55c9b511c83738e0861feef60c969d4573b6399450b928ec8d4f141a7755c",
-    "tests/career-critical-repairs/forward-upgrade-postgres.test.cjs": "0fad0e1ab5477e8789c1d97c5c8f2693ea5a72e554caa644a6e8e44edef67181",
-    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql": "94ffbdd4d82163fad7c442b94323e59203c6f338b44ddadd103bd55fce2fd863",
-    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql.manifest.json": "1832cccd61ce7ecbbfb253f6edfdedde32bb63728cc7bf8f9099281c1a9b008d"
+    "tests/career-forward-upgrade.test.cjs": "e31bef0517d6761a8baba098ddf5d7280ac8cb6052d53163fbdb5685a16ed962",
+    "tests/career-critical-repairs/forward-upgrade-postgres.test.cjs": "753df038946390a2a5c89ea75135707030430b00fb6294efa04dbb5048e47990",
+    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql": "69b011028beb53932262fc2eb2160648a7863f80b737ec5eb1bbbb0dee395a7a",
+    "docs/career/completion-preflight-20261018/forward-reviewed-reference.sql.manifest.json": "9572d65668c50686bc85df8390676efb3d56efda36c0b70a909ea01b34ce5a72",
+    "scripts/career/forward-upgrade/collect-compatibility.sql": "e10f5ebc8cc86d259c3c8759fa3c6103f122219a463694dffa666823572426ed"
   },
-  "forwardPlanSha256": "065cc33333d3f1369a562d28fe61c769d0d75636b00b6851a22d3400d09cb6d3",
+  "forwardPlanSha256": "b89ea707b0696a148cb41317c46b43482598ee8a1b765c903c4e20baaa10ea4d",
   "targetedSQLSummary": "upgrade-final.summary.json",
-  "fullSourceAndPostgres": "CLEAN_c00745a8_SOURCE_4805_PASS_40_SKIP_0_FAIL; FULL_POSTGRES_RUNNING",
+  "fullSourceAndPostgres": "POSTGRES_TERMINAL_359_PASS_0_FAIL_0_SKIP_41_FILES; FINAL_GUARD_TARGET_3_PASS; FINAL_PURE_6_PASS; CLEAN_FINAL_SOURCE_RECHECK_NEXT",
   "archiveRequirementSatisfied": false,
   "liveCompatibility": "UNREVIEWED_REFUSES_UNKNOWN_METADATA",
-  "fullSourceSummary": "source-final.summary.json"
+  "fullSourceSummary": "source-final.summary.json",
+  "fullPostgresSummary": "postgres-final.summary.json",
+  "fullPostgresIndex": "postgres-final-index.json"
 }

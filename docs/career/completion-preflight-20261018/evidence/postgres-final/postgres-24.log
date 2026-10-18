@@ -1,0 +1,38 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_24","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+✔ pair admission never seeds absent or unreconciled real funding (1280.930597ms)
+✔ both exact integer bounds and both monthly slots are held atomically (1173.633106ms)
+✔ funds sufficient for generation alone send neither leg (995.94322ms)
+✔ one remaining monthly slot rolls back both cash and partial monthly admission (1215.93448ms)
+✔ two owners racing the last affordable pair cannot overspend (932.10346ms)
+✔ same owner and exact key returns one stable existing attempt under a race (1032.167344ms)
+✔ same key with different exact payload conflicts without another hold (1012.547538ms)
+✔ foreign/stale context and unsupported policy configuration deny before admission (1428.142287ms)
+✔ each dispatch pins payload/envelope/bounds and permits a leg only once (1931.861352ms)
+✔ both raw usage receipts settle global and monthly ledgers exactly once (1682.69773ms)
+✔ missing raw usage stays unknown at the full bound (1153.753713ms)
+✔ fractional raw usage stays unknown at the full bound (1179.421542ms)
+✔ negative raw usage stays unknown at the full bound (1197.20215ms)
+✔ overcached raw usage stays unknown at the full bound (1192.647823ms)
+✔ inconsistent total raw usage stays unknown at the full bound (1197.083181ms)
+✔ impossible reasoning raw usage stays unknown at the full bound (1223.148982ms)
+✔ wrong configured/response model or dispatch digest cannot become a known cheap bill (1006.864624ms)
+✔ changed settlement bytes and foreign settlement cannot rewrite charges (1270.74263ms)
+✔ only never-dispatched legs refund their cash and monthly slots (1186.170095ms)
+✔ started expiry cannot refund; unknown retains full obligation while an unsent peer refunds (1459.802094ms)
+✔ legacy unknown stop blocks already held generation (1751.028895ms)
+✔ legacy unknown stop also blocks an already held verification leg (1936.904384ms)
+✔ overdue started legacy tickets participate in the shared uncertainty stop (1668.397958ms)
+✔ erase or STOP between legs denies checking while retaining known generation spend (1511.124131ms)
+✔ monthly record failure rolls back settlement and keeps the conservative hold (1589.233276ms)
+✔ read-only owned status leaves account, parent and child rows unchanged (1213.065974ms)
+✔ client roles cannot read pair data or invoke the four invoker RPCs (1219.424776ms)
+✔ extended gateway receipt pins the exact configured leg identity without losing raw usage (1077.189093ms)
+✔ an extended receipt with the wrong configured leg identity remains fully uncertain (975.027015ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37889.73258

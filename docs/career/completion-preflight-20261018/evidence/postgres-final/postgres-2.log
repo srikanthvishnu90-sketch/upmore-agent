@@ -1,0 +1,18 @@
+✔ lost committed claim acknowledgement is read back once without redispatch (787.821307ms)
+✔ death before task checkpoint recovers on the same durable worker identity and prepares once (4945.193042ms)
+✔ foreign owner, worker, request and live-lease takeover are refused (1075.11913ms)
+✔ expired queued checkpoint refreshes its local lease before the first browser command (4997.406392ms)
+✔ expired claim requires generation CAS, rotates lease and fences stale worker (1317.052083ms)
+✔ unknown submit fence survives missing checkpoint and can never be reclaimed or repeated (1595.027823ms)
+✔ active approval progresses beyond 60 older unrelated intents (11105.81014ms)
+✔ active reconciliation progresses beyond 60 older unrelated intents (11956.833592ms)
+✔ scoped SQL pending binds owner, worker and epoch and preserves pause and client guards (6010.634001ms)
+✔ new recovery RPCs remain inaccessible to client roles (443.24183ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44349.484787

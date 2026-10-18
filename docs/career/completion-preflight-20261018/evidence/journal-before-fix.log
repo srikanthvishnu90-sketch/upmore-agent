@@ -1,0 +1,42 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-cd38ea683123b260","database":"career_test_ci_cd38ea683123b260_0","marker":"upmore-ci-fixture:cd38ea683123b260"}
+✖ forward upgrade: supported baseline, preservation, transaction rollback and exact rerun (12493.429054ms)
+✔ forward upgrade: unknown function, grant, policy and partial schema refuse without overwrite (59078.211267ms)
+✔ forward upgrade: active leases and effect liabilities require quiescence (18516.978328ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90169.274708
+
+✖ failing tests:
+
+test at tests/career-critical-repairs/forward-upgrade-postgres.test.cjs:42:1
+✖ forward upgrade: supported baseline, preservation, transaction rollback and exact rerun (12493.429054ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at denied (/workspace/upmore-forward-upgrade-20261018/tests/career-critical-repairs/forward-upgrade-postgres.test.cjs:41:30)
+      at TestContext.<anonymous> (/workspace/upmore-forward-upgrade-20261018/tests/career-critical-repairs/forward-upgrade-postgres.test.cjs:64:2)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }

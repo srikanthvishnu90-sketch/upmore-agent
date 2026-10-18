@@ -1,0 +1,24 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_10","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+✔ forward upgrade: supported baseline, preservation, transaction rollback and exact rerun (16761.461611ms)
+✔ forward upgrade: unknown function, grant, policy and partial schema refuse without overwrite (54415.520727ms)
+✔ forward upgrade: active leases and effect liabilities require quiescence (17757.09311ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89011.652074

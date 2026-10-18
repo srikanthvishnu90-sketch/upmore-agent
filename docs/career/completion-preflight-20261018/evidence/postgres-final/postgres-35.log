@@ -1,0 +1,20 @@
+(node:519507) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:519507) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ independent global uncertainty stop revokes an earlier different-owner dispatch ticket (1861.761124ms)
+✔ independent crashed started requests count as uncertain when their receipt deadlines expire (1286.577863ms)
+✔ independent overdue calls also revoke an unconsumed different-owner ticket (1507.848728ms)
+✔ independent actual staged entry cannot dispatch a held ticket after another owner trips the global stop (2175.654722ms)
+✔ independent global allowance cannot be overbooked by concurrent owners (992.035025ms)
+✔ independent concurrent same-owner/same-turn retry reserves exactly once (971.731664ms)
+✔ independent timeout/crash reservation remains charged and cannot be refunded or replayed (1461.271357ms)
+✔ independent owner mismatch, STOP and post-erase epochs cannot consume old tickets (1136.401231ms)
+✔ independent no client-role access and no security-definer budget functions (848.440756ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12345.88039

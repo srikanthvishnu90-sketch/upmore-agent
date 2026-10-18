@@ -1,13 +1,14 @@
-✔ SQL splitter preserves quoted bodies, escaping, comments and top-level statement ordering (1.715193ms)
-✔ immutable eighteen-unit inventory skips original authority replay and validates all source hashes (41.259465ms)
-✔ metadata collector is fresh, read-only and excludes row content and function bodies (5.625383ms)
-✔ CLI refuses unknown flags, duplicate arguments and preexisting deliverables (231.952489ms)
-✔ changing a manifest-bound SQL unit refuses before compiling (13.198185ms)
-ℹ tests 5
+✔ SQL splitter preserves quoted bodies, escaping, comments and top-level statement ordering (2.176546ms)
+✔ immutable eighteen-unit inventory skips original authority replay and validates all source hashes (43.970876ms)
+✔ metadata collector is fresh, read-only and excludes row content and function bodies (4.893036ms)
+✔ CLI refuses unknown flags, duplicate arguments and preexisting deliverables (209.639855ms)
+✔ changing a manifest-bound SQL unit refuses before compiling (15.672542ms)
+✔ follow-up compatibility probe is scoped to catalog metadata in a read-only transaction (0.55424ms)
+ℹ tests 6
 ℹ suites 0
-ℹ pass 5
+ℹ pass 6
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 377.907168
+ℹ duration_ms 356.596083

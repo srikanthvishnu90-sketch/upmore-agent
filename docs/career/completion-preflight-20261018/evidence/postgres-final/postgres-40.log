@@ -1,0 +1,15 @@
+(node:550487) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:550487) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ real SQL repeated source adoption, identical-key replay and fresh-handler persisted recall (3199.714129ms)
+✔ real SQL rollback of a repeated correction preserves old facts and does not mark its source adopted (2318.720602ms)
+✔ real revision race rejects stale 2033 and preserves winning 2030 without any process-local source replay (2082.9414ms)
+✔ real erase epoch clears source hashes and rejects old receipts; explicit reimport starts a fresh owned history (2936.323747ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10639.826954

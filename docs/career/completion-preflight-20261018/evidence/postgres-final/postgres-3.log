@@ -1,0 +1,14 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_3","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:103831) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:103831) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"evidence":"APPLICATION_CLIENT_OWNED_RESUME_SOURCE_CHAIN","routes":[{"route":"uploads","status":200},{"route":"review","status":200},{"route":"confirm","status":200},{"route":"confirm","status":200},{"route":"status","status":200},{"route":"status","status":200}],"immutableResumeVersions":1,"historyMessages":4,"metadataRestoredAcrossOwnedThreads":true,"modelCalls":0,"browserCalls":0,"employerSubmissions":0}
+✔ client upload/review/confirmation saves exact owned bytes and recovers a lost committed acknowledgement (4329.858455ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4547.795148

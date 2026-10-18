@@ -1,0 +1,15 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_16","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:357593) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:357593) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ allowed browser origin can preflight authenticated artifact GET and read only the exposed receipt header (2306.989479ms)
+✔ verified artifact remains downloadable after acknowledgement and safe restart; mutation and erase revoke it (5565.056549ms)
+✔ typed evidence replacement revokes a verified artifact and old callback without mutating the replacement (4974.876095ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13054.275117

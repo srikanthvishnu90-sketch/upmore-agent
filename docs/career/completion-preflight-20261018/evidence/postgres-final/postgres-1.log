@@ -1,0 +1,27 @@
+(node:71425) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:71425) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ actual canonical turn -> confirmed pdf store -> claimed task RPC -> exact private bytes; snapshot facts are not auto-confirmed (1405.799211ms)
+✔ actual canonical turn -> confirmed docx store -> claimed task RPC -> exact private bytes; snapshot facts are not auto-confirmed (1493.169285ms)
+✔ actual staged authenticated handler commits the exact confirmation hash used by the proposed writer (2031.780299ms)
+✔ legacy snapshot artifact labels cannot resolve as resume bytes without the new confirmed store (1116.3183ms)
+✔ caller boolean, generic yes, wrong turn or foreign receipt cannot mint a confirmation (1146.595256ms)
+✔ confirmation binds real bytes and immutable version, with an idempotent replay (970.195734ms)
+✔ delayed confirmation of an old owner turn cannot supersede newer account activity (928.103908ms)
+✔ latest confirmed resume is chosen by server sequence, never requested historical ID/hash (1584.579595ms)
+✔ task owner, lease, posting, digest and account version are independently scoped (2140.836258ms)
+✔ STOP revokes resolution and ERASE deletes server bytes without another owner loss (2129.811587ms)
+✔ correction between metadata and byte RPC prevents materialization (1574.326099ms)
+✔ SQL gates expired owned lease and unclaimed task; no bytes are returned (1944.932299ms)
+✔ lease expiry is evaluated after a real owner-lock wait, not at transaction start (2046.101089ms)
+✔ actual service forwards the claimed task/lease to source adapter and asks for missing confirmed facts (3599.565496ms)
+✔ legacy receipts without a server account-version stamp are refused; invalid MIME/size never persists (1206.670085ms)
+✔ client roles cannot read/write bytes or call either service RPC; no SECURITY DEFINER (769.365229ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26206.64992

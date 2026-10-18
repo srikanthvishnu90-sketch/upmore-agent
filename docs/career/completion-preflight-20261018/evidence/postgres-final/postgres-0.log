@@ -1,0 +1,23 @@
+(node:53439) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:53439) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ authenticated pdf upload -> explicit owned review/field turn -> exact private bytes under real task lease (2505.450061ms)
+✔ authenticated docx upload -> explicit owned review/field turn -> exact private bytes under real task lease (2471.119985ms)
+✔ quoted filename metadata preserves the declared original without changing bytes or decoding arbitrary paths (1935.601391ms)
+✔ confirmed fields stay in the source profile thread until explicitly confirmed in another owned thread (3543.12629ms)
+✔ resume-only confirmation never extracts fields or accepts instructions inside the actual document (2046.365258ms)
+✔ another owner cannot review or confirm the upload; forged owner fields and mismatched review values fail (1773.618717ms)
+✔ lost committed upload/confirmation acknowledgements replay the same owner turn and immutable version (2329.067018ms)
+✔ account correction stales a review; explicit field correction makes a new immutable latest version (3402.455587ms)
+✔ a later actual memory correction suppresses stale confirmed facts rather than silently filling the old value (2230.850839ms)
+✔ unconfirmed expiry is denied immediately and owner cleanup removes bytes; STOP and ERASE retain owner boundaries (2591.318803ms)
+✔ late confirmation storage failure rolls back the user turn, fields, account change and byte selection (2474.331756ms)
+✔ invalid format never creates a user turn or upload; client roles cannot access the new staging/confirmation RPCs (1151.22119ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 28590.622728

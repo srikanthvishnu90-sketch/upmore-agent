@@ -1,0 +1,15 @@
+✔ sixth same-vendor admission is denied across distinct tasks, threads and worker lifetimes (2576.275151ms)
+✔ reserved and uncertain admissions count exactly once without claiming submission (1719.063252ms)
+✔ fifteenth daily admission is the limit even across different ATS vendors (6599.259589ms)
+✔ concurrent admission contenders share the owner lock and cannot take the same final vendor slot (2582.549187ms)
+✔ past unknown usage, foreign owner, pause, erase and stale context cannot yield empty permissive history (1785.973718ms)
+✔ unknown vendor and erased preparation fail closed; browser cannot supply a quota bucket (989.345231ms)
+✔ client roles cannot read admission metadata or call its scoped RPC (525.393128ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16955.052393

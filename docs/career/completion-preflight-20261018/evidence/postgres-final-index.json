@@ -1,0 +1,384 @@
+{
+  "terminal": true,
+  "pass": true,
+  "files": 41,
+  "counts": {
+    "tests": 359,
+    "pass": 359,
+    "fail": 0,
+    "skipped": 0
+  },
+  "fixtureRemoved": true,
+  "sourceBoundary": "Broad run started before final journal/probe followup; immutable runtime SQL unchanged. Final wrapper/probe tested separately with exact hashes in upgrade-final.summary.json.",
+  "index": [
+    {
+      "file": "career-applicant-ingress-postgres.test.cjs",
+      "log": "postgres-0.log",
+      "sha256": "51029bd335bc36403d1f8b0d55e3fde1c7a8a315a4d17b43d5477a8be152c43c",
+      "tests": 12,
+      "pass": 12,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-applicant-store-postgres.test.cjs",
+      "log": "postgres-1.log",
+      "sha256": "8846f383127db3901916876f209b5b7f742b49a62c4406029c8e0155420fe3f2",
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-claim-recovery-postgres.test.cjs",
+      "log": "postgres-2.log",
+      "sha256": "721d0d49f98bcb93ef6766cf258c265a8322f85f1fa8f63cafd6935f6ad5b119",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/applicant-client-postgres.test.cjs",
+      "log": "postgres-3.log",
+      "sha256": "a00ccfa3f6365ad1c7f6f3e81ec8ab2bc3b21ddf2af578f3393f5584bb390fe5",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/application-admissions-postgres.test.cjs",
+      "log": "postgres-4.log",
+      "sha256": "3fa4f38b6a42ee99b10f8af05d9211709a13f101a19ea90d0a73092696e0b8f5",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/application-batch-postgres.test.cjs",
+      "log": "postgres-5.log",
+      "sha256": "7f1d44b1d7020635a1e8851873acdc3a3eb03358461025bb4bdce5f7cc2d95a7",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/application-conversation-postgres.test.cjs",
+      "log": "postgres-6.log",
+      "sha256": "ab8bf99d18a686721aa45737b3e928f300a5a1276337e4038377b17cae3952ce",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/combined-ingress-native-postgres.test.cjs",
+      "log": "postgres-7.log",
+      "sha256": "2077287c0d8fc1a59530fd7625697a81ea3ca903055d62694109154e4483232b",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/combined-native-applicant-postgres.test.cjs",
+      "log": "postgres-8.log",
+      "sha256": "b6653c7b073abc3a5f68f75633ac4c26e99ae2afce5614205fd986d3e4d2d263",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/combined-pull-publication-postgres.test.cjs",
+      "log": "postgres-9.log",
+      "sha256": "6a14d62e2d7bb788b455eac57b0c865f931391c4b9056cbbd9322716d9ac64fd",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/forward-upgrade-postgres.test.cjs",
+      "log": "postgres-10.log",
+      "sha256": "2f2d223dc20cca80b87fbe898b20325e8183671d4730b2f3eae2685915c49b2f",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-assessed-entry-postgres.test.cjs",
+      "log": "postgres-11.log",
+      "sha256": "a6dd853a7cd4bddd463a9810626378611c3742b5ab515df22c909c416121f91a",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-background-refresh-postgres.test.cjs",
+      "log": "postgres-12.log",
+      "sha256": "7cc44b57b4a70b9d6fc4eeddbd133ea31484303b86ce64552c38c0318e090ad5",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-context-writer-postgres.test.cjs",
+      "log": "postgres-13.log",
+      "sha256": "aaba666daf9335e6d7f76de279060b54e442d8322dfb74ec28e1b98194e515a5",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-entry-postgres.test.cjs",
+      "log": "postgres-14.log",
+      "sha256": "f6af997f75a3d104f423fef6df41342d53d2d80c8f84a062b541b6be2939c132",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-execution-failures-postgres.test.cjs",
+      "log": "postgres-15.log",
+      "sha256": "d8a567c1ca934792ed97d7cd2636521b99f45391fdd7af05b3537c7f386b965b",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-readback-review-postgres.test.cjs",
+      "log": "postgres-16.log",
+      "sha256": "f8e3b3d4563182a3d38268a057fe2e951ee3c2e48593e6100bc114bc9e5b88e8",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-status-postgres.test.cjs",
+      "log": "postgres-17.log",
+      "sha256": "31ebb6c13021cd5b94db92ab0ae44a60732bec84ae05ab24324ddce4f7d173e0",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/interview-thread-refresh-postgres.test.cjs",
+      "log": "postgres-18.log",
+      "sha256": "6b6bb1f839eec906a2577926c547f284455c9dd49ad98731c384236b5baee30d",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/native-delayed-duplicate-postgres.test.cjs",
+      "log": "postgres-19.log",
+      "sha256": "be80e83609f2a4eaacd30435729a25a4e3de502b4302fc7653207b79078fa033",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/native-no-dispatch-replay-postgres.test.cjs",
+      "log": "postgres-20.log",
+      "sha256": "fe0c62cebeb212f8ede6655c0e1c577e65d1b6d4dec899b948f9dc85641a5613",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/native-observation-recovery-postgres.test.cjs",
+      "log": "postgres-21.log",
+      "sha256": "7f21c0d0075590837ef58f98cef789ad7fb6e01aa8c939f23555bcd8db6a3f85",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/native-text-authority-postgres.test.cjs",
+      "log": "postgres-22.log",
+      "sha256": "648d9afbdf8e49d571020cc658d2480ac026cb1ce0759b6d4668daed43ab5918",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/native-text-entry-postgres.test.cjs",
+      "log": "postgres-23.log",
+      "sha256": "97bdbc6d96f44b0ce682007a4970df8476144dae90076bd1974e41a4be46824c",
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/pair-budget-postgres.test.cjs",
+      "log": "postgres-24.log",
+      "sha256": "4af46bb5197cbe9137b667f4a2acf5fa4998c9c17cf3c439a792cdb29c984a9c",
+      "tests": 29,
+      "pass": 29,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-critical-repairs/provider-receipt-compat-postgres.test.cjs",
+      "log": "postgres-25.log",
+      "sha256": "89026f161099cc6a0b132d8fe2dad9a980aac1d19a0ca61ed9dff5bf47c26912",
+      "tests": 43,
+      "pass": 43,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-flexible-grounding-postgres.test.cjs",
+      "log": "postgres-26.log",
+      "sha256": "021f7abda065f85ae48e3c7dcecd4480e873c7913d348ced0dea2c21687d503f",
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-model-budget-postgres.test.cjs",
+      "log": "postgres-27.log",
+      "sha256": "34f917d694db50f0c9def95cd05d4ad98da9aab2fbff414259aed629ec0cf900",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-persistence-postgres.test.cjs",
+      "log": "postgres-28.log",
+      "sha256": "a76fadddb82d8c49763b05e45b75397653c6a757437ee70a0df1aab26185d371",
+      "tests": 30,
+      "pass": 30,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-public-research-postgres.test.cjs",
+      "log": "postgres-29.log",
+      "sha256": "127c09f45023369fb62ad28b1ded0476c4f13d2c23dc3b971a756321c9a2d9f5",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "career-task-authority-postgres.test.cjs",
+      "log": "postgres-30.log",
+      "sha256": "856769507acf1689e73ea59b4ed81d4433ea2d4c4bb5d4d2a2244f8103125bcf",
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "combined-applicant-document-postgres.test.cjs",
+      "log": "postgres-31.log",
+      "sha256": "ce0e8b1ee657e99463f92856a026e5105d6ce11f663bd2c277082c626f14f1b1",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "combined-applicant-filename-postgres.test.cjs",
+      "log": "postgres-32.log",
+      "sha256": "5c1a03e7d1892385140c9a404fc615f9dca131a416745213918e105cb4242320",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "combined-effect-admission-postgres.test.cjs",
+      "log": "postgres-33.log",
+      "sha256": "d9e6c9f9211db6a3ea0a3dddc2d8fb9804e9097aa02f6a29fc396b19885c331c",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "correction-authority-postgres.test.cjs",
+      "log": "postgres-34.log",
+      "sha256": "41adce7aac41b04f9a258009240d2ab4361fa0bfac4e3d0fea69073d4f13bbeb",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "model-budget-independent-postgres.test.cjs",
+      "log": "postgres-35.log",
+      "sha256": "6b7a05f8228a1120aac6996442865978a2946350f63b5e0620fcfd43f9e49722",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "model-monthly-independent-postgres.test.cjs",
+      "log": "postgres-36.log",
+      "sha256": "ae64e03a32fbff8ad1b34f3c23d94c9191e856b4df30b63753e43fc934dc4418",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "privacy-research-composition.test.cjs",
+      "log": "postgres-37.log",
+      "sha256": "ea82c520df77fc75d7ad09fb7b024ca6c068fb73fe3cd16d4ec00b739a80a842",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "research-conversation-independent-postgres.test.cjs",
+      "log": "postgres-38.log",
+      "sha256": "ff01b3d51015c75ddddeda16bf3ea5744070efa049a5018e2893ac4e4f77ae38",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "resume-flexible-composition-postgres.test.cjs",
+      "log": "postgres-39.log",
+      "sha256": "8095e1edee2573082f66dded41f87b482c58f34f870e62145ccc0bc150d24df3",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "file": "resume-supersession-postgres.test.cjs",
+      "log": "postgres-40.log",
+      "sha256": "3c16d186ce7151ca561eab2da738ff6474ac53cb353866d0ef644784fe244470",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+(node:513846) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:513846) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"probe":"UNSAFE_SYNTHETIC_FILENAME_HISTORY","case":0,"status":400,"messages":0,"uploads":0}
+{"probe":"UNSAFE_SYNTHETIC_FILENAME_HISTORY","case":1,"status":400,"messages":0,"uploads":0}
+{"probe":"UNSAFE_SYNTHETIC_FILENAME_HISTORY","case":2,"status":400,"messages":0,"uploads":0}
+✔ unsafe synthetic filename metadata is rejected before ordinary history or private storage (1896.679291ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2011.648896

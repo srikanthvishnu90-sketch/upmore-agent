@@ -1,0 +1,58 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_25","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:433685) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:433685) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"case":"DOCUMENTED_TEXT_RECEIPT","responseModel":"gpt-5-nano","receipt":{"version":"gateway_usage_receipt/v1","provider":"openai","configured_model":"gpt-5-nano","response_model":"gpt-5-nano","response_id":"chatcmpl-controlled-compat","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","request_body_sha256":"e51cb1931f635ffe158e555cb39e9427c4708a670f3fdff2ddaecb316d18d124","response_body_sha256":"d21fb0de41e88101f7bd83308c84d4570966be7fb417eff37f6394a454ef107e","usage":{"prompt_tokens":50,"completion_tokens":20,"total_tokens":70,"prompt_tokens_details":{"cached_tokens":5,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":3,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}},"state":"recorded","syntheticCostMicros":11}
+✔ documented zero auxiliary usage with approved response gpt-5-nano settles exact raw receipt once (1739.106928ms)
+{"case":"DOCUMENTED_TEXT_RECEIPT","responseModel":"gpt-5-nano-2025-08-07","receipt":{"version":"gateway_usage_receipt/v1","provider":"openai","configured_model":"gpt-5-nano","response_model":"gpt-5-nano-2025-08-07","response_id":"chatcmpl-controlled-compat","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","request_body_sha256":"e51cb1931f635ffe158e555cb39e9427c4708a670f3fdff2ddaecb316d18d124","response_body_sha256":"1cac823db086b67d3dd172fc623acedc12e645d001efaa3c1ba9f8fd063b5873","usage":{"prompt_tokens":50,"completion_tokens":20,"total_tokens":70,"prompt_tokens_details":{"cached_tokens":5,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":3,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}},"state":"recorded","syntheticCostMicros":11}
+✔ documented zero auxiliary usage with approved response gpt-5-nano-2025-08-07 settles exact raw receipt once (1690.017854ms)
+✔ unapproved exact response identity gpt-5-mini retains full hold (1414.30321ms)
+✔ unapproved exact response identity gpt-5-nano-2025-08-08 retains full hold (1448.180613ms)
+✔ unapproved exact response identity gpt-5-nano-2025-08-07-extra retains full hold (1423.754432ms)
+✔ unapproved exact response identity prefix-gpt-5-nano retains full hold (1401.957174ms)
+✔ a different configured model cannot use the nano policy or its price (1483.138361ms)
+✔ prompt_tokens_details.audio_tokens nonzero remains unsupported and uncertain (1464.199636ms)
+✔ prompt_tokens_details.audio_tokens negative remains unsupported and uncertain (1425.781955ms)
+✔ prompt_tokens_details.audio_tokens fractional remains unsupported and uncertain (1439.4731ms)
+✔ prompt_tokens_details.audio_tokens string remains unsupported and uncertain (1404.731702ms)
+✔ prompt_tokens_details.audio_tokens null remains unsupported and uncertain (1381.163205ms)
+✔ completion_tokens_details.audio_tokens nonzero remains unsupported and uncertain (1433.050386ms)
+✔ completion_tokens_details.audio_tokens negative remains unsupported and uncertain (1455.708678ms)
+✔ completion_tokens_details.audio_tokens fractional remains unsupported and uncertain (1426.915045ms)
+✔ completion_tokens_details.audio_tokens string remains unsupported and uncertain (1458.200763ms)
+✔ completion_tokens_details.audio_tokens null remains unsupported and uncertain (1483.079328ms)
+✔ completion_tokens_details.accepted_prediction_tokens nonzero remains unsupported and uncertain (1457.522634ms)
+✔ completion_tokens_details.accepted_prediction_tokens negative remains unsupported and uncertain (1444.111465ms)
+✔ completion_tokens_details.accepted_prediction_tokens fractional remains unsupported and uncertain (1402.675461ms)
+✔ completion_tokens_details.accepted_prediction_tokens string remains unsupported and uncertain (1404.580682ms)
+✔ completion_tokens_details.accepted_prediction_tokens null remains unsupported and uncertain (1431.99819ms)
+✔ completion_tokens_details.rejected_prediction_tokens nonzero remains unsupported and uncertain (1379.896546ms)
+✔ completion_tokens_details.rejected_prediction_tokens negative remains unsupported and uncertain (1412.447323ms)
+✔ completion_tokens_details.rejected_prediction_tokens fractional remains unsupported and uncertain (1530.904246ms)
+✔ completion_tokens_details.rejected_prediction_tokens string remains unsupported and uncertain (1472.643122ms)
+✔ completion_tokens_details.rejected_prediction_tokens null remains unsupported and uncertain (1482.592504ms)
+✔ negative prompt is never normalized into a known cheap bill (1426.406067ms)
+✔ fractional completion is never normalized into a known cheap bill (1443.460687ms)
+✔ string prompt is never normalized into a known cheap bill (1438.382001ms)
+✔ inconsistent total is never normalized into a known cheap bill (1449.84917ms)
+✔ string total is never normalized into a known cheap bill (1460.88265ms)
+✔ cached overrun is never normalized into a known cheap bill (1357.483556ms)
+✔ negative cached is never normalized into a known cheap bill (1441.140969ms)
+✔ string cached is never normalized into a known cheap bill (1459.016811ms)
+✔ reasoning overrun is never normalized into a known cheap bill (1437.902703ms)
+✔ fractional reasoning is never normalized into a known cheap bill (1467.397806ms)
+✔ string reasoning is never normalized into a known cheap bill (1531.054298ms)
+✔ unrecognized zero field is never normalized into a known cheap bill (1414.491144ms)
+✔ input bound overrun is never normalized into a known cheap bill (1366.642009ms)
+✔ output bound overrun is never normalized into a known cheap bill (1375.908826ms)
+✔ three malformed receipts preserve the shared stop for new admission and held checking (2255.864157ms)
+{"case":"APPROVED_SNAPSHOT_ACTUAL_ENTRY","result":{"meta":{"career":true,"career_journey":{"stage":"feedback_ready","status":"active","version":"career_interview_entry/v1","revision":3,"context_binding":{"epoch":0,"context_sha256":"318d86013d44ed16bf1ecb20ee15884c2a9cc61acfb3c659b25bb83b4f4e11f0","account_version":4,"thread_revision":4},"assessment_status":"checked_advisory","actual_model_quality":"NOT_RUN"}},"reply":"CONTROLLED: separate your validation work from the teammate display; do not claim production impact.","action":null,"turn_key":"process","reminders":[],"thread_id":"00000000-0000-4000-8000-0000000000b1"},"receipts":[{"usage":{"total_tokens":70,"prompt_tokens":50,"completion_tokens":20,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":5},"completion_tokens_details":{"audio_tokens":0,"reasoning_tokens":3,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}},"version":"gateway_usage_receipt/v1","provider":"openai","response_id":"chatcmpl-controlled-1","config_digest":"234aa4556ce5f571bfed27117c124884d11c6cee74eb2bb615f0f016eabe9806","response_model":"gpt-5-nano-2025-08-07","configured_model":"gpt-5-nano","request_body_sha256":"5c5666738c8a10910827be0cc341c19ffa3c2e7964995354620e797503866264","response_body_sha256":"863b6eeec9d778e4ea1071825c0b283a54bfb75cac7ed860261dd573a8155657"},{"usage":{"total_tokens":70,"prompt_tokens":50,"completion_tokens":20,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":5},"completion_tokens_details":{"audio_tokens":0,"reasoning_tokens":3,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}},"version":"gateway_usage_receipt/v1","provider":"openai","response_id":"chatcmpl-controlled-2","config_digest":"8ed66da56575ec6f84eb42c29370fa1f4e713cd578554588d3eaed9555ee897a","response_model":"gpt-5-nano-2025-08-07","configured_model":"gpt-5-nano","request_body_sha256":"e43eeb4a1b0cb434ba22d33b12e7b2744599d284cf0333d57738ee88471a55a8","response_body_sha256":"dd9d00cecac43eb83c5d1e37560d1fe601d8a7ed0010fd9bc186ab2a2d93076f"}],"configuredModel":"gpt-5-nano","observedModel":"gpt-5-nano-2025-08-07","providerResponses":2,"paidCalls":0,"quality":"NOT_RUN"}
+✔ actual paired handler accepts documented usage and exact approved snapshot without config/pricing substitution or redispatch (6261.28545ms)
+ℹ tests 43
+ℹ suites 0
+ℹ pass 43
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68465.430936

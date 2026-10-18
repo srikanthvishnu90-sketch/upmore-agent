@@ -1,0 +1,20 @@
+{"fixture":"OWNED_MARKED_NETWORK_NONE","container":"upmore-career-integration-pg-ci-b41e05cdbd6d0db9","database":"career_test_ci_b41e05cdbd6d0db9_22","marker":"upmore-ci-fixture:b41e05cdbd6d0db9"}
+(node:400984) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:400984) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"failedRpc":"career_native_turn_commit_v1","error":{"message":"ERROR:  CONTROLLED native commit fault\nCONTEXT:  PL/pgSQL function native_reject_save() line 1 at RAISE\nSQL statement \"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\"\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\nPL/pgSQL function career_native_turn_commit_v1(jsonb) line 11 at assignment\n"}}
+✔ accepted native provider result survives an atomic save fault without another dispatch on exact retry (4642.26671ms)
+{"failedRpc":"career_native_turn_commit_v1","error":{"message":"ERROR:  CONTROLLED native commit fault\nCONTEXT:  PL/pgSQL function native_reject_save() line 1 at RAISE\nSQL statement \"insert into agent_messages(thread_id,role,content,meta)values(p_thread,'assistant',p_response->>'reply',coalesce(p_response->'meta','{}'::jsonb)||jsonb_build_object('career',true,'career_turn_key',p_key))\"\nPL/pgSQL function career_host_commit(uuid,uuid,text,text,bigint,bigint,jsonb,jsonb,text,jsonb) line 45 at SQL statement\nPL/pgSQL function career_native_turn_commit_v1(jsonb) line 11 at assignment\n"}}
+✔ an older uncertain native snapshot cannot overwrite a later owned turn when its failed save is retried (3808.977733ms)
+{"failedRpc":"career_native_checker_prepare_v1","error":{"message":"ERROR:  invalid immutable native checker request\nCONTEXT:  PL/pgSQL function career_native_checker_prepare_v1(uuid,uuid,text,uuid,text) line 16 at RAISE\n"}}
+✔ two simultaneous identical raw requests never dispatch the same native operation twice (3908.474758ms)
+✔ client roles cannot invoke native authority RPCs or read the private execution context (1267.062699ms)
+✔ paid checker provenance cannot be replaced by a local-cost receipt even with both real controlled usage records (3524.759061ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17354.220494

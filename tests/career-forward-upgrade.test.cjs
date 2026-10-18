@@ -18,6 +18,7 @@ test('immutable eighteen-unit inventory skips original authority replay and vali
  assert.equal(result.sql.includes('create table public.career_task_intents_v1 ('),false);
  assert.equal(result.sql.includes('drop policy if exists agent_model_call_owner'),false);
  assert.equal(b.hash(result.sql),result.manifest.sqlSha256);
+ assert.equal(b.hash(fs.readFileSync(require.resolve('../scripts/career/forward-upgrade/build.cjs'))),result.manifest.compilerSha256);
  assert.deepEqual(result,b.render());
  assert.throws(()=>b.render({catalog:{unknown:'cannot whitelist arbitrary metadata'}}),/UNSUPPORTED_BASELINE_METADATA/);
 });
@@ -43,4 +44,11 @@ test('changing a manifest-bound SQL unit refuses before compiling',()=>{
   const changed=b.inventory().units[3].path;fs.appendFileSync(path.join(root,changed),'\n-- changed source\n');
   assert.throws(()=>b.inventory(root),/SOURCE_HASH_CHANGED/);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+test('follow-up compatibility probe is scoped to catalog metadata in a read-only transaction',()=>{
+ const sql=fs.readFileSync(path.join(b.ROOT,'scripts/career/forward-upgrade/collect-compatibility.sql'),'utf8');
+ assert.deepEqual(b.splitSQL(sql).map(s=>b.strip(s).split(/\s|;/)[0].toUpperCase()),['BEGIN','SET','SET','SELECT','COMMIT']);
+ assert.match(sql,/BEGIN READ ONLY/);assert.match(sql,/transaction_read_only/);assert.match(sql,/pg_trigger/);
+ assert.doesNotMatch(sql,/\b(?:FROM|JOIN)\s+(?:public|auth)\./i);
+ assert.doesNotMatch(sql,/'(?:body|defaultExpression)'\s*,/);
 });

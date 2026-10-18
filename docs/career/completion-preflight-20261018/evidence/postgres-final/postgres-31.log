@@ -1,0 +1,19 @@
+(node:510732) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:510732) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+{"probe":"ACTIVE_CONTAINER_ACTUAL_ENTRY_SQL","case":"escaped-PDF-action","status":400,"messages":0,"uploads":0}
+✔ actual ingress refuses escaped-PDF-action before SQL history and upload (815.238594ms)
+{"probe":"ACTIVE_CONTAINER_ACTUAL_ENTRY_SQL","case":"UTF16-DOCX-DTD","status":400,"messages":0,"uploads":0}
+✔ actual ingress refuses UTF16-DOCX-DTD before SQL history and upload (717.324599ms)
+{"probe":"ACTIVE_CONTAINER_ACTUAL_ENTRY_SQL","case":"UTF16-DOCX-template","status":400,"messages":0,"uploads":0}
+✔ actual ingress refuses UTF16-DOCX-template before SQL history and upload (672.075367ms)
+{"probe":"ACTIVE_CONTAINER_ACTUAL_ENTRY_SQL","case":"UTF16-DOCX-mapped-settings-dat","status":400,"messages":0,"uploads":0}
+✔ actual ingress refuses UTF16-DOCX-mapped-settings-dat before SQL history and upload (695.358905ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3045.860701

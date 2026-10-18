@@ -1,0 +1,16 @@
+{"probe":"EFFECT_ADMISSION_AFTER_LOCK_WAIT","waiting":[{"blocked":true,"expires":"2026-10-18T05:33:49.848346+00:00","xactStart":"2026-10-18T05:33:48.750674+00:00","transactionStartedBeforeExpiry":true}],"outcome":{"error":"Error: ERROR:  task owned lease revoked\nCONTEXT:  PL/pgSQL function career_task_owned_lease_fence_v1() line 8 at RAISE\nSQL statement \"update career_task_effects_v1 set state='started' where user_id=p_user and token=p_token\"\nPL/pgSQL function career_task_consume_effect_v1(uuid,uuid) line 9 at SQL statement\n"},"effectState":"reserved","physicalEffects":0}
+✔ effect admission rechecks wall-clock lease after an owner-lock wait (2150.942174ms)
+{"probe":"LEGACY_ABSOLUTE_EXPIRY_AFTER_LOCK_WAIT","operation":"reserve","waiting":[{"blocked":true,"expires":"2026-10-18T05:33:51.88678+00:00","xactStart":"2026-10-18T05:33:50.787447+00:00","legacyClaim":true,"transactionStartedBeforeExpiry":true}],"outcome":{"error":"Error: ERROR:  task intent expired\nCONTEXT:  PL/pgSQL function career_task_owned_lease_fence_v1() line 7 at RAISE\nSQL statement \"insert into career_task_effects_v1(user_id,intent_id,effect_key,task_id,operation,state) values(p_user,p_intent,p_effect_key,p_task,p_operation,'reserved') returning *\"\nPL/pgSQL function career_task_begin_effect_v1(uuid,text,uuid,text,text,text,jsonb) line 12 at SQL statement\n"},"effects":[],"physicalEffects":0}
+✔ legacy reserve rechecks absolute intent expiry after a real owner-lock wait (2035.860943ms)
+{"probe":"LEGACY_ABSOLUTE_EXPIRY_AFTER_LOCK_WAIT","operation":"consume","waiting":[{"blocked":true,"expires":"2026-10-18T05:33:54.01911+00:00","xactStart":"2026-10-18T05:33:52.921125+00:00","legacyClaim":true,"transactionStartedBeforeExpiry":true}],"outcome":{"error":"Error: ERROR:  task intent expired\nCONTEXT:  PL/pgSQL function career_task_owned_lease_fence_v1() line 7 at RAISE\nSQL statement \"update career_task_effects_v1 set state='started' where user_id=p_user and token=p_token\"\nPL/pgSQL function career_task_consume_effect_v1(uuid,uuid) line 9 at SQL statement\n"},"effects":[{"state":"reserved"}],"physicalEffects":0}
+✔ legacy consume rechecks absolute intent expiry after a real owner-lock wait (2254.88041ms)
+✔ legacy completed post-dispatch receipt still settles exactly once after absolute expiry (1211.725199ms)
+✔ legacy uncertain post-dispatch receipt still settles exactly once after absolute expiry (1256.435741ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8993.931125

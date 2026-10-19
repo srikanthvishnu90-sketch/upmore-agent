@@ -363,3 +363,17 @@ Deno.test("WO-025/14 the handler runs the mock right after the card, behind the 
   assert(/const mock = !card && !careerTask && !careerBatch && !host\.isHostControlled\(message, ctx\)\s*\?\s*await mockTurn\(\{ message, userId: user\.id, threadId: tid, now: Date\.now\(\), store: supabaseMockStore\(admin\) \}\)\s*:\s*null;/.test(HANDLER), "same guards as the card");
   assert(/\} else if \(mock\) \{\s*\/\/[^\n]*\n\s*out = \{ reply: mock\.reply, intent: mock\.intent, resultStatus: mock\.status, contained: false, handler: "mock" \};/.test(HANDLER), "the mock's intent becomes the reply's, so the last-word rule can read it");
 });
+
+Deno.test("WO-025/15 the mock's read runs every turn: when it fails, an ordinary text goes on without the mock; a mock command still says so", async () => {
+  const broken: MockStore = {
+    get: () => Promise.reject(new Error("read failed")),
+    save: () => Promise.resolve(),
+    clear: () => Promise.resolve(),
+    lastAssistantIntent: () => Promise.resolve(null),
+  };
+  const ordinary = await mockTurn({ message: "find me analyst jobs in Denver", userId: "u", threadId: "t", now: 0, store: broken });
+  if (ordinary !== null) throw new Error("an ordinary text must go on to the brain");
+  let threw = false;
+  try { await mockTurn({ message: "end mock", userId: "u", threadId: "t", now: 0, store: broken }); } catch { threw = true; }
+  if (!threw) throw new Error("a mock command with an unreadable session must not pretend");
+});

@@ -441,7 +441,16 @@ export async function mockTurn(
   }
   const low = String(o.message ?? "").trim().replace(/[.!?]+$/, "");
   if (CARRIER.test(low)) return null;
-  const s = await o.store.get(o.userId, o.threadId);
+  // This read runs on every turn: when it fails and the text is not a mock command, the turn goes on without the mock
+  // rather than failing the person's message (the mock's own commands still say what went wrong).
+  let s: MockState | null;
+  try {
+    s = await o.store.get(o.userId, o.threadId);
+  } catch (e) {
+    if (cmd) throw e;
+    console.error("mock: session not read", e instanceof Error ? e.message : String(e));
+    return null;
+  }
   const running = !!s && s.status === "running";
   if (cmd?.kind === "end") {
     if (!running) return { reply: `No mock is running. Text "start a mock interview" to begin.`, status: "none", intent: MOCK_DONE_INTENT };

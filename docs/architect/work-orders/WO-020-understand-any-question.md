@@ -17,6 +17,12 @@ captured in CI on 2026-10-19; report `docs/apply/ask-once.md` (`evals/apply/ask-
 - If the person facts were understood: median 2 left, 21 of 99 postings with nothing left, 61 of 99 with at most 2.
   With consent shown as one tap inside the approval: 27 of 99 with nothing left, 68 of 99 with at most 2.
 
+- A second, independent sample (`evals/apply/questions-ci-b.json`: 100 postings from random boards, no employer shared
+  with the first; comparison in `docs/apply/ask-once-samples.md`) asks fewer questions: 67% covered today, median 2
+  left, 31 of 100 with nothing left. The first sample is the biggest employers, who ask more compliance and identity
+  questions; a person's postings sit between the two (about 58% covered, about 13% with nothing left, estimated).
+  Understanding person facts helps on both (estimated: B 31 → about 40 of 100 with nothing left).
+
 So the product target is not "never ask": it is about two short questions per application, asked together in the
 approval text, with each answer reused by meaning from then on.
 
@@ -36,9 +42,10 @@ approval text, with each answer reused by meaning from then on.
 4. An answer to a screener that is about the person, not the job, is offered to be saved as a fact ("save for next
    time?"); job-specific ones are not saved.
 
-## Acceptance (on the real questions in `evals/apply/questions-ci.json`)
-- A hand-labeled sample of 150 questions (`evals/apply/question-labels.json`, the architect labels it) scores the
+## Acceptance (on the real questions in both samples, `evals/apply/questions-ci.json` and `questions-ci-b.json`)
+- A hand-labeled sample of 150 questions, 75 from each sample (`evals/apply/question-labels.json`, the architect labels it) scores the
   mapper: precision of fact mappings ≥ 98% (a wrong mapping sends a wrong answer; better to ask), recall ≥ 80%.
-- `ask-once.ts` with the mapper: median questions left per posting ≤ 2, at least 20 of 99 postings with nothing left.
+- `ask-once.ts` with the mapper: sample A median questions left per posting ≤ 2 and at least 20 of 99 postings with
+  nothing left; sample B median ≤ 1 and at least 38 of 100 with nothing left. A gain on one sample only does not pass.
 - Cost per 100 postings printed; cached mappings make a second run cost nothing.
 - Tests first, failing output pasted; gate green.

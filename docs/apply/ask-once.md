@@ -1,21 +1,21 @@
 # Ask once: how many real application questions a person answers only once
 
-Source: `evals/apply/questions-ci.json` (CI run 39225221238 of question-capture.yml at 269e3be24670b1ba7aed9c7ee8d429bb19331705). 100 postings captured, 99 with required questions; blocked or empty: ashby-cursor-0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74 (NO_REQUIRED_QUESTIONS).
+Source: `evals/apply/questions-ci.json` (CI run 39230110480 of question-capture.yml at c093ce9846eb352830e35924c47e09a533cf0887, sample A (biggest boards)). 100 postings captured, 99 with required questions; blocked or empty: ashby-cursor-0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74 (NO_REQUIRED_QUESTIONS).
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 586/1041 (56%) | 5/99 (5%) |
-| + the 10 most common other questions, answered once | 614/1041 (59%) | 6/99 (6%) |
-| + the 20 most common | 629/1041 (60%) | 9/99 (9%) |
-| + the 40 most common | 649/1041 (62%) | 9/99 (9%) |
+| The standard facts only | 584/1042 (56%) | 5/99 (5%) |
+| + the 10 most common other questions, answered once | 612/1042 (59%) | 6/99 (6%) |
+| + the 20 most common | 627/1042 (60%) | 9/99 (9%) |
+| + the 40 most common | 647/1042 (62%) | 9/99 (9%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
-| greenhouse | 40 | 542 | 294 (54%) | 1 | 2 |
+| greenhouse | 40 | 543 | 292 (54%) | 1 | 2 |
 | lever | 30 | 286 | 144 (50%) | 3 | 5 |
 | ashby | 29 | 213 | 148 (69%) | 1 | 2 |
 
-Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 71/99, most 22.
+Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 70/99, most 22.
 
 ## The most common questions the standard facts do not answer
 
@@ -65,4 +65,4 @@ You must be at least 18 years of age or older to work for this employer. | 1 |
 | Are you a Singapore permanent resident? | 1 |
 | Are you a transitioning service member? | 1 |
 
-Unique unanswered wordings: 432; asked on only one posting: 420.
+Unique unanswered wordings: 435; asked on only one posting: 423.

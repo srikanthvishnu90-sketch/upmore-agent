@@ -1,6 +1,6 @@
 {
  "version": 1,
- "captured_in": "CI run 39225221238 of question-capture.yml at 269e3be24670b1ba7aed9c7ee8d429bb19331705",
+ "captured_in": "CI run 39230110480 of question-capture.yml at c093ce9846eb352830e35924c47e09a533cf0887, sample A (biggest boards)",
  "note": "Real public postings; questions as each ATS presents them to an applicant. Nothing was filled or submitted.",
  "postings": [
   {
@@ -9,7 +9,7 @@
    "company": "Prolific",
    "source_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.863Z",
+   "captured_at": "2026-10-19T09:47:29.738Z",
    "reason": null,
    "fields": [
     {
@@ -239,7 +239,7 @@
    "company": "EOS Fitness",
    "source_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4243584009",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.864Z",
+   "captured_at": "2026-10-19T09:47:29.739Z",
    "reason": null,
    "fields": [
     {
@@ -770,7 +770,7 @@
    "company": "spacex",
    "source_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:47:29.739Z",
    "reason": null,
    "fields": [
     {
@@ -2594,7 +2594,7 @@
    "company": "Anduril",
    "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:47:29.740Z",
    "reason": null,
    "fields": [
     {
@@ -3001,7 +3001,7 @@
    "company": "WPP Media",
    "source_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:47:29.740Z",
    "reason": null,
    "fields": [
     {
@@ -3422,7 +3422,7 @@
    "company": "databricks",
    "source_url": "https://job-boards.greenhouse.io/databricks/jobs/8805655002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:47:29.740Z",
    "reason": null,
    "fields": [
     {
@@ -3586,7 +3586,7 @@
    "company": "Invisible Technologies",
    "source_url": "https://job-boards.greenhouse.io/agency/jobs/4857878101",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:47:29.740Z",
    "reason": null,
    "fields": [
     {
@@ -4690,7 +4690,7 @@
    "company": "PLS",
    "source_url": "https://job-boards.greenhouse.io/plscareers/jobs/4458890008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:47:29.740Z",
    "reason": null,
    "fields": [
     {
@@ -4867,12 +4867,12 @@
    ]
   },
   {
-   "id": "greenhouse-stripe-8172487",
+   "id": "greenhouse-stripe-8172510",
    "family": "greenhouse",
    "company": "stripe",
-   "source_url": "https://job-boards.greenhouse.io/stripe/jobs/8172487",
+   "source_url": "https://job-boards.greenhouse.io/stripe/jobs/8172510",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:47:29.741Z",
    "reason": null,
    "fields": [
     {
@@ -4906,14 +4906,14 @@
     {
      "name": "resume",
      "label": "Resume/CV",
-     "required": true,
+     "required": false,
      "type": "input_file",
      "options": []
     },
     {
      "name": "resume_text",
      "label": "Resume/CV",
-     "required": true,
+     "required": false,
      "type": "textarea",
      "options": []
     },
@@ -4932,314 +4932,330 @@
      "options": []
     },
     {
-     "name": "question_68935294",
+     "name": "question_68935507",
      "label": "Who is your current or previous employer?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_68935295",
+     "name": "question_68935508",
      "label": "What is your current or previous job title?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_68935296",
+     "name": "question_68935509",
      "label": "Please select the country where you currently reside.",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Australia",
-       "value": "749879679"
+       "value": "749881936"
       },
       {
        "label": "Belgium",
-       "value": "749879680"
+       "value": "749881937"
       },
       {
        "label": "Brazil",
-       "value": "749879681"
+       "value": "749881938"
       },
       {
        "label": "Canada",
-       "value": "749879682"
+       "value": "749881939"
       },
       {
        "label": "Egypt",
-       "value": "749879683"
+       "value": "749881940"
       },
       {
        "label": "France",
-       "value": "749879684"
+       "value": "749881941"
       },
       {
        "label": "Germany",
-       "value": "749879685"
+       "value": "749881942"
       },
       {
        "label": "India",
-       "value": "749879686"
+       "value": "749881943"
       },
       {
        "label": "Indonesia",
-       "value": "749879687"
+       "value": "749881944"
       },
       {
        "label": "Ireland",
-       "value": "749879688"
+       "value": "749881945"
       },
       {
        "label": "Israel",
-       "value": "749879689"
+       "value": "749881946"
       },
       {
        "label": "Italy",
-       "value": "749879690"
+       "value": "749881947"
       },
       {
        "label": "Japan",
-       "value": "749879691"
+       "value": "749881948"
       },
       {
        "label": "Malaysia",
-       "value": "749879692"
+       "value": "749881949"
       },
       {
        "label": "Mexico",
-       "value": "749879693"
+       "value": "749881950"
       },
       {
        "label": "New Zealand",
-       "value": "749879694"
+       "value": "749881951"
       },
       {
        "label": "Poland",
-       "value": "749879695"
+       "value": "749881952"
       },
       {
        "label": "Portugal",
-       "value": "749879696"
+       "value": "749881953"
       },
       {
        "label": "Romania",
-       "value": "749879697"
+       "value": "749881954"
       },
       {
        "label": "Singapore",
-       "value": "749879698"
+       "value": "749881955"
       },
       {
        "label": "South Korea",
-       "value": "749879699"
+       "value": "749881956"
       },
       {
        "label": "Spain",
-       "value": "749879700"
+       "value": "749881957"
       },
       {
        "label": "Sweden",
-       "value": "749879701"
+       "value": "749881958"
       },
       {
        "label": "Switzerland",
-       "value": "749879702"
+       "value": "749881959"
       },
       {
        "label": "Taiwan",
-       "value": "749879703"
+       "value": "749881960"
       },
       {
        "label": "Thailand",
-       "value": "749879704"
+       "value": "749881961"
       },
       {
        "label": "The Netherlands",
-       "value": "749879705"
+       "value": "749881962"
       },
       {
        "label": "UAE",
-       "value": "749879706"
+       "value": "749881963"
       },
       {
        "label": "UK",
-       "value": "749879707"
+       "value": "749881964"
       },
       {
        "label": "US",
-       "value": "749879708"
+       "value": "749881965"
       },
       {
        "label": "Other",
-       "value": "749879709"
+       "value": "749881966"
       }
      ]
     },
     {
-     "name": "question_68935297[]",
+     "name": "question_68935510[]",
      "label": "Please select the country or countries you anticipate working in for the role in which you are applying.",
      "required": true,
      "type": "multi_value_multi_select",
      "options": [
       {
        "label": "Australia",
-       "value": "749879710"
+       "value": "749881967"
       },
       {
        "label": "Belgium",
-       "value": "749879711"
+       "value": "749881968"
       },
       {
        "label": "Brazil",
-       "value": "749879712"
+       "value": "749881969"
       },
       {
        "label": "Canada",
-       "value": "749879713"
+       "value": "749881970"
       },
       {
        "label": "France",
-       "value": "749879714"
+       "value": "749881971"
       },
       {
        "label": "Germany",
-       "value": "749879715"
+       "value": "749881972"
       },
       {
        "label": "India",
-       "value": "749879716"
+       "value": "749881973"
       },
       {
        "label": "Indonesia",
-       "value": "749879717"
+       "value": "749881974"
       },
       {
        "label": "Ireland",
-       "value": "749879718"
+       "value": "749881975"
       },
       {
        "label": "Israel",
-       "value": "749879719"
+       "value": "749881976"
       },
       {
        "label": "Italy",
-       "value": "749879720"
+       "value": "749881977"
       },
       {
        "label": "Japan",
-       "value": "749879721"
+       "value": "749881978"
       },
       {
        "label": "Luxembourg",
-       "value": "749879722"
+       "value": "749881979"
       },
       {
        "label": "Malaysia",
-       "value": "749879723"
+       "value": "749881980"
       },
       {
        "label": "Mexico",
-       "value": "749879724"
+       "value": "749881981"
       },
       {
        "label": "New Zealand",
-       "value": "749879725"
+       "value": "749881982"
       },
       {
        "label": "Poland",
-       "value": "749879726"
+       "value": "749881983"
       },
       {
        "label": "Portugal",
-       "value": "749879727"
+       "value": "749881984"
       },
       {
        "label": "Romania",
-       "value": "749879728"
+       "value": "749881985"
       },
       {
        "label": "Singapore",
-       "value": "749879729"
+       "value": "749881986"
       },
       {
        "label": "South Korea",
-       "value": "749879730"
+       "value": "749881987"
       },
       {
        "label": "Spain",
-       "value": "749879731"
+       "value": "749881988"
       },
       {
        "label": "Sweden",
-       "value": "749879732"
+       "value": "749881989"
       },
       {
        "label": "Switzerland",
-       "value": "749879733"
+       "value": "749881990"
       },
       {
        "label": "Taiwan",
-       "value": "749879734"
+       "value": "749881991"
       },
       {
        "label": "Thailand",
-       "value": "749879735"
+       "value": "749881992"
       },
       {
        "label": "The Netherlands",
-       "value": "749879736"
+       "value": "749881993"
       },
       {
        "label": "UAE",
-       "value": "749879737"
+       "value": "749881994"
       },
       {
        "label": "UK",
-       "value": "749879738"
+       "value": "749881995"
       },
       {
        "label": "US",
-       "value": "749879739"
+       "value": "749881996"
       }
      ]
     },
     {
-     "name": "question_68935298",
+     "name": "question_68935511",
      "label": "Are you authorized to work in the location(s) you selected in your previous response?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "749879740"
+       "value": "749881997"
       },
       {
        "label": "No",
-       "value": "749879741"
+       "value": "749881998"
       }
      ]
     },
     {
-     "name": "question_68935299",
+     "name": "question_68935512",
      "label": "Will you require Stripe to sponsor you for a work permit now or in the future for the location(s) you selected in in your previous response?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "749879742"
+       "value": "749881999"
       },
       {
        "label": "No",
-       "value": "749879743"
+       "value": "749882000"
       }
      ]
     },
     {
-     "name": "question_69457836",
-     "label": "To ensure we can focus fully on our conversation, we use BrightHire to record and transcribe interviews. This helps us get to know you better without the distraction of note-taking. We also use BrightHire to help us analyze interview notes and for internal Stripe interview quality training and assurance purposes. After the recruitment process ends, recordings may be shared internally for recruiter and interviewer training to help us improve our interview processes. Please confirm if you consent to BrightHire being enabled for this interview and for your personal data to be collected and processed for the purposes mentioned above, by responding below",
+     "name": "question_68935513",
+     "label": "If this role offers the option to work from a remote location, do you plan to work remotely?",
+     "required": true,
+     "type": "multi_value_single_select",
+     "options": [
+      {
+       "label": "Yes, I intend to work remotely.",
+       "value": "749882001"
+      },
+      {
+       "label": "No, I intend to work from an office location.",
+       "value": "749882002"
+      }
+     ]
+    },
+    {
+     "name": "question_68935514",
+     "label": "Have you ever been employed by Stripe or a Stripe affiliate?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
@@ -5252,6 +5268,29 @@
        "value": "0"
       }
      ]
+    },
+    {
+     "name": "question_68935515",
+     "label": "Do you opt-in to receive WhatsApp messages from Stripe Recruiting?",
+     "required": true,
+     "type": "multi_value_single_select",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "749882003"
+      },
+      {
+       "label": "No",
+       "value": "749882004"
+      }
+     ]
+    },
+    {
+     "name": "question_69458440",
+     "label": "If located in the US, in what city and state do you reside?",
+     "required": true,
+     "type": "input_text",
+     "options": []
     }
    ]
   },
@@ -5261,7 +5300,7 @@
    "company": "Capco",
    "source_url": "https://job-boards.greenhouse.io/capco/jobs/8281149",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:47:29.741Z",
    "reason": null,
    "fields": [
     {
@@ -5519,7 +5558,7 @@
    "company": "Accenture",
    "source_url": "https://job-boards.greenhouse.io/accenturefederalservices/jobs/4710665006",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:47:29.742Z",
    "reason": null,
    "fields": [
     {
@@ -6217,7 +6256,7 @@
    "company": "Anthropic",
    "source_url": "https://job-boards.greenhouse.io/anthropic/jobs/4461450008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:47:29.742Z",
    "reason": null,
    "fields": [
     {
@@ -6423,7 +6462,7 @@
    "company": "rocketlab",
    "source_url": "https://job-boards.greenhouse.io/rocketlab/jobs/7983576003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:47:29.742Z",
    "reason": null,
    "fields": [
     {
@@ -7530,7 +7569,7 @@
    "company": "Speechify",
    "source_url": "https://job-boards.greenhouse.io/speechify/jobs/6180795004",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:47:29.743Z",
    "reason": null,
    "fields": [
     {
@@ -7681,7 +7720,7 @@
    "company": "MedElite",
    "source_url": "https://job-boards.greenhouse.io/medelitellc/jobs/4815180008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:47:29.743Z",
    "reason": null,
    "fields": [
     {
@@ -7796,7 +7835,7 @@
    "company": "Axon",
    "source_url": "https://job-boards.greenhouse.io/axon/jobs/8007341003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:47:29.743Z",
    "reason": null,
    "fields": [
     {
@@ -8200,7 +8239,7 @@
    "company": "Lucid Motors",
    "source_url": "https://job-boards.greenhouse.io/lucidmotors/jobs/5200488007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -8445,7 +8484,7 @@
    "company": "DoorDash",
    "source_url": "https://job-boards.greenhouse.io/doordashusa/jobs/8139265",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -8635,7 +8674,7 @@
    "company": "cloudflare",
    "source_url": "https://job-boards.greenhouse.io/cloudflare/jobs/7695702",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -8751,7 +8790,7 @@
    "company": "datadog",
    "source_url": "https://job-boards.greenhouse.io/datadog/jobs/8257324",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -9377,7 +9416,7 @@
    "company": "DH Pace",
    "source_url": "https://job-boards.greenhouse.io/dhpace/jobs/5422387008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -9882,7 +9921,7 @@
    "company": "mongodb",
    "source_url": "https://job-boards.greenhouse.io/mongodb/jobs/8258279",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.744Z",
    "reason": null,
    "fields": [
     {
@@ -10285,7 +10324,7 @@
    "company": "Olsson",
    "source_url": "https://job-boards.greenhouse.io/olsson/jobs/5406566008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -10444,7 +10483,7 @@
    "company": "One Medical",
    "source_url": "https://job-boards.greenhouse.io/onemedical/jobs/8282181",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -10589,7 +10628,7 @@
    "company": "Elastic",
    "source_url": "https://job-boards.greenhouse.io/elastic/jobs/8148720",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -10775,7 +10814,7 @@
    "company": "Okta",
    "source_url": "https://job-boards.greenhouse.io/okta/jobs/8079108",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -10974,7 +11013,7 @@
    "company": "Pure Storage",
    "source_url": "https://job-boards.greenhouse.io/purestorage/jobs/8138523",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -11062,7 +11101,7 @@
    "company": "relativity",
    "source_url": "https://job-boards.greenhouse.io/relativity/jobs/8615771002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.745Z",
    "reason": null,
    "fields": [
     {
@@ -11244,7 +11283,7 @@
    "company": "Zscaler",
    "source_url": "https://job-boards.greenhouse.io/zscaler/jobs/5198260007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -11503,7 +11542,7 @@
    "company": "OKX",
    "source_url": "https://job-boards.greenhouse.io/okx/jobs/7608993003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -11827,7 +11866,7 @@
    "company": "Atoms",
    "source_url": "https://job-boards.greenhouse.io/cssmerge/jobs/8853085002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -11956,7 +11995,7 @@
    "company": "braze",
    "source_url": "https://job-boards.greenhouse.io/braze/jobs/8141353",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -12204,7 +12243,7 @@
    "company": "Agoda",
    "source_url": "https://job-boards.greenhouse.io/agoda/jobs/8184766",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -13272,7 +13311,7 @@
    "company": "Verkada",
    "source_url": "https://job-boards.greenhouse.io/verkada/jobs/5256796007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -13362,7 +13401,7 @@
    "company": "Toast",
    "source_url": "https://job-boards.greenhouse.io/toast/jobs/8054004",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:47:29.746Z",
    "reason": null,
    "fields": [
     {
@@ -13487,7 +13526,7 @@
    "company": "Canonical",
    "source_url": "https://job-boards.greenhouse.io/canonical/jobs/5569916",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:47:29.747Z",
    "reason": null,
    "fields": [
     {
@@ -16003,7 +16042,7 @@
    "company": "xAI",
    "source_url": "https://job-boards.greenhouse.io/xai/jobs/5231352007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:47:29.747Z",
    "reason": null,
    "fields": [
     {
@@ -16295,7 +16334,7 @@
    "company": "AvePoint",
    "source_url": "https://job-boards.greenhouse.io/avepoint/jobs/7770150",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:47:29.747Z",
    "reason": null,
    "fields": [
     {
@@ -16383,7 +16422,7 @@
    "company": "TEGNA",
    "source_url": "https://job-boards.greenhouse.io/tegnainc/jobs/5249414007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:47:29.748Z",
    "reason": null,
    "fields": [
     {
@@ -17223,7 +17262,7 @@
    "company": "brex",
    "source_url": "https://job-boards.greenhouse.io/brex/jobs/8871800002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:47:29.748Z",
    "reason": null,
    "fields": [
     {
@@ -17507,7 +17546,7 @@
    "company": "TSMG",
    "source_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:02.355Z",
+   "captured_at": "2026-10-19T09:37:31.017Z",
    "reason": null,
    "fields": [
     {
@@ -17710,7 +17749,7 @@
    "company": "CGS Federal (Contact Government Services)",
    "source_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:07.594Z",
+   "captured_at": "2026-10-19T09:37:36.234Z",
    "reason": null,
    "fields": [
     {
@@ -17876,7 +17915,7 @@
    "company": "Veeva",
    "source_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:12.080Z",
+   "captured_at": "2026-10-19T09:37:40.615Z",
    "reason": null,
    "fields": [
     {
@@ -18055,7 +18094,7 @@
    "company": "Shield AI",
    "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:16.542Z",
+   "captured_at": "2026-10-19T09:37:45.013Z",
    "reason": null,
    "fields": [
     {
@@ -18471,7 +18510,7 @@
    "company": "Welo Global",
    "source_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:21.241Z",
+   "captured_at": "2026-10-19T09:37:49.523Z",
    "reason": null,
    "fields": [
     {
@@ -19635,7 +19674,7 @@
    "company": "Lyra Health",
    "source_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:24.605Z",
+   "captured_at": "2026-10-19T09:37:52.988Z",
    "reason": null,
    "fields": [
     {
@@ -20160,7 +20199,7 @@
    "company": "CSC Generation",
    "source_url": "https://jobs.lever.co/cscgeneration-2/82b101fb-58eb-4236-a763-078fd9bc72bd/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:29.093Z",
+   "captured_at": "2026-10-19T09:37:57.472Z",
    "reason": null,
    "fields": [
     {
@@ -20485,7 +20524,7 @@
    "company": "Wing Assistant",
    "source_url": "https://jobs.lever.co/getwingapp/6240305a-56c4-4f35-bf55-586e7b5a8026/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:33.669Z",
+   "captured_at": "2026-10-19T09:38:01.938Z",
    "reason": null,
    "fields": [
     {
@@ -20938,7 +20977,7 @@
    "company": "CesiumAstro",
    "source_url": "https://jobs.lever.co/CesiumAstro/a49693f9-2066-43b3-972a-cdd3a62fbbce/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:38.272Z",
+   "captured_at": "2026-10-19T09:38:06.376Z",
    "reason": null,
    "fields": [
     {
@@ -21264,7 +21303,7 @@
    "company": "Palantir",
    "source_url": "https://jobs.lever.co/palantir/6ed76ce8-4156-4b60-b120-403538bd66cd/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:42.736Z",
+   "captured_at": "2026-10-19T09:38:10.910Z",
    "reason": null,
    "fields": [
     {
@@ -34893,7 +34932,7 @@
    "company": "SunSource",
    "source_url": "https://jobs.lever.co/sunsrce/3e283550-e516-4813-b6dc-4397bac59a81/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:59.933Z",
+   "captured_at": "2026-10-19T09:38:23.024Z",
    "reason": null,
    "fields": [
     {
@@ -35194,7 +35233,7 @@
    "company": "Arc'teryx Equipment",
    "source_url": "https://jobs.lever.co/arcteryx.com/41ce19dd-c609-438b-a40c-fd5841d63011/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:04.618Z",
+   "captured_at": "2026-10-19T09:38:32.169Z",
    "reason": null,
    "fields": [
     {
@@ -35478,7 +35517,7 @@
    "company": "Wyetech",
    "source_url": "https://jobs.lever.co/wyetechllc/1386ac36-e8fe-4615-a184-c9548023601b/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:09.434Z",
+   "captured_at": "2026-10-19T09:38:36.525Z",
    "reason": null,
    "fields": [
     {
@@ -35732,7 +35771,7 @@
    "company": "Zoox",
    "source_url": "https://jobs.lever.co/zoox/e8a190f0-7a89-4c11-a6a0-452ff6234749/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:13.949Z",
+   "captured_at": "2026-10-19T09:38:40.888Z",
    "reason": null,
    "fields": [
     {
@@ -35970,7 +36009,7 @@
    "company": "Aprio",
    "source_url": "https://jobs.lever.co/Aprio/e1b9a80e-ad6d-46d3-bfa7-db2a362c22d7/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:18.518Z",
+   "captured_at": "2026-10-19T09:38:45.274Z",
    "reason": null,
    "fields": [
     {
@@ -36361,7 +36400,7 @@
    "company": "Brillio",
    "source_url": "https://jobs.lever.co/brillio-2/bc8ccf90-b4ee-420a-a4fc-91c779e2dc7d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:23.049Z",
+   "captured_at": "2026-10-19T09:38:49.730Z",
    "reason": null,
    "fields": [
     {
@@ -36552,7 +36591,7 @@
    "company": "Daniels Health",
    "source_url": "https://jobs.lever.co/daniels-sharpsmart/bedea5d1-d24d-4c6b-9f6a-cdef67c7583e/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:27.599Z",
+   "captured_at": "2026-10-19T09:38:54.249Z",
    "reason": null,
    "fields": [
     {
@@ -36856,7 +36895,7 @@
    "company": "Xsolla",
    "source_url": "https://jobs.lever.co/xsolla/a90cb94a-df2b-4f42-b60d-8abb68c4bf86/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:32.397Z",
+   "captured_at": "2026-10-19T09:38:58.683Z",
    "reason": null,
    "fields": [
     {
@@ -37112,7 +37151,7 @@
    "company": "Octopus Energy",
    "source_url": "https://jobs.lever.co/octoenergy/b48a931a-96b2-49cc-9c0f-932d6d415927/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:36.895Z",
+   "captured_at": "2026-10-19T09:39:03.113Z",
    "reason": null,
    "fields": [
     {
@@ -37251,7 +37290,7 @@
    "company": "AHEAD",
    "source_url": "https://jobs.lever.co/thinkahead/22b24ab5-9ebd-491a-a089-393b26b78c00/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:41.519Z",
+   "captured_at": "2026-10-19T09:39:07.660Z",
    "reason": null,
    "fields": [
     {
@@ -37582,7 +37621,7 @@
    "company": "Woven",
    "source_url": "https://jobs.lever.co/woven-by-toyota/84925f74-a6aa-4b90-a92b-7006f1f88779/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:46.095Z",
+   "captured_at": "2026-10-19T09:39:12.124Z",
    "reason": null,
    "fields": [
     {
@@ -37837,7 +37876,7 @@
    "company": "Wachter",
    "source_url": "https://jobs.lever.co/wachter/62f44c16-1fea-4b9f-9123-f6b8db84ef77/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:50.763Z",
+   "captured_at": "2026-10-19T09:39:20.471Z",
    "reason": null,
    "fields": [
     {
@@ -38039,7 +38078,7 @@
    "company": "Agile Defense",
    "source_url": "https://jobs.lever.co/agile-defense/92affb7f-0bd7-4c96-a9b7-7fdd1bffa8ae/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:55.361Z",
+   "captured_at": "2026-10-19T09:39:24.906Z",
    "reason": null,
    "fields": [
     {
@@ -38516,7 +38555,7 @@
    "company": "Pigment",
    "source_url": "https://jobs.lever.co/pigment/15e7b82c-ebf3-477c-96b5-96a3b25e0663/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:59.958Z",
+   "captured_at": "2026-10-19T09:39:29.353Z",
    "reason": null,
    "fields": [
     {
@@ -38613,7 +38652,7 @@
    "company": "Theodo",
    "source_url": "https://jobs.lever.co/theodo/2d851609-3162-4e6b-9da7-fec24c2d0cd8/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:04.525Z",
+   "captured_at": "2026-10-19T09:39:33.776Z",
    "reason": null,
    "fields": [
     {
@@ -39333,7 +39372,7 @@
    "company": "Commonwealth Fusion Systems",
    "source_url": "https://jobs.lever.co/cfsenergy/195a6795-0b2a-4b8f-bd39-9d522efcba61/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:09.518Z",
+   "captured_at": "2026-10-19T09:39:38.297Z",
    "reason": null,
    "fields": [
     {
@@ -39575,7 +39614,7 @@
    "company": "Extreme Networks",
    "source_url": "https://jobs.lever.co/extremenetworks/9c7ebecd-ed6d-49c1-be6d-a04c05331e6d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:14.018Z",
+   "captured_at": "2026-10-19T09:39:42.761Z",
    "reason": null,
    "fields": [
     {
@@ -39663,7 +39702,7 @@
    "company": "Thomas & Hutton",
    "source_url": "https://jobs.lever.co/tandh/c8a7688a-88cd-4db0-b044-11ffd788b6cc/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:18.499Z",
+   "captured_at": "2026-10-19T09:39:47.370Z",
    "reason": null,
    "fields": [
     {
@@ -40273,7 +40312,7 @@
    "company": "Filevine",
    "source_url": "https://jobs.lever.co/filevine/e1b6b715-a715-453e-82ea-e20d59ed6865/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:23.066Z",
+   "captured_at": "2026-10-19T09:39:52.399Z",
    "reason": null,
    "fields": [
     {
@@ -40513,7 +40552,7 @@
    "company": "Crest Industries",
    "source_url": "https://jobs.lever.co/crestoperations/4ad7d2f7-7775-4819-94c8-45627a11e66e/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:28.178Z",
+   "captured_at": "2026-10-19T09:39:57.876Z",
    "reason": null,
    "fields": [
     {
@@ -40788,7 +40827,7 @@
    "company": "openai",
    "source_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:32.608Z",
+   "captured_at": "2026-10-19T09:40:02.283Z",
    "reason": null,
    "fields": [
     {
@@ -40869,7 +40908,7 @@
      "options": []
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_gender",
+     "name": "1b64bd7f-3de7-4720-a0dc-ef3ecb1e8d72__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -40889,7 +40928,7 @@
      ]
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_race",
+     "name": "1b64bd7f-3de7-4720-a0dc-ef3ecb1e8d72__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -40929,7 +40968,7 @@
      ]
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_veteran_status",
+     "name": "1b64bd7f-3de7-4720-a0dc-ef3ecb1e8d72__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -40963,7 +41002,7 @@
    "company": "Airwallex",
    "source_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:37.835Z",
+   "captured_at": "2026-10-19T09:40:07.490Z",
    "reason": null,
    "fields": [
     {
@@ -41079,7 +41118,7 @@
    "company": "Lilt",
    "source_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:42.906Z",
+   "captured_at": "2026-10-19T09:40:12.240Z",
    "reason": null,
    "fields": [
     {
@@ -41174,7 +41213,7 @@
    "company": "Snowflake",
    "source_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:47.792Z",
+   "captured_at": "2026-10-19T09:40:17.130Z",
    "reason": null,
    "fields": [
     {
@@ -41255,7 +41294,7 @@
      "options": []
     },
     {
-     "name": "4e787f52-e24c-40a6-83c5-a78ef2b72371_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "1113f483-a3ef-4fd7-bf68-87106f8e2cc7_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "I am a U.S. person",
      "required": false,
      "type": "radio",
@@ -41275,7 +41314,7 @@
      ]
     },
     {
-     "name": "4e787f52-e24c-40a6-83c5-a78ef2b72371_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "1113f483-a3ef-4fd7-bf68-87106f8e2cc7_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Yes - I have previously worked at, or is currently working at PwC",
      "required": false,
      "type": "radio",
@@ -41319,7 +41358,7 @@
    "company": "Crusoe",
    "source_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:53.503Z",
+   "captured_at": "2026-10-19T09:40:23.008Z",
    "reason": null,
    "fields": [
     {
@@ -41402,7 +41441,7 @@
      "options": []
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_gender",
+     "name": "0675b245-7a10-42aa-bd44-5249a1fa74e3__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -41422,7 +41461,7 @@
      ]
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_race",
+     "name": "0675b245-7a10-42aa-bd44-5249a1fa74e3__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -41462,7 +41501,7 @@
      ]
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_veteran_status",
+     "name": "0675b245-7a10-42aa-bd44-5249a1fa74e3__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -41496,7 +41535,7 @@
    "company": "Harvey",
    "source_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:58.240Z",
+   "captured_at": "2026-10-19T09:40:27.823Z",
    "reason": null,
    "fields": [
     {
@@ -41563,7 +41602,7 @@
      "options": []
     },
     {
-     "name": "6d8db12f-7151-4496-ae60-529d9ad6c941_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "17c2fbef-25b9-407d-b31a-f6f64746552b_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Yes, I will require Harvey to sponsor my employment",
      "required": false,
      "type": "radio",
@@ -41579,7 +41618,7 @@
      ]
     },
     {
-     "name": "6d8db12f-7151-4496-ae60-529d9ad6c941_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "17c2fbef-25b9-407d-b31a-f6f64746552b_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "Yes, I’m based in this location and able to work from the office 3 days per week",
      "required": false,
      "type": "radio",
@@ -41638,7 +41677,7 @@
    "company": "Applied Intuition",
    "source_url": "https://jobs.ashbyhq.com/applied/b2258b1e-336f-4412-aafb-7e5f4e612c7e/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:03.003Z",
+   "captured_at": "2026-10-19T09:40:32.598Z",
    "reason": null,
    "fields": [
     {
@@ -41747,7 +41786,7 @@
      "options": []
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_gender",
+     "name": "0463401f-dd74-4ece-a4a2-b632f34fbea7__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -41767,7 +41806,7 @@
      ]
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_race",
+     "name": "0463401f-dd74-4ece-a4a2-b632f34fbea7__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -41807,7 +41846,7 @@
      ]
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_veteran_status",
+     "name": "0463401f-dd74-4ece-a4a2-b632f34fbea7__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -41841,7 +41880,7 @@
    "company": "Clera",
    "source_url": "https://jobs.ashbyhq.com/clera/54fc9546-f535-4def-b9c0-dd4e18f02c4b/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:07.858Z",
+   "captured_at": "2026-10-19T09:40:37.396Z",
    "reason": null,
    "fields": [
     {
@@ -41894,7 +41933,7 @@
    "company": "FluidStack",
    "source_url": "https://jobs.ashbyhq.com/fluidstack/0552904c-260d-4818-b35f-45ab12b6388a/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:12.527Z",
+   "captured_at": "2026-10-19T09:40:43.057Z",
    "reason": null,
    "fields": [
     {
@@ -41996,7 +42035,7 @@
      "options": []
     },
     {
-     "name": "768f29d3-e7a3-4524-aabf-59681658b796_03d16dd0-a3be-4824-bcf3-fa91894d73b0",
+     "name": "e4b09311-dd19-4017-88b4-058fc87e544c_03d16dd0-a3be-4824-bcf3-fa91894d73b0",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42020,7 +42059,7 @@
      ]
     },
     {
-     "name": "768f29d3-e7a3-4524-aabf-59681658b796_42efa6dc-6a04-4117-8af3-a9501ce6e283",
+     "name": "e4b09311-dd19-4017-88b4-058fc87e544c_42efa6dc-6a04-4117-8af3-a9501ce6e283",
      "label": "One week",
      "required": false,
      "type": "radio",
@@ -42139,7 +42178,7 @@
    "company": "Saronic",
    "source_url": "https://jobs.ashbyhq.com/saronic/d3ad80db-8508-4677-95d6-93c5d7a33815/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:17.984Z",
+   "captured_at": "2026-10-19T09:40:47.802Z",
    "reason": null,
    "fields": [
     {
@@ -42220,7 +42259,7 @@
      "options": []
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_gender",
+     "name": "a4e8f25c-861e-4aa3-8f71-8a2d4a334f3d__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -42240,7 +42279,7 @@
      ]
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_race",
+     "name": "a4e8f25c-861e-4aa3-8f71-8a2d4a334f3d__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -42280,7 +42319,7 @@
      ]
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_veteran_status",
+     "name": "a4e8f25c-861e-4aa3-8f71-8a2d4a334f3d__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -42314,7 +42353,7 @@
    "company": "Mistral AI",
    "source_url": "https://jobs.ashbyhq.com/mistral.ai/22fee4f2-f6c9-4516-a0cd-92d6aeb21a52/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:22.758Z",
+   "captured_at": "2026-10-19T09:40:52.449Z",
    "reason": null,
    "fields": [
     {
@@ -42430,7 +42469,7 @@
      "options": []
     },
     {
-     "name": "b127f857-4636-467b-b4f2-636e9c793ea3_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "490ca62c-dabe-4be2-ad49-3fbca505e31a_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -42468,7 +42507,7 @@
    "company": "Base Power",
    "source_url": "https://jobs.ashbyhq.com/base-power/c417f390-5d7a-4291-a2eb-113973b32e65/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:27.548Z",
+   "captured_at": "2026-10-19T09:40:57.417Z",
    "reason": null,
    "fields": [
     {
@@ -42628,7 +42667,7 @@
      "options": []
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_gender",
+     "name": "1e448659-184d-4ecb-be2e-3b2852b328d8__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -42648,7 +42687,7 @@
      ]
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_race",
+     "name": "1e448659-184d-4ecb-be2e-3b2852b328d8__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -42688,7 +42727,7 @@
      ]
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_veteran_status",
+     "name": "1e448659-184d-4ecb-be2e-3b2852b328d8__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -42722,7 +42761,7 @@
    "company": "Leland",
    "source_url": "https://jobs.ashbyhq.com/leland/b447fec5-42cd-48b2-aed3-8d62c777019c/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:32.449Z",
+   "captured_at": "2026-10-19T09:41:02.143Z",
    "reason": null,
    "fields": [
     {
@@ -42761,7 +42800,7 @@
      "options": []
     },
     {
-     "name": "515d6d23-0693-4b31-920a-0038502e3c3a_1b2e87df-a352-454d-bcb4-457fe658d4f9",
+     "name": "68b0577b-95a4-4f24-b5df-8dd71f9d1283_1b2e87df-a352-454d-bcb4-457fe658d4f9",
      "label": "H-1B Application — You have not yet received an H-1B visa and need to enter the lottery",
      "required": false,
      "type": "radio",
@@ -42813,7 +42852,7 @@
    "company": "Sierra",
    "source_url": "https://jobs.ashbyhq.com/Sierra/8152eaf6-012b-4154-95e2-7d6c52faba93/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:37.098Z",
+   "captured_at": "2026-10-19T09:41:06.960Z",
    "reason": null,
    "fields": [
     {
@@ -42873,7 +42912,7 @@
      "options": []
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_6ac9d496-64c9-485f-b4d7-8757bec4d606",
+     "name": "d9336d9d-5562-4e47-8206-52318d12cdfe_6ac9d496-64c9-485f-b4d7-8757bec4d606",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42889,7 +42928,7 @@
      ]
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_541ac3cb-e970-4d84-97c6-a043e64bedd6",
+     "name": "d9336d9d-5562-4e47-8206-52318d12cdfe_541ac3cb-e970-4d84-97c6-a043e64bedd6",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42912,7 +42951,7 @@
      "options": []
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_8424ed4e-1d18-4ffd-a6ac-5379df3fcaa3",
+     "name": "d9336d9d-5562-4e47-8206-52318d12cdfe_8424ed4e-1d18-4ffd-a6ac-5379df3fcaa3",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42928,7 +42967,7 @@
      ]
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_25121da9-3708-405f-9ece-9114464b2401",
+     "name": "d9336d9d-5562-4e47-8206-52318d12cdfe_25121da9-3708-405f-9ece-9114464b2401",
      "label": "Blog or news article",
      "required": false,
      "type": "radio",
@@ -42975,7 +43014,7 @@
      "options": []
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_cf0f1bc7-7ce6-4eb3-aebc-b6562141cb68",
+     "name": "b2813c02-3a97-44ca-8aa2-e4a3eedea781_cf0f1bc7-7ce6-4eb3-aebc-b6562141cb68",
      "label": "Under 30",
      "required": false,
      "type": "radio",
@@ -43007,7 +43046,7 @@
      ]
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "b2813c02-3a97-44ca-8aa2-e4a3eedea781_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -43035,7 +43074,7 @@
      ]
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_0a90dc7e-908c-449f-9151-95612d844b10",
+     "name": "b2813c02-3a97-44ca-8aa2-e4a3eedea781_0a90dc7e-908c-449f-9151-95612d844b10",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -43224,7 +43263,7 @@
    "company": "Checkout.com",
    "source_url": "https://jobs.ashbyhq.com/checkout.com/b563a46e-e4b9-4fd1-a7bb-6211f1564523/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:42.076Z",
+   "captured_at": "2026-10-19T09:41:11.988Z",
    "reason": null,
    "fields": [
     {
@@ -43298,7 +43337,7 @@
      "options": []
     },
     {
-     "name": "308f261c-0405-4f6e-ac63-002b18541d56_3045893a-2fc5-4dee-9484-08901e066b63",
+     "name": "46f3eefd-3920-4d7c-85af-fb4a4572d80d_3045893a-2fc5-4dee-9484-08901e066b63",
      "label": "None",
      "required": false,
      "type": "radio",
@@ -43477,7 +43516,7 @@
    "company": "Whoop",
    "source_url": "https://jobs.ashbyhq.com/whoop/1356adce-d85e-41b8-b6fe-14e6866c7aca/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:48.186Z",
+   "captured_at": "2026-10-19T09:41:18.677Z",
    "reason": null,
    "fields": [
     {
@@ -43572,7 +43611,7 @@
    "company": "ramp",
    "source_url": "https://jobs.ashbyhq.com/ramp/34413f8d-26bf-4bbc-8ade-eb309a0e2245/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:52.924Z",
+   "captured_at": "2026-10-19T09:41:23.388Z",
    "reason": null,
    "fields": [
     {
@@ -43690,7 +43729,7 @@
    "company": "Skydio",
    "source_url": "https://jobs.ashbyhq.com/skydio/134f29cc-da9f-4214-9d9c-d044f93af39e/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:57.717Z",
+   "captured_at": "2026-10-19T09:41:28.373Z",
    "reason": null,
    "fields": [
     {
@@ -43743,7 +43782,7 @@
      "options": []
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_gender",
+     "name": "51c0d22f-3291-4697-8d80-9c1249758af1__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -43763,7 +43802,7 @@
      ]
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_race",
+     "name": "51c0d22f-3291-4697-8d80-9c1249758af1__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -43803,7 +43842,7 @@
      ]
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_veteran_status",
+     "name": "51c0d22f-3291-4697-8d80-9c1249758af1__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -43837,7 +43876,7 @@
    "company": "ElevenLabs",
    "source_url": "https://jobs.ashbyhq.com/elevenlabs/a571b8e4-8176-4e31-aab6-2287ee810236/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:02.459Z",
+   "captured_at": "2026-10-19T09:41:33.105Z",
    "reason": null,
    "fields": [
     {
@@ -43862,7 +43901,7 @@
      "options": []
     },
     {
-     "name": "54520740-5c98-463e-9e65-f56d993c8756_eb70894d-2d6a-422b-9676-cb3d2f66c8bb",
+     "name": "5458cc76-b261-4b4a-a273-fb95c1ac7a1a_eb70894d-2d6a-422b-9676-cb3d2f66c8bb",
      "label": "I'm a user",
      "required": false,
      "type": "radio",
@@ -43951,7 +43990,7 @@
    "company": "Rivian and Volkswagen Group Technologies",
    "source_url": "https://jobs.ashbyhq.com/rivianvw.tech/b8f3847b-e656-4b0d-b26b-02d7b860be92/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:07.773Z",
+   "captured_at": "2026-10-19T09:41:37.854Z",
    "reason": null,
    "fields": [
     {
@@ -44027,7 +44066,7 @@
      "options": []
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_6b026486-053a-49e3-a373-6e804f324820",
+     "name": "f87cd9a4-80b4-4e9b-86a7-20944e057c73_6b026486-053a-49e3-a373-6e804f324820",
      "label": "Yes - I have US work authorization as a Citizen or US Permanent Resident / Green Card Holder",
      "required": false,
      "type": "radio",
@@ -44054,7 +44093,7 @@
      "options": []
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_d3e259df-4aab-4370-9d91-fb9760968785",
+     "name": "f87cd9a4-80b4-4e9b-86a7-20944e057c73_d3e259df-4aab-4370-9d91-fb9760968785",
      "label": "Yes - I am a previous intern",
      "required": false,
      "type": "radio",
@@ -44082,7 +44121,7 @@
      ]
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_757ea1ca-469b-48ce-a86d-2554901f3974",
+     "name": "f87cd9a4-80b4-4e9b-86a7-20944e057c73_757ea1ca-469b-48ce-a86d-2554901f3974",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -44114,7 +44153,7 @@
      ]
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41__systemfield_recording_consent",
+     "name": "f87cd9a4-80b4-4e9b-86a7-20944e057c73__systemfield_recording_consent",
      "label": "Yes, I consent to be recorded",
      "required": false,
      "type": "radio",
@@ -44130,7 +44169,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_gender",
+     "name": "4c1322c5-99f0-45eb-bfe9-298eaffb324e__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -44150,7 +44189,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_race",
+     "name": "4c1322c5-99f0-45eb-bfe9-298eaffb324e__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -44190,7 +44229,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_veteran_status",
+     "name": "4c1322c5-99f0-45eb-bfe9-298eaffb324e__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -44224,7 +44263,7 @@
    "company": "Apex",
    "source_url": "https://jobs.ashbyhq.com/apex-technology-inc/99f39ff9-899a-4acd-99c3-8bf868f7e4e4/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:13.075Z",
+   "captured_at": "2026-10-19T09:41:45.182Z",
    "reason": null,
    "fields": [
     {
@@ -44305,7 +44344,7 @@
      "options": []
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_gender",
+     "name": "72b791d1-a523-4886-8a3f-fd3b48018de6__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -44325,7 +44364,7 @@
      ]
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_race",
+     "name": "72b791d1-a523-4886-8a3f-fd3b48018de6__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -44365,7 +44404,7 @@
      ]
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_veteran_status",
+     "name": "72b791d1-a523-4886-8a3f-fd3b48018de6__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -44399,7 +44438,7 @@
    "company": "Decagon",
    "source_url": "https://jobs.ashbyhq.com/decagon/67c794bd-e423-44b2-8b80-d7b759994cde/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:18.070Z",
+   "captured_at": "2026-10-19T09:41:49.905Z",
    "reason": null,
    "fields": [
     {
@@ -44487,7 +44526,7 @@
    "company": "Neko Health",
    "source_url": "https://jobs.ashbyhq.com/neko-health/3fa8d38d-440a-4d1f-8a87-befb33799727/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:22.859Z",
+   "captured_at": "2026-10-19T09:41:55.103Z",
    "reason": null,
    "fields": [
     {
@@ -44626,7 +44665,7 @@
      "options": []
     },
     {
-     "name": "fb283419-a37e-444c-b061-6c2fc5777db3_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "a83f76d3-93df-43b9-b211-62abe585a9e9_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -44675,7 +44714,7 @@
    "company": "Perplexity AI",
    "source_url": "https://jobs.ashbyhq.com/Perplexity/d5bc2302-202f-4596-9c4d-8720d1e79064/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:27.832Z",
+   "captured_at": "2026-10-19T09:41:59.939Z",
    "reason": null,
    "fields": [
     {
@@ -44763,7 +44802,7 @@
    "company": "Anysphere",
    "source_url": "https://jobs.ashbyhq.com/cursor/0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:32.673Z",
+   "captured_at": "2026-10-19T09:42:04.748Z",
    "reason": "NO_REQUIRED_QUESTIONS",
    "fields": []
   },
@@ -44773,7 +44812,7 @@
    "company": "Preply",
    "source_url": "https://jobs.ashbyhq.com/preply/c6510778-8bd0-4084-a396-e2e3ad1b59f2/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:49.967Z",
+   "captured_at": "2026-10-19T09:42:22.027Z",
    "reason": null,
    "fields": [
     {
@@ -44826,7 +44865,7 @@
      "options": []
     },
     {
-     "name": "cdc93938-a16a-42d9-8dd2-cfcea6182380_3edbea0e-87b5-49c2-bd14-25b1cf47db9c",
+     "name": "a325175e-4e38-4159-9891-f4303030a3f9_3edbea0e-87b5-49c2-bd14-25b1cf47db9c",
      "label": "I use AI tools daily as a core part of my workflow (e.g., coding, debugging, system design). I treat AI as a pair programmer",
      "required": false,
      "type": "radio",
@@ -44867,7 +44906,7 @@
      "options": []
     },
     {
-     "name": "c8184fc4-c04e-4bf7-9137-3b6b7779022e_gh_quest_4019925003",
+     "name": "b636c31f-0c43-419c-a9cd-308f9ebee640_gh_quest_4019925003",
      "label": "Woman",
      "required": false,
      "type": "radio",
@@ -44909,7 +44948,7 @@
    "company": "Hadrian",
    "source_url": "https://jobs.ashbyhq.com/hadrian-automation/28963508-4689-4883-98f1-b89db55ad57b/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:54.937Z",
+   "captured_at": "2026-10-19T09:42:26.796Z",
    "reason": null,
    "fields": [
     {
@@ -44983,7 +45022,7 @@
      "options": []
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_9006c30c-c18a-4561-8259-0b496df22fda",
+     "name": "5aae58fa-1047-4ec6-99d5-b2fc53180f14_9006c30c-c18a-4561-8259-0b496df22fda",
      "label": "I am authorized to work in the United States for any employer",
      "required": false,
      "type": "radio",
@@ -45011,7 +45050,7 @@
      ]
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_00ef208d-de1a-478f-9eca-42c20ca8adeb",
+     "name": "5aae58fa-1047-4ec6-99d5-b2fc53180f14_00ef208d-de1a-478f-9eca-42c20ca8adeb",
      "label": "U.S. person. This ITAR/EAR status includes U.S. citizens, U.S. nationals, lawful permanent residents (green card holders), and asylees and refugees with such status granted, not pending",
      "required": false,
      "type": "radio",
@@ -45027,7 +45066,7 @@
      ]
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_ac1103fb-311a-4ee7-a4a5-649b2c2e1d87",
+     "name": "5aae58fa-1047-4ec6-99d5-b2fc53180f14_ac1103fb-311a-4ee7-a4a5-649b2c2e1d87",
      "label": "I currently live in this location.",
      "required": false,
      "type": "radio",
@@ -45086,7 +45125,7 @@
    "company": "EliseAI",
    "source_url": "https://jobs.ashbyhq.com/EliseAI/09e616d7-172b-46d9-929d-0932e8a31bc4/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:59.746Z",
+   "captured_at": "2026-10-19T09:42:31.467Z",
    "reason": null,
    "fields": [
     {
@@ -45314,7 +45353,7 @@
    "company": "notion",
    "source_url": "https://jobs.ashbyhq.com/notion/1fc309c8-da20-4ff2-84c7-8b863ece2b0a/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:04.727Z",
+   "captured_at": "2026-10-19T09:42:36.240Z",
    "reason": null,
    "fields": [
     {
@@ -45353,7 +45392,7 @@
      "options": []
     },
     {
-     "name": "e66ec1ae-5fe3-462f-bc62-89ee055ceea1_b0a5aba8-dbb7-41a9-b548-f72cc3e48956",
+     "name": "3d814ec5-faed-4b30-b2f7-8a8238094c03_b0a5aba8-dbb7-41a9-b548-f72cc3e48956",
      "label": "He/Him",
      "required": false,
      "type": "radio",
@@ -45444,7 +45483,7 @@
      "options": []
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_gender",
+     "name": "c392796f-4fde-4ea9-b614-d72383ac7e3c__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -45464,7 +45503,7 @@
      ]
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_race",
+     "name": "c392796f-4fde-4ea9-b614-d72383ac7e3c__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -45504,7 +45543,7 @@
      ]
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_veteran_status",
+     "name": "c392796f-4fde-4ea9-b614-d72383ac7e3c__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -45538,7 +45577,7 @@
    "company": "Plaid",
    "source_url": "https://jobs.ashbyhq.com/plaid/5d8abedc-018a-4b42-ae1f-0e70b34f2007/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:09.670Z",
+   "captured_at": "2026-10-19T09:42:41.249Z",
    "reason": null,
    "fields": [
     {
@@ -45691,7 +45730,7 @@
      "options": []
     },
     {
-     "name": "3f63e511-9a7b-4497-8eaf-ec679fbd7c3a_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+     "name": "dad5a897-d3b9-4d6e-9676-0fb0e7cd2e10_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
      "label": "1 - Slightly below average",
      "required": false,
      "type": "radio",

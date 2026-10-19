@@ -28,7 +28,7 @@ jobs:
           echo "UPMORE_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Pick 6 real postings per ATS
-        run: mkdir -p tests/fixtures/forms-ci && node scripts/career/pick-form-sources.cjs tests/fixtures/forms-ci/sources.json 6
+        run: rm -rf tests/fixtures/forms-ci && mkdir -p tests/fixtures/forms-ci && node scripts/career/pick-form-sources.cjs tests/fixtures/forms-ci/sources.json 6
       - name: Raw capture (capture-form.cjs, one GET each)
         run: node scripts/career/capture-form.cjs tests/fixtures/forms-ci/sources.json tests/fixtures/forms-ci/raw || true
       - name: Rendered capture (Chromium, GETs only)
@@ -40,6 +40,6 @@ jobs:
           rm -f tests/fixtures/forms-ci/raw/.capture.lock
           git config user.name "form-capture[ci]"
           git config user.email "form-capture@users.noreply.github.com"
-          git add tests/fixtures/forms-ci
+          git add -A tests/fixtures/forms-ci
           git commit -m "WO-009b-2 fixtures: real public application pages captured in CI (raw and rendered)" || exit 0
           git push origin HEAD:ci/form-capture

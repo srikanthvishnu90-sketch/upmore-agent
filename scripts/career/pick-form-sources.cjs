@@ -17,7 +17,8 @@ const FAMILY = {
   ashby: { list: (t) => `https://api.ashbyhq.com/posting-api/job-board/${t}`, first: (j) => j.jobs && j.jobs[0],
     source: (t, p) => ({ url: `https://jobs.ashbyhq.com/${t}/${p.id}/application` }) },
   smartrecruiters: { list: (t) => `https://api.smartrecruiters.com/v1/companies/${t}/postings?limit=1`, first: (j) => j.content && j.content[0],
-    source: (t, p) => ({ url: `https://jobs.smartrecruiters.com/${t}/${p.id}` }) },
+    // The job page only describes the role; the application form is the "oneclick" page for the posting's uuid.
+    source: (t, p) => ({ url: `https://jobs.smartrecruiters.com/oneclick-ui/company/${t}/publication/${p.uuid}?dcr_ci=${t}` }) },
 };
 
 async function pick(directory, perFamily, fetchFn = fetch, gapMs = 2000) {
@@ -37,7 +38,7 @@ async function pick(directory, perFamily, fetchFn = fetch, gapMs = 2000) {
         const res = await fetchFn(f.list(encodeURIComponent(b.board_token)), { headers: UA, signal: AbortSignal.timeout(15000) });
         if (res.status !== 200) continue;
         const p = f.first(await res.json());
-        if (!p || !p.id) continue;
+        if (!p || !p.id || (family === "smartrecruiters" && !p.uuid)) continue;
         const id = `${family}-${String(b.board_token).toLowerCase().replace(/[^a-z0-9_-]/g, "-")}-${String(p.id).toLowerCase().replace(/[^a-z0-9_-]/g, "-")}`.slice(0, 160);
         out.push({ id, family, company: b.company, ...f.source(b.board_token, p) });
         companies.add(company);

@@ -24,3 +24,4 @@ real texting channel is last (D-009).
 | [013](WO-013-texting-channel.md) | The texting channel: 013a delivery once-only + STOP/START/HELP + daily contact cap (no provider) · 013b LoopMessage webhook, Supabase conversation store, sends | done (PRs #10, #11, #12, 2026-10-19) | 004, 007 | M6 | Claude (was Muse) |
 | 014 | SMS/RCS for Android | drafting | 013 | M6 | Claude (was Muse) |
 | 015 | Inbox proof: read-only Gmail scan upgrades submitted_unconfirmed to confirmed and uses an employer's emailed code once (never stored, never in chat) | drafting | 009 | M4 | Codex |
+| [016](WO-016-brain-to-the-bar.md) | The agent brain to the D-008 bar (≥ 80% and ≥ router + 40 on the eval set), measured on the real model, ≤ $25 a night | ready | 002, 003 | M1 | Codex |

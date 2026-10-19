@@ -7,6 +7,7 @@
 // answers are rebuilt from the approved payload itself, so the engine reproduces the same application or stops it
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
+import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 
@@ -287,6 +288,73 @@ export function engineRunner(o: { root: string; extra?: string[]; deno?: string 
   };
 }
 
+// The person signs this computer in themselves, in a browser window on the Upmore app, the same way they sign in
+// anywhere (their own password or Google, their own 2FA). The session is read only from the app's own origin, after
+// they are signed in, from where the app keeps it (supabase-js: localStorage "sb-<project>-auth-token"); it stays in
+// memory for this run and is never printed or written anywhere. The window is a fresh browser: nothing is loaded from
+// or saved to disk. Ten minutes, then SIGN_IN_TIMEOUT.
+export async function signInInBrowser(o: {
+  appUrl: string;
+  headed: boolean;
+  timeoutMs?: number;
+  say?: (line: string) => void;
+}): Promise<{ access_token: string; refresh_token: string }> {
+  const req = createRequire(import.meta.url);
+  let pw: any = null;
+  for (const t of [Deno.env.get("UPMORE_PLAYWRIGHT_PATH"), "playwright"]) {
+    if (!t) continue;
+    try {
+      pw = req(t);
+      break;
+    } catch { /* next */ }
+  }
+  if (!pw) throw Error("PLAYWRIGHT_UNRESOLVABLE");
+  const app = new URL(o.appUrl);
+  const chrome = Deno.env.get("UPMORE_CHROMIUM_PATH");
+  const browser = await pw.chromium.launch({
+    headless: !o.headed,
+    ...(Deno.env.get("UPMORE_CHROMIUM_SANDBOX") === "off" ? { args: ["--no-sandbox"] } : { chromiumSandbox: true }),
+    ...(chrome ? { executablePath: chrome } : {}),
+  });
+  try {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto(app.href);
+    (o.say ?? console.log)(
+      "Sign in to Upmore in the browser window. Trainee reads only your session from the app's own page, keeps it " +
+        "in memory for this run, and never prints or saves it.",
+    );
+    const deadline = Date.now() + (o.timeoutMs ?? 600_000);
+    while (Date.now() < deadline) {
+      let origin = "";
+      try {
+        origin = new URL(page.url()).origin;
+      } catch { /* about:blank while navigating */ }
+      if (origin === app.origin) {
+        const raw = await page.evaluate(() => {
+          const ls = (globalThis as any).localStorage;
+          for (let i = 0; i < ls.length; i++) {
+            const k = ls.key(i);
+            if (/^sb-[a-z0-9]+-auth-token$/.test(k)) return ls.getItem(k);
+          }
+          return null;
+        }).catch(() => null);
+        if (raw) {
+          try {
+            const j = JSON.parse(raw), s = j.currentSession ?? j;
+            if (typeof s.access_token === "string" && typeof s.refresh_token === "string" && s.refresh_token) {
+              return { access_token: s.access_token, refresh_token: s.refresh_token };
+            }
+          } catch { /* not a session yet */ }
+        }
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw Error("SIGN_IN_TIMEOUT");
+  } finally {
+    await browser.close();
+  }
+}
+
 // The role a Supabase key or session token claims, read from its payload without verifying it: used only to refuse a
 // service key on a person's computer. Anything unreadable has no role.
 export function jwtRole(token: string): string | null {
@@ -340,23 +408,33 @@ if (import.meta.main) {
     // let this computer claim other people's applications.
     const [resume, ...extra] = rest;
     const env = (k: string) => Deno.env.get(k) || "";
-    const [url, anon, access, refresh] = [
+    let [url, anon, access, refresh, appUrl] = [
       "UPMORE_SUPABASE_URL",
       "UPMORE_SUPABASE_ANON_KEY",
       "UPMORE_ACCESS_TOKEN",
       "UPMORE_REFRESH_TOKEN",
-    ]
-      .map(env);
-    if (!resume || !url || !anon || !access || !refresh) {
+      "UPMORE_APP_URL",
+    ].map(env);
+    if (!resume || !url || !anon || (!(access && refresh) && !appUrl)) {
       console.error(
-        "usage: approve-first.ts run <resume.pdf> [engine args], with UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY, " +
-          "UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN set to your own sign-in",
+        "usage: approve-first.ts run <resume.pdf> [engine args], with UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY " +
+          "and UPMORE_APP_URL (you sign in in a browser window), or UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN",
       );
       Deno.exit(2);
     }
-    if ([anon, access].some((t) => jwtRole(t) === "service_role")) {
+    const refuse = () => {
       console.error("SERVICE_KEY_REFUSED: this computer runs only your own applications; sign in as yourself.");
       Deno.exit(2);
+    };
+    if ([anon, access].some((t) => jwtRole(t) === "service_role")) refuse();
+    if (!(access && refresh)) {
+      try {
+        ({ access_token: access, refresh_token: refresh } = await signInInBrowser({ appUrl, headed: true }));
+      } catch (e: any) {
+        console.error(`Not signed in (${e?.message ?? "error"}); nothing was run.`);
+        Deno.exit(2);
+      }
+      if (jwtRole(access) === "service_role") refuse();
     }
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
     const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: true } });

@@ -72,6 +72,7 @@ edge_tests=(
   tests/edge/model-errors.test.ts
   tests/edge/agent-guards.test.ts
   tests/edge/conversation-hardening.test.ts
+  tests/edge/channel.test.ts
 )
 
 portable_test_paths() {

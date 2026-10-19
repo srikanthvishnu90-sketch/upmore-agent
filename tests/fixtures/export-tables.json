@@ -504,6 +504,10 @@
    ]
   },
   {
+   "table": "career_apply_jobs",
+   "order": ["created_at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

@@ -35,6 +35,7 @@ shared_tests=(
   tests/no-password-storage.test.cjs
   tests/no-secrets.test.cjs
   tests/trainee-go-live.test.cjs
+  tests/export-coverage.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -84,6 +85,7 @@ edge_tests=(
   tests/edge/career-coverage-personas.test.ts
   tests/edge/career-backlog-alerts.test.ts
   tests/edge/career-conversations-eval.test.ts
+  tests/edge/career-apply-store.test.ts
 )
 
 portable_test_paths() {

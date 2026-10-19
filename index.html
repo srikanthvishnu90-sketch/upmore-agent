@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-3unprXL73f7i438rTafFp8R7On/4T3mNP/Hnbofiiqg=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-AR90cNdytBJWc2GrnGnHEgJa05fqgR5PuzCtSVPPt0Q=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -5709,6 +5709,7 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
       ["career_apply_jobs", "created_at,id"],
       ["career_apply_prepared", "created_at,id"],
       ["career_apply_cards", "shown_at,id"],
+      ["career_apply_questions", "created_at,id"],
       ["channel_contacts", "created_at,contact"]];
     const out = { exported_at: new Date().toISOString(), user_id: financeTicket.owner, _unreadable: [] };
     const PAGE = 1000;

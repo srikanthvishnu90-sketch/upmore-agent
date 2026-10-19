@@ -7,7 +7,7 @@
 // answers are rebuilt from the approved payload itself, so the engine reproduces the same application or stops it
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
-import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+import { answerKey, mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -113,6 +113,44 @@ export function factsFromPayload(payload: any) {
     saved[key] = { value: f.value, factId: f.factId, confirmed: true };
   }
   return { user_id: payload.user_id, answers: {}, saved };
+}
+
+// Ask once: the answers the person texted, as the engine's confirmed facts for the next preparation. A fact for every
+// employer goes under the fact's name (their own facts file wins when it states the same fact); an answer for one wording
+// or one posting goes under its key, which planBatch reads for that question only. Each is marked as a texted answer.
+export interface TextAnswer { id: string; key: string; kind: string; answer: string }
+export function factsWithTextAnswers(facts: any, rows: TextAnswer[]) {
+  const answers = { ...(facts?.answers || {}) }, saved = { ...(facts?.saved || {}) };
+  for (const r of rows || []) {
+    if (!r || typeof r.answer !== "string" || !r.answer.trim() || typeof r.key !== "string") continue;
+    const a = { value: r.answer, factId: `text-answer:${r.id}`, confirmed: true };
+    if (r.key.startsWith("fact:")) {
+      const f = r.key.slice(5);
+      if (!Object.hasOwn(answers, f)) answers[f] = a;
+    } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key)) saved[r.key] = a;
+  }
+  return { ...facts, answers, saved };
+}
+
+// The questions that stopped one preparation, as rows to ask by text: keyed by how far an answer may travel (a stated fact
+// that did not fit this form is asked for this posting only), never one asking for an identity, bank or card number or a
+// password, and marked misfit when a question already answered came back because this form's options do not fit.
+export function questionsToStore(result: any, o: { facts: Record<string, unknown>; answered: Set<string> }) {
+  const posting = String(result?.posting || "");
+  const out = new Map<string, Record<string, unknown>>();
+  if (!posting) return { posting, questions: [] as Record<string, unknown>[] };
+  for (const q of Array.isArray(result?.questions) ? result.questions : []) {
+    const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
+    if (!label || NEVER_BY_TEXT.test(label)) continue;
+    const options = (Array.isArray(q.options) ? q.options : []).map((x: unknown) => String(x).slice(0, 300)).slice(0, 60);
+    const type = String(q.type || "input_text").slice(0, 40);
+    const shape = { label, type, options: options.map((l: string) => ({ label: l })) };
+    const m = mapQuestion(shape);
+    const key = answerKey(shape, posting, { haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact) });
+    if (out.has(key)) continue;
+    out.set(key, { key, kind: m.kind, label, type, options, company: result?.company ? String(result.company).slice(0, 200) : null, misfit: o.answered.has(key) });
+  }
+  return { posting, questions: [...out.values()] };
 }
 
 export async function runApproved(d: {
@@ -508,31 +546,56 @@ if (import.meta.main) {
       console.error("Your account is paused; nothing was prepared.");
       Deno.exit(2);
     }
-    let ready = 0;
-    for (const url of urls) {
-      const r = await prepare({
-        url,
-        factsPath: facts,
-        resumePath: resume,
-        account: { epoch: Number(acct.data.epoch), version: Number(acct.data.version) },
-        now: Date.now(),
-        runEngine: engineRunner({ root, extra }),
-      });
-      if (!r.ready) {
-        const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
-        console.log(`NOT READY ${url} (${r.result.reason ?? r.result.state})${q}`);
-        continue;
+    // Ask once: what the person already answered by text goes in as their confirmed facts, in a file only they can read,
+    // removed when the batch ends.
+    const texted = await client.rpc("career_apply_answers_own");
+    if (texted.error) console.log(`Your texted answers could not be read (${texted.error.message}); preparing without them.`);
+    const rows: TextAnswer[] = texted.error ? [] : texted.data ?? [];
+    const merged = factsWithTextAnswers(JSON.parse(await Deno.readTextFile(facts)), rows);
+    const factsDir = await Deno.makeTempDir({ prefix: "trainee-facts-" });
+    const factsPath = `${factsDir}/facts.json`;
+    await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
+    const answered = new Set(rows.map((r) => r.key));
+    let ready = 0, asked = 0;
+    try {
+      for (const url of urls) {
+        const r = await prepare({
+          url,
+          factsPath,
+          resumePath: resume,
+          account: { epoch: Number(acct.data.epoch), version: Number(acct.data.version) },
+          now: Date.now(),
+          runEngine: engineRunner({ root, extra }),
+        });
+        if (!r.ready) {
+          const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
+          console.log(`NOT READY ${url} (${r.result.reason ?? r.result.state})${q}`);
+          const ask = r.result.reason === "needs_answers" ? questionsToStore(r.result, { facts: merged.answers, answered }) : null;
+          if (ask?.questions.length) {
+            const put = await client.rpc("career_apply_questions_put_own", { p_job_id: ask.posting, p_questions: ask.questions });
+            if (put.error) console.log(`  questions not stored (${put.error.message})`);
+            else asked += ask.questions.length;
+          }
+          continue;
+        }
+        const saved = await client.rpc("career_apply_prepare_own", { p_payload: r.payload, p_card_lines: r.card });
+        if (saved.error) console.log(`NOT STORED ${url} (${saved.error.message})`);
+        else {
+          ready++;
+          console.log(`READY ${url} (${r.payload.company})`);
+        }
       }
-      const saved = await client.rpc("career_apply_prepare_own", { p_payload: r.payload, p_card_lines: r.card });
-      if (saved.error) console.log(`NOT STORED ${url} (${saved.error.message})`);
-      else {
-        ready++;
-        console.log(`READY ${url} (${r.payload.company})`);
-      }
+    } finally {
+      await Deno.remove(factsDir, { recursive: true }).catch(() => {});
     }
     console.log(
       `${ready} of ${urls.length} ready. Text Trainee "show my applications" to see the card; nothing is sent before your yes.`,
     );
+    if (asked) {
+      console.log(
+        `${asked} question${asked === 1 ? "" : "s"} only you can answer went to Trainee. Text "what do you need from me" to answer each once; then prepare again.`,
+      );
+    }
   } else {
     console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch ...");
     Deno.exitCode = 2;

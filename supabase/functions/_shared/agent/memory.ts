@@ -64,10 +64,11 @@ export interface PipelineRows {
   openCard: { shown_at: string; items: unknown[] } | null;
   jobs: { company: string; url: string; state: string; reason: string | null; created_at: string; updated_at: string }[];
   dailyLimit?: unknown;
+  openQuestions?: number | null; // null: could not be read
 }
 export interface Pipeline {
   waiting: number; card: { shown_at: string; count: number } | null; queued: number;
-  sent_24h: number; limit: number;
+  sent_24h: number; limit: number; questions: number | null;
   needs: { company: string; url: string; what: string }[];
   recent: { company: string; state: string; at: string }[];
 }
@@ -90,23 +91,27 @@ export function summarizePipeline(r: PipelineRows, now: number): Pipeline {
     queued: r.jobs.filter((j) => j.state === "queued" || j.state === "driving").length,
     sent_24h: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > day).length,
     limit: dailyLimit({ daily: r.dailyLimit as number }),
+    questions: r.openQuestions === null ? null : Number(r.openQuestions) || 0,
     needs, recent,
   };
 }
 export async function readPipeline(admin: any, userId: string, now: number): Promise<Pipeline> {
   const must = (r: any, what: string) => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data; };
   const since = new Date(now - 3 * 86400000).toISOString();
-  const [prepared, cards, jobs, account] = await Promise.all([
+  const [prepared, cards, jobs, account, questions] = await Promise.all([
     admin.from("career_apply_prepared").select("state").eq("user_id", userId).in("state", ["ready", "shown"]).limit(500),
     admin.from("career_apply_cards").select("shown_at,items").eq("user_id", userId).eq("state", "open").order("shown_at", { ascending: false }).limit(1),
     admin.from("career_apply_jobs").select("company,url,state,reason,created_at,updated_at").eq("user_id", userId).or(`updated_at.gte.${since},state.in.(queued,driving,needs_user)`).limit(500),
     admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:account").maybeSingle(),
+    admin.from("career_apply_questions").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("state", "open"),
   ]);
+  if (questions.error) console.error("agent memory: open questions", questions.error.message);
   return summarizePipeline({
     prepared: must(prepared, "read prepared applications") ?? [],
     openCard: (must(cards, "read the open card") ?? [])[0] ?? null,
     jobs: must(jobs, "read the application queue") ?? [],
     dailyLimit: must(account, "read the account")?.value?.daily_limit,
+    openQuestions: questions.error ? null : questions.count ?? 0,
   }, now);
 }
 
@@ -147,6 +152,8 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const pipeline = p
     ? [
       `Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`,
+      ...(p.questions === null ? ["Questions only they can answer: could not be read this turn; never guess."]
+        : p.questions ? [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] : []),
       ...(p.needs.length ? ["Stopped until they help:", ...p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`)] : []),
       ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`),
     ]

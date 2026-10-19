@@ -655,6 +655,7 @@ const CareerPortalBrowser = (() => {
         if (state.armedPayload) {
           const checked = call(boardId, { type: "verify_payload", observationVersion: state.observation.version,
             bindings: Object.values(state.bindingHistory), payload: state.armedPayload }, 30000);
+          if (!checked.matches) console.error("Browser payload readback mismatch fields:", (checked.mismatchedFields || []).join(", "));
           if (!checked.matches) throw coded("PAYLOAD_CHANGED_BEFORE_CLICK", "the current browser fields differ from the approved payload; no click was issued (fields: " + (checked.mismatchedFields || []).join(", ") + ")");
         }
         state.submitAttempted = true;

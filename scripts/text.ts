@@ -3,6 +3,7 @@
 // agent-initiated messages delivered when the fake clock reaches them.
 //
 //   deno run -A scripts/text.ts [--brain router|agent] [--as +15550000001] [--transcript file.md] [--script file.txt] [--fresh]
+//                               [--postings postings.json]   (real postings saved by supabase/functions/career-ingest/local.ts --out)
 //
 // Commands: /attach <path>   attach a file to the next text
 //           /as <contact>    switch person          /reset   forget this person
@@ -15,12 +16,14 @@ import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerRep
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
 import { callModel, modelConfig, newMeter } from "../supabase/functions/_shared/model_gateway.ts";
+import { memoryPostingsDb, searchWords, type Posting } from "../supabase/functions/_shared/career_ingest.ts";
 
 const args = Deno.args;
 const opt = (name: string, dflt: string | null = null) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : dflt; };
 const brainName = opt("--brain", "router")!;
 const transcript = opt("--transcript");
 const script = opt("--script");
+const postingsFile = opt("--postings");
 const STATE_DIR = ".simulator", STATE_FILE = `${STATE_DIR}/state.json`;
 const MIME: Record<string, string> = { txt: "text/plain", md: "text/markdown", csv: "text/csv", json: "application/json", pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", heic: "image/heic" };
 
@@ -35,6 +38,12 @@ let now = saved?.now ?? Date.now();
 let as = opt("--as", saved?.as ?? "+15550000001")!;
 let pending: Attachment[] = [];
 const meter = newMeter();
+// Job search reads the same store interface production does (supabasePostingsDb there, memory here).
+const jobs = memoryPostingsDb();
+if (postingsFile) {
+  try { const rows = JSON.parse(Deno.readTextFileSync(postingsFile)) as Posting[]; await jobs.putMany(rows); console.log(`(${rows.length} postings loaded from ${postingsFile})`); }
+  catch (e) { console.error(`couldn't read --postings ${postingsFile}: ${e instanceof Error ? e.message : e}`); Deno.exit(2); }
+}
 
 const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
 function turnCtx(userId: string, stores: Record<string, unknown>) {
@@ -52,7 +61,7 @@ const agentBrain: Brain = async (a) => {
   const ctx = turnCtx(a.userId, a.stores) as Record<string, unknown>;
   const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const t = await agentTurn({ message: withFiles(a.message, a.attachments), history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
-    model: (p) => callModel(cfg, p, { meter, role: "chat" }) });
+    model: (p) => callModel(cfg, p, { meter, role: "chat" }), postings: (q) => jobs.search(searchWords(q), 150) });
   if (t.tool_calls.length) console.log(`   · tools: ${t.tool_calls.map((c) => `${c.name}${c.ok ? "" : " ✗"}`).join(", ")}`);
   if (t.stopped !== "final") console.log(`   · stopped: ${t.stopped}`);
   return { reply: t.reply, stores: { snapshot: host.extractSnapshot(ctx as any) } };

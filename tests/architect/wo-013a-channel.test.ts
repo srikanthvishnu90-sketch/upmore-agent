@@ -2,8 +2,8 @@
 // The texting channel's two non-negotiables, before any provider: STOP means nothing more is ever sent until START, and
 // every message goes out at most once, never silently dropped, within the provider's daily contact cap.
 // Contract: docs/architect/work-orders/WO-013-texting-channel.md. Run: deno test -A --no-check tests/architect/
-import { channelCommand, CHANNEL_REPLIES, deliverDue, memoryChannel } from "../../../supabase/functions/_shared/channel.ts";
-import { handleInbound, memoryStore, toBubbles, type Brain } from "../../../supabase/functions/_shared/conversation.ts";
+import { channelCommand, CHANNEL_REPLIES, deliverDue, memoryChannel } from "../../supabase/functions/_shared/channel.ts";
+import { handleInbound, memoryStore, toBubbles, type Brain } from "../../supabase/functions/_shared/conversation.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

@@ -15,12 +15,12 @@ real texting channel is last (D-009).
 | [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | done (PR #3, 2026-10-19) | 001 | M1 | Claude (was Muse) |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | done (PR #7, 2026-10-19) | 001 | M2 | Claude (was Muse) |
-| [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | 007a in review (PR #8) · 007b in review (PR #9) | 004, 006 | M2 | Claude (was Muse) |
+| [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | done (PRs #8, #9, 2026-10-19) | 004, 006 | M2 | Claude (was Muse) |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
-| [009](WO-009-real-submissions.md) | **Mass applying, fast (D-011, top priority):** 009a apply core (prepare every application before a browser opens) · 009b parallel apply worker, employer-confirmed | 009a in review (PR #6) · 009b ready | 001 | M4 | 009a Claude · 009b Codex (next after 001) |
+| [009](WO-009-real-submissions.md) | **Mass applying, fast (D-011, top priority):** 009a apply core (prepare every application before a browser opens) · 009b parallel apply worker, employer-confirmed | 009a done (PR #6, 2026-10-19) · 009b ready (unblocked: WO-001 is done) | 001 | M4 | 009a Claude · 009b Codex (next after 001) |
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled (never finish on END/QUIT/CANCEL: those are STOP words, WO-013a) | drafting | 002 | M5 | Codex |
 | 011 | Delete shelved finance code and its tests | drafting | 001 | M0 | any |
 | 012 | Trainee web app replaces the finance app (pipeline, jobs, resume, approvals) | drafting | 005 | M6 | any |
-| [013](WO-013-texting-channel.md) | The texting channel: 013a delivery once-only + STOP/START/HELP + daily contact cap (no provider) · 013b LoopMessage webhook, Supabase conversation store, sends | 013a in review (PR #10) · 013b-1 delivery building · 013b-2 inbound drafting | 004, 007 | M6 | Claude (was Muse) |
+| [013](WO-013-texting-channel.md) | The texting channel: 013a delivery once-only + STOP/START/HELP + daily contact cap (no provider) · 013b LoopMessage webhook, Supabase conversation store, sends | 013a in review (PR #10) · 013b-1 in review (PR #11) · 013b-2 in review (PR #12) | 004, 007 | M6 | Claude (was Muse) |
 | 014 | SMS/RCS for Android | drafting | 013 | M6 | Claude (was Muse) |
 | 015 | Inbox proof: read-only Gmail scan upgrades submitted_unconfirmed to confirmed and uses an employer's emailed code once (never stored, never in chat) | drafting | 009 | M4 | Codex |

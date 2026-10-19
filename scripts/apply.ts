@@ -309,6 +309,10 @@ export async function runApply(args: string[]) {
   let resumeUploads = 0;
   const uploadEchoes: string[] = [];
   const echoed = (v: string) => v.length >= 4 && uploadEchoes.some((t) => t.includes(v));
+  // The verification code the employer emails after the submit is the person's: they type it into the page and press
+  // its button themselves. While the window is open, one write per try goes to the employer's own site (codeAllowance);
+  // only its keys are kept. Trainee never reads, stores or logs the code.
+  let codeWindow = false, codeAllowance = 0, codeWrites = 0;
   // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
   let pageFields: Record<string, string> | null = null;
   const write = (result: any) => {
@@ -408,6 +412,20 @@ export async function runApply(args: string[]) {
     }
     return false;
   }
+  // Every approved answer and the approved resume in a body the page sent; throws the name of one missing or changed.
+  function carriesApproved(got: { strings: string[]; files: string[] }) {
+    for (const [name, want] of Object.entries(wire)) {
+      if (want === null) continue;
+      if (typeof want === "object") {
+        if (!got.files.includes((want as any).sha256)) throw Error("resume");
+      } else if (!got.strings.includes(String(want))) {
+        // A select may carry its label rather than its value; a checked box may carry true in JSON.
+        const b = current?.bindings?.[name], opt = b?.options?.find((x: any) => x.value === want);
+        const checked = b?.inputType === "checkbox" && got.strings.includes("true");
+        if (!(opt && got.strings.includes(String(opt.label))) && !checked) throw Error(name);
+      }
+    }
+  }
   const helper = require("./career/portal-browser-helper.cjs");
   if (o.headed) Deno.env.set("UPMORE_BROWSER_HEADED", "1");
   try {
@@ -424,7 +442,7 @@ export async function runApply(args: string[]) {
         await route.abort("blockedbyclient");
         return;
       }
-      if (main && !allowSubmit) {
+      if (main && !allowSubmit && !codeWindow) {
         try {
           if (posting(url).key !== target.key) throw Error();
         } catch {
@@ -464,6 +482,39 @@ export async function runApply(args: string[]) {
       // the employer's answer (tests/fixtures/forms-ci: resumeStorageId, /js/parseResume.js). Only for an application the
       // person approved before this run (--approved), only to the employer's own origin, only a multipart body carrying
       // the approved resume and nothing else, at most twice. Without a prior approval it stays stopped.
+      // A write while the code window is open: the person's code going to the employer. One per try, the employer's
+      // own site only. If it re-sends any part of the application (Greenhouse asks for the code on the form itself and
+      // the form goes again), it must carry every approved answer and the approved resume unchanged. Keys only are kept.
+      let codeReq = false;
+      if (
+        codeWindow && codeWrites < codeAllowance && same && sameTenant && !["GET", "HEAD"].includes(req.method()) &&
+        !readQuery
+      ) {
+        const type = req.headers()["content-type"] || "", body = req.postDataBuffer() || new Uint8Array();
+        try {
+          let form: FormData | null = null;
+          if (type.startsWith("multipart/form-data") || type.startsWith("application/x-www-form-urlencoded")) {
+            form = await new Response(new Uint8Array(body), { headers: { "Content-Type": type } }).formData();
+          }
+          const keys = bodyShape(type, body, form), got = await bodyContents(type, body, form);
+          const approvedValues = Object.values(wire).filter((v) => typeof v === "string" && v.length >= 4);
+          const resends = keys.some((k) => Object.hasOwn(wire, k.split(".").pop()!.replace(/\[\]$/, ""))) ||
+            !!form && [...form.values()].some((v) => typeof v !== "string") || approvedValues.some((v) =>
+              got.strings.includes(v as string)
+            );
+          if (resends) carriesApproved(got);
+          evidence.code_requests = [
+            ...(evidence.code_requests || []),
+            { method: req.method(), url: url.origin + url.pathname, content_type: type.split(";")[0], keys, resends },
+          ];
+        } catch {
+          evidence.code_rejection = "CODE_REQUEST_CHANGED_APPLICATION";
+          await route.abort("blockedbyclient");
+          return;
+        }
+        codeWrites++;
+        codeReq = true;
+      }
       let uploadReq = false;
       if (!allowSubmit && o.approved && same && !main && req.method() === "POST" && !readQuery && resumeUploads < 2) {
         const type = req.headers()["content-type"] || "";
@@ -489,7 +540,9 @@ export async function runApply(args: string[]) {
           } catch { /* not a resume upload: stopped below */ }
         }
       }
-      if (uploadReq) {
+      if (codeReq) {
+        // goes out as the person's page sent it
+      } else if (uploadReq) {
         // goes out as the browser sent it; the employer's answer is kept to explain the hidden field it fills
       } else if (!["GET", "HEAD"].includes(req.method()) && !readQuery && personSubmits && allowSubmit) {
         // The person pressed Submit. The first write to the employer's own origin is the application: its shape is
@@ -511,18 +564,7 @@ export async function runApply(args: string[]) {
             content_type: type.split(";")[0],
             keys: bodyShape(type, body, form),
           };
-          const got = await bodyContents(type, body, form);
-          for (const [name, want] of Object.entries(wire)) {
-            if (want === null) continue;
-            if (typeof want === "object") {
-              if (!got.files.includes((want as any).sha256)) throw Error("resume");
-            } else if (!got.strings.includes(String(want))) {
-              // A select may carry its label rather than its value; a checked box may carry true in JSON.
-              const b = current?.bindings?.[name], opt = b?.options?.find((x: any) => x.value === want);
-              const checked = b?.inputType === "checkbox" && got.strings.includes("true");
-              if (!(opt && got.strings.includes(String(opt.label))) && !checked) throw Error(name);
-            }
-          }
+          carriesApproved(await bodyContents(type, body, form));
         } catch {
           evidence.transport_rejection = "APPROVED_BODY_MISMATCH";
           await route.abort("blockedbyclient");
@@ -596,7 +638,7 @@ export async function runApply(args: string[]) {
         await route.abort("failed").catch(() => {});
         return;
       }
-      if (!["GET", "HEAD"].includes(req.method()) && !readQuery && req.url() === destination) {
+      if (!["GET", "HEAD"].includes(req.method()) && !readQuery && !codeReq && req.url() === destination) {
         postStatus = response.status();
       }
       if (uploadReq) uploadEchoes.push((await response.text()).slice(0, 20000));
@@ -605,7 +647,7 @@ export async function runApply(args: string[]) {
         let valid = targetURL.origin === u.origin &&
           (target.local || targetURL.pathname.split("/").filter(Boolean)[0] === target.tenant);
         try {
-          if (!allowSubmit && posting(targetURL).key !== target.key) valid = false;
+          if (!allowSubmit && !codeWindow && posting(targetURL).key !== target.key) valid = false;
         } catch {
           valid = false;
         }
@@ -894,28 +936,74 @@ export async function runApply(args: string[]) {
       if (cap.captcha && mutations === 0) throw fail("CAPTCHA_AT_SUBMIT");
       if (!cap.clicked) throw fail("SUBMIT_EFFECT_UNCERTAIN");
       if (mutations !== 1 || !acknowledged(postStatus)) throw fail("SUBMIT_ACKNOWLEDGEMENT_UNCERTAIN");
-      const after = await observe(),
-        text = String(cap.text || "").slice(0, 4000),
-        formPresent = await page.evaluate(
-          (names: string[]) =>
-            Array.from((globalThis as any).document.querySelectorAll("form")).some((form: any) =>
-              Array.from(form.elements).some((e: any) => names.includes(e.name) || e.type === "file")
+      const outcome = async (cap: any) => {
+        const after = await observe(),
+          text = String(cap.text || "").slice(0, 4000),
+          formPresent = await page.evaluate(
+            (names: string[]) =>
+              Array.from((globalThis as any).document.querySelectorAll("form")).some((form: any) =>
+                Array.from(form.elements).some((e: any) => names.includes(e.name) || e.type === "file")
+              ),
+            Object.keys(planned),
+          );
+        return {
+          url_before: u.href,
+          url_after: cap.finalUrl || page.url(),
+          form_present_after: formPresent,
+          required_empty_after: after.raw.filter((f: any) => f.required && !f.valid).length,
+          validation_errors: after.observation.errors || [],
+          captcha: !!cap.captcha,
+          email_code_prompt: /verification code|email.*code|one[- ]time code/i.test(text) ||
+            after.raw.some((f: any) =>
+              /(verification|security|email|one[- _]time).*code|\botp\b|passcode|^code$/i.test(f.label + " " + f.name)
             ),
-          Object.keys(planned),
-        );
-      const obs = {
-        url_before: u.href,
-        url_after: cap.finalUrl || page.url(),
-        form_present_after: formPresent,
-        required_empty_after: after.raw.filter((f: any) => f.required && !f.valid).length,
-        validation_errors: after.observation.errors || [],
-        captcha: !!cap.captcha,
-        email_code_prompt: /verification code|email.*code|one[- ]time code/i.test(text) ||
-          after.raw.some((f: any) =>
-            /(verification|security|email|one[- _]time).*code|\botp\b|passcode|^code$/i.test(f.label + " " + f.name)
-          ),
-        page_text: text,
+          page_text: text,
+        };
       };
+      let obs = await outcome(cap);
+      // The employer emailed a code. With --handoff the person types it into the page and presses its button; the
+      // window lets one write per try reach the employer's own site, then the page is read again. Three tries.
+      if (obs.email_code_prompt && !obs.captcha && o.handoff && !denied) {
+        evidence.code_handoff = { tries: 0, requests: 0 };
+        const asked = obs;
+        for (let i = 0; i < 3 && obs.email_code_prompt && !evidence.code_rejection && !denied; i++) {
+          codeAllowance = codeWrites + 1;
+          codeWindow = true;
+          console.log(
+            "The employer emailed you a verification code. Type it into the browser window and press the page's own " +
+              "button yourself; Trainee never sees or keeps the code. Then press Enter here.",
+          );
+          await answer();
+          for (let w = 0; w < 40 && codeWrites < codeAllowance && !evidence.code_rejection; w++) {
+            await new Promise((r) => setTimeout(r, 500));
+          }
+          await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
+          await page.waitForTimeout(2500);
+          codeWindow = false;
+          codeAllowance = codeWrites;
+          // Every input is masked in the picture: a code typed and not accepted would otherwise be in it.
+          await page.screenshot({
+            path: path.join(evidenceDir, "after-code.png"),
+            fullPage: true,
+            mask: [page.locator("input, textarea, [contenteditable]")],
+          }).catch(() => {});
+          obs = await outcome({
+            captcha: await page.evaluate(helper.detectChallenge),
+            finalUrl: page.url(),
+            text: await page.evaluate(() =>
+              String((globalThis as any).document.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6000)
+            ),
+          });
+          evidence.code_handoff = { tries: i + 1, requests: codeWrites };
+        }
+        // A refused code request never reached the employer: the page that asked for the code is still the outcome
+        // (the window may show a load error for the stopped request, which says nothing about the application).
+        if (evidence.code_rejection) {
+          evidence.code_handoff.refused = evidence.code_rejection;
+          obs = asked;
+        }
+        if (denied) throw fail("HOST_REDIRECT_REFUSED");
+      }
       evidence.observation = obs;
       const result = classifyOutcome(obs), recorded = write(result);
       store.withLock(id, () => {

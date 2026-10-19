@@ -52,6 +52,34 @@ const leverUpload = (extra) =>
     });</script>`,
   );
 const jsonReceipts = [];
+// After the submit the employer emails a code and the page asks for it. The stand-in for the person types it when the
+// test says the engine asked. /code-after: a separate code page (the code alone goes). /code-inline: Greenhouse's shape,
+// where the code box appears on the same form and the whole application goes again with it; ?tamper=1 changes the
+// email before it goes.
+const CODE = "TEST-CODE-482913";
+const PERSON_TYPES = (then) => `const poll = setInterval(async () => {
+    if ((await (await fetch("/__person")).text()) !== "go") return;
+    clearInterval(poll); document.getElementById("code").value = ${JSON.stringify(CODE)}; ${then} }, 300);`;
+const codePage = () =>
+  `<!doctype html><h1>Check your email</h1><p>Enter the verification code we emailed you to finish your application.</p>` +
+  `<form method="post" action="/verify-code" enctype="multipart/form-data">` +
+  `<label for="code">Verification code</label><input id="code" name="security_code"><button type="submit">Verify</button>` +
+  `</form><script>${PERSON_TYPES('document.querySelector("form").submit();')}</script>`;
+const codeInline = (tamper) =>
+  form(
+    "/submit-inline",
+    `<div id="code-box"></div>`,
+    `<script>const f = document.querySelector("form");
+  f.addEventListener("submit", async (e) => {
+    if (document.getElementById("code")) return;
+    e.preventDefault();
+    const r = await fetch("/submit-inline", { method: "POST", body: new FormData(f) });
+    if (!(await r.json()).code_required) return;
+    document.getElementById("code-box").innerHTML = '<p>Enter the verification code we emailed you.</p>' +
+      '<label for="code">Security code</label><input id="code" name="security_code">';
+    ${PERSON_TYPES((tamper ? 'document.getElementById("email").value = "attacker@example.test"; ' : "") + "f.submit();")}
+  });</script>`,
+  );
 // An Ashby-shaped page: no <form>; the fields come from a GraphQL query posted to the page's own origin, a tracking
 // mutation fires at load, and "Submit application" sends JSON by script (resume as base64). The stand-in for the
 // person polls /__person and presses Submit only when the test says the engine asked for it.
@@ -184,6 +212,13 @@ before(async () => {
       const fields = {};
       for (const [k, v] of data.entries()) if (typeof v === "string") fields[k] = v;
       receipts.push({ url: req.url, fields });
+      if (req.url === "/submit-code") return res.writeHead(200, { "Content-Type": "text/html" }).end(codePage());
+      if (req.url === "/verify-code") {
+        return res.writeHead(200, { "Content-Type": "text/html" }).end(fields.security_code === CODE ? THANKS : codePage());
+      }
+      if (req.url === "/submit-inline" && fields.security_code !== CODE) {
+        return res.writeHead(200, { "Content-Type": "application/json" }).end('{"code_required":true}');
+      }
       if (req.url === "/submit-303") {
         res.writeHead(303, { Location: "/thanks" }).end();
         return;
@@ -227,6 +262,11 @@ before(async () => {
     if (route === "/lever-upload") {
       return res.writeHead(200, { "Content-Type": "text/html" })
         .end(leverUpload(new URL(req.url, base).searchParams.get("extra")));
+    }
+    if (route === "/code-after") return res.writeHead(200, { "Content-Type": "text/html" }).end(form("/submit-code"));
+    if (route === "/code-inline") {
+      return res.writeHead(200, { "Content-Type": "text/html" })
+        .end(codeInline(new URL(req.url, base).searchParams.get("tamper")));
     }
     if (route === "/spa") {
       return res.writeHead(200, { "Content-Type": "text/html" }).end(spa(new URL(req.url, base).searchParams.get("tamper")));
@@ -527,4 +567,61 @@ test("--approved: an upload that carries more than the resume is stopped", async
   assert.equal(uploads.length, u, "the upload with an answer in it never left");
   assert.equal(r.result.state, "confirmed", JSON.stringify(r.result));
   assert.equal(receipts[n].fields.resumeStorageId, "");
+});
+
+const CODE_PROMPT = "The employer emailed you a verification code";
+const noCode = (r) => {
+  const ev = fs.readFileSync(path.join(r.result.evidence_path, "evidence.json"), "utf8");
+  assert.ok(!ev.includes(CODE) && !r.out.includes(CODE) && !r.err.includes(CODE), "the code is nowhere in Trainee's records");
+  return JSON.parse(ev);
+};
+
+test("a code emailed after the submit stops as needs_user without --handoff, and no second write leaves", async () => {
+  personGo = false;
+  const n = receipts.length;
+  const r = await run({ route: "/code-after", flags: ["--submit"], prompts: [[SUBMIT, "yes"]] });
+  assert.deepEqual([r.result.state, r.result.reason], ["needs_user", "email_code"], JSON.stringify(r.result));
+  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-code"]);
+});
+
+test("--handoff: the person types the code into the page; one write goes, keys only kept, and the employer confirms", async () => {
+  personGo = false;
+  const n = receipts.length;
+  const r = await run({
+    route: "/code-after",
+    flags: ["--submit", "--handoff"],
+    prompts: [[SUBMIT, "yes"], [CODE_PROMPT, () => (personGo = true)], [CODE_PROMPT, "", 5000]],
+  });
+  personGo = false;
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-300));
+  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-code", "/verify-code"], "the application once, the code once");
+  assert.equal(receipts[n + 1].fields.security_code, CODE, "the code reached the employer from the person's page");
+  const ev = noCode(r);
+  assert.deepEqual(ev.code_requests.map((x) => [x.url.replace(/^.*\/\/[^/]+/, ""), x.keys]), [["/verify-code", ["security_code"]]]);
+  assert.deepEqual(ev.code_handoff, { tries: 1, requests: 1 });
+});
+
+test("--handoff: a code box on the form that re-sends the application goes only with the approved answers", async () => {
+  personGo = false;
+  const n = receipts.length;
+  const ok = await run({
+    route: "/code-inline",
+    flags: ["--submit", "--handoff"],
+    prompts: [[SUBMIT, "yes"], [CODE_PROMPT, () => (personGo = true)], [CODE_PROMPT, "", 5000]],
+  });
+  personGo = false;
+  assert.equal(ok.result.state, "confirmed", JSON.stringify(ok.result) + ok.err.slice(-300));
+  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-inline", "/submit-inline"]);
+  assert.equal(receipts[n + 1].fields.email, "synthetic@example.test");
+  assert.equal(noCode(ok).code_requests[0].resends, true);
+  const m = receipts.length;
+  const bad = await run({
+    route: "/code-inline?tamper=1",
+    flags: ["--submit", "--handoff"],
+    prompts: [[SUBMIT, "yes"], [CODE_PROMPT, () => (personGo = true)], [CODE_PROMPT, "", 5000]],
+  });
+  personGo = false;
+  assert.deepEqual([bad.result.state, bad.result.reason], ["needs_user", "email_code"], JSON.stringify(bad.result));
+  assert.deepEqual(receipts.slice(m).map((x) => x.url), ["/submit-inline"], "the changed application never left");
+  assert.equal(noCode(bad).code_handoff.refused, "CODE_REQUEST_CHANGED_APPLICATION");
 });

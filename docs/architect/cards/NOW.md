@@ -3,6 +3,18 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-20 00:00 UTC: your queue, in this order
+1. **C-02:** the safety review of PR #23 (merged; review it anyway) and PR #25. Post the findings on each PR.
+2. **C-01:** open the PR for the module-150 contact precision. The code is already verified at 22/22.
+3. **C-03:** the live-assist guard. 120/120 on the labeled set, plus the prompt line.
+4. **WO-021 W2:** the batch card shows every answer.
+5. **WO-021 W3:** the texted yes ("yes", "yes but not N", "change N <field> to <value>", "stop").
+6. **Next card from the architect: C-04, the relevance floor.** Hard filters run before anything is queued: employment
+   type, seniority, location, exclusions, salary floor, staffing agency, closed posting, duplicate. Don't start it
+   until the card exists.
+
+Every result you report is labeled VERIFIED (against what), REPORTED, ASSUMED or NOT_RUN.
+
 ## 2026-10-19 23:00 UTC
 1. **The engine now reads all 17 captured real forms (was 6 of 17)**, and `--approved <hash>` submits an application the
    person already approved. Both are in PR #25. Merge trunk before touching anything under `scripts/` or `tests/career-apply-*`.

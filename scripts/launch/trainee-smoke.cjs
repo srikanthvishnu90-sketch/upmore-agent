@@ -1,0 +1,201 @@
+#!/usr/bin/env node
+'use strict';
+// Trainee post-deploy checks against the LIVE project (run by scripts/launch/trainee-go-live.sh step 6, or by the owner):
+//   SUPABASE_URL=https://<ref>.supabase.co CAREER_INGEST_SECRET=... CAREER_PROACTIVE_SECRET=... TRAINEE_DELIVER_SECRET=...
+//   TRAINEE_INBOUND_SECRET=... [UPMORE_TEST_JWT=...] [SUPABASE_DB_URL=...] [TRAINEE_SMOKE_CONTACT=+1...]
+//   node scripts/launch/trainee-smoke.cjs [--allow-send] [--wait-runs <seconds>]
+// One line per check (PASS / FAIL / WARN / NOT RUN) and a summary. Exit 0 with no FAIL, 1 with one, 2 when it cannot run
+// at all (no SUPABASE_URL or a function secret): NOT RUN is never a pass.
+// What the calls do on the live project (the same as one scheduled run of each, nothing more):
+//   - each secret-gated function, once with a wrong secret (must refuse: 401/403) and once with the right one (200; a 503
+//     naming a missing setting, such as NOT_WIRED without the LoopMessage key, is a WARN, never a pass). The right-secret
+//     call runs that function once: an ingest pass over the next boards, an alerts pass (alerts queue once per key, as
+//     every 5 minutes anyway), a delivery pass (sends what is due, as every minute anyway). trainee-inbound gets an
+//     empty body, which it ignores: no turn, no text.
+//   - --allow-send only: trainee-inbound gets a LoopMessage-shaped HELP from TRAINEE_SMOKE_CONTACT, and the help reply IS
+//     texted to that number through LoopMessage. Use your own number. Without the flag that check is skipped.
+//   - agent-chat with UPMORE_TEST_JWT: one "hi" turn for that test user (a thread, one of its 60 turns an hour).
+//   - with SUPABASE_DB_URL: reads only (psql): the three pg_cron jobs, their last run, and each run record's newest row.
+// No secret, JWT, phone number or database URL is ever printed.
+const { execFileSync } = require('node:child_process');
+const crypto = require('node:crypto');
+
+// Names verified against each handler.ts: the env var it reads, the header (or query parameter) it checks, the status
+// it refuses with.
+const GATED = [
+  { fn: 'career-ingest', env: 'CAREER_INGEST_SECRET', header: 'x-trainee-ingest-secret', timeoutMs: 150000 },
+  { fn: 'career-proactive', env: 'CAREER_PROACTIVE_SECRET', header: 'x-trainee-proactive-secret', timeoutMs: 150000 },
+  { fn: 'trainee-deliver', env: 'TRAINEE_DELIVER_SECRET', header: 'x-trainee-deliver-secret', timeoutMs: 150000 },
+  // LoopMessage cannot send a custom header, so the webhook URL carries ?secret= (the handler also takes x-trainee-secret).
+  { fn: 'trainee-inbound', env: 'TRAINEE_INBOUND_SECRET', query: 'secret', timeoutMs: 30000 },
+];
+// The three schedules (scripts/launch/schedule-*.sql) and where each run is recorded. career-ingest has no runs table:
+// it writes career_ingest_state.last_run_at every run. Windows are each script's own "down" threshold.
+const RUNS = [
+  { job: 'trainee-career-ingest', what: 'career_ingest_state.last_run_at', window: 1800,
+    sql: "select coalesce(extract(epoch from now() - last_run_at)::int::text, ''), '' from public.career_ingest_state where id = 1" },
+  { job: 'trainee-career-proactive', what: 'career_proactive_runs', window: 1800,
+    sql: "select extract(epoch from now() - run_at)::int, coalesce(replace(error, E'\\n', ' '), '') from public.career_proactive_runs order by run_at desc limit 1" },
+  { job: 'trainee-deliver', what: 'channel_delivery_runs', window: 300,
+    sql: "select extract(epoch from now() - run_at)::int, coalesce(replace(error, E'\\n', ' '), '') from public.channel_delivery_runs order by run_at desc limit 1" },
+];
+
+const r = (status, check, detail) => ({ status, check, detail });
+const clip = (s, n = 160) => { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+async function call(fetchFn, url, init, timeoutMs) {
+  try {
+    const res = await fetchFn(url, { ...init, signal: AbortSignal.timeout(timeoutMs || 30000) });
+    const text = await res.text();
+    let body = null; try { body = JSON.parse(text); } catch { /* not JSON */ }
+    return { status: res.status, body, text };
+  } catch (e) { return { status: 0, body: null, text: '', error: e && e.message || String(e) }; }
+}
+const said = (x) => clip(x.error || (x.body && (x.body.error || x.body.detail || x.body.message)) || x.text || '');
+// "not configured: CAREER_INGEST_SECRET must be set": the function holds no secret, so it refuses its own schedule too.
+const ownSecretMissing = (g, x) => x.status === 503 && said(x).includes(g.env);
+
+function gateUrl(base, g, secret) {
+  const u = `${base}/functions/v1/${g.fn}`;
+  return g.query && secret != null ? `${u}?${g.query}=${encodeURIComponent(secret)}` : u;
+}
+function gateInit(g, secret, body) {
+  const headers = { 'content-type': 'application/json' };
+  if (g.header && secret != null) headers[g.header] = secret;
+  return { method: 'POST', headers, body: JSON.stringify(body || {}) };
+}
+
+// A secret-gated function refuses a wrong secret and answers the right one.
+async function checkGate(g, { base, secret, fetchFn }) {
+  const out = [];
+  const wrong = 'wrong-' + crypto.randomBytes(20).toString('hex');
+  const w = await call(fetchFn, gateUrl(base, g, wrong), gateInit(g, wrong), 30000);
+  if (w.status === 401 || w.status === 403) out.push(r('PASS', `${g.fn} refuses a wrong secret`, `HTTP ${w.status}`));
+  else if (ownSecretMissing(g, w)) out.push(r('FAIL', `${g.fn} refuses a wrong secret`, `the function has no ${g.env} (HTTP 503): it refuses everything, its schedule included; set it and re-run`));
+  else if (w.status === 404) out.push(r('FAIL', `${g.fn} refuses a wrong secret`, 'HTTP 404: the function is not deployed'));
+  else out.push(r('FAIL', `${g.fn} refuses a wrong secret`, `HTTP ${w.status || 'none'}: ${said(w)}`));
+
+  const a = await call(fetchFn, gateUrl(base, g, secret), gateInit(g, secret), g.timeoutMs);
+  const name = `${g.fn} answers the right secret`;
+  if (a.status === 200) out.push(r('PASS', name, `HTTP 200 ${clip(a.text, 120)}`));
+  else if (ownSecretMissing(g, a)) out.push(r('FAIL', name, `the function has no ${g.env} set`));
+  else if (a.status === 503 && /NOT_WIRED|not configured/.test(said(a))) out.push(r('WARN', name, `HTTP 503, not wired yet: ${said(a)}`));
+  // The handler's own refusal says "Unauthorized"; any other 401 is the platform gateway asking for a JWT.
+  else if (a.status === 401 && !(a.body && a.body.error === 'Unauthorized')) out.push(r('FAIL', name, 'HTTP 401 from the gateway: deploy it with --no-verify-jwt (pg_cron and LoopMessage carry no JWT)'));
+  else out.push(r('FAIL', name, `HTTP ${a.status || 'none'}: ${said(a)}`));
+  return out;
+}
+
+// The body parseLoopInbound (supabase/functions/_shared/loopmessage.ts) reads as an inbound text: alert_type, message_id,
+// recipient (the texting contact), text. A fresh id each run, so the dedupe table never answers "duplicate webhook".
+function helpBody(contact, now) {
+  return { alert_type: 'message_inbound', message_id: `trainee-smoke-${now}-${crypto.randomBytes(4).toString('hex')}`, recipient: contact, text: 'HELP' };
+}
+async function checkInboundHelp({ base, secret, contact, fetchFn, now }) {
+  const g = GATED.find((x) => x.fn === 'trainee-inbound');
+  const name = 'trainee-inbound answers HELP (texted to TRAINEE_SMOKE_CONTACT)';
+  const x = await call(fetchFn, gateUrl(base, g, secret), gateInit(g, secret, helpBody(contact, now)), g.timeoutMs);
+  if (x.status === 200 && x.body && x.body.ok === true && x.body.command === 'help') {
+    return x.body.sent === true ? r('PASS', name, 'ok, command help, sent through LoopMessage')
+      : r('FAIL', name, 'ok, command help, but LoopMessage did not take the send (check the key and the request shape)');
+  }
+  if (x.status === 503 && /NOT_WIRED/.test(said(x))) return r('WARN', name, `HTTP 503, not wired yet: ${said(x)}`);
+  if (x.status === 200 && x.body && x.body.ignored) return r('FAIL', name, `ignored: ${clip(x.body.ignored)} (the body shape no longer matches parseLoopInbound)`);
+  return r('FAIL', name, `HTTP ${x.status || 'none'}: ${said(x)}`);
+}
+
+async function checkChatNoJwt({ base, fetchFn }) {
+  const x = await call(fetchFn, `${base}/functions/v1/agent-chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"message":"hi"}' }, 30000);
+  return x.status === 401 ? r('PASS', 'agent-chat refuses a call with no JWT', 'HTTP 401') : r('FAIL', 'agent-chat refuses a call with no JWT', `HTTP ${x.status || 'none'}: ${said(x)}`);
+}
+async function checkChatHi({ base, jwt, fetchFn }) {
+  const name = 'agent-chat answers "hi" for the test user';
+  const x = await call(fetchFn, `${base}/functions/v1/agent-chat`, { method: 'POST', headers: { 'content-type': 'application/json', Authorization: `Bearer ${jwt}` }, body: JSON.stringify({ message: 'hi' }) }, 120000);
+  const reply = x.body && typeof x.body.reply === 'string' ? x.body.reply.trim() : '';
+  if (x.status === 200 && reply) return r('PASS', name, `${reply.length} characters: "${clip(reply, 70)}"`);
+  if (x.status === 200) return r('FAIL', name, 'HTTP 200 with an empty reply');
+  return r('FAIL', name, `HTTP ${x.status || 'none'}: ${said(x)}`);
+}
+
+// Reads only. sql(query) returns psql -tA output ("a|b" rows).
+async function checkRuns({ sql }) {
+  const out = [];
+  const jobs = RUNS.map((x) => `'${x.job}'`).join(',');
+  const rows = String(await sql(`select j.jobname, coalesce(d.status, ''), coalesce(extract(epoch from now() - d.start_time)::int::text, '') from cron.job j left join lateral (select status, start_time from cron.job_run_details x where x.jobid = j.jobid order by start_time desc limit 1) d on true where j.jobname in (${jobs})`))
+    .split('\n').filter(Boolean).map((l) => l.split('|'));
+  for (const run of RUNS) {
+    const row = rows.find((x) => x[0] === run.job);
+    if (!row) out.push(r('FAIL', `schedule ${run.job}`, 'no pg_cron job: run its schedule script (step 5)'));
+    else if (!row[1]) out.push(r('FAIL', `schedule ${run.job}`, 'scheduled but has not fired yet'));
+    else if (row[1] !== 'succeeded') out.push(r('FAIL', `schedule ${run.job}`, `last fire ${row[2]} s ago: ${row[1]}`));
+    else if (Number(row[2]) > run.window) out.push(r('FAIL', `schedule ${run.job}`, `last fired ${row[2]} s ago (more than ${run.window} s)`));
+    else out.push(r('PASS', `schedule ${run.job}`, `fired ${row[2]} s ago, succeeded`));
+    const [age, error] = String(await sql(run.sql)).split('\n')[0].split('|');
+    const name = `${run.what} has a recent row`;
+    if (!age) out.push(r('FAIL', name, 'no run recorded yet (the function has not completed a run)'));
+    else if (error) out.push(r('FAIL', name, `newest run ${age} s ago failed: ${clip(error, 120)}`));
+    else if (Number(age) > run.window) out.push(r('FAIL', name, `newest run ${age} s ago (more than ${run.window} s: down)`));
+    else out.push(r('PASS', name, `newest run ${age} s ago, no error`));
+  }
+  return out;
+}
+const psqlRunner = (dbUrl) => async (q) => execFileSync('psql', [dbUrl, '-X', '-q', '-tA', '-v', 'ON_ERROR_STOP=1', '-c', q], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+function parseArgs(argv) {
+  const o = { allowSend: false, waitRuns: 0 };
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--allow-send') o.allowSend = true;
+    else if (argv[i] === '--wait-runs') { o.waitRuns = Number(argv[++i]); if (!Number.isFinite(o.waitRuns) || o.waitRuns < 0) throw new Error('--wait-runs takes seconds'); }
+    else throw new Error(`unknown option: ${argv[i]}`);
+  }
+  return o;
+}
+
+// deps: fetch, sql (a runner for the database URL), sleep, log, now. All injectable for tests/trainee-go-live.test.cjs.
+async function main(argv, env, deps = {}) {
+  const log = deps.log || ((s) => console.log(s));
+  const fetchFn = deps.fetch || fetch, sleep = deps.sleep || ((ms) => new Promise((res) => setTimeout(res, ms)));
+  const now = deps.now || Date.now;
+  // Never print a value that was handed in; an error message from a provider or psql could carry one back.
+  const hidden = ['SUPABASE_DB_URL', 'UPMORE_TEST_JWT', 'TRAINEE_SMOKE_CONTACT', ...GATED.map((g) => g.env)].map((k) => env[k]).filter((v) => v && v.length >= 4);
+  const scrub = (s) => hidden.reduce((t, v) => t.split(v).join('***').split(encodeURIComponent(v)).join('***'), String(s));
+  const line = (x) => log(scrub(`${x.status.padEnd(7)} ${x.check}${x.detail ? `: ${x.detail}` : ''}`));
+  let opts;
+  try { opts = parseArgs(argv); } catch (e) { log(`NOT RUN trainee smoke: ${e.message}`); return 2; }
+  const missing = ['SUPABASE_URL', ...GATED.map((g) => g.env)].filter((k) => !env[k]);
+  if (missing.length) {
+    log(`NOT RUN trainee smoke: missing ${missing.join(', ')} (set them in the environment; trainee-go-live.sh passes them). Nothing was called.`);
+    return 2;
+  }
+  const base = String(env.SUPABASE_URL).replace(/\/+$/, '');
+  if (!/^https:\/\/[^\s/]+$/.test(base)) { log('NOT RUN trainee smoke: SUPABASE_URL must be https://<ref>.supabase.co'); return 2; }
+
+  const results = [];
+  const add = (x) => { for (const y of [].concat(x)) { results.push(y); line(y); } };
+  add(await checkChatNoJwt({ base, fetchFn }));
+  for (const g of GATED) add(await checkGate(g, { base, secret: env[g.env], fetchFn }));
+  if (!opts.allowSend) add(r('NOT RUN', 'trainee-inbound answers HELP', 'skipped: it texts the help reply through LoopMessage; pass --allow-send with TRAINEE_SMOKE_CONTACT (your own number)'));
+  else if (!env.TRAINEE_SMOKE_CONTACT) add(r('NOT RUN', 'trainee-inbound answers HELP', 'missing TRAINEE_SMOKE_CONTACT'));
+  else add(await checkInboundHelp({ base, secret: env.TRAINEE_INBOUND_SECRET, contact: env.TRAINEE_SMOKE_CONTACT, fetchFn, now: now() }));
+  if (env.UPMORE_TEST_JWT) add(await checkChatHi({ base, jwt: env.UPMORE_TEST_JWT, fetchFn }));
+  else add(r('NOT RUN', 'agent-chat answers "hi" for the test user', 'missing UPMORE_TEST_JWT'));
+
+  if (!env.SUPABASE_DB_URL && !deps.sql) add(r('NOT RUN', 'schedules and run records', 'missing SUPABASE_DB_URL'));
+  else {
+    const sql = deps.sql || psqlRunner(env.SUPABASE_DB_URL);
+    const deadline = now() + opts.waitRuns * 1000;
+    let runs;
+    for (let first = true; ; first = false) {
+      try { runs = await checkRuns({ sql }); } catch (e) { runs = [r('FAIL', 'schedules and run records', `the database read failed: ${clip(e && (e.stderr || e.message), 200)}`)]; break; }
+      if (runs.every((x) => x.status === 'PASS') || now() >= deadline) break;
+      if (first) log(`waiting up to ${opts.waitRuns} s for each schedule to fire and record a run…`);
+      await sleep(30000);
+    }
+    add(runs);
+  }
+  const n = (s) => results.filter((x) => x.status === s).length;
+  log(`summary: ${n('PASS')} PASS, ${n('WARN')} WARN, ${n('FAIL')} FAIL, ${n('NOT RUN')} NOT RUN`);
+  return n('FAIL') ? 1 : 0;
+}
+
+module.exports = { GATED, RUNS, checkGate, checkInboundHelp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
+if (require.main === module) main(process.argv.slice(2), process.env).then((code) => { process.exitCode = code; }, (e) => { console.log(`FAIL    trainee smoke crashed: ${e && e.message}`); process.exitCode = 1; });

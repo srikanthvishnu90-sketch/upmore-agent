@@ -34,6 +34,7 @@ shared_tests=(
   tests/photo-only.test.cjs
   tests/no-password-storage.test.cjs
   tests/no-secrets.test.cjs
+  tests/trainee-go-live.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.

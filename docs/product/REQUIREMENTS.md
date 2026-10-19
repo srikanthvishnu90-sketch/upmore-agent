@@ -180,7 +180,7 @@ its files and tests. Status:
 | 15d | Measure completion/errors/dupes/effort/speed/cost | PARTIAL | only cost per turn (agent brain); evals/career/results empty; no live metrics |
 | 15e | Test deployed journey, keep evidence | PARTIAL | trainee-smoke.cjs + go-live test; no committed run receipts |
 
-## Progress (crossed off only with evidence; newest state, 2026-10-19 18:30 UTC)
+## Progress (crossed off only with evidence; newest state, 2026-10-19 19:45 UTC)
 Labels: VERIFIED (what it ran against), ASSUMED, NOT_RUN. The standard is `docs/product/STANDARD.md`.
 
 **P0: one real application**
@@ -191,12 +191,12 @@ Labels: VERIFIED (what it ran against), ASSUMED, NOT_RUN. The standard is `docs/
 - [ ] Engine fixes (`wo/009b-4-engine`, not merged):
   - [x] the resume answer only goes into an upload; negated or combined sponsorship questions are asked; a Greenhouse
         paste box is the upload's alternative. VERIFIED: architect suite 78/78, each rule red first; ask-once rebuilt.
-  - [ ] a normal redirect after submit is an acknowledgement (303 to a thank-you page)
-  - [ ] a rejection before anything was sent is "not sent", never "unknown"
-  - [ ] the employer's own hidden fields shown in the review and sent unchanged (real Lever forms carry 3-13 each)
-  - [ ] a visible browser and a real hand-off when a verification appears, resuming from the same page
-  - [ ] identity numbers refused; a "Yes" fact checks a consent box; `--state-dir` only for local fixtures
-  - [ ] one daily cap of 15 everywhere (`career_apply.ts` says 25, module 149 says 15)
+  - [x] a normal redirect after submit is an acknowledgement (303 to a thank-you page). VERIFIED: engine test, red first; PR #23
+  - [x] a rejection before anything was sent is "not sent", never "unknown". VERIFIED: engine test; PR #23
+  - [x] the employer's own hidden fields shown in the review and sent unchanged (real Lever forms carry 3-13 each). VERIFIED on a fixture with Lever's field shapes; PR #23
+  - [~] a visible browser and a hand-off when a verification appears, resuming from the same page. VERIFIED on a fixture; a real captcha provider's requests are still blocked after the first fill (next commit)
+  - [x] identity numbers refused; a "Yes" fact checks a consent box; `--state-dir` only for local fixtures. VERIFIED: engine tests; PR #23
+  - [x] one daily cap of 15 everywhere, not raisable (owner, 2026-10-19). VERIFIED: architect, store and SQL tests; PR #23
 - [ ] Module 150 precision and the active-challenge fix (Codex C-01). VERIFIED by the architect on Codex's branch:
       22/22 and portal 92/92; PR not yet open.
 - [ ] The owner's 3 real applications per ATS, each confirmed by the employer's email. NOT_RUN.
@@ -208,7 +208,7 @@ Labels: VERIFIED (what it ran against), ASSUMED, NOT_RUN. The standard is `docs/
 - [ ] 2. Readback-verified fill on all 17 captured forms in CI, captcha-detector defect fixed. The fix exists on
       Codex's branch, not merged.
 - [ ] 3. Outcome states with confirmation-email proof. NOT_RUN (no inbox reader is wired).
-- [ ] 4. Cost model at 1,000 and 10,000 users with real vendor numbers. NOT_RUN.
+- [~] 4. Cost model at 1,000 and 10,000 users with real vendor numbers: written (`cost-model-applying.md`), unit prices sourced, totals ASSUMED until real runs measure them.
 - [ ] 5. Kill switch and rollback runbook, exercised once. NOT_RUN.
 - [ ] 6. Metrics live with alert thresholds. NOT_RUN.
 

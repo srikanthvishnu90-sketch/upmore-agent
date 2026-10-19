@@ -46,10 +46,12 @@ const sameValue = (k: string, x: any, y: any) => k === "posted_at" ? (x ? Date.p
 const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
 
 // `deadline` (epoch ms): boards not started by then wait for the next run; the cursor moves only past boards attempted.
+// `clock`: what the deadline is checked against (default Date.now). The caller passes the clock it built the deadline
+// from, so a deadline and its check never come from two different clocks.
 // `touchAfterMs`: an unchanged posting's last_seen_at is rewritten only once it is this old (0 = every run). The scheduled
 // run uses hours, so tens of thousands of unchanged postings are not rewritten every few minutes.
-export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; touchAfterMs?: number }): Promise<IngestStats & { attempted: number }> {
-  const now = new Date(o.now).toISOString(), n = o.boards.length;
+export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number }): Promise<IngestStats & { attempted: number }> {
+  const now = new Date(o.now).toISOString(), n = o.boards.length, clock = o.clock || Date.now;
   const st = { boards_ok: 0, boards_failed: 0, boards_partial: 0, new: 0, seen: 0, reopened: 0, closed: 0, failures: [], large_closes: [], attempted: 0 } as IngestStats & { attempted: number };
   if (!n) return st;
   const take = Math.max(1, Math.min(o.maxBoards ?? n, n));
@@ -94,7 +96,7 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   const width = Math.max(1, Math.min(o.concurrency ?? 1, pick.length));
   let next = 0;
   await Promise.all(Array.from({ length: width }, async () => {
-    while (next < pick.length && !(o.deadline && Date.now() >= o.deadline)) { st.attempted++; await one(pick[next++]); }
+    while (next < pick.length && !(o.deadline && clock() >= o.deadline)) { st.attempted++; await one(pick[next++]); }
   }));
   await o.db.setCursor((start + st.attempted) % n);
   return st;

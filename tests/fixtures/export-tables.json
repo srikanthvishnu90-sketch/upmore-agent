@@ -516,6 +516,14 @@
    "order": ["shown_at", "id"]
   },
   {
+   "table": "career_mail_events",
+   "order": ["detected_at", "id"]
+  },
+  {
+   "table": "career_mail_drafts",
+   "order": ["created_at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

@@ -27437,15 +27437,14 @@ const CareerPortalApply = (() => {
   function buildPayload(board, session) {
     const formDef = board.form();
     const boardAnswers = Object.assign({}, (session && session.preparationPayload) || {}, board.answers());
-    const fields = [];
-    const seenFields = new Set();
-    for (const f of [...(formDef.fields || []), ...((session && session.preparationFields) || [])]) {
-      if (!f || seenFields.has(f.field_id)) continue;
-      seenFields.add(f.field_id);
-      fields.push(f);
+    // Keep first-observed form order across pages so a review hash does
+    // not depend on which section is visible. Current definitions win.
+    const fields = new Map();
+    for (const f of [...((session && session.preparationFields) || []), ...(formDef.fields || [])]) {
+      if (f) fields.set(f.field_id, f);
     }
     const payload = {};
-    for (const f of fields) {
+    for (const f of fields.values()) {
       if (boardAnswers[f.field_id] === undefined) continue;
       payload[f.field_id] = f.field_id === "resume"
         ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }

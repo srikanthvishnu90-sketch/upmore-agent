@@ -37028,6 +37028,11 @@ const CareerRouter = (() => {
       };
     } catch { /* persistence is an aid, never a blocker */ }
   }
+  // The firm sets' display labels — the words the plan replies
+  // themselves speak ("the bulge bracket set"). Hoisted to the
+  // router closure (LF-07 lane): sampleDraftText's held-draft
+  // subject must speak the same labels, never the raw set key.
+  const SET_LABELS = { bulge_bracket: "bulge bracket", elite_boutique: "elite boutique", middle_market: "middle-market and boutique", mbb: "MBB", faang_plus: "FAANG-plus tech", quant: "quant and prop-trading", big4: "Big Four", mega_fund_pe: "mega-fund private equity", big_law: "Big Law", academic_medical: "academic medical center", cpg: "consumer packaged goods", infrastructure_eng: "infrastructure engineering", venture_midwest: "Midwest venture", logistics: "logistics", real_estate_pe: "real-estate private equity" };
   function handleCampaignPlan(text, ctx) {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
     // DEPTH WAVE (BUG-214 / FR-371): the plan is composed from the
@@ -37083,7 +37088,6 @@ const CareerRouter = (() => {
     // filters and geography the ask carried — and a vague ask hears
     // its default named as a proposal, never worn as a choice. The
     // artifact and typed shape are unchanged.
-    const SET_LABELS = { bulge_bracket: "bulge bracket", elite_boutique: "elite boutique", middle_market: "middle-market and boutique", mbb: "MBB", faang_plus: "FAANG-plus tech", quant: "quant and prop-trading", big4: "Big Four", mega_fund_pe: "mega-fund private equity", big_law: "Big Law", academic_medical: "academic medical center", cpg: "consumer packaged goods", infrastructure_eng: "infrastructure engineering", venture_midwest: "Midwest venture", logistics: "logistics", real_estate_pe: "real-estate private equity" };
     const ROLE_LABELS = { software_engineering: "software engineers", investment_banking: "investment bankers", consulting: "consultants", law: "lawyers", product_management: "product people", product_design: "designers", ml_engineering: "ML engineers", civil_engineering: "civil engineers", medical_resident: "medical residents", marketing: "marketers", operations: "operations managers", founder: "founders", venture: "venture analysts", private_equity: "private equity professionals", real_estate_pe: "real-estate professionals" };
     const bf = (q && q.background_filters) || {};
     const isCategoryProposal = !!(q && q.firms_source === "default" && q.proposed_default && q.proposed_default.kind === "category");
@@ -37261,8 +37265,30 @@ const CareerRouter = (() => {
       const target = plan.firms[0];
       return `Subject: Sophomore interested in ${target} — 15 minutes?\n\nHi [banker's first name],\n\nI'm a sophomore, and ${target} is the firm I most want to learn from this summer. I'm writing to ask for fifteen minutes to hear about your path and any advice you'd give someone aiming at the analyst seat.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing the work. If a call is easier another week, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
     }
-    const setLabel = plan.firm_set ? plan.firm_set.replace(/_/g, " ") : "the firms on the plan";
-    return `Subject: Sophomore interested in ${setLabel} banking — 15 minutes?\n\nHi [banker's first name],\n\nI'm a sophomore, and your firm is on the short list I most want to learn from this summer. I'm writing to ask for fifteen minutes to hear about your path and any advice you'd give someone aiming at the analyst seat.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing the work. If a call is easier another week, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
+    // LF-07 (PENDING-ALLOCATION): the subject's interest phrase is
+    // the plan's OWN universe, in its proper grammatical place. The
+    // old composition read the raw firm_set key de-underscored into
+    // an adjective slot and appended a hardcoded " banking" — and
+    // when the plan carried no firm_set at all, the noun-phrase
+    // fallback "the firms on the plan" was spliced into that slot,
+    // producing "Sophomore interested in the firms on the plan
+    // banking" on a HEALTHCARE CONSULTING category plan (live
+    // v228, Probe D, three measurements byte-identical; an MBB set
+    // read "mbb banking"). A category plan keeps its universe in
+    // target.proposed_default.label / target.universe_label (124);
+    // a set plan speaks its SET_LABELS display label; the "banking"
+    // tail survives only on the investment-banking sets it
+    // describes; the bare fallback keeps its noun phrase with no
+    // field word appended.
+    const tgt = plan.target || {};
+    const categoryLabel = (tgt.proposed_default && tgt.proposed_default.kind === "category" && tgt.proposed_default.label) || tgt.universe_label || null;
+    let interest;
+    if (categoryLabel) interest = categoryLabel;
+    else if (plan.firm_set) {
+      const label = SET_LABELS[plan.firm_set] || plan.firm_set.replace(/_/g, " ");
+      interest = (plan.firm_set === "bulge_bracket" || plan.firm_set === "elite_boutique" || plan.firm_set === "middle_market") ? `${label} banking` : label;
+    } else interest = "the firms on the plan";
+    return `Subject: Sophomore interested in ${interest} — 15 minutes?\n\nHi [banker's first name],\n\nI'm a sophomore, and your firm is on the short list I most want to learn from this summer. I'm writing to ask for fifteen minutes to hear about your path and any advice you'd give someone aiming at the analyst seat.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing the work. If a call is easier another week, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
   }
   function handleDraftContinuation(text, ctx) {
     const plan = ctx.plan;

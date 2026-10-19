@@ -39,9 +39,11 @@ function inOrder(out, steps) {
   let at = -1;
   for (const s of steps) { const i = out.indexOf(s, at + 1); assert.ok(i > at, `"${s}" comes next`); at = i; }
 }
-const MIGRATIONS = ['20261019000000_career_postings.sql', '20261019010000_career_alerts.sql', '20261019020000_channel_delivery.sql', '20261019030000_channel_inbound.sql'];
+// Every migration file from the Trainee set on is applied by go-live, in file order: a new one that is not listed fails
+// here (the apply pipeline's six once shipped in trunk without it; docs/playbook-drift-2026-10-19.md).
+const MIGRATIONS = fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => f >= '20261019' && f.endsWith('.sql')).sort();
 
-test('dry run: six steps in order, the four migrations in order, agent-chat staged then the four functions without JWT, the three schedules, then smoke', () => {
+test('dry run: six steps in order, every Trainee migration in order, agent-chat staged then the four functions without JWT, the three schedules, then smoke', () => {
   const { code, out } = dry();
   assert.equal(code, 0, out);
   inOrder(out, ['STEP 1/6 preflight', 'STEP 1/6 preflight: OK', 'STEP 2/6 migrations', 'STEP 2/6 migrations: OK', 'STEP 3/6 secrets', 'STEP 3/6 secrets: OK',

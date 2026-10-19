@@ -39,6 +39,14 @@ before(async () => {
       id: "synthetic-anchor",
       synthetic: true,
       html: form(
+        '<iframe src="https://www.google.com/recaptcha/api2/anchor?k=TEST&size=invisible" width="300" height="80"></iframe>',
+      ),
+      fields: [],
+    },
+    {
+      id: "synthetic-visible-anchor",
+      synthetic: true,
+      html: form(
         '<iframe src="https://www.google.com/recaptcha/api2/anchor?k=TEST" width="300" height="80"></iframe>',
       ),
       fields: [],
@@ -268,7 +276,7 @@ test("009b-3 stripped React widgets have a named live-page limitation, never a f
   assert.equal(r.submit_calls, 0);
   assert.ok(r.read_back < r.required);
 });
-test("009b-3 invisible containers, anchors and hidden or zero-area frames are not challenges", () => {
+test("009b-3 empty containers, invisible anchors and hidden or zero-area frames are not challenges", () => {
   for (
     const id of [
       "synthetic-empty-captcha",
@@ -284,8 +292,8 @@ test("009b-3 invisible containers, anchors and hidden or zero-area frames are no
     assert.equal(r.submit_calls, 0);
   }
 });
-test("009b-3 visible hCaptcha and reCAPTCHA challenge frames stop before typing or review", () => {
-  for (const id of ["synthetic-challenge", "synthetic-recaptcha"]) {
+test("009b-3 visible hCaptcha and reCAPTCHA challenges and checkbox anchors stop before typing or review", () => {
+  for (const id of ["synthetic-challenge", "synthetic-recaptcha", "synthetic-visible-anchor"]) {
     const r = probe(id);
     assert.equal(r.status, "blocked", id);
     assert.equal(r.code, "CAPTCHA_HANDOFF");

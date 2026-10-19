@@ -1,6 +1,6 @@
 # WO-004: One conversation interface + the text simulator
 
-Status: ready · Depends on: WO-001 · Assignee: Muse · Size cap: ~500 lines excluding the architect tests
+Status: ready · Depends on: WO-001 · Assignee: Claude (was Muse; D-012) · Size cap: ~500 lines excluding the architect tests
 
 ## Why
 The product is a text-message agent, but the real channel (LoopMessage, D-009) is built last (WO-013).

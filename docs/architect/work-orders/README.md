@@ -16,7 +16,7 @@ real texting channel is last (D-009).
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | ready | 001 | M2 | Muse |
 | [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | ready | 004, 006 | M2 | Muse |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
-| [009](WO-009-real-submissions.md) | Real submissions: self-hosted apply worker, employer-confirmed outcomes, captcha handoff (live run needs D-010) | ready | 001 (chat hookup after 005) | M4 | Codex (next after 001) |
+| [009](WO-009-real-submissions.md) | **Mass applying, fast (D-011, top priority):** 009a apply core (prepare every application before a browser opens) · 009b parallel apply worker, employer-confirmed | 009a in progress · 009b ready | 001 | M4 | 009a Claude · 009b Codex (next after 001) |
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled | drafting | 002 | M5 | Codex |
 | 011 | Delete shelved finance code and its tests | drafting | 001 | M0 | any |
 | 012 | Trainee web app replaces the finance app (pipeline, jobs, resume, approvals) | drafting | 005 | M6 | any |

@@ -437,4 +437,64 @@ const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-re
   res.writeHead(body ? 200 : 404, { "content-type": "text/html" });
   res.end(body || "<html><body>not found</body></html>");
 });
-server.listen(0, () => { console.log(`FIXTURE_PORT ${server.address().port}`); });
+// WO-009b-3: offline saved-page harness. Legacy routes above remain unchanged.
+const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
+const hash = b => crypto.createHash('sha256').update(b).digest('hex');
+const families = {greenhouse:'greenhouse.io',lever:'lever.co',ashby:'ashbyhq.com',smartrecruiters:'smartrecruiters.com'};
+function loadSnapshots(root) {
+  const file=path.join(root,'manifest.json');
+  if(!fs.existsSync(file))return {status:'NOT_RUN',expected:24,real_count:0,snapshots:[]};
+  const manifest=JSON.parse(fs.readFileSync(file,'utf8')),snapshots=[],ids=new Set(),urls=new Set();
+  for(const row of manifest.forms||[]){
+    if(row.status!=='captured')continue;
+    if(!/^[a-z0-9_-]{1,160}$/.test(row.id)||ids.has(row.id))throw Error('CAPTURE_ID_INVALID');ids.add(row.id);
+    const read=extension=>{const p=path.join(root,row.id+extension);if(fs.lstatSync(p).isSymbolicLink())throw Error('CAPTURE_SYMLINK');return fs.readFileSync(p);};
+    const bytes=read('.html'),meta=JSON.parse(read('.json'));
+    if(hash(bytes)!==meta.sha256)throw Error('CAPTURE_HASH_MISMATCH');
+    if(meta.synthetic===true||row.synthetic===true)throw Error('SYNTHETIC_CAPTURE_NOT_REAL');
+    const u=new URL(row.source_url),suffix=families[row.family];u.hash='';
+    if(!suffix||u.protocol!=='https:'||u.username||u.password||!(u.hostname===suffix||u.hostname.endsWith('.'+suffix))||urls.has(u.href)||meta.source_url!==row.source_url||meta.http_status!==200||!Number.isFinite(Date.parse(meta.captured_at))||!Array.isArray(meta.fields)||!meta.fields.some(f=>f.required&&f.name)||!meta.fields.some(f=>f.type==='file'))throw Error('CAPTURE_PROVENANCE_INVALID');urls.add(u.href);
+    snapshots.push({...row,...meta,html:bytes.toString('utf8'),synthetic:false});
+  }
+  return {status:snapshots.length===24?'AVAILABLE':snapshots.length?'PARTIAL':'NOT_RUN',expected:24,real_count:snapshots.length,snapshots};
+}
+function createSnapshotServer(snapshots){
+  const pages=new Map();for(const s of snapshots){if(!/^[a-z0-9_-]{1,160}$/.test(s.id)||pages.has(s.id)||typeof s.html!=='string')throw Error('SNAPSHOT_INVALID');pages.set(s.id,s);}
+  const stats={gets:0,mutations:0};const instance=http.createServer((req,res)=>{
+    if(!['GET','HEAD'].includes(req.method)){stats.mutations++;res.writeHead(405).end();return;}
+    if(req.url==='/__snapshot_stats'){res.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify(stats));return;}
+    let id;try{id=decodeURIComponent(new URL(req.url,'http://fixture.invalid').pathname.slice('/snapshots/'.length));}catch{res.writeHead(404).end();return;}
+    const s=req.url.startsWith('/snapshots/')&&/^[a-z0-9_-]{1,160}$/.test(id)?pages.get(id):null;
+    stats.gets++;res.writeHead(s?200:404,{'content-type':'text/html','cache-control':'no-store',
+      'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; frame-src 'none'; base-uri 'none'"});res.end(s?s.html:'Not a saved snapshot');
+  });return {server:instance,stats};
+}
+function probeSnapshot({url,snapshot,packet,resumePath,evidenceDir}){
+  if(packet.synthetic!==true||!/^TEST[-_]/.test(packet.user_id))throw Error('SYNTHETIC_PROFILE_REQUIRED');
+  const u=new URL(url);if(u.protocol!=='http:'||!['127.0.0.1','localhost'].includes(u.hostname)||u.username||u.password)throw Error('LOOPBACK_FIXTURE_REQUIRED');
+  const Portal=require('../../packages/domain/149-career-portal-apply.js'),Browser=require('../../packages/domain/150-career-portal-browser.js');
+  const sha256=hash(Buffer.from(packet.resume.text)),profile={...packet.profile,resume:{filename:packet.resume.filename,sha256}};
+  const board=Browser.createBrowserBoard({url,userId:packet.user_id,resumePath,evidenceDir,scope:{origin:u.origin}}),defs=new Map(),planned=new Map(),raws=new Map();let reviews=0,result;
+  const form=board.form.bind(board),fill=board.fill.bind(board),review=board.atReview.bind(board);
+  board.form=()=>{const r=form();for(const f of r.fields)defs.set(f.field_id,f);for(const f of board.lastObservation?.fields||[])raws.set(f.selector,f);return r;};
+  board.fill=(id,value)=>{planned.set(id,JSON.parse(JSON.stringify(value)));return fill(id,value);};board.atReview=()=>{reviews++;return review();};
+  try{
+    const session=Portal.createPortalSession({userId:packet.user_id,board});
+    try{result=Portal.runApply(session,{posting:{id:snapshot.id,canonicalKey:'TEST:'+snapshot.id,company:'SYNTHETIC fixture',url,status:'open'},profile,attestations:packet.attestations,log:{records:[]}});}catch(e){if(e.code==='RESUME_SHA_MISMATCH')throw e;result={resultStatus:'blocked',code:e.code||'BROWSER_BLOCKED'};}
+    let current={};try{current=board.answers();}catch{result={resultStatus:'blocked',code:'READBACK_UNAVAILABLE'};}
+    const answers={...session.preparationPayload,...current},required=[...defs.values()].filter(f=>f.required),equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const bound=required.filter(f=>planned.has(f.field_id)),read=bound.filter(f=>equal(answers[f.field_id],board.renderedValues[f.field_id]??planned.get(f.field_id)));
+    const raw=[...raws.values()],expected=(snapshot.fields||[]).filter(f=>f.required),detected=expected.filter(f=>raw.some(r=>(r.name||r.id)===f.name&&r.required));
+    const unknown=(result.asks||[]).filter(a=>defs.get(a.field_id)?.required).map(a=>defs.get(a.field_id).label);
+    return {id:snapshot.id,evidence:snapshot.synthetic?'SYNTHETIC_CONTROL':'SAVED_REAL_FORM',source_url:snapshot.source_url||null,status:result.resultStatus,code:result.code||null,expected_raw:expected.length,detected_raw:detected.length,required:required.length,bound:bound.length,read_back:read.length,ratio:required.length?read.length/required.length:0,unknown,resume_verified:Object.values(answers).some(a=>a&&typeof a==='object'&&a.sha256===sha256&&a.filename===packet.resume.filename),review_calls:reviews,submit_calls:board.calls.submit};
+  }finally{board.close();}
+}
+function shutdownProbe(){require('../../packages/domain/150-career-portal-browser.js').shutdownAll();}
+if(require.main===module){
+  if(['--snapshot-bundle','--snapshots'].includes(process.argv[2])){
+    const bundle=process.argv[2]==='--snapshot-bundle',snapshots=bundle?JSON.parse(fs.readFileSync(process.argv[3],'utf8')):loadSnapshots(process.argv[3]).snapshots;
+    if(bundle&&snapshots.some(s=>s.synthetic!==true&&(s.synthetic!==false||s.sha256!==hash(Buffer.from(s.html)))))throw Error('SNAPSHOT_BUNDLE_LABEL_OR_HASH_REQUIRED');
+    const local=createSnapshotServer(snapshots).server;local.listen(0,'127.0.0.1',()=>console.log(`FIXTURE_PORT ${local.address().port}`));
+  }else server.listen(0,()=>console.log(`FIXTURE_PORT ${server.address().port}`));
+}
+module.exports={loadSnapshots,createSnapshotServer,probeSnapshot,shutdownProbe};

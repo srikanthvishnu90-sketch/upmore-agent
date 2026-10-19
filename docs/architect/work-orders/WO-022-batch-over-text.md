@@ -25,15 +25,19 @@ built on the one stack (planner, queue, engine).
 4. **The yes (W3).** In `handler-career.ts`, before any brain, the last card in the thread is read. Then:
    - **"yes":** approves every application on the card exactly as shown. Each is enqueued with `career_apply_enqueue`; its approval reference is the hash of the payload that was shown.
    - **"yes but not 2" / "yes except 2, 5":** approves all but those.
-   - **"stop":** approves nothing; the card is closed.
+   - **"no":** approves nothing; the card is closed.
+     - Not "stop", as WO-021 had it. Over SMS, STOP is the carrier's opt-out word, and `trainee-inbound` silences every text on it before a turn runs.
    - **A number not on the card:** refused, with the card's numbers said.
-   - **A card older than 24 hours:** refused, and the card is shown again.
+   - **A card older than 24 hours:** refused; the reply says to text "show my applications" to see it again.
    - **The queue's own refusals** (daily cap, a company in its 30-day cooldown, a duplicate, a changed account) are said per application, plainly.
    - **"change 2 email to x":** not built in this order. The reply says that application is set aside, to change it in the facts and prepare it again. Changing an answer changes the engine's approval, so it must be prepared again.
 5. **Run (the person's computer).** `approve-first.ts run` (#29) claims and runs them. Receipts (#32) say how each one ended.
 
 ## Rules
 - Code decides what was approved; the model never does. A text that is not one of the approval forms goes to the brain as now.
+- **An answer counts only while the card is the thread's last word** (the last assistant message's intent is `career_apply_card`).
+  A "yes" to anything the brain asked after the card is not a yes to the card. To answer it then, the card is shown again.
+- **A card that closed or went stale can be shown again;** its applications are not lost.
 - Nothing is enqueued that was not on a shown card, and nothing on a card is changed after it was shown.
 - The service key stays in the edge functions. The person's computer only calls the `_own` functions, signed in as them.
 

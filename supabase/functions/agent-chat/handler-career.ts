@@ -36,6 +36,7 @@ import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { chooseBrain, agentTurn, afterErase } from "./career_brain.ts";
+import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 
@@ -225,8 +226,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
-      // Account controls (STOP, resume, erase) and an account pause are the host's, before any model call.
-      if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+      // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
+      // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
+      // controls stay the host's.
+      const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin) })
+        : null;
+      if (card) {
+        // A card still waiting for its answer stays this thread's last word; an answered one does not.
+        const waiting = ["shown", "not_on_card", "change"].includes(card.status);
+        out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
+      } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(20);

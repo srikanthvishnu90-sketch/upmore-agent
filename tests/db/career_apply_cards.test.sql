@@ -16,6 +16,7 @@ insert into pl select n, jsonb_build_object('version',1,'user_id','00000000-0000
 
 -- The person's computer stores what it prepared; the database computes the hash.
 select t.as_user('00000000-0000-4000-8000-000000000931');set role authenticated;
+select t.ok((select career_apply_account_own() = '{"epoch":1,"version":1,"paused":false}'::jsonb),'the person reads their own account stamp');
 -- (f()).* would call the function once per column: each call below runs once, in FROM.
 create temp table prep as select r.* from pl, lateral career_apply_prepare_own(p, array['Card Employer '||n,'Email: t@example.test','Sends to https://jobs.lever.co/test/'||n]) r order by n;
 select t.ok((select count(*)=3 and bool_and(state='ready') from prep),'three prepared applications stored');
@@ -62,13 +63,16 @@ select t.must_fail($$select career_apply_prepare_own(p,array['x']) from pl where
 reset role;
 set role service_role;
 insert into career_apply_prepared(user_id,job_id,company,url,payload,payload_hash,card_lines)
- select '00000000-0000-4000-8000-000000000931','TEST-CARD-OLD','Old Employer','https://jobs.lever.co/test/old',jsonb_set(p,'{job_id}','"TEST-CARD-OLD"'),
-  encode(sha256(convert_to(career_apply_canonical(jsonb_set(p,'{job_id}','"TEST-CARD-OLD"')),'UTF8')),'hex'),array['Old Employer'] from pl where n=1;
+ select '00000000-0000-4000-8000-000000000931','TEST-CARD-OLD','Old Employer','https://jobs.lever.co/test/old',(p||'{"job_id":"TEST-CARD-OLD","company":"Old Employer"}'),
+  encode(sha256(convert_to(career_apply_canonical((p||'{"job_id":"TEST-CARD-OLD","company":"Old Employer"}')),'UTF8')),'hex'),array['Old Employer'] from pl where n=1;
 create temp table oldcard as select * from career_apply_card_open_as('00000000-0000-4000-8000-000000000931',(select array_agg(id) from career_apply_prepared where job_id='TEST-CARD-OLD'));
 update career_apply_cards set shown_at=now()-interval '25 hours' where id=(select id from oldcard);
 select t.must_fail($$select career_apply_card_answer_as('00000000-0000-4000-8000-000000000931',(select id from oldcard),array[1])$$,'card_expired','a card older than 24 hours approves nothing');
+create temp table again as select * from career_apply_card_open_as('00000000-0000-4000-8000-000000000931',(select array_agg(id) from career_apply_prepared where job_id='TEST-CARD-OLD'));
+select t.ok((select state='answered' from career_apply_cards where id=(select id from oldcard)),'showing it again closes the stale card');
+select t.ok((select (career_apply_card_answer_as('00000000-0000-4000-8000-000000000931',(select id from again),array[1]))->0->>'result' = 'queued'),'the application shown again can be approved');
 reset role;
-select t.ok((select count(*)=2 from career_apply_jobs where user_id='00000000-0000-4000-8000-000000000931'),'nothing more was queued');
+select t.ok((select count(*)=3 from career_apply_jobs where user_id='00000000-0000-4000-8000-000000000931'),'only the approved one more was queued');
 set role anon;
 select t.must_fail($$select career_apply_card_open_own(array[gen_random_uuid()])$$,'permission denied','anon cannot open a card');
 reset role;

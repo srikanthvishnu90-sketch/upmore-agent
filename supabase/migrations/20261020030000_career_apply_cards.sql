@@ -34,6 +34,17 @@ create policy career_apply_cards_owner_read on public.career_apply_cards for sel
 create index if not exists career_apply_prepared_ready on public.career_apply_prepared (user_id, created_at) where state = 'ready';
 create index if not exists career_apply_cards_open on public.career_apply_cards (user_id, shown_at desc) where state = 'open';
 
+-- The signed-in person's own account stamp (privacy epoch, version, paused), so their computer prepares against the
+-- current account. Nothing else of career_watch_kv is readable.
+create or replace function public.career_apply_account_own() returns jsonb
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+ if auth.uid() is null then raise exception 'not signed in'; end if;
+ return (select jsonb_build_object('epoch', coalesce((value->>'epoch')::bigint, 0), 'version', coalesce((value->>'version')::bigint, 0),
+  'paused', coalesce(value->>'paused', 'false') = 'true')
+  from public.career_watch_kv where user_id = auth.uid() and key = 'career:account');
+end $$;
+
 -- The person's computer stores what it prepared. The hash is computed here, never taken from the caller; the payload must
 -- be the signed-in person's, for their current account (privacy epoch, version, expiry), and for a posting not already
 -- applied to.
@@ -58,14 +69,15 @@ begin
  return r;
 end $$;
 
--- A card: the given ready applications, numbered 1.. in the order given, each with the hash that was shown.
+-- A card: the given applications not yet answered (ready, or shown on a card that closed or went stale), numbered 1.. in
+-- the order given, each with the hash that was shown.
 create or replace function public.career_apply_card_open_for(p_user uuid, p_ids uuid[], p_now timestamptz)
 returns public.career_apply_cards language plpgsql security definer set search_path = public, pg_temp as $$
 declare c public.career_apply_cards; items jsonb;
 begin
  if p_user is null or p_ids is null or cardinality(p_ids) not between 1 and 8 or p_now is null then raise exception 'invalid card'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
- if (select count(*) from public.career_apply_prepared where user_id = p_user and state = 'ready' and id = any(p_ids)) <> cardinality(p_ids)
+ if (select count(*) from public.career_apply_prepared where user_id = p_user and state in ('ready', 'shown') and id = any(p_ids)) <> cardinality(p_ids)
   or (select count(distinct x) from unnest(p_ids) x) <> cardinality(p_ids) then raise exception 'invalid card'; end if;
  select jsonb_agg(jsonb_build_object('n', o.n, 'prepared_id', p.id, 'payload_hash', p.payload_hash) order by o.n) into items
   from unnest(p_ids) with ordinality as o(id, n) join public.career_apply_prepared p on p.id = o.id;
@@ -122,10 +134,10 @@ language sql security definer set search_path = public, pg_temp as $$ select pub
 create or replace function public.career_apply_card_answer_as(p_user uuid, p_card uuid, p_approve int[]) returns jsonb
 language sql security definer set search_path = public, pg_temp as $$ select public.career_apply_card_answer_for(p_user, p_card, p_approve, clock_timestamp()) $$;
 
-revoke all on function public.career_apply_prepare_own(jsonb, text[]), public.career_apply_card_open_for(uuid, uuid[], timestamptz),
+revoke all on function public.career_apply_account_own(), public.career_apply_prepare_own(jsonb, text[]), public.career_apply_card_open_for(uuid, uuid[], timestamptz),
  public.career_apply_card_answer_for(uuid, uuid, int[], timestamptz), public.career_apply_card_open_own(uuid[]),
  public.career_apply_card_answer_own(uuid, int[]), public.career_apply_card_open_as(uuid, uuid[]),
  public.career_apply_card_answer_as(uuid, uuid, int[]) from public, anon, authenticated, service_role;
-grant execute on function public.career_apply_prepare_own(jsonb, text[]), public.career_apply_card_open_own(uuid[]),
+grant execute on function public.career_apply_account_own(), public.career_apply_prepare_own(jsonb, text[]), public.career_apply_card_open_own(uuid[]),
  public.career_apply_card_answer_own(uuid, int[]) to authenticated;
 grant execute on function public.career_apply_card_open_as(uuid, uuid[]), public.career_apply_card_answer_as(uuid, uuid, int[]) to service_role;

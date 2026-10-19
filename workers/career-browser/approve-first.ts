@@ -355,6 +355,50 @@ export async function signInInBrowser(o: {
   }
 }
 
+// The person's own sign-in on this computer: UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY (public) and either the
+// person's session in UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN or, with UPMORE_APP_URL, their own sign-in in a
+// browser window. Never printed. A service key is refused: it would let this computer act on other people's
+// applications. Exits with a plain line when it cannot sign in.
+async function signedInClient(cmd: string): Promise<any> {
+  const env = (k: string) => Deno.env.get(k) || "";
+  let [url, anon, access, refresh, appUrl] = [
+    "UPMORE_SUPABASE_URL",
+    "UPMORE_SUPABASE_ANON_KEY",
+    "UPMORE_ACCESS_TOKEN",
+    "UPMORE_REFRESH_TOKEN",
+    "UPMORE_APP_URL",
+  ].map(env);
+  if (!url || !anon || (!(access && refresh) && !appUrl)) {
+    console.error(
+      `usage: approve-first.ts ${cmd} ..., with UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY ` +
+        "and UPMORE_APP_URL (you sign in in a browser window), or UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN",
+    );
+    Deno.exit(2);
+  }
+  const refuse = () => {
+    console.error("SERVICE_KEY_REFUSED: this computer runs only your own applications; sign in as yourself.");
+    Deno.exit(2);
+  };
+  if ([anon, access].some((t) => jwtRole(t) === "service_role")) refuse();
+  if (!(access && refresh)) {
+    try {
+      ({ access_token: access, refresh_token: refresh } = await signInInBrowser({ appUrl, headed: true }));
+    } catch (e: any) {
+      console.error(`Not signed in (${e?.message ?? "error"}); nothing was run.`);
+      Deno.exit(2);
+    }
+    if (jwtRole(access) === "service_role") refuse();
+  }
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
+  const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: true } });
+  const signed = await client.auth.setSession({ access_token: access, refresh_token: refresh });
+  if (signed.error || !signed.data.session) {
+    console.error("Your sign-in has expired or was not accepted. Sign in again; nothing was run.");
+    Deno.exit(2);
+  }
+  return client;
+}
+
 // The role a Supabase key or session token claims, read from its payload without verifying it: used only to refuse a
 // service key on a person's computer. Anything unreadable has no role.
 export function jwtRole(token: string): string | null {
@@ -403,46 +447,12 @@ if (import.meta.main) {
     });
     console.log("RAN " + JSON.stringify(done));
   } else if (cmd === "run") {
-    // The person's own computer, signed in as them: UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY (public) and the
-    // person's own session (UPMORE_ACCESS_TOKEN, UPMORE_REFRESH_TOKEN), never printed. A service key is refused: it would
-    // let this computer claim other people's applications.
     const [resume, ...extra] = rest;
-    const env = (k: string) => Deno.env.get(k) || "";
-    let [url, anon, access, refresh, appUrl] = [
-      "UPMORE_SUPABASE_URL",
-      "UPMORE_SUPABASE_ANON_KEY",
-      "UPMORE_ACCESS_TOKEN",
-      "UPMORE_REFRESH_TOKEN",
-      "UPMORE_APP_URL",
-    ].map(env);
-    if (!resume || !url || !anon || (!(access && refresh) && !appUrl)) {
-      console.error(
-        "usage: approve-first.ts run <resume.pdf> [engine args], with UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY " +
-          "and UPMORE_APP_URL (you sign in in a browser window), or UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN",
-      );
+    if (!resume) {
+      console.error("usage: approve-first.ts run <resume.pdf> [engine args]");
       Deno.exit(2);
     }
-    const refuse = () => {
-      console.error("SERVICE_KEY_REFUSED: this computer runs only your own applications; sign in as yourself.");
-      Deno.exit(2);
-    };
-    if ([anon, access].some((t) => jwtRole(t) === "service_role")) refuse();
-    if (!(access && refresh)) {
-      try {
-        ({ access_token: access, refresh_token: refresh } = await signInInBrowser({ appUrl, headed: true }));
-      } catch (e: any) {
-        console.error(`Not signed in (${e?.message ?? "error"}); nothing was run.`);
-        Deno.exit(2);
-      }
-      if (jwtRole(access) === "service_role") refuse();
-    }
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
-    const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: true } });
-    const signed = await client.auth.setSession({ access_token: access, refresh_token: refresh });
-    if (signed.error || !signed.data.session) {
-      console.error("Your sign-in has expired or was not accepted. Sign in again; nothing was run.");
-      Deno.exit(2);
-    }
+    const client = await signedInClient("run");
     const bytes = await Deno.readFile(resume);
     const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)))
       .map((n) => n.toString(16).padStart(2, "0")).join("");
@@ -464,8 +474,62 @@ if (import.meta.main) {
       runEngine: engineRunner({ root, extra }),
       stop: () => stopping,
     });
+  } else if (cmd === "prepare-batch") {
+    // WO-022: the engine's dry run on each posting in a file (one https link a line), on this computer, signed in as the
+    // person. Each ready application is stored for its card (career_apply_prepare_own: the database computes its hash and
+    // checks it is theirs, for their current account); a posting with open questions is listed with them. Nothing is
+    // sent: the card in their thread and their one text decide.
+    const [urlsFile, facts, resume, ...extra] = rest;
+    if (!urlsFile || !facts || !resume) {
+      console.error("usage: approve-first.ts prepare-batch <urls.txt> <facts.json> <resume.pdf> [engine args]");
+      Deno.exit(2);
+    }
+    const urls = [
+      ...new Set(
+        (await Deno.readTextFile(urlsFile)).split("\n").map((l) => l.trim()).filter((l) => /^https:\/\/\S+$/.test(l)),
+      ),
+    ];
+    if (!urls.length || urls.length > 50) {
+      console.error("The file must hold 1 to 50 https job links, one a line.");
+      Deno.exit(2);
+    }
+    const client = await signedInClient("prepare-batch");
+    const acct = await client.rpc("career_apply_account_own");
+    if (acct.error || !acct.data) {
+      console.error("Your account has no job settings yet; text Trainee first. Nothing was prepared.");
+      Deno.exit(2);
+    }
+    if (acct.data.paused) {
+      console.error("Your account is paused; nothing was prepared.");
+      Deno.exit(2);
+    }
+    let ready = 0;
+    for (const url of urls) {
+      const r = await prepare({
+        url,
+        factsPath: facts,
+        resumePath: resume,
+        account: { epoch: Number(acct.data.epoch), version: Number(acct.data.version) },
+        now: Date.now(),
+        runEngine: engineRunner({ root, extra }),
+      });
+      if (!r.ready) {
+        const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
+        console.log(`NOT READY ${url} (${r.result.reason ?? r.result.state})${q}`);
+        continue;
+      }
+      const saved = await client.rpc("career_apply_prepare_own", { p_payload: r.payload, p_card_lines: r.card });
+      if (saved.error) console.log(`NOT STORED ${url} (${saved.error.message})`);
+      else {
+        ready++;
+        console.log(`READY ${url} (${r.payload.company})`);
+      }
+    }
+    console.log(
+      `${ready} of ${urls.length} ready. Text Trainee "show my applications" to see the card; nothing is sent before your yes.`,
+    );
   } else {
-    console.error("usage: approve-first.ts prepare|run-one|run ...");
+    console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch ...");
     Deno.exitCode = 2;
   }
 }

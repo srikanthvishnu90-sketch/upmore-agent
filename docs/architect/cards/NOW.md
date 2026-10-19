@@ -10,7 +10,7 @@ and build order are in `docs/product/REQUIREMENTS.md`.
    - Then merge trunk and re-pin the Ashby counts, with the reason.
 2. **C-02:** the safety review of PR #25 and #27 (both merged; review them anyway) and #29 (open). Post the findings on each.
 3. **C-03:** the live-assist guard (unchanged).
-4. **WO-021 W2, then W3** (unchanged). The worker that runs an approved application on the person's own computer is in PR #29 (`approve-first.ts run`, own-person queue functions).
+4. **WO-021 W2 and W3 moved to the architect** (built under WO-022, `wo/021-w2-w3`). Do not start them.
 5. **C-04 moved to the architect** (PR on `wo/c04-relevance-floor`). Do not start it.
 
 ## 2026-10-20 00:00 UTC: your queue, in this order

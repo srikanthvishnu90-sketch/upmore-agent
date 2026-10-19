@@ -14,6 +14,7 @@
 // --brain agent needs OPENAI_API_KEY (model: CAREER_MODEL, default gpt-5-mini); nothing is sent anywhere else.
 // State lives in .simulator/state.json (gitignored) so a session resumes; --fresh starts over.
 import { handleInbound, memoryStore, type Brain, type Attachment, type MemoryState } from "../supabase/functions/_shared/conversation.ts";
+import { memoryChannel } from "../supabase/functions/_shared/channel.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../supabase/functions/_shared/router_core.career.js";
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
@@ -34,11 +35,14 @@ const MIME: Record<string, string> = { txt: "text/plain", md: "text/markdown", c
 if (brainName !== "router" && brainName !== "agent") { console.error("--brain must be router or agent"); Deno.exit(2); }
 if (brainName === "agent" && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
 
-type Saved = { mem: MemoryState; now: number; as: string; alerts?: MemoryAlerts; posts?: Posting[] };
+type Saved = { mem: MemoryState; now: number; as: string; alerts?: MemoryAlerts; posts?: Posting[]; optedOut?: string[] };
 let saved: Saved | null = null;
 if (!args.includes("--fresh")) { try { saved = JSON.parse(Deno.readTextFileSync(STATE_FILE)); } catch { saved = null; } }
 const mem = memoryStore(saved?.mem);
 const alerts = memoryAlertStore(saved?.alerts);
+// STOP / START / HELP go through the channel rules exactly as on a phone (WO-013a); a contact who texted STOP gets nothing.
+const channel = memoryChannel();
+for (const c of saved?.optedOut ?? []) await channel.setOptOut(c, true, 0);
 const startAt = opt("--at"); // e.g. 2026-10-19T15:00:00Z: start the clock here (demos and tests)
 let now = startAt && Number.isFinite(Date.parse(startAt)) ? Date.parse(startAt) : saved?.now ?? Date.now();
 let as = opt("--as", saved?.as ?? "+15550000001")!;
@@ -76,7 +80,7 @@ const agentBrain: Brain = async (a) => {
 const brain = brainName === "agent" ? agentBrain : routerBrain;
 
 const log = (line: string) => { console.log(line); if (transcript) Deno.writeTextFileSync(transcript, line + "\n", { append: true }); };
-async function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as, alerts: alerts.dump(), posts: await jobs.all() } satisfies Saved)); }
+async function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as, alerts: alerts.dump(), posts: await jobs.all(), optedOut: channel.optOuts() } satisfies Saved)); }
 // The same alerts run the scheduled function does, over the simulator's postings and people; new outbox rows go to the
 // conversation store's proactive queue, which deliver() drains.
 async function planAlerts() {
@@ -85,7 +89,12 @@ async function planAlerts() {
   if (s.alerts || s.reports || s.held) log(`  (alerts run: ${s.alerts} alert${s.alerts === 1 ? "" : "s"}, ${s.reports} report${s.reports === 1 ? "" : "s"}, ${s.held} held for the report)`);
 }
 function show(kind: string, bubbles: string[]) { for (const b of bubbles) log(`${kind === "proactive" ? "  ⟵ (Trainee, unprompted)" : "  ⟵"} ${b.replace(/\n/g, "\n     ")}`); }
-async function deliver() { for (const o of await mem.drainProactive(now)) { if (o.contact === as) show("proactive", o.bubbles); else log(`  (queued for ${o.contact} delivered: ${o.bubbles[0].slice(0, 60)}…)`); } }
+async function deliver() {
+  for (const o of await mem.drainProactive(now)) {
+    if (await channel.optedOut(o.contact)) { log(`  (not sent to ${o.contact}: they texted STOP)`); continue; }
+    if (o.contact === as) show("proactive", o.bubbles); else log(`  (queued for ${o.contact} delivered: ${o.bubbles[0].slice(0, 60)}…)`);
+  }
+}
 const parseDelta = (s: string) => { const m = /^\+?(\d+)\s*(m|h|d)$/.exec(s.trim()); return m ? Number(m[1]) * ({ m: 60000, h: 3600000, d: 86400000 } as any)[m[2]] : null; };
 
 async function line(input: string): Promise<boolean> {
@@ -130,7 +139,7 @@ async function line(input: string): Promise<boolean> {
     log(`  (clock: ${new Date(now).toISOString()})`); return true;
   }
   log(`⟶ ${as}: ${t}`);
-  const out = await handleInbound({ contact: as, text: t, at: now, attachments: pending }, { brain, store: mem });
+  const out = await handleInbound({ contact: as, text: t, at: now, attachments: pending }, { brain, store: mem, channel });
   pending = [];
   show("reply", out.bubbles);
   now += 60000;

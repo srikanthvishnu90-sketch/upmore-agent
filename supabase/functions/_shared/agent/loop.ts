@@ -6,7 +6,9 @@
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
 export type Effect = "read" | "write_own" | "external";
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown> }
+// `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
+// the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[] } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -26,6 +28,9 @@ export interface TurnResult {
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";
 export const MODEL_ERROR_REPLY = "I can't answer right now because the AI service isn't responding. Nothing was sent, saved or submitted. Try again in a minute.";
+// When a turn saved something before it stopped, it says so: "nothing saved" would be false.
+export const MAX_STEPS_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't finish the rest in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do next.";
+export const MODEL_ERROR_AFTER_SAVE_REPLY = "I saved what you told me, but the AI service stopped responding before I could finish. Nothing was sent or submitted. Try again in a minute.";
 const MAX_TOKENS = 1200;
 const RESULT_CHARS = 12000; // a tool result larger than this is cut, and the cut is said
 
@@ -41,12 +46,14 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
+  o.ctx.turn = { message: o.message, added: [] };
+  const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
   let steps = 0;
   while (steps < max) {
     steps++;
     let res;
     try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS }); }
-    catch { return { reply: MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" }; }
+    catch { return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" }; }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
     if (!uses.length) {
@@ -76,5 +83,5 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     }
     messages.push({ role: "user", content: results });
   }
-  return { reply: MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, stopped: "max_steps" };
+  return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, stopped: "max_steps" };
 }

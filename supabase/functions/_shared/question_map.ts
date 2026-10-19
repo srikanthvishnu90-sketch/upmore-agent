@@ -29,6 +29,14 @@ const yesNoOnly = (q: Question) => !q.options?.length || /^(yes|no|sí|si|ja|nee
 const WHY = /\bwhy\b(?!.*\b(good|great) fit\b)(?!.*\bwhy you'?re\b)|pourquoi|por qué|\binterest(s|ed)? you\b|\bexcites? you\b|\bexcited about\b|\bresonate|\bdrew you|\bwhat interested you\b|\bwhy are you interested\b|\bwhy do you want\b|\bmakes you excited\b|\bwhat makes you want\b/;
 const DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
 
+const ackOpt = (x: string) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
+function ackShaped(q: Question, t: string): boolean {
+  const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
+  const onlyAck = o.length > 0 && o.every(ackOpt);
+  const statement = o.length > 0 && o.some(ackOpt) && o.every((x) => ackOpt(x) || /^i (am not|do not|don'?t)\b.*\b(agree|acknowledge|agreement)/.test(x)) && t.length > 80;
+  return (onlyAck || statement || (q.type === "checkbox" && t.length > 100 && !t.includes("?"))) && !/on-?site|in-?office|in office|relocat|days (a|per) week/.test(t);
+}
+
 // Ordered: files, then identity and contact, address, links, work, availability, pay, education, skills, authorization,
 // legal, consent, application, job screens, essays. A rule's `when` narrows it (a type, a shape of options).
 const RULES: Rule[] = [
@@ -40,6 +48,15 @@ const RULES: Rule[] = [
   ["writing_sample", /\bwriting sample\b/, isFile],
   ["unknown", /.*/, isFile],
   ["resume", /^(resume|résumé|cv)( ?\/ ?(cv|resume))?$/],
+
+  // A statement the person accepts (its only answers are acknowledgements, or a long checkbox with no question) is a
+  // consent only when it is one a standing consent covers: privacy and data, certifying the answers are true, the
+  // employer's AI-use policy. Any other statement (a faith commitment, a code of conduct, a firearms questionnaire) is
+  // the person's own call: asked, or read by the rules below.
+  ["ai_policy_ack", /\bai\b|artificial intelligence/, (q, t) => ackShaped(q, t)],
+  ["certify_true", /\bcertif|\btrue and|\baccurate\b|applicant'?s statement/, (q, t) => ackShaped(q, t)],
+  ["privacy_ack", /privacy|personal (data|information)|data (protection|processing)|\bccpa\b|consumer privacy|arbitrat|confidential|notice to (applicants|candidates)/, (q, t) => ackShaped(q, t)],
+  ["unknown", /.*/, (q, t) => ackShaped(q, t) && !/firearms|prohibited possessor/.test(t)],
 
   // Identity.
   ["legal_name", /\bfull legal name\b|legal (first|last)? ?name and legal|^legal name\b/, (q, t) => !/native language|referr|team member/.test(t)],
@@ -65,7 +82,7 @@ const RULES: Rule[] = [
 
   ["how_heard", /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/],
   ["unknown", /\bconsecutive weeks\b|\binternship\/co-?op duration\b/],
-  ["former_employers", /\bsecond most recent employer\b|\blist your work history\b|\bwork history\b/],
+  ["former_employers", /\bsecond most recent employer\b|\blist your work history\b|\bwork history\b/, (q, t) => !/discharged|resign|reason for leaving/.test(t)],
 
   // Links.
   ["linkedin", /\blinked ?in\b|\blinkedln\b/],
@@ -74,6 +91,8 @@ const RULES: Rule[] = [
 
   // Work history.
   ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/],
+  ["unknown", /\bmay we contact your current employer\b/],
+  ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
   ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project/.test(t)],
   ["employment_status", /\bare you (currently )?employed\b|\bcurrent employment status\b|\bon "?layoff"? status\b/],
   ["years_experience", /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/],
@@ -81,7 +100,7 @@ const RULES: Rule[] = [
   // Availability.
   ["notice_period", /\bnotice period\b|\bhow much notice\b|\bpréavis\b|\blwd\b/],
   ["start_date", /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b/],
-  ["employment_type", /\bfull-?time or part-?time\b/],
+  ["employment_type", /\b(looking for|seeking|interested in) (full|part)-?time\b|\bfull-?time or part-?time (employment|role|position|work)\b|^are you looking for full-?time or part-?time/, (q, t) => !/employed by|worked (at|for)|employee of/.test(t)],
 
   // Pay.
   ["pay_range_ok", /\bcompensation (expectations )?(range )?(align|aligns)\b|\balign(s)? with (the posted range|my expectations)\b|\bpays a rate of\b.*\baccept\b/],
@@ -90,10 +109,12 @@ const RULES: Rule[] = [
   ["salary_expectation", /\bexpected (annual |base )?(ctc|compensation|salary)\b|\b(compensation|salary) (expectation|you expect|are you seeking|requirement)|\bdesired (salary|compensation)\b|\bideal annual compensation\b|\bexpected total annual compensation\b|\bcompensation you (expect|are seeking)\b|\bsalary expectations?\b/],
 
   // Education.
+  // A graduate or doctoral GPA is not the undergraduate one: asked.
+  ["unknown", /\b(graduate|doctorate|doctoral|master'?s) gpa\b|\bgpa \((graduate|doctorate)\)/, (q, t) => !/undergraduate/.test(t)],
   ["gpa", /\bgpa\b|\bppa\b|\bgrade point average\b|\bdegree result\b/],
   ["test_scores", /\b(sat|act|gre|gmat|lsat) score\b/],
   ["education_level", /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/],
-  ["major", /\bmajor\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
+  ["major", /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
   ["graduation_date", /\bgraduation (date|year)\b|\bgraduat(e|ed|ion) date\b|\bexpected graduation\b|\bdiplôme\b|\bhave you graduated\b/],
   ["school", /\b(college|university|school)( name)?\b.*\b(attend|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/],
 
@@ -133,7 +154,7 @@ const RULES: Rule[] = [
   ["referral", /\breferr(ed|al|ing)\b/],
   ["relative_here", /\b(relative|family member|spouse|related to|personal relationship|close relationship|in-laws|anyone you live with)\b/],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
-  ["worked_here_before", /\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date/.test(t)],
+  ["worked_here_before", /\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of/.test(t)],
   ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/],
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/],
 

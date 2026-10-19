@@ -92,10 +92,10 @@ if (require.main === module) {
     const fd = fs.openSync(out, "w");
     const started = Date.now();
     const { calibration, results } = await verifyAll(candidates, { onResult: (r) => { fs.writeSync(fd, JSON.stringify(r) + "\n"); console.log("VERDICT " + JSON.stringify(r)); } });
-    fs.writeSync(fd, JSON.stringify({ calibration, probes: results.length, at: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000) }) + "\n");
-    fs.closeSync(fd);
     const tally = {};
     for (const r of results) tally[`${r.provider}:${r.verdict}`] = (tally[`${r.provider}:${r.verdict}`] || 0) + 1;
+    fs.writeSync(fd, JSON.stringify({ calibration, tally, probes: results.length, at: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000) }) + "\n");
+    fs.closeSync(fd);
     console.log("CALIBRATION " + JSON.stringify(calibration));
     console.log("TALLY " + JSON.stringify(tally));
   })();

@@ -62,7 +62,7 @@ test("verifyAll calibrates each provider with a gibberish token first and paces 
   assert.equal(results.find((r) => r.token === "empty").verdict, "unverifiable", "zero postings on a provider that says live to anything proves nothing");
 });
 
-test("merge adds only live boards with postings, records Workday as not yet watchable, and never changes existing entries", () => {
+test("merge adds only live boards with postings, skips vendor boards, records Workday once per tenant as not yet watchable, and never changes existing entries", () => {
   const existing = { meta: { live_supported: 1 }, boards: [{ company: "Palantir", provider: "lever", board_token: "palantir", status: "live", postings_seen: 314, last_verified: "2026-10-17" }] };
   const lines = [
     { provider: "ashby", token: "ramp", verdict: "live", postings: 40, board_name: "Ramp", company_hint: "Ramp" },
@@ -70,6 +70,8 @@ test("merge adds only live boards with postings, records Workday as not yet watc
     { provider: "lever", token: "palantir", verdict: "live", postings: 999, company_hint: "Palantir" },
     { provider: "lever", token: "deadco", verdict: "dead", postings: null },
     { provider: "workday", token: "globalhr", wd: "wd5", site: "REC_RTX_Ext_Gateway", verdict: "live", postings: 312, company_hint: "RTX" },
+    { provider: "workday", token: "globalhr", wd: "wd5", site: "RTX_Campus", verdict: "live", postings: 20, company_hint: "RTX" },
+    { provider: "greenhouse", token: "greenhouse", verdict: "live", postings: 19, company_hint: "Greenhouse" },
     { calibration: { ashby: { http: 404, verdict: "dead" } } },
   ];
   const { directory, added } = merge(existing, lines, "2026-10-19");
@@ -77,7 +79,9 @@ test("merge adds only live boards with postings, records Workday as not yet watc
   const palantir = directory.boards.find((b) => b.board_token === "palantir");
   assert.deepEqual(palantir, existing.boards[0], "an existing board is untouched");
   assert.equal(directory.meta.live_supported, 2);
-  assert.equal(directory.boards.find((b) => b.provider === "workday").site, "REC_RTX_Ext_Gateway");
+  const rtx = directory.boards.filter((b) => b.provider === "workday");
+  assert.deepEqual(rtx.map((b) => [b.sites, b.postings_seen]), [[["REC_RTX_Ext_Gateway", "RTX_Campus"], 332]], "one entry per Workday tenant, its sites listed");
+  assert.equal(directory.meta.wo017.vendor_boards_skipped, 1, "the ATS vendor's own board is not an employer's");
 });
 
 test("the committed candidates file is harvest output: unique, parseable, and none already in the directory", () => {

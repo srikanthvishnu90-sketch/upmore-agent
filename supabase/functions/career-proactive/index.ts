@@ -3,6 +3,8 @@ import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
+import { supabaseMailStore } from "../_shared/career_mail_store.ts";
+import { careerToken, readMailSince } from "../_shared/career_mail_gmail.ts";
 import { handleProactive } from "./handler.ts";
 
 serve((req) => {
@@ -38,6 +40,30 @@ serve((req) => {
       if (error) throw new Error(`push a card: ${error.message}`);
       return data ?? null;
     },
-    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
+    // Mail tracking (WO-024) reads people's mail, so it runs only once the owner turns it on at deploy.
+    mail: Deno.env.get("CAREER_MAIL_TRACKING") === "on" ? {
+      store: () => supabaseMailStore(admin),
+      read: (userId, since, now) => readMailSince({
+        fetch,
+        token: careerToken({
+          env: Deno.env, fetch, now: Date.now,
+          connection: async (u) => {
+            const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
+            if (error) throw new Error(`read the career grant: ${error.message}`);
+            return data ?? null;
+          },
+          readVault: async (name) => {
+            const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
+            if (error) throw new Error("read the career grant's vault entry");
+            return data ? String(data) : null;
+          },
+          writeVault: async (name, secret) => {
+            const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+            if (error) throw new Error("save the refreshed career grant");
+          },
+        }),
+      }, userId, since, now),
+    } : undefined,
+    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, statuses: r.statuses ?? 0, followups: r.followups ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
   });
 });

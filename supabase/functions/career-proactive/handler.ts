@@ -3,9 +3,11 @@
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";
-import { runAlerts, runCards, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import { runAlerts, runCards, runMail, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
+import type { MailStore } from "../_shared/career_mail_store.ts";
+import type { ReadResult } from "../_shared/career_mail_gmail.ts";
 
 export interface ProactiveDeps {
   env: { get(k: string): string | undefined };
@@ -18,6 +20,9 @@ export interface ProactiveDeps {
   // cards this run.
   readyApplications?: () => Promise<ReadyRow[]>;
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
+  // Mail tracking (WO-024): where events, drafts and cursors live, and the read of one person's new mail. Absent: no mail
+  // is read this run. Nothing here sends mail.
+  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
   now: () => number;
 }
@@ -34,6 +39,11 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
     if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
+    if (d.mail) {
+      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read });
+      stats.statuses = m.statuses;
+      stats.followups = m.followups;
+    }
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });
     return json({ ...stats, ms });

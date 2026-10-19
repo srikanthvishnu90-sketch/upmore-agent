@@ -7,8 +7,11 @@ import { DEFAULT_PREFS, planProactive, quietAt } from "./career_alerts.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 import { cardFor, type Prepared } from "./career_apply_cards.ts";
+import { draftOffer, foldEvents, planUpdates } from "./career_mail.ts";
+import type { ReadResult } from "./career_mail_gmail.ts";
+import type { MailPerson, MailStore } from "./career_mail_store.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -90,4 +93,48 @@ export async function runCards(o: {
   }
   if (failed.length) throw new Error(`card push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`);
   return pushed;
+}
+
+// Mail tracking (WO-024): for each person with the career Google grant, the mail since their cursor (10 minutes of
+// overlap; the first read looks back 3 days), classified in code, each status event recorded once per message, one short
+// text per real change, and follow-ups drafted and offered by text. Nothing is ever sent by email: a draft is a row and a
+// text that shows it. Texts wait out the person's quiet hours. The least recently read go first, a few at a time, so at
+// the 5-minute schedule everyone is read within the hour up to MAIL_PEOPLE_PER_RUN x 12 people. A rate limit keeps what
+// was read and moves the cursor only that far. One person's failure does not stop the others; the run then records it.
+export const MAIL_PEOPLE_PER_RUN = 200, MAIL_OVERLAP_MS = 10 * 60000, MAIL_FIRST_LOOKBACK_MS = 3 * 86400000;
+export interface MailStats { people: number; not_wired: number; statuses: number; followups: number }
+function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
+  const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
+  let at = now;
+  try { while (quietAt(at, tz || "America/New_York", quiet) && at < now + 86400000) at += 15 * 60000; } catch { return now; }
+  return at;
+}
+export async function runMail(o: {
+  outbox: Outbox; now: number; store: MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult>; batch?: number;
+}): Promise<MailStats> {
+  const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0 };
+  const failed: string[] = [];
+  const one = async (p: MailPerson) => {
+    const since = p.read_through ? Date.parse(p.read_through) - MAIL_OVERLAP_MS : o.now - MAIL_FIRST_LOOKBACK_MS;
+    const r = await o.read(p.user_id, Math.max(since, o.now - 14 * 86400000), o.now);
+    if (r.status === "NOT_WIRED") { stats.not_wired++; return; }
+    if (r.status === "ERROR") failed.push(r.detail);
+    stats.people++;
+    const plan = planUpdates(r.mails, foldEvents(await o.store.applications(p.user_id), await o.store.events(p.user_id)), o.now);
+    const fresh = await o.store.record(p.user_id, plan.events);
+    const at = awake(o.now, p.tz, p);
+    for (const t of plan.texts) {
+      if (fresh.has(t.hash) && await o.outbox.enqueue(p.user_id, { key: t.key, kind: "status", text: t.text, at })) stats.statuses++;
+    }
+    for (const d of plan.drafts) {
+      if (await o.store.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) stats.followups++;
+    }
+    if (r.readThrough !== null) await o.store.saveCursor(p.user_id, r.readThrough);
+  };
+  const people = await o.store.people(MAIL_PEOPLE_PER_RUN), size = o.batch ?? 5;
+  for (let i = 0; i < people.length; i += size) {
+    await Promise.all(people.slice(i, i + size).map((p) => one(p).catch((e) => { failed.push(e instanceof Error ? e.message : String(e)); })));
+  }
+  if (failed.length) throw new Error(`mail tracking failed for ${failed.length} people (${stats.statuses} status texts queued): ${failed[0]}`);
+  return stats;
 }

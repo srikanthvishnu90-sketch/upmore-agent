@@ -1,6 +1,6 @@
 # WO-007: Instant job alerts and the daily report
 
-Status: ready · Depends on: WO-004, WO-006 · Assignee: Muse · Size cap: ~600 lines excluding the architect tests
+Status: ready · Depends on: WO-004, WO-006 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines excluding the architect tests
 
 ## Why
 Speed on new postings is the one edge general chatbots and job boards don't give a person: a strong match texted within

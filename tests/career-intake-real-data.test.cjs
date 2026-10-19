@@ -1,6 +1,5 @@
 // Intake lane — FIRST REAL-INPUT RUN (2026-10-13): the 56 real junior
-// bankers from ~/workspace/your_files/upmore-real-people-finance-v1.md
-// (fixture: tests/fixtures/real-people-finance-v1.cjs) fed through module
+// bankers (fixture: tests/fixtures/real-people-finance-v1.cjs) fed through module
 // 146 as pasted CSV. Ground truth is the file's own: 0 published emails,
 // 31 INFERRED-HELD, 25 NOT FOUND, 19 records carrying per-record staleness
 // flags (the file's closing queue says 17 — it omits Holden Emery and

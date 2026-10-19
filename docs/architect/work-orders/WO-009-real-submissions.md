@@ -1,6 +1,22 @@
-# WO-009: Real submissions — the apply worker
+# WO-009: Real submissions, fast — the apply core (009a) and the apply worker (009b)
 
-Status: ready · Depends on: WO-001 only (the chat hookup waits for WO-005) · live run needs D-010 · Assignee: Codex · **Codex's next order after WO-001** (owner priority: genuine submissions)
+**D-011: mass applying is the top priority.** Speed comes from preparing every application before a browser opens:
+the employer's own form questions (Greenhouse publishes them: `GET boards-api.greenhouse.io/v1/boards/{token}/jobs/{id}?questions=true`;
+other families: the form schema the worker observed the first time, cached per posting) are answered from the person's
+confirmed facts; anything missing is asked ONCE across the whole batch and saved, so the next batch needs nothing; the batch is
+admitted against the limits up front; one reply (YES ALL) approves it; drives run in parallel (several browsers per worker VM).
+
+- **009a — the apply core (architect, building now):** `supabase/functions/_shared/career_apply.ts`: `classifyOutcome`,
+  `admitApplication(log, app, now, limits?)` (daily default 25, max 50, D-011), `greenhouseQuestions(job)`, `classifyField(label, type)`,
+  `planBatch({ userId, postings, answers, saved, log, now, limits? })` → `{ ready, needs, skipped }`. Tests:
+  `wo-009-apply-outcome.test.ts` (10) and `wo-009-plan.test.ts` (7).
+- **009b — the apply worker (Codex, after WO-001):** everything below that touches a browser: the queue table, the worker pull
+  loop with N parallel drives, `scripts/apply.ts`, the live-view handoff, the form-schema cache for non-Greenhouse families.
+  The worker fills exactly the `ready[].fields` it is given (by field name), reads every one back, and classifies the outcome with
+  `classifyOutcome`. Target: from YES to the employer's confirmation in under 3 minutes per application, 6+ in parallel per VM.
+
+
+Status: 009a in progress (Claude) · 009b ready for Codex after WO-001 · D-010 settled (the owner sets up the VM)
 Size cap: ~900 lines excluding the architect tests (reuse 149/150 and `workers/career-browser/`; do not rewrite them)
 
 ## Why

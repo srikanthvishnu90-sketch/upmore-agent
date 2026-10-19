@@ -1,9 +1,8 @@
 // IB-AP INTEGRATION TESTS (Apply family integrator briefs IB-AP-1..10,
 // docs/career/gauntlet-ledger.md @ 5b4c0c3) — FAIL-FIRST, written against
 // HEAD ce2529b + tree by the ready-to-land lane. The integrator (sole
-// editor of 140/142) lands the patches specified in
-// ~/workspace/your_files/integrator-packs/ib-apply-pack.md; each test
-// below names its brief and flips green when that patch lands. Per the
+// editor of 140/142) lands the specified patches; each test below names
+// its brief and flips green when that patch lands. Per the
 // owner's bug law, these tests stay in the suite forever as the replay
 // guards for the defects they name.
 //

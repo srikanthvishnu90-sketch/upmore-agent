@@ -15431,8 +15431,8 @@ const CareerRouter = (() => {
     const raw = s(text);
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
     const m = raw.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`))
-      || raw.match(new RegExp(`(?i:\\bapplication\\s+(?:at|to|for)\\s+(?:the\\s+)?)${cap}`))
-      || raw.match(new RegExp(`(?i:\\b(?:applied|applying)\\s+(?:at|to)\\s+(?:the\\s+)?)${cap}`))
+      || raw.match(new RegExp(`\\b[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]\\s+(?:[aA][tT]|[tT][oO]|[fF][oO][rR])\\s+(?:[tT][hH][eE]\\s+)?${cap}`))
+      || raw.match(new RegExp(`\\b(?:[aA][pP][pP][lL][iI][eE][dD]|[aA][pP][pP][lL][yY][iI][nN][gG])\\s+(?:[aA][tT]|[tT][oO])\\s+(?:[tT][hH][eE]\\s+)?${cap}`))
       || raw.match(new RegExp(`\\b(?:at|to|for)\\s+(?:the\\s+)?${cap}`));
     if (!m) return null;
     const name = m[1].replace(/[?.!,]+$/, "").trim();
@@ -20860,15 +20860,12 @@ const CareerPortalApply = (() => {
   function buildPayload(board, session) {
     const formDef = board.form();
     const boardAnswers = Object.assign({}, (session && session.preparationPayload) || {}, board.answers());
-    const fields = [];
-    const seenFields = new Set();
-    for (const f of [...(formDef.fields || []), ...((session && session.preparationFields) || [])]) {
-      if (!f || seenFields.has(f.field_id)) continue;
-      seenFields.add(f.field_id);
-      fields.push(f);
+    const fields = new Map();
+    for (const f of [...((session && session.preparationFields) || []), ...(formDef.fields || [])]) {
+      if (f) fields.set(f.field_id, f);
     }
     const payload = {};
-    for (const f of fields) {
+    for (const f of fields.values()) {
       if (boardAnswers[f.field_id] === undefined) continue;
       payload[f.field_id] = f.field_id === "resume"
         ? { filename: boardAnswers[f.field_id].filename, sha256: boardAnswers[f.field_id].sha256 }
@@ -21335,7 +21332,6 @@ const CareerAlertWatch = (() => {
       const deadlineError = () => new Error(`board fetch deadline exceeded after ${ms}ms (G7 hard deadline)`);
       const arm = (budget) => new Promise((_, reject) => {
         timer = setTimeout(() => reject(deadlineError()), Math.max(0, budget));
-        if (timer && typeof timer.unref === "function") timer.unref();
       });
       try {
         const res = await Promise.race([Promise.resolve().then(() => fetchFn(url)), arm(ms)]);
@@ -21347,7 +21343,6 @@ const CareerAlertWatch = (() => {
               Promise.resolve().then(() => fn(...a)),
               new Promise((_, reject) => {
                 bodyTimer = setTimeout(() => reject(deadlineError()), Math.max(0, ms - (Date.now() - startedAt)));
-                if (bodyTimer && typeof bodyTimer.unref === "function") bodyTimer.unref();
               }),
             ]);
           } finally { if (bodyTimer) clearTimeout(bodyTimer); }

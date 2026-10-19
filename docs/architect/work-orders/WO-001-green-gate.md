@@ -61,3 +61,41 @@ GitHub's `ubuntu-24.04` runners restrict unprivileged user namespaces through Ap
 lift the restriction for the job instead, before `scripts/gate.sh`:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`. Do not use `--no-sandbox` or `chromiumSandbox: false`.
 If a different step is the failure, say which in the PR.
+
+## Architect ruling (2026-10-19 00:10, from running `scripts/gate.sh` on wo/001-green-gate @ 921ad755)
+Career tests: 1666 pass, 52 fail across 19 files. Three causes, three rulings:
+1. **Tests that read files outside the repo leave the gate** (they can only pass on the owner's VM; they test the archived
+   gauntlet records, D-006). Exclude these files from `scripts/gate.sh` by name, do not edit or delete them:
+   `career-a4-carriage-w5`, `career-clock-source-guard`, `career-gauntlet-cvar-a`, `career-gauntlet-cvarb`,
+   `career-gauntlet-pilot`, `career-gauntlet-r2`, `career-gauntlet-r2a`, `career-gauntlet-regressions`,
+   `career-gauntlet-rerun`, `career-gauntlet-u`, `career-quality-onboarding`, `career-quality-routing`,
+   `career-spec-gates`, `career-template-breakup-guard`, `career-wording-backlog-guard` (all `tests/<name>.test.cjs`;
+   each fails with ENOENT on `~/workspace/your_files/...`). Add a guard to `gate.sh` that fails if any gated test file
+   contains `your_files` or `/workspace/` so this cannot creep back.
+   (This replaces the earlier instruction to delete the two SC-300 assertions: restore them; their files leave the gate.)
+2. **Browser tests stay in the gate** (`career-portal-browser`, `career-portal-lever-radio`, `career-portal-submit-integrity`):
+   they need Chromium's sandbox; use the AppArmor hint above.
+3. **`career-alert-watch` is a real defect**: "G7 deadline: a board whose fetch never resolves is cut off at the
+   watch-level deadline" and "cycle result is typed and complete" fail with "Promise resolution is still pending but the
+   event loop has already resolved" — the deadline path leaves a promise unresolved. Fix the product code (module 151 or
+   121's fetch deadline), not the test.
+
+## Architect ruling (2026-10-19, second): Codex's requests and findings
+Each finding was re-verified in code before ruling.
+
+- **WO-001 test inputs: approved.** `tests/career-portal-answer-map.test.cjs:43` and `tests/career-quality-grader.test.cjs:82`
+  read `$HOME/workspace/your_files/...`. Replace each with an explicit, opt-in input path (an env var such as
+  `UPMORE_FACT_BANK` / `UPMORE_GAUNTLET_RECORDS`); with it unset, the answer-map test uses its synthetic `MINI_BANK` (as
+  today) and the grader's real-records test skips with its existing message (it is archived evidence, not a gate). The
+  owner's real fact bank must never be read by default. Removing the obsolete path comments in the eight tests is
+  approved. No assertion changes; the `your_files` / `/workspace/` guard must pass.
+- **PR #2 findings: confirmed, all four.** (1) The agent branch skips the host's STOP / resume / erase controls and the
+  account-pause gate. (2) Its 20-message history ignores an erase. (3) `confirm_profile_fact` lets the model confirm a
+  fact nobody confirmed (a D-007 breach). (4) A turn that saved something and then failed says "nothing saved". The
+  architect fixes these on PR #2; Codex does not.
+- **PR #3 findings: confirmed, all four.** (1) The simulator's `/as` carries pending attachments to the next person. (2)
+  `/reset` leaves that person's queued messages. (3) An empty brain reply still saves state while the person is told
+  nothing was saved. (4) `toBubbles` breaks its own contract: over 3,000 generated replies, 114 had a bubble longer than
+  700 characters (up to 2,399), 103 had more than 4 bubbles, and long replies lost content without saying so. The
+  architect fixes these on PR #3.
+- Codex's next step stays WO-001 to green, then WO-009b.

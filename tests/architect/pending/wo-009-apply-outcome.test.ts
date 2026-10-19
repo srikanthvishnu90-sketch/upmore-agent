@@ -70,9 +70,11 @@ Deno.test("WO-009/9 admission: never the same job twice, one application per com
   eq(admitApplication(failed, app("gh:acme:1", "Acme"), T0).ok, true, "a failed attempt can be retried");
 });
 
-Deno.test("WO-009/10 admission: at most 15 submissions per person in any 24 hours; other people are not counted", () => {
-  const log = Array.from({ length: 15 }, (_, i) => ({ user_id: "u1", job_id: `gh:co${i}:1`, company: `Co${i}`, at: T0 - i * 3600000, state: "confirmed" }));
+Deno.test("WO-009/10 admission: a per-person daily limit over any 24 hours (default 25, up to 50 if the person raised it); other people are not counted", () => {
+  const log = Array.from({ length: 25 }, (_, i) => ({ user_id: "u1", job_id: `gh:co${i}:1`, company: `Co${i}`, at: T0 - i * 600000, state: "confirmed" }));
   eq(admitApplication(log, app("gh:new:1", "New"), T0).reason, "daily_cap");
+  eq(admitApplication(log, app("gh:new:1", "New"), T0, { daily: 50 }).ok, true, "a person who raised the limit to 50");
+  eq(admitApplication(log, app("gh:new:1", "New"), T0, { daily: 500 }).reason, "daily_cap", "the limit never goes above 50");
   eq(admitApplication(log, { ...app("gh:new:1", "New"), user_id: "u2" }, T0).ok, true);
   eq(admitApplication(log, app("gh:new:1", "New"), T0 + DAY).ok, true, "a rolling 24 hours");
 });

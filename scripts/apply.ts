@@ -33,6 +33,16 @@ const fail = (code: string) => Object.assign(Error(code), { code });
 // The employer's answer to the one POST: a 2xx, or a redirect (303 to a thank-you page is the usual pattern). A redirect
 // off the employer's own site never gets here: the route refuses it and the run stops.
 const acknowledged = (status: number) => status >= 200 && status < 400;
+// The verification a page runs (reCAPTCHA, including the invisible Enterprise check every captured Greenhouse and
+// Ashby form loads; hCaptcha, which every captured Lever form loads; Turnstile) talks to its own provider at load, at
+// the person's click and at submit. Those requests are the provider's and carry none of the person's answers, so they
+// go through, only on these hosts and paths and never as a page navigation. Trainee never solves a check: the person
+// does, in the window (--handoff), or the invisible check runs as it would for them.
+const CAPTCHA_PROVIDER =
+  /^https:\/\/((www\.)?(google\.com|recaptcha\.net|gstatic\.com)\/recaptcha\/|([a-z0-9-]+\.)*hcaptcha\.com\/|challenges\.cloudflare\.com\/)/;
+// The token a passed check leaves in the form. It is the provider's, not an answer: it may be present in the hidden
+// fields and the body, it is sent as the page set it, and only its length is recorded.
+const CAPTCHA_TOKEN = /^(g-recaptcha-response|h-captcha-response|cf-turnstile-response)$/;
 function privateDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = fs.lstatSync(dir);
@@ -156,6 +166,8 @@ export async function runApply(args: string[]) {
     _local = (() => {
       // Another state folder would be another once-only record: for a real employer there is exactly one.
       if (o["state-dir"] && !target.local) throw fail("STATE_DIR_LOCAL_ONLY");
+      // A hand-off asks the person to complete a check in the browser window; a headless run has no window to use.
+      if (o.handoff && !o.headed && !target.local) throw fail("HANDOFF_NEEDS_HEADED");
     })(),
     factsBytes = fs.readFileSync(o.facts),
     factsHash = sha(factsBytes),
@@ -296,6 +308,7 @@ export async function runApply(args: string[]) {
     const hidden = await page.evaluate(() =>
       Array.from((globalThis as any).document.querySelectorAll("input,select,textarea")).filter((e: any) => {
         if (!e.name || e.disabled || e.type === "file" || e.type === "submit" || e.type === "button") return false;
+        if (/^(g-recaptcha-response|h-captcha-response|cf-turnstile-response)$/.test(e.name)) return false;
         if (
           e.type === "hidden" &&
           /^(csrf(?:_token)?|authenticity_token|_token|utf8|job_?id|job_board_?id|posting_?id|locale|source|referrer)$/i
@@ -356,6 +369,17 @@ export async function runApply(args: string[]) {
           return;
         }
       }
+      // A real provider's requests go out from the browser itself (its own cookies and connection, as for the person).
+      if (!main && CAPTCHA_PROVIDER.test(url.href)) {
+        await route.continue();
+        return;
+      }
+      // Local fixtures only: a loopback stand-in provider, answered through the route because Chromium refuses a
+      // loopback request from a page the route served.
+      if (!main && target.local && /^127\./.test(url.hostname) && url.pathname.startsWith("/captcha-provider/")) {
+        await route.fulfill({ response: await route.fetch() });
+        return;
+      }
       if (populated && !same) {
         await route.abort("blockedbyclient");
         return;
@@ -376,6 +400,12 @@ export async function runApply(args: string[]) {
             ) {
               if (seen.has(name)) throw Error();
               seen.add(name);
+              continue;
+            }
+            if (!Object.hasOwn(wire, name) && CAPTCHA_TOKEN.test(name)) {
+              if (typeof value !== "string" || value.length > 20000 || seen.has(name)) throw Error();
+              seen.add(name);
+              if (value) evidence.verification_token = { field: name, length: value.length };
               continue;
             }
             if (!Object.hasOwn(wire, name)) {
@@ -406,7 +436,15 @@ export async function runApply(args: string[]) {
         }
         mutations++;
       }
-      const response = await route.fetch({ maxRedirects: 0 });
+      // A request the network refuses (an unreachable image host) is that request's failure, not the run's: it fails in
+      // the page as it would for the person. A failed POST after it was counted stays counted (outcome unknown).
+      let response;
+      try {
+        response = await route.fetch({ maxRedirects: 0 });
+      } catch {
+        await route.abort("failed").catch(() => {});
+        return;
+      }
       if (req.method() === "POST" && req.url() === destination) postStatus = response.status();
       if (response.status() >= 300 && response.status() < 400) {
         const targetURL = new URL(response.headers().location || "/", req.url());
@@ -449,7 +487,7 @@ export async function runApply(args: string[]) {
           }))
         );
         for (const h of found as any[]) {
-          if (!h.name || !h.value) continue;
+          if (!h.name || !h.value || CAPTCHA_TOKEN.test(h.name)) continue;
           if (consentOnBehalf(h.name, h.value)) throw fail("UNCONFIRMED_HIDDEN_FIELD: " + h.name);
           pageFields[h.name] = h.value;
         }
@@ -538,6 +576,9 @@ export async function runApply(args: string[]) {
         schema_hash: before,
         facts_sha256: factsHash,
         page_fields: pageFields || {},
+        verification: [
+          ...new Set(((await page.evaluate(helper.captchaTech)) as string[]).map((t) => t.replace(/-widget$/, ""))),
+        ],
       };
       const payloadHash = await hashApplyPayload(evidence.payload);
       evidence.payload_hash = payloadHash;
@@ -553,6 +594,12 @@ export async function runApply(args: string[]) {
         for (const [name, value] of shown) {
           console.log("  " + name + " = " + (value.length > 80 ? value.slice(0, 80) + "..." : value));
         }
+      }
+      if (evidence.payload.verification.length) {
+        console.log(
+          "The page runs a verification check (" + evidence.payload.verification.join(", ") +
+            "). It adds its own token when you submit; the token carries none of your answers.",
+        );
       }
       console.log("Resume SHA-256: " + artifact.sha256);
       console.log("Destination: " + destination);
@@ -607,13 +654,35 @@ export async function runApply(args: string[]) {
       });
       fenced = true;
       allowSubmit = true;
-      const cap = await send({
+      let cap = await send({
         type: "submit_and_capture",
         screenshotPath: path.join(evidenceDir, "after-submit.png"),
       });
+      // An invisible check can turn into a challenge at the click. The send waits for the person: they complete it in
+      // the window, the page sends the approved form itself, and the one-POST and body checks above still hold. Nothing
+      // is clicked again by Trainee.
+      if (cap.clicked && cap.captcha && mutations === 0 && o.handoff && !denied && !cap.blockedNavigation) {
+        evidence.handoff_at_submit = true;
+        if (await handOff()) {
+          for (let i = 0; i < 60 && mutations === 0; i++) await new Promise((r) => setTimeout(r, 500));
+          await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
+          await page.waitForTimeout(2500);
+          await page.screenshot({ path: path.join(evidenceDir, "after-submit.png"), fullPage: true }).catch(() => {});
+          cap = {
+            clicked: true,
+            captcha: await page.evaluate(helper.detectChallenge),
+            finalUrl: page.url(),
+            text: await page.evaluate(() =>
+              String((globalThis as any).document.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6000)
+            ),
+          };
+        }
+      }
       allowSubmit = false;
       evidence.post = { mutations, status: postStatus, destination };
       if (denied || cap.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
+      // A challenge at the click that nobody completed: nothing left the browser, and the reason says what is needed.
+      if (cap.captcha && mutations === 0) throw fail("CAPTCHA_AT_SUBMIT");
       if (!cap.clicked) throw fail("SUBMIT_EFFECT_UNCERTAIN");
       if (mutations !== 1 || !acknowledged(postStatus)) throw fail("SUBMIT_ACKNOWLEDGEMENT_UNCERTAIN");
       const after = await observe(),

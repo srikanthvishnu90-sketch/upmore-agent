@@ -9,6 +9,12 @@
 //   - a form asking for an identity number stops before anything is filled
 //   - a confirmed "Yes" checks a required consent box
 //   - --state-dir (another once-only record) is refused for a real employer
+//   - the page's own verification check (2026-10-19; every captured Greenhouse and Ashby form loads invisible reCAPTCHA
+//     Enterprise and every Lever form an empty hCaptcha container, tests/fixtures/forms-ci/manifest.json): an empty
+//     container or the invisible badge is not a challenge, the check talks to its provider, its token goes with the
+//     approved form, and a challenge at the click waits for the person with --handoff. The provider here is a stand-in
+//     on http://127.0.0.2:<port>/captcha-provider/ (a second origin; Chromium refuses localhost from 127.0.0.1 as a
+//     private-network request), using the real token field names.
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
@@ -17,7 +23,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawn } = require("node:child_process");
 
-let server, base;
+let server, server2, base;
 const receipts = [];
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "upmore-apply-engine-test-"));
 const THANKS = "<h1>Thank you for applying</h1><p>Application received. Confirmation number: TEST-303.</p>";
@@ -30,6 +36,42 @@ function form(action, extra = "", script = "") {
     `<label for="resume">Resume</label><input type="file" id="resume" name="resume" required>` +
     `${extra}<button type="submit">Submit application</button></form>${script}`;
 }
+let providerChecks = 0;
+const provider = () => "http://127.0.0.2:" + server2.address().port + "/captcha-provider";
+// The Lever shape (captured): a hidden h-captcha-response input, a hidden submit button, an empty .h-captcha div and a
+// visible type=button "Submit application" whose click runs the check and then presses the hidden submit.
+const leverLike = (mode) =>
+  `<!doctype html><h1>TEST role</h1><form id="application-form" enctype="multipart/form-data" method="POST">` +
+  `<label for="first">First name</label><input name="first_name" id="first" required>` +
+  `<label for="last">Last name</label><input name="last_name" id="last" required>` +
+  `<label for="email">Email</label><input name="email" type="email" id="email" required>` +
+  `<label for="resume">Resume</label><input type="file" id="resume" name="resume" required>` +
+  `<input id="hcaptchaResponseInput" type="hidden" name="h-captcha-response" value="">` +
+  `<button id="hcaptchaSubmitBtn" type="submit" style="display:none"></button>` +
+  `<div id="h-captcha" class="h-captcha" data-sitekey="test-sitekey"></div>` +
+  `<button id="btn-submit" type="button">Submit application</button></form>` +
+  `<script src="${provider()}/hcaptcha.js"></script><script>
+  document.getElementById("btn-submit").addEventListener("click", () => hcaptchaTest.execute(${JSON.stringify(mode)}, (t) => {
+    document.getElementById("hcaptchaResponseInput").value = t; document.getElementById("hcaptchaSubmitBtn").click(); }));
+  </script>`;
+// The Greenhouse and Ashby shape: the invisible reCAPTCHA Enterprise badge (anchor frame, size=invisible) and a hidden
+// g-recaptcha-response textarea the check fills at submit.
+const enterpriseLike = () =>
+  form(
+    "/submit",
+    `<textarea name="g-recaptcha-response" style="display:none"></textarea>`,
+    `<div class="grecaptcha-badge" style="width:256px;height:60px;position:fixed;bottom:14px;right:-186px">` +
+      `<iframe src="${provider()}/recaptcha/enterprise/anchor?k=test&size=invisible" width="256" height="60"></iframe></div>` +
+      `<script src="${provider()}/recaptcha/enterprise.js"></script><script>
+  const f = document.querySelector("form"), ta = document.querySelector("[name='g-recaptcha-response']");
+  f.addEventListener("submit", (e) => { if (ta.value) return; e.preventDefault();
+    grecaptchaTest.execute().then((t) => { ta.value = t; f.submit(); }); });
+  </script>`,
+  );
+const PROVIDER_JS = `
+async function check() { const r = await fetch(PROVIDER + "/check", { method: "POST" });
+  return (await r.json()).token; }
+`;
 const pages = {
   "/redirect-ack": form("/submit-303"),
   "/tracker": form(
@@ -50,6 +92,7 @@ const pages = {
     `<div id="challenge-form">Verify you are human</div>`,
     `<script>setTimeout(() => document.getElementById("challenge-form").remove(), 4000);</script>`,
   ),
+  "/broken-image": form("/submit", "", `<img src="http://127.0.0.1:9/logo.png" alt="logo">`),
   "/ssn": form("/submit", `<label for="ssn">Social Security Number</label><input id="ssn" name="ssn" required>`),
   "/agree": form(
     "/submit",
@@ -59,6 +102,11 @@ const pages = {
 
 before(async () => {
   server = http.createServer(async (req, res) => {
+    if (req.method === "POST" && req.url === "/captcha-provider/check") {
+      providerChecks++;
+      return res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" })
+        .end(JSON.stringify({ token: "P1_TEST-TOKEN-" + "x".repeat(1800) }));
+    }
     if (req.method === "POST") {
       const parts = [];
       for await (const c of req) parts.push(c);
@@ -79,14 +127,46 @@ before(async () => {
       res.writeHead(200, { "Content-Type": "text/html" }).end(THANKS);
       return;
     }
+    if (req.url.startsWith("/captcha-provider/")) {
+      const P = provider();
+      const js = (body) =>
+        res.writeHead(200, { "Content-Type": "text/javascript", "Access-Control-Allow-Origin": "*" })
+          .end(`const PROVIDER = ${JSON.stringify(P)};` + PROVIDER_JS + body);
+      if (req.url === "/captcha-provider/hcaptcha.js") {
+        return js(`window.hcaptchaTest = { execute(mode, cb) {
+          if (mode !== "challenge") { check().then(cb); return; }
+          const fr = document.createElement("iframe");
+          fr.src = PROVIDER + "/frame?k=test#frame=challenge"; fr.width = 400; fr.height = 400;
+          document.body.appendChild(fr);
+          addEventListener("message", (m) => { if (m.data === "solved") { fr.remove(); check().then(cb); } });
+        } };`);
+      }
+      if (req.url === "/captcha-provider/recaptcha/enterprise.js") {
+        return js(`window.grecaptchaTest = { execute() { return check(); } };`);
+      }
+      if (req.url.startsWith("/captcha-provider/frame")) {
+        // The person completing the challenge, six seconds after it shows.
+        return res.writeHead(200, { "Content-Type": "text/html" })
+          .end(`<p>challenge</p><script>setTimeout(() => parent.postMessage("solved", "*"), 6000)</script>`);
+      }
+      return res.writeHead(200, { "Content-Type": "text/html" }).end("<p>badge</p>");
+    }
+    const route = req.url.split("?")[0];
+    if (route === "/lever-invisible") {
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(leverLike(new URL(req.url, base).searchParams.get("mode")));
+    }
+    if (route === "/enterprise-invisible") return res.writeHead(200, { "Content-Type": "text/html" }).end(enterpriseLike());
     const html = pages[req.url];
     res.writeHead(html ? 200 : 404, { "Content-Type": "text/html" }).end(html || "not found");
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  server2 = http.createServer((req, res) => server.emit("request", req, res));
+  await new Promise((r) => server2.listen(0, "127.0.0.2", r));
   base = "http://127.0.0.1:" + server.address().port;
 });
 after(async () => {
   await new Promise((r) => server.close(r));
+  await new Promise((r) => server2.close(r));
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -220,4 +300,52 @@ test("a confirmed Yes checks a required consent box", async () => {
 test("--state-dir is refused for a real employer (one once-only record per person)", async () => {
   const r = await run({ url: "https://job-boards.greenhouse.io/acme/jobs/4000000001" });
   assert.equal(r.result.reason, "STATE_DIR_LOCAL_ONLY", JSON.stringify(r.result));
+});
+
+test("an empty hCaptcha container is not a challenge; the invisible check runs at submit and its token goes with the form", async () => {
+  const n = receipts.length, checks = providerChecks;
+  const r = await run({ route: "/lever-invisible?mode=pass", flags: ["--submit"], prompts: [[SUBMIT, "yes"]] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err);
+  assert.match(r.out, /The page runs a verification check \(hcaptcha\)/);
+  assert.equal(receipts.length, n + 1, "exactly one POST reached the employer");
+  assert.equal(receipts[n].fields.first_name, "Mary Jane");
+  assert.match(receipts[n].fields["h-captcha-response"], /^P1_TEST-TOKEN-/);
+  assert.ok(providerChecks > checks, "the check reached its provider");
+  const ev = fs.readFileSync(path.join(r.result.evidence_path, "evidence.json"), "utf8");
+  assert.ok(!ev.includes("P1_TEST-TOKEN"), "the token itself is never recorded");
+  assert.equal(JSON.parse(ev).verification_token.field, "h-captcha-response");
+});
+
+test("the invisible reCAPTCHA Enterprise badge is not a challenge, and its token goes with the approved form", async () => {
+  const n = receipts.length;
+  const r = await run({ route: "/enterprise-invisible", flags: ["--submit"], prompts: [[SUBMIT, "yes"]] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err);
+  assert.equal(receipts.length, n + 1);
+  assert.match(receipts[n].fields["g-recaptcha-response"], /^P1_TEST-TOKEN-/);
+});
+
+test("a challenge at the click waits for the person with --handoff, then the one approved POST goes", async () => {
+  const n = receipts.length;
+  const without = await run({ route: "/lever-invisible?mode=challenge", flags: ["--submit"], prompts: [[SUBMIT, "yes"]] });
+  assert.equal(without.result.state, "not_submitted", JSON.stringify(without.result));
+  assert.equal(without.result.reason, "CAPTCHA_AT_SUBMIT");
+  assert.equal(receipts.length, n, "nothing reached the employer");
+  const r = await run({
+    route: "/lever-invisible?mode=challenge",
+    flags: ["--submit", "--handoff"],
+    prompts: [[SUBMIT, "yes"], ["Complete it yourself", "", 8000]],
+  });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err);
+  assert.equal(receipts.length, n + 1, "exactly one POST");
+  assert.match(receipts[n].fields["h-captcha-response"], /^P1_TEST-TOKEN-/);
+});
+
+test("an image host that refuses the connection fails that image, not the run", async () => {
+  const r = await run({ route: "/broken-image" });
+  assert.equal(r.result?.reason, "dry_run", JSON.stringify(r.result) + r.err.slice(-400));
+});
+
+test("--handoff without --headed is refused for a real employer (there is no window to complete a check in)", async () => {
+  const r = await run({ url: "https://job-boards.greenhouse.io/acme/jobs/4000000001", flags: ["--handoff"], stateDir: false });
+  assert.equal(r.result.reason, "HANDOFF_NEEDS_HEADED", JSON.stringify(r.result));
 });

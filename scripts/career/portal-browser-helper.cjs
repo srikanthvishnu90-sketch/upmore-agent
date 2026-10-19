@@ -145,12 +145,54 @@ async function getBoard(boardId) {
 }
 
 // ---------- in-page helpers (self-contained; serialized by Playwright) ----------
+// A challenge is something the person must do: a visible challenge frame (reCAPTCHA bframe, hCaptcha frame=challenge),
+// a visible checkbox widget not yet ticked, or an interstitial. An empty widget container and the invisible
+// reCAPTCHA Enterprise badge are not challenges: every captured Greenhouse and Ashby form carries the badge and every
+// Lever form an empty .h-captcha div (tests/fixtures/forms-ci), and counting those stopped real forms at open.
+// Frame rule after Codex's WO-009b-3 (58e7b97d); checkbox and token rules added. On a local test page only, frames from
+// a loopback http://127.x.x.x/captcha-provider/ stand in for the provider.
 function fnDetectChallenge() {
-  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
-  const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];
-  for (const s of sels) { const el = document.querySelector(s); if (el && vis(el)) return "challenge"; }
+  const visible = (el) => {
+    if (!el) return false;
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return style.display !== "none" && style.visibility !== "hidden" &&
+      style.visibility !== "collapse" && rect.width > 0 && rect.height > 0;
+  };
+  const local = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  const solved = Array.from(
+    document.querySelectorAll("[name='g-recaptcha-response'],[name='h-captcha-response'],[name='cf-turnstile-response']"),
+  ).some((e) => String(e.value || "").length > 0);
+  for (const frame of document.querySelectorAll("iframe[src]")) {
+    let src;
+    try {
+      src = new URL(frame.getAttribute("src"), document.baseURI);
+    } catch {
+      continue;
+    }
+    const host = src.hostname.toLowerCase();
+    const test = local && /^(127\.\d+\.\d+\.\d+|localhost)$/.test(host) && src.pathname.startsWith("/captcha-provider/");
+    const hcaptcha = test || host === "hcaptcha.com" || host.endsWith(".hcaptcha.com");
+    const recaptcha = test || ["google.com", "recaptcha.net"].some((domain) =>
+      host === domain || host.endsWith("." + domain)
+    );
+    const turnstile = host === "challenges.cloudflare.com";
+    const params = src.search + src.hash;
+    const challenge = hcaptcha && /(?:^|[?#&])frame=challenge(?:[&#]|$)/.test(params) ||
+      recaptcha && /\/recaptcha\/.*\/(?:bframe|challenge)\/?$/.test(src.pathname);
+    const checkbox = !solved && (
+      hcaptcha && /(?:^|[?#&])frame=checkbox(?:[&#]|$)/.test(params) ||
+      recaptcha && /\/recaptcha\/.*\/anchor\/?$/.test(src.pathname) && !/[?&]size=invisible(?:&|$)/.test(src.search) ||
+      turnstile
+    );
+    if ((challenge || checkbox) && visible(frame)) return "challenge";
+  }
+  if (visible(document.querySelector("#challenge-form"))) return "challenge";
   const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);
-  if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";
+  if (
+    /verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i
+      .test(txt)
+  ) return "challenge";
   return null;
 }
 function fnCaptchaTech() {
@@ -1023,6 +1065,7 @@ async function pump() {
 // The same challenge check the drive uses, for a caller that must re-check a page without reloading it (the person
 // may just have completed a verification on it).
 module.exports.detectChallenge = fnDetectChallenge;
+module.exports.captchaTech = fnCaptchaTech;
 module.exports.createSession = async () => {
   if (SANDBOX_OFF) throw Object.assign(new Error("BROWSER_SANDBOX_REQUIRED"), { code: "BROWSER_SANDBOX_REQUIRED" });
   const boardId = "worker-" + crypto.randomUUID();let closed = false;

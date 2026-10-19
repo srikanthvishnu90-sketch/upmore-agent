@@ -8,6 +8,7 @@ import { startWatching, validPrefs, validZone, type AlertStore } from "../career
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
 import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
+import { brief as interviewBrief, findRecord } from "../career_mock.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -175,9 +176,20 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
       description: "Get practice interview questions for a role or company from the researched question banks.",
       input_schema: obj({ role: str("The role or field, e.g. 'consulting analyst', 'nurse case manager'"), company: str("Company, if any") }),
       run: async (i) => {
-        const cir = i.company ? (CareerPrep.findCir ? CareerPrep.findCir(String(i.company)) : null) : null;
+        // WO-025: the company's record by exact name (127's findCir needs the library and matches loosely).
+        const cir = i.company ? findRecord(String(i.company)) : null;
         const bank = CareerPrep.questionBank({ role: i.role ? String(i.role) : "", roleFamily: i.role ? String(i.role) : "", cir: cir || undefined });
         return { questions: (bank.questions || []).slice(0, 10), company_record: !!(cir) };
+      },
+    },
+    {
+      name: "interview_brief", effect: "read",
+      description: "A pre-interview brief for a company and role: what the company's record on file says (with source labels, or that there is no record), the role's top question types, the posting's skill words, and a 10-point prep plan. Relay its text; never add company facts it does not have.",
+      input_schema: obj({ company: str("Employer name as the person said it"), role: str("The role, e.g. 'data analyst'") }, ["company"]),
+      run: async (i) => {
+        const company = String(i.company ?? "").trim(), role = String(i.role ?? "").trim();
+        const postings = await deps.postings(`${role} ${company}`.trim()).catch(() => []);
+        return interviewBrief({ company, role, cir: company ? findRecord(company) : null, postings });
       },
     },
     {

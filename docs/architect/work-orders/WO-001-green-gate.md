@@ -61,3 +61,21 @@ GitHub's `ubuntu-24.04` runners restrict unprivileged user namespaces through Ap
 lift the restriction for the job instead, before `scripts/gate.sh`:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`. Do not use `--no-sandbox` or `chromiumSandbox: false`.
 If a different step is the failure, say which in the PR.
+
+## Architect ruling (2026-10-19 00:10, from running `scripts/gate.sh` on wo/001-green-gate @ 921ad755)
+Career tests: 1666 pass, 52 fail across 19 files. Three causes, three rulings:
+1. **Tests that read files outside the repo leave the gate** (they can only pass on the owner's VM; they test the archived
+   gauntlet records, D-006). Exclude these files from `scripts/gate.sh` by name, do not edit or delete them:
+   `career-a4-carriage-w5`, `career-clock-source-guard`, `career-gauntlet-cvar-a`, `career-gauntlet-cvarb`,
+   `career-gauntlet-pilot`, `career-gauntlet-r2`, `career-gauntlet-r2a`, `career-gauntlet-regressions`,
+   `career-gauntlet-rerun`, `career-gauntlet-u`, `career-quality-onboarding`, `career-quality-routing`,
+   `career-spec-gates`, `career-template-breakup-guard`, `career-wording-backlog-guard` (all `tests/<name>.test.cjs`;
+   each fails with ENOENT on `~/workspace/your_files/...`). Add a guard to `gate.sh` that fails if any gated test file
+   contains `your_files` or `/workspace/` so this cannot creep back.
+   (This replaces the earlier instruction to delete the two SC-300 assertions: restore them; their files leave the gate.)
+2. **Browser tests stay in the gate** (`career-portal-browser`, `career-portal-lever-radio`, `career-portal-submit-integrity`):
+   they need Chromium's sandbox; use the AppArmor hint above.
+3. **`career-alert-watch` is a real defect**: "G7 deadline: a board whose fetch never resolves is cut off at the
+   watch-level deadline" and "cycle result is typed and complete" fail with "Promise resolution is still pending but the
+   event loop has already resolved" — the deadline path leaves a promise unresolved. Fix the product code (module 151 or
+   121's fetch deadline), not the test.

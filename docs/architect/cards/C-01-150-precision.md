@@ -20,7 +20,8 @@ git fetch origin && git merge origin/trunk      # brings the ingest clock fix (P
     // The person's own contact facts go only into a free-text box that asks about the person: never a checkbox, radio
     // or select ("Do you own a Smartphone?"), never a question about someone else (a reference, a referrer, a manager).
     // Same rule as classifyField in supabase/functions/_shared/career_apply.ts (tests/architect/wo-009-classify-precision.test.ts).
-    const ownText = /^(text|email|tel|url|search|textarea)$/.test(inputType || "text") && !(f && f.tag === "select") &&
+    // inputType is the helper's (type attribute || tag name): a plain <input> with no type arrives as "input".
+    const ownText = /^(text|input|email|tel|url|search|textarea)$/.test(inputType || "text") && !(f && f.tag === "select") &&
       !/\breferr|\breferen|\bteam member|\breferee|\bemergency|\bmanager|\bsupervisor|\brecruiter|\bspouse|\bparent|\bguardian|\bemployee who/.test(eff);
 ```
 2. Extend the attestation rule (the line starting `if (/certif|attest|acknowledge|true and complete|provided.*true/`) so its
@@ -38,6 +39,12 @@ git fetch origin && git merge origin/trunk      # brings the ingest clock fix (P
    Keep the label-less name fallback (`f && !f.label && (f.name === "name" || f.id === "name")`) inside the same
    `ownText && (...)` group: write it as `if (ownText && (/first name|.../.test(eff) || (f && !f.label && (...))))`.
 5. Do not touch any other rule.
+
+## Verified by the architect before handing over (2026-10-19)
+This exact code, applied to `wo/009b-3-acceptance` at 58e7b97d: `tests/career-apply-forms.test.cjs` 22/22 as a non-root
+user (before: 17/22, your four precision tests and the combined real-form test failing), and
+`tests/career-portal-*.test.cjs` 92/92 with and without it (no regression). An earlier draft without
+`input` in the list made 4 other tests fail (plain `<input>` fields became unknown); that is why the comment is there.
 
 ## Proof (run each, paste the summary lines)
 ```

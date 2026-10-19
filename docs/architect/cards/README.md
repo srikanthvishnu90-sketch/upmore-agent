@@ -27,4 +27,10 @@ says exactly *how*, so nothing is left to interpret. Cards override the work ord
 | Card | Status | What | Unblocks |
 |---|---|---|---|
 | [C-01](C-01-150-precision.md) | ready | Module 150 never puts the person's contact facts into a question that is not asking for them | the 009b-3 acceptance PR |
-| [C-02](C-02-apply-cli-pr.md) | ready (after C-01) | The apply command and the queue as one reviewable PR into trunk | the owner's first real application |
+| [C-02](C-02-review-apply-prs.md) | ready (after C-01) | Review each architect PR on the apply path against the seven safety rules | a second pair of eyes on every submit-path change |
+
+## Who does what (owner, 2026-10-19)
+The architect is the lead engineer and builds the hard path itself: the submission engine (`scripts/apply.ts`, the
+queue on `wo/009b-4-apply-cli`, the browser handoff, the dry runs on saved and live pages) and the requirement list in
+`docs/product/REQUIREMENTS.md`. Codex works bounded cards and reviews. `scripts/apply.ts` and `workers/career-browser/`
+moved to the architect on 2026-10-19 (a safety review found two blockers and six majors); Codex does not edit them.

@@ -3,27 +3,44 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 failed=0
+results=()
+details=()
+# Each step's output is printed in full, and a failed step's last lines are printed again at the end: the CI log API
+# returns only a log's last 5,000 lines, so an early step's own error was unreadable there (2026-10-19).
 step() {
-  local label=$1 status
+  local label=$1 status out
   shift
-  if "$@"; then
+  out=$(mktemp)
+  if "$@" >"$out" 2>&1; then
+    cat "$out"
     printf 'STEP %s OK\n' "$label"
+    results+=("OK      $label")
   else
     status=$?
+    cat "$out"
     printf 'STEP %s FAILED (exit %s)\n' "$label" "$status" >&2
+    results+=("FAILED  $label (exit $status)")
+    details+=("--- $label, its last 20 lines:" "$(tail -n 20 "$out")")
     failed=1
   fi
+  rm -f "$out"
 }
 
-# A missing browser must fail the gate rather than turn driver tests into skips.
+# A missing browser must fail the gate rather than turn driver tests into skips. The first launch on a fresh runner
+# pays the cold start; how long the launch took is printed either way.
 browser_ready() {
   node <<'JS'
 const pw = require(process.env.UPMORE_PLAYWRIGHT_PATH || 'playwright');
+const started = Date.now();
 (async () => {
   const browser = await pw.chromium.launch({headless:true, chromiumSandbox:true,
-    ...(process.env.UPMORE_CHROMIUM_PATH ? {executablePath:process.env.UPMORE_CHROMIUM_PATH} : {}), timeout:15000});
+    ...(process.env.UPMORE_CHROMIUM_PATH ? {executablePath:process.env.UPMORE_CHROMIUM_PATH} : {}), timeout:60000});
   await browser.close();
-})().catch(error => { console.error(error.message); process.exitCode=1; });
+  console.log(`browser launched and closed in ${Date.now() - started} ms`);
+})().catch(error => {
+  console.error(`browser did not launch after ${Date.now() - started} ms: ${error.message}`);
+  process.exitCode=1;
+});
 JS
 }
 
@@ -117,7 +134,10 @@ step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
 step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
 
+# Every step's result again at the end: a CI log read from its tail still shows which step failed.
+printf 'SUMMARY %s\n' "${results[@]}"
 if (( failed )); then
+  printf '%s\n' "${details[@]}"
   echo 'GATE FAILED'
   exit 1
 fi

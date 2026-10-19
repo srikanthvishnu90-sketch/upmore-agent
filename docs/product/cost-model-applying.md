@@ -45,10 +45,14 @@ on the consumer plans. That is the opening.
 3. **Price the outcome, not the application.** With applications nearly free to us, they can be free to the person up
    to the 15-a-day cap, and the paid plan can sell what Tsenta does not do (interview prep from the submitted resume,
    offers, warm paths). To copy free applications a cloud-browser competitor pays for every one of them.
-4. **Fewer, better applications.** Huntr's Q1 2026 data: people sending 11-20 applications interviewed at 9.25% per
-   application, against 2.58% for 100+ (self-logged, correlational; huntr.co/research/job-search-trends-q1-2026).
-   Tailored resumes: 5.71% vs 3.09% (Q2 2026). At the same cost per application, a 3-4x higher interview rate is a 3-4x
-   lower cost per interview. A volume product pays for the applications that never convert.
+4. **Better applications, measured per person (corrected 2026-10-19).** Huntr's Q1 2026 data: people sending 11-20
+   applications interviewed at 9.25% per application, against 2.58% for 100+ (VERIFIED-S search extract;
+   huntr.co/research/job-search-trends-q1-2026). Huntr itself says this does not show the effect of sending fewer
+   applications. Per person, the high-volume group still had more interviews (about 1.4 vs 3.9 a quarter, ASSUMED from
+   bucket midpoints; `docs/competitors/huntr.md`). The earlier claim here, "a 3-4x higher interview rate is a 3-4x lower
+   cost per interview", treated a correlation as an effect and is withdrawn. Tailored resumes: 5.71% vs 3.09% (Q2 2026,
+   1.85x, association, 13,037 tailored resumes linked to applications). What we may say: interviews per person and per
+   verified submission are the numbers we optimise and measure on our own users, from the first real run. Not before.
 
 ## At 100 / 1,000 / 10,000 / 100,000 users (ASSUMED: 5 applications per user per day, in-browser path)
 | Users | Applications a month | Model | Database | Messaging (iMessage lines) | Total a month | Per user |

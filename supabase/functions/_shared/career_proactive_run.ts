@@ -3,10 +3,12 @@
 // from career_alerts.ts, the outbox written once per key, and each person's counters saved. Counters: alerts sent count
 // against the person's local day (reset when their date changes); held postings are kept until a report carries them;
 // last_checked_at moves to this run, so a posting is alerted at most once.
-import { planProactive } from "./career_alerts.ts";
+import { DEFAULT_PREFS, planProactive, quietAt } from "./career_alerts.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
+import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
+import { cardFor, type Prepared } from "./career_apply_cards.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -46,4 +48,46 @@ export async function runAlerts(o: {
     });
   }
   return stats;
+}
+
+// Receipts (WO-021 step 5): every application that finished in the last 26 hours, said once (the outbox keeps one text
+// per receipt:<id>, ever), whether or not the person has job alerts on. Returns how many were queued now.
+export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptRow[]> }): Promise<number> {
+  const rows = await o.finished(new Date(o.now - 26 * 3600000).toISOString());
+  let n = 0;
+  for (const r of planReceipts(rows, o.now)) if (await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at })) n++;
+  return n;
+}
+
+// The card of prepared applications (WO-022 step 3), shown in the person's texting thread without being asked for. A batch
+// counts once it has settled (nothing prepared in the last 10 minutes, so one batch is not split across cards), never in
+// the person's quiet hours, one card per person per run, oldest first. The database decides the rest in one transaction
+// (career_apply_card_push_for): no texting thread or a STOP, a card still open, a conversation under way, or a text that
+// does not carry every line pushes nothing. One person's failure does not stop the others; the run then records it.
+export interface ReadyRow extends Prepared { user_id: string; created_at: string; tz?: string | null; quiet_start?: number; quiet_end?: number }
+export const CARD_SETTLE_MS = 10 * 60000;
+export async function runCards(o: {
+  now: number; ready: () => Promise<ReadyRow[]>; push: (userId: string, ids: string[], text: string) => Promise<string | null>;
+}): Promise<number> {
+  const byUser = new Map<string, ReadyRow[]>();
+  for (const r of await o.ready()) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r]);
+  let pushed = 0;
+  const failed: string[] = [];
+  for (const [userId, rows] of byUser) {
+    rows.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    if (Date.parse(rows[rows.length - 1].created_at) > o.now - CARD_SETTLE_MS) continue;
+    const first = rows[0];
+    const quiet = { quiet_start: first.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: first.quiet_end ?? DEFAULT_PREFS.quiet_end };
+    if (quietAt(o.now, first.tz || "America/New_York", quiet)) continue;
+    // An application too long for a text is left for "show my applications" (which says so); it never holds back the rest.
+    const c = cardFor(rows.filter((r) => { const one = cardFor([r]); return one !== null && "take" in one; }));
+    if (!c || !("take" in c)) continue;
+    try {
+      if (await o.push(userId, c.take.map((p) => p.id), c.text)) pushed++;
+    } catch (e) {
+      failed.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (failed.length) throw new Error(`card push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`);
+  return pushed;
 }

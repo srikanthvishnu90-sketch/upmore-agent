@@ -8,10 +8,12 @@
 //                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
 import { freshWhenSeen } from "./career_ingest.ts";
+import { type Floor, relevanceFloor } from "./career_floor.ts";
 
 export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
+  floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
 }
 export interface PlanUser {
   id: string; tz: string; prefs: AlertPrefs; last_checked_at: string; instant_sent_today: number;
@@ -36,6 +38,7 @@ const httpsUrl = (u: unknown) => (/^https:\/\/\S+$/.test(String(u ?? "")) ? Stri
 
 export function matchPosting(p: any, prefs: AlertPrefs): boolean {
   if (!p || p.closed_at || !httpsUrl(p.url)) return false;
+  if (prefs.floor && !relevanceFloor(p, prefs.floor).pass) return false;
   // A keyword matches when every one of its words is a whole word of the title ("data analyst" matches
   // "Analyst, Data Platform", never "Metadata Analyst" for "data"). No keywords means no alerts, never everything.
   const title = new Set(words(p.title));
@@ -54,6 +57,8 @@ function local(at: number, tz: string): { date: string; hour: number; minute: nu
 }
 const isQuiet = (hour: number, p: AlertPrefs) =>
   p.quiet_start === p.quiet_end ? false : p.quiet_start > p.quiet_end ? hour >= p.quiet_start || hour < p.quiet_end : hour >= p.quiet_start && hour < p.quiet_end;
+// Whether an instant falls in the person's quiet hours, in their zone.
+export const quietAt = (at: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">) => isQuiet(local(at, tz).hour, p as AlertPrefs);
 // The first instant at or after `from` when the person's clock reads hour:00. Steps of 15 minutes, so zones on a half or
 // quarter hour (India, Nepal) land on their own hour, and a daylight-saving jump is crossed rather than assumed.
 function nextLocal(from: number, tz: string, hour: number): number {

@@ -73,6 +73,8 @@ edge_tests=(
   tests/edge/agent-guards.test.ts
   tests/edge/conversation-hardening.test.ts
   tests/edge/career-ingest.test.ts
+  tests/edge/career-alerts.test.ts
+  tests/edge/career-proactive.test.ts
 )
 
 portable_test_paths() {

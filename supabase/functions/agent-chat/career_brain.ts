@@ -3,6 +3,7 @@
 import { runAgentTurn, type ModelFn, type TurnResult } from "../_shared/agent/loop.ts";
 import { careerTools } from "../_shared/agent/career_tools.ts";
 import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
+import type { AlertStore } from "../_shared/career_alert_store.ts";
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
   return env.get("CAREER_BRAIN") === "agent" ? "agent" : "router";
@@ -26,14 +27,15 @@ export function agentTurn(o: {
   stores: Record<string, unknown>;
   userId: string; threadId: string; now: number;
   model: ModelFn;
-  postings?: () => Promise<any[]>;
+  postings?: (query: string) => Promise<any[]>;
+  alerts?: AlertStore | null;
   tz?: string;
 }): Promise<TurnResult> {
   return runAgentTurn({
     system: careerSystemPrompt(localDay(o.now, o.tz)),
     history: o.history.slice(-20).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []) }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

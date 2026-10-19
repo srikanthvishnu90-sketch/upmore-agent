@@ -489,6 +489,19 @@
     "created_at",
     "id"
    ]
+  },
+  {
+   "table": "career_alert_prefs",
+   "order": [
+    "updated_at"
+   ]
+  },
+  {
+   "table": "career_outbox",
+   "order": [
+    "created_at",
+    "id"
+   ]
   }
  ],
  "excluded": {

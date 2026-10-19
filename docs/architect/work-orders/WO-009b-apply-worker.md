@@ -40,13 +40,42 @@ Files: `supabase/migrations/20261020000000_career_apply_jobs.sql`, `supabase/fun
 - Acceptance: DB tests for every state, the once-per-posting rule, RLS and deletion; edge tests for admit-before-insert and
   the sweep.
 
-## 009b-2: real form snapshots (fixtures)
-Files: `tests/fixtures/forms/` (new), `scripts/career/capture-form.cjs` (new), `tests/career-form-fixtures.test.cjs` (new).
-- Capture 24 public application forms, 6 per family (Greenhouse, Lever, Ashby, SmartRecruiters), each with one GET of
-  the public posting page and, for Greenhouse, `boards-api.greenhouse.io/v1/boards/{token}/jobs/{id}?questions=true`.
-  Save HTML + JSON + the source URL + capture date. No browser submission, no login, one request per page.
-- Strip nothing that the form needs; remove tracking scripts only. Record which fields are required.
-- Acceptance: the fixture test loads all 24 and checks each has a form, a resume input and at least one required field.
+## 009b-2: real form snapshots (fixtures) — revised 2026-10-19 after the CI capture
+The build sandbox cannot reach job sites (Codex's capture: 0/24, CONNECT 403). The architect captured them in CI instead
+(`.github/workflows/form-capture.yml`, run on a push to `ci/form-capture`): 24 real postings picked from the board
+directory, each application page rendered in sandboxed Chromium (GET and GraphQL queries only; nothing clicked or typed).
+Fixtures: `tests/fixtures/forms-ci/` (manifest + stripped HTML), built by `scripts/career/build-form-fixtures.cjs`,
+checked by `tests/career-form-ci-fixtures.test.cjs`.
+
+What the live pages showed (2026-10-19):
+
+| ATS | Application in raw HTML | Application rendered | Bot check loaded on the form |
+|---|---|---|---|
+| Greenhouse | 5/6 (Databricks redirects to its own site) | 5/6 | reCAPTCHA Enterprise, all 5 |
+| Lever | 6/6 | 6/6 | hCaptcha (invisible, run on submit), all 6 |
+| Ashby | 0/6 (the page is built by JavaScript) | 6/6 (no `<form>` element; inputs only) | reCAPTCHA Enterprise, all 6 |
+| SmartRecruiters | 0/6 | 0/6: the application page answers 403 behind DataDome | DataDome, all 6 |
+
+Consequences for this order:
+- Fixtures are rendered pages, not raw HTML. An application is a resume input plus at least one required field (Ashby
+  has no `<form>`). The acceptance is now: at least 5 real applications each on Greenhouse, Lever and Ashby, with
+  provenance, hashes and their required fields (`tests/career-form-ci-fixtures.test.cjs`). Codex's raw-HTML 24/24 test
+  cannot pass on these sites and is retired with this change.
+- SmartRecruiters is not automatable under the standing rules (no captcha solving, no stealth, no proxies): its
+  postings are found and shown, and applying is handed to the person (the link, their own browser).
+- 009b-3 serves these stripped pages; widgets that need JavaScript (React selects) are driven through 149's widget
+  adapters on the live page in 009b-4, not in the fixture.
+
+## The gate before any volume: does an automated submission get through the bot check? (owner, before 009b-5)
+Every live Greenhouse, Lever and Ashby form loads an invisible bot check that scores the browser at the moment of
+submit. A headless browser on a server is what those checks are built to catch, and the standing rules forbid solving,
+evading or outsourcing them. A dry run cannot show whether a submission would be accepted; only a real one can.
+- The first real submissions are the owner's own, to postings he actually wants: `scripts/apply.ts --submit` from his
+  own machine, then the employer's confirmation email is the evidence (not the page alone).
+- Record each in `docs/architect/apply-trials.md`: posting, ATS, result page, confirmation email (yes/no, after 24 h).
+- 009b-5 (the worker that applies for people) does not start until 3 of 3 trials on each of Greenhouse, Lever and
+  Ashby are confirmed by email. If they are not, the product applies through the person's own browser instead
+  (prefilled, they press submit), and this order is rewritten.
 
 ## 009b-3: the fill-readback harness (stage 1 of WO-009 acceptance)
 Files: `tests/career-apply-forms.test.cjs` (new), `tests/fixtures/portal-fixture-server.cjs` (serve the snapshots),

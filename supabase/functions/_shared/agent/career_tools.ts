@@ -4,6 +4,8 @@
 import { CareerProfile, CareerTrack, CareerPrep } from "../router_core.career.js";
 import type { ToolSpec, ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
+import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
+import { DEFAULT_PREFS } from "../career_alerts.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -23,7 +25,8 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 
 // `postings(query)` returns candidate open postings: in production a full-text search of career_postings
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
-export function careerTools(deps: { postings: (query: string) => Promise<any[]> }): ToolSpec[] {
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null }): ToolSpec[] {
+  const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   return [
     {
       name: "get_profile", effect: "read",
@@ -79,6 +82,46 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]> 
         if (!pool.length) return { postings: [], total: 0, source: "none" };
         const r = searchPostings(pool, query, c.state.profile, Number(i.limit) || 10);
         return { ...r, source: "live" };
+      },
+    },
+    {
+      name: "set_job_alerts", effect: "write_own",
+      description: "Turn on job alerts: new postings whose titles match the keywords are texted within minutes (up to max_instant_per_day), the rest go in one daily report at report_hour, quiet 22:00-07:00 in their zone. Restate exactly what will be watched.",
+      input_schema: obj({
+        keywords: { type: "array", items: { type: "string" }, description: "Job titles or title words to watch, e.g. ['data analyst']" },
+        locations: { type: "array", items: { type: "string" }, description: "Cities or regions; empty means anywhere" },
+        remote_ok: { type: "boolean", description: "Count remote postings (default true)" },
+        report_hour: { type: "number", description: "Local hour 0-23 for the daily report (default 8)" },
+        max_instant_per_day: { type: "number", description: "Instant alerts per day, 0-10 (default 3)" },
+        timezone: str("IANA zone, e.g. America/Chicago, if the person said where they are"),
+      }, ["keywords"]),
+      run: async (i, c) => {
+        const store = alertsOf();
+        const prev = await store.get(c.userId);
+        const v = validPrefs(i, prev ? prev.prefs : DEFAULT_PREFS);
+        if (!v.ok) throw new Error(v.error);
+        const tz = i.timezone !== undefined ? validZone(i.timezone) : (prev?.tz ?? "America/New_York");
+        if (!tz) throw new Error(`unknown time zone ${i.timezone}`);
+        const row = startWatching(prev, { userId: c.userId, prefs: v.prefs, tz, now: c.now });
+        await store.save(row);
+        return { alerts: { ...v.prefs, timezone: tz, quiet_hours: `${v.prefs.quiet_start}:00-${v.prefs.quiet_end}:00`, first_report: row.last_report_on ? "tomorrow" : "today" } };
+      },
+    },
+    {
+      name: "get_job_alerts", effect: "read",
+      description: "Read the person's job-alert settings: what is watched, how many instant alerts a day, when the report comes, and whether alerts are on.",
+      input_schema: obj(),
+      run: async (_i, c) => { const r = await alertsOf().get(c.userId); return r ? { alerts: { ...r.prefs, timezone: r.tz } } : { alerts: null }; },
+    },
+    {
+      name: "stop_job_alerts", effect: "write_own",
+      description: "Stop every job alert and the daily report. One message stops everything; nothing more is sent until they turn alerts on again.",
+      input_schema: obj(),
+      run: async (_i, c) => {
+        const store = alertsOf(), r = await store.get(c.userId);
+        if (!r) return { stopped: true, note: "no alerts were on" };
+        await store.save({ ...r, prefs: { ...r.prefs, on: false } });
+        return { stopped: true };
       },
     },
     {

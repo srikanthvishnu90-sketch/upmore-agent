@@ -18,7 +18,17 @@ built on the one stack (planner, queue, engine).
    - The database checks the hash (`sha256(career_apply_canonical(payload))`) and that the payload is the signed-in person's.
    - The person can read their own rows.
    - Only the database functions write.
-3. **Card (W2).** "show my applications" (or the scheduled run, later) shows the prepared rows not yet shown, at most 8 per card.
+3. **Card (W2).** "show my applications" shows the prepared rows not yet shown, at most 8 per card. The scheduled run
+   (career-proactive, every 5 minutes) also shows them without being asked, through `career_apply_card_push_for`. In one
+   transaction it opens the card, writes it into the person's texting thread as Upmore's last word, and queues it once
+   (outbox kind `card`). It pushes:
+   - only a settled batch: nothing prepared in the last 10 minutes, so one batch is not split across cards;
+   - never in the person's quiet hours (10pm to 7am New York when they set none), and one card per person per run;
+   - only to a texting thread that has not texted STOP;
+   - never while a card from the last 24 hours is still open;
+   - never while the person is mid-conversation (a reply queued to them in the last 30 minutes): a "yes" meant for that
+     conversation must not land on a card that arrived in between;
+   - only a text that carries every card line of every application on it, word for word.
    - Each application is numbered, with every answer, the resume and where it goes, from the card lines the engine's dry run produced.
    - One card is under 1,600 characters. If it would be longer, the card holds fewer applications.
    - The card is recorded (its id, its rows and their hashes, the time).
@@ -44,4 +54,6 @@ built on the one stack (planner, queue, engine).
 ## Done means
 - **DB:** `prepare_own` refuses a wrong hash, someone else's payload, and an unknown card. A card's rows are enqueued exactly once.
 - **W2:** the card names every field the payload sends and nothing else, stays under 1,600 characters, and holds at most 8 applications.
+- **Push:** each refusal above in `tests/db/career_apply_card_push.test.sql`; settling, quiet hours, one card per person,
+  and a pushed card answered by "yes but not 2" in `tests/architect/wo-022-card-push.test.ts`.
 - **W3:** fixed parses, the refusals above, and a simulated thread: prepare, card, "yes but not 2", queue, worker run, receipt texts. Run against local fixtures.

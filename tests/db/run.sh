@@ -123,6 +123,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
 # Idempotent: the channel inbound migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
+# After channel inbound, as in production order: the receipts migration widens the outbox kinds it set.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020020000_career_apply_receipts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020020000_career_apply_receipts.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" ]]; then continue; fi

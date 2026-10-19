@@ -5,8 +5,9 @@
 // last_checked_at moves to this run, so a posting is alerted at most once.
 import { planProactive } from "./career_alerts.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
+import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -46,4 +47,13 @@ export async function runAlerts(o: {
     });
   }
   return stats;
+}
+
+// Receipts (WO-021 step 5): every application that finished in the last 26 hours, said once (the outbox keeps one text
+// per receipt:<id>, ever), whether or not the person has job alerts on. Returns how many were queued now.
+export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptRow[]> }): Promise<number> {
+  const rows = await o.finished(new Date(o.now - 26 * 3600000).toISOString());
+  let n = 0;
+  for (const r of planReceipts(rows, o.now)) if (await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at })) n++;
+  return n;
 }

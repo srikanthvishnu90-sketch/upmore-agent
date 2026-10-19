@@ -1,21 +1,21 @@
 # Ask once: how many real application questions a person answers only once
 
-Source: `evals/apply/questions-ci.json` (CI run 39228148377 of question-capture.yml at 5fb811b0d45e3ba2ac86335ff4d1bfdb54272ac7). 100 postings captured, 99 with required questions; blocked or empty: ashby-cursor-0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74 (NO_REQUIRED_QUESTIONS).
+Source: `evals/apply/questions-ci.json` (CI run 39230110480 of question-capture.yml at c093ce9846eb352830e35924c47e09a533cf0887, sample A (biggest boards)). 100 postings captured, 99 with required questions; blocked or empty: ashby-cursor-0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74 (NO_REQUIRED_QUESTIONS).
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 590/1049 (56%) | 5/99 (5%) |
-| + the 10 most common other questions, answered once | 618/1049 (59%) | 6/99 (6%) |
-| + the 20 most common | 634/1049 (60%) | 9/99 (9%) |
-| + the 40 most common | 654/1049 (62%) | 9/99 (9%) |
+| The standard facts only | 584/1042 (56%) | 5/99 (5%) |
+| + the 10 most common other questions, answered once | 612/1042 (59%) | 6/99 (6%) |
+| + the 20 most common | 627/1042 (60%) | 9/99 (9%) |
+| + the 40 most common | 647/1042 (62%) | 9/99 (9%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
-| greenhouse | 40 | 545 | 294 (54%) | 1 | 2 |
-| lever | 30 | 291 | 148 (51%) | 3 | 5 |
+| greenhouse | 40 | 543 | 292 (54%) | 1 | 2 |
+| lever | 30 | 286 | 144 (50%) | 3 | 5 |
 | ashby | 29 | 213 | 148 (69%) | 1 | 2 |
 
-Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 69/99, most 22.
+Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 70/99, most 22.
 
 ## The most common questions the standard facts do not answer
 
@@ -26,7 +26,6 @@ Questions left to ask per posting with the standard facts: median 3, none 5/99, 
 | Active Security Clearance(s) | 2 |
 | Address: | 2 |
 | Are you 18 years of age or older? | 2 |
-| Are you open to relocation? | 2 |
 | Citizenship Status | 2 |
 | Current or Most Recent Employer | 2 |
 | Full Legal Name | 2 |
@@ -51,7 +50,7 @@ I acknowledge that I received a copy of Axon’s Prohibited Possessor Questionna
 | AI Policy for Application | 1 |
 | Any offer of employment with Rocket Lab  is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate | 1 |
 | Applicant Privacy Acknowledgement | 1 |
-| Applicant's Statement. I authorize my previous employers, schools or persons named as references to give any information regarding employment or educational rec | 1 |
+| Applicant's Statement. I authorize my previous employers, schools, or persons named as references to give any information regarding employment or educational re | 1 |
 | APPLICANT STATEMENT: I certify that all information I have provided in order to apply for and secure work with SunSource ("the employer") and it's affiliate com | 1 |
 | Are you 18 years of age or older? 
 You must be at least 18 years of age or older to work for this employer. | 1 |
@@ -61,8 +60,9 @@ You must be at least 18 years of age or older to work for this employer. | 1 |
 | Are you a current or former U.S. Government employee or U.S. armed forces? | 1 |
 | Are you a fugitive from justice? | 1 |
 | Are you a native Basque translator? | 1 |
-| Are you a newly elected or a candidate for any federal, state, or local elected office or any related entity? | 1 |
 | Are you a participant of the following scholarship, fellowships, or initiatives we support? | 1 |
 | Are you a Singapore citizen? | 1 |
+| Are you a Singapore permanent resident? | 1 |
+| Are you a transitioning service member? | 1 |
 
-Unique unanswered wordings: 435; asked on only one posting: 422.
+Unique unanswered wordings: 435; asked on only one posting: 423.

@@ -74,7 +74,7 @@ if (!vm.SourceTextModule) {
         const filters = {};
         const query = { select() { return query; }, eq(k, v) { filters[k] = v; return query; }, async maybeSingle() {
           assert.equal(filters.user_id, user);
-          if (table === "career_watch_kv") { assert.match(filters.key, /^career:mock:/); return { data: null, error: null }; } // WO-025: the mock session read; none is running
+          if (table === "career_watch_kv") { assert.match(filters.key, /^career:(mock:|questions-shown$)/); return { data: null, error: null }; } // the per-turn reads: no mock running, no questions showing
           if (table === "agent_threads") return { data: { id: thread, user_id: user }, error: null };
           assert.equal(table, "agent_flow_state");
           return { data: { state: structuredClone(db.state) }, error: null };

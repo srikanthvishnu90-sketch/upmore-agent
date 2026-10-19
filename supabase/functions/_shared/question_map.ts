@@ -191,3 +191,39 @@ export function mapQuestion(q: Question): MappedQuestion {
   return { fact: "unknown", kind: "unknown", why: "no rule" };
 }
 export const RULE_COUNT = RULES.length;
+
+// A question that asks for an identity number, a bank or card number or a secret is never asked by text, stored or held:
+// the person types it on the form (standing rules: no full ID or card numbers, no passwords, anywhere). The engine
+// already stops on identity numbers before planning (scripts/apply.ts IDENTITY_NUMBER); this is the texting side's own.
+export const NEVER_BY_TEXT =
+  /social security|\bssn\b|passport (number|no\b)|driver'?s licen[cs]e (number|no\b)|national (id|insurance) number|\btax(payer)? id|\bitin\b|alien (registration )?number|\ba-number\b|bank account|routing number|card number|\bpassword\b|\bpin\b/i;
+
+// 64-bit FNV-1a of the words, as 16 hex digits: a key for any language's wording.
+function h16(s: string): string {
+  let h = 0xcbf29ce484222325n;
+  for (const b of new TextEncoder().encode(s)) h = BigInt.asUintN(64, (h ^ BigInt(b)) * 0x100000001b3n);
+  return h.toString(16).padStart(16, "0");
+}
+// How far one answer may travel (ask once). A fact about the person they have not stated goes to every employer, but
+// only when the answer is a value of that fact: a yes to "Are you a U.S. citizen?" is not a citizenship, and a yes to
+// "authorized to work in the US?" must never answer the same question about Canada, so a yes/no question about a fact
+// that is not itself a yes or no is kept to its wording. A legal statement, a consent, years with a named tool or an
+// unmapped question: the same wording only. An essay, a question about this job (its offices, schedule, pay, duties),
+// one computed from this employer, or a fact whose stated value did not fit this form's options: this posting only.
+const YES_NO_ASKED = /^(are|do|does|have|has|will|would|can|could|is|did|were|was|may|should)\b/;
+export const factType = (fact: string): string => (FACTS[fact] as any)?.type ?? "text";
+function yesNoAsked(q: Question): boolean {
+  if (/checkbox|boolean/.test(String(q.type))) return true;
+  if (q.options?.length) return q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
+  return YES_NO_ASKED.test(norm(q.label));
+}
+export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean } = {}): string {
+  const m = mapQuestion(q);
+  const words = norm(q.label);
+  const job = `job:${h16(`${jobId}\n${words}`)}`, wording = `label:${h16(words)}`;
+  if (m.kind === "fact") {
+    if (o.haveFact) return job;
+    return factType(m.fact) === "yesno" || !yesNoAsked(q) ? `fact:${m.fact}` : wording;
+  }
+  return m.kind === "essay" || m.kind === "derived" || (m.kind === "screen" && m.fact !== "job_experience") ? job : wording;
+}

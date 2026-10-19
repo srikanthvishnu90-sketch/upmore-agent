@@ -136,7 +136,7 @@ async function stagedApp(db, user, workerEnv) {
         eq(key, value) { filters[key] = value; return query; },
         async maybeSingle() {
           assert.equal(filters.user_id, user);
-          if (table === "career_watch_kv") { assert.match(filters.key, /^career:mock:/); return { data: null, error: null }; } // WO-025: the mock session read; none is running
+          if (table === "career_watch_kv") { assert.match(filters.key, /^career:(mock:|questions-shown$)/); return { data: null, error: null }; } // the per-turn reads: no mock running, no questions showing
           if (table === "agent_threads") { assert.equal(filters.id, THREAD); return { data: { id: THREAD, user_id: user }, error: null }; }
           assert.equal(table, "agent_flow_state");
           assert.equal(filters.thread_id, THREAD);

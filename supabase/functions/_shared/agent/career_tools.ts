@@ -6,6 +6,7 @@ import type { ToolSpec, ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
+import { applyFloor } from "../career_floor.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -80,8 +81,13 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         const query = String(i.query ?? "");
         const pool = await deps.postings(query);
         if (!pool.length) return { postings: [], total: 0, source: "none" };
-        const r = searchPostings(pool, query, c.state.profile, Number(i.limit) || 10);
-        return { ...r, source: "live" };
+        // C-04: the person's saved floor (and, always, closed postings and the same job on another board) before any
+        // ranking; what was hidden is counted by reason so the reply can say it ("7 senior roles, 5 contract").
+        const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
+        const newest = [...pool].sort((a, b) => String(b.first_seen_at || "").localeCompare(String(a.first_seen_at || "")));
+        const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
+        const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
+        return { ...r, filtered, source: "live" };
       },
     },
     {
@@ -94,6 +100,10 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         report_hour: { type: "number", description: "Local hour 0-23 for the daily report (default 8)" },
         max_instant_per_day: { type: "number", description: "Instant alerts per day, 0-10 (default 3)" },
         timezone: str("IANA zone, e.g. America/Chicago, if the person said where they are"),
+        floor: {
+          type: "object",
+          description: "Only what the person said they want filtered out, never inferred: levels (intern, entry, mid, senior, lead, exec) they want, types (full_time, part_time, contract, internship, temporary) they want, exclude_words, exclude_companies, min_pay {amount, period: year|hour}, allow_staffing. Restate it exactly.",
+        },
       }, ["keywords"]),
       run: async (i, c) => {
         const store = alertsOf();

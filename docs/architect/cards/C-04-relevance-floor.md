@@ -69,3 +69,24 @@ Each row is `{ name, source_url, checked: "YYYY-MM-DD" }`. Only names whose own 
 - Nothing else changed.
 
 If a step is blocked, write `BLOCKED: <what>` in NOW.md and go to the next card.
+
+## Status (architect, 2026-10-20): built on `wo/c04-relevance-floor`
+- **Labeled set:** 50 postings in `tests/architect/c04-relevance-floor.test.ts`, 50/50.
+  - Before wiring, the alert and search tests failed: a senior posting was alerted, and search hid nothing.
+  - Four mutants, one per trap guard (lead generation, staff, contract subject, "our clients"), each break the set.
+- **Where it differs from the spec above, on purpose:**
+  - **Seniority is read from the title only.** The ingest's `seniority_band` comes from the router's `seniorityBand`, which returns "mid" for a title that says nothing. A floor must never fail a posting on that default.
+  - **More traps than the card listed:**
+    - "Staff Accountant" and "Staff Nurse" are not staff-engineer level;
+    - "Lead Generation" is not a lead role;
+    - "Executive Assistant" is not an executive;
+    - "Contract Manager" and "Contracts Administrator" are full-time jobs about contracts;
+    - a consulting firm's "our clients" is not a staffing agency;
+    - pay in another currency is `pay_not_comparable`, never a fail.
+  - **The floor is saved with the person's job settings** (`prefs.floor`, set through `set_job_alerts`, validated by `validFloor`). Alerts and `search_jobs` read the same floor; nothing is inferred from silence.
+  - **Duplicates across boards are dropped in `search_jobs`.** Alerts still key per posting; dropping duplicates there is a follow-up.
+- **The agency list lives in `supabase/functions/_shared/career_staffing_agencies.ts`**, not `packages/career-data/staffing-agencies.json`. Shared code must not import from outside `supabase/functions`: the staged-handler test refuses it, and a deployed function would not carry it.
+- **BLOCKED: the agency list ships empty.**
+  - No primary page could be fetched from the build container (every company site and sec.gov refused or unresolvable, 2026-10-19).
+  - No row is added without a fetched source. The "our client" wording rule works without the list, and a missing agency is a pass.
+  - Fill the list from a machine with web access: name, source_url, the quoted sentence, checked date.

@@ -4,6 +4,7 @@
 // outbox is the texting channel's job (WO-013); the simulator drains its own in-memory queue.
 // Tables: supabase/migrations/20261019010000_career_alerts.sql.
 import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
+import { validFloor } from "./career_floor.ts";
 
 export interface AlertRow extends PlanUser { sent_on: string | null } // sent_on: the local day instant_sent_today counts
 export interface AlertStore {
@@ -33,7 +34,11 @@ export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DE
   const cap = input.max_instant_per_day === undefined ? base.max_instant_per_day : Number(input.max_instant_per_day);
   if (!Number.isInteger(cap) || cap < 0 || cap > MAX_INSTANT_PER_DAY) return { ok: false, error: `max_instant_per_day must be 0 to ${MAX_INSTANT_PER_DAY}` };
   if (input.remote_ok !== undefined && typeof input.remote_ok !== "boolean") return { ok: false, error: "remote_ok must be true or false" };
-  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, max_instant_per_day: cap } };
+  // The relevance floor (C-04): only what the person stated; a floor not given keeps the one already saved.
+  const fl = input.floor === undefined ? { ok: true as const, floor: base.floor } : validFloor(input.floor);
+  if (!fl.ok) return { ok: false, error: fl.error };
+  const floor = fl.floor && Object.keys(fl.floor).length ? fl.floor : undefined;
+  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, max_instant_per_day: cap, floor } };
 }
 export function validZone(tz: unknown): string | null {
   if (typeof tz !== "string" || !tz || tz.length > 64) return null;

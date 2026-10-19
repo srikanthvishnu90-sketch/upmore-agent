@@ -49,6 +49,22 @@ before(async () => {
       }
       return res.writeHead(200, { "Content-Type": "text/html" }).end(THANKS);
     }
+    if (req.url === "/app") {
+      // The Upmore app as supabase-js leaves it after the person signs in: the session under sb-<project>-auth-token.
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(`<h1>Upmore</h1><script>
+        const poll = setInterval(async () => { if ((await (await fetch("/__person")).text()) !== "go") return; clearInterval(poll);
+          localStorage.setItem("sb-testref-auth-token", JSON.stringify({ access_token: "TEST-ACCESS", refresh_token: "TEST-REFRESH" })); }, 300);
+      </script>`);
+    }
+    if (req.url === "/app-away") {
+      // A page that sends the window to another origin, where a session-shaped value is stored: never read.
+      const port = server.address().port;
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(`<script>location.href = "http://localhost:${port}/app-other";</script>`);
+    }
+    if (req.url === "/app-other") {
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(`<script>
+        localStorage.setItem("sb-testref-auth-token", JSON.stringify({ access_token: "TEST-OTHER", refresh_token: "TEST-OTHER" }));</script>`);
+    }
     res.writeHead(200, { "Content-Type": "text/html" })
       .end(req.url === "/job-code" ? PAGE.replace('action="/submit"', 'action="/submit-code"') : PAGE);
   });
@@ -163,4 +179,50 @@ test("a code emailed after the submit reaches the person through the worker; the
   assert.ok(r.out.includes(PROMPT), "the person saw the engine's line through the worker");
   assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-code", "/verify-code"], "the application once, the code once");
   assert.ok(!r.out.includes(CODE) && !r.err.includes(CODE), "the code is nowhere in the worker's output");
+});
+
+test("run on a person's computer refuses a service key before anything is read or run", async () => {
+  const tok = (role) => "x." + Buffer.from(JSON.stringify({ role })).toString("base64url") + ".y";
+  const run = (env) =>
+    new Promise((resolve) => {
+      const p = spawn(process.env.DENO_BIN || "deno", ["run", "-A", path.join(__dirname, "../workers/career-browser/approve-first.ts"), "run", path.join(root, "synthetic.pdf")], {
+        env: { ...process.env, UPMORE_SUPABASE_URL: "http://127.0.0.1:9", ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let out = "";
+      p.stdout.on("data", (b) => (out += b));
+      p.stderr.on("data", (b) => (out += b));
+      p.once("exit", (code) => resolve({ code, out }));
+    });
+  const service = await run({ UPMORE_SUPABASE_ANON_KEY: tok("anon"), UPMORE_ACCESS_TOKEN: tok("service_role"), UPMORE_REFRESH_TOKEN: "r" });
+  assert.equal(service.code, 2);
+  assert.match(service.out, /SERVICE_KEY_REFUSED/);
+  assert.ok(!service.out.includes(tok("service_role")), "the key is never printed");
+  const missing = await run({ UPMORE_SUPABASE_ANON_KEY: tok("anon") });
+  assert.equal(missing.code, 2);
+  assert.match(missing.out, /UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN/);
+});
+
+function signIn(appUrl, timeoutMs) {
+  const code = `import { signInInBrowser } from ${JSON.stringify(path.join(__dirname, "../workers/career-browser/approve-first.ts"))};
+    try { const s = await signInInBrowser({ appUrl: ${JSON.stringify(appUrl)}, headed: false, timeoutMs: ${timeoutMs}, say: () => console.log("ASKED") });
+      console.log("GOT " + (s.access_token === "TEST-ACCESS" && s.refresh_token === "TEST-REFRESH")); }
+    catch (e) { console.log("ERR " + e.message); }`;
+  return new Promise((resolve) => {
+    const p = spawn(process.env.DENO_BIN || "deno", ["eval", "--ext=ts", code], { env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    let out = "", err = "";
+    p.stdout.on("data", (b) => (out += b));
+    p.stderr.on("data", (b) => (err += b));
+    p.once("exit", () => resolve({ out, err }));
+  });
+}
+
+test("the person signs this computer in in a browser window; only the app's own origin is read", async () => {
+  personGo = false;
+  setTimeout(() => (personGo = true), 2500);
+  const ok = await signIn(base.replace(/\/job$/, "/app"), 30000);
+  personGo = false;
+  assert.match(ok.out, /ASKED[\s\S]*GOT true/, ok.out + ok.err.slice(-300));
+  const away = await signIn(base.replace(/\/job$/, "/app-away"), 5000);
+  assert.match(away.out, /ERR SIGN_IN_TIMEOUT/, away.out + away.err.slice(-300));
 });

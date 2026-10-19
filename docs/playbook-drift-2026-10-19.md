@@ -14,3 +14,9 @@
    exposure (VERIFIED, `tests/fixtures/forms-ci/manifest.json`): every Greenhouse and Ashby form loads reCAPTCHA
    Enterprise, and every Lever form loads hCaptcha with an empty `.h-captcha` div. Fixed in PR #23
    (`tests/career-apply-engine.test.cjs`, last three tests).
+4. `docs/architect/work-orders/WO-021-approve-first.md` W4 said the worker is `workers/career-browser/run-approved.ts`
+   and runs in the person's own browser. No such file exists; the worker is in `workers/career-browser/approve-first.ts`
+   (PR #26). The only claim the queue offered was the all-users, service-key `career_apply_claim`, so the person's
+   own computer could not run it without holding a key that reaches everyone's applications. Fixed with
+   `career_apply_claim_own` / `career_apply_finish_own` (`20261020010000_career_apply_own_worker.sql`,
+   `tests/db/career_apply_own.test.sql`); the card now names the real file.

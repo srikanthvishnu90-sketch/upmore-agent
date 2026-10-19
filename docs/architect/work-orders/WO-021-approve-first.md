@@ -58,10 +58,21 @@ Status: ready · Depends on: PR #25 (`--approved`), D-014 · Size: L, in four ca
   "stop", each against the last card in the thread.
   - Approve only what the card listed. A yes to a card older than 24 hours is refused, and the card is re-shown.
   - Tests: fixed parses, refusals, and a yes that names a number not on the card.
-- **W4 (architect): the worker.** `workers/career-browser/run-approved.ts` claims from `career_apply_jobs` and runs the
-  engine with `--approved`. It records the outcome with `career_apply_finish`, and it never retries an UNKNOWN.
+- **W4 (architect): the worker.** `workers/career-browser/approve-first.ts run` claims the person's own approved
+  applications from `career_apply_jobs` and runs the engine with `--approved`. It never retries an UNKNOWN.
   - It runs in the person's own browser, as the desktop runner, per D-017. The self-hosted pool is the fallback for paid
     tiers.
+  - **It runs signed in as the person, never with the service key.** `career_apply_claim_own` and
+    `career_apply_finish_own` (migration `20261020010000`) claim and finish only the signed-in person's rows, on the
+    database clock. The all-users `career_apply_claim` stays service-only for the pool. A service key given to `run`
+    is refused (`SERVICE_KEY_REFUSED`).
+  - **One application at a time:** there is one browser, and the person may be needed for a verification.
+  - **Failures:** a queue it cannot read is asked again. An expired sign-in stops the loop with a plain line.
+    Recording an outcome is retried 4 times. If it still fails, the line says NOT RECORDED, and the database marks the
+    drive unknown after 15 minutes.
+  - **Open:** how the person signs this computer in. Today `run` takes the session from the environment. The plan is
+    for the person to sign in themselves in the runner's own browser window, so no token is copied by hand.
+  - (Corrected 2026-10-19: this card named `run-approved.ts`; the worker is in `approve-first.ts`.)
 
 ## Done means
 - **End to end:** a simulated thread goes card → "yes but not 2" → queue → worker → outcome texts, against the local

@@ -3,7 +3,9 @@
 import { runAgentTurn, type ModelFn, type TurnResult } from "../_shared/agent/loop.ts";
 import { careerTools } from "../_shared/agent/career_tools.ts";
 import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
+import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
+import type { AlertPrefs } from "../_shared/career_alerts.ts";
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
   return env.get("CAREER_BRAIN") === "agent" ? "agent" : "router";
@@ -30,12 +32,17 @@ export function agentTurn(o: {
   postings?: (query: string) => Promise<any[]>;
   alerts?: AlertStore | null;
   tz?: string;
+  // WO-023: what is known about the person, put in the system prompt every turn (built in code, never by the model),
+  // and where standing instructions are kept.
+  known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null };
+  memory?: MemoryStore | null;
 }): Promise<TurnResult> {
+  const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   return runAgentTurn({
-    system: careerSystemPrompt(localDay(o.now, o.tz)),
+    system: careerSystemPrompt(localDay(o.now, o.tz)) + (block ? "\n\n" + block : ""),
     history: o.history.slice(-20).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

@@ -17382,10 +17382,25 @@ const CareerRouter = (() => {
     // MI-123 (mechanism 1): a statement naming a DIFFERENT firm is a
     // NEW offer report — the record re-bases from this statement's
     // own fields; nothing from the prior offer (its amount above
-    // all) carries into the new offer's record. A same-firm detail
-    // statement keeps merging, exactly as before.
+    // all) carries into the new offer's record.
+    // MI-123 RESIDUE (2026-10-19, live v229 ad53453): the gate above
+    // fired only on a firm CHANGE. The live account's seeded prior
+    // offer named the SAME firm as the new report, so the statement
+    // merged into the seeded record and its base_salary (85000 —
+    // never stated in that thread) survived in the offer store and
+    // flowed back to the account slot. The trigger is now the
+    // REPORT, not the difference: a statement that names the
+    // offer's firm at all (the same firm included) re-bases; so
+    // does a statement that asserts figures of its own while the
+    // record it would merge into is still the account-seeded prior
+    // offer (the thread record's fromAccount lineage). A statement
+    // naming no firm and asserting no figure against the seed — a
+    // deadline, a role, a detail of the standing offer — still
+    // merges exactly as before.
     const namedFirm = (offeredM && offeredM[1].trim()) || (firmM && !/^(a|an|the)$/i.test(firmM[1].trim()) ? firmM[1].trim() : null);
-    const merged = (namedFirm && prev.company && lc(namedFirm) !== lc(prev.company)) ? {} : Object.assign({}, prev);
+    const figs = parseOfferFigures(s(text));
+    const seededPrior = (() => { try { const th = negotiationThreadOf(ctx); return !!(th && th.fromAccount); } catch { return false; } })();
+    const merged = (namedFirm || ((figs.signing || figs.hourly || figs.annual) && seededPrior)) ? {} : Object.assign({}, prev);
     if (firmM && !/^(a|an|the)$/i.test(firmM[1].trim())) { merged.company_description = firmM[1].trim(); if (!merged.company) merged.company = firmM[1].trim(); }
     if (offeredM) { if (!merged.company) merged.company = offeredM[1].trim(); if (!merged.company_description) merged.company_description = offeredM[1].trim(); }
     const roleM = s(text).match(/\b(analyst|associate|intern|software engineer|consultant|product manager)\s+role\b/i) || s(text).match(/\brole\s*(?:is|:)\s*(?:a\s+|an\s+)?([a-z ]{3,30}?)(?:,|\s+deadline|$)/i);
@@ -17400,8 +17415,8 @@ const CareerRouter = (() => {
     // units, an annual figure as the stated figure. (The old single
     // money regex read the first $X,XXX in the turn — on the
     // battery's offer that was the $4,000 bonus, and the $52/hr was
-    // recorded nowhere.)
-    const figs = parseOfferFigures(s(text));
+    // recorded nowhere.) (figs is parsed above, beside the
+    // re-base gate, so the gate can weigh the statement's figures.)
     if (figs.signing) merged.signing_bonus = figs.signing;
     if (figs.hourly) { merged.hourly_rate = figs.hourly; merged.stated_figure = figs.hourlyText; }
     else if (figs.annual) merged.stated_figure = figs.annualText;
@@ -24620,8 +24635,14 @@ const CareerRouter = (() => {
       // patterns without touching the case-sensitive firm patterns.
       const rawEmph = s(raw).replace(/(\w)\?{2,}/g, "$1.").replace(/(\w)!{2,}/g, "$1.");
       if (rawEmph !== s(raw)) for (const cl2 of factClausesOf(rawEmph)) if (!offerClauses.includes(cl2)) offerClauses.push(cl2);
+      // MI-123 RESIDUE (2026-10-19): whether any assertion clause
+      // frames an offer EVENT ("I got an offer", "X offered me",
+      // "received an offer") — the speech act that makes the turn a
+      // new offer REPORT rather than a detail about a standing one.
+      let sawOfferEvent = false;
       for (const cl of offerClauses) {
         if (!clauseIsAssertion(cl)) continue;
+        if (/\bgot an offer\b|\bgot the offer\b|\boffered me\b|\boffer came\b|\boffer'?s here\b|\bi have an offer\b|\breceived an offer\b/i.test(cl)) sawOfferEvent = true;
         let m;
         const cln = typoNorm(cl);
         if ((m = cl.match(/\b([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+(?:just|has|have|had))?\s+offered me\b/))) rec.firm = m[1].trim();
@@ -24687,14 +24708,29 @@ const CareerRouter = (() => {
         // figure field re-bases from THIS report alone, so the prior
         // offer's amount can never ride into the new offer's record
         // (the battery's record held the prior offer's 85000 under
-        // the new offer's firm). A report naming no new identity (a
-        // detail about the same offer, in this thread or seeded from
-        // the account) still merges, field by field.
-        const newIdentity = !!((rec.firm && thread.firm && lc(rec.firm) !== lc(thread.firm))
-          || (rec.firm && thread.fromAccount && lc(rec.firm) !== lc(thread.firm || ""))
-          || (rec.firm && !thread.firm && !!thread.descriptor)
-          || (rec.descriptor && !!thread.firm));
-        if (newIdentity) {
+        // the new offer's firm).
+        // MI-123 RESIDUE (2026-10-19, live v229 ad53453): the
+        // condition still keyed on DIFFERENCE. The live account's
+        // seeded prior offer named the SAME firm as the battery's
+        // new report, so the report merged into the seed instead:
+        // the thread record kept amount: 85000 (fromAccount: true),
+        // the offer store kept base_salary: 85000, the account slot
+        // was never nulled — and a later fresh thread's draft ask
+        // read the account record and quoted "$85,000 base at
+        // Lincoln International" (Probe D of the v229 verification).
+        // The trigger is now the REPORT itself, not the difference:
+        // (a) the report asserts the offer's identity — a firm or a
+        // descriptor, the SAME one included — or (b) the record is
+        // still the account-seeded prior offer (fromAccount) and the
+        // report carries an offer-event frame with figures of its
+        // own, so a firmless report never inherits the seed's firm
+        // or figures either. A turn asserting no identity and no
+        // offer event — a detail about the standing offer (a
+        // corrected bonus, a moved deadline) — still merges, field
+        // by field, exactly as before.
+        const newReport = !!((rec.firm || rec.descriptor)
+          || (thread.fromAccount && sawOfferEvent && (rec.amount != null || rec.hourly || rec.signing)));
+        if (newReport) {
           for (const k of ["firm", "descriptor", "descriptors", "amount", "amounts", "hourly", "signing", "signingFor", "deadline", "role", "start", "shares", "expectation", "counter", "requestedDay", "topic", "fromAccount"]) delete thread[k];
           ctx.offer = {};
         }

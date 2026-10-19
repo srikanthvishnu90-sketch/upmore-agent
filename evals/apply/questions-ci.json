@@ -1,6 +1,6 @@
 {
  "version": 1,
- "captured_in": "CI run 39225221238 of question-capture.yml at 269e3be24670b1ba7aed9c7ee8d429bb19331705",
+ "captured_in": "CI run 39228148377 of question-capture.yml at 5fb811b0d45e3ba2ac86335ff4d1bfdb54272ac7",
  "note": "Real public postings; questions as each ATS presents them to an applicant. Nothing was filled or submitted.",
  "postings": [
   {
@@ -9,7 +9,7 @@
    "company": "Prolific",
    "source_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.863Z",
+   "captured_at": "2026-10-19T09:21:29.454Z",
    "reason": null,
    "fields": [
     {
@@ -234,12 +234,12 @@
    ]
   },
   {
-   "id": "greenhouse-eosfitness-4243584009",
+   "id": "greenhouse-eosfitness-4336050009",
    "family": "greenhouse",
    "company": "EOS Fitness",
-   "source_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4243584009",
+   "source_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.864Z",
+   "captured_at": "2026-10-19T09:21:29.455Z",
    "reason": null,
    "fields": [
     {
@@ -306,153 +306,153 @@
      "options": []
     },
     {
-     "name": "question_6062137009",
+     "name": "question_6872424009",
      "label": "Do you currently have your Personal Training certification up to date?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "14636532009"
+       "value": "19126430009"
       },
       {
        "label": "No",
-       "value": "14636533009"
+       "value": "19126431009"
       },
       {
        "label": "In Progress",
-       "value": "14636534009"
+       "value": "19126432009"
       },
       {
        "label": "No, willing to get it",
-       "value": "14636535009"
+       "value": "19126433009"
       }
      ]
     },
     {
-     "name": "question_6062138009[]",
+     "name": "question_6872425009[]",
      "label": "Please select the certifications you currently have or are working on achieving below:",
      "required": true,
      "type": "multi_value_multi_select",
      "options": [
       {
        "label": "ACTION-CPT",
-       "value": "14636536009"
+       "value": "19126434009"
       },
       {
        "label": "American Council on Exercise [ACE)",
-       "value": "14636537009"
+       "value": "19126435009"
       },
       {
        "label": "American College of Sports Medicine [ACSM)",
-       "value": "14636538009"
+       "value": "19126436009"
       },
       {
        "label": "American Fitness Professionals 6 Associates [AFPA)",
-       "value": "14636539009"
+       "value": "19126437009"
       },
       {
        "label": "Collegiate Strength and Conditioning Coaches Association [CSCCA)",
-       "value": "14636540009"
+       "value": "19126438009"
       },
       {
        "label": "Cooper Institute Certified Personal Trainer [CI-CPT)",
-       "value": "14636541009"
+       "value": "19126439009"
       },
       {
        "label": "Focus Personal Training Institute [FPTI)",
-       "value": "14636542009"
+       "value": "19126440009"
       },
       {
        "label": "International Fitness Professionals Association [IFPA)",
-       "value": "14636543009"
+       "value": "19126441009"
       },
       {
        "label": "International Personal Trainer Academy [IPTA)",
-       "value": "14636544009"
+       "value": "19126442009"
       },
       {
        "label": "International Sports Sciences Association [ISSA)",
-       "value": "14636545009"
+       "value": "19126443009"
       },
       {
        "label": "Institute of Motion [IOM)",
-       "value": "14636546009"
+       "value": "19126444009"
       },
       {
        "label": "National Academy of Sports Medicine [NASM)",
-       "value": "14636547009"
+       "value": "19126445009"
       },
       {
        "label": "National College of Exercise Professionals [NCEP)",
-       "value": "14636548009"
+       "value": "19126446009"
       },
       {
        "label": "National Council for Certified Personal Trainers [NCCPT)",
-       "value": "14636549009"
+       "value": "19126447009"
       },
       {
        "label": "National Council on Strength and Fitness [NCSF)",
-       "value": "14636550009"
+       "value": "19126448009"
       },
       {
        "label": "National Exercise Trainers Association [NETA)",
-       "value": "14636551009"
+       "value": "19126449009"
       },
       {
        "label": "National Exercise and Sports Trainer Association [NESTA)",
-       "value": "14636552009"
+       "value": "19126450009"
       },
       {
        "label": "National Federation of Professional Trainers [NFPT)",
-       "value": "14636553009"
+       "value": "19126451009"
       },
       {
        "label": "National Personal Training Institute [NPTI)",
-       "value": "14636554009"
+       "value": "19126452009"
       },
       {
        "label": "PTA Global [PTAG)",
-       "value": "14636555009"
+       "value": "19126453009"
       },
       {
        "label": "Show Up Fitness [SUF-CPT)",
-       "value": "14636556009"
+       "value": "19126454009"
       },
       {
        "label": "National Strength 6 Conditioning Association [NSCA)",
-       "value": "14636557009"
+       "value": "19126455009"
       },
       {
        "label": "World Instructor Training Schools [WITS)",
-       "value": "14636558009"
+       "value": "19126456009"
       },
       {
        "label": "YMCA Personal Training Certification",
-       "value": "14636559009"
+       "value": "19126457009"
       },
       {
        "label": "Other",
-       "value": "14636560009"
+       "value": "19126458009"
       }
      ]
     },
     {
-     "name": "question_6062139009",
+     "name": "question_6872426009",
      "label": "If yes, please upload your Personal Training certification here",
      "required": false,
      "type": "input_file",
      "options": []
     },
     {
-     "name": "question_6062140009",
+     "name": "question_6872427009",
      "label": "If you have more than one Personal Training certificate, please upload here",
      "required": false,
      "type": "input_file",
      "options": []
     },
     {
-     "name": "question_6062141009",
+     "name": "question_6872428009",
      "label": "Do you currently have your CPR certification up to date?",
      "required": true,
      "type": "multi_value_single_select",
@@ -468,14 +468,14 @@
      ]
     },
     {
-     "name": "question_6062142009",
+     "name": "question_6872429009",
      "label": "If yes, please upload your CPR certificate here",
      "required": false,
      "type": "input_file",
      "options": []
     },
     {
-     "name": "question_6062143009",
+     "name": "question_6872430009",
      "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
      "required": false,
      "type": "multi_value_single_select",
@@ -491,118 +491,118 @@
      ]
     },
     {
-     "name": "question_6062144009",
+     "name": "question_6872431009",
      "label": "Date Available to Start? (enter in MM/DD/YY format)",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_6062145009[]",
+     "name": "question_6872432009[]",
      "label": "What days and times are you available?",
      "required": true,
      "type": "multi_value_multi_select",
      "options": [
       {
        "label": "Open Availability",
-       "value": "14636561009"
+       "value": "19126459009"
       },
       {
        "label": "Weekdays ONLY",
-       "value": "14636562009"
+       "value": "19126460009"
       },
       {
        "label": "Weekends ONLY",
-       "value": "14636563009"
+       "value": "19126461009"
       },
       {
        "label": "Sunday Morning",
-       "value": "14636564009"
+       "value": "19126462009"
       },
       {
        "label": "Sunday Daytime",
-       "value": "14636565009"
+       "value": "19126463009"
       },
       {
        "label": "Sunday Night",
-       "value": "14636566009"
+       "value": "19126464009"
       },
       {
        "label": "Monday Morning",
-       "value": "14636567009"
+       "value": "19126465009"
       },
       {
        "label": "Monday Daytime",
-       "value": "14636568009"
+       "value": "19126466009"
       },
       {
        "label": "Monday Night",
-       "value": "14636569009"
+       "value": "19126467009"
       },
       {
        "label": "Tuesday Morning",
-       "value": "14636570009"
+       "value": "19126468009"
       },
       {
        "label": "Tuesday Daytime",
-       "value": "14636571009"
+       "value": "19126469009"
       },
       {
        "label": "Tuesday Night",
-       "value": "14636572009"
+       "value": "19126470009"
       },
       {
        "label": "Wednesday Morning",
-       "value": "14636573009"
+       "value": "19126471009"
       },
       {
        "label": "Wednesday Daytime",
-       "value": "14636574009"
+       "value": "19126472009"
       },
       {
        "label": "Wednesday Night",
-       "value": "14636575009"
+       "value": "19126473009"
       },
       {
        "label": "Thursday Morning",
-       "value": "14636576009"
+       "value": "19126474009"
       },
       {
        "label": "Thursday Daytime",
-       "value": "14636577009"
+       "value": "19126475009"
       },
       {
        "label": "Thursday Night",
-       "value": "14636578009"
+       "value": "19126476009"
       },
       {
        "label": "Friday Morning",
-       "value": "14636579009"
+       "value": "19126477009"
       },
       {
        "label": "Friday Daytime",
-       "value": "14636580009"
+       "value": "19126478009"
       },
       {
        "label": "Friday Night",
-       "value": "14636581009"
+       "value": "19126479009"
       },
       {
        "label": "Saturday Morning",
-       "value": "14636582009"
+       "value": "19126480009"
       },
       {
        "label": "Saturday Daytime",
-       "value": "14636583009"
+       "value": "19126481009"
       },
       {
        "label": "Saturday Night",
-       "value": "14636584009"
+       "value": "19126482009"
       }
      ]
     },
     {
-     "name": "question_6062146009",
+     "name": "question_6872433009",
      "label": "Have you worked at EōS Fitness before?",
      "required": true,
      "type": "multi_value_single_select",
@@ -618,14 +618,14 @@
      ]
     },
     {
-     "name": "question_6062147009",
+     "name": "question_6872434009",
      "label": "If yes, what position did you hold?",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_6062148009",
+     "name": "question_6872435009",
      "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its affiliates?",
      "required": true,
      "type": "multi_value_single_select",
@@ -641,14 +641,14 @@
      ]
     },
     {
-     "name": "question_6062149009",
+     "name": "question_6872436009",
      "label": "If yes, please provide their names.",
      "required": false,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_6062150009",
+     "name": "question_6872437009",
      "label": "If hired, can you show proof you are at least 18 years old?",
      "required": true,
      "type": "multi_value_single_select",
@@ -664,7 +664,7 @@
      ]
     },
     {
-     "name": "question_6062151009",
+     "name": "question_6872438009",
      "label": "If hired, can you show proof of authorization to work in the United States?",
      "required": true,
      "type": "multi_value_single_select",
@@ -680,14 +680,14 @@
      ]
     },
     {
-     "name": "question_6062152009",
+     "name": "question_6872439009",
      "label": "If no, please describe your work authorization status.",
      "required": false,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_6062153009",
+     "name": "question_6872440009",
      "label": "Can you perform essential job functions as outlined in the job description, either with or without reasonable accommodation?",
      "required": true,
      "type": "multi_value_single_select",
@@ -703,21 +703,21 @@
      ]
     },
     {
-     "name": "question_6062154009",
+     "name": "question_6872441009",
      "label": "If no, what special accommodations do you require?",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_6062155009",
+     "name": "question_6872442009",
      "label": "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well.\n\nLike our members, our team members know how to rise to a challenge and handle it head on. What makes you a strong candidate for our team?",
      "required": true,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_6062156009",
+     "name": "question_6872443009",
      "label": "SMS Messages Consent",
      "required": false,
      "type": "multi_value_single_select",
@@ -733,7 +733,7 @@
      ]
     },
     {
-     "name": "question_6062157009",
+     "name": "question_6872444009",
      "label": "Were you referred by a current EōS team member?",
      "required": true,
      "type": "multi_value_single_select",
@@ -749,14 +749,14 @@
      ]
     },
     {
-     "name": "question_6062158009",
+     "name": "question_6872445009",
      "label": "Phone number of the person referring you",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_6062159009",
+     "name": "question_6872446009",
      "label": "Please enter the referring team member's Full Legal First and Last Name.",
      "required": true,
      "type": "textarea",
@@ -770,7 +770,7 @@
    "company": "spacex",
    "source_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:21:29.455Z",
    "reason": null,
    "fields": [
     {
@@ -2594,7 +2594,7 @@
    "company": "Anduril",
    "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:21:29.455Z",
    "reason": null,
    "fields": [
     {
@@ -3001,7 +3001,7 @@
    "company": "WPP Media",
    "source_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:21:29.456Z",
    "reason": null,
    "fields": [
     {
@@ -3422,7 +3422,7 @@
    "company": "databricks",
    "source_url": "https://job-boards.greenhouse.io/databricks/jobs/8805655002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.865Z",
+   "captured_at": "2026-10-19T09:21:29.456Z",
    "reason": null,
    "fields": [
     {
@@ -3586,7 +3586,7 @@
    "company": "Invisible Technologies",
    "source_url": "https://job-boards.greenhouse.io/agency/jobs/4857878101",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:21:29.456Z",
    "reason": null,
    "fields": [
     {
@@ -4685,12 +4685,12 @@
    ]
   },
   {
-   "id": "greenhouse-plscareers-4458890008",
+   "id": "greenhouse-plscareers-4459564008",
    "family": "greenhouse",
    "company": "PLS",
-   "source_url": "https://job-boards.greenhouse.io/plscareers/jobs/4458890008",
+   "source_url": "https://job-boards.greenhouse.io/plscareers/jobs/4459564008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:21:29.456Z",
    "reason": null,
    "fields": [
     {
@@ -4724,19 +4724,19 @@
     {
      "name": "resume",
      "label": "Resume/CV",
-     "required": false,
+     "required": true,
      "type": "input_file",
      "options": []
     },
     {
      "name": "resume_text",
      "label": "Resume/CV",
-     "required": false,
+     "required": true,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_8558683008",
+     "name": "question_8564856008",
      "label": "Have you ever been prohibited or restricted in any way from working for any financial institution or financial services company by a governmental agency or other regulatory or licensing entity in any jurisdiction?",
      "required": true,
      "type": "multi_value_single_select",
@@ -4752,7 +4752,7 @@
      ]
     },
     {
-     "name": "question_8558684008",
+     "name": "question_8564857008",
      "label": "Have you ever been discharged by an employer?",
      "required": true,
      "type": "multi_value_single_select",
@@ -4768,14 +4768,14 @@
      ]
     },
     {
-     "name": "question_8558685008",
+     "name": "question_8564858008",
      "label": "If yes, explain, or type N/A if not applicable.",
      "required": false,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_8558686008",
+     "name": "question_8564859008",
      "label": "Are you legally authorized to work in the U.S.? (Proof of citizenship or employment eligibility will be required upon employment.)",
      "required": true,
      "type": "multi_value_single_select",
@@ -4791,14 +4791,14 @@
      ]
     },
     {
-     "name": "question_8558687008",
+     "name": "question_8564860008",
      "label": "What obligations, if any, are you currently under that may prevent you from working at PLS, such as a non-compete agreement or other contractual agreement with a different employer or company?",
      "required": true,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_8558688008",
+     "name": "question_8564861008",
      "label": "Are you 18 years of age or older?",
      "required": true,
      "type": "multi_value_single_select",
@@ -4814,7 +4814,7 @@
      ]
     },
     {
-     "name": "question_8558689008",
+     "name": "question_8564862008",
      "label": "Have you worked for PLS before?",
      "required": true,
      "type": "multi_value_single_select",
@@ -4830,14 +4830,14 @@
      ]
     },
     {
-     "name": "question_8558690008",
+     "name": "question_8564863008",
      "label": "If so, please indicate your role or type N/A if not applicable.",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_8558691008",
+     "name": "question_8564864008",
      "label": "Are you employed now?",
      "required": true,
      "type": "multi_value_single_select",
@@ -4853,26 +4853,26 @@
      ]
     },
     {
-     "name": "question_8558692008",
-     "label": "Applicant's Statement. I authorize my previous employers, schools, or persons named as references to give any information regarding employment or educational record. I agree this company and my previous employers shall not be held liable in any respect if a job offer is not extended, is withdrawn or my employment is terminated because of false statements, omissions, or answers made by me on this application. I understand that if hired, I am obligated to comply with any and all current and subsequently adopted PLS policies. In compliance with the Immigration Reform and Control Act of 1986, I understand that on my first day of employment, I will be required to complete Section 1 of Form I-9 attesting to my citizenship or immigration status for purposes of legal authorization to work in the United States. I understand I will also be required to provide original documentation that verifies my identity and my right to work in the United States within three business days of my first day of employment. I understand this application does not create a contract of employment. I understand that, if hired, employment at PLS is at will, which means that either I or the company can terminate the employment relationship at any time, with or without prior notice, and for any reason not prohibited by statute. All employment is continued on that basis. I understand no supervisor, manager, or executive of the Company, other than the Co-Presidents, have any authority to alter the foregoing. Please carefully review the following information. By selecting \"I Accept\" below, I am providing my agreement to verify the contents of this Application for Employment and any related documentation submitted in relation to my Application for Employment. By selecting \"I Accept\" below, I acknowledge I have read and I understand the above Applicant's Statement. I certify, acknowledge, and agree that all of the information contained in this Application for Employment, including but not limited to information contained in my résumé, any pre-application or post-offer documentation I submit, and/or any other related documents I complete in relation to my consideration for employment, is true, correct, and complete to the best of my knowledge and I have withheld nothing that, if disclosed, would affect this application unfavorably. I understand and agree that any misstatements or omissions of material facts in this application or provided by me during the hiring process may result in disqualification from, or termination of employment, whenever discovered.",
+     "name": "question_8564865008",
+     "label": "Applicant's Statement. I authorize my previous employers, schools or persons named as references to give any information regarding employment or educational record. I agree this company and my previous employers shall not be held liable in any respect if a job offer is not extended, is withdrawn or my employment is terminated because of false statements, omissions or answers made by me on this application. I understand that if hired, I am obligated to comply with any and all current and subsequently adopted PLS policies. In compliance with the Immigration Reform and Control Act of 1986, I understand that on my first day of employment, I will be required to complete Section 1 of Form I-9 attesting to my citizenship or immigration status for purposes of legal authorization to work in the United States. I understand I will also be required to provide original documentation that verifies my identity and my right to work in the United States within three business days of my first day of employment. I understand this application does not create a contract of employment. I understand that, if hired, employment at PLS is at will, which means that either I or the company can terminate the employment relationship at any time, with or without prior notice, and for any reason not prohibited by statute. All employment is continued on that basis. I understand no supervisor, manager or executive of the Company, other than the Co-Presidents, have any authority to alter the foregoing. Please carefully review the following information regarding your Electronic Signature Consent. Electronic Signature Consent. By checking the \"I Accept\" box below, I am providing my electronic signature (\"E-signature\") to verify the contents of this Application for Employment and any related documentation submitted in relation to my Application for Employment. I hereby consent to the use of this E-signature on my Application for Employment and agree that my E-signature shall have the same force and effect as my handwritten signature and is fully binding and enforceable, as if I had signed a paper copy of the Application for Employment. I acknowledge and agree that I hereby waive all rights to dispute the validity of my E-signature on this Application. By checking the \"I Accept\" box  below, I acknowledge I have read and I understand the above Applicant's Statement. I certify, acknowledge, and agree that all of the information contained in this Application for Employment, including but not limited to information contained in my résumé, any pre-application or post-offer documentation I submit, and/or any other related documents I complete in relation to my consideration for employment, is true, correct, and complete to the best of my knowledge and I have withheld nothing that, if disclosed, would affect this application unfavorably. I understand and agree that any misstatements or omissions of material facts in this application or provided by me during the hiring process may result in disqualification from, or termination of employment, whenever discovered.",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "I accept",
-       "value": "9527174008"
+       "value": "9543900008"
       }
      ]
     }
    ]
   },
   {
-   "id": "greenhouse-stripe-8172487",
+   "id": "greenhouse-stripe-8172510",
    "family": "greenhouse",
    "company": "stripe",
-   "source_url": "https://job-boards.greenhouse.io/stripe/jobs/8172487",
+   "source_url": "https://job-boards.greenhouse.io/stripe/jobs/8172510",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.866Z",
+   "captured_at": "2026-10-19T09:21:29.456Z",
    "reason": null,
    "fields": [
     {
@@ -4906,14 +4906,14 @@
     {
      "name": "resume",
      "label": "Resume/CV",
-     "required": true,
+     "required": false,
      "type": "input_file",
      "options": []
     },
     {
      "name": "resume_text",
      "label": "Resume/CV",
-     "required": true,
+     "required": false,
      "type": "textarea",
      "options": []
     },
@@ -4932,314 +4932,330 @@
      "options": []
     },
     {
-     "name": "question_68935294",
+     "name": "question_68935507",
      "label": "Who is your current or previous employer?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_68935295",
+     "name": "question_68935508",
      "label": "What is your current or previous job title?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_68935296",
+     "name": "question_68935509",
      "label": "Please select the country where you currently reside.",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Australia",
-       "value": "749879679"
+       "value": "749881936"
       },
       {
        "label": "Belgium",
-       "value": "749879680"
+       "value": "749881937"
       },
       {
        "label": "Brazil",
-       "value": "749879681"
+       "value": "749881938"
       },
       {
        "label": "Canada",
-       "value": "749879682"
+       "value": "749881939"
       },
       {
        "label": "Egypt",
-       "value": "749879683"
+       "value": "749881940"
       },
       {
        "label": "France",
-       "value": "749879684"
+       "value": "749881941"
       },
       {
        "label": "Germany",
-       "value": "749879685"
+       "value": "749881942"
       },
       {
        "label": "India",
-       "value": "749879686"
+       "value": "749881943"
       },
       {
        "label": "Indonesia",
-       "value": "749879687"
+       "value": "749881944"
       },
       {
        "label": "Ireland",
-       "value": "749879688"
+       "value": "749881945"
       },
       {
        "label": "Israel",
-       "value": "749879689"
+       "value": "749881946"
       },
       {
        "label": "Italy",
-       "value": "749879690"
+       "value": "749881947"
       },
       {
        "label": "Japan",
-       "value": "749879691"
+       "value": "749881948"
       },
       {
        "label": "Malaysia",
-       "value": "749879692"
+       "value": "749881949"
       },
       {
        "label": "Mexico",
-       "value": "749879693"
+       "value": "749881950"
       },
       {
        "label": "New Zealand",
-       "value": "749879694"
+       "value": "749881951"
       },
       {
        "label": "Poland",
-       "value": "749879695"
+       "value": "749881952"
       },
       {
        "label": "Portugal",
-       "value": "749879696"
+       "value": "749881953"
       },
       {
        "label": "Romania",
-       "value": "749879697"
+       "value": "749881954"
       },
       {
        "label": "Singapore",
-       "value": "749879698"
+       "value": "749881955"
       },
       {
        "label": "South Korea",
-       "value": "749879699"
+       "value": "749881956"
       },
       {
        "label": "Spain",
-       "value": "749879700"
+       "value": "749881957"
       },
       {
        "label": "Sweden",
-       "value": "749879701"
+       "value": "749881958"
       },
       {
        "label": "Switzerland",
-       "value": "749879702"
+       "value": "749881959"
       },
       {
        "label": "Taiwan",
-       "value": "749879703"
+       "value": "749881960"
       },
       {
        "label": "Thailand",
-       "value": "749879704"
+       "value": "749881961"
       },
       {
        "label": "The Netherlands",
-       "value": "749879705"
+       "value": "749881962"
       },
       {
        "label": "UAE",
-       "value": "749879706"
+       "value": "749881963"
       },
       {
        "label": "UK",
-       "value": "749879707"
+       "value": "749881964"
       },
       {
        "label": "US",
-       "value": "749879708"
+       "value": "749881965"
       },
       {
        "label": "Other",
-       "value": "749879709"
+       "value": "749881966"
       }
      ]
     },
     {
-     "name": "question_68935297[]",
+     "name": "question_68935510[]",
      "label": "Please select the country or countries you anticipate working in for the role in which you are applying.",
      "required": true,
      "type": "multi_value_multi_select",
      "options": [
       {
        "label": "Australia",
-       "value": "749879710"
+       "value": "749881967"
       },
       {
        "label": "Belgium",
-       "value": "749879711"
+       "value": "749881968"
       },
       {
        "label": "Brazil",
-       "value": "749879712"
+       "value": "749881969"
       },
       {
        "label": "Canada",
-       "value": "749879713"
+       "value": "749881970"
       },
       {
        "label": "France",
-       "value": "749879714"
+       "value": "749881971"
       },
       {
        "label": "Germany",
-       "value": "749879715"
+       "value": "749881972"
       },
       {
        "label": "India",
-       "value": "749879716"
+       "value": "749881973"
       },
       {
        "label": "Indonesia",
-       "value": "749879717"
+       "value": "749881974"
       },
       {
        "label": "Ireland",
-       "value": "749879718"
+       "value": "749881975"
       },
       {
        "label": "Israel",
-       "value": "749879719"
+       "value": "749881976"
       },
       {
        "label": "Italy",
-       "value": "749879720"
+       "value": "749881977"
       },
       {
        "label": "Japan",
-       "value": "749879721"
+       "value": "749881978"
       },
       {
        "label": "Luxembourg",
-       "value": "749879722"
+       "value": "749881979"
       },
       {
        "label": "Malaysia",
-       "value": "749879723"
+       "value": "749881980"
       },
       {
        "label": "Mexico",
-       "value": "749879724"
+       "value": "749881981"
       },
       {
        "label": "New Zealand",
-       "value": "749879725"
+       "value": "749881982"
       },
       {
        "label": "Poland",
-       "value": "749879726"
+       "value": "749881983"
       },
       {
        "label": "Portugal",
-       "value": "749879727"
+       "value": "749881984"
       },
       {
        "label": "Romania",
-       "value": "749879728"
+       "value": "749881985"
       },
       {
        "label": "Singapore",
-       "value": "749879729"
+       "value": "749881986"
       },
       {
        "label": "South Korea",
-       "value": "749879730"
+       "value": "749881987"
       },
       {
        "label": "Spain",
-       "value": "749879731"
+       "value": "749881988"
       },
       {
        "label": "Sweden",
-       "value": "749879732"
+       "value": "749881989"
       },
       {
        "label": "Switzerland",
-       "value": "749879733"
+       "value": "749881990"
       },
       {
        "label": "Taiwan",
-       "value": "749879734"
+       "value": "749881991"
       },
       {
        "label": "Thailand",
-       "value": "749879735"
+       "value": "749881992"
       },
       {
        "label": "The Netherlands",
-       "value": "749879736"
+       "value": "749881993"
       },
       {
        "label": "UAE",
-       "value": "749879737"
+       "value": "749881994"
       },
       {
        "label": "UK",
-       "value": "749879738"
+       "value": "749881995"
       },
       {
        "label": "US",
-       "value": "749879739"
+       "value": "749881996"
       }
      ]
     },
     {
-     "name": "question_68935298",
+     "name": "question_68935511",
      "label": "Are you authorized to work in the location(s) you selected in your previous response?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "749879740"
+       "value": "749881997"
       },
       {
        "label": "No",
-       "value": "749879741"
+       "value": "749881998"
       }
      ]
     },
     {
-     "name": "question_68935299",
+     "name": "question_68935512",
      "label": "Will you require Stripe to sponsor you for a work permit now or in the future for the location(s) you selected in in your previous response?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "749879742"
+       "value": "749881999"
       },
       {
        "label": "No",
-       "value": "749879743"
+       "value": "749882000"
       }
      ]
     },
     {
-     "name": "question_69457836",
-     "label": "To ensure we can focus fully on our conversation, we use BrightHire to record and transcribe interviews. This helps us get to know you better without the distraction of note-taking. We also use BrightHire to help us analyze interview notes and for internal Stripe interview quality training and assurance purposes. After the recruitment process ends, recordings may be shared internally for recruiter and interviewer training to help us improve our interview processes. Please confirm if you consent to BrightHire being enabled for this interview and for your personal data to be collected and processed for the purposes mentioned above, by responding below",
+     "name": "question_68935513",
+     "label": "If this role offers the option to work from a remote location, do you plan to work remotely?",
+     "required": true,
+     "type": "multi_value_single_select",
+     "options": [
+      {
+       "label": "Yes, I intend to work remotely.",
+       "value": "749882001"
+      },
+      {
+       "label": "No, I intend to work from an office location.",
+       "value": "749882002"
+      }
+     ]
+    },
+    {
+     "name": "question_68935514",
+     "label": "Have you ever been employed by Stripe or a Stripe affiliate?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
@@ -5252,6 +5268,29 @@
        "value": "0"
       }
      ]
+    },
+    {
+     "name": "question_68935515",
+     "label": "Do you opt-in to receive WhatsApp messages from Stripe Recruiting?",
+     "required": true,
+     "type": "multi_value_single_select",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "749882003"
+      },
+      {
+       "label": "No",
+       "value": "749882004"
+      }
+     ]
+    },
+    {
+     "name": "question_69458440",
+     "label": "If located in the US, in what city and state do you reside?",
+     "required": true,
+     "type": "input_text",
+     "options": []
     }
    ]
   },
@@ -5261,7 +5300,7 @@
    "company": "Capco",
    "source_url": "https://job-boards.greenhouse.io/capco/jobs/8281149",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:21:29.457Z",
    "reason": null,
    "fields": [
     {
@@ -5519,7 +5558,7 @@
    "company": "Accenture",
    "source_url": "https://job-boards.greenhouse.io/accenturefederalservices/jobs/4710665006",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:21:29.457Z",
    "reason": null,
    "fields": [
     {
@@ -6217,7 +6256,7 @@
    "company": "Anthropic",
    "source_url": "https://job-boards.greenhouse.io/anthropic/jobs/4461450008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.867Z",
+   "captured_at": "2026-10-19T09:21:29.457Z",
    "reason": null,
    "fields": [
     {
@@ -6423,7 +6462,7 @@
    "company": "rocketlab",
    "source_url": "https://job-boards.greenhouse.io/rocketlab/jobs/7983576003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:21:29.457Z",
    "reason": null,
    "fields": [
     {
@@ -7525,12 +7564,12 @@
    ]
   },
   {
-   "id": "greenhouse-speechify-6180795004",
+   "id": "greenhouse-speechify-6203142004",
    "family": "greenhouse",
    "company": "Speechify",
-   "source_url": "https://job-boards.greenhouse.io/speechify/jobs/6180795004",
+   "source_url": "https://job-boards.greenhouse.io/speechify/jobs/6203142004",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -7590,86 +7629,86 @@
      "options": []
     },
     {
-     "name": "question_19852270004",
+     "name": "question_20067879004",
      "label": "LinkedIn Profile",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_19852271004",
+     "name": "question_20067880004",
      "label": "How did you hear about this opportunity?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_19852272004",
+     "name": "question_20067881004",
      "label": "Why do you want to work at Speechify?",
      "required": true,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_19852273004",
+     "name": "question_20067882004",
      "label": "What is one of the hard technical problems you have worked on?",
      "required": true,
      "type": "textarea",
      "options": []
     },
     {
-     "name": "question_19852274004",
+     "name": "question_20067883004",
      "label": "Where are you located?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "United States/Canada",
-       "value": "162240612004"
+       "value": "162904135004"
       },
       {
        "label": "Latin America",
-       "value": "162240613004"
+       "value": "162904136004"
       },
       {
        "label": "Western Europe",
-       "value": "162240614004"
+       "value": "162904137004"
       },
       {
        "label": "Eastern Europe",
-       "value": "162240615004"
+       "value": "162904138004"
       },
       {
        "label": "India",
-       "value": "162240616004"
+       "value": "162904139004"
       },
       {
        "label": "Southeast Asia",
-       "value": "162240617004"
+       "value": "162904140004"
       },
       {
        "label": "East Asia",
-       "value": "162240618004"
+       "value": "162904141004"
       },
       {
        "label": "Asia - Other",
-       "value": "162240619004"
+       "value": "162904142004"
       },
       {
        "label": "Africa",
-       "value": "162240620004"
+       "value": "162904143004"
       },
       {
        "label": "Middle East",
-       "value": "162240621004"
+       "value": "162904144004"
       },
       {
        "label": "Australia/New Zealand",
-       "value": "162240622004"
+       "value": "162904145004"
       },
       {
        "label": "Other",
-       "value": "162240623004"
+       "value": "162904146004"
       }
      ]
     }
@@ -7681,7 +7720,7 @@
    "company": "MedElite",
    "source_url": "https://job-boards.greenhouse.io/medelitellc/jobs/4815180008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -7791,12 +7830,12 @@
    ]
   },
   {
-   "id": "greenhouse-axon-8007341003",
+   "id": "greenhouse-axon-8016140003",
    "family": "greenhouse",
    "company": "Axon",
-   "source_url": "https://job-boards.greenhouse.io/axon/jobs/8007341003",
+   "source_url": "https://job-boards.greenhouse.io/axon/jobs/8016140003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.868Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -7863,21 +7902,21 @@
      "options": []
     },
     {
-     "name": "question_32925371003",
+     "name": "question_33015761003",
      "label": "LinkedIn Profile",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_32925372003",
+     "name": "question_33015762003",
      "label": "What city do you currently reside in?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_32925373003",
+     "name": "question_33015763003",
      "label": "This role requires minimum 60% travel.  Do you agree to this requirement?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7893,7 +7932,7 @@
      ]
     },
     {
-     "name": "question_32925374003",
+     "name": "question_33015764003",
      "label": "Are you legally authorized to work in the United States for any US employer now and in the future?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7909,7 +7948,7 @@
      ]
     },
     {
-     "name": "question_32925375003",
+     "name": "question_33015765003",
      "label": "Will you now or in the future require sponsorship for employment in the United States?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7925,7 +7964,7 @@
      ]
     },
     {
-     "name": "question_32925376003",
+     "name": "question_33015766003",
      "label": "Can you provide verification of both your identity and authorization to work in the United States, to the extent required by law?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7941,7 +7980,7 @@
      ]
     },
     {
-     "name": "question_32925377003",
+     "name": "question_33015767003",
      "label": "Are you at least 18 years of age?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7957,7 +7996,7 @@
      ]
     },
     {
-     "name": "question_32925378003",
+     "name": "question_33015768003",
      "label": "Based on the below information, would you meet the requirements for a deemed export license in order to access EAR - controlled technology?",
      "required": true,
      "type": "multi_value_single_select",
@@ -7973,39 +8012,39 @@
      ]
     },
     {
-     "name": "question_32925379003",
+     "name": "question_33015769003",
      "label": "Do you have any contractual obligations, agreements, relationships, or commitments to another person or entity that would impact, impede or interfere with your ability to join Axon?",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Yes",
-       "value": "171548317003"
+       "value": "171914633003"
       },
       {
        "label": "No",
-       "value": "171548318003"
+       "value": "171914634003"
       },
       {
        "label": "Maybe / Would like to discuss",
-       "value": "171548319003"
+       "value": "171914635003"
       }
      ]
     },
     {
-     "name": "question_32925380003",
+     "name": "question_33015770003",
      "label": "ACKNOWLEDGMENT OF RECEIPT AND REVIEW\n\nI acknowledge that I received a copy of Axon’s Prohibited Possessor Questionnaire (“Questionnaire”) and that I read it, understood it, and answered the questions truthfully and accurately. I understand that Axon has the maximum discretion permitted by law to interpret, administer, change, modify, or delete this Questionnaire at any time with or without notice. I understand that neither this Questionnaire nor any other communication by a recruiter, hiring manager, supervisor, manager, Axon’s People Operations, or any other Axon employee, whether oral or written, is intended in any way to create a contract of employment. I understand that Axon will keep this information secure and confidential and will not use any such information for any unlawful purpose or in any unlawful way. Finally, I again represent that all the information provided herein is truthful and accurate.",
      "required": true,
      "type": "multi_value_single_select",
      "options": [
       {
        "label": "Acknowledge",
-       "value": "171548320003"
+       "value": "171914636003"
       }
      ]
     },
     {
-     "name": "question_32925381003",
+     "name": "question_33015771003",
      "label": "Are you a fugitive from justice?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8021,7 +8060,7 @@
      ]
     },
     {
-     "name": "question_32925382003",
+     "name": "question_33015772003",
      "label": "Are you an alien illegally or unlawfully in the United States?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8037,7 +8076,7 @@
      ]
     },
     {
-     "name": "question_32925383003",
+     "name": "question_33015773003",
      "label": "Are you an alien who has been admitted to the United States under a nonimmigrant visa? (i.e. H-1B, TN, F1)",
      "required": true,
      "type": "multi_value_single_select",
@@ -8053,7 +8092,7 @@
      ]
     },
     {
-     "name": "question_32925384003",
+     "name": "question_33015774003",
      "label": "Are you an unlawful user of, or addicted to, marijuana or any depressant, stimulant, narcotic drug, or any other controlled substance?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8069,7 +8108,7 @@
      ]
     },
     {
-     "name": "question_32925385003",
+     "name": "question_33015775003",
      "label": "Are you subject to a court order, including a Military Protection Order issued by a military judge or magistrate, restraining you from harassing, stalking, or threatening your child or an intimate partner or child of such partner?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8085,7 +8124,7 @@
      ]
     },
     {
-     "name": "question_32925386003",
+     "name": "question_33015776003",
      "label": "Are you under indictment or information in any court for a felony, or any other crime for which the judge could imprison you for more than one year, or are you a current member of the military who has been charged with violation(s) of the Uniform Code of Military Justice and whose charge(s) have been referred to a general court-martial?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8101,19 +8140,19 @@
      ]
     },
     {
-     "name": "question_32925387003[]",
+     "name": "question_33015777003[]",
      "label": "Federal Firearms Licensee Employee Accessor Questionnaire",
      "required": true,
      "type": "multi_value_multi_select",
      "options": [
       {
        "label": "Acknowledge",
-       "value": "171548321003"
+       "value": "171914632003"
       }
      ]
     },
     {
-     "name": "question_32925388003",
+     "name": "question_33015778003",
      "label": "Have you ever been adjudicated as a mental defective OR have you ever been committed to a mental institution?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8129,7 +8168,7 @@
      ]
     },
     {
-     "name": "question_32925389003",
+     "name": "question_33015779003",
      "label": "Have you ever been convicted in any court of a misdemeanor crime of domestic violence, or are you or have you ever been a member of the military and been convicted of a crime that included, as an element, the use of force against a person as identified in the instructions?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8145,7 +8184,7 @@
      ]
     },
     {
-     "name": "question_32925390003",
+     "name": "question_33015780003",
      "label": "Have you ever been convicted in any court, including a military court, of a felony, or any other crime for which the judge could have imprisoned you for more than one year, even if you received a shorter sentence including probation?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8161,7 +8200,7 @@
      ]
     },
     {
-     "name": "question_32925391003",
+     "name": "question_33015781003",
      "label": "Have you ever been discharged from the Armed Forces under dishonorable conditions?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8177,7 +8216,7 @@
      ]
     },
     {
-     "name": "question_32925392003",
+     "name": "question_33015782003",
      "label": "Have you ever renounced your United States citizenship?",
      "required": true,
      "type": "multi_value_single_select",
@@ -8200,7 +8239,7 @@
    "company": "Lucid Motors",
    "source_url": "https://job-boards.greenhouse.io/lucidmotors/jobs/5200488007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -8445,7 +8484,7 @@
    "company": "DoorDash",
    "source_url": "https://job-boards.greenhouse.io/doordashusa/jobs/8139265",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -8635,7 +8674,7 @@
    "company": "cloudflare",
    "source_url": "https://job-boards.greenhouse.io/cloudflare/jobs/7695702",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.869Z",
+   "captured_at": "2026-10-19T09:21:29.458Z",
    "reason": null,
    "fields": [
     {
@@ -8751,7 +8790,7 @@
    "company": "datadog",
    "source_url": "https://job-boards.greenhouse.io/datadog/jobs/8257324",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -9377,7 +9416,7 @@
    "company": "DH Pace",
    "source_url": "https://job-boards.greenhouse.io/dhpace/jobs/5422387008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -9882,7 +9921,7 @@
    "company": "mongodb",
    "source_url": "https://job-boards.greenhouse.io/mongodb/jobs/8258279",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -10285,7 +10324,7 @@
    "company": "Olsson",
    "source_url": "https://job-boards.greenhouse.io/olsson/jobs/5406566008",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -10444,7 +10483,7 @@
    "company": "One Medical",
    "source_url": "https://job-boards.greenhouse.io/onemedical/jobs/8282181",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -10589,7 +10628,7 @@
    "company": "Elastic",
    "source_url": "https://job-boards.greenhouse.io/elastic/jobs/8148720",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -10775,7 +10814,7 @@
    "company": "Okta",
    "source_url": "https://job-boards.greenhouse.io/okta/jobs/8079108",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.870Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -10974,7 +11013,7 @@
    "company": "Pure Storage",
    "source_url": "https://job-boards.greenhouse.io/purestorage/jobs/8138523",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -11062,7 +11101,7 @@
    "company": "relativity",
    "source_url": "https://job-boards.greenhouse.io/relativity/jobs/8615771002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -11244,7 +11283,7 @@
    "company": "Zscaler",
    "source_url": "https://job-boards.greenhouse.io/zscaler/jobs/5198260007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.459Z",
    "reason": null,
    "fields": [
     {
@@ -11503,7 +11542,7 @@
    "company": "OKX",
    "source_url": "https://job-boards.greenhouse.io/okx/jobs/7608993003",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -11827,7 +11866,7 @@
    "company": "Atoms",
    "source_url": "https://job-boards.greenhouse.io/cssmerge/jobs/8853085002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -11956,7 +11995,7 @@
    "company": "braze",
    "source_url": "https://job-boards.greenhouse.io/braze/jobs/8141353",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.871Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -12204,7 +12243,7 @@
    "company": "Agoda",
    "source_url": "https://job-boards.greenhouse.io/agoda/jobs/8184766",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -13272,7 +13311,7 @@
    "company": "Verkada",
    "source_url": "https://job-boards.greenhouse.io/verkada/jobs/5256796007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -13362,7 +13401,7 @@
    "company": "Toast",
    "source_url": "https://job-boards.greenhouse.io/toast/jobs/8054004",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:21:29.460Z",
    "reason": null,
    "fields": [
     {
@@ -13487,7 +13526,7 @@
    "company": "Canonical",
    "source_url": "https://job-boards.greenhouse.io/canonical/jobs/5569916",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.872Z",
+   "captured_at": "2026-10-19T09:21:29.461Z",
    "reason": null,
    "fields": [
     {
@@ -16003,7 +16042,7 @@
    "company": "xAI",
    "source_url": "https://job-boards.greenhouse.io/xai/jobs/5231352007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:21:29.461Z",
    "reason": null,
    "fields": [
     {
@@ -16290,12 +16329,12 @@
    ]
   },
   {
-   "id": "greenhouse-avepoint-7770150",
+   "id": "greenhouse-avepoint-8092171",
    "family": "greenhouse",
    "company": "AvePoint",
-   "source_url": "https://job-boards.greenhouse.io/avepoint/jobs/7770150",
+   "source_url": "https://job-boards.greenhouse.io/avepoint/jobs/8092171",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:21:29.461Z",
    "reason": null,
    "fields": [
     {
@@ -16355,21 +16394,21 @@
      "options": []
     },
     {
-     "name": "question_65049349",
+     "name": "question_68293471",
      "label": "LinkedIn Profile",
      "required": false,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_65049360",
+     "name": "question_68293472",
      "label": "How did you hear about AvePoint?",
      "required": true,
      "type": "input_text",
      "options": []
     },
     {
-     "name": "question_65049361",
+     "name": "question_68293473",
      "label": "Please provide your salary expectations.",
      "required": true,
      "type": "input_text",
@@ -16383,7 +16422,7 @@
    "company": "TEGNA",
    "source_url": "https://job-boards.greenhouse.io/tegnainc/jobs/5249414007",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:21:29.461Z",
    "reason": null,
    "fields": [
     {
@@ -17223,7 +17262,7 @@
    "company": "brex",
    "source_url": "https://job-boards.greenhouse.io/brex/jobs/8871800002",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:14.873Z",
+   "captured_at": "2026-10-19T09:21:29.461Z",
    "reason": null,
    "fields": [
     {
@@ -17507,7 +17546,7 @@
    "company": "TSMG",
    "source_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:02.355Z",
+   "captured_at": "2026-10-19T09:16:41.783Z",
    "reason": null,
    "fields": [
     {
@@ -17705,178 +17744,12 @@
    ]
   },
   {
-   "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
-   "family": "lever",
-   "company": "CGS Federal (Contact Government Services)",
-   "source_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
-   "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:07.594Z",
-   "reason": null,
-   "fields": [
-    {
-     "name": "opportunityLocationId",
-     "label": "Which location are you applying for?",
-     "required": true,
-     "type": "select",
-     "options": [
-      {
-       "label": "Atlanta, GA",
-       "value": "fe529b8b-9285-49b2-8269-052b1c779f1b"
-      },
-      {
-       "label": "Hybrid",
-       "value": "09544bd5-8fbc-450d-8410-b963078ce25f"
-      },
-      {
-       "label": "Remote",
-       "value": "946f29d0-9752-41fe-bcf4-bbea69c6f249"
-      },
-      {
-       "label": "Charlotte, NC",
-       "value": "04416186-b083-49c4-aa91-b3c5dd9176c9"
-      }
-     ]
-    },
-    {
-     "name": "resume",
-     "label": "ATTACH RESUME/CV",
-     "required": false,
-     "type": "file",
-     "options": []
-    },
-    {
-     "name": "name",
-     "label": "Full name",
-     "required": true,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "customPronounsOption",
-     "label": "Pronouns",
-     "required": false,
-     "type": "checkbox",
-     "options": []
-    },
-    {
-     "name": "pronouns",
-     "label": "Pronouns",
-     "required": false,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "email",
-     "label": "Email",
-     "required": true,
-     "type": "email",
-     "options": []
-    },
-    {
-     "name": "phone",
-     "label": "Phone",
-     "required": true,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "location",
-     "label": "Current location",
-     "required": false,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "org",
-     "label": "Current company",
-     "required": false,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "urls[LinkedIn]",
-     "label": "LinkedIn URL",
-     "required": false,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "urls[GitHub]",
-     "label": "GitHub URL",
-     "required": false,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
-     "label": "Please provide your physical address.",
-     "required": true,
-     "type": "textarea",
-     "options": []
-    },
-    {
-     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
-     "label": "Are you willing to relocate?",
-     "required": true,
-     "type": "radio",
-     "options": [
-      {
-       "label": "Yes.",
-       "value": "Yes."
-      },
-      {
-       "label": "No.",
-       "value": "No."
-      }
-     ]
-    },
-    {
-     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
-     "label": "What's your citizenship / employment eligibility?",
-     "required": true,
-     "type": "radio",
-     "options": [
-      {
-       "label": "I am a U.S Citizen / Permanent Resident.",
-       "value": "I am a U.S Citizen / Permanent Resident."
-      },
-      {
-       "label": "Non-Citizen allowed to work for any employer.",
-       "value": "Non-Citizen allowed to work for any employer."
-      },
-      {
-       "label": "Non-Citizen allowed to work for current employer.",
-       "value": "Non-Citizen allowed to work for current employer."
-      },
-      {
-       "label": "Non-Citizen seeking work Authorization.",
-       "value": "Non-Citizen seeking work Authorization."
-      }
-     ]
-    },
-    {
-     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
-     "label": "Please Enter Your Ideal Annual Compensation In $00.00 Formatting.",
-     "required": true,
-     "type": "text",
-     "options": []
-    },
-    {
-     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
-     "label": "Do You Currently Hold A Federal Security Clearance? If So, What Level Of Federal Security Clearance Do You Currently Posses?",
-     "required": false,
-     "type": "textarea",
-     "options": []
-    }
-   ]
-  },
-  {
    "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
    "family": "lever",
    "company": "Veeva",
    "source_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:12.080Z",
+   "captured_at": "2026-10-19T09:16:46.486Z",
    "reason": null,
    "fields": [
     {
@@ -18055,7 +17928,7 @@
    "company": "Shield AI",
    "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:16.542Z",
+   "captured_at": "2026-10-19T09:16:50.797Z",
    "reason": null,
    "fields": [
     {
@@ -18471,7 +18344,7 @@
    "company": "Welo Global",
    "source_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:21.241Z",
+   "captured_at": "2026-10-19T09:16:55.590Z",
    "reason": null,
    "fields": [
     {
@@ -19635,7 +19508,7 @@
    "company": "Lyra Health",
    "source_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:24.605Z",
+   "captured_at": "2026-10-19T09:17:05.373Z",
    "reason": null,
    "fields": [
     {
@@ -20160,7 +20033,7 @@
    "company": "CSC Generation",
    "source_url": "https://jobs.lever.co/cscgeneration-2/82b101fb-58eb-4236-a763-078fd9bc72bd/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:29.093Z",
+   "captured_at": "2026-10-19T09:17:09.728Z",
    "reason": null,
    "fields": [
     {
@@ -20485,7 +20358,7 @@
    "company": "Wing Assistant",
    "source_url": "https://jobs.lever.co/getwingapp/6240305a-56c4-4f35-bf55-586e7b5a8026/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:33.669Z",
+   "captured_at": "2026-10-19T09:17:18.318Z",
    "reason": null,
    "fields": [
     {
@@ -20938,7 +20811,7 @@
    "company": "CesiumAstro",
    "source_url": "https://jobs.lever.co/CesiumAstro/a49693f9-2066-43b3-972a-cdd3a62fbbce/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:38.272Z",
+   "captured_at": "2026-10-19T09:17:23.143Z",
    "reason": null,
    "fields": [
     {
@@ -21264,7 +21137,7 @@
    "company": "Palantir",
    "source_url": "https://jobs.lever.co/palantir/6ed76ce8-4156-4b60-b120-403538bd66cd/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:42.736Z",
+   "captured_at": "2026-10-19T09:17:27.526Z",
    "reason": null,
    "fields": [
     {
@@ -34893,7 +34766,7 @@
    "company": "SunSource",
    "source_url": "https://jobs.lever.co/sunsrce/3e283550-e516-4813-b6dc-4397bac59a81/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:53:59.933Z",
+   "captured_at": "2026-10-19T09:17:32.268Z",
    "reason": null,
    "fields": [
     {
@@ -35194,7 +35067,7 @@
    "company": "Arc'teryx Equipment",
    "source_url": "https://jobs.lever.co/arcteryx.com/41ce19dd-c609-438b-a40c-fd5841d63011/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:04.618Z",
+   "captured_at": "2026-10-19T09:17:36.689Z",
    "reason": null,
    "fields": [
     {
@@ -35478,7 +35351,7 @@
    "company": "Wyetech",
    "source_url": "https://jobs.lever.co/wyetechllc/1386ac36-e8fe-4615-a184-c9548023601b/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:09.434Z",
+   "captured_at": "2026-10-19T09:17:41.099Z",
    "reason": null,
    "fields": [
     {
@@ -35732,7 +35605,7 @@
    "company": "Zoox",
    "source_url": "https://jobs.lever.co/zoox/e8a190f0-7a89-4c11-a6a0-452ff6234749/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:13.949Z",
+   "captured_at": "2026-10-19T09:17:45.435Z",
    "reason": null,
    "fields": [
     {
@@ -35970,7 +35843,7 @@
    "company": "Aprio",
    "source_url": "https://jobs.lever.co/Aprio/e1b9a80e-ad6d-46d3-bfa7-db2a362c22d7/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:18.518Z",
+   "captured_at": "2026-10-19T09:17:50.455Z",
    "reason": null,
    "fields": [
     {
@@ -36361,7 +36234,7 @@
    "company": "Brillio",
    "source_url": "https://jobs.lever.co/brillio-2/bc8ccf90-b4ee-420a-a4fc-91c779e2dc7d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:23.049Z",
+   "captured_at": "2026-10-19T09:17:54.865Z",
    "reason": null,
    "fields": [
     {
@@ -36552,7 +36425,7 @@
    "company": "Daniels Health",
    "source_url": "https://jobs.lever.co/daniels-sharpsmart/bedea5d1-d24d-4c6b-9f6a-cdef67c7583e/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:27.599Z",
+   "captured_at": "2026-10-19T09:17:59.277Z",
    "reason": null,
    "fields": [
     {
@@ -36856,7 +36729,7 @@
    "company": "Xsolla",
    "source_url": "https://jobs.lever.co/xsolla/a90cb94a-df2b-4f42-b60d-8abb68c4bf86/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:32.397Z",
+   "captured_at": "2026-10-19T09:18:04.379Z",
    "reason": null,
    "fields": [
     {
@@ -37112,7 +36985,7 @@
    "company": "Octopus Energy",
    "source_url": "https://jobs.lever.co/octoenergy/b48a931a-96b2-49cc-9c0f-932d6d415927/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:36.895Z",
+   "captured_at": "2026-10-19T09:18:08.770Z",
    "reason": null,
    "fields": [
     {
@@ -37251,7 +37124,7 @@
    "company": "AHEAD",
    "source_url": "https://jobs.lever.co/thinkahead/22b24ab5-9ebd-491a-a089-393b26b78c00/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:41.519Z",
+   "captured_at": "2026-10-19T09:18:13.402Z",
    "reason": null,
    "fields": [
     {
@@ -37582,7 +37455,7 @@
    "company": "Woven",
    "source_url": "https://jobs.lever.co/woven-by-toyota/84925f74-a6aa-4b90-a92b-7006f1f88779/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:46.095Z",
+   "captured_at": "2026-10-19T09:18:17.742Z",
    "reason": null,
    "fields": [
     {
@@ -37837,7 +37710,7 @@
    "company": "Wachter",
    "source_url": "https://jobs.lever.co/wachter/62f44c16-1fea-4b9f-9123-f6b8db84ef77/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:50.763Z",
+   "captured_at": "2026-10-19T09:18:22.504Z",
    "reason": null,
    "fields": [
     {
@@ -38039,7 +37912,7 @@
    "company": "Agile Defense",
    "source_url": "https://jobs.lever.co/agile-defense/92affb7f-0bd7-4c96-a9b7-7fdd1bffa8ae/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:55.361Z",
+   "captured_at": "2026-10-19T09:18:26.930Z",
    "reason": null,
    "fields": [
     {
@@ -38516,7 +38389,7 @@
    "company": "Pigment",
    "source_url": "https://jobs.lever.co/pigment/15e7b82c-ebf3-477c-96b5-96a3b25e0663/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:54:59.958Z",
+   "captured_at": "2026-10-19T09:18:31.361Z",
    "reason": null,
    "fields": [
     {
@@ -38613,7 +38486,7 @@
    "company": "Theodo",
    "source_url": "https://jobs.lever.co/theodo/2d851609-3162-4e6b-9da7-fec24c2d0cd8/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:04.525Z",
+   "captured_at": "2026-10-19T09:18:35.689Z",
    "reason": null,
    "fields": [
     {
@@ -39333,7 +39206,7 @@
    "company": "Commonwealth Fusion Systems",
    "source_url": "https://jobs.lever.co/cfsenergy/195a6795-0b2a-4b8f-bd39-9d522efcba61/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:09.518Z",
+   "captured_at": "2026-10-19T09:18:40.122Z",
    "reason": null,
    "fields": [
     {
@@ -39575,7 +39448,7 @@
    "company": "Extreme Networks",
    "source_url": "https://jobs.lever.co/extremenetworks/9c7ebecd-ed6d-49c1-be6d-a04c05331e6d/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:14.018Z",
+   "captured_at": "2026-10-19T09:18:45.058Z",
    "reason": null,
    "fields": [
     {
@@ -39663,7 +39536,7 @@
    "company": "Thomas & Hutton",
    "source_url": "https://jobs.lever.co/tandh/c8a7688a-88cd-4db0-b044-11ffd788b6cc/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:18.499Z",
+   "captured_at": "2026-10-19T09:18:49.351Z",
    "reason": null,
    "fields": [
     {
@@ -40273,7 +40146,7 @@
    "company": "Filevine",
    "source_url": "https://jobs.lever.co/filevine/e1b6b715-a715-453e-82ea-e20d59ed6865/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:23.066Z",
+   "captured_at": "2026-10-19T09:18:54.540Z",
    "reason": null,
    "fields": [
     {
@@ -40513,7 +40386,7 @@
    "company": "Crest Industries",
    "source_url": "https://jobs.lever.co/crestoperations/4ad7d2f7-7775-4819-94c8-45627a11e66e/apply",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:28.178Z",
+   "captured_at": "2026-10-19T09:18:58.903Z",
    "reason": null,
    "fields": [
     {
@@ -40783,12 +40656,205 @@
    ]
   },
   {
+   "id": "lever-standtogether-814774c2-7079-4a2a-bfb2-97d18f0c08b5",
+   "family": "lever",
+   "company": "Stand Together",
+   "source_url": "https://jobs.lever.co/standtogether/814774c2-7079-4a2a-bfb2-97d18f0c08b5/apply",
+   "evidence": "CI_CAPTURE",
+   "captured_at": "2026-10-19T09:19:03.199Z",
+   "reason": null,
+   "fields": [
+    {
+     "name": "resume",
+     "label": "ATTACH RESUME/CV",
+     "required": false,
+     "type": "file",
+     "options": []
+    },
+    {
+     "name": "name",
+     "label": "Full name",
+     "required": true,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "email",
+     "label": "Email",
+     "required": true,
+     "type": "email",
+     "options": []
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "required": true,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "location",
+     "label": "Current location",
+     "required": true,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "required": false,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "required": false,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "required": false,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field0]",
+     "label": "What City & State do you currently live in?",
+     "required": true,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field1]",
+     "label": "What is your target base salary?",
+     "required": true,
+     "type": "text",
+     "options": []
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field2]",
+     "label": "Are you open to relocation?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field3]",
+     "label": "Are you legally authorized to work in the U.S.?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field4]",
+     "label": "Will you now or in the future require sponsorship for employment visa status (for example, EAD, F-1, OPT, H-1B, L-1, or TN status)?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field5]",
+     "label": "Have you worked for this Organization or in the Stand Together philanthropic community before?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field6]",
+     "label": "Are you currently, or have you been in the last two years, employed by a federal, state, or local government or any related entity?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field7]",
+     "label": "Are you a newly elected or a candidate for any federal, state, or local elected office or any related entity?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    },
+    {
+     "name": "cards[a60f8255-62fe-43bd-959e-e0c1f1692bdd][field8]",
+     "label": "Are you currently employed by, or act as a representative of a political party in the US?",
+     "required": true,
+     "type": "radio",
+     "options": [
+      {
+       "label": "Yes",
+       "value": "Yes"
+      },
+      {
+       "label": "No",
+       "value": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
    "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
    "family": "ashby",
    "company": "openai",
    "source_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:32.608Z",
+   "captured_at": "2026-10-19T09:19:07.593Z",
    "reason": null,
    "fields": [
     {
@@ -40869,7 +40935,7 @@
      "options": []
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_gender",
+     "name": "04ec6987-44a5-4d19-ac0d-60696b13d67e__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -40889,7 +40955,7 @@
      ]
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_race",
+     "name": "04ec6987-44a5-4d19-ac0d-60696b13d67e__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -40929,7 +40995,7 @@
      ]
     },
     {
-     "name": "d6de7326-fefa-457e-93f1-ca7a91da2cdf__systemfield_eeoc_veteran_status",
+     "name": "04ec6987-44a5-4d19-ac0d-60696b13d67e__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -40963,7 +41029,7 @@
    "company": "Airwallex",
    "source_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:37.835Z",
+   "captured_at": "2026-10-19T09:19:12.274Z",
    "reason": null,
    "fields": [
     {
@@ -41079,7 +41145,7 @@
    "company": "Lilt",
    "source_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:42.906Z",
+   "captured_at": "2026-10-19T09:19:16.931Z",
    "reason": null,
    "fields": [
     {
@@ -41174,7 +41240,7 @@
    "company": "Snowflake",
    "source_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:47.792Z",
+   "captured_at": "2026-10-19T09:19:21.036Z",
    "reason": null,
    "fields": [
     {
@@ -41255,7 +41321,7 @@
      "options": []
     },
     {
-     "name": "4e787f52-e24c-40a6-83c5-a78ef2b72371_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "30f5b687-d2e6-419b-8907-f6f09cdff68f_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "I am a U.S. person",
      "required": false,
      "type": "radio",
@@ -41275,7 +41341,7 @@
      ]
     },
     {
-     "name": "4e787f52-e24c-40a6-83c5-a78ef2b72371_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "30f5b687-d2e6-419b-8907-f6f09cdff68f_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Yes - I have previously worked at, or is currently working at PwC",
      "required": false,
      "type": "radio",
@@ -41319,7 +41385,7 @@
    "company": "Crusoe",
    "source_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:53.503Z",
+   "captured_at": "2026-10-19T09:19:25.532Z",
    "reason": null,
    "fields": [
     {
@@ -41402,7 +41468,7 @@
      "options": []
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_gender",
+     "name": "663046fe-6947-4f34-8e49-31584301d88e__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -41422,7 +41488,7 @@
      ]
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_race",
+     "name": "663046fe-6947-4f34-8e49-31584301d88e__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -41462,7 +41528,7 @@
      ]
     },
     {
-     "name": "5f23fbb0-8695-4b26-a2a7-add1ff1a9bfe__systemfield_eeoc_veteran_status",
+     "name": "663046fe-6947-4f34-8e49-31584301d88e__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -41496,7 +41562,7 @@
    "company": "Harvey",
    "source_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:55:58.240Z",
+   "captured_at": "2026-10-19T09:19:29.643Z",
    "reason": null,
    "fields": [
     {
@@ -41563,7 +41629,7 @@
      "options": []
     },
     {
-     "name": "6d8db12f-7151-4496-ae60-529d9ad6c941_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "585b3b78-aff2-4276-b453-614757230b55_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Yes, I will require Harvey to sponsor my employment",
      "required": false,
      "type": "radio",
@@ -41579,7 +41645,7 @@
      ]
     },
     {
-     "name": "6d8db12f-7151-4496-ae60-529d9ad6c941_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "585b3b78-aff2-4276-b453-614757230b55_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "Yes, I’m based in this location and able to work from the office 3 days per week",
      "required": false,
      "type": "radio",
@@ -41638,7 +41704,7 @@
    "company": "Applied Intuition",
    "source_url": "https://jobs.ashbyhq.com/applied/b2258b1e-336f-4412-aafb-7e5f4e612c7e/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:03.003Z",
+   "captured_at": "2026-10-19T09:19:33.846Z",
    "reason": null,
    "fields": [
     {
@@ -41747,7 +41813,7 @@
      "options": []
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_gender",
+     "name": "50b0de46-1e0f-4701-9a65-221719d6af94__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -41767,7 +41833,7 @@
      ]
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_race",
+     "name": "50b0de46-1e0f-4701-9a65-221719d6af94__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -41807,7 +41873,7 @@
      ]
     },
     {
-     "name": "3cf8ae85-0e9a-43c5-a17e-7cf668090077__systemfield_eeoc_veteran_status",
+     "name": "50b0de46-1e0f-4701-9a65-221719d6af94__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -41841,7 +41907,7 @@
    "company": "Clera",
    "source_url": "https://jobs.ashbyhq.com/clera/54fc9546-f535-4def-b9c0-dd4e18f02c4b/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:07.858Z",
+   "captured_at": "2026-10-19T09:19:38.666Z",
    "reason": null,
    "fields": [
     {
@@ -41894,7 +41960,7 @@
    "company": "FluidStack",
    "source_url": "https://jobs.ashbyhq.com/fluidstack/0552904c-260d-4818-b35f-45ab12b6388a/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:12.527Z",
+   "captured_at": "2026-10-19T09:19:42.765Z",
    "reason": null,
    "fields": [
     {
@@ -41996,7 +42062,7 @@
      "options": []
     },
     {
-     "name": "768f29d3-e7a3-4524-aabf-59681658b796_03d16dd0-a3be-4824-bcf3-fa91894d73b0",
+     "name": "f359a384-9810-48fd-877e-004c7d61921b_03d16dd0-a3be-4824-bcf3-fa91894d73b0",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42020,7 +42086,7 @@
      ]
     },
     {
-     "name": "768f29d3-e7a3-4524-aabf-59681658b796_42efa6dc-6a04-4117-8af3-a9501ce6e283",
+     "name": "f359a384-9810-48fd-877e-004c7d61921b_42efa6dc-6a04-4117-8af3-a9501ce6e283",
      "label": "One week",
      "required": false,
      "type": "radio",
@@ -42139,7 +42205,7 @@
    "company": "Saronic",
    "source_url": "https://jobs.ashbyhq.com/saronic/d3ad80db-8508-4677-95d6-93c5d7a33815/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:17.984Z",
+   "captured_at": "2026-10-19T09:19:46.847Z",
    "reason": null,
    "fields": [
     {
@@ -42220,7 +42286,7 @@
      "options": []
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_gender",
+     "name": "db4c2947-c00b-4c5e-ba20-013c62b70e75__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -42240,7 +42306,7 @@
      ]
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_race",
+     "name": "db4c2947-c00b-4c5e-ba20-013c62b70e75__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -42280,7 +42346,7 @@
      ]
     },
     {
-     "name": "336effd3-ece5-4406-bd17-d944a4c1cd49__systemfield_eeoc_veteran_status",
+     "name": "db4c2947-c00b-4c5e-ba20-013c62b70e75__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -42314,7 +42380,7 @@
    "company": "Mistral AI",
    "source_url": "https://jobs.ashbyhq.com/mistral.ai/22fee4f2-f6c9-4516-a0cd-92d6aeb21a52/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:22.758Z",
+   "captured_at": "2026-10-19T09:19:51.002Z",
    "reason": null,
    "fields": [
     {
@@ -42430,7 +42496,7 @@
      "options": []
     },
     {
-     "name": "b127f857-4636-467b-b4f2-636e9c793ea3_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "62ff5ab3-f9eb-40b6-9da6-d95d7cd39bc9_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -42468,7 +42534,7 @@
    "company": "Base Power",
    "source_url": "https://jobs.ashbyhq.com/base-power/c417f390-5d7a-4291-a2eb-113973b32e65/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:27.548Z",
+   "captured_at": "2026-10-19T09:19:55.071Z",
    "reason": null,
    "fields": [
     {
@@ -42628,7 +42694,7 @@
      "options": []
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_gender",
+     "name": "45d26095-4b5f-4573-bc6a-8a71b003fc86__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -42648,7 +42714,7 @@
      ]
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_race",
+     "name": "45d26095-4b5f-4573-bc6a-8a71b003fc86__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -42688,7 +42754,7 @@
      ]
     },
     {
-     "name": "aae1d127-8d50-458f-a2f1-8480f2e22ee7__systemfield_eeoc_veteran_status",
+     "name": "45d26095-4b5f-4573-bc6a-8a71b003fc86__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -42722,7 +42788,7 @@
    "company": "Leland",
    "source_url": "https://jobs.ashbyhq.com/leland/b447fec5-42cd-48b2-aed3-8d62c777019c/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:32.449Z",
+   "captured_at": "2026-10-19T09:19:59.281Z",
    "reason": null,
    "fields": [
     {
@@ -42761,7 +42827,7 @@
      "options": []
     },
     {
-     "name": "515d6d23-0693-4b31-920a-0038502e3c3a_1b2e87df-a352-454d-bcb4-457fe658d4f9",
+     "name": "3e4175b3-ac87-4c39-a941-4dc1d3c57db0_1b2e87df-a352-454d-bcb4-457fe658d4f9",
      "label": "H-1B Application — You have not yet received an H-1B visa and need to enter the lottery",
      "required": false,
      "type": "radio",
@@ -42813,7 +42879,7 @@
    "company": "Sierra",
    "source_url": "https://jobs.ashbyhq.com/Sierra/8152eaf6-012b-4154-95e2-7d6c52faba93/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:37.098Z",
+   "captured_at": "2026-10-19T09:20:03.315Z",
    "reason": null,
    "fields": [
     {
@@ -42873,7 +42939,7 @@
      "options": []
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_6ac9d496-64c9-485f-b4d7-8757bec4d606",
+     "name": "88b1fcdc-e3e3-42a3-8cbb-552735e1cdf3_6ac9d496-64c9-485f-b4d7-8757bec4d606",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42889,7 +42955,7 @@
      ]
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_541ac3cb-e970-4d84-97c6-a043e64bedd6",
+     "name": "88b1fcdc-e3e3-42a3-8cbb-552735e1cdf3_541ac3cb-e970-4d84-97c6-a043e64bedd6",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42912,7 +42978,7 @@
      "options": []
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_8424ed4e-1d18-4ffd-a6ac-5379df3fcaa3",
+     "name": "88b1fcdc-e3e3-42a3-8cbb-552735e1cdf3_8424ed4e-1d18-4ffd-a6ac-5379df3fcaa3",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -42928,7 +42994,7 @@
      ]
     },
     {
-     "name": "b7c5a496-9237-4f99-847c-f96172dcf3a5_25121da9-3708-405f-9ece-9114464b2401",
+     "name": "88b1fcdc-e3e3-42a3-8cbb-552735e1cdf3_25121da9-3708-405f-9ece-9114464b2401",
      "label": "Blog or news article",
      "required": false,
      "type": "radio",
@@ -42975,7 +43041,7 @@
      "options": []
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_cf0f1bc7-7ce6-4eb3-aebc-b6562141cb68",
+     "name": "daea62c2-a0f2-47b1-87ba-9b8d56edd276_cf0f1bc7-7ce6-4eb3-aebc-b6562141cb68",
      "label": "Under 30",
      "required": false,
      "type": "radio",
@@ -43007,7 +43073,7 @@
      ]
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "daea62c2-a0f2-47b1-87ba-9b8d56edd276_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -43035,7 +43101,7 @@
      ]
     },
     {
-     "name": "7ab9c483-05c3-42ce-99ac-196c27a210ee_0a90dc7e-908c-449f-9151-95612d844b10",
+     "name": "daea62c2-a0f2-47b1-87ba-9b8d56edd276_0a90dc7e-908c-449f-9151-95612d844b10",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -43224,7 +43290,7 @@
    "company": "Checkout.com",
    "source_url": "https://jobs.ashbyhq.com/checkout.com/b563a46e-e4b9-4fd1-a7bb-6211f1564523/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:42.076Z",
+   "captured_at": "2026-10-19T09:20:07.650Z",
    "reason": null,
    "fields": [
     {
@@ -43298,7 +43364,7 @@
      "options": []
     },
     {
-     "name": "308f261c-0405-4f6e-ac63-002b18541d56_3045893a-2fc5-4dee-9484-08901e066b63",
+     "name": "64606fba-f05e-456b-a925-d302d3cb420b_3045893a-2fc5-4dee-9484-08901e066b63",
      "label": "None",
      "required": false,
      "type": "radio",
@@ -43477,7 +43543,7 @@
    "company": "Whoop",
    "source_url": "https://jobs.ashbyhq.com/whoop/1356adce-d85e-41b8-b6fe-14e6866c7aca/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:48.186Z",
+   "captured_at": "2026-10-19T09:20:12.871Z",
    "reason": null,
    "fields": [
     {
@@ -43572,7 +43638,7 @@
    "company": "ramp",
    "source_url": "https://jobs.ashbyhq.com/ramp/34413f8d-26bf-4bbc-8ade-eb309a0e2245/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:52.924Z",
+   "captured_at": "2026-10-19T09:20:16.981Z",
    "reason": null,
    "fields": [
     {
@@ -43690,7 +43756,7 @@
    "company": "Skydio",
    "source_url": "https://jobs.ashbyhq.com/skydio/134f29cc-da9f-4214-9d9c-d044f93af39e/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:56:57.717Z",
+   "captured_at": "2026-10-19T09:20:21.207Z",
    "reason": null,
    "fields": [
     {
@@ -43743,7 +43809,7 @@
      "options": []
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_gender",
+     "name": "2f4e1289-2780-440c-9e9d-8a420b4e2a59__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -43763,7 +43829,7 @@
      ]
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_race",
+     "name": "2f4e1289-2780-440c-9e9d-8a420b4e2a59__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -43803,7 +43869,7 @@
      ]
     },
     {
-     "name": "c838726f-059c-4d7f-a64d-0f8cc1a95a24__systemfield_eeoc_veteran_status",
+     "name": "2f4e1289-2780-440c-9e9d-8a420b4e2a59__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -43837,7 +43903,7 @@
    "company": "ElevenLabs",
    "source_url": "https://jobs.ashbyhq.com/elevenlabs/a571b8e4-8176-4e31-aab6-2287ee810236/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:02.459Z",
+   "captured_at": "2026-10-19T09:20:25.330Z",
    "reason": null,
    "fields": [
     {
@@ -43862,7 +43928,7 @@
      "options": []
     },
     {
-     "name": "54520740-5c98-463e-9e65-f56d993c8756_eb70894d-2d6a-422b-9676-cb3d2f66c8bb",
+     "name": "c28fec12-d0e7-4a38-a5a2-24b69b300012_eb70894d-2d6a-422b-9676-cb3d2f66c8bb",
      "label": "I'm a user",
      "required": false,
      "type": "radio",
@@ -43951,7 +44017,7 @@
    "company": "Rivian and Volkswagen Group Technologies",
    "source_url": "https://jobs.ashbyhq.com/rivianvw.tech/b8f3847b-e656-4b0d-b26b-02d7b860be92/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:07.773Z",
+   "captured_at": "2026-10-19T09:20:29.641Z",
    "reason": null,
    "fields": [
     {
@@ -44027,7 +44093,7 @@
      "options": []
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_6b026486-053a-49e3-a373-6e804f324820",
+     "name": "9a452906-3376-4861-a1f1-84d8cb053063_6b026486-053a-49e3-a373-6e804f324820",
      "label": "Yes - I have US work authorization as a Citizen or US Permanent Resident / Green Card Holder",
      "required": false,
      "type": "radio",
@@ -44054,7 +44120,7 @@
      "options": []
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_d3e259df-4aab-4370-9d91-fb9760968785",
+     "name": "9a452906-3376-4861-a1f1-84d8cb053063_d3e259df-4aab-4370-9d91-fb9760968785",
      "label": "Yes - I am a previous intern",
      "required": false,
      "type": "radio",
@@ -44082,7 +44148,7 @@
      ]
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41_757ea1ca-469b-48ce-a86d-2554901f3974",
+     "name": "9a452906-3376-4861-a1f1-84d8cb053063_757ea1ca-469b-48ce-a86d-2554901f3974",
      "label": "Yes",
      "required": false,
      "type": "radio",
@@ -44114,7 +44180,7 @@
      ]
     },
     {
-     "name": "dbe1553a-69e4-4e37-8bea-bfc70ecadf41__systemfield_recording_consent",
+     "name": "9a452906-3376-4861-a1f1-84d8cb053063__systemfield_recording_consent",
      "label": "Yes, I consent to be recorded",
      "required": false,
      "type": "radio",
@@ -44130,7 +44196,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_gender",
+     "name": "db33b568-747d-488a-8655-af9f8cc77ee6__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -44150,7 +44216,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_race",
+     "name": "db33b568-747d-488a-8655-af9f8cc77ee6__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -44190,7 +44256,7 @@
      ]
     },
     {
-     "name": "f717f5ac-7f42-4db7-a810-fe7a09342496__systemfield_eeoc_veteran_status",
+     "name": "db33b568-747d-488a-8655-af9f8cc77ee6__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -44224,7 +44290,7 @@
    "company": "Apex",
    "source_url": "https://jobs.ashbyhq.com/apex-technology-inc/99f39ff9-899a-4acd-99c3-8bf868f7e4e4/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:13.075Z",
+   "captured_at": "2026-10-19T09:20:34.009Z",
    "reason": null,
    "fields": [
     {
@@ -44305,7 +44371,7 @@
      "options": []
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_gender",
+     "name": "b7c81fcf-d312-461f-9870-1747aa624039__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -44325,7 +44391,7 @@
      ]
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_race",
+     "name": "b7c81fcf-d312-461f-9870-1747aa624039__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -44365,7 +44431,7 @@
      ]
     },
     {
-     "name": "215fa349-1ba1-4dfe-a504-7a569bba1017__systemfield_eeoc_veteran_status",
+     "name": "b7c81fcf-d312-461f-9870-1747aa624039__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -44399,7 +44465,7 @@
    "company": "Decagon",
    "source_url": "https://jobs.ashbyhq.com/decagon/67c794bd-e423-44b2-8b80-d7b759994cde/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:18.070Z",
+   "captured_at": "2026-10-19T09:20:38.144Z",
    "reason": null,
    "fields": [
     {
@@ -44487,7 +44553,7 @@
    "company": "Neko Health",
    "source_url": "https://jobs.ashbyhq.com/neko-health/3fa8d38d-440a-4d1f-8a87-befb33799727/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:22.859Z",
+   "captured_at": "2026-10-19T09:20:42.306Z",
    "reason": null,
    "fields": [
     {
@@ -44626,7 +44692,7 @@
      "options": []
     },
     {
-     "name": "fb283419-a37e-444c-b061-6c2fc5777db3_8d7dcc65-3a0b-476a-b679-574b869780bb",
+     "name": "a23705fd-ea8f-4974-96e1-5feb6ff181ee_8d7dcc65-3a0b-476a-b679-574b869780bb",
      "label": "Man",
      "required": false,
      "type": "radio",
@@ -44675,7 +44741,7 @@
    "company": "Perplexity AI",
    "source_url": "https://jobs.ashbyhq.com/Perplexity/d5bc2302-202f-4596-9c4d-8720d1e79064/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:27.832Z",
+   "captured_at": "2026-10-19T09:20:46.392Z",
    "reason": null,
    "fields": [
     {
@@ -44763,7 +44829,7 @@
    "company": "Anysphere",
    "source_url": "https://jobs.ashbyhq.com/cursor/0ec39ed7-a5dc-4551-bb26-b7f4f9fb4a74/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:32.673Z",
+   "captured_at": "2026-10-19T09:20:50.602Z",
    "reason": "NO_REQUIRED_QUESTIONS",
    "fields": []
   },
@@ -44773,7 +44839,7 @@
    "company": "Preply",
    "source_url": "https://jobs.ashbyhq.com/preply/c6510778-8bd0-4084-a396-e2e3ad1b59f2/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:49.967Z",
+   "captured_at": "2026-10-19T09:21:07.789Z",
    "reason": null,
    "fields": [
     {
@@ -44826,7 +44892,7 @@
      "options": []
     },
     {
-     "name": "cdc93938-a16a-42d9-8dd2-cfcea6182380_3edbea0e-87b5-49c2-bd14-25b1cf47db9c",
+     "name": "974defd0-7a8e-439a-bd36-3e83aa7bfdfe_3edbea0e-87b5-49c2-bd14-25b1cf47db9c",
      "label": "I use AI tools daily as a core part of my workflow (e.g., coding, debugging, system design). I treat AI as a pair programmer",
      "required": false,
      "type": "radio",
@@ -44867,7 +44933,7 @@
      "options": []
     },
     {
-     "name": "c8184fc4-c04e-4bf7-9137-3b6b7779022e_gh_quest_4019925003",
+     "name": "65f0afac-3267-4d52-a93e-6b4b60f670de_gh_quest_4019925003",
      "label": "Woman",
      "required": false,
      "type": "radio",
@@ -44909,7 +44975,7 @@
    "company": "Hadrian",
    "source_url": "https://jobs.ashbyhq.com/hadrian-automation/28963508-4689-4883-98f1-b89db55ad57b/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:54.937Z",
+   "captured_at": "2026-10-19T09:21:11.926Z",
    "reason": null,
    "fields": [
     {
@@ -44983,7 +45049,7 @@
      "options": []
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_9006c30c-c18a-4561-8259-0b496df22fda",
+     "name": "59d04d51-1a0b-4f7c-9714-c62b5faf7bc3_9006c30c-c18a-4561-8259-0b496df22fda",
      "label": "I am authorized to work in the United States for any employer",
      "required": false,
      "type": "radio",
@@ -45011,7 +45077,7 @@
      ]
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_00ef208d-de1a-478f-9eca-42c20ca8adeb",
+     "name": "59d04d51-1a0b-4f7c-9714-c62b5faf7bc3_00ef208d-de1a-478f-9eca-42c20ca8adeb",
      "label": "U.S. person. This ITAR/EAR status includes U.S. citizens, U.S. nationals, lawful permanent residents (green card holders), and asylees and refugees with such status granted, not pending",
      "required": false,
      "type": "radio",
@@ -45027,7 +45093,7 @@
      ]
     },
     {
-     "name": "1b22c566-e1e6-4e3a-b4b9-89d143899bf3_ac1103fb-311a-4ee7-a4a5-649b2c2e1d87",
+     "name": "59d04d51-1a0b-4f7c-9714-c62b5faf7bc3_ac1103fb-311a-4ee7-a4a5-649b2c2e1d87",
      "label": "I currently live in this location.",
      "required": false,
      "type": "radio",
@@ -45086,7 +45152,7 @@
    "company": "EliseAI",
    "source_url": "https://jobs.ashbyhq.com/EliseAI/09e616d7-172b-46d9-929d-0932e8a31bc4/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:57:59.746Z",
+   "captured_at": "2026-10-19T09:21:16.019Z",
    "reason": null,
    "fields": [
     {
@@ -45314,7 +45380,7 @@
    "company": "notion",
    "source_url": "https://jobs.ashbyhq.com/notion/1fc309c8-da20-4ff2-84c7-8b863ece2b0a/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:04.727Z",
+   "captured_at": "2026-10-19T09:21:20.726Z",
    "reason": null,
    "fields": [
     {
@@ -45353,7 +45419,7 @@
      "options": []
     },
     {
-     "name": "e66ec1ae-5fe3-462f-bc62-89ee055ceea1_b0a5aba8-dbb7-41a9-b548-f72cc3e48956",
+     "name": "9f57512e-fc02-4cf5-a6ed-4a513e80a655_b0a5aba8-dbb7-41a9-b548-f72cc3e48956",
      "label": "He/Him",
      "required": false,
      "type": "radio",
@@ -45444,7 +45510,7 @@
      "options": []
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_gender",
+     "name": "4fbcbf9e-52da-4608-bbf6-2b58d76a7ea9__systemfield_eeoc_gender",
      "label": "Male",
      "required": false,
      "type": "radio",
@@ -45464,7 +45530,7 @@
      ]
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_race",
+     "name": "4fbcbf9e-52da-4608-bbf6-2b58d76a7ea9__systemfield_eeoc_race",
      "label": "Hispanic or Latino",
      "required": false,
      "type": "radio",
@@ -45504,7 +45570,7 @@
      ]
     },
     {
-     "name": "77e5ba15-c44f-403b-8efa-54eb448c38ec__systemfield_eeoc_veteran_status",
+     "name": "4fbcbf9e-52da-4608-bbf6-2b58d76a7ea9__systemfield_eeoc_veteran_status",
      "label": "I identify as one or more of the classifications of protected veteran listed above",
      "required": false,
      "type": "radio",
@@ -45538,7 +45604,7 @@
    "company": "Plaid",
    "source_url": "https://jobs.ashbyhq.com/plaid/5d8abedc-018a-4b42-ae1f-0e70b34f2007/application",
    "evidence": "CI_CAPTURE",
-   "captured_at": "2026-10-19T08:58:09.670Z",
+   "captured_at": "2026-10-19T09:21:25.001Z",
    "reason": null,
    "fields": [
     {
@@ -45691,7 +45757,7 @@
      "options": []
     },
     {
-     "name": "3f63e511-9a7b-4497-8eaf-ec679fbd7c3a_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
+     "name": "0d197305-c959-4549-aa20-5a28940402e8_2c83a2e9-7f71-4b7a-a719-63da27a1748b",
      "label": "1 - Slightly below average",
      "required": false,
      "type": "radio",

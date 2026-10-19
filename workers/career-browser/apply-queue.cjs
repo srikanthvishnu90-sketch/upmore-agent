@@ -56,7 +56,9 @@ function createApplyPool({ queue, execute, concurrency = 6 }) {
         || !Number.isSafeInteger(o.required_empty_after) || o.required_empty_after < 0
         || !Array.isArray(o.validation_errors) || o.validation_errors.some(v => typeof v !== "string")
         || classifyOutcome(o).state !== result.state) throw new Error("EMPLOYER_OBSERVATION_REQUIRED");
-      await queue.advance(job, result.state, result);
+      // Derive the reason and confirmation id from the same observation too;
+      // matching the outcome state alone must not admit an invented receipt.
+      await queue.advance(job, result.state, { ...result, ...classifyOutcome(o) });
       return { id: job.id, state: result.state };
     } catch (e) {
       // Submission ambiguity remains internal work awaiting readback; it is

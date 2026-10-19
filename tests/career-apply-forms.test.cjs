@@ -39,6 +39,12 @@ test('009b a fenced driver cannot report confirmation without matching employer 
  const states=[];const pool=createApplyPool({queue:{claim:async()=>[job(1)],advance:async(_,s)=>states.push(s)},execute:async(_,ctx)=>{await ctx.beforeSubmit();return {state:'confirmed'};}});
  assert.equal((await pool.runOnce())[0].reason,'READBACK_REQUIRED');assert.deepEqual(states,['submitting']);
 });
+test('009b stored confirmation ids and reasons come from employer observation, never the driver claim',async()=>{
+ let evidence;const pool=createApplyPool({queue:{claim:async()=>[job(1)],advance:async(_,state,value)=>{if(state==='confirmed')evidence=value;}},execute:async(_,ctx)=>{
+  await ctx.beforeSubmit();return {state:'confirmed',confirmation_id:'INVENTED-999',reason:'invented claim',observation:confirmedObservation};
+ }});
+ assert.equal((await pool.runOnce())[0].state,'confirmed');assert.equal(evidence.confirmation_id,'TEST-12345');assert.equal(evidence.reason,'employer confirmation on the page');
+});
 test('009b live handoff binds one paused tab, consumes its token once and rejects foreign input',async()=>{
  const {EventEmitter}=require('node:events');const {createLiveView}=require('../workers/career-browser/live-view.cjs');
  const cdp=new EventEmitter(),calls=[];cdp.send=async(type,args)=>{calls.push([type,args]);if(type==='Page.startScreencast')cdp.emit('Page.screencastFrame',{data:'TEST-JPEG',sessionId:17});return {cssLayoutViewport:{clientWidth:1000,clientHeight:800}};};cdp.detach=async()=>{};

@@ -117,7 +117,11 @@ function bind(fields: any[]) {
   const groups = new Map<string, any[]>();
   for (const f of fields) {
     if (f.disabled || f.readOnly) continue;
-    const name = f.name;
+    // A field is known by its name, or by its id where the page names nothing: Greenhouse's job-boards form gives every
+    // field an id and no name, and Ashby's resume input has only an id (tests/fixtures/forms-ci). The id there is the
+    // question's published key (first_name, question_9668368101, _systemfield_resume). Ashby's date picker has neither;
+    // its container's data-field-path is the key.
+    const name = f.name || f.id || f.fieldPath;
     if (!name) {
       if (f.required) throw fail("UNNAMED_REQUIRED_FIELD: " + f.label);
       continue;
@@ -529,7 +533,7 @@ export async function runApply(args: string[]) {
         wire[f.name] = b.inputType === "file"
           ? artifact
           : b.inputType === "checkbox"
-          ? (v ? (current.raw.find((x: any) => x.name === f.name)?.optionValue || "on") : null)
+          ? (v ? (current.raw.find((x: any) => (x.name || x.id) === f.name)?.optionValue || "on") : null)
           : f.value;
       }
       current = await observe();
@@ -543,11 +547,16 @@ export async function runApply(args: string[]) {
       await unconfirmed(current, planned);
       const review = await send({
         type: "review",
-        knownSelectors: Object.values(current.bindings).flatMap((b: any) =>
-          b.options?.length && ["radio_group", "checkbox_group"].includes(b.inputType)
-            ? b.options.map((x: any) => x.selector)
-            : [b.selector]
-        ).filter(Boolean),
+        // A field on the page now that was not there at this observation is new; an optional field the engine leaves
+        // alone on purpose (no name, id or field path) is not, or the run would loop on it until FORM_DID_NOT_SETTLE.
+        knownSelectors: [
+          ...Object.values(current.bindings).flatMap((b: any) =>
+            b.options?.length && ["radio_group", "checkbox_group"].includes(b.inputType)
+              ? b.options.map((x: any) => x.selector)
+              : [b.selector]
+          ),
+          ...current.raw.map((f: any) => f.selector),
+        ].filter(Boolean),
       });
       if (denied || review.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       if (review.captcha && !(o.handoff && await handOff())) return write({ state: "needs_user", reason: "captcha" });

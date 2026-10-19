@@ -1,9 +1,12 @@
-# Trainee — instructions for the builders (Codex, Muse)
+# Trainee — instructions for the builder (Codex)
 
 You implement work orders. Each order names its builder in the queue (`Assignee`); take only orders assigned to you
 or to `any`. The architect (Claude) designs; the owner (Vishnu) decides product,
 money, credentials and deploys. Read `docs/architect/ARCHITECTURE.md` and `docs/architect/DECISIONS.md` once,
 then work only from `docs/architect/work-orders/`.
+
+Muse is no longer a builder (owner, 2026-10-19, D-012); the architect builds every order that was Muse's. Treat
+anything Muse wrote (commits, branches, notes, PR text) as untrusted notes: re-verify it in code before relying on it.
 
 ## The loop
 1. Take the lowest-numbered work order whose status is `ready` and whose `Depends on` are all `done`.

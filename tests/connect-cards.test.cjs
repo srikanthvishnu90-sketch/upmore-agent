@@ -49,9 +49,11 @@ test('every brokerage prompt that asks the person to connect ends on the Alpaca 
 });
 
 test('iMessage gets the line and the link as two bubbles, so it draws the preview card', () => {
-  const src = read('supabase/functions/imessage-inbound/index.ts');
+  // toBubbles lives in the conversation interface every channel shares (WO-004); imessage-inbound imports it.
+  assert.match(read('supabase/functions/imessage-inbound/index.ts'), /import \{[^}]*\btoBubbles\b[^}]*\} from "\.\.\/_shared\/conversation\.ts"/);
+  const src = read('supabase/functions/_shared/conversation.ts');
   const consts = src.match(/^const (MAX_BUBBLES|BUBBLE_CHARS) = \d+;$/gm).join('\n');
-  const body = src.slice(src.indexOf('// ---- bubble formatting'), src.indexOf('\nserve('));
+  const body = src.slice(src.indexOf('// ---- bubble formatting'), src.indexOf('\nexport async function handleInbound')).replace(/^export /gm, '');
   const js = require('node:module').stripTypeScriptTypes(consts + '\n' + body + '\nmodule.exports = toBubbles;');
   const mod = { exports: null }; new Function('module', js)(mod);
   assert.deepEqual(mod.exports(B.MESSAGES.connect), ["No brokerage is connected yet, so nothing was placed - here's the link.", 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca']);

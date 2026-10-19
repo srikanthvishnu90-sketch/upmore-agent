@@ -70,6 +70,7 @@ edge_tests=(
   tests/edge/model-gateway.test.ts
   tests/edge/model-calls.test.ts
   tests/edge/model-errors.test.ts
+  tests/edge/career-alerts.test.ts
 )
 
 portable_test_paths() {

@@ -73,10 +73,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // and the main flow needs thread_id/message/images.
     const body = await req.json().catch(() => ({}));
 
-    // TEST BRIDGE ONLY (iMessage): when the bearer token is EXACTLY the
-    // service_role key, the caller may run the turn as a specific user via
-    // `as_user_id`. This exists solely for the first-party iMessage test
-    // bridge. The normal user-JWT path below is completely unchanged.
+    // Service-role path (texting channel, WO-013b-2): when the bearer token is
+    // EXACTLY the service_role key, our own backend (trainee-inbound) runs the
+    // turn as the person a texting contact belongs to via `as_user_id`. The
+    // normal user-JWT path below is completely unchanged.
     // The key itself is never logged.
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const isBridgeCall = serviceKey !== "" && authM[1] === serviceKey;

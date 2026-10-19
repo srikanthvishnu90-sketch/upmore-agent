@@ -16,12 +16,15 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
 
 export type DeliveryStore = ChannelStore & { release(): Promise<number>; sweep(now: number): Promise<number> };
 
+// `only` narrows the store to one row (a reply sent the moment it is written); the rules are the same.
 // deno-lint-ignore no-explicit-any
-export function supabaseChannelStore(admin: any): DeliveryStore {
+export function supabaseChannelStore(admin: any, o: { only?: { userId: string; key: string } } = {}): DeliveryStore {
   const claimed = new Map<string, { prior: string; attempts: number }>();
   return {
     async due(now, limit) {
-      const rows = must<any[]>(await admin.rpc("career_outbox_claim", { p_now: iso(now), p_limit: limit }), "claim due messages") || [];
+      const claim = o.only ? admin.rpc("career_outbox_claim_key", { p_user: o.only.userId, p_key: o.only.key, p_now: iso(now) })
+        : admin.rpc("career_outbox_claim", { p_now: iso(now), p_limit: limit });
+      const rows = must<any[]>(await claim, "claim due messages") || [];
       const out: OutboxRow[] = rows.map((r) => ({ id: String(r.id), userId: r.user_id, contact: r.contact, key: r.key, text: r.text, deliver_at: Date.parse(r.deliver_at), attempts: r.attempts }));
       for (const r of rows) claimed.set(String(r.id), { prior: r.prior_status, attempts: r.attempts });
       return out.sort((a, b) => a.deliver_at - b.deliver_at || Number(a.id) - Number(b.id));

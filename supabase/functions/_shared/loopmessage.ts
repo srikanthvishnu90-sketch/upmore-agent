@@ -41,3 +41,21 @@ export function loopSend(o: { apiKey: string; fetch?: typeof fetch; pauseMs?: nu
     return { ok: true, id };
   };
 }
+
+// An inbound webhook body. LoopMessage posts inbound messages AND delivery callbacks to the same webhook; only real
+// inbound text reaches the agent. The candidate fields are the ones the owner's test bridge handled (documented and
+// observed shapes); the owner confirms them against LoopMessage's documentation before go-live.
+export type LoopInbound = { kind: "text"; text: string; sender: string; messageId: string | null } | { kind: "ignored"; why: string };
+export function parseLoopInbound(raw: unknown): LoopInbound {
+  // deno-lint-ignore no-explicit-any
+  const b: any = raw && typeof raw === "object" ? raw : {};
+  const msg = b.message && typeof b.message === "object" ? b.message : b.data && typeof b.data === "object" ? b.data : b;
+  const event = String(b.alert_type ?? b.event ?? b.type ?? msg.event ?? msg.type ?? "").toLowerCase();
+  if (event && (!/message|inbound|received/.test(event) || /status|deliver|sent|read|typing|fail/.test(event))) return { kind: "ignored", why: `not an inbound text (${event.slice(0, 40)})` };
+  const text = msg.text ?? msg.body ?? msg.content ?? b.text ?? b.body ?? "";
+  const sender = msg.from ?? msg.sender ?? msg.contact ?? msg.recipient ?? msg.phone ?? b.from ?? b.sender ?? b.contact ?? b.recipient ?? b.phone ?? "";
+  const id = msg.message_id ?? msg.id ?? b.message_id ?? b.id ?? null;
+  if (typeof text !== "string" || !text.trim()) return { kind: "ignored", why: "no text (attachments are not read yet)" };
+  if (typeof sender !== "string" || !sender.trim()) return { kind: "ignored", why: "no sender" };
+  return { kind: "text", text, sender, messageId: id === null || id === undefined || id === "" ? null : String(id).slice(0, 200) };
+}

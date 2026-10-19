@@ -1,8 +1,8 @@
 // WO-003 acceptance tests (architect-authored; Codex makes them pass, never edits them).
 // The eval set is architect-owned; the runner scores any brain against it with a rubric judge.
 // Run: deno test -A --no-check tests/architect/
-import SET from "../../../evals/career/messages.json" with { type: "json" };
-import { runEval, type EvalItem } from "../../../evals/career/run.ts";
+import SET from "../../evals/career/messages.json" with { type: "json" };
+import { runEval, type EvalItem } from "../../evals/career/run.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

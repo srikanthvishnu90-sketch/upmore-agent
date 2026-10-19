@@ -68,3 +68,8 @@ Deno.test("WO-007a/B7 the report lists 10 newest first, says how many more, and 
   assert(r.text.indexOf("Co0") < r.text.indexOf("Co1"), "newest first");
   assert(/and 5 more/.test(r.text), "says what was cut");
 });
+
+Deno.test("WO-007a/B8 a posting first seen at the very instant of the last check is still alerted", () => {
+  const out = planProactive({ users: [user({ last_checked_at: iso(NOW - 5 * 60000) })], postings: [posting("edge", "Data Analyst", { first_seen_at: iso(NOW - 5 * 60000) })], now: NOW });
+  eq(out.filter((o) => o.kind === "alert").length, 1);
+});

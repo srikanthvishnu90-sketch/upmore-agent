@@ -66,9 +66,11 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
   for (const u of o.users) {
     if (!u.prefs || !u.prefs.on) continue;
     const prefs = u.prefs, l = local(o.now, u.tz), since = ms(u.last_checked_at);
-    // Instant alerts: postings first seen since the last check, freshest first, up to the cap left today.
+    // Instant alerts: postings first seen at or after the last check, freshest first, up to the cap left today. "At or
+    // after": a posting first seen at the very instant of a check would otherwise be skipped forever; the outbox's
+    // once-per-key rule keeps the rare re-plan from ever sending twice.
     const fresh = o.postings
-      .filter((p) => ms(p.first_seen_at) > since && matchPosting(p, prefs))
+      .filter((p) => ms(p.first_seen_at) >= since && matchPosting(p, prefs))
       .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
     let room = Math.max(0, Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0));
     const at = isQuiet(l.hour, prefs) ? nextLocal(o.now, u.tz, prefs.quiet_end) : o.now;

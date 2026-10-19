@@ -1,6 +1,6 @@
 # WO-019: A conversation that holds together
 
-Status: part A done (architect) · part B ready after WO-016 merges · Depends on: WO-002, WO-003, WO-016 · Size: M
+Status: part A done (architect) · part B moved to the architect as WO-023 part B (owner, 2026-10-19) · Depends on: WO-002, WO-003, WO-016 · Size: M
 
 ## Why
 Good assistants (Instinct, Muse, ChatGPT, Claude) feel competent because each reply fits the whole conversation: "the

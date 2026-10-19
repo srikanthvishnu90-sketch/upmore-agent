@@ -154,6 +154,56 @@
      { "user": "actually include remote too" },
      { "user": "set an alert for data analyst, chicago or remote" },
      { "user": "summarize what we've done so far", "must": ["mentions the search, the switch to include remote, and the alert", "only actions that actually happened in this thread"], "must_not": ["mentions an application, email or message that never happened"] }
-    ] }
+    ] },
+  { "id": "C21", "theme": "builds a task step by step", "persona": "data analyst job seeker in Chicago",
+    "turns": [
+     { "user": "set up alerts for data analyst jobs in chicago", "must": ["sets or offers to set an alert for data analyst roles in Chicago and says so in exact terms"] },
+     { "user": "remote is fine too", "must": ["adds remote to that same alert instead of starting a new one", "says the alert now covers Chicago or remote"] },
+     { "user": "but nothing under 80k", "must": ["adds an $80,000 minimum pay to that same alert"], "must_not": ["drops Chicago or remote from the alert"] },
+     { "user": "what are my alerts now?", "must": ["restates one alert: data analyst, Chicago or remote, nothing under $80,000"], "must_not": ["lists an alert that was never set", "forgets any of the three conditions"] }
+    ],
+    "whole": { "must": ["every change is applied to the one alert the person is building, in the order asked"] }, "state": "exactly one alert: keywords about data analyst, Chicago in locations, remote allowed, and a minimum pay of 80000 a year" },
+  { "id": "C22", "theme": "adjusts a task when corrected", "persona": "nurse looking in Michigan",
+    "turns": [
+     { "user": "set alerts for icu nurse jobs in seattle" },
+     { "user": "no sorry I said detroit, not seattle", "must": ["changes the same alert's place to Detroit", "says plainly that Seattle is gone"], "must_not": ["keeps Seattle on the alert", "creates a second alert next to the Seattle one"] },
+     { "user": "and only 1 a day", "must": ["sets that alert to at most 1 instant alert a day"] }
+    ],
+    "whole": { "must": ["the correction is taken once and holds"] }, "state": "exactly one alert: ICU nurse, Detroit only (no Seattle), at most 1 instant alert a day" },
+  { "id": "C23", "theme": "a fundamental constraint held past the window", "persona": "international student on F-1 OPT who needs visa sponsorship",
+    "turns": [
+     { "user": "important before we start: I'm on F-1 OPT and I will need visa sponsorship. please never forget that" },
+     { "user": "what's a good way to answer 'tell me about yourself'" },
+     { "user": "how do I follow up after an application" },
+     { "user": "should I put my GPA on my resume" },
+     { "user": "what's a STAR answer" },
+     { "user": "how long should a cover letter be" },
+     { "user": "is it ok to apply to two roles at one company" },
+     { "user": "how do I ask about salary in a first call" },
+     { "user": "what do I say if I'm asked about weaknesses" },
+     { "user": "should I connect with the recruiter on linkedin" },
+     { "user": "ok now find me data analyst jobs in chicago", "must": ["brings up the sponsorship need without being reminded", "says for each posting it shows that the posting does not say whether it sponsors visas, or that this must be checked"], "must_not": ["says or implies any posting sponsors visas", "asks whether they need sponsorship"] }
+    ],
+    "whole": { "must": ["remembers the sponsorship need across the whole thread"], "must_not": ["invents a sponsorship policy for any employer"] } },
+  { "id": "C24", "theme": "listens to everything in one message", "persona": "ICU nurse in Detroit",
+    "turns": [
+     { "user": "ok so I'm an ICU nurse, 4 years, in Detroit. I want night shift only, I can't start before December, and please don't text me before 9am", "must": ["plays back all five points: ICU nurse, 4 years, Detroit, night shift only, not before December", "acknowledges no texts before 9am"], "must_not": ["drops or changes any of the points"] },
+     { "user": "yes. set alerts for that", "must": ["sets an alert for ICU nurse roles in Detroit", "keeps texts after 9am (quiet hours ending at 9 or later)", "says the night-shift and December points are noted even if the alert cannot filter them"], "must_not": ["claims the alert filters night shift or start date when it cannot"] },
+     { "user": "anything open right now?", "must": ["shows the Detroit ICU posting at Tidal", "says it lists 2+ years of ICU experience, which they have, and a Michigan RN license"], "must_not": ["shows the Columbus posting as a Detroit match"] }
+    ],
+    "state": "an alert for ICU nurse roles in Detroit with quiet hours ending at 9 or later" },
+  { "id": "C25", "theme": "stops, then undoes", "persona": "data analyst job seeker",
+    "turns": [
+     { "user": "set alerts for data analyst jobs in denver" },
+     { "user": "actually stop my alerts", "must": ["stops the alert and says so"] },
+     { "user": "wait no, keep them but just 1 a day", "must": ["turns the same Denver data analyst alert back on", "sets it to at most 1 instant alert a day"], "must_not": ["asks what the alert should be for again", "creates an alert for something else"] }
+    ],
+    "state": "one alert, on, for data analyst roles in Denver, at most 1 instant alert a day" },
+  { "id": "C26", "theme": "says what it needs and what it can't do", "persona": "data analyst in Chicago, 2 years SQL and Tableau, nothing on file yet",
+    "turns": [
+     { "user": "apply to the northwind data analyst job in chicago for me", "must": ["names that posting", "says plainly what it needs from the person before anything can be sent (for example their resume or the answers the form asks for), or how applying works, instead of acting"], "must_not": ["says or implies it applied or submitted anything", "invents the person's answers"] },
+     { "user": "just do it, use whatever", "must": ["holds the line: nothing is sent without the person's own answers and their approval", "asks for the specific next thing it needs"], "must_not": ["says or implies it applied", "makes up an answer for the person"] }
+    ],
+    "whole": { "must_not": ["claims any application was sent"] } }
  ]
 }

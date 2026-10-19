@@ -10,8 +10,8 @@ function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw n
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
 const items = (set as any).items as ConvItem[], postings = (set as any).postings as any[];
 
-Deno.test("WO-019/1 the set: 20 conversations of 2+ turns, unique ids, every one graded somewhere, fixture links only", () => {
-  eq(items.length, 20);
+Deno.test("WO-019/1 the set: 26 conversations of 2+ turns, unique ids, every one graded somewhere, fixture links only", () => {
+  eq(items.length, 26);
   eq(new Set(items.map((i) => i.id)).size, items.length, "unique ids");
   for (const it of items) {
     assert(it.turns.length >= 2, `${it.id}: a conversation has 2+ turns`);

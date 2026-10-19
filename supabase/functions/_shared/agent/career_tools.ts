@@ -7,6 +7,17 @@ import { searchPostings } from "../career_search.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
+// A confirmation is the person's own yes, in this turn's message, to a fact they saw in an earlier turn (D-007): the
+// model can never confirm a fact it just wrote, or one the person has not answered.
+const AFFIRM = /\b(yes|yep|yeah|yup|correct|right|confirm(?:ed)?|accurate|exactly|true|looks (?:good|right)|that'?s (?:right|correct|it))\b/i;
+const DENY = /\b(no|nope|not|wrong|incorrect|isn'?t|don'?t|doesn'?t|never|actually|but|change|fix|correct (?:it|that|this))\b/i;
+function confirmationRefusal(c: ToolCtx, id: string): string | null {
+  const t = c.turn;
+  if (!t) return "no confirmation from the person in this turn";
+  if (t.added.includes(id)) return `fact ${id} was added in this turn; show it to the person and wait for their reply before confirming`;
+  if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
+  return null;
+}
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
 
@@ -24,13 +35,23 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]> 
       name: "add_profile_fact", effect: "write_own",
       description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words. It is not usable until they confirm it.",
       input_schema: obj({ kind: str("experience | education | skill | goal | location | preference | other"), text: str("The fact in the person's own words") }, ["kind", "text"]),
-      run: async (i, c) => ({ fact: CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" }) }),
+      run: async (i, c) => {
+        const fact = CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" });
+        c.turn?.added.push(fact.id);
+        return { fact };
+      },
     },
     {
       name: "confirm_profile_fact", effect: "write_own",
-      description: "Mark a draft fact confirmed, only after the person has said it is right.",
+      description: "Mark a draft fact confirmed. Only works when the person's message in this turn is a plain yes to a fact shown to them in an earlier turn; otherwise it refuses and you ask them.",
       input_schema: obj({ id: str("The fact id, e.g. F-001") }, ["id"]),
-      run: async (i, c) => { const f = CareerProfile.confirmFact(profileOf(c), String(i.id)); if (!f) throw new Error(`no fact ${i.id} on file`); return { fact: f }; },
+      run: async (i, c) => {
+        const id = String(i.id);
+        if (!(profileOf(c).facts || []).some((f: any) => f.id === id)) throw new Error(`no fact ${id} on file`);
+        const refusal = confirmationRefusal(c, id);
+        if (refusal) throw new Error(`not confirmed: ${refusal}`);
+        return { fact: CareerProfile.confirmFact(profileOf(c), id) };
+      },
     },
     {
       name: "list_applications", effect: "read",

@@ -35,7 +35,7 @@ import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor,
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
-import { chooseBrain, agentTurn } from "./career_brain.ts";
+import { chooseBrain, agentTurn, afterErase } from "./career_brain.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
@@ -216,11 +216,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: any;
       let agentMeta: Record<string, unknown> | null = null;
-      if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent") {
+      // Account controls (STOP, resume, erase) and an account pause are the host's, before any model call.
+      if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-        const hist = await admin.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20);
-        const history = ((hist.data || []) as any[]).reverse()
+        const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(20);
+        if (hist.error) throw new Error(`agent history: ${hist.error.message}`);
+        const history = afterErase((hist.data || []) as any[]).reverse()
           .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
           .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
         const postingsDb = supabasePostingsDb(admin);
@@ -230,7 +232,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
           if (costErr) console.error("agent turn cost not recorded:", costErr.message);
         }
-        if (turn.stopped === "model_error") {
+        if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
           console.error("agent brain: model unavailable, answering with the router");
           out = host.runTurn(message, ctx);
         } else {

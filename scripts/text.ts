@@ -84,8 +84,10 @@ async function line(input: string): Promise<boolean> {
     catch (e) { log(`  (couldn't read ${path}: ${e instanceof Error ? e.message : e})`); }
     return true;
   }
-  if (t.startsWith("/as ")) { as = t.slice(4).trim(); log(`  (now texting as ${as})`); return true; }
-  if (t === "/reset") { const p = await mem.userFor(as); if (p) { await mem.setStores(p.id, {}); const st = mem.dump(); st.history[p.id] = []; Object.assign(mem, memoryStore(st)); } log(`  (forgot ${as})`); return true; }
+  // Attachments belong to the person they were attached for: switching person or forgetting one drops them.
+  const dropPending = () => { if (pending.length) log(`  (dropped ${pending.length} attachment${pending.length === 1 ? "" : "s"} meant for ${as})`); pending = []; };
+  if (t.startsWith("/as ")) { dropPending(); as = t.slice(4).trim(); log(`  (now texting as ${as})`); return true; }
+  if (t === "/reset") { dropPending(); const p = await mem.userFor(as); if (p) await mem.forget(p.id); log(`  (forgot ${as}, including anything queued for them)`); return true; }
   if (t === "/state") { const p = await mem.userFor(as); log(JSON.stringify(p ? await mem.stores(p.id) : {}, null, 1)); return true; }
   if (t.startsWith("/clock")) {
     const d = parseDelta(t.slice(6)); if (d === null) { log("  (use /clock +30m, +2h or +1d)"); return true; }

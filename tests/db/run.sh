@@ -111,6 +111,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
 # Idempotent: the career alerts migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
+# Idempotent: the channel delivery migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

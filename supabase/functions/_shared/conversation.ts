@@ -35,6 +35,9 @@ export function normalizeContact(contact: string): string {
   if (digits.length < 8 || digits.length > 15) throw new Error("Invalid contact.");
   return "+" + digits;
 }
+
+// ---- bubble formatting (moved unchanged from imessage-inbound) ----
+// Short texting-sized bubbles on sentence boundaries; each bare URL gets its
 // own bubble so iMessage renders a link preview card; at most 4 bubbles.
 const URL_RE = /https?:\/\/[^\s<>"']+/g;
 const isLinkBubble = (s: string) => /^https?:\/\/\S+$/.test(s.trim());

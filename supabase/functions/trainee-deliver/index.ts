@@ -1,0 +1,16 @@
+// trainee-deliver (WO-013b-1): the every-minute delivery run. Logic and tests: ./handler.ts, tests/edge/channel-delivery.test.ts.
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
+import { supabaseChannelStore } from "../_shared/channel_store.ts";
+import { loopSend } from "../_shared/loopmessage.ts";
+import { handleDeliver } from "./handler.ts";
+
+serve((req) => {
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return new Response(JSON.stringify({ error: "not configured: Supabase URL or service key missing" }), { status: 503, headers: { "content-type": "application/json" } });
+  const admin = createClient(url, key, { auth: { persistSession: false } });
+  return handleDeliver(req, {
+    env: Deno.env, now: Date.now, store: () => supabaseChannelStore(admin), send: (apiKey) => loopSend({ apiKey }),
+    recordRun: async (r) => { const { error } = await admin.from("channel_delivery_runs").insert({ run_at: r.at, delivered: r.delivered, failed: r.failed, retried: r.retried, skipped_opt_out: r.skipped_opt_out, capped: r.capped, swept: r.swept, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
+  });
+});

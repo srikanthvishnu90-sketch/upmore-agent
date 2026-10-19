@@ -37,7 +37,7 @@ export function normalizeContact(contact: string): string {
   return "+" + digits;
 }
 
-// ---- bubble formatting (moved unchanged from imessage-inbound) ----
+// ---- bubble formatting (first written for the retired imessage-inbound test bridge) ----
 // Short texting-sized bubbles on sentence boundaries; each bare URL gets its
 // own bubble so iMessage renders a link preview card; at most 4 bubbles.
 const URL_RE = /https?:\/\/[^\s<>"']+/g;

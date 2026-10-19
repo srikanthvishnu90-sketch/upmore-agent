@@ -5322,7 +5322,8 @@
       ["agent_model_calls", "created_at,id"],
       ["agent_turn_costs", "created_at,id"],
       ["career_alert_prefs", "updated_at"],
-      ["career_outbox", "created_at,id"]];
+      ["career_outbox", "created_at,id"],
+      ["channel_contacts", "created_at,contact"]];
     const out = { exported_at: new Date().toISOString(), user_id: financeTicket.owner, _unreadable: [] };
     const PAGE = 1000;
     const exportRows = async (t, order, cols) => {

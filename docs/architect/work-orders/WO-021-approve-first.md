@@ -55,6 +55,7 @@ Status: ready · Depends on: PR #25 (`--approved`), D-014 · Size: L, in four ca
 
   The enqueue call takes that hash as the approval reference. A planner-side hash would not match the engine's, so it
   would stop every application.
+- **W2 and W3 moved to the architect on 2026-10-20 and are built under WO-022** (`WO-022-batch-over-text.md`). Two changes from what is below: a card is declined with "no", never "stop" (SMS's opt-out word); and a yes counts only while the card is the thread's last word.
 - **W2 (Codex): the batch card text shows every answer** (6a).
   - Use the card lines from W1; the text stays under 1,600 characters per card.
   - Tests: the card names every field the payload sends, and nothing else.

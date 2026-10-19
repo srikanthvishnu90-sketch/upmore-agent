@@ -201,6 +201,28 @@ test("run on a person's computer refuses a service key before anything is read o
   const missing = await run({ UPMORE_SUPABASE_ANON_KEY: tok("anon") });
   assert.equal(missing.code, 2);
   assert.match(missing.out, /UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN/);
+  // prepare-batch (WO-022) signs in the same way and is held to the same refusal.
+  const urls = path.join(root, "urls.txt");
+  fs.writeFileSync(urls, "https://jobs.lever.co/test/1\nnot a link\n");
+  const batch = (env, file = urls) =>
+    new Promise((resolve) => {
+      const p = spawn(process.env.DENO_BIN || "deno", ["run", "-A", path.join(__dirname, "../workers/career-browser/approve-first.ts"), "prepare-batch", file, path.join(root, "facts.json"), path.join(root, "synthetic.pdf")], {
+        env: { ...process.env, UPMORE_SUPABASE_URL: "http://127.0.0.1:9", ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let out = "";
+      p.stdout.on("data", (b) => (out += b));
+      p.stderr.on("data", (b) => (out += b));
+      p.once("exit", (code) => resolve({ code, out }));
+    });
+  const svc = await batch({ UPMORE_SUPABASE_ANON_KEY: tok("anon"), UPMORE_ACCESS_TOKEN: tok("service_role"), UPMORE_REFRESH_TOKEN: "r" });
+  assert.equal(svc.code, 2);
+  assert.match(svc.out, /SERVICE_KEY_REFUSED/);
+  const none = path.join(root, "none.txt");
+  fs.writeFileSync(none, "http://insecure.example.test/job\n");
+  const empty = await batch({ UPMORE_SUPABASE_ANON_KEY: tok("anon") }, none);
+  assert.equal(empty.code, 2);
+  assert.match(empty.out, /1 to 50 https job links/);
 });
 
 function signIn(appUrl, timeoutMs) {

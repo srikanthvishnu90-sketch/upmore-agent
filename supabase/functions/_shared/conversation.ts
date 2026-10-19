@@ -63,12 +63,42 @@ function splitLong(text: string, max: number): string[] {
   return out.length ? out : [t.slice(0, max)];
 }
 
+// The limits are the contract: at most MAX_BUBBLES bubbles, none longer than BUBBLE_CHARS, a bare link alone (a link is
+// never cut, so a link bubble is as long as its link). A reply that does not fit is cut at a word and the last bubble
+// says so; content is never dropped silently.
+export const CUT_NOTE = "(That's where I had to stop. Ask me for the rest.)";
+function packBubbles(segments: string[]): string[] {
+  const sized: string[] = [];
+  for (const s of segments) {
+    if (isLinkBubble(s) || s.length <= BUBBLE_CHARS) sized.push(s);
+    else sized.push(...splitLong(s, BUBBLE_CHARS));
+  }
+  // Join neighbouring text bubbles while the joined bubble still fits, so short paragraphs travel together.
+  const packed: string[] = [];
+  for (const s of sized) {
+    const last = packed[packed.length - 1];
+    if (last !== undefined && !isLinkBubble(last) && !isLinkBubble(s) && last.length + 2 + s.length <= BUBBLE_CHARS) packed[packed.length - 1] = `${last}\n\n${s}`;
+    else packed.push(s);
+  }
+  if (packed.length <= MAX_BUBBLES) return packed;
+  const keep = packed.slice(0, MAX_BUBBLES);
+  let j = keep.length - 1;
+  while (j >= 0 && isLinkBubble(keep[j])) j--;
+  if (j < 0) { keep[keep.length - 1] = CUT_NOTE; return keep; }
+  const room = BUBBLE_CHARS - CUT_NOTE.length - 1;
+  let text = keep[j];
+  if (text.length > room) { const cut = text.lastIndexOf(" ", room); text = text.slice(0, cut > room * 0.5 ? cut : room).trimEnd(); }
+  keep[j] = `${text} ${CUT_NOTE}`;
+  return keep;
+}
+
 export function toBubbles(reply: string): string[] {
   // Strip hidden markers (exec-offer etc.) — they'd render as raw text in iMessage.
   const clean = reply.replace(/<!--[\s\S]*?-->/g, "").trim();
   if (!clean) return [];
   const urls = clean.match(URL_RE) ?? [];
-  if (urls.length > 2) return splitLong(clean, BUBBLE_CHARS).slice(0, MAX_BUBBLES);
+  // Many links: no preview cards (a wall of them), plain texting-sized text instead.
+  if (urls.length > 2) return packBubbles(clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean));
   const raw: string[] = [];
   for (const para of clean.split(/\n\s*\n/)) {
     let buf = "";
@@ -96,23 +126,7 @@ export function toBubbles(reply: string): string[] {
     }
     flush();
   }
-  const sized: string[] = [];
-  for (const b of raw) {
-    if (isLinkBubble(b) || b.length <= BUBBLE_CHARS) sized.push(b);
-    else sized.push(...splitLong(b, BUBBLE_CHARS));
-  }
-  while (sized.length > MAX_BUBBLES) {
-    let k = -1;
-    for (let i = 0; i < sized.length - 1; i++) {
-      if (!isLinkBubble(sized[i]) && !isLinkBubble(sized[i + 1])) {
-        k = i;
-        break;
-      }
-    }
-    if (k < 0) break;
-    sized.splice(k, 2, sized[k] + "\n\n" + sized[k + 1]);
-  }
-  return sized;
+  return packBubbles(raw);
 }
 
 const TEXT_MIME = /^text\/|^application\/(json|csv)$/;
@@ -126,7 +140,9 @@ export async function handleInbound(i: Inbound, d: { brain: Brain; store: Conver
   let reply: string;
   try {
     const r = await d.brain({ userId: person.id, message: i.text, history, stores: JSON.parse(JSON.stringify(stores)), attachments });
-    reply = String(r.reply || "").trim() || SAFE_ERROR_REPLY;
+    reply = String(r.reply || "").trim();
+    // An empty reply is a failure: the person is told nothing was saved, so nothing is.
+    if (!reply) throw new Error("the brain returned an empty reply");
     await d.store.setStores(person.id, r.stores);
   } catch (e) {
     console.error("conversation: brain failed:", e instanceof Error ? e.message : String(e));
@@ -142,7 +158,7 @@ export interface MemoryState {
   people: Person[]; history: Record<string, Turn[]>; stores: Record<string, Record<string, unknown>>;
   queue: { userId: string; key: string; text: string; at: number }[]; delivered: string[]; seq: number;
 }
-export function memoryStore(initial?: MemoryState): ConversationStore & { dump(): MemoryState } {
+export function memoryStore(initial?: MemoryState): ConversationStore & { dump(): MemoryState; forget(userId: string): Promise<void> } {
   const st: MemoryState = initial ? JSON.parse(JSON.stringify(initial)) : { people: [], history: {}, stores: {}, queue: [], delivered: [], seq: 0 };
   const byContact = (c: string) => st.people.find((p) => p.contact === c) || null;
   const store = {
@@ -174,6 +190,9 @@ export function memoryStore(initial?: MemoryState): ConversationStore & { dump()
       }
       return out;
     },
+    // Forget a person (the simulator's /reset): their state, history and anything still queued for them. Keys already
+    // delivered stay recorded, so an alert they already got is never sent twice.
+    async forget(userId: string) { st.stores[userId] = {}; st.history[userId] = []; st.queue = st.queue.filter((q) => q.userId !== userId); },
     dump() { return JSON.parse(JSON.stringify(st)); },
   };
   return store;

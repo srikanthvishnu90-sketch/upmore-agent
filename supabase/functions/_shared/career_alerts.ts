@@ -57,6 +57,8 @@ function local(at: number, tz: string): { date: string; hour: number; minute: nu
 }
 const isQuiet = (hour: number, p: AlertPrefs) =>
   p.quiet_start === p.quiet_end ? false : p.quiet_start > p.quiet_end ? hour >= p.quiet_start || hour < p.quiet_end : hour >= p.quiet_start && hour < p.quiet_end;
+// Whether an instant falls in the person's quiet hours, in their zone.
+export const quietAt = (at: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">) => isQuiet(local(at, tz).hour, p as AlertPrefs);
 // The first instant at or after `from` when the person's clock reads hour:00. Steps of 15 minutes, so zones on a half or
 // quarter hour (India, Nepal) land on their own hour, and a daylight-saving jump is crossed rather than assumed.
 function nextLocal(from: number, tz: string, hour: number): number {

@@ -39,6 +39,14 @@ create table public.agent_threads (
   user_id uuid not null references auth.users(id) on delete cascade,
   title text);
 
+-- Existing production chat messages (no user_id: a message belongs to its thread); the columns every insert in
+-- supabase/functions writes.
+create table public.agent_messages (
+  id bigserial primary key,
+  thread_id uuid not null references public.agent_threads(id) on delete cascade,
+  role text not null, content text not null, meta jsonb,
+  created_at timestamptz not null default now());
+
 create table public.simplefin_connections (
   user_id uuid primary key references auth.users(id) on delete cascade);
 

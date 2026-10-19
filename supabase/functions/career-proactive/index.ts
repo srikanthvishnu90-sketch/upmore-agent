@@ -19,6 +19,25 @@ serve((req) => {
       if (error) throw new Error(`read finished applications: ${error.message}`);
       return data ?? [];
     },
-    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
+    readyApplications: async () => {
+      const { data, error } = await admin.from("career_apply_prepared").select("id,user_id,company,card_lines,created_at")
+        .eq("state", "ready").order("created_at", { ascending: true }).limit(2000);
+      if (error) throw new Error(`read prepared applications: ${error.message}`);
+      const users = [...new Set((data ?? []).map((r: any) => r.user_id))];
+      if (!users.length) return [];
+      const prefs = await admin.from("career_alert_prefs").select("user_id,tz,prefs").in("user_id", users);
+      if (prefs.error) throw new Error(`read quiet hours: ${prefs.error.message}`);
+      const of = new Map((prefs.data ?? []).map((p: any) => [p.user_id, p]));
+      return (data ?? []).map((r: any) => {
+        const p: any = of.get(r.user_id);
+        return { ...r, tz: p?.tz ?? null, quiet_start: p?.prefs?.quiet_start, quiet_end: p?.prefs?.quiet_end };
+      });
+    },
+    pushCard: async (userId, ids, text) => {
+      const { data, error } = await admin.rpc("career_apply_card_push_as", { p_user: userId, p_ids: ids, p_text: text });
+      if (error) throw new Error(`push a card: ${error.message}`);
+      return data ?? null;
+    },
+    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
   });
 });

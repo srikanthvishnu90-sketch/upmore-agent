@@ -2,7 +2,7 @@
 // the employer's own form questions (Greenhouse publishes them) are answered from the person's confirmed facts; anything
 // missing is asked ONCE and reused for every later application; the batch is admitted against the limits up front.
 // Contract: docs/architect/work-orders/WO-009-real-submissions.md (009a). Run: deno test -A --no-check tests/architect/
-import { greenhouseQuestions, classifyField, planBatch } from "../../../supabase/functions/_shared/career_apply.ts";
+import { greenhouseQuestions, classifyField, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

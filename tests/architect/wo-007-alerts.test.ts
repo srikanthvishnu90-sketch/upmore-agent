@@ -2,7 +2,7 @@
 // Alerts and reports: new postings that match what the person asked for reach them within minutes, capped,
 // held in quiet hours, and everything else rolls into one daily report at their time. Pure planning; delivery is
 // the conversation interface's proactive queue (WO-004). Contract: docs/architect/work-orders/WO-007-alerts-reports.md
-import { planProactive, matchPosting, type AlertPrefs, type PlanUser } from "../../../supabase/functions/_shared/career_alerts.ts";
+import { planProactive, matchPosting, type AlertPrefs, type PlanUser } from "../../supabase/functions/_shared/career_alerts.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
@@ -25,7 +25,7 @@ Deno.test("WO-007/1 matching: keywords in the title, location or remote, closed 
 });
 
 Deno.test("WO-007/2 a new match becomes one instant alert with company, title, place, minutes since posted and the link", () => {
-  const out = planProactive({ users: [user()], postings: [posting("1", "Data Analyst", "Stripe", "Remote - US", 4)], now: NOW });
+  const out = (planProactive as (o: any) => any[])({ users: [user()], postings: [posting("1", "Data Analyst", "Stripe", "Remote - US", 4)], now: NOW });
   eq(out.length, 1);
   const a = out[0];
   eq([a.userId, a.key, a.kind], ["u1", "alert:greenhouse:stripe:1", "alert"]);
@@ -36,13 +36,13 @@ Deno.test("WO-007/2 a new match becomes one instant alert with company, title, p
 });
 
 Deno.test("WO-007/3 only postings first seen since the last check are alerted", () => {
-  const out = planProactive({ users: [user({ last_checked_at: iso(NOW - 10 * 60000) })], postings: [posting("old", "Data Analyst", "Stripe", "Remote", 30), posting("new", "Data Analyst", "Ramp", "Remote", 5)], now: NOW });
+  const out = (planProactive as (o: any) => any[])({ users: [user({ last_checked_at: iso(NOW - 10 * 60000) })], postings: [posting("old", "Data Analyst", "Stripe", "Remote", 30), posting("new", "Data Analyst", "Ramp", "Remote", 5)], now: NOW });
   eq(out.filter((o) => o.kind === "alert").map((o) => o.key), ["alert:greenhouse:ramp:new"]);
 });
 
 Deno.test("WO-007/4 the daily instant cap holds; the rest wait for the report (never dropped)", () => {
   const ps = [1, 2, 3, 4, 5].map((i) => posting(String(i), "Data Analyst", `Co${i}`, "Remote", i));
-  const out = planProactive({ users: [user({ instant_sent_today: 1 })], postings: ps, now: NOW });
+  const out = (planProactive as (o: any) => any[])({ users: [user({ instant_sent_today: 1 })], postings: ps, now: NOW });
   const alerts = out.filter((o) => o.kind === "alert");
   eq(alerts.length, 2, "cap 3 per day, 1 already sent");
   eq(alerts.map((a) => a.key), ["alert:greenhouse:co1:1", "alert:greenhouse:co2:2"], "freshest first");
@@ -53,7 +53,7 @@ Deno.test("WO-007/4 the daily instant cap holds; the rest wait for the report (n
 Deno.test("WO-007/5 quiet hours: an alert found at night is scheduled for the end of quiet hours in the person's zone", () => {
   const night = Date.UTC(2026, 9, 19, 5); // 01:00 New York
   const p = { ...posting("1", "Data Analyst", "Stripe", "Remote", 3), first_seen_at: iso(night - 3 * 60000) };
-  const out = planProactive({ users: [user({ last_checked_at: iso(night - 15 * 60000) })], postings: [p], now: night });
+  const out = (planProactive as (o: any) => any[])({ users: [user({ last_checked_at: iso(night - 15 * 60000) })], postings: [p], now: night });
   eq(out.length, 1);
   eq(out[0].at, Date.UTC(2026, 9, 19, 11), "07:00 New York = 11:00 UTC");
 });
@@ -62,20 +62,20 @@ Deno.test("WO-007/6 the daily report goes once a day at the person's hour with t
   const at8 = Date.UTC(2026, 9, 20, 12); // 08:00 New York next day
   const ps = [posting("1", "Data Analyst", "Stripe", "Remote", 60 * 20), posting("2", "Data Analyst", "Ramp", "Remote", 60 * 10)].map((p) => ({ ...p, first_seen_at: iso(at8 - 60000 * 60 * (p.job_id.endsWith(":1") ? 20 : 10)) }));
   const u = user({ last_report_on: "2026-10-19", last_checked_at: iso(at8 - 15 * 60000), held: ["greenhouse:stripe:1"] });
-  const out = planProactive({ users: [u], postings: ps, now: at8 });
+  const out = (planProactive as (o: any) => any[])({ users: [u], postings: ps, now: at8 });
   const rep = out.filter((o) => o.kind === "report");
   eq(rep.length, 1);
   eq(rep[0].key, "report:2026-10-20");
   assert(rep[0].text.includes("Stripe") && rep[0].text.includes("Ramp"), "lists the matches from the last day");
   assert(rep[0].text.includes("https://boards.greenhouse.io/stripe/jobs/1"), "with links");
-  const again = planProactive({ users: [{ ...u, last_report_on: "2026-10-20" }], postings: ps, now: at8 + 600000 });
+  const again = (planProactive as (o: any) => any[])({ users: [{ ...u, last_report_on: "2026-10-20" }], postings: ps, now: at8 + 600000 });
   eq(again.filter((o) => o.kind === "report").length, 0, "once a day");
 });
 
 Deno.test("WO-007/7 alerts off means nothing at all; a report with no matches says so instead of staying silent", () => {
-  eq(planProactive({ users: [user({ prefs: prefs({ on: false }) })], postings: [posting("1", "Data Analyst", "Stripe", "Remote", 3)], now: NOW }), []);
+  eq((planProactive as (o: any) => any[])({ users: [user({ prefs: prefs({ on: false }) })], postings: [posting("1", "Data Analyst", "Stripe", "Remote", 3)], now: NOW }), []);
   const at8 = Date.UTC(2026, 9, 20, 12);
-  const out = planProactive({ users: [user({ last_report_on: "2026-10-19", last_checked_at: iso(at8 - 15 * 60000) })], postings: [], now: at8 });
+  const out = (planProactive as (o: any) => any[])({ users: [user({ last_report_on: "2026-10-19", last_checked_at: iso(at8 - 15 * 60000) })], postings: [], now: at8 });
   const rep = out.filter((o) => o.kind === "report");
   eq(rep.length, 1);
   assert(/no new/i.test(rep[0].text), "honest empty report");

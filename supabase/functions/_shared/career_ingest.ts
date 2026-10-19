@@ -183,8 +183,16 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
     async openForBoard(b) {
       return pages((x, y) => admin.from(T).select("job_id").eq("provider", b.provider).eq("board", b.board).is("closed_at", null).order("job_id").range(x, y), "read board postings");
     },
+    // Every open posting first seen after t, in pages (no description): the alerts run counts these in reports, so a
+    // cut list would undercount. Bounded at 20,000 rows (~6 MB), far above a day of new postings from 305 boards.
     async newSince(t) {
-      return must<Posting[]>(await admin.from(T).select(LIST_COLUMNS).is("closed_at", null).gt("first_seen_at", t).order("first_seen_at", { ascending: false }).limit(1000), "read new postings") || [];
+      const out: Posting[] = [];
+      for (let from = 0; from < 20000; from += PAGE) {
+        const got = must<Posting[]>(await admin.from(T).select(LIST_COLUMNS).is("closed_at", null).gt("first_seen_at", t).order("first_seen_at", { ascending: false }).order("job_id").range(from, from + PAGE - 1), "read new postings") || [];
+        out.push(...got);
+        if (got.length < PAGE) break;
+      }
+      return out;
     },
     async search(words, limit) {
       let q = admin.from(T).select("*").is("closed_at", null);

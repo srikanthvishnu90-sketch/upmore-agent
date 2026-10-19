@@ -6,6 +6,8 @@
 //                     the person's confirmed facts; anything missing is asked once for the whole batch and saved, so later
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
+import { mapQuestion } from "./question_map.ts";
+import { chooseOption, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
 export interface Observation {
@@ -145,6 +147,46 @@ function matchOption(value: string, options: { label: string; value: string }[])
   return null;
 }
 
+// WO-020 part 2: a question the keyword classifier does not place is read by meaning (question_map.ts) and answered from
+// the person's own confirmed facts, onto the employer's own options (answer_options.ts). What each kind may do:
+//   fact, attestation  the person's stated answer (an attestation is never a default: it exists only if they said it)
+//   derived            computed from what they stated: "worked here before" from their confirmed employer list
+//   consent            their standing consent, shown on the approval card as theirs
+//   screen             this job's office days, relocation or travel, from their stated yes/no preference; anything else
+//                      about the job is asked
+//   essay, file, unknown  asked (an essay is drafted only in a later step, from confirmed facts, and shown in full)
+// Contact and identity facts go only into a free-text box or onto a matching option, never into a checkbox.
+const TEXT_FACTS = new Set(["full_name", "legal_name", "first_name", "last_name", "preferred_name", "email", "phone", "street_address",
+  "full_address", "city", "postal_code", "location", "linkedin", "github", "website", "current_employer", "current_title", "school",
+  "major", "salary_expectation", "current_compensation", "signature", "references", "timezone"]);
+const PREFERENCE: Record<string, string> = { job_onsite: "onsite_ok", job_relocation: "relocation", job_travel: "travel_ok" };
+const SPLIT = /\s*[;,\n]\s*/;
+function byMeaning(f: FormField, company: string, answers: Record<string, Answer>): Answer | null {
+  const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
+  if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+  let a: Answer | undefined;
+  if (m.fact === "worked_here_before" && answers.former_employers) {
+    const co = normCompany(company);
+    const listed = String(answers.former_employers.value).split(SPLIT).map(normCompany).filter(Boolean);
+    a = { value: co && listed.some((x) => x === co || co.includes(x) || x.includes(co)) ? "Yes" : "No", factId: answers.former_employers.factId };
+  } else if (m.kind === "screen") {
+    const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
+    // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
+    if (pref && yesNoOf(pref.value)) a = pref;
+  } else {
+    a = answers[m.fact];
+  }
+  if (!a) return null;
+  const choice = f.options.length ? chooseOption(m.fact, String(a.value), f.options, f.label) : null;
+  if (f.options.length) return choice === null ? null : { value: choice, factId: a.factId };
+  if (f.type === "checkbox") {
+    const yn = yesNoFromFact(m.fact, String(a.value), f.label) ?? yesNoOf(a.value);
+    return yn ? { value: yn, factId: a.factId } : null;
+  }
+  if (TEXT_FACTS.has(m.fact) && !FREE_TEXT.test(f.type)) return null;
+  return { value: String(a.value), factId: a.factId };
+}
+
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
   const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[] }>();
@@ -158,9 +200,14 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       const key = classifyField(f.label, f.type);
-      const a: Answer | undefined = (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+      const direct: Answer | undefined = (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+      let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
-      if (value !== null && f.options.length) value = matchOption(value, f.options);
+      if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
+      if (value === null && !direct) {
+        const m = byMeaning(f, p.company, o.answers);
+        if (m) { a = m; value = m.value; }
+      }
       if (value !== null && value !== "") { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;

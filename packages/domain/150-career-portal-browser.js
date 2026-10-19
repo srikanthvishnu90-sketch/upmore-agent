@@ -248,6 +248,7 @@ const CareerPortalBrowser = (() => {
     // inputType is the helper's (type attribute || tag name): a plain <input> with no type arrives as "input".
     const ownText = /^(text|input|email|tel|url|search|textarea)$/.test(inputType || "text") && !(f && f.tag === "select") &&
       !/\breferr|\breferen|\bteam member|\breferee|\bemergency|\bmanager|\bsupervisor|\brecruiter|\bspouse|\bparent|\bguardian|\bemployee who/.test(eff);
+    const educationValue = !/^(checkbox|radio|group)$/.test(inputType || "text");
     if (inputType === "file") {
       // File inputs are the exception to label-first: their visible
       // label is often just "Attach", and the binding carries no typed
@@ -277,10 +278,10 @@ const CareerPortalBrowser = (() => {
     // D4 (BUG-062): education + country keys — the answers exist in the
     // fact bank (F-001 shape) and now have keys to carry them.
     if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };
-    if (/graduat/.test(eff)) return { kind: "standard", profile_key: "education_graduation_year" };
-    if (/fields? of study|discipline|\bmajor\b|area of study|concentration/.test(eff)) return { kind: "standard", profile_key: "education_discipline" };
-    if (/\bgpa\b|grade point average/.test(eff)) return { kind: "standard", profile_key: "education_gpa" };
-    if (/school|university|college|institution|alma mater/.test(eff)) return { kind: "standard", profile_key: "education_school" };
+    if (educationValue && /graduat/.test(eff)) return { kind: "standard", profile_key: "education_graduation_year" };
+    if (educationValue && /fields? of study|discipline|\bmajor\b|area of study|concentration/.test(eff)) return { kind: "standard", profile_key: "education_discipline" };
+    if (educationValue && /\bgpa\b|grade point average/.test(eff)) return { kind: "standard", profile_key: "education_gpa" };
+    if (ownText && /school|university|college|institution|alma mater/.test(eff)) return { kind: "standard", profile_key: "education_school" };
     // BUG-238: level questions take the derived LEVEL ("Bachelor's
     // Degree" from the education fact), never the degree NAME; a
     // COMPLETED-level question routes to a key only an explicitly
@@ -299,8 +300,8 @@ const CareerPortalBrowser = (() => {
     // are "Bachelor's Degree"-style levels, never degree names, so a
     // widget field labeled just "Degree" takes the derived level. A
     // text degree field keeps the degree name (education_degree).
-    if (/^degree$/.test(eff) && f && /select__input/.test(f.cls || "")) return { kind: "screening", question_key: "education_level" };
-    if (/\bdegree\b|bachelor/.test(eff)) return { kind: "standard", profile_key: "education_degree" };
+    if (educationValue && /^degree$/.test(eff) && f && /select__input/.test(f.cls || "")) return { kind: "screening", question_key: "education_level" };
+    if (educationValue && /\bdegree\b|bachelor/.test(eff)) return { kind: "standard", profile_key: "education_degree" };
     if (f && /^start_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_start_date" }; // Greenhouse's built-in education-entry fields slug to start_year_<n> / end_year_<n> (labels: "Start date year")
     if (f && /^end_year(_\d+)?$/.test(slug(f.name || ""))) return { kind: "standard", profile_key: "education_end_date" };
     if (/(start|begin)/.test(eff) && /(education|school|university|college)/.test(hay)) return { kind: "standard", profile_key: "education_start_date" };
@@ -334,7 +335,9 @@ const CareerPortalBrowser = (() => {
     // The react-select marker (BUG-207): an input the board renders as a
     // select__input search box is a widget whose value is a chosen
     // option, never its text — the helper drives it as one.
-    const widget = f && /select__input/.test(f.cls || "") ? "react-select" : null;
+    // A lone checkbox cannot distinguish a confirmed No from an untouched answer (Ashby uses one behind Yes/No buttons).
+    const widget = f.inputType === "checkbox" && kind.kind === "screening" ? "lone-checkbox"
+      : /select__input/.test(f.cls || "") ? "react-select" : null;
     if (f.tag === "select") return { field_id: null, inputType: "select", profile_key: pk, widget, selector: f.selector, options: f.options || [] };
     if (f.inputType === "file") return { field_id: null, inputType: "file", profile_key: pk, widget, selector: f.selector };
     if (f.inputType === "checkbox") return { field_id: null, inputType: "checkbox", profile_key: pk, widget, selector: f.selector };
@@ -525,6 +528,10 @@ const CareerPortalBrowser = (() => {
         if (!state.bindings) board.form();
         const binding = state.bindings[fieldId];
         if (!binding) throw coded("UNKNOWN_FIELD", `no such field on this board: ${fieldId}`);
+        if (binding.widget === "lone-checkbox") {
+          const label = (state.defs || []).find((f) => f.field_id === fieldId)?.label || fieldId;
+          throw coded("RENDERED_WIDGET_REQUIRES_LIVE_PAGE", "This yes/no question needs its live controls before an answer can be verified: " + label);
+        }
         calls.fill += 1;
         if (binding.inputType === "file") {
           if (!o.resumePath) throw coded("RESUME_FILE_MISSING", "the board was built without a local resume file to upload");

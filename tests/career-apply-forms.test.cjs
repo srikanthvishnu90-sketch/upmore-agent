@@ -118,6 +118,22 @@ before(async () => {
       fields: [],
     },
     {
+      id: "synthetic-lone-checkbox-yes",
+      synthetic: true,
+      html: form(
+        '<label for="lone-work">Are you legally authorized to work for this employer?</label><input id="lone-work" name="lone_work" type="checkbox" required>',
+      ),
+      fields: [],
+    },
+    {
+      id: "synthetic-lone-checkbox-no",
+      synthetic: true,
+      html: form(
+        '<label for="lone-sponsor">Will you require sponsorship?</label><input id="lone-sponsor" name="lone_sponsor" type="checkbox" required>',
+      ),
+      fields: [],
+    },
+    {
       id: "synthetic-offsite",
       synthetic: true,
       html:
@@ -520,6 +536,75 @@ test("009b-3 residence duration is not the current country name", () => {
   assert.equal(defs[0].kind, "unknown");
   assert.equal(defs[0].profile_key, undefined);
 });
+test("009b-3 government employment never takes an education school fact", () => {
+  const Browser = require("../packages/domain/150-career-portal-browser.js");
+  const { defs } = Browser.classifyFields([{
+    domIndex: 0,
+    selector: "#government",
+    tag: "input",
+    inputType: "checkbox",
+    name: "government_employment",
+    label: "Have you ever been directly employed by (1) any government or military entity, state-owned enterprise, or publicly-funded institution, or (2) a government contractor in a role that recommended Snowflake as part of Government procurement?",
+    required: true,
+  }]);
+  assert.equal(defs[0].kind, "unknown");
+  assert.equal(defs[0].profile_key, undefined);
+});
+test("009b-3 education facts never fill checkbox or radio questions", () => {
+  const Browser = require("../packages/domain/150-career-portal-browser.js");
+  for (const inputType of ["checkbox", "radio"]) {
+    for (const label of ["School or university", "Degree", "What is your major?", "What year did you graduate?", "GPA"]) {
+      const { defs } = Browser.classifyFields([{
+        domIndex: 0, selector: "#education", tag: "input", inputType,
+        name: "education", label, required: true,
+      }]);
+      assert.equal(defs[0].kind, "unknown", inputType + ": " + label);
+      assert.equal(defs[0].profile_key, undefined, inputType + ": " + label);
+    }
+  }
+});
+test("009b-3 education school is free text and degree can remain a select", () => {
+  const Browser = require("../packages/domain/150-career-portal-browser.js");
+  const classify = (label, inputType, tag) => Browser.classifyFields([{
+    domIndex: 0, selector: "#education", tag, inputType, name: "education", label, required: true,
+  }]).defs[0];
+  assert.equal(classify("School or university", "text", "input").profile_key, "education_school");
+  assert.equal(classify("School or university", "select", "select").kind, "unknown");
+  assert.equal(classify("Degree", "select", "select").profile_key, "education_degree");
+  assert.equal(classify("What is your major?", "select", "select").profile_key, "education_discipline");
+  assert.equal(classify("What year did you graduate?", "select", "select").profile_key, "education_graduation_year");
+});
+test("009b-3 a screening question on a lone checkbox requires a live widget", () => {
+  const Browser = require("../packages/domain/150-career-portal-browser.js");
+  for (const label of ["Are you authorized to work in the US?", "Will you require sponsorship?"]) {
+    const { defs, bindings } = Browser.classifyFields([{
+      domIndex: 0, selector: "#choice", tag: "input", inputType: "checkbox", name: "choice", label, required: true,
+    }]);
+    assert.equal(defs[0].kind, "screening");
+    assert.equal(bindings[defs[0].field_id].widget, "lone-checkbox");
+  }
+});
+test("009b-3 lone checkbox Yes and No stop without review or submission", () => {
+  for (const id of ["synthetic-lone-checkbox-yes", "synthetic-lone-checkbox-no"]) {
+    const r = probe(id);
+    assert.equal(r.status, "blocked", id);
+    assert.equal(r.code, "RENDERED_WIDGET_REQUIRES_LIVE_PAGE", id);
+    assert.equal(r.review_calls, 0, id);
+    assert.equal(r.submit_calls, 0, id);
+    assert.deepEqual(r.native_gaps, [], id);
+  }
+});
+test("009b-3 explicit choice groups keep their option binding", () => {
+  const Browser = require("../packages/domain/150-career-portal-browser.js");
+  const { defs, bindings } = Browser.classifyFields(["Yes", "No"].map((label, domIndex) => ({
+    domIndex, selector: "#option" + domIndex, tag: "input", inputType: "radio", name: "work",
+    label, groupLabel: "Are you authorized to work in the US?", required: true,
+  })));
+  assert.equal(defs.length, 1);
+  assert.equal(defs[0].question_key, "work_authorization");
+  assert.equal(bindings[defs[0].field_id].inputType, "radio_group");
+  assert.ok(!bindings[defs[0].field_id].widget);
+});
 test("009b-3 real forms preserve the architect's prepared, unknown and runtime stop contracts", () => {
   const inventory = api.loadSnapshots(
     process.env.UPMORE_FORM_SNAPSHOT_ROOT ||
@@ -578,9 +663,10 @@ test("009b-3 real forms preserve the architect's prepared, unknown and runtime s
   console.log("REAL_FORM_OUTCOMES " + JSON.stringify(counts));
   console.log("REAL_FORM_FAILURES " + JSON.stringify(failures));
   assert.deepEqual(failures, []);
+  // PR25 now sees mandatory Ashby questions; four forms need live Yes/No widgets, and none can claim prepared.
   assert.deepEqual(counts, {
     greenhouse: { RENDERED_WIDGET_REQUIRES_LIVE_PAGE: 5 },
     lever: { awaiting_user: 6 },
-    ashby: { awaiting_user: 5, prepared: 1 },
+    ashby: { RENDERED_WIDGET_REQUIRES_LIVE_PAGE: 4, awaiting_user: 2 },
   });
 });

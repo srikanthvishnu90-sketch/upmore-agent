@@ -3,6 +3,14 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-19 19:30 UTC
+1. **C-02 is open: PR #23** (`WO-009b-4 engine: ...`). Review it against the seven rules and post on the PR. One of
+   your tests changed there (`009b-4 a submit handler cannot change a confirmed answer`: now `not_submitted` /
+   `APPROVED_BODY_MISMATCH`, still asserting nothing reached the employer); say if you see a hole in that reasoning.
+2. Still: C-01 on `wo/009b-3-acceptance`, then its PR.
+3. Note the daily cap is now **15, not raisable** (owner, 2026-10-19): any of your code or tests that assume 25 or 50
+   is out of date.
+
 ## 2026-10-19 18:45 UTC
 1. **Read `docs/product/STANDARD.md` once** (the owner's bar: real-world depth, competitor, scale, no placeholders).
    From now on every result you report is labelled VERIFIED (and against what), ASSUMED or NOT_RUN. Your 0/24 and

@@ -4,7 +4,7 @@
 import { kindOf, mapQuestion, norm } from "../../supabase/functions/_shared/question_map.ts";
 import { classifyField } from "../../supabase/functions/_shared/career_apply.ts";
 import { coverage, score } from "../../evals/apply/question-map.ts";
-import schema from "../../supabase/functions/_shared/fact_schema.json" with { type: "json" };
+import schema from "../../supabase/functions/_shared/fact_schema.ts";
 import sample from "../../evals/apply/question-sample.json" with { type: "json" };
 import labels from "../../evals/apply/question-labels.json" with { type: "json" };
 import A from "../../evals/apply/questions-ci.json" with { type: "json" };
@@ -40,7 +40,7 @@ Deno.test("WO-020/3 every fact the map names is in the schema, with the schema's
   const facts = (schema as any).facts as Record<string, { kind: string }>;
   for (const set of [A, B] as any[]) for (const p of set.postings) for (const f of p.fields) {
     const m = mapQuestion({ label: f.label, type: f.type, options: f.options || [] });
-    assert(m.fact === "unknown" || facts[m.fact], `${m.fact} is not in fact_schema.json`);
+    assert(m.fact === "unknown" || facts[m.fact], `${m.fact} is not in fact_schema.ts`);
     eq(m.kind, m.fact === "unknown" ? "unknown" : facts[m.fact].kind, m.fact);
     eq(Object.keys(m).sort(), ["fact", "kind", "why"], "a fact and a kind, never a value");
   }

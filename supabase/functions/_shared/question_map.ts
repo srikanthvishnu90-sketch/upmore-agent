@@ -1,10 +1,10 @@
-// WO-020: what an application question asks, by meaning (_shared/fact_schema.json). The map names a fact and
+// WO-020: what an application question asks, by meaning (_shared/fact_schema.ts). The map names a fact and
 // its kind; it never writes a value. Values come only from what the person stated and confirmed (D-007), and what each
 // kind may do is the schema's: a fact or derived answer fills the form, a screen, attestation, consent or essay is shown
 // in the approval, unknown is asked. Rules run in order and the first that matches wins; each names why it matched.
 // Wording, punctuation, numbering and the employer's name do not matter; English, French, Dutch, Spanish and Japanese
 // labels seen on real forms are read. This is the code layer; a question it cannot place stays unknown (never forced).
-import schema from "./fact_schema.json" with { type: "json" };
+import schema from "./fact_schema.ts";
 
 export type Kind = "fact" | "derived" | "screen" | "attestation" | "consent" | "essay" | "file" | "unknown";
 export interface MappedQuestion { fact: string; kind: Kind; why: string }

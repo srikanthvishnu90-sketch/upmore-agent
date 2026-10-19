@@ -91,10 +91,12 @@ Deno.test("WO-009a/7 the batch is admitted up front: duplicates, company cooldow
   postings.push({ job_id: "gh:co0:1", company: "Co0", title: "Data Analyst", fields: greenhouseQuestions(ghJob("0")) });
   const log = [{ user_id: "u1", job_id: "gh:old:1", company: "Co5", at: T0 - 86400000 * 3, state: "confirmed" }];
   const r = planBatch({ userId: "u1", postings, answers, saved: {}, log, now: T0 });
-  eq(r.ready.length, 15, "the daily cap, counting this batch");
+  eq(r.ready.length, 25, "the daily cap, counting this batch");
   const reasons = r.skipped.map((s: any) => s.reason);
   assert(reasons.includes("company_cooldown"), "Co5 was applied to 3 days ago");
   assert(reasons.includes("duplicate_job"), "the repeated posting");
   assert(reasons.includes("daily_cap"), "the rest over the limit");
-  eq(planBatch({ userId: "u1", postings, answers, saved: {}, log, now: T0, limits: { daily: 50 } }).ready.length, 15, "asking for more does not raise the cap");
+  eq(planBatch({ userId: "u1", postings, answers, saved: {}, log, now: T0, limits: { daily: 50 } }).ready.length, 29, "a person's own limit up to 50");
+  const many = Array.from({ length: 70 }, (_, i) => ({ job_id: `gh:m${i}:1`, company: `M${i}`, title: "Data Analyst", fields: greenhouseQuestions(ghJob(String(i))) }));
+  eq(planBatch({ userId: "u1", postings: many, answers, saved: {}, log: [], now: T0, limits: { daily: 500 } }).ready.length, 50, "never past 50");
 });

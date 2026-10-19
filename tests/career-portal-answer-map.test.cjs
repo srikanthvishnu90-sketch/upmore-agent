@@ -31,8 +31,8 @@ const BrowserBoard = require(path.join(root, "packages/domain/150-career-portal-
 
 const NOW = "2026-10-15T12:00:00Z";
 
-// The real bank when present (it lives outside the repo by the privacy
-// rule); a same-shaped mini bank keeps the suite portable elsewhere.
+// The real bank is opt-in (it lives outside the repo by the privacy
+// rule); a same-shaped mini bank is the default portable input.
 // v224 combine privacy fix: the mini bank's values are SYNTHETIC
 // (same shapes and fact IDs, invented values) — as first landed it
 // mirrored the owner's real fact bank verbatim, including the
@@ -40,8 +40,8 @@ const NOW = "2026-10-15T12:00:00Z";
 // this public repo. Assertions that depend on bank values read them
 // from the loaded bank instead of hardcoding either world's values.
 function loadBank() {
-  const p = path.join(process.env.HOME || "", "workspace/your_files/real-apply/fact-bank.json");
-  try { return { bank: JSON.parse(fs.readFileSync(p, "utf8")), real: true }; } catch (e) { /* fall through */ }
+  const p = process.env.UPMORE_FACT_BANK;
+  try { if (p) return { bank: JSON.parse(fs.readFileSync(p, "utf8")), real: true }; } catch (e) { /* fall through */ }
   return { bank: MINI_BANK, real: false };
 }
 const MINI_BANK = {

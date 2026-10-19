@@ -4226,8 +4226,10 @@ const CareerRouter = (() => {
     const raw = s(text);
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
     const m = raw.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`))
-      || raw.match(new RegExp(`(?i:\\bapplication\\s+(?:at|to|for)\\s+(?:the\\s+)?)${cap}`))
-      || raw.match(new RegExp(`(?i:\\b(?:applied|applying)\\s+(?:at|to)\\s+(?:the\\s+)?)${cap}`))
+      // Preserve scoped case folding on Node 22 while keeping the
+      // company capture's original uppercase rule.
+      || raw.match(new RegExp(`\\b[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]\\s+(?:[aA][tT]|[tT][oO]|[fF][oO][rR])\\s+(?:[tT][hH][eE]\\s+)?${cap}`))
+      || raw.match(new RegExp(`\\b(?:[aA][pP][pP][lL][iI][eE][dD]|[aA][pP][pP][lL][yY][iI][nN][gG])\\s+(?:[aA][tT]|[tT][oO])\\s+(?:[tT][hH][eE]\\s+)?${cap}`))
       || raw.match(new RegExp(`\\b(?:at|to|for)\\s+(?:the\\s+)?${cap}`));
     if (!m) return null;
     const name = m[1].replace(/[?.!,]+$/, "").trim();

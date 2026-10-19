@@ -1,7 +1,6 @@
 "use strict";
 // G3 fail-first: MID-1..8 from docs/career/gauntlet-deepdive-mi.md.
-// Inputs are the graded records' exact user turns in
-// ~/workspace/your_files/upmore-career-deepdive-mi/<CASE>/trial-1/record.json
+// Inputs below are the graded records' exact user turns.
 const test = require("node:test");
 const assert = require("node:assert");
 const P = require("../packages/domain/127-career-prep.js");

@@ -4,8 +4,7 @@
    personas. They pin the defect, not one specific fix: if a fix legitimately
    renames a family, update the expected value in the same commit and say so in
    docs/bug-ledger.md. GUARD tests at the bottom were GREEN when written and
-   must stay green — they pin strengths the fixes must not break.
-   Integrator briefs: ~/workspace/your_files/integrator-packs/four-vertical-briefs.md */
+   must stay green — they pin strengths the fixes must not break. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

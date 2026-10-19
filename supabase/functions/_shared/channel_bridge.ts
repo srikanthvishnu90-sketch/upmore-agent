@@ -83,13 +83,57 @@ export type TurnOutcome =
   | { kind: "duplicate" }
   | { kind: "done"; threadId: string; parts: string[] };
 
+export interface RichTurnOutcome {
+  kind: "done";
+  threadId: string;
+  replyText: string; // cleaned reply text ("" when the core answered empty)
+  chat: any; // the full agent-chat response (batch/task/meta/artifacts ride it)
+}
+
+// One agent-chat call, the bridge's exact wire shape: service-role bearer
+// + as_user_id, Authorization header ONLY (the gateway rejects conflicting
+// apikey/Authorization pairs — same note as imessage-inbound).
+async function callAgentChat(
+  deps: ChannelDeps,
+  args: { userId: string; threadId: string; message: string; turnKey?: string; careerBatch?: unknown },
+): Promise<any> {
+  const supabaseUrl = deps.env("SUPABASE_URL") ?? "";
+  const serviceKey = deps.env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 120000);
+  try {
+    const res = await deps.fetchFn(`${supabaseUrl}/functions/v1/agent-chat`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: args.message.slice(0, 4000),
+        thread_id: args.threadId,
+        as_user_id: args.userId,
+        ...(args.turnKey ? { turn_key: args.turnKey } : {}),
+        ...(args.careerBatch ? { career_batch: args.careerBatch } : {}),
+      }),
+      signal: ctrl.signal,
+    });
+    const chat = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`agent-chat HTTP ${res.status}: ${JSON.stringify(chat).slice(0, 200)}`);
+    if (chat.error) throw new Error("agent-chat: " + String(chat.error).slice(0, 200));
+    return chat;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Runs one agent turn for an already-identified sender, mirroring
 // imessage-inbound: claim the message id BEFORE the work (a retried webhook
 // is ignored even if the first attempt crashed), create the thread on first
 // contact, call agent-chat as the user, adopt a thread id the agent returns,
-// and hand back the reply split at the channel limit. Sending is the
+// and hand back the cleaned reply text plus the full response (the
+// presentation layer renders and splits it per platform). Sending is the
 // caller's job (so dry-run can skip it), exactly like the bridge's flow.
-export async function runChannelTurn(
+export async function runChannelTurnRich(
   deps: ChannelDeps,
   args: {
     channel: string;
@@ -97,11 +141,8 @@ export async function runChannelTurn(
     userId: string;
     text: string;
     messageId: string | null;
-    limit: number;
   },
-): Promise<TurnOutcome> {
-  const supabaseUrl = deps.env("SUPABASE_URL") ?? "";
-  const serviceKey = deps.env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+): Promise<{ kind: "duplicate" } | RichTurnOutcome> {
   const admin = deps.createAdmin();
 
   let threadId: string | null = null;
@@ -140,32 +181,8 @@ export async function runChannelTurn(
   }
 
   // Ask the agent brain. Service-role bearer + as_user_id: agent-chat runs
-  // the whole turn as that user (see its TEST BRIDGE block). Send ONLY the
-  // Authorization header — the gateway rejects conflicting apikey/Authorization
-  // pairs; the service_role bearer alone passes (same note as imessage-inbound).
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 120000);
-  let chat: any;
-  try {
-    const res = await deps.fetchFn(`${supabaseUrl}/functions/v1/agent-chat`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: args.text.slice(0, 4000),
-        thread_id: threadId,
-        as_user_id: args.userId,
-      }),
-      signal: ctrl.signal,
-    });
-    chat = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(`agent-chat HTTP ${res.status}: ${JSON.stringify(chat).slice(0, 200)}`);
-  } finally {
-    clearTimeout(timer);
-  }
-  if (chat.error) throw new Error("agent-chat: " + String(chat.error).slice(0, 200));
+  // the whole turn as that user (see its TEST BRIDGE block).
+  const chat = await callAgentChat(deps, { userId: args.userId, threadId: threadId as string, message: args.text });
   if (chat.thread_id && String(chat.thread_id) !== threadId) {
     threadId = String(chat.thread_id);
     await admin.from("channel_threads").upsert(
@@ -179,8 +196,66 @@ export async function runChannelTurn(
     );
   }
   const replyText = cleanReply(String(chat.reply ?? ""));
-  const parts = splitMessage(replyText || "(I didn't get a reply — try again.)", args.limit);
-  return { kind: "done", threadId: threadId as string, parts };
+  return { kind: "done", threadId: threadId as string, replyText, chat };
+}
+
+// The plain-text turn outcome the first channel lane shipped: same claim,
+// same call, reply split by the legacy splitter. Kept for compatibility;
+// the presentation handlers use runChannelTurnRich + channel_present.ts.
+export async function runChannelTurn(
+  deps: ChannelDeps,
+  args: {
+    channel: string;
+    senderKey: string;
+    userId: string;
+    text: string;
+    messageId: string | null;
+    limit: number;
+  },
+): Promise<TurnOutcome> {
+  const rich = await runChannelTurnRich(deps, args);
+  if (rich.kind === "duplicate") return rich;
+  const parts = splitMessage(rich.replyText || "(I didn't get a reply — try again.)", args.limit);
+  return { kind: "done", threadId: rich.threadId, parts };
+}
+
+// Resolve a channel approval tap/choice into the core's hash-bound batch
+// approval: the EXACT message "Approve batch <runId>" plus the structured
+// career_batch approve request — identical authorization semantics to the
+// app client (career_task_bridge.planCareerBatchIntent). The core
+// re-reads the stored run and refuses a moved card; this call carries
+// the card hash the bridge bound at offer time and authorizes nothing on
+// its own. No claim/dedup here: the single-use approval token the caller
+// consumed before calling is the dedup (channel_present.takeApproval).
+export async function runChannelApproval(
+  deps: ChannelDeps,
+  args: {
+    userId: string;
+    threadId: string;
+    runId: string;
+    cardSha256: string;
+    eventId: string;
+    turnKey: string;
+  },
+): Promise<{ threadId: string; replyText: string; chat: any }> {
+  const chat = await callAgentChat(deps, {
+    userId: args.userId,
+    threadId: args.threadId,
+    message: `Approve batch ${args.runId}`,
+    turnKey: args.turnKey,
+    careerBatch: {
+      action: "approve",
+      version: "career_batch_intent/v1",
+      eventId: args.eventId,
+      runId: args.runId,
+      cardSha256: args.cardSha256,
+    },
+  });
+  return {
+    threadId: chat.thread_id ? String(chat.thread_id) : args.threadId,
+    replyText: cleanReply(String(chat.reply ?? "")),
+    chat,
+  };
 }
 
 export async function sendParts(

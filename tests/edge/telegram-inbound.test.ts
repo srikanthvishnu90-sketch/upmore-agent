@@ -32,7 +32,9 @@ const textUpdate = (text: string, id = 11, chatId = CHAT_ID) => ({
   message: { message_id: id, date: 1760000000, text, chat: { id: chatId, type: "private" }, from: { id: 777, is_bot: false, first_name: "Test" } },
 });
 const agentCalls = (calls: any[]) => calls.filter((c) => c.url.includes("/functions/v1/agent-chat"));
-const sendCalls = (calls: any[]) => calls.filter((c) => c.url.includes("api.telegram.org"));
+// sendMessage calls only: the presentation lane added sendChatAction
+// (typing) to the same API host, and a typing ping is not a message send.
+const sendCalls = (calls: any[]) => calls.filter((c) => c.url.includes("api.telegram.org") && c.url.endsWith("/sendMessage"));
 
 Deno.test("valid telegram turn reaches the agent and the reply is sent back", async () => {
   const { d, calls } = deps();

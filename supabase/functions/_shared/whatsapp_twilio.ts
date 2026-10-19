@@ -9,11 +9,24 @@
 // JWT); the signature + the config-driven sender allowlist are the security
 // boundary, same posture as imessage-inbound.
 //
+// PRESENTATION (channel_present.ts — the channel IS the product surface):
+// replies render in WhatsApp's native markup (*bold*, _italic_, ~strike~,
+// ```mono```, bare tappable links), document artifacts go out as media,
+// and a batch approval card becomes numbered choices ("Reply 1 or 2")
+// that resolve through the identical hash-bound approval the app client
+// sends. PRODUCTION FOLLOW-UP (not built here): WhatsApp interactive
+// buttons via Twilio Content Templates replace the numbered replies when
+// WhatsApp leaves the sandbox — the resolution path (single-use token ->
+// structured career_batch approve + exact message) does not change. The
+// Twilio Messages API has no typing indicator; presence on this transport
+// is limited to the reply itself (the LoopMessage variant below offers
+// typing/read semantics).
+//
 // Operator config (later, never in the repo): TWILIO_ACCOUNT_SID,
 // TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM (e.g. whatsapp:+14155238886),
-// WHATSAPP_ALLOWED_NUMBERS (comma list), CHANNEL_TEST_USER_ID, and
-// optionally TWILIO_WEBHOOK_URL when the public webhook URL differs from
-// the request URL Twilio signed.
+// WHATSAPP_ALLOWED_NUMBERS (comma list), CHANNEL_TEST_USER_ID, optionally
+// TWILIO_WEBHOOK_URL when the public webhook URL differs from the request
+// URL Twilio signed, CHANNEL_APPROVAL_TTL_MIN (approval-choice lifetime).
 //
 // PRODUCTION-PARITY FOLLOW-UP (not built here): the iMessage bridge's vendor,
 // LoopMessage, also offers WhatsApp on the same account/API family. When
@@ -28,10 +41,20 @@ import {
   digitsOf,
   json,
   resolveTestUser,
-  runChannelTurn,
+  runChannelApproval,
+  runChannelTurnRich,
   sendParts,
   timingSafeEqual,
 } from "./channel_bridge.ts";
+import {
+  VOICE,
+  detectBatchCard,
+  extractArtifacts,
+  offerApproval,
+  peekApproval,
+  presentReply,
+  takeApproval,
+} from "./channel_present.ts";
 
 export const WHATSAPP_LIMIT = 4096; // WhatsApp message text limit
 
@@ -92,7 +115,9 @@ export function createTwilioSend(
   deps: ChannelDeps,
   cfg: { accountSid: string; authToken: string; from: string },
 ) {
-  return async (to: string, text: string): Promise<void> => {
+  return async (to: string, text: string, mediaUrls?: string[]): Promise<void> => {
+    const form: Record<string, string> = { From: cfg.from, To: to, Body: text };
+    if (mediaUrls && mediaUrls.length) form.MediaUrl = mediaUrls[0];
     const res = await deps.fetchFn(
       `https://api.twilio.com/2010-04-01/Accounts/${cfg.accountSid}/Messages.json`,
       {
@@ -101,7 +126,7 @@ export function createTwilioSend(
           "Content-Type": "application/x-www-form-urlencoded",
           Authorization: "Basic " + btoa(`${cfg.accountSid}:${cfg.authToken}`),
         },
-        body: new URLSearchParams({ From: cfg.from, To: to, Body: text }).toString(),
+        body: new URLSearchParams(form).toString(),
       },
     );
     if (!res.ok) {
@@ -151,25 +176,98 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
       return json({ ok: true, ignored: "unknown sender" });
     }
 
-    const outcome = await runChannelTurn(deps, {
-      channel: "whatsapp",
-      senderKey: parsed.senderKey,
-      userId,
-      text: parsed.text,
-      messageId: parsed.messageId || null,
-      limit: WHATSAPP_LIMIT,
-    });
+    // Numbered-choice resolution: a bare "1"/"2" while a batch approval
+    // offer is live for this sender is a choice on that card, resolved
+    // through the identical structured approval as a Telegram button tap.
+    // With no live offer, the same text is an ordinary message, untouched.
+    const choice = /^\s*([12])\s*$/.exec(parsed.text);
+    if (choice && !dryRun) {
+      const pending = await peekApproval(deps, { channel: "whatsapp", senderKey: parsed.senderKey });
+      if (pending) {
+        // Consume BEFORE any agent call: a choice can never resolve twice.
+        const taken = await takeApproval(deps, { channel: "whatsapp", senderKey: parsed.senderKey, token: pending.token });
+        if (!taken.ok) {
+          if (send) await send(parsed.from, VOICE.choiceExpired);
+          return json({ ok: true, ignored: "approval not resolvable", reason: taken.reason });
+        }
+        const row = taken.row;
+        if (choice[1] === "2") {
+          if (send) await send(parsed.from, VOICE.dismiss);
+          return json({ ok: true, approval: "declined", run_id: row.run_id });
+        }
+        let outcome;
+        try {
+          outcome = await runChannelApproval(deps, {
+            userId: row.user_id,
+            threadId: row.thread_id,
+            runId: row.run_id,
+            cardSha256: row.card_sha256,
+            eventId: `wacb-${row.token}`,
+            turnKey: `wacb-${row.token}`,
+          });
+        } catch (e) {
+          console.error("whatsapp-inbound approval:", e);
+          if (send) { try { await send(parsed.from, VOICE.error); } catch { /* surfaced below */ } }
+          return json({ ok: false, error: "internal" }, 500);
+        }
+        const parts = presentReply("whatsapp", outcome.replyText || VOICE.empty, WHATSAPP_LIMIT);
+        if (!send) {
+          return json({ ok: true, channel: "whatsapp", approval: "resolved", parts_sent: 0, warning: "twilio sender not configured" });
+        }
+        await sendParts(deps, parts, (part) => send(parsed.from, part));
+        return json({ ok: true, approval: "resolved", run_id: row.run_id, parts_sent: parts.length });
+      }
+    }
+
+    let outcome;
+    try {
+      outcome = await runChannelTurnRich(deps, {
+        channel: "whatsapp",
+        senderKey: parsed.senderKey,
+        userId,
+        text: parsed.text,
+        messageId: parsed.messageId || null,
+      });
+    } catch (e) {
+      console.error("whatsapp-inbound turn:", e);
+      if (send && !dryRun) { try { await send(parsed.from, VOICE.error); } catch { /* response below still 500 */ } }
+      return json({ ok: false, error: "internal" }, 500);
+    }
     if (outcome.kind === "duplicate") return json({ ok: true, ignored: "duplicate webhook" });
 
+    const parts = presentReply("whatsapp", outcome.replyText || VOICE.empty, WHATSAPP_LIMIT);
     if (dryRun) {
-      return json({ ok: true, dry_run: true, channel: "whatsapp", thread_id: outcome.threadId, parts: outcome.parts });
+      const card = detectBatchCard(outcome.chat);
+      return json({ ok: true, dry_run: true, channel: "whatsapp", thread_id: outcome.threadId, parts, ...(card ? { approval_run_id: card.runId } : {}) });
     }
     if (!send) {
       console.warn("whatsapp-inbound: TWILIO_ACCOUNT_SID/TWILIO_WHATSAPP_FROM not configured; send skipped.");
       return json({ ok: true, channel: "whatsapp", thread_id: outcome.threadId, parts_sent: 0, warning: "twilio sender not configured" });
     }
-    await sendParts(deps, outcome.parts, (part) => send(parsed.from, part));
-    return json({ ok: true, channel: "whatsapp", thread_id: outcome.threadId, parts_sent: outcome.parts.length });
+    await sendParts(deps, parts, (part) => send(parsed.from, part));
+
+    // Documents as files (gap CHANNEL-DOC-1: inert on today's contract).
+    for (const art of extractArtifacts(outcome.chat)) {
+      try {
+        await send(parsed.from, art.filename ?? "Document", [art.url]);
+      } catch (e) {
+        console.warn("whatsapp-inbound media send failed:", String((e as Error)?.message ?? e).slice(0, 160));
+      }
+    }
+
+    // A batch approval card becomes numbered choices on this channel.
+    let approvalOffered = false;
+    const card = detectBatchCard(outcome.chat);
+    if (card) {
+      const offer = await offerApproval(deps, {
+        channel: "whatsapp", senderKey: parsed.senderKey, userId, threadId: outcome.threadId, runId: card.runId,
+      });
+      if (offer) {
+        await send(parsed.from, `${VOICE.approvalPrompt(card.runId)}\n${VOICE.choiceFooter}`);
+        approvalOffered = true;
+      }
+    }
+    return json({ ok: true, channel: "whatsapp", thread_id: outcome.threadId, parts_sent: parts.length, ...(approvalOffered ? { approval_offered: true } : {}) });
   } catch (e) {
     console.error("whatsapp-inbound:", e);
     return json({ ok: false, error: "internal" }, 500);

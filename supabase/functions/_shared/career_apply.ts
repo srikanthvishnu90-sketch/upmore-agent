@@ -71,11 +71,12 @@ export function greenhouseQuestions(job: any): FormField[] {
 }
 
 const KEYS: [RegExp, string][] = [
+  [/first\s*(&|and)\s*last\s*name/i, "full_name"],
   [/^first\s*name|^given\s*name|^preferred\s*first/i, "first_name"],
   [/^last\s*name|^family\s*name|^surname/i, "last_name"],
   [/^(full\s*)?name$|^legal\s*name/i, "full_name"],
   [/e-?mail/i, "email"],
-  [/phone|mobile/i, "phone"],
+  [/\b(tele)?phone\b|\bcell\b|^mobile\b(?!\s*(app|development|device|engineer))|mobile\s*(phone|number)/i, "phone"],
   [/resume|\bcv\b|curriculum/i, "resume"],
   [/cover\s*letter/i, "cover_letter"],
   [/linkedin/i, "linkedin"],
@@ -89,9 +90,21 @@ const KEYS: [RegExp, string][] = [
   [/how did you hear/i, "how_heard"],
   [/gender|race|ethnicity|veteran|disability|hispanic|latino/i, "eeo"],
 ];
+// A wrong mapping sends a wrong answer; an unknown only asks. So the person's own contact facts go only into a free-text
+// box (never a checkbox, radio or select, where "Do you own a smartphone?" or "Email me about other openings" would take
+// the person's number or address), and never into a question about someone else (a reference, a manager, an emergency
+// contact). tests/architect/wo-009-classify-precision.test.ts holds the real labels that were mapped wrongly before.
+const CONTACT = new Set(["first_name", "last_name", "full_name", "email", "phone", "linkedin", "github", "website", "location", "start_date", "salary_expectation"]);
+const FREE_TEXT = /^(input_text|text|email|tel|url|textarea|input|search|number|date)$/;
+const SOMEONE_ELSE = /\breferr|\breferen|\bteam member|\breferee|\bemergency|\bmanager|\bsupervisor|\brecruiter|\bspouse|\bparent|\bguardian|\bemployee who/i;
 export function classifyField(label: string, type: string): string {
-  if (/file/.test(type) && /resume|cv/i.test(label)) return "resume";
-  for (const [re, key] of KEYS) if (re.test(String(label || ""))) return key;
+  const l = String(label || "");
+  if (/file/.test(type) && /resume|cv/i.test(l)) return "resume";
+  for (const [re, key] of KEYS) {
+    if (!re.test(l)) continue;
+    if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
+    return key;
+  }
   return "unknown";
 }
 

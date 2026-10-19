@@ -5,6 +5,7 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { careerToken, readMailSince } from "../_shared/career_mail_gmail.ts";
+import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { handleProactive } from "./handler.ts";
 
 serve((req) => {
@@ -13,7 +14,7 @@ serve((req) => {
   const admin = createClient(url, key, { auth: { persistSession: false } });
   const postings = supabasePostingsDb(admin);
   return handleProactive(req, {
-    env: Deno.env, now: Date.now, store: () => supabaseAlertStore(admin),
+    env: Deno.env, now: Date.now, store: () => supabaseAlertStore(admin), events: () => supabaseEventStore(admin),
     recentPostings: (since) => postings.newSince(since), postingsById: (ids) => postings.getMany(ids),
     finishedApplications: async (since) => {
       const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id")

@@ -142,8 +142,13 @@ done
 # Idempotent: the connector migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020110000_career_connector.sql"
 
+# The account timeline (WO-027): the table is part of export coverage and the deletion sweep; its erase redefinition
+# (20261020120100) needs career_watch_kv, so the ledger below applies it.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
+
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -173,4 +178,6 @@ echo "== career_apply_questions.test.sql (asked once by text, answered once, rea
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_questions.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_connector.test.sql (double opt-in introductions: every refusal, nothing identifying before both yes)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_events.test.sql (the account timeline: own reads, recall, prepared on insert, wiped by an erase)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

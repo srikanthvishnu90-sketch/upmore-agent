@@ -10,6 +10,7 @@ import { cardFor, type Prepared } from "./career_apply_cards.ts";
 import { draftOffer, foldEvents, planUpdates } from "./career_mail.ts";
 import type { ReadResult } from "./career_mail_gmail.ts";
 import type { MailPerson, MailStore } from "./career_mail_store.ts";
+import { type EventStore, recordEvent } from "./agent/timeline.ts";
 
 export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number }
 const localDate = (at: number, tz: string) =>
@@ -55,10 +56,22 @@ export async function runAlerts(o: {
 
 // Receipts (WO-021 step 5): every application that finished in the last 26 hours, said once (the outbox keeps one text
 // per receipt:<id>, ever), whether or not the person has job alerts on. Returns how many were queued now.
-export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptRow[]> }): Promise<number> {
+// WO-027: a receipt queued for the first time is also written to the person's timeline (application_finished, once,
+// since the outbox key is once ever); a timeline that cannot be written never stops a receipt.
+export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptRow[]>; events?: EventStore | null }): Promise<number> {
   const rows = await o.finished(new Date(o.now - 26 * 3600000).toISOString());
+  const byId = new Map(rows.map((r) => [`receipt:${r.id}`, r]));
   let n = 0;
-  for (const r of planReceipts(rows, o.now)) if (await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at })) n++;
+  for (const r of planReceipts(rows, o.now)) {
+    if (!(await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at }))) continue;
+    n++;
+    const row = byId.get(r.key);
+    await recordEvent(o.events, {
+      user_id: r.userId, at: o.now, kind: "application_finished", subject: row?.company ?? "",
+      detail: { application: row?.id ?? null, state: row?.state ?? null, url: row?.url ?? null, reason: row?.reason ?? null, confirmation_id: row?.confirmation_id ?? null },
+      source: "receipt",
+    });
+  }
   return n;
 }
 

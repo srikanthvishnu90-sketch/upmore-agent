@@ -10,6 +10,8 @@ import { applyFloor } from "../career_floor.ts";
 import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
 import { standing } from "../career_mail.ts";
 import { appsFromTracker, type MailStore } from "../career_mail_store.ts";
+import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
+import { missingIntegration } from "./integrations.ts";
 import { brief as interviewBrief, findRecord } from "../career_mock.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
@@ -32,9 +34,13 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
 // `mail` (WO-024) reads the person's applications across the apply queue and every thread's tracker, and the status
 // events found in their mail; absent, where_do_i_stand answers from this thread's tracker alone.
-export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null }): ToolSpec[] {
+// `events` is the account's timeline (WO-027): each tool that changes something records it, and recall reads it back.
+// Recording never fails the tool (recordEvent logs and goes on).
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null; events?: EventStore | null; tz?: string }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
+  const record = (c: ToolCtx, kind: string, subject: unknown, detail: Record<string, unknown> = {}) =>
+    recordEvent(deps.events, { user_id: c.userId, at: c.now, kind, subject, detail, source: "chat" });
   return [
     {
       name: "remember_instruction", effect: "write_own",
@@ -42,9 +48,11 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
       input_schema: obj({ instruction: str("The instruction, short and plain, e.g. 'Needs visa sponsorship (F-1 OPT)'"), quote: str("Their exact words from this message that say it") }, ["instruction", "quote"]),
       run: async (i, c) => {
         if (!c.turn || !quotedFrom(c.turn.message, String(i.quote ?? ""))) throw new Error("not kept: the quote is not in the person's message this turn; only what they said is kept");
-        const store = memoryOf(), r = addStanding(await store.standing(c.userId), { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
+        const store = memoryOf(), had = await store.standing(c.userId);
+        const r = addStanding(had, { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
         if (!r.ok) throw new Error(r.error);
         await store.saveStanding(c.userId, r.items);
+        if (r.items.length > had.length) await record(c, "instruction_kept", r.item.text, { id: r.item.id, said: r.item.said });
         return { kept: r.item, total: r.items.length };
       },
     },
@@ -57,8 +65,10 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
           throw new Error("not removed: the person did not ask to remove anything in this message");
         }
         const store = memoryOf(), items = await store.standing(c.userId), id = String(i.id);
-        if (!items.some((x) => x.id === id)) throw new Error(`no standing instruction ${id}`);
+        const gone = items.find((x) => x.id === id);
+        if (!gone) throw new Error(`no standing instruction ${id}`);
         await store.saveStanding(c.userId, items.filter((x) => x.id !== id));
+        await record(c, "instruction_removed", gone.text, { id });
         return { removed: id, left: items.length - 1 };
       },
     },
@@ -93,7 +103,9 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         if (!(profileOf(c).facts || []).some((f: any) => f.id === id)) throw new Error(`no fact ${id} on file`);
         const refusal = confirmationRefusal(c, id);
         if (refusal) throw new Error(`not confirmed: ${refusal}`);
-        return { fact: CareerProfile.confirmFact(profileOf(c), id) };
+        const fact = CareerProfile.confirmFact(profileOf(c), id);
+        await record(c, "fact_confirmed", fact?.text ?? id, { id, kind: fact?.kind ?? null });
+        return { fact };
       },
     },
     {
@@ -109,7 +121,9 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
       run: async (i, c) => {
         const s = trackOf(c);
         const moved = CareerTrack.manualUpdate(s, String(i.company), String(i.stage), { now: c.now });
-        return { application: moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now }) };
+        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
+        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
+        return { application };
       },
     },
     {
@@ -119,13 +133,15 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
       run: async (i, c) => {
         const query = String(i.query ?? "");
         const pool = await deps.postings(query);
-        if (!pool.length) return { postings: [], total: 0, source: "none" };
+        if (!pool.length) { await record(c, "search", query, { results: 0, source: "none" }); return { postings: [], total: 0, source: "none" }; }
         // C-04: the person's saved floor (and, always, closed postings and the same job on another board) before any
         // ranking; what was hidden is counted by reason so the reply can say it ("7 senior roles, 5 contract").
         const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
         const newest = [...pool].sort((a, b) => String(b.first_seen_at || "").localeCompare(String(a.first_seen_at || "")));
         const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
         const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
+        const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
+        await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5) });
         return { ...r, filtered, source: "live" };
       },
     },
@@ -155,6 +171,11 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         if (!tz) throw new Error(`unknown time zone ${i.timezone}`);
         const row = startWatching(prev, { userId: c.userId, prefs: v.prefs, tz, now: c.now });
         await store.save(row);
+        const f = v.prefs;
+        await record(c, prev && prev.prefs.on ? "alert_changed" : "alert_set", f.keywords.join(", "), {
+          keywords: f.keywords, locations: f.locations, remote_ok: f.remote_ok, floor: f.floor ?? {}, max_instant_per_day: f.max_instant_per_day,
+          report_hour: f.report_hour, quiet: `${f.quiet_start}-${f.quiet_end}`, timezone: tz,
+        });
         return { alerts: { ...v.prefs, timezone: tz, quiet_hours: `${v.prefs.quiet_start}:00-${v.prefs.quiet_end}:00`, first_report: row.last_report_on ? "tomorrow" : "today" } };
       },
     },
@@ -172,7 +193,35 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         const store = alertsOf(), r = await store.get(c.userId);
         if (!r) return { stopped: true, note: "no alerts were on" };
         await store.save({ ...r, prefs: { ...r.prefs, on: false } });
+        if (r.prefs.on) await record(c, "alert_stopped", r.prefs.keywords.join(", "), { keywords: r.prefs.keywords });
         return { stopped: true };
+      },
+    },
+    {
+      name: "recall", effect: "read",
+      description: "Look up what happened on the person's account, newest first, with dates: applications prepared, approved and finished, alerts set or changed, instructions kept, facts confirmed, searches, outreach, intros. Filter by kinds, a subject (company, person or role) and when ('in October', 'last week', 'yesterday').",
+      input_schema: obj({
+        kinds: { type: "array", items: { type: "string", enum: [...EVENT_KINDS] }, description: "Only these kinds of events; leave out for all" },
+        subject: str("A company, person or role to match, e.g. 'JPMorgan', 'Stripe', 'data analyst'"),
+        when: str("The time in their words: 'in October', 'last week', 'yesterday', 'this month', 'last 30 days'"),
+        limit: { type: "number", description: `Max events, default ${RECALL_MAX}` },
+      }),
+      run: async (i, c) => {
+        const kinds: string[] = Array.isArray(i.kinds) ? i.kinds.map(String) : [];
+        const unknown = kinds.filter((k) => !(EVENT_KINDS as readonly string[]).includes(k));
+        if (unknown.length) throw new Error(`unknown kinds ${unknown.join(", ")}; use ${EVENT_KINDS.join(", ")}`);
+        const when = i.when === undefined || i.when === null ? "" : String(i.when).trim();
+        const w = when ? windowOf(when, c.now, deps.tz) : null;
+        if (when && !w) return { events: [], count: 0, note: `could not read the time "${when.slice(0, 60)}"; ask with a month, "last week", "yesterday" or "this month"` };
+        if (!deps.events) return { events: [], count: 0, note: "the account's history is not kept here; say so, never guess" };
+        const rows = await deps.events.recall(c.userId, { kinds, subject: i.subject ? String(i.subject) : undefined, from: w?.from, to: w?.to, limit: Number(i.limit) || RECALL_MAX });
+        const out: Record<string, unknown> = {
+          window: w ? w.label : "all time", count: rows.length,
+          events: rows.map((e) => ({ date: dayIn(e.at, deps.tz), kind: e.kind, subject: e.subject, detail: e.detail })),
+        };
+        // Emails and intros Trainee did not draft or make are not on record: one line that asks, never an error.
+        if (!rows.length && kinds.some((k) => /^(outreach|intro)_/.test(k))) out.ask = missingIntegration("email");
+        return out;
       },
     },
     {

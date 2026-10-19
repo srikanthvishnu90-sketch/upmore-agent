@@ -35,7 +35,8 @@ import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor,
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
-import { chooseBrain, agentTurn, afterErase } from "./career_brain.ts";
+import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
+import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -230,11 +231,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
       // controls stay the host's.
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin) })
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
@@ -261,11 +263,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-        const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(20);
+        // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
+        const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(HISTORY_WINDOW + 1);
         if (hist.error) throw new Error(`agent history: ${hist.error.message}`);
-        const history = afterErase((hist.data || []) as any[]).reverse()
-          .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
+        const win = historyWindow((hist.data || []) as any[]), history = win.history;
         const postingsDb = supabasePostingsDb(admin);
         // WO-023: what is known about the person, every turn. Standing instructions are fundamental: if they cannot be
         // read the turn fails rather than answer without them. Alerts and the pipeline say "could not be read" instead.
@@ -275,9 +276,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; }),
           readPipeline(admin, user.id, now).catch((e) => { console.error("agent memory: pipeline", e?.message ?? e); return null; }),
         ]);
+        // WO-027: the account's timeline, written by the tools and read by recall; past the window, a summary of it written
+        // in code. A timeline that cannot be read never fails the turn: the summary says so instead.
+        const tz = alertRow?.tz;
+        const recent = win.cut ? await events.recall(user.id, { limit: 200 }).catch((e) => { console.error("agent memory: events", e?.message ?? e); return null; }) : null;
+        const summary = summaryFor(win.cut, recent, now, tz);
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin),
+          events, tz, summary,
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });

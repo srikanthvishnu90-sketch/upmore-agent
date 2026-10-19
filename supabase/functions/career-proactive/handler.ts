@@ -8,6 +8,7 @@ import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { ReadResult } from "../_shared/career_mail_gmail.ts";
+import type { EventStore } from "../_shared/agent/timeline.ts";
 
 export interface ProactiveDeps {
   env: { get(k: string): string | undefined };
@@ -23,6 +24,8 @@ export interface ProactiveDeps {
   // Mail tracking (WO-024): where events, drafts and cursors live, and the read of one person's new mail. Absent: no mail
   // is read this run. Nothing here sends mail.
   mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
+  // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
+  events?: () => EventStore;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
   now: () => number;
 }
@@ -37,7 +40,7 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   const store = d.store();
   try {
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
-    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications });
+    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
     if (d.mail) {
       const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read });

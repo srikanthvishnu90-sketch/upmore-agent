@@ -1,7 +1,7 @@
 // The scheduled ingest run (WO-006), as a function of its inputs so it is testable without a network or a database.
 // pg_cron calls it every 5 minutes (scripts/launch/schedule-career-ingest.sql, run by the owner) with the shared secret.
-// Each run reads the next INGEST_MAX_BOARDS boards of the directory (default 100, so each of ~300 boards is read about every
-// 15 minutes), INGEST_CONCURRENCY at a time (default 8), starts no board after 100 s so the run ends inside the function's
+// Each run reads the next INGEST_MAX_BOARDS boards of the directory (default 100, so each of ~2,200 boards is read about every
+// 2 hours), INGEST_CONCURRENCY at a time (default 8), starts no board after 100 s so the run ends inside the function's
 // time limit, rewrites an unchanged posting's last_seen_at at most every 6 hours, and records its stats in
 // career_ingest_state so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";

@@ -100,6 +100,16 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   return st;
 }
 
+// ------------------------------------------------------------------------------------------------ news vs backlog
+// A board read for the first time brings its whole backlog in at once, every posting "first seen" now. A posting its
+// employer published more than BACKLOG_MS before Trainee first saw it is a discovery, not news: searchable, never an
+// alert or a "new in the last day". No publish time, or one that does not parse, keeps the old behavior (news).
+export const BACKLOG_MS = 3 * 86400000;
+export function freshWhenSeen(p: { posted_at?: string | null; first_seen_at: string }): boolean {
+  const posted = Date.parse(String(p.posted_at ?? "")), seen = Date.parse(p.first_seen_at);
+  return !Number.isFinite(posted) || !Number.isFinite(seen) || posted >= seen - BACKLOG_MS;
+}
+
 // ------------------------------------------------------------------------------------------------ search words
 // Words that say "a job" rather than which job; every remaining word must match.
 const FILLER = new Set(["job", "jobs", "role", "roles", "position", "positions", "opening", "openings", "opportunity", "opportunities",
@@ -134,7 +144,7 @@ export function memoryPostingsDb(): PostingsDb {
     async touch(ids, at) { for (const id of ids) { const p = rows.get(id); if (p) rows.set(id, { ...p, last_seen_at: at }); } },
     async close(ids, at) { for (const id of ids) { const p = rows.get(id); if (p) rows.set(id, { ...p, closed_at: at }); } },
     async openForBoard(b) { return open().filter((p) => p.provider === b.provider && p.board === b.board).map((p) => ({ job_id: p.job_id })); },
-    async newSince(t) { return open().filter((p) => p.first_seen_at > t).sort(newest).map((p) => ({ ...p })); },
+    async newSince(t) { return open().filter((p) => p.first_seen_at > t && freshWhenSeen(p)).sort(newest).map((p) => ({ ...p })); },
     async search(words, limit) { return open().filter((p) => matchesWords(p, words)).sort(newest).slice(0, limit).map((p) => ({ ...p })); },
     async getCursor() { return cursor; },
     async setCursor(c) { cursor = c; },
@@ -183,16 +193,20 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
     async openForBoard(b) {
       return pages((x, y) => admin.from(T).select("job_id").eq("provider", b.provider).eq("board", b.board).is("closed_at", null).order("job_id").range(x, y), "read board postings");
     },
-    // Every open posting first seen after t, in pages (no description): the alerts run counts these in reports, so a
-    // cut list would undercount. Bounded at 20,000 rows (~6 MB), far above a day of new postings from 305 boards.
+    // Every open posting first seen after t that is news (freshWhenSeen), in pages (no description): the alerts run counts
+    // these in reports, so a cut list would undercount. Bounded at 20,000 rows (~6 MB). A board's first read can add tens
+    // of thousands of backlog rows at once; the database drops them first (published before t less BACKLOG_MS cannot be
+    // fresh when first seen after t), so the bound holds news only.
     async newSince(t) {
       const out: Posting[] = [];
+      const oldest = new Date(Date.parse(t) - BACKLOG_MS).toISOString();
       for (let from = 0; from < 20000; from += PAGE) {
-        const got = must<Posting[]>(await admin.from(T).select(LIST_COLUMNS).is("closed_at", null).gt("first_seen_at", t).order("first_seen_at", { ascending: false }).order("job_id").range(from, from + PAGE - 1), "read new postings") || [];
+        const got = must<Posting[]>(await admin.from(T).select(LIST_COLUMNS).is("closed_at", null).gt("first_seen_at", t)
+          .or(`posted_at.is.null,posted_at.gte.${oldest}`).order("first_seen_at", { ascending: false }).order("job_id").range(from, from + PAGE - 1), "read new postings") || [];
         out.push(...got);
         if (got.length < PAGE) break;
       }
-      return out;
+      return out.filter(freshWhenSeen);
     },
     async search(words, limit) {
       let q = admin.from(T).select("*").is("closed_at", null);

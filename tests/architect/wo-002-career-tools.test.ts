@@ -18,13 +18,14 @@ function byName(tools: any[]) { return Object.fromEntries(tools.map((t) => [t.na
 Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet", () => {
   const tools = careerTools({ postings: async () => [] });
   eq(tools.map((t) => t.name).sort(), [
-    "add_profile_fact", "confirm_profile_fact", "get_interview_questions", "get_profile",
-    "list_applications", "score_interview_answer", "search_jobs", "track_application",
-  ]);
+    "add_profile_fact", "confirm_profile_fact", "get_interview_questions", "get_job_alerts", "get_profile",
+    "list_applications", "score_interview_answer", "search_jobs", "set_job_alerts", "stop_job_alerts", "track_application",
+  ]); // the three alert tools: WO-007
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
     get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own",
     list_applications: "read", track_application: "write_own", search_jobs: "read",
+    set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own",
     get_interview_questions: "read", score_interview_answer: "read",
   });
   for (const t of tools) {

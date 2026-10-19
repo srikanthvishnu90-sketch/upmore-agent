@@ -3,6 +3,8 @@
 Owner, 2026-10-19: Codex works best when it is guided almost exactly. A work order says *what* and *why*; a task card
 says exactly *how*, so nothing is left to interpret. Cards override the work order where they are more specific.
 
+**Start with [NOW.md](NOW.md)**: the architect's running list of what to do next, newest first.
+
 ## What every card contains
 1. **Base**: the branch to start from and the command to bring it up to date.
 2. **Files**: the only files the card may change. Anything else: stop and write `BLOCKED: <file> because <one line>`.

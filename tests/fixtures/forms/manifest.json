@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "requests": [
+    {
+      "url": "https://job-boards.greenhouse.io/robinhood/jobs/8198142",
+      "method": "GET",
+      "started_ms": 1792388278841,
+      "status": "blocked",
+      "error": "PUBLIC_GET_FAILED",
+      "completed_at": "2026-10-19T05:37:58.897Z"
+    },
+    {
+      "url": "https://jobs.lever.co/leverdemo/ad208490-4052-4f91-a57e-433f2d1e484b/apply",
+      "method": "GET",
+      "started_ms": 1792388280841,
+      "status": "blocked",
+      "error": "PUBLIC_GET_FAILED",
+      "completed_at": "2026-10-19T05:38:00.865Z"
+    },
+    {
+      "url": "https://jobs.ashbyhq.com/ramp/bca0346c-b843-4795-96df-6091f51e421b/application",
+      "method": "GET",
+      "started_ms": 1792388282843,
+      "status": "blocked",
+      "error": "PUBLIC_GET_FAILED",
+      "completed_at": "2026-10-19T05:38:02.864Z"
+    },
+    {
+      "url": "https://jobs.smartrecruiters.com/BoschGroup/744000155285018-senior-mechanical-design-engineer-braking-systems?oga=true",
+      "method": "GET",
+      "started_ms": 1792388284845,
+      "status": "blocked",
+      "error": "PUBLIC_GET_FAILED",
+      "completed_at": "2026-10-19T05:38:04.873Z"
+    },
+    {
+      "url": "https://api.lever.co/v0/postings/veeva?mode=json",
+      "method": "GET",
+      "started_ms": 1792388517438,
+      "status": "blocked",
+      "error": "PUBLIC_GET_FAILED",
+      "exit_code": 56,
+      "reason": "EGRESS_CONNECT_403",
+      "completed_at": "2026-10-19T05:41:57.466Z"
+    }
+  ],
+  "forms": [
+    {
+      "id": "greenhouse-robinhood-8198142",
+      "family": "greenhouse",
+      "source_url": "https://job-boards.greenhouse.io/robinhood/jobs/8198142",
+      "status": "blocked",
+      "reason": "PUBLIC_GET_FAILED",
+      "attempted_at": "2026-10-19T05:37:58.841Z"
+    },
+    {
+      "id": "lever-leverdemo-ad208490-4052-4f91-a57e-433f2d1e484b",
+      "family": "lever",
+      "source_url": "https://jobs.lever.co/leverdemo/ad208490-4052-4f91-a57e-433f2d1e484b/apply",
+      "status": "blocked",
+      "reason": "PUBLIC_GET_FAILED",
+      "attempted_at": "2026-10-19T05:37:58.899Z"
+    },
+    {
+      "id": "ashby-ramp-bca0346c-b843-4795-96df-6091f51e421b",
+      "family": "ashby",
+      "source_url": "https://jobs.ashbyhq.com/ramp/bca0346c-b843-4795-96df-6091f51e421b/application",
+      "status": "blocked",
+      "reason": "PUBLIC_GET_FAILED",
+      "attempted_at": "2026-10-19T05:38:00.866Z"
+    },
+    {
+      "id": "smartrecruiters-boschgroup-744000155285018",
+      "family": "smartrecruiters",
+      "source_url": "https://jobs.smartrecruiters.com/BoschGroup/744000155285018-senior-mechanical-design-engineer-braking-systems?oga=true",
+      "status": "blocked",
+      "reason": "PUBLIC_GET_FAILED",
+      "attempted_at": "2026-10-19T05:38:02.865Z"
+    }
+  ]
+}

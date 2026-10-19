@@ -16,21 +16,24 @@ export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert
 
 // The person's words, checked: what the tools accept and what the table's constraint accepts are the same rules.
 export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DEFAULT_PREFS): { ok: true; prefs: AlertPrefs } | { ok: false; error: string } {
-  const list = (v: unknown, name: string): string[] | string => {
-    if (v === undefined) return [];
+  // A field left out keeps the alert's current value (an empty list clears it): "only 1 a day" never drops the place.
+  const list = (v: unknown, name: string, kept: string[]): string[] | string => {
+    if (v === undefined) return kept;
     if (!Array.isArray(v)) return `${name} must be a list`;
     const out = v.map((x) => String(x ?? "").replace(/\s+/g, " ").trim()).filter(Boolean);
     if (out.length > 10) return `at most 10 ${name}`;
     if (out.some((x) => x.length > 60)) return `each of the ${name} must be 60 characters or fewer`;
     return [...new Set(out.map((x) => x.toLowerCase()))];
   };
-  const keywords = list(input.keywords, "keywords"), locations = list(input.locations, "locations");
+  const keywords = list(input.keywords, "keywords", base.keywords), locations = list(input.locations, "locations", base.locations);
   if (typeof keywords === "string") return { ok: false, error: keywords };
   if (typeof locations === "string") return { ok: false, error: locations };
   if (!keywords.length) return { ok: false, error: "say at least one kind of job to watch for (keywords)" };
   const hour = (v: unknown, d: number) => (v === undefined ? d : Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 23 ? (v as number) : NaN);
   const report_hour = hour(input.report_hour, base.report_hour);
   if (Number.isNaN(report_hour)) return { ok: false, error: "report_hour must be a whole hour from 0 to 23" };
+  const quiet_start = hour(input.quiet_start, base.quiet_start), quiet_end = hour(input.quiet_end, base.quiet_end);
+  if (Number.isNaN(quiet_start) || Number.isNaN(quiet_end)) return { ok: false, error: "quiet_start and quiet_end must be whole hours from 0 to 23" };
   const cap = input.max_instant_per_day === undefined ? base.max_instant_per_day : Number(input.max_instant_per_day);
   if (!Number.isInteger(cap) || cap < 0 || cap > MAX_INSTANT_PER_DAY) return { ok: false, error: `max_instant_per_day must be 0 to ${MAX_INSTANT_PER_DAY}` };
   if (input.remote_ok !== undefined && typeof input.remote_ok !== "boolean") return { ok: false, error: "remote_ok must be true or false" };
@@ -38,7 +41,7 @@ export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DE
   const fl = input.floor === undefined ? { ok: true as const, floor: base.floor } : validFloor(input.floor);
   if (!fl.ok) return { ok: false, error: fl.error };
   const floor = fl.floor && Object.keys(fl.floor).length ? fl.floor : undefined;
-  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, max_instant_per_day: cap, floor } };
+  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, quiet_start, quiet_end, max_instant_per_day: cap, floor } };
 }
 export function validZone(tz: unknown): string | null {
   if (typeof tz !== "string" || !tz || tz.length > 64) return null;

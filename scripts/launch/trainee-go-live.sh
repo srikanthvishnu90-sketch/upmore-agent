@@ -158,6 +158,14 @@ for v in "${SCHED_VARS[@]}"; do
   if [[ -z "${!v:-}" && -z "$DRY" && -z "$ONLY_SMOKE" ]]; then printf -v "$v" '%s' "$(gen_secret)"; GENERATED+=("$v"); fi
   if [[ -n "${!v:-}" && ! "${!v}" =~ $SECRET_RE ]]; then fail "$v must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"; fi
 done
+# The inbound secret lives outside this project too: it is in the webhook URL pasted into LoopMessage. Enter on a re-run
+# would replace it and every inbound text would then be refused (403) without a sound, so an existing one is replaced
+# only on purpose (TRAINEE_ROTATE_INBOUND=1, then paste the new URL into LoopMessage).
+if [[ -z "$DRY" && -z "$ONLY_SMOKE" && " ${GENERATED[*]} " == *" TRAINEE_INBOUND_SECRET "* && "${TRAINEE_ROTATE_INBOUND:-}" != 1 ]]; then
+  if supabase secrets list --project-ref "$REF" 2>/dev/null | grep -qw TRAINEE_INBOUND_SECRET; then
+    fail "TRAINEE_INBOUND_SECRET is already set on the project and LoopMessage's webhook URL carries it: give the same value, or set TRAINEE_ROTATE_INBOUND=1 to replace it and then update the webhook URL"
+  fi
+fi
 if [[ -z "$ONLY_SMOKE" ]]; then
   ask LOOPMESSAGE_API_KEY "LoopMessage API key (Enter to keep the one already set)" hidden
   ask OPENAI_API_KEY "OpenAI key (Enter to keep the one already set)" hidden

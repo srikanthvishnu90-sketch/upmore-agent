@@ -282,3 +282,28 @@ test('main: one line per check and a summary, waits for the schedules when asked
   assert.match(bare.join('\n'), /^FAIL    trainee-deliver answers the right secret: HTTP 500/m);
   assert.equal(await smoke.main([], { ...env, SUPABASE_URL: 'http://plain.example.test' }, { log: () => {} }), 2, 'https only');
 });
+
+// A real (not dry) run over stub tools, without a terminal: pressing Enter for the inbound secret must not replace one
+// LoopMessage's webhook URL already carries, unless the owner asks for the rotation.
+function stubbed(env) {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-bin-'));
+  const calls = path.join(bin, 'calls.log');
+  const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
+  stub('supabase', 'if [[ "$1 $2" == "secrets list" ]]; then printf "NAME | DIGEST\\nTRAINEE_INBOUND_SECRET | 0f0f\\n"; fi; exit 0');
+  stub('psql', 'exit 0'); stub('deno', 'exit 0'); stub('node', 'exit 0');
+  stub('git', 'if [[ "$1" == rev-parse ]]; then echo abc1234; fi; exit 0');
+  const res = spawnSync('bash', [SCRIPT], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { PATH: `${bin}:${process.env.PATH}`, HOME: home, TRAINEE_GO_LIVE_LOG: path.join(bin, 'run.log'), ...env } });
+  return { code: res.status, out: res.stdout + res.stderr, calls: fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8') : '' };
+}
+
+test('an inbound secret already on the project is never replaced by an Enter; TRAINEE_ROTATE_INBOUND=1 replaces it on purpose', () => {
+  const { TRAINEE_INBOUND_SECRET, ...rest } = FAKE;
+  const kept = stubbed(rest);
+  assert.equal(kept.code, 1, kept.out);
+  assert.match(kept.out, /STEP 1\/6 preflight: FAILED: TRAINEE_INBOUND_SECRET is already set on the project/);
+  assert.doesNotMatch(kept.calls, /secrets set|functions deploy/, 'nothing changed on the project');
+  const rotated = stubbed({ ...rest, TRAINEE_ROTATE_INBOUND: '1' });
+  assert.match(rotated.out, /STEP 1\/6 preflight: OK/, rotated.out);
+  for (const v of SECRET_VALUES) assert.ok(!rotated.out.includes(v) && !kept.out.includes(v), 'no secret printed');
+});

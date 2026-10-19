@@ -28,6 +28,7 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 |---|---|---|
 | `SUPABASE_PROJECT_REF`, `SUPABASE_DB_URL` | the project (20 letters) and its database URI | nowhere (this process only) |
 | `CAREER_INGEST_SECRET`, `CAREER_PROACTIVE_SECRET`, `TRAINEE_DELIVER_SECRET`, `TRAINEE_INBOUND_SECRET` | 32+ characters of `A-Z a-z 0-9 . _ ~ -`; Enter generates 48 (`openssl rand -hex 24`), shown once on the terminal only if you say yes | function secrets; the first three also in Vault for pg_cron; the inbound one in LoopMessage's webhook URL |
+| `TRAINEE_ROTATE_INBOUND=1` | only when replacing the inbound secret on purpose | on a re-run, Enter for `TRAINEE_INBOUND_SECRET` stops the run if one is already set (a new one would silently break LoopMessage's webhook URL); give the same value, or set this and paste the new URL into LoopMessage |
 | `LOOPMESSAGE_API_KEY`, `OPENAI_API_KEY` | Enter keeps the one already set | function secrets (`MODEL_PROVIDER=openai` with the OpenAI key) |
 | `INGEST_CONTACT_EMAIL` | the contact job boards see in the User-Agent; career-ingest answers 503 without it | function secret |
 | `TRAINEE_ALLOWED_CONTACTS` | comma-separated numbers allowed to sign up (sign-up is closed by default: `TRAINEE_SIGNUP` is not touched) | function secret |

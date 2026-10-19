@@ -1,7 +1,7 @@
 // WO-009b-2 helper (architect, CI only): choose real public postings to capture, 6 per supported ATS, from the board
 // directory's live boards. One public postings-JSON GET per board, 2 s apart; the first posting of each board that
 // answers becomes a source in the shape scripts/career/capture-form.cjs reads. Nothing here opens an application form.
-//   node scripts/career/pick-form-sources.cjs <out sources.json> [per-family=6]
+//   node scripts/career/pick-form-sources.cjs <out sources.json> [per-family=6 | greenhouse=40,lever=30,ashby=30]
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
@@ -21,16 +21,19 @@ const FAMILY = {
     source: (t, p) => ({ url: `https://jobs.smartrecruiters.com/oneclick-ui/company/${t}/publication/${p.uuid}?dcr_ci=${t}` }) },
 };
 
+// perFamily: one number for every family, or { family: count } (families left out are skipped).
 async function pick(directory, perFamily, fetchFn = fetch, gapMs = 2000) {
   const out = [];
   for (const [family, f] of Object.entries(FAMILY)) {
+    const want = typeof perFamily === "number" ? perFamily : (perFamily[family] || 0);
+    if (!want) continue;
     // Boards with the most postings first; one per company name, so six forms are six employers.
     const boards = directory.boards.filter((b) => b.provider === family && b.status === "live" && b.postings_seen > 0)
       .sort((a, b) => b.postings_seen - a.postings_seen);
     const companies = new Set();
     let got = 0;
     for (const b of boards) {
-      if (got >= perFamily) break;
+      if (got >= want) break;
       const company = String(b.company).toLowerCase();
       if (companies.has(company)) continue;
       await sleep(gapMs);
@@ -53,7 +56,8 @@ if (require.main === module) {
   (async () => {
     const [outFile, per = "6"] = process.argv.slice(2);
     const directory = JSON.parse(fs.readFileSync(path.join(__dirname, "../../packages/career-data/board-directory.json"), "utf8"));
-    const sources = await pick(directory, Number(per));
+    const counts = /=/.test(per) ? Object.fromEntries(per.split(",").map((kv) => { const [k, v] = kv.split("="); return [k, Number(v)]; })) : Number(per);
+    const sources = await pick(directory, counts);
     fs.writeFileSync(outFile, JSON.stringify(sources, null, 2) + "\n");
     const by = sources.reduce((m, s) => ((m[s.family] = (m[s.family] || 0) + 1), m), {});
     console.log(`SOURCES ${JSON.stringify(by)}`);

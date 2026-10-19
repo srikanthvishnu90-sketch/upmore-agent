@@ -17,17 +17,51 @@ function publicURL(value) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// What a rendered page holds: forms, file inputs (the resume control), and required fields with their labels.
+// What a rendered page holds: forms, file inputs (the resume control), every control (fields), and the questions a
+// person would be asked (questions): radio and checkbox options grouped under one question, the question's own words
+// taken from the nearest label-like element that holds no control (Lever and Ashby put them on a container, not a
+// <label for>), select options kept, and required from the attribute, aria-required or a * / ✱ / "required" marker.
 function pageSummary() {
   const doc = globalThis.document;
-  const labelOf = (e) => {
+  const text = (e) => (e ? (e.innerText || e.textContent || "") : "").replace(/\s+/g, " ").trim().slice(0, 300);
+  const LABELISH = 'label, legend, [class*="label" i], [class*="question" i], [class*="heading" i], [class*="title" i]';
+  const holdsControl = (e) => !!e.querySelector("input,select,textarea");
+  const ownLabel = (e) => {
     const byFor = e.id && doc.querySelector(`label[for="${CSS.escape(e.id)}"]`);
-    return ((byFor && byFor.innerText) || e.getAttribute("aria-label") || (e.closest("label") && e.closest("label").innerText) || e.placeholder || "").replace(/\s+/g, " ").trim().slice(0, 200);
+    const by = e.getAttribute("aria-labelledby");
+    return text(byFor) || e.getAttribute("aria-label") || (by && text(doc.getElementById(by))) || "";
   };
+  // The question a control belongs to: the nearest label-like element with no control inside, within 6 ancestors.
+  const questionOf = (e) => {
+    for (let a = e.parentElement, i = 0; a && i < 6; a = a.parentElement, i++) {
+      const hit = Array.from(a.querySelectorAll(LABELISH)).find((l) => !holdsControl(l) && text(l) && !l.contains(e));
+      if (hit) return { el: hit, box: a };
+    }
+    return null;
+  };
+  const isRequired = (e, q) => e.required || e.getAttribute("aria-required") === "true" ||
+    /[*✱]\s*$|\(required\)/i.test(q ? text(q.el) : "") || !!(q && q.el.querySelector('[class*="required" i]')) || /required/i.test(q ? q.el.className || "" : "");
   const controls = Array.from(doc.querySelectorAll("input,select,textarea")).filter((e) => !["hidden", "submit", "button", "image", "reset"].includes((e.type || "").toLowerCase()));
-  const fields = controls.map((e) => ({ name: e.name || e.id || "", label: labelOf(e), type: (e.type || e.tagName).toLowerCase(),
-    required: e.required || e.getAttribute("aria-required") === "true" || /[*✱]\s*$/.test(labelOf(e)) }));
-  return { forms: doc.querySelectorAll("form").length, resume_inputs: fields.filter((f) => f.type === "file").length, fields,
+  const fields = controls.map((e) => ({ name: e.name || e.id || "", label: ownLabel(e) || (e.closest("label") && text(e.closest("label"))) || e.placeholder || "",
+    type: (e.type || e.tagName).toLowerCase(), required: e.required || e.getAttribute("aria-required") === "true" || /[*✱]\s*$/.test(ownLabel(e)) }));
+  const questions = [], byName = new Map();
+  for (const e of controls) {
+    const type = (e.type || e.tagName).toLowerCase(), name = e.name || e.id || "";
+    const q = questionOf(e), optionLabel = text(e.closest("label")) || ownLabel(e);
+    if ((type === "radio" || type === "checkbox") && name && byName.has(name)) {
+      const g = byName.get(name);
+      g.options.push({ label: optionLabel, value: e.value || optionLabel });
+      g.required = g.required || isRequired(e, q);
+      continue;
+    }
+    const grouped = type === "radio" || (type === "checkbox" && name && controls.filter((c) => c.name === name).length > 1);
+    const label = grouped ? (q ? text(q.el) : "") : (ownLabel(e) || (q ? text(q.el) : "") || e.placeholder || "");
+    const f = { name, label: label.replace(/\s*[*✱]\s*$/, ""), type: type === "select-one" ? "select" : type, required: isRequired(e, grouped ? q : (ownLabel(e) ? { el: doc.createElement("span") } : q)) || e.required,
+      options: e.tagName === "SELECT" ? Array.from(e.options).filter((o) => o.value !== "").map((o) => ({ label: text(o), value: o.value })) : grouped ? [{ label: optionLabel, value: e.value || optionLabel }] : [] };
+    if (grouped && name) byName.set(name, f);
+    questions.push(f);
+  }
+  return { forms: doc.querySelectorAll("form").length, resume_inputs: fields.filter((f) => f.type === "file").length, fields, questions,
     captcha: !!doc.querySelector('iframe[src*="recaptcha"],iframe[src*="hcaptcha"],[class*="g-recaptcha"],iframe[src*="turnstile"]') };
 }
 

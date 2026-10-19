@@ -40,15 +40,21 @@ Function secrets are project-wide in Supabase: every function sees every one.
 ## The steps and what each changes
 
 1. **preflight**: tools, inputs, a clean tree, `deno check` of the five entry points. Changes nothing.
-2. **migrations**: applies, in order and each once, `20261019000000_career_postings.sql`, `20261019010000_career_alerts.sql`,
-   `20261019020000_channel_delivery.sql`, `20261019030000_channel_inbound.sql`, each in one transaction with its row in
+2. **migrations**: applies, in order and each once, every migration from the Trainee set on (the `MIGRATIONS` list in
+   `scripts/launch/trainee-go-live.sh`; `tests/trainee-go-live.test.cjs` fails if a migration file from `20261019` on is
+   missing from it). Today: `20261019000000_career_postings.sql`, `20261019010000_career_alerts.sql`,
+   `20261019020000_channel_delivery.sql`, `20261019030000_channel_inbound.sql` (postings, alerts, the outbox, delivery
+   and inbound), and the apply pipeline `20261020000000_career_apply_jobs.sql`, `20261020010000_career_apply_own_worker.sql`,
+   `20261020020000_career_apply_receipts.sql`, `20261020030000_career_apply_cards.sql`,
+   `20261020040000_career_apply_card_push.sql`, `20261020050000_career_apply_daily_limit.sql` (the approved-application
+   queue, the person's own computer claiming its own applications, receipts, prepared applications and their card, the
+   card pushed into the thread, the daily limit). Each runs in one transaction with its row in
    `public.upmore_migration_ledger` (when that ledger is in use; an empty or missing one is left for
    `apply-rails-and-seed.sh --pending` to backfill). A file whose objects are already live is not run again. The earlier
    career migrations (`20261015*`, `20261016*`) are only **checked**: they use plain `create table`, so a missing one stops
-   the run and you apply it by hand after looking. All four are additive: new tables (`career_postings`,
-   `career_ingest_state`, `career_alert_prefs`, `career_outbox`, `career_proactive_runs`, `channel_contacts`,
-   `channel_delivery_runs`, `channel_inbound`), columns and constraints on `career_outbox`, `channel_contacts.thread_id`, and
-   service-role RPCs.
+   the run and you apply it by hand after looking. Every applied one is additive (new tables, columns, constraints and
+   functions; `create ... if not exists` and `create or replace`) and is applied twice in a row by `tests/db/run.sh` to
+   prove a second run changes nothing.
 3. **secrets**: one `supabase secrets set --env-file` from a 0600 temp file that is removed at once.
 4. **deploy**: first downloads the live `agent-chat` to `~/trainee-rollback/agent-chat-<UTC>` (best effort), then deploys
    `agent-chat` from the career-only staged tree (`node scripts/career/stage-career.cjs`: `index-career.ts` as

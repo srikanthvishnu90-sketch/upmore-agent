@@ -81,35 +81,30 @@ export async function runConversations(items: ConvItem[], postings: unknown[], b
   return { total: out.length, passed, pass_rate: out.length ? passed / out.length : 0, items: out };
 }
 
-// ---------------------------------------------------------------------------------------------------- CLI
-if (import.meta.main) {
-  const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
-  const brainName = opt("--brain") || "router", label = opt("--label") || `${brainName}-${new Date().toISOString().slice(0, 10)}`;
-  if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
+// Trainee itself as a contestant: each conversation in one fresh thread through the product's conversation interface
+// (handleInbound), the fixture postings behind search, an in-memory alert store. "agent" is the model brain (pass the model
+// call), "router" the scripted one (no model). The end state is the thread's profile and the alert store.
+export async function traineeBrain(o: { kind: "agent" | "router"; postings: any[]; model?: (p: any) => Promise<any> }): Promise<ConvBrain> {
   const { handleInbound, memoryStore } = await import("../../supabase/functions/_shared/conversation.ts");
   const core = await import("../../supabase/functions/_shared/router_core.career.js");
   const { CareerHost } = await import("../../supabase/functions/_shared/career_host.js");
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
   const { memoryPostingsDb, searchWords } = await import("../../supabase/functions/_shared/career_ingest.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
-  const { callModel, modelConfig, newMeter } = await import("../../supabase/functions/_shared/model_gateway.ts");
-  const set = JSON.parse(await Deno.readTextFile(new URL("./conversations.json", import.meta.url)));
-  const meter = newMeter(), judgeMeter = newMeter();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
-  const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-  const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
+  if (o.kind === "agent" && !o.model) throw new Error("the agent brain needs a model");
   const T0 = Date.UTC(2026, 9, 19, 15);
-  const brain: ConvBrain = async (users) => {
+  return async (users) => {
     const store = memoryStore(), alerts = memoryAlertStore(), postings = memoryPostingsDb();
-    await postings.putMany(set.postings.map((p: any) => ({ ...p, provider: p.job_id.split(":")[0], board: p.job_id.split(":")[1], last_seen_at: p.first_seen_at, closed_at: null })));
+    await postings.putMany(o.postings.map((p: any) => ({ ...p, provider: p.job_id.split(":")[0], board: p.job_id.split(":")[1], last_seen_at: p.first_seen_at, closed_at: null })));
     let now = T0;
     const replies: string[] = [];
     const turnFn = async (a: any) => {
       const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: a.userId, now, snapshot: a.stores.snapshot ?? null });
       let reply: string;
-      if (brainName === "agent") {
+      if (o.kind === "agent") {
         const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
-          model: (p) => callModel(brainCfg, p, { meter, role: "chat" }), postings: (q) => postings.search(searchWords(q), 150), alerts });
+          model: o.model!, postings: (q) => postings.search(searchWords(q), 150), alerts });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {
@@ -126,6 +121,19 @@ if (import.meta.main) {
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
     return { replies, state: { profile: snap ? snap.stores : null, alerts: alerts.dump() } };
   };
+}
+
+// ---------------------------------------------------------------------------------------------------- CLI
+if (import.meta.main) {
+  const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
+  const brainName = opt("--brain") || "router", label = opt("--label") || `${brainName}-${new Date().toISOString().slice(0, 10)}`;
+  if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
+  const { callModel, modelConfig, newMeter } = await import("../../supabase/functions/_shared/model_gateway.ts");
+  const set = JSON.parse(await Deno.readTextFile(new URL("./conversations.json", import.meta.url)));
+  const meter = newMeter(), judgeMeter = newMeter();
+  const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+  const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
+  const brain = await traineeBrain({ kind: brainName === "agent" ? "agent" : "router", postings: set.postings, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
   const judge: ConvJudge = async (prompt) => {
     const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: prompt }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
     return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));

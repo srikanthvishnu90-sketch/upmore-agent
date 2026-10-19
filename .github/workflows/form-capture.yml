@@ -1,0 +1,44 @@
+# WO-009b-2 fixtures (architect): the build sandbox cannot reach job sites, CI can. On a push to ci/form-capture this
+# picks 6 real public postings per supported ATS from the board directory, renders each application page in sandboxed
+# Chromium (GETs and GraphQL queries only; nothing clicked or typed), builds tests/fixtures/forms-ci from what the pages
+# held, and commits it to ci/form-capture only. Refresh: push to ci/form-capture, review, then merge into trunk by PR.
+name: form-capture
+on:
+  push:
+    branches: [ci/form-capture]
+    paths:
+      - scripts/career/pick-form-sources.cjs
+      - scripts/career/render-form.cjs
+      - scripts/career/build-form-fixtures.cjs
+      - .github/workflows/form-capture.yml
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - name: Playwright and the runner's Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Pick 6 real postings per ATS
+        run: node scripts/career/pick-form-sources.cjs "$RUNNER_TEMP/sources.json" 6
+      - name: Render each application page (Chromium, read-only)
+        run: node scripts/career/render-form.cjs "$RUNNER_TEMP/sources.json" "$RUNNER_TEMP/rendered"
+      - name: Build the fixtures
+        run: |
+          rm -rf tests/fixtures/forms-ci && mkdir -p tests/fixtures/forms-ci && cp "$RUNNER_TEMP/sources.json" tests/fixtures/forms-ci/
+          node scripts/career/build-form-fixtures.cjs "$RUNNER_TEMP/rendered" tests/fixtures/forms-ci/sources.json tests/fixtures/forms-ci "CI run ${{ github.run_id }} of form-capture.yml at ${{ github.sha }}"
+      - name: Commit the fixtures to ci/form-capture
+        run: |
+          git config user.name "form-capture[ci]"
+          git config user.email "form-capture@users.noreply.github.com"
+          git add -A tests/fixtures/forms-ci
+          git commit -m "WO-009b-2 fixtures: real application pages rendered in CI" || exit 0
+          git push origin HEAD:ci/form-capture

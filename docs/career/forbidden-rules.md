@@ -83,7 +83,7 @@ Source: `docs/bug-ledger.md`, main table. FR numbers in this section match bug n
 - **STATUS:** UNENFORCED
 
 ### FR-012 — Apply rail missing while scenarios assumed it
-- **FORBIDDEN:** The apply confirmation seam, salary rule, knockout, 15/day cap, duplicate and current-employer guards, batch card, and audit record must never be absent while apply scenarios run against them.
+- **FORBIDDEN:** The apply confirmation seam, salary rule, knockout, daily cap (15 on module 149; 25 by default, the person's own up to 50, on the one stack: D-011), duplicate and current-employer guards, batch card, and audit record must never be absent while apply scenarios run against them.
 - **FROM:** BUG-012 — Apply rail missing while scenarios assumed it.
 - **ENFORCEMENT:** tests/career-apply.test.cjs (the 132 apply-rail suite; ledger records 118/118 engine tests across the apply suites after merge).
 - **STATUS:** ENFORCED

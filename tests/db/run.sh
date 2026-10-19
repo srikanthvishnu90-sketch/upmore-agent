@@ -130,9 +130,11 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020030000_career_apply_cards.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020040000_career_apply_card_push.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020040000_career_apply_card_push.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020050000_career_apply_daily_limit.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020050000_career_apply_daily_limit.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -156,4 +158,6 @@ echo "== career_apply_cards.test.sql (prepared, shown on a card, approved by one
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_card_push.test.sql (the scheduled run shows the card in the texting thread)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_card_push.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_daily_limit.test.sql (25 a day by default, the person's own up to 50)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_daily_limit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

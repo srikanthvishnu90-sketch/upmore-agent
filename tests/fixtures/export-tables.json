@@ -516,6 +516,10 @@
    "order": ["shown_at", "id"]
   },
   {
+   "table": "career_events",
+   "order": ["at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

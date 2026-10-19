@@ -70,6 +70,26 @@ test('009b handoff expiry closes CDP without claiming human completion',async()=
  const cdp=new EventEmitter();let detached=0;cdp.send=async()=>({cssLayoutViewport:{clientWidth:800,clientHeight:600}});cdp.detach=async()=>{detached++;};
  const view=await createLiveView({ttl:20});try{const h=await view.pause({context:()=>({newCDPSession:async()=>cdp})});assert.deepEqual(await h.completed,{reason:'expired'});assert.equal(detached,1);assert.equal((await fetch(h.url)).status,410);}finally{await view.close();}
 });
+test('009b non-Greenhouse schema cache is private, owner/posting bound and contains no answers or DOM references',()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os');const {createSchemaCache}=require('../workers/career-browser/schema-cache.cjs');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'upmore-schema-test-'));let clock=1000;
+ try{
+  const cache=createSchemaCache(dir,{now:()=>clock,ttl:100}),url='https://jobs.lever.co/test/TEST-JOB';
+  const fields=[{name:'email',label:'Email',type:'email',required:true,options:[],value:'PRIVATE-ANSWER',ref:'PRIVATE-DOM-REF',selector:'#private'}];
+  const hash=cache.put('owner-a',url,{version:'observed-test',origin:new URL(url).origin,fields});
+  assert.equal(cache.get('owner-a',url).schemaHash,hash);assert.equal(cache.get('owner-a',url).needsFreshObservation,true);
+  assert.equal(cache.get('owner-b',url),null);assert.equal(cache.get('owner-a',url+'2'),null);
+  const file=path.join(dir,fs.readdirSync(dir)[0]),body=fs.readFileSync(file,'utf8');assert.doesNotMatch(body,/PRIVATE/);assert.equal(fs.statSync(file).mode&0o077,0);
+  const bad=JSON.parse(body);bad.fields[0].required=false;fs.writeFileSync(file,JSON.stringify(bad));assert.equal(cache.get('owner-a',url),null);
+  cache.put('owner-a',url,{version:'test',origin:new URL(url).origin,fields});clock=1100;assert.equal(cache.get('owner-a',url),null);
+  assert.throws(()=>cache.put('owner-a',url,{version:'test',origin:'https://foreign.example.test',fields}),/SCOPE_MISMATCH/);
+  assert.throws(()=>cache.get('owner-a','https://boards.greenhouse.io/test/jobs/1'),/POSTING_REFUSED/);
+  assert.throws(()=>cache.get('owner-a','https://jobs.lever.co.evil.example.test/test'),/POSTING_REFUSED/);
+  assert.throws(()=>cache.put('owner-a',url,{version:'test',origin:new URL(url).origin,fields:[...fields,...fields]}),/INVALID_FORM_SCHEMA/);
+  fs.unlinkSync(file);fs.symlinkSync('/dev/null',file);assert.equal(cache.get('owner-a',url),null);
+  cache.remove('owner-a',url);assert.equal(fs.readdirSync(dir).length,0);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
 
 // Opt-in local SQL contracts: point at a throwaway cluster initialized with
 // tests/db/stubs.sql, pgcrypto, career_watch_kv, and the apply migration.

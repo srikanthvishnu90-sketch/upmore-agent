@@ -39,13 +39,13 @@ declare a jsonb;begin
  and (p_payload->>'expires_at')::timestamptz>clock_timestamp();end
 $$;
 
-create or replace function public.career_apply_enqueue(p_payload jsonb,p_hash text,p_approval text,p_daily integer default 25)
+create or replace function public.career_apply_enqueue(p_payload jsonb,p_hash text,p_approval text,p_daily integer default 15)
 returns public.career_apply_jobs language plpgsql set search_path=public,extensions,pg_temp as $$
 declare u uuid:=(p_payload->>'user_id')::uuid; j public.career_apply_jobs; co text; counted text[]:=array['queued','driving','confirmed','submitted_unconfirmed','needs_user','unknown_outcome'];
 begin
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  if p_payload->>'version' is distinct from '1' or nullif(p_payload->>'job_id','') is null or nullif(p_payload->>'company','') is null
- or coalesce(p_payload->>'url','') !~ '^https?://' or jsonb_typeof(p_payload->'fields') is distinct from 'array' or p_daily is null or p_daily not between 1 and 50
+ or coalesce(p_payload->>'url','') !~ '^https?://' or jsonb_typeof(p_payload->'fields') is distinct from 'array' or p_daily is null or p_daily not between 1 and 15
  or p_approval is distinct from p_hash or p_hash is distinct from encode(sha256(convert_to(public.career_apply_canonical(p_payload),'UTF8')),'hex')
  or public.career_apply_current(u,p_payload) is distinct from true then raise exception 'invalid or stale application approval'; end if;
  if exists(select from public.career_apply_jobs where user_id=u and job_id=p_payload->>'job_id') then raise exception 'duplicate_job'; end if;

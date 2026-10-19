@@ -56,7 +56,9 @@ const SANDBOX_OFF = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
 async function getBrowser() {
   if (!pw) throw Object.assign(new Error("PLAYWRIGHT_UNRESOLVABLE"), { code: "PLAYWRIGHT_UNRESOLVABLE" });
   if (browser) return browser;
-  const launchOpts = { headless: true,
+  // UPMORE_BROWSER_HEADED=1 opens a visible window: the owner's own runs (scripts/apply.ts --headed), so a
+  // verification on the page is completed by the person, never by the code.
+  const launchOpts = { headless: process.env.UPMORE_BROWSER_HEADED !== "1",
     ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) };
   if (SANDBOX_OFF) { launchOpts.args = ["--no-sandbox"]; }
   else { launchOpts.chromiumSandbox = true; }
@@ -1018,6 +1020,9 @@ async function pump() {
 }
 // Trusted worker/terminal seam (WO-009b): same executor and widgets, one owned
 // context. A request can never choose another board or shut down its peers.
+// The same challenge check the drive uses, for a caller that must re-check a page without reloading it (the person
+// may just have completed a verification on it).
+module.exports.detectChallenge = fnDetectChallenge;
 module.exports.createSession = async () => {
   if (SANDBOX_OFF) throw Object.assign(new Error("BROWSER_SANDBOX_REQUIRED"), { code: "BROWSER_SANDBOX_REQUIRED" });
   const boardId = "worker-" + crypto.randomUUID();let closed = false;

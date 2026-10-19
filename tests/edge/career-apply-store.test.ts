@@ -9,7 +9,7 @@ async function refuses(fn:()=>Promise<unknown>,text:string){let got='';try{await
 Deno.test('009b-1 approval and admission precede every insert; owner log is authoritative',async()=>{
  const f=fake(),s=supabaseApplyStore(f.admin);await refuses(()=>s.enqueue(payload,'0'.repeat(64),{now}),'not_approved');eq(f.calls,[]);
  const hash=await hashApplyPayload(payload);await s.enqueue(payload,hash,{now});eq(f.calls.map(c=>c.name||c.table),['career_apply_jobs','career_apply_enqueue']);eq(f.calls[0].value,'owner');
- eq(f.calls[1].args.p_hash,hash);eq(f.calls[1].args.p_approval,hash);eq(f.calls[1].args.p_daily,25);
+ eq(f.calls[1].args.p_hash,hash);eq(f.calls[1].args.p_approval,hash);eq(f.calls[1].args.p_daily,15);
 });
 Deno.test('009b-1 permanent job uniqueness and uncertain/driving jobs count toward admission',async()=>{
  const hash=await hashApplyPayload(payload);
@@ -18,9 +18,9 @@ Deno.test('009b-1 permanent job uniqueness and uncertain/driving jobs count towa
  }
  const f=fake([{job_id:'other',company:'Test Employer LLC',created_at:new Date(now).toISOString(),state:'unknown_outcome'}]);await refuses(()=>supabaseApplyStore(f.admin).enqueue(payload,hash,{now}),'company_cooldown');eq(f.calls.length,1);
 });
-Deno.test('009b-1 daily limit is capped at 50 and a claim sweeps dead drives first',async()=>{
+Deno.test('009b-1 daily limit is capped at 15 and a claim sweeps dead drives first',async()=>{
  const f=fake([],name=>name==='career_apply_claim'?[{id:'j',lease_token:'lease',state:'driving'}]:3),s=supabaseApplyStore(f.admin);
- await s.enqueue(payload,await hashApplyPayload(payload),{now,daily:500});eq(f.calls[1].args.p_daily,50);f.calls.length=0;
+ await s.enqueue(payload,await hashApplyPayload(payload),{now,daily:500});eq(f.calls[1].args.p_daily,15);f.calls.length=0;
  eq((await s.claim(now,6)).length,1);eq(f.calls.map(c=>c.name),['career_apply_sweep','career_apply_claim']);eq(f.calls[0].args,{p_now:new Date(now).toISOString()});assert(APPLY_TIMEOUT_MS===900000);
 });
 Deno.test('009b-1 finish is lease-bound and transport uncertainty is never retried',async()=>{

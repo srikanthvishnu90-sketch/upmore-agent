@@ -36,7 +36,9 @@ export function classifyOutcome(o: Observation): Outcome {
 
 // ------------------------------------------------------------------------------------------------ admission
 export interface Limits { daily?: number }
-export const DEFAULT_DAILY = 25, MAX_DAILY = 50, COMPANY_COOLDOWN_DAYS = 30;
+// Owner, 2026-10-19: "the current 15-per-day cap still applies" (supersedes D-011's 25, raisable to 50). The same 15
+// as module 149's SPEC_CAPS; raised only by the owner in writing.
+export const DEFAULT_DAILY = 15, MAX_DAILY = 15, COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
 // States that mean an application reached (or may have reached) the employer; a failed or not-submitted attempt can be retried.
 const COUNTED = new Set(["confirmed", "submitted_unconfirmed", "needs_user", "submitting", "queued", "planned"]);

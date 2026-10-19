@@ -18,7 +18,21 @@ const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
 const sha = (b: any) => crypto.createHash("sha256").update(b).digest("hex");
+// A confirmed answer for a single checkbox: "Yes" checks it as surely as "true" does.
+const yesish = (v: unknown) => /^(true|yes|y|on|checked)$/i.test(String(v ?? "").trim());
+// A form asking for an identity number stops before anything is filled: those are the person's to type, never held or
+// sent by Trainee (standing rule: no full ID numbers anywhere).
+const IDENTITY_NUMBER =
+  /social security|\bssn\b|passport (number|no\b)|driver'?s licen[cs]e (number|no\b)|national (id|insurance) number|\btax(payer)? id|\bitin\b|alien (registration )?number|\ba-number\b/i;
+// A hidden field the employer's page sets is sent as it is and shown in the review, unless it consents to something on
+// the person's behalf: a consent-like name with any value but a decline ("0", "false", "no", empty) stops.
+const consentOnBehalf = (name: string, value: string) =>
+  /consent|agree|terms|opt.?in|marketing|subscribe|newsletter|privacy/i.test(name) &&
+  !/^(0|false|no|off|)$/i.test(String(value).trim());
 const fail = (code: string) => Object.assign(Error(code), { code });
+// The employer's answer to the one POST: a 2xx, or a redirect (303 to a thank-you page is the usual pattern). A redirect
+// off the employer's own site never gets here: the route refuses it and the run stops.
+const acknowledged = (status: number) => status >= 200 && status < 400;
 function privateDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = fs.lstatSync(dir);
@@ -30,6 +44,10 @@ function options(args: string[]) {
     const k = args[i];
     if (k === "--submit") o.submit = true;
     else if (k === "--dry-run") o.dry = true;
+    // --handoff: when a verification shows on the page, wait for the person to complete it, then go on from the same
+    // page. --headed opens a visible browser for the person's own runs (and implies --handoff).
+    else if (k === "--handoff") o.handoff = true;
+    else if (k === "--headed") o.headed = o.handoff = true;
     else if (
       ["--url", "--facts", "--resume", "--state-dir", "--evidence-dir"].includes(k) && args[i + 1] &&
       !args[i + 1].startsWith("--")
@@ -135,6 +153,10 @@ export async function runApply(args: string[]) {
   const o = options(args),
     u = new URL(o.url),
     target = posting(u),
+    _local = (() => {
+      // Another state folder would be another once-only record: for a real employer there is exactly one.
+      if (o["state-dir"] && !target.local) throw fail("STATE_DIR_LOCAL_ONLY");
+    })(),
     factsBytes = fs.readFileSync(o.facts),
     factsHash = sha(factsBytes),
     facts = JSON.parse(factsBytes.toString());
@@ -162,7 +184,8 @@ export async function runApply(args: string[]) {
     id = sha(facts.user_id + "\n" + target.key).slice(0, 32),
     ownerLock = sha("owner:" + facts.user_id).slice(0, 32);
   const existing = store.get(id);
-  if (existing) {
+  // "not_sent": the engine refused the submit before anything left the browser, so the posting may be tried again.
+  if (existing && existing.state !== "not_sent") {
     if (existing.user_id !== facts.user_id || existing.job_id !== target.key) throw fail("STATE_BINDING_MISMATCH");
     try {
       const e = JSON.parse(fs.readFileSync(path.join(existing.evidence_path, "evidence.json"), "utf8")),
@@ -175,8 +198,8 @@ export async function runApply(args: string[]) {
       if (
         e.payload?.user_id === facts.user_id && e.payload?.posting === target.key &&
         e.payload_hash === existing.payload_hash && await hashApplyPayload(e.payload) === existing.approval_hash &&
-        e.post?.destination === e.payload.destination && e.post?.mutations === 1 && e.post.status >= 200 &&
-        e.post.status < 300 && observed
+        e.post?.destination === e.payload.destination && e.post?.mutations === 1 && acknowledged(e.post.status) &&
+        observed
       ) {
         const result = classifyOutcome(obs);
         store.withLock(id, () => store.put({ ...store.get(id), state: result.state, result }));
@@ -210,6 +233,8 @@ export async function runApply(args: string[]) {
     current: any,
     version = "";
   const wire: any = {};
+  // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
+  let pageFields: Record<string, string> | null = null;
   const write = (result: any) => {
     evidence.result = result;
     const tmp = path.join(evidenceDir, crypto.randomUUID() + ".tmp"), fd = fs.openSync(tmp, "wx", 0o600);
@@ -254,7 +279,7 @@ export async function runApply(args: string[]) {
   }
   function expected(field: any, b: any) {
     if (b.inputType === "file") return artifact;
-    if (b.inputType === "checkbox") return field.value === "true";
+    if (b.inputType === "checkbox") return yesish(field.value);
     const opt = b.options?.find((x: any) => x.value === field.value);
     return ["select", "radio_group"].includes(b.inputType) && opt ? opt.label : field.value;
   }
@@ -280,9 +305,12 @@ export async function runApply(args: string[]) {
           return ["checkbox", "radio"].includes(e.type) ? e.checked : !!e.value;
         }
         return false;
-      }).map((e: any) => e.name)
+      }).map((e: any) => ({ name: e.name, value: String(e.value ?? "") }))
     );
-    if (hidden.length) throw fail("UNCONFIRMED_HIDDEN_FIELD: " + hidden.join(", "));
+    const unexplained = hidden.filter((h: any) =>
+      !(pageFields && Object.hasOwn(pageFields, h.name) && pageFields[h.name] === h.value)
+    );
+    if (unexplained.length) throw fail("UNCONFIRMED_HIDDEN_FIELD: " + unexplained.map((h: any) => h.name).join(", "));
   }
   const formAction = () =>
     page.evaluate(() => {
@@ -293,8 +321,20 @@ export async function runApply(args: string[]) {
       const form = control?.form || control?.closest("form");
       return form ? { url: form.action, method: form.method } : null;
     });
+  // A verification on the page is the person's: they complete it in the browser window, press Enter, and the run
+  // re-checks the same page (no reload, which would lose what they did). Three tries, then it stops as needs_user.
+  async function handOff(): Promise<boolean> {
+    for (let i = 0; i < 3; i++) {
+      console.log("A verification is showing in the browser window. Complete it yourself, then press Enter here.");
+      await answer();
+      if (!(await page.evaluate(helper.detectChallenge))) return true;
+    }
+    return false;
+  }
+  const helper = require("./career/portal-browser-helper.cjs");
+  if (o.headed) Deno.env.set("UPMORE_BROWSER_HEADED", "1");
   try {
-    session = await require("./career/portal-browser-helper.cjs").createSession();
+    session = await helper.createSession();
     page = await session.page();
     await page.route("**/*", async (route: any) => {
       const req = route.request(),
@@ -331,6 +371,13 @@ export async function runApply(args: string[]) {
           const data = await new Response(new Uint8Array(body), { headers: { "Content-Type": type } }).formData(),
             seen = new Set();
           for (const [name, value] of data.entries()) {
+            if (
+              !Object.hasOwn(wire, name) && pageFields && Object.hasOwn(pageFields, name) && value === pageFields[name]
+            ) {
+              if (seen.has(name)) throw Error();
+              seen.add(name);
+              continue;
+            }
             if (!Object.hasOwn(wire, name)) {
               if (
                 typeof value === "string" &&
@@ -380,11 +427,33 @@ export async function runApply(args: string[]) {
     });
     const opened = await send({ type: "open", url: u.href });
     if (denied || opened.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
-    if (opened.captcha) return write({ state: "needs_user", reason: "captcha" });
+    if (opened.captcha && !(o.handoff && await handOff())) return write({ state: "needs_user", reason: "captcha" });
     const history: any = {}, values: any = {}, planned: any = {};
     for (let step = 0; step < 8; step++) {
       current = await observe();
       if (current.raw.some((f: any) => f.inputType === "password")) throw fail("ACCOUNT_LOGIN_REQUIRED");
+      const idFields = current.schema.filter((f: any) => IDENTITY_NUMBER.test(f.label || f.name));
+      if (idFields.length) {
+        return write({
+          state: "not_submitted",
+          reason: "IDENTITY_NUMBER_REQUESTED",
+          fields: idFields.map((f: any) => f.label),
+        });
+      }
+      if (pageFields === null) {
+        pageFields = {};
+        const found = await page.evaluate(() =>
+          Array.from((globalThis as any).document.querySelectorAll("input[type=hidden]")).map((e: any) => ({
+            name: e.name,
+            value: String(e.value ?? ""),
+          }))
+        );
+        for (const h of found as any[]) {
+          if (!h.name || !h.value) continue;
+          if (consentOnBehalf(h.name, h.value)) throw fail("UNCONFIRMED_HIDDEN_FIELD: " + h.name);
+          pageFields[h.name] = h.value;
+        }
+      }
       if (current.schema.some((f: any) => /verification code|one[- ]time|email.*code|passcode/i.test(f.label))) {
         return write({ state: "needs_user", reason: "email_code" });
       }
@@ -408,7 +477,7 @@ export async function runApply(args: string[]) {
           throw fail("UNSUPPORTED_FILE_ARTIFACT: " + f.label);
         }
         if (planned[f.name] && planned[f.name].label !== f.label) throw fail("FIELD_MEANING_CHANGED: " + f.name);
-        const v = b.inputType === "file" ? artifact : b.inputType === "checkbox" ? f.value === "true" : f.value;
+        const v = b.inputType === "file" ? artifact : b.inputType === "checkbox" ? yesish(f.value) : f.value;
         const filled = await send({
           type: "fill",
           binding: b,
@@ -443,7 +512,7 @@ export async function runApply(args: string[]) {
         ).filter(Boolean),
       });
       if (denied || review.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
-      if (review.captcha) return write({ state: "needs_user", reason: "captcha" });
+      if (review.captcha && !(o.handoff && await handOff())) return write({ state: "needs_user", reason: "captcha" });
       if (review.code) throw fail(review.code);
       if (review.advanced || review.needsFields) continue;
       if (!review.atFinalReview) throw fail("FINAL_REVIEW_NOT_OBSERVED");
@@ -468,6 +537,7 @@ export async function runApply(args: string[]) {
         resume: artifact,
         schema_hash: before,
         facts_sha256: factsHash,
+        page_fields: pageFields || {},
       };
       const payloadHash = await hashApplyPayload(evidence.payload);
       evidence.payload_hash = payloadHash;
@@ -476,6 +546,13 @@ export async function runApply(args: string[]) {
       fs.chmodSync(path.join(evidenceDir, "before-review.png"), 0o600);
       for (const f of evidence.fields) {
         console.log(JSON.stringify({ name: f.name, label: f.label, value: f.value, factId: f.factId }));
+      }
+      const shown = Object.entries(pageFields || {});
+      if (shown.length) {
+        console.log("Set by the employer's page, sent unchanged:");
+        for (const [name, value] of shown) {
+          console.log("  " + name + " = " + (value.length > 80 ? value.slice(0, 80) + "..." : value));
+        }
       }
       console.log("Resume SHA-256: " + artifact.sha256);
       console.log("Destination: " + destination);
@@ -498,14 +575,16 @@ export async function runApply(args: string[]) {
       const verified = await send({ type: "verify_payload", bindings: Object.values(history), payload: values });
       if (!verified.matches) throw fail("PAYLOAD_CHANGED_BEFORE_CLICK");
       store.withLock(ownerLock, () => {
-        if (store.get(id)) throw fail("duplicate_job");
-        const log = store.list().map((key: string) => store.get(key)).filter(Boolean).map((j: any) => ({
-          user_id: j.user_id,
-          job_id: j.job_id,
-          company: j.company,
-          at: j.at,
-          state: j.state === "unknown_outcome" ? "submitting" : j.state,
-        }));
+        const prior = store.get(id);
+        if (prior && prior.state !== "not_sent") throw fail("duplicate_job");
+        const log = store.list().map((key: string) => store.get(key)).filter((j: any) => j && j.state !== "not_sent")
+          .map((j: any) => ({
+            user_id: j.user_id,
+            job_id: j.job_id,
+            company: j.company,
+            at: j.at,
+            state: j.state === "unknown_outcome" ? "submitting" : j.state,
+          }));
         const admission = admitApplication(log, {
           user_id: facts.user_id,
           job_id: target.key,
@@ -536,7 +615,7 @@ export async function runApply(args: string[]) {
       evidence.post = { mutations, status: postStatus, destination };
       if (denied || cap.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       if (!cap.clicked) throw fail("SUBMIT_EFFECT_UNCERTAIN");
-      if (mutations !== 1 || postStatus < 200 || postStatus >= 300) throw fail("SUBMIT_ACKNOWLEDGEMENT_UNCERTAIN");
+      if (mutations !== 1 || !acknowledged(postStatus)) throw fail("SUBMIT_ACKNOWLEDGEMENT_UNCERTAIN");
       const after = await observe(),
         text = String(cap.text || "").slice(0, 4000),
         formPresent = await page.evaluate(
@@ -569,14 +648,18 @@ export async function runApply(args: string[]) {
     }
     throw fail("FORM_DID_NOT_SETTLE");
   } catch (e: any) {
+    // Fenced and nothing left the browser (the one POST was refused or never made): not sent, and the posting may be
+    // tried again. Fenced and the POST went out: unknown until the employer's record says otherwise; never resent.
+    const sent = fenced && mutations > 0;
+    const notSentReason = evidence.transport_rejection || (denied ? "HOST_REDIRECT_REFUSED" : e.code || "DRIVER_ERROR");
     const result = {
-      state: fenced ? "unknown_outcome" : "not_submitted",
-      reason: fenced ? "READBACK_REQUIRED" : denied ? "HOST_REDIRECT_REFUSED" : e.code || "DRIVER_ERROR",
+      state: sent ? "unknown_outcome" : "not_submitted",
+      reason: sent ? "READBACK_REQUIRED" : notSentReason,
     };
     if (fenced) {
       store.withLock(id, () => {
         const j = store.get(id);
-        store.put({ ...j, state: "unknown_outcome", reason: "READBACK_REQUIRED" });
+        store.put({ ...j, state: sent ? "unknown_outcome" : "not_sent", reason: result.reason });
       });
     }
     return write(result);

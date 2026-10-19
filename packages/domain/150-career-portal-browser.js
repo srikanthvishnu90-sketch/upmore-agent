@@ -603,7 +603,13 @@ const CareerPortalBrowser = (() => {
           board.form();
           r = call(boardId, { type: "readback", observationVersion: state.observation.version, bindings: Object.values(state.bindings) }, 30000);
         }
-        return r.answers || {};
+        const answers = r.answers || {};
+        // An untouched unchecked box is not an entered answer. Preserve a
+        // false readback when this board actually filled that choice.
+        for (const [id, value] of Object.entries(answers)) {
+          if (value === false && state.bindings[id]?.inputType === "checkbox" && !Object.hasOwn(state.filledValues, id)) delete answers[id];
+        }
+        return answers;
       },
       atReview() {
         refuseIfRedirected();
@@ -649,7 +655,7 @@ const CareerPortalBrowser = (() => {
         if (state.armedPayload) {
           const checked = call(boardId, { type: "verify_payload", observationVersion: state.observation.version,
             bindings: Object.values(state.bindingHistory), payload: state.armedPayload }, 30000);
-          if (!checked.matches) throw coded("PAYLOAD_CHANGED_BEFORE_CLICK", "the current browser fields differ from the approved payload; no click was issued");
+          if (!checked.matches) throw coded("PAYLOAD_CHANGED_BEFORE_CLICK", "the current browser fields differ from the approved payload; no click was issued (fields: " + (checked.mismatchedFields || []).join(", ") + ")");
         }
         state.submitAttempted = true;
         calls.submit += 1;

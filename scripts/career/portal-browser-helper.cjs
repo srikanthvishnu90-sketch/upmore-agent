@@ -464,7 +464,7 @@ async function readbackBinding(board, b) {
       return t || null;
     });
   }
-  else if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
+  else if (b.inputType === "name_pair") value = ((await nodes[0].inputValue()) + " " + (await nodes[1].inputValue())).trim();
   else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
     const f = el.files && el.files[0]; if (!f) return null;
     const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
@@ -921,7 +921,7 @@ async function cmdReview(board, cmd) {
   if (next) {
     await (await connected(board, next.ref)).click({ timeout: 20000 });
     await page.waitForLoadState("domcontentloaded", { timeout: 2000 }).catch(() => {});
-    return { advanced: true, finalUrl: board.blockedNav || page.url(), blockedNavigation: board.blockedNav };
+    return { advanced: true, captcha: await page.evaluate(fnDetectChallenge), finalUrl: board.blockedNav || page.url(), blockedNavigation: board.blockedNav };
   }
   const submit = board.observation.controls.find((c) => c.kind === "submit" && !c.disabled);
   return { atFinalReview: !!submit, finalUrl: page.url() };
@@ -972,7 +972,8 @@ async function execute(boardId, cmd) {
     case "verify_payload": {
       const { answers } = await cmdReadback(board, cmd);
       if (answers.resume) answers.resume_sha256 = answers.resume.sha256;
-      return { matches: Object.entries(cmd.payload).every(([key, value]) => JSON.stringify(answers[key]) === JSON.stringify(value)) };
+      const mismatchedFields = Object.entries(cmd.payload).filter(([key, value]) => JSON.stringify(answers[key]) !== JSON.stringify(value)).map(([key]) => key);
+      return { matches: mismatchedFields.length === 0, mismatchedFields };
     }
     case "review": return await cmdReview(board, cmd);
     case "submit_and_capture": return await cmdSubmitCapture(board, cmd);

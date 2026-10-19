@@ -1,6 +1,6 @@
 # WO-013: The texting channel: delivery, STOP, LoopMessage
 
-Status: 013a in review (PR #10) · 013b-1 in review (PR #11) · 013b-2 in review (PR #12) · Depends on: WO-004, WO-007 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines each, excluding the architect tests
+Status: done (PRs #10, #11, #12, 2026-10-19) · Depends on: WO-004, WO-007 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines each, excluding the architect tests
 
 ## Why
 Everything is built and tested through the conversation interface and the simulator (D-009); this order puts it on a real

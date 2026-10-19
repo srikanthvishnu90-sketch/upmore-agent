@@ -1,6 +1,6 @@
 # WO-006: Real jobs — cloud ingestion into a postings table
 
-Status: in review (PR #7) · Depends on: WO-001 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines excluding the architect tests and the board data
+Status: done (PR #7, 2026-10-19) · Depends on: WO-001 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines excluding the architect tests and the board data
 
 ## Why
 The live chat has zero jobs: polling ran only on the owner's VM, for the test account, and died silently three

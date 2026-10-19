@@ -12,9 +12,9 @@ real texting channel is last (D-009).
 | [001](WO-001-green-gate.md) | One green gate on trunk | done (PR #4, 2026-10-19) | — | M0 | Codex |
 | [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | done (PR #2, 2026-10-19) | 001 | M1 | Claude |
 | [003](WO-003-eval-runner.md) | Eval runner and rubric judge | in review (PR #5) | 001 | M1 | Claude (was Muse) |
-| [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | in review (PR #3) | 001 | M1 | Claude (was Muse) |
+| [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | done (PR #3, 2026-10-19) | 001 | M1 | Claude (was Muse) |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
-| [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | in review (PR #7) | 001 | M2 | Claude (was Muse) |
+| [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | done (PR #7, 2026-10-19) | 001 | M2 | Claude (was Muse) |
 | [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | 007a in review (PR #8) · 007b in review (PR #9) | 004, 006 | M2 | Claude (was Muse) |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
 | [009](WO-009-real-submissions.md) | **Mass applying, fast (D-011, top priority):** 009a apply core (prepare every application before a browser opens) · 009b parallel apply worker, employer-confirmed | 009a in review (PR #6) · 009b ready | 001 | M4 | 009a Claude · 009b Codex (next after 001) |

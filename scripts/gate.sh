@@ -55,9 +55,9 @@ declare -A archive_tests=(
   [tests/career-template-breakup-guard.test.cjs]=1
   [tests/career-wording-backlog-guard.test.cjs]=1
 )
-career_tests=(tests/career-apply-forms.test.cjs)
+career_tests=()
 for test_file in tests/career-*.test.cjs; do
-  if [[ "$test_file" != tests/career-apply-forms.test.cjs && ${archive_tests[$test_file]:-0} != 1 ]]; then
+  if [[ ${archive_tests[$test_file]:-0} != 1 ]]; then
     career_tests+=("$test_file")
   fi
 done

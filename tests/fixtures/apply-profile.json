@@ -8,9 +8,28 @@
     "location": "Chicago, IL",
     "country": "United States",
     "eeoChoice": "Decline to self-identify",
-    "education": {"school":"TEST University","degree":"Bachelor's","discipline":"Computer Science","graduation_year":"2028"},
-    "answers": {"work_authorization":{"value":"Yes","confirmed":true,"factId":"TEST-WORK"},"sponsorship":{"value":"No","confirmed":true,"factId":"TEST-SPONSOR"}}
+    "education": {
+      "school": "TEST University",
+      "degree": "Bachelor's",
+      "discipline": "Computer Science",
+      "graduation_year": "2028"
+    },
+    "answers": {
+      "work_authorization": {
+        "value": "Yes",
+        "confirmed": true,
+        "factId": "TEST-WORK"
+      },
+      "sponsorship": {
+        "value": "No",
+        "confirmed": true,
+        "factId": "TEST-SPONSOR"
+      }
+    }
   },
-  "resume": {"filename":"synthetic-resume.txt","text":"SYNTHETIC TEST RESUME — Alex Testcase; not a real applicant.\n"},
+  "resume": {
+    "filename": "synthetic-resume.txt",
+    "text": "SYNTHETIC TEST RESUME — Alex Testcase; not a real applicant.\n"
+  },
   "attestations": {}
 }

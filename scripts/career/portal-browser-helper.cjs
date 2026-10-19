@@ -143,11 +143,37 @@ async function getBoard(boardId) {
 
 // ---------- in-page helpers (self-contained; serialized by Playwright) ----------
 function fnDetectChallenge() {
-  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
-  const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];
-  for (const s of sels) { const el = document.querySelector(s); if (el && vis(el)) return "challenge"; }
+  const visible = (el) => {
+    if (!el) return false;
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return style.display !== "none" && style.visibility !== "hidden" &&
+      style.visibility !== "collapse" && rect.width > 0 && rect.height > 0;
+  };
+  for (const frame of document.querySelectorAll("iframe[src]")) {
+    let src;
+    try {
+      src = new URL(frame.getAttribute("src"), document.baseURI);
+    } catch {
+      continue;
+    }
+    const host = src.hostname.toLowerCase();
+    const hcaptcha = host === "hcaptcha.com" || host.endsWith(".hcaptcha.com");
+    const recaptcha = ["google.com", "recaptcha.net"].some((domain) =>
+      host === domain || host.endsWith("." + domain)
+    );
+    const challenge = hcaptcha &&
+        /(?:^|[?#&])frame=challenge(?:[&#]|$)/.test(src.search + src.hash) ||
+      recaptcha &&
+        /\/recaptcha\/.*\/(?:bframe|challenge)\/?$/.test(src.pathname);
+    if (challenge && visible(frame)) return "challenge";
+  }
+  if (visible(document.querySelector("#challenge-form"))) return "challenge";
   const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);
-  if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";
+  if (
+    /verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i
+      .test(txt)
+  ) return "challenge";
   return null;
 }
 function fnCaptchaTech() {

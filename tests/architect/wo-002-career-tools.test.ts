@@ -12,6 +12,7 @@ const ctx = () => ({ userId: "u1", threadId: "t1", now: NOW, state: {} as Record
 const posting = (id: string, title: string, company: string, extra: Record<string, unknown> = {}) =>
   ({ job_id: id, title, company, location: "New York, NY", url: `https://boards.greenhouse.io/${company.toLowerCase()}/jobs/${id}`, description: `${title} at ${company}.`, first_seen_at: "2026-10-18T14:00:00Z", ...extra });
 
+async function rejects(f: () => Promise<unknown>, re: RegExp) { try { await f(); } catch (e) { assert(re.test(String((e as Error).message)), `wrong error: ${(e as Error).message}`); return; } throw new Error("did not reject"); }
 function byName(tools: any[]) { return Object.fromEntries(tools.map((t) => [t.name, t])); }
 
 Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet", () => {
@@ -42,7 +43,9 @@ Deno.test("WO-002/T2 a stated fact is saved as a DRAFT; only confirm makes it us
   eq(added.fact.needs_confirmation, true, "a stated fact is a draft until the user confirms it");
   const mid = await t.get_profile.run({}, c) as any;
   eq([mid.confirmed.length, mid.unconfirmed.length], [0, 1]);
-  const done = await t.confirm_profile_fact.run({ id: added.fact.id }, c) as any;
+  // The person's yes comes in a later turn (the confirmation rule: tests WO-002/T8).
+  const next = { ...ctx(), state: c.state, turn: { message: "Yes, that's right.", added: [] as string[] } };
+  const done = await t.confirm_profile_fact.run({ id: added.fact.id }, next) as any;
   eq(done.fact.needs_confirmation, false);
   const after = await t.get_profile.run({}, c) as any;
   eq([after.confirmed.length, after.unconfirmed.length], [1, 0]);
@@ -102,3 +105,17 @@ Deno.test("WO-002/T7 interview questions come from the banks; answers are scored
   const s = await t.score_interview_answer.run({ answer: "In my internship I rebuilt the reporting pipeline, which cut weekly prep from 6 hours to 1 and was adopted by two other teams." }, ctx()) as any;
   assert(s && typeof s === "object", "the rubric result is returned as-is");
 });
+
+Deno.test("WO-002/T8 only the person confirms a fact: never in the turn that added it, never without their plain yes", async () => {
+  const t = byName(careerTools({ postings: async () => [] }));
+  const turn1 = { ...ctx(), turn: { message: "I was a nurse for 6 years", added: [] as string[] } };
+  const added = await t.add_profile_fact.run({ kind: "experience", text: "6 years as a nurse" }, turn1) as any;
+  await rejects(() => t.confirm_profile_fact.run({ id: added.fact.id }, turn1), /added in this turn/);
+  const later = (message: string) => ({ ...ctx(), state: turn1.state, turn: { message, added: [] as string[] } });
+  await rejects(() => t.confirm_profile_fact.run({ id: added.fact.id }, later("what jobs are open?")), /not a plain yes/);
+  await rejects(() => t.confirm_profile_fact.run({ id: added.fact.id }, later("no, it was 5 years")), /not a plain yes/);
+  await rejects(() => t.confirm_profile_fact.run({ id: added.fact.id }, { ...ctx(), state: turn1.state }), /no confirmation/);
+  const ok = await t.confirm_profile_fact.run({ id: added.fact.id }, later("yes, correct")) as any;
+  eq(ok.fact.needs_confirmation, false);
+});
+

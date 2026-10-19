@@ -124,19 +124,29 @@ const CareerHost = (() => {
 
   // Exact first-person controls precede broad keyword routing. This patches
   // only Muse's existing profile/watch snapshot fields, never model authority.
+  const PAUSE_RE = /^(?:STOP|UNSUBSCRIBE|stop everything|pause all career work)[.!]*$/i;
+  const RESUME_RE = /^(?:resume career work|resume all career work)[.!]*$/i;
+  const ERASE_RE = /^(?:forget|delete) my career profile[.!]*$/i;
+  // True when this turn belongs to the host's account controls: a pause, resume or erase command, or any turn while
+  // the account is paused. Any brain (the router or the agent) must hand such a turn to runTurn, before any model call.
+  function isHostControlled(text, ctx) {
+    const ask = typeof text === "string" ? text.trim() : "";
+    if (PAUSE_RE.test(ask) || RESUME_RE.test(ask) || ERASE_RE.test(ask)) return true;
+    return !!(ctx && ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control");
+  }
   function applyHostControl(text, ctx) {
     if (!ctx.userId || typeof text !== "string") return null;
     const ask = text.trim();
-    if (/^(?:STOP|UNSUBSCRIBE|stop everything|pause all career work)[.!]*$/i.test(ask)) {
+    if (PAUSE_RE.test(ask)) {
       ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
       ctx._hostPatch = { paused: true };
       return { intent: "career_paused", reply: "Career work is paused. No new action will be started. Earlier uncertain actions remain recorded and will not be retried automatically." };
     }
-    if (/^(?:resume career work|resume all career work)[.!]*$/i.test(ask)) {
+    if (RESUME_RE.test(ask)) {
       ctx.globalPause = { set: false, source: "account_control" }; ctx._hostPatch = { paused: false };
       return { intent: "career_resumed", reply: "The account pause is lifted. Earlier cancelled or uncertain work was not restarted. Ask for the next action explicitly." };
     }
-    if (/^(?:forget|delete) my career profile[.!]*$/i.test(ask)) {
+    if (ERASE_RE.test(ask)) {
       for (const key of STATE_KEYS) delete ctx[key];
       ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
       ctx._hostPatch = { erase: true, paused: true };
@@ -366,7 +376,7 @@ const CareerHost = (() => {
       return { v: 1, scope: { userId: ctx.userId }, stores };
     }
 
-    return { createTurnCtx, runTurn, extractSnapshot, STATE_KEYS: STATE_KEYS.slice() };
+    return { createTurnCtx, runTurn, extractSnapshot, isHostControlled, STATE_KEYS: STATE_KEYS.slice() };
   }
 
   return { createCareerHost, STATE_KEYS: STATE_KEYS.slice() };

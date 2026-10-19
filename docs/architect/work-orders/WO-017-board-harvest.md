@@ -36,6 +36,25 @@ as exactly that.
   6 unverifiable. Added with at least one posting: 1,874 boards (Greenhouse and Ashby vendor boards skipped, WO-006).
 - Live boards 305 → 2,179; postings seen 62,751 → 259,064 (4.1×). Workday: 254 tenants recorded, not watched.
 - Ingest at the default 100 boards per 5-minute run: each board read about every 2 hours (was 15 minutes).
+- Persona measure (coverage-personas run 39207574315; 2,179 boards read, 0 failed; open postings 33,953 -> 176,262).
+  Title matches in the person's place, before -> after (posted in the last 7 days in brackets):
+
+  | Person | Title matches | Last 7 days |
+  |---|---|---|
+  | P01 new-grad software engineer, US/remote | 1,571 -> 5,112 | 75 -> 276 |
+  | P02 data analyst, New York | 17 -> 65 | 3 -> 3 |
+  | P03 product manager, Bay Area | 293 -> 679 | 16 -> 47 |
+  | P04 registered nurse, Texas | 0 -> 15 | 0 -> 0 |
+  | P05 accountant, Chicago | 1 -> 14 | 0 -> 3 |
+  | P06 mechanical engineer, US | 166 -> 995 | 12 -> 68 |
+  | P07 marketing coordinator, remote | 0 -> 4 | 0 -> 0 |
+  | P08 sales development, Austin/remote | 15 -> 75 | 1 -> 5 |
+  | P09 customer success, remote | 64 -> 157 | 15 -> 26 |
+  | P10 ML engineer, Seattle | 18 -> 45 | 2 -> 8 |
+
+  Read honestly: a 2-6x gain for tech and startup roles; nursing, accounting and marketing stay near zero, because those
+  employers hire on Workday, iCIMS and Taleo, which we do not read. The next coverage lever is a Workday reader (254
+  tenants recorded, about 1,360 sites not yet checked), not more Greenhouse boards.
 - Owner check before deploying (not a blocker to merge, a blocker to deploy): about 260,000 posting rows with
   descriptions up to 20,000 characters is on the order of 1-2 GB in `career_postings`. Check the database plan's
   size first; the Supabase free plan's database is 500 MB.

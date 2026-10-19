@@ -31,4 +31,5 @@ Deno.test("measure reads each board once, sums before and after, and reports fai
   assertEquals(reads, 3);
   assertEquals(r.boards, { before: 1, after: 3, read: 2, failed: 1 });
   assertEquals([r.rows[0].before.title_match, r.rows[0].after.title_match], [1, 2]);
+  assertEquals([r.storage.before.rows, r.storage.after.rows], [1, 2]);
 });

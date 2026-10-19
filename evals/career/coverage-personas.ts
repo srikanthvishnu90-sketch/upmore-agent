@@ -56,8 +56,14 @@ export async function measure(o: { before: Board[]; after: Board[]; fetchFeed: F
   const { postings, failed } = await readAll([...all.values()], o.fetchFeed);
   const pool = (bs: Board[]) => bs.flatMap((b) => postings.get(`${b.provider}:${b.board.toLowerCase()}`) || []);
   const before = pool(o.before), after = pool(o.after);
+  // What storing them costs (the database plan is sized by this, not by users): rows and text characters as ingest
+  // writes them (description clipped at 20,000), and the description share if it were clipped at 4,000.
+  const chars = (bs: Board[], clip: number) => pool(bs).reduce((n, p) => n + Math.min(String(p.description || "").length, clip), 0);
+  const other = (bs: Board[]) => pool(bs).reduce((n, p) => n + `${p.job_id}${p.title}${p.company}${p.location}${p.url}${p.department || ""}`.length, 0);
+  const storage = Object.fromEntries((["before", "after"] as const).map((k) => { const bs = k === "before" ? o.before : o.after;
+    return [k, { rows: pool(bs).length, description_chars: chars(bs, 20000), description_chars_at_4000: chars(bs, 4000), other_chars: other(bs) }]; }));
   const rows = (o.personas || PERSONAS).map((p) => ({ id: p.id, who: p.who, query: p.query, before: countFor(before, p, o.now), after: countFor(after, p, o.now) }));
-  return { boards: { before: o.before.length, after: o.after.length, read: postings.size, failed: failed.length }, postings: { before: before.length, after: after.length }, rows, failed };
+  return { boards: { before: o.before.length, after: o.after.length, read: postings.size, failed: failed.length }, postings: { before: before.length, after: after.length }, storage, rows, failed };
 }
 
 if (import.meta.main) {
@@ -68,6 +74,7 @@ if (import.meta.main) {
   const r = await measure({ before: directoryBoards(before), after: directoryBoards(after), now: Date.now(),
     fetchFeed: boardFetchFeed(fetch, { userAgent: "Trainee coverage check (job alerts; github.com/srikanthvishnu90-sketch/upmore-agent)", timeoutMs: 20000 }) });
   console.log(`BOARDS ${JSON.stringify(r.boards)} POSTINGS ${JSON.stringify(r.postings)}`);
+  console.log(`STORAGE ${JSON.stringify(r.storage)}`);
   console.log("persona | before open / title / new 7d | after open / title / new 7d");
   for (const x of r.rows) console.log(`PERSONA ${x.id} ${x.who} | ${x.before.open} / ${x.before.title_match} / ${x.before.new_7d} | ${x.after.open} / ${x.after.title_match} / ${x.after.new_7d}`);
   if (opt("--out")) await Deno.writeTextFile(opt("--out")!, JSON.stringify({ at: new Date().toISOString(), ...r }, null, 1) + "\n");

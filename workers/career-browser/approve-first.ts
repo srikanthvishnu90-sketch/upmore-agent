@@ -160,6 +160,98 @@ export async function runApproved(d: {
   return done;
 }
 
+// The person's own queue, signed in as them (D-017; migration 20261020010000_career_apply_own_worker.sql): it claims and
+// finishes only that person's approved applications. The client is a Supabase client holding the person's own session,
+// never the service key.
+export interface RpcClient {
+  rpc: (name: string, args: unknown) => PromiseLike<{ data: any; error: any }>;
+}
+export function ownQueue(client: RpcClient) {
+  const must = (r: { data: any; error: any }) => {
+    if (r.error) {
+      // An expired or refused sign-in is not a queue outage: asking again would never work.
+      const text = `${r.error.code ?? ""} ${r.error.message ?? ""}`;
+      throw Error(/PGRST30[0-3]|jwt|not signed in/i.test(text) ? "SIGNED_OUT" : "APPLY_QUEUE_UNAVAILABLE");
+    }
+    return r.data;
+  };
+  return {
+    async claim(limit = 1): Promise<Job[]> {
+      const rows = must(await client.rpc("career_apply_claim_own", { p_limit: limit }));
+      if (!Array.isArray(rows)) throw Error("APPLY_QUEUE_UNAVAILABLE");
+      return rows;
+    },
+    async finish(id: string, lease: string, state: string, evidence: Record<string, unknown>) {
+      return must(
+        await client.rpc("career_apply_finish_own", { p_id: id, p_lease: lease, p_state: state, p_evidence: evidence }),
+      );
+    },
+  };
+}
+
+// The worker on the person's own computer: one application at a time (one browser, and the person may be needed for a
+// verification), until stopped. A queue that cannot be read waits and is asked again; nothing runs without a claim.
+// Recording the outcome is retried, because an application the employer confirmed must not read as unknown over a
+// network blip; if it still cannot be recorded, the drive is left to the database, which marks it unknown after 15
+// minutes and never re-drives it, and the local evidence path is reported. The engine never runs twice for one claim.
+export async function runLoop(o: {
+  queue: ReturnType<typeof ownQueue>;
+  resume: { path: string; sha256: string };
+  writeFacts: (job: Job, facts: unknown) => Promise<string>;
+  runEngine: RunEngine;
+  stop: () => boolean;
+  idleMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+  log?: (line: string) => void;
+}) {
+  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const log = o.log ?? ((l: string) => console.log(l));
+  const ran: { id: string; state: string; reason?: string; recorded: boolean }[] = [];
+  while (!o.stop()) {
+    let claimed: Job[];
+    try {
+      claimed = await o.queue.claim(1);
+    } catch (e: any) {
+      if (e?.message === "SIGNED_OUT") {
+        log("Your sign-in has expired. Sign in again to keep going; nothing else was run.");
+        break;
+      }
+      log("The queue could not be read; asking again shortly. Nothing was run.");
+      await sleep(o.idleMs ?? 30_000);
+      continue;
+    }
+    if (!claimed.length) {
+      await sleep(o.idleMs ?? 30_000);
+      continue;
+    }
+    let recorded = false;
+    const done = await runApproved({
+      claim: async () => claimed,
+      finish: async (id, lease, state, evidence) => {
+        for (let i = 0; i < 4 && !recorded; i++) {
+          try {
+            await o.queue.finish(id, lease, state, evidence);
+            recorded = true;
+          } catch {
+            if (i < 3) await sleep(2_000 * 2 ** i);
+          }
+        }
+      },
+      resumeFor: async () => o.resume,
+      writeFacts: o.writeFacts,
+      runEngine: o.runEngine,
+    });
+    for (const d of done) {
+      ran.push({ ...d, recorded });
+      log(
+        `${d.id}: ${d.state}${d.reason ? " (" + d.reason + ")" : ""}` +
+          (recorded ? "" : "; NOT RECORDED: the queue will mark it unknown, the local evidence has the result"),
+      );
+    }
+  }
+  return ran;
+}
+
 // The engine as a child process: scripts/apply.ts with a fresh private evidence folder; reads its RESULT line and its
 // evidence file. No result line is null (the caller decides what that means). The person is in the loop for anything
 // that is theirs (a verification at the click, a code the employer emails): the engine's lines reach them as they are
@@ -193,6 +285,17 @@ export function engineRunner(o: { root: string; extra?: string[]; deno?: string 
     } catch { /* a refusal before the evidence folder was used */ }
     return { result, evidence };
   };
+}
+
+// The role a Supabase key or session token claims, read from its payload without verifying it: used only to refuse a
+// service key on a person's computer. Anything unreadable has no role.
+export function jwtRole(token: string): string | null {
+  try {
+    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(part + "=".repeat((4 - part.length % 4) % 4))).role ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // Command line, for the owner's own machine (the first cohort): prepare one posting, or run one approved payload.
@@ -231,8 +334,60 @@ if (import.meta.main) {
       runEngine: engineRunner({ root, extra }),
     });
     console.log("RAN " + JSON.stringify(done));
+  } else if (cmd === "run") {
+    // The person's own computer, signed in as them: UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY (public) and the
+    // person's own session (UPMORE_ACCESS_TOKEN, UPMORE_REFRESH_TOKEN), never printed. A service key is refused: it would
+    // let this computer claim other people's applications.
+    const [resume, ...extra] = rest;
+    const env = (k: string) => Deno.env.get(k) || "";
+    const [url, anon, access, refresh] = [
+      "UPMORE_SUPABASE_URL",
+      "UPMORE_SUPABASE_ANON_KEY",
+      "UPMORE_ACCESS_TOKEN",
+      "UPMORE_REFRESH_TOKEN",
+    ]
+      .map(env);
+    if (!resume || !url || !anon || !access || !refresh) {
+      console.error(
+        "usage: approve-first.ts run <resume.pdf> [engine args], with UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY, " +
+          "UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN set to your own sign-in",
+      );
+      Deno.exit(2);
+    }
+    if ([anon, access].some((t) => jwtRole(t) === "service_role")) {
+      console.error("SERVICE_KEY_REFUSED: this computer runs only your own applications; sign in as yourself.");
+      Deno.exit(2);
+    }
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
+    const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: true } });
+    const signed = await client.auth.setSession({ access_token: access, refresh_token: refresh });
+    if (signed.error || !signed.data.session) {
+      console.error("Your sign-in has expired or was not accepted. Sign in again; nothing was run.");
+      Deno.exit(2);
+    }
+    const bytes = await Deno.readFile(resume);
+    const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)))
+      .map((n) => n.toString(16).padStart(2, "0")).join("");
+    const dir = await Deno.makeTempDir({ prefix: "trainee-facts-" });
+    let stopping = false;
+    Deno.addSignalListener("SIGINT", () => {
+      stopping = true;
+      console.log("Stopping after the current application.");
+    });
+    console.log("Running your approved applications one at a time. Ctrl+C stops after the current one.");
+    await runLoop({
+      queue: ownQueue(client),
+      resume: { path: resume, sha256 },
+      writeFacts: async (job, facts) => {
+        const f = `${dir}/${job.id}.json`;
+        await Deno.writeTextFile(f, JSON.stringify(facts), { mode: 0o600 });
+        return f;
+      },
+      runEngine: engineRunner({ root, extra }),
+      stop: () => stopping,
+    });
   } else {
-    console.error("usage: approve-first.ts prepare|run-one ...");
+    console.error("usage: approve-first.ts prepare|run-one|run ...");
     Deno.exitCode = 2;
   }
 }

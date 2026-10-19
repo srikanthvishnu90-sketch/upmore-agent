@@ -164,3 +164,25 @@ test("a code emailed after the submit reaches the person through the worker; the
   assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-code", "/verify-code"], "the application once, the code once");
   assert.ok(!r.out.includes(CODE) && !r.err.includes(CODE), "the code is nowhere in the worker's output");
 });
+
+test("run on a person's computer refuses a service key before anything is read or run", async () => {
+  const tok = (role) => "x." + Buffer.from(JSON.stringify({ role })).toString("base64url") + ".y";
+  const run = (env) =>
+    new Promise((resolve) => {
+      const p = spawn(process.env.DENO_BIN || "deno", ["run", "-A", path.join(__dirname, "../workers/career-browser/approve-first.ts"), "run", path.join(root, "synthetic.pdf")], {
+        env: { ...process.env, UPMORE_SUPABASE_URL: "http://127.0.0.1:9", ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let out = "";
+      p.stdout.on("data", (b) => (out += b));
+      p.stderr.on("data", (b) => (out += b));
+      p.once("exit", (code) => resolve({ code, out }));
+    });
+  const service = await run({ UPMORE_SUPABASE_ANON_KEY: tok("anon"), UPMORE_ACCESS_TOKEN: tok("service_role"), UPMORE_REFRESH_TOKEN: "r" });
+  assert.equal(service.code, 2);
+  assert.match(service.out, /SERVICE_KEY_REFUSED/);
+  assert.ok(!service.out.includes(tok("service_role")), "the key is never printed");
+  const missing = await run({ UPMORE_SUPABASE_ANON_KEY: tok("anon") });
+  assert.equal(missing.code, 2);
+  assert.match(missing.out, /UPMORE_ACCESS_TOKEN and UPMORE_REFRESH_TOKEN/);
+});

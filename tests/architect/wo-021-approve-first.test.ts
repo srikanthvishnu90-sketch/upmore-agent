@@ -1,6 +1,13 @@
 // WO-021 W1 + W4 (architect): approve first, then apply without asking twice. The engine is a fake here; the real
 // engine runs in tests/career-approve-first.test.cjs. Contract: docs/architect/work-orders/WO-021-approve-first.md.
-import { factsFromPayload, prepare, runApproved } from "../../workers/career-browser/approve-first.ts";
+import {
+  factsFromPayload,
+  jwtRole,
+  ownQueue,
+  prepare,
+  runApproved,
+  runLoop,
+} from "../../workers/career-browser/approve-first.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 
@@ -151,4 +158,111 @@ Deno.test("WO-021/7 an application that changed since the approval is passed thr
   });
   await runApproved(h.deps);
   eq(h.finished, [{ id: "J1", lease: "L1", state: "not_submitted", reason: "APPROVED_APPLICATION_CHANGED" }]);
+});
+
+// W4 on the person's own computer: the queue is the person's own (career_apply_claim_own / career_apply_finish_own).
+function fakeClient(o: { claimFails?: number; finishFails?: number; jobs?: any[]; expired?: boolean } = {}) {
+  const calls: { name: string; args: any }[] = [];
+  let claimFails = o.claimFails ?? 0, finishFails = o.finishFails ?? 0;
+  const jobs = [...(o.jobs ?? [])];
+  return {
+    calls,
+    rpc: (name: string, args: any) => {
+      calls.push({ name, args });
+      if (name === "career_apply_claim_own") {
+        if (o.expired) return Promise.resolve({ data: null, error: { code: "PGRST301", message: "JWT expired" } });
+        if (claimFails-- > 0) return Promise.resolve({ data: null, error: { message: "down" } });
+        return Promise.resolve({ data: jobs.splice(0, args.p_limit), error: null });
+      }
+      if (name === "career_apply_finish_own") {
+        if (finishFails-- > 0) return Promise.resolve({ data: null, error: { message: "down" } });
+        return Promise.resolve({ data: { id: args.p_id, state: args.p_state }, error: null });
+      }
+      return Promise.resolve({ data: null, error: { message: "unexpected " + name } });
+    },
+  };
+}
+const queuedJob = (id: string) => ({
+  id,
+  lease_token: "L-" + id,
+  url: "https://x.test/" + id,
+  payload: { user_id: "TEST-USER", fields: evidence.fields, engine_approval: HASH, resume_sha256: "b".repeat(64) },
+});
+function loop(client: ReturnType<typeof fakeClient>, o: { rounds: number; engine?: any }) {
+  let n = 0;
+  const runs: string[][] = [], logs: string[] = [];
+  return runLoop({
+    queue: ownQueue(client),
+    resume: { path: "/r.pdf", sha256: "b".repeat(64) },
+    writeFacts: async () => "/facts.json",
+    runEngine: o.engine ?? (async (args: string[]) => {
+      runs.push(args);
+      return { result: { state: "confirmed", reason: "employer confirmation on the page" }, evidence: {} };
+    }),
+    stop: () => n++ >= o.rounds,
+    sleep: async () => {},
+    log: (l) => logs.push(l),
+  }).then((ran) => ({ ran, runs, logs }));
+}
+
+Deno.test("WO-021/8 the worker claims only through the person's own queue, one at a time, and records each outcome by its lease", async () => {
+  const c = fakeClient({ jobs: [queuedJob("J1"), queuedJob("J2")] });
+  const r = await loop(c, { rounds: 3 });
+  eq(r.ran.map((x) => [x.id, x.state, x.recorded]), [["J1", "confirmed", true], ["J2", "confirmed", true]]);
+  eq(r.runs.length, 2, "one engine run per claimed application");
+  assert(
+    c.calls.filter((x) => x.name === "career_apply_claim_own").every((x) => x.args.p_limit === 1),
+    "one at a time",
+  );
+  eq(
+    c.calls.filter((x) => x.name === "career_apply_finish_own").map((
+      x,
+    ) => [x.args.p_id, x.args.p_lease, x.args.p_state]),
+    [["J1", "L-J1", "confirmed"], ["J2", "L-J2", "confirmed"]],
+  );
+  assert(!c.calls.some((x) => /^career_apply_(claim|finish)$/.test(x.name)), "never the all-users functions");
+});
+
+Deno.test("WO-021/9 a queue that cannot be read runs nothing and is asked again", async () => {
+  const c = fakeClient({ claimFails: 2, jobs: [queuedJob("J1")] });
+  const r = await loop(c, { rounds: 3 });
+  eq(r.runs.length, 1);
+  eq(r.logs.filter((l) => l.includes("could not be read")).length, 2);
+  eq(r.ran.map((x) => x.state), ["confirmed"]);
+});
+
+Deno.test("WO-021/10 recording is retried; an outcome that cannot be recorded is said, and the engine never runs again", async () => {
+  const flaky = fakeClient({ finishFails: 2, jobs: [queuedJob("J1")] });
+  const a = await loop(flaky, { rounds: 2 });
+  eq(a.ran.map((x) => [x.state, x.recorded]), [["confirmed", true]]);
+  eq(flaky.calls.filter((x) => x.name === "career_apply_finish_own").length, 3, "two failures, then recorded once");
+  const down = fakeClient({ finishFails: 99, jobs: [queuedJob("J1")] });
+  const b = await loop(down, { rounds: 3 });
+  eq(b.runs.length, 1, "the application is never sent twice");
+  eq(b.ran.map((x) => [x.state, x.recorded]), [["confirmed", false]]);
+  assert(b.logs.some((l) => l.includes("NOT RECORDED")), "the person is told it was not recorded");
+});
+
+Deno.test("WO-021/11 an engine that started and gave no result is recorded unknown by the worker, not retried", async () => {
+  const c = fakeClient({ jobs: [queuedJob("J1")] });
+  let runs = 0;
+  const r = await loop(c, { rounds: 3, engine: async () => (runs++, null) });
+  eq(runs, 1);
+  eq(r.ran.map((x) => x.state), ["unknown_outcome"]);
+  eq(c.calls.filter((x) => x.name === "career_apply_finish_own").map((x) => x.args.p_state), ["unknown_outcome"]);
+});
+
+Deno.test("WO-021/12 an expired sign-in stops the worker with a plain line, instead of asking the queue forever", async () => {
+  const c = fakeClient({ expired: true, jobs: [queuedJob("J1")] });
+  const r = await loop(c, { rounds: 50 });
+  eq(r.runs.length, 0);
+  eq(c.calls.length, 1, "asked once, then stopped");
+  assert(r.logs.some((l) => l.includes("sign-in has expired")), r.logs.join(" | "));
+});
+
+Deno.test("WO-021/13 a service key is recognized so a person's computer can refuse it", () => {
+  const tok = (role: string) => "x." + btoa(JSON.stringify({ role })).replace(/=+$/, "") + ".y";
+  eq(jwtRole(tok("service_role")), "service_role");
+  eq(jwtRole(tok("authenticated")), "authenticated");
+  eq(jwtRole("not-a-token"), null);
 });

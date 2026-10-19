@@ -116,6 +116,8 @@ done
 # after the complete career migration ledger below has created career_watch_kv.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
 # Idempotent: the channel delivery migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
@@ -123,7 +125,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -141,4 +143,6 @@ echo "== concurrent message workers"
 python3 "$HERE/message_concurrency.py" "${PSQL[@]}"
 echo "== career_apply_jobs.test.sql (complete career authority schema)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_jobs.test.sql"
+echo "== career_apply_own.test.sql (the person's own computer claims only their own applications)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_own.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

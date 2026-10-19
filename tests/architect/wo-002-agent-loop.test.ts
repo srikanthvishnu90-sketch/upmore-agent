@@ -5,9 +5,11 @@ import {
   runAgentTurn,
   MAX_STEPS_REPLY,
   MODEL_ERROR_REPLY,
+  MAX_STEPS_AFTER_SAVE_REPLY,
+  MODEL_ERROR_AFTER_SAVE_REPLY,
   type ToolSpec,
   type ModelFn,
-} from "../../../supabase/functions/_shared/agent/loop.ts";
+} from "../../supabase/functions/_shared/agent/loop.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
@@ -181,5 +183,17 @@ Deno.test("WO-002/10 MAX_STEPS_REPLY and MODEL_ERROR_REPLY are honest: nothing c
   for (const s of [MAX_STEPS_REPLY, MODEL_ERROR_REPLY]) {
     assert(typeof s === "string" && s.length > 20 && s.length < 300, "a short sentence");
     assert(!/\b(sent|submitted|applied|done)\b/i.test(s) || /\bnot\b|\bnothing\b/i.test(s), "it never claims an action happened");
+  }
+});
+
+Deno.test("WO-002/11 a turn that saved something and then stopped says it saved; it never says nothing was saved", async () => {
+  const write = call("w1", "update_application", { company: "Stripe", stage: "Interview rounds" });
+  const failed = await runAgentTurn(base(scripted([write, new Error("timeout")])));
+  eq([failed.stopped, failed.reply], ["model_error", MODEL_ERROR_AFTER_SAVE_REPLY]);
+  const capped = await runAgentTurn(base(scripted([write, ...Array.from({ length: 5 }, (_, i) => call(`r${i}`, "get_profile", {}))]), { maxSteps: 3 }));
+  eq([capped.stopped, capped.reply], ["max_steps", MAX_STEPS_AFTER_SAVE_REPLY]);
+  for (const s of [MAX_STEPS_AFTER_SAVE_REPLY, MODEL_ERROR_AFTER_SAVE_REPLY]) {
+    assert(/\bsaved\b/.test(s) && !/nothing was (?:sent, )?saved/i.test(s), s);
+    assert(/Nothing was sent or submitted/.test(s), "and still nothing went out");
   }
 });

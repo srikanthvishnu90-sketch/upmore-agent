@@ -70,6 +70,7 @@ edge_tests=(
   tests/edge/model-gateway.test.ts
   tests/edge/model-calls.test.ts
   tests/edge/model-errors.test.ts
+  tests/edge/agent-guards.test.ts
 )
 
 portable_test_paths() {
@@ -92,9 +93,8 @@ PY
 
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
-# WO-001 has no landed architect tests. This permits that empty queue only;
-# pending orders remain excluded and no landed test is filtered out.
-step architect-tests deno test -A --no-check --ignore=tests/architect/pending --permit-no-files tests/architect/
+# Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
+step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
 step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step career-bundle python3 scripts/build-router-core.py --career-only --check

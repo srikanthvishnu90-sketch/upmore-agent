@@ -30,9 +30,8 @@ export function coverage(rows: Row[], extra: number) {
     ready_postings: rows.filter((r) => r.required.every(covered)).length, ranked };
 }
 
-if (import.meta.main) {
-  const [inFile = "evals/apply/questions-ci.json", outFile = "docs/apply/ask-once.md"] = Deno.args;
-  const set = JSON.parse(Deno.readTextFileSync(inFile));
+// The report for one question set, exactly as it is committed (tests/edge/career-ask-once.test.ts rebuilds it).
+export function report(set: { captured_in: string; postings: any[] }, inFile: string): string {
   const rows = rowsOf(set), pct = (x: number) => `${Math.round(x * 100)}%`;
   const fams = [...new Set(rows.map((r) => r.family))];
   const lines = [`# Ask once: how many real application questions a person answers only once`, "",
@@ -57,7 +56,13 @@ if (import.meta.main) {
   lines.push("", "## The most common questions the standard facts do not answer", "", "| Question (as first seen) | Postings |", "|---|---|",
     ...c0.ranked.slice(0, 40).map(([, e]) => `| ${e.label.replace(/\|/g, "/").slice(0, 160)} | ${e.postings} |`));
   lines.push("", `Unique unanswered wordings: ${c0.ranked.length}; asked on only one posting: ${c0.ranked.filter(([, e]) => e.postings === 1).length}.`);
+  return lines.join("\n") + "\n";
+}
+
+if (import.meta.main) {
+  const [inFile = "evals/apply/questions-ci.json", outFile = "docs/apply/ask-once.md"] = Deno.args;
+  const text = report(JSON.parse(Deno.readTextFileSync(inFile)), inFile);
   Deno.mkdirSync(outFile.replace(/\/[^/]+$/, ""), { recursive: true });
-  Deno.writeTextFileSync(outFile, lines.join("\n") + "\n");
-  console.log(lines.slice(4, 10).join("\n"));
+  Deno.writeTextFileSync(outFile, text);
+  console.log(text.split("\n").slice(4, 10).join("\n"));
 }

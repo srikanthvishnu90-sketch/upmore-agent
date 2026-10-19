@@ -227,3 +227,13 @@ Deno.test("WO-029/7 wired: the handler asks before any brain, prepare-batch read
   const unread = personBlock({ standing: [], profile: {}, alerts: null, pipeline: summarizePipeline({ prepared: [], openCard: null, jobs: [], openQuestions: null }, T) } as any);
   assert(/Questions only they can answer: could not be read this turn/.test(unread));
 });
+
+Deno.test("WO-029/8 every turn reads one key first: nothing showing reads nothing else, and a failed read never fails the person's message", async () => {
+  let intents = 0;
+  const store = fakeStore([]);
+  const counted = { ...store, lastAssistantIntent: async (t: string) => { intents++; return store.lastAssistantIntent(t); } };
+  eq(await questionsTurn({ message: "1 yes", userId: "u", threadId: "t", now: T, store: counted }), null);
+  eq(intents, 0, "no questions showing: the thread's last reply is not read");
+  const broken = { ...store, shown: () => Promise.reject(new Error("read failed")) };
+  eq(await questionsTurn({ message: "find me analyst jobs", userId: "u", threadId: "t", now: T, store: broken }), null, "the turn goes on without this");
+});

@@ -198,13 +198,21 @@ export async function questionsTurn(
     await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at: new Date(o.now).toISOString() });
     return { reply: t.text, status: "shown" };
   }
-  // An answer counts only while the questions were this thread's last word, and only for a day.
-  if ((await o.store.lastAssistantIntent(o.threadId)) !== QUESTIONS_INTENT) return null;
-  const shown = await o.store.shown(o.userId);
-  if (!shown || shown.thread !== o.threadId || !shown.ids.length) return null;
+  // An answer counts only while the questions were this thread's last word, and only for a day. This runs on every turn,
+  // so the one key read comes first and the thread's last reply is read only while questions are showing here; a read
+  // that fails lets the turn go on without this (the person's message is never failed by it).
+  let shown: Shown | null;
+  try {
+    shown = await o.store.shown(o.userId);
+  } catch (e) {
+    console.error("questions: shown not read", e instanceof Error ? e.message : String(e));
+    return null;
+  }
+  if (!shown || shown.thread !== o.threadId || !shown.ids.length || Date.parse(shown.at) < o.now - 48 * 3600000) return null;
   if (shown.ids.length === 1 && TALK.test(o.message.trim())) return null;
   const parts = splitAnswers(o.message, shown.ids.length);
   if (!parts) return null;
+  if ((await o.store.lastAssistantIntent(o.threadId)) !== QUESTIONS_INTENT) return null;
   if (Date.parse(shown.at) < o.now - 24 * 3600000) {
     return { reply: `Those questions are more than a day old, so nothing was saved. Say "what do you need from me" to see them again.`, status: "expired" };
   }

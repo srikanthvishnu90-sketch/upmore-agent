@@ -305,6 +305,10 @@ export async function runApply(args: string[]) {
     version = "";
   const wire: any = {};
   const personSubmits = !!o["person-submits"];
+  // Resume uploads the page made while filling an approved application, and the employer's answers to them.
+  let resumeUploads = 0;
+  const uploadEchoes: string[] = [];
+  const echoed = (v: string) => v.length >= 4 && uploadEchoes.some((t) => t.includes(v));
   // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
   let pageFields: Record<string, string> | null = null;
   const write = (result: any) => {
@@ -381,7 +385,7 @@ export async function runApply(args: string[]) {
       }).map((e: any) => ({ name: e.name, value: String(e.value ?? "") }))
     );
     const unexplained = hidden.filter((h: any) =>
-      !(pageFields && Object.hasOwn(pageFields, h.name) && pageFields[h.name] === h.value)
+      !(pageFields && Object.hasOwn(pageFields, h.name) && pageFields[h.name] === h.value) && !echoed(h.value)
     );
     if (unexplained.length) throw fail("UNCONFIRMED_HIDDEN_FIELD: " + unexplained.map((h: any) => h.name).join(", "));
   }
@@ -456,7 +460,38 @@ export async function runApply(args: string[]) {
             .slice(0, 50);
         } catch { /* readOnly already parsed it */ }
       }
-      if (!["GET", "HEAD"].includes(req.method()) && !readQuery && personSubmits && allowSubmit) {
+      // The resume upload while filling: Lever parses the file as soon as it is chosen and sets a hidden storage id from
+      // the employer's answer (tests/fixtures/forms-ci: resumeStorageId, /js/parseResume.js). Only for an application the
+      // person approved before this run (--approved), only to the employer's own origin, only a multipart body carrying
+      // the approved resume and nothing else, at most twice. Without a prior approval it stays stopped.
+      let uploadReq = false;
+      if (!allowSubmit && o.approved && same && !main && req.method() === "POST" && !readQuery && resumeUploads < 2) {
+        const type = req.headers()["content-type"] || "";
+        if (type.startsWith("multipart/form-data")) {
+          try {
+            const form = await new Response(new Uint8Array(req.postDataBuffer() || new Uint8Array()), {
+              headers: { "Content-Type": type },
+            }).formData();
+            const parts = [...form.entries()];
+            const files = parts.filter(([, v]) => typeof v !== "string") as [string, File][];
+            const others = parts.filter(([, v]) => typeof v === "string" && v !== "");
+            if (
+              files.length === 1 && !others.length &&
+              sha(new Uint8Array(await files[0][1].arrayBuffer())) === artifact.sha256
+            ) {
+              uploadReq = true;
+              resumeUploads++;
+              evidence.uploads = [
+                ...(evidence.uploads || []),
+                { url: url.origin + url.pathname, keys: [...new Set(form.keys())].sort() },
+              ];
+            }
+          } catch { /* not a resume upload: stopped below */ }
+        }
+      }
+      if (uploadReq) {
+        // goes out as the browser sent it; the employer's answer is kept to explain the hidden field it fills
+      } else if (!["GET", "HEAD"].includes(req.method()) && !readQuery && personSubmits && allowSubmit) {
         // The person pressed Submit. The first write to the employer's own origin is the application: its shape is
         // recorded (keys, never values); it goes through only if it carries every approved answer and the approved
         // resume, and only once.
@@ -514,6 +549,10 @@ export async function runApply(args: string[]) {
               seen.add(name);
               continue;
             }
+            if (!Object.hasOwn(wire, name) && typeof value === "string" && echoed(value) && !seen.has(name)) {
+              seen.add(name);
+              continue;
+            }
             if (!Object.hasOwn(wire, name) && CAPTCHA_TOKEN.test(name)) {
               if (typeof value !== "string" || value.length > 20000 || seen.has(name)) throw Error();
               seen.add(name);
@@ -560,6 +599,7 @@ export async function runApply(args: string[]) {
       if (!["GET", "HEAD"].includes(req.method()) && !readQuery && req.url() === destination) {
         postStatus = response.status();
       }
+      if (uploadReq) uploadEchoes.push((await response.text()).slice(0, 20000));
       if (response.status() >= 300 && response.status() < 400) {
         const targetURL = new URL(response.headers().location || "/", req.url());
         let valid = targetURL.origin === u.origin &&

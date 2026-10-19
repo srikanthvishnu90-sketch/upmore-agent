@@ -37,6 +37,20 @@ function form(action, extra = "", script = "") {
     `${extra}<button type="submit">Submit application</button></form>${script}`;
 }
 let providerChecks = 0, personGo = false, graphqlWrites = 0;
+const uploads = [];
+// The Lever shape (captured): the resume is parsed as soon as it is chosen, and the page sets a hidden resumeStorageId
+// from the employer's answer. ?extra=1: the page also puts an answer into the upload.
+const leverUpload = (extra) =>
+  form(
+    "/submit",
+    `<input type="hidden" name="resumeStorageId" value="">`,
+    `<script>document.getElementById("resume").addEventListener("change", async (e) => {
+      const fd = new FormData(); fd.append("resume", e.target.files[0]);
+      ${extra ? 'fd.append("email", document.getElementById("email").value);' : ""}
+      const r = await fetch("/parseResume", { method: "POST", body: fd });
+      if (r.ok) document.querySelector("[name=resumeStorageId]").value = (await r.json()).storageId;
+    });</script>`,
+  );
 const jsonReceipts = [];
 // An Ashby-shaped page: no <form>; the fields come from a GraphQL query posted to the page's own origin, a tracking
 // mutation fires at load, and "Submit application" sends JSON by script (resume as base64). The stand-in for the
@@ -130,6 +144,14 @@ const pages = {
 before(async () => {
   server = http.createServer(async (req, res) => {
     if (req.url === "/__person") return res.writeHead(200).end(personGo ? "go" : "wait");
+    if (req.method === "POST" && req.url === "/parseResume") {
+      const parts = [];
+      for await (const c of req) parts.push(c);
+      const data = await new Response(Buffer.concat(parts), { headers: { "content-type": req.headers["content-type"] } })
+        .formData();
+      uploads.push([...data.keys()]);
+      return res.writeHead(200, { "Content-Type": "application/json" }).end('{"storageId":"TEST-STORE-7f3a"}');
+    }
     if (req.method === "POST" && (req.url === "/api/non-user-graphql" || req.url === "/api/apply")) {
       const parts = [];
       for await (const c of req) parts.push(c);
@@ -202,6 +224,10 @@ before(async () => {
       return res.writeHead(200, { "Content-Type": "text/html" }).end(leverLike(new URL(req.url, base).searchParams.get("mode")));
     }
     if (route === "/enterprise-invisible") return res.writeHead(200, { "Content-Type": "text/html" }).end(enterpriseLike());
+    if (route === "/lever-upload") {
+      return res.writeHead(200, { "Content-Type": "text/html" })
+        .end(leverUpload(new URL(req.url, base).searchParams.get("extra")));
+    }
     if (route === "/spa") {
       return res.writeHead(200, { "Content-Type": "text/html" }).end(spa(new URL(req.url, base).searchParams.get("tamper")));
     }
@@ -470,4 +496,35 @@ test("--approved: an application that changed since the approval is stopped with
   const r = await run({ route: "/employer-hidden", dir: dry.dir, flags: ["--submit", "--approved", hash] });
   assert.equal(r.result.reason, "APPROVED_APPLICATION_CHANGED", JSON.stringify(r.result));
   assert.equal(receipts.length, n, "the employer received nothing");
+});
+
+test("a resume upload while filling is stopped without a prior approval; the application still goes with its resume", async () => {
+  const n = receipts.length, u = uploads.length;
+  const r = await run({ route: "/lever-upload", flags: ["--submit"], prompts: [[SUBMIT, "yes"]] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-300));
+  assert.equal(uploads.length, u, "no upload left before the person's yes");
+  assert.equal(receipts[n].fields.resumeStorageId, "");
+});
+
+test("--approved: one upload carrying only the approved resume goes, and the id the employer answered goes with it", async () => {
+  const dry = await run({ route: "/lever-upload" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const n = receipts.length, u = uploads.length;
+  const r = await run({ route: "/lever-upload", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-300));
+  assert.equal(uploads.length, u + 1, "exactly one upload");
+  assert.deepEqual(uploads[u], ["resume"]);
+  assert.equal(receipts[n].fields.resumeStorageId, "TEST-STORE-7f3a");
+  const ev = JSON.parse(fs.readFileSync(path.join(r.result.evidence_path, "evidence.json"), "utf8"));
+  assert.deepEqual(ev.uploads.map((x) => x.keys), [["resume"]]);
+});
+
+test("--approved: an upload that carries more than the resume is stopped", async () => {
+  const dry = await run({ route: "/lever-upload?extra=1" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const n = receipts.length, u = uploads.length;
+  const r = await run({ route: "/lever-upload?extra=1", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(uploads.length, u, "the upload with an answer in it never left");
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result));
+  assert.equal(receipts[n].fields.resumeStorageId, "");
 });

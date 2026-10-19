@@ -293,6 +293,16 @@ function fnDiscoverFields(includeHidden) {
     // has no <label>, and its heading is the only human label there is.
     const gl = clean(groupLabelFor(el));
     if (gl) f.groupLabel = gl;
+    // Ashby keys each question by its container's data-field-path and marks it required on the question title's class,
+    // not on the input (tests/fixtures/forms-ci: the date picker has no name or id; required titles carry _required_).
+    const entry = el.closest && el.closest("[data-field-path]");
+    if (entry) {
+      f.fieldPath = entry.getAttribute("data-field-path") || "";
+      const title = entry.querySelector("label, [class*='question-title']");
+      if (title && typeof title.className === "string" && /(^|[\s_-])required([\s_-]|$)/i.test(title.className)) {
+        f.required = true;
+      }
+    }
     if (el.tagName === "SELECT") {
       f.options = Array.from(el.options).map((o) => ({ value: o.value, label: clean(o.textContent) }));
     }

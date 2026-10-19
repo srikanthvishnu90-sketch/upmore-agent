@@ -17,6 +17,7 @@ import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_sto
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
+const { readOnly } = require("./career/render-form.cjs");
 const sha = (b: any) => crypto.createHash("sha256").update(b).digest("hex");
 // A confirmed answer for a single checkbox: "Yes" checks it as surely as "true" does.
 const yesish = (v: unknown) => /^(true|yes|y|on|checked)$/i.test(String(v ?? "").trim());
@@ -43,6 +44,51 @@ const CAPTCHA_PROVIDER =
 // The token a passed check leaves in the form. It is the provider's, not an answer: it may be present in the hidden
 // fields and the body, it is sent as the page set it, and only its length is recorded.
 const CAPTCHA_TOKEN = /^(g-recaptcha-response|h-captcha-response|cf-turnstile-response)$/;
+// The shape of a request body: its keys, never its values. Multipart part names, or JSON key paths ("a.b", "list[]").
+function bodyShape(type: string, body: Uint8Array, form: FormData | null): string[] {
+  if (form) return [...new Set([...form.keys()])].sort();
+  if (!/json/.test(type)) return [];
+  const keys = new Set<string>();
+  const walk = (v: unknown, at: string) => {
+    if (Array.isArray(v)) v.forEach((x) => walk(x, at + "[]"));
+    else if (v && typeof v === "object") { for (const [k, x] of Object.entries(v)) walk(x, at ? at + "." + k : k); }
+    else if (at) keys.add(at);
+  };
+  try {
+    walk(JSON.parse(new TextDecoder().decode(body)), "");
+  } catch {
+    return [];
+  }
+  return [...keys].sort();
+}
+// Every string in a JSON body (its leaves) or a multipart body (its text parts), and the SHA-256 of every file it
+// carries: multipart files, or JSON strings that decode from base64 (Greenhouse's documented resume_content shape).
+async function bodyContents(type: string, body: Uint8Array, form: FormData | null) {
+  const strings: string[] = [], files: string[] = [];
+  if (form) {
+    for (const [, v] of form.entries()) {
+      if (typeof v === "string") strings.push(v);
+      else files.push(sha(new Uint8Array(await v.arrayBuffer())));
+    }
+    return { strings, files };
+  }
+  const walk = (v: unknown) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v).forEach(walk);
+    else if (v !== null && v !== undefined) {
+      const text = String(v);
+      strings.push(text);
+      const b64 = text.replace(/^data:[^,]*;base64,/, "");
+      if (b64.length > 16 && /^[A-Za-z0-9+/=\s]+$/.test(b64)) {
+        try {
+          files.push(sha(Uint8Array.from(atob(b64.replace(/\s/g, "")), (c) => c.charCodeAt(0))));
+        } catch { /* not base64 */ }
+      }
+    }
+  };
+  if (/json/.test(type)) walk(JSON.parse(new TextDecoder().decode(body)));
+  return { strings, files };
+}
 function privateDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = fs.lstatSync(dir);
@@ -58,6 +104,14 @@ function options(args: string[]) {
     // page. --headed opens a visible browser for the person's own runs (and implies --handoff).
     else if (k === "--handoff") o.handoff = true;
     else if (k === "--headed") o.headed = o.handoff = true;
+    // --person-submits: Trainee fills, reads back and shows the review; the person presses Submit in the window. For
+    // forms that submit from a script (Greenhouse job-boards, Ashby), whose request is not a bound form post. Exactly one
+    // request goes through, only if it carries the approved answers, and its shape (keys, never values) is recorded.
+    else if (k === "--person-submits") o["person-submits"] = true;
+    // --approved <hash>: the person already approved this exact application (the approval hash a dry run printed, or
+    // a texted yes on its card). The run fills and reads back as always and submits without asking again only if the
+    // application is still exactly the one approved; any difference stops it with nothing sent.
+    else if (k === "--approved" && /^[0-9a-f]{64}$/.test(args[i + 1] || "")) o.approved = args[++i];
     else if (
       ["--url", "--facts", "--resume", "--state-dir", "--evidence-dir"].includes(k) && args[i + 1] &&
       !args[i + 1].startsWith("--")
@@ -117,7 +171,11 @@ function bind(fields: any[]) {
   const groups = new Map<string, any[]>();
   for (const f of fields) {
     if (f.disabled || f.readOnly) continue;
-    const name = f.name;
+    // A field is known by its name, or by its id where the page names nothing: Greenhouse's job-boards form gives every
+    // field an id and no name, and Ashby's resume input has only an id (tests/fixtures/forms-ci). The id there is the
+    // question's published key (first_name, question_9668368101, _systemfield_resume). Ashby's date picker has neither;
+    // its container's data-field-path is the key.
+    const name = f.name || f.id || f.fieldPath;
     if (!name) {
       if (f.required) throw fail("UNNAMED_REQUIRED_FIELD: " + f.label);
       continue;
@@ -168,6 +226,7 @@ export async function runApply(args: string[]) {
       if (o["state-dir"] && !target.local) throw fail("STATE_DIR_LOCAL_ONLY");
       // A hand-off asks the person to complete a check in the browser window; a headless run has no window to use.
       if (o.handoff && !o.headed && !target.local) throw fail("HANDOFF_NEEDS_HEADED");
+      if (o["person-submits"] && !o.headed && !target.local) throw fail("PERSON_SUBMITS_NEEDS_HEADED");
     })(),
     factsBytes = fs.readFileSync(o.facts),
     factsHash = sha(factsBytes),
@@ -245,6 +304,7 @@ export async function runApply(args: string[]) {
     current: any,
     version = "";
   const wire: any = {};
+  const personSubmits = !!o["person-submits"];
   // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
   let pageFields: Record<string, string> | null = null;
   const write = (result: any) => {
@@ -384,7 +444,59 @@ export async function runApply(args: string[]) {
         await route.abort("blockedbyclient");
         return;
       }
-      if (!["GET", "HEAD"].includes(req.method())) {
+      // Ashby builds its application form from GraphQL queries posted to its own origin: a query reads, a mutation would
+      // write. Queries only, only on the employer's own origin; the operation names are kept in the evidence.
+      const readQuery = same && !main && req.method() === "POST" && readOnly(req);
+      if (readQuery) {
+        try {
+          const ops = [JSON.parse(req.postData() || "")].flat();
+          evidence.reads = [
+            ...new Set([...(evidence.reads || []), ...ops.map((x: any) => x.operationName || "anonymous")]),
+          ]
+            .slice(0, 50);
+        } catch { /* readOnly already parsed it */ }
+      }
+      if (!["GET", "HEAD"].includes(req.method()) && !readQuery && personSubmits && allowSubmit) {
+        // The person pressed Submit. The first write to the employer's own origin is the application: its shape is
+        // recorded (keys, never values); it goes through only if it carries every approved answer and the approved
+        // resume, and only once.
+        if (mutations || !same) {
+          await route.abort("blockedbyclient");
+          return;
+        }
+        const type = req.headers()["content-type"] || "", body = req.postDataBuffer() || new Uint8Array();
+        let form: FormData | null = null;
+        try {
+          if (type.startsWith("multipart/form-data") || type.startsWith("application/x-www-form-urlencoded")) {
+            form = await new Response(new Uint8Array(body), { headers: { "Content-Type": type } }).formData();
+          }
+          evidence.request_shape = {
+            method: req.method(),
+            url: url.origin + url.pathname,
+            content_type: type.split(";")[0],
+            keys: bodyShape(type, body, form),
+          };
+          const got = await bodyContents(type, body, form);
+          for (const [name, want] of Object.entries(wire)) {
+            if (want === null) continue;
+            if (typeof want === "object") {
+              if (!got.files.includes((want as any).sha256)) throw Error("resume");
+            } else if (!got.strings.includes(String(want))) {
+              // A select may carry its label rather than its value; a checked box may carry true in JSON.
+              const b = current?.bindings?.[name], opt = b?.options?.find((x: any) => x.value === want);
+              const checked = b?.inputType === "checkbox" && got.strings.includes("true");
+              if (!(opt && got.strings.includes(String(opt.label))) && !checked) throw Error(name);
+            }
+          }
+        } catch {
+          evidence.transport_rejection = "APPROVED_BODY_MISMATCH";
+          await route.abort("blockedbyclient");
+          return;
+        }
+        mutations++;
+        destination = req.url();
+        postStatus = 0;
+      } else if (!["GET", "HEAD"].includes(req.method()) && !readQuery) {
         if (!allowSubmit || req.method() !== "POST" || req.url() !== destination || mutations) {
           await route.abort("blockedbyclient");
           return;
@@ -445,7 +557,9 @@ export async function runApply(args: string[]) {
         await route.abort("failed").catch(() => {});
         return;
       }
-      if (req.method() === "POST" && req.url() === destination) postStatus = response.status();
+      if (!["GET", "HEAD"].includes(req.method()) && !readQuery && req.url() === destination) {
+        postStatus = response.status();
+      }
       if (response.status() >= 300 && response.status() < 400) {
         const targetURL = new URL(response.headers().location || "/", req.url());
         let valid = targetURL.origin === u.origin &&
@@ -529,7 +643,7 @@ export async function runApply(args: string[]) {
         wire[f.name] = b.inputType === "file"
           ? artifact
           : b.inputType === "checkbox"
-          ? (v ? (current.raw.find((x: any) => x.name === f.name)?.optionValue || "on") : null)
+          ? (v ? (current.raw.find((x: any) => (x.name || x.id) === f.name)?.optionValue || "on") : null)
           : f.value;
       }
       current = await observe();
@@ -543,11 +657,16 @@ export async function runApply(args: string[]) {
       await unconfirmed(current, planned);
       const review = await send({
         type: "review",
-        knownSelectors: Object.values(current.bindings).flatMap((b: any) =>
-          b.options?.length && ["radio_group", "checkbox_group"].includes(b.inputType)
-            ? b.options.map((x: any) => x.selector)
-            : [b.selector]
-        ).filter(Boolean),
+        // A field on the page now that was not there at this observation is new; an optional field the engine leaves
+        // alone on purpose (no name, id or field path) is not, or the run would loop on it until FORM_DID_NOT_SETTLE.
+        knownSelectors: [
+          ...Object.values(current.bindings).flatMap((b: any) =>
+            b.options?.length && ["radio_group", "checkbox_group"].includes(b.inputType)
+              ? b.options.map((x: any) => x.selector)
+              : [b.selector]
+          ),
+          ...current.raw.map((f: any) => f.selector),
+        ].filter(Boolean),
       });
       if (denied || review.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       if (review.captcha && !(o.handoff && await handOff())) return write({ state: "needs_user", reason: "captcha" });
@@ -560,17 +679,16 @@ export async function runApply(args: string[]) {
         )
       ) throw fail("RESUME_INPUT_NOT_OBSERVED");
       const action = await formAction();
-      if (
-        !action || new URL(action.url).origin !== u.origin || action.method.toLowerCase() !== "post" ||
-        (!target.local && posting(new URL(action.url)).key !== target.key)
-      ) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
-      destination = action.url;
+      const bound = !!action && new URL(action.url).origin === u.origin && action.method.toLowerCase() === "post" &&
+        (target.local || posting(new URL(action.url)).key === target.key);
+      if (!bound && !personSubmits) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
+      destination = bound ? action.url : "";
       evidence.fields = Object.values(planned);
       evidence.payload = {
         user_id: facts.user_id,
         posting: target.key,
         company,
-        destination,
+        destination: destination || "the person's own Submit, one request to " + u.origin,
         fields: evidence.fields,
         resume: artifact,
         schema_hash: before,
@@ -581,6 +699,19 @@ export async function runApply(args: string[]) {
         ],
       };
       const payloadHash = await hashApplyPayload(evidence.payload);
+      // What the person approves: their answers, the resume, the form's questions, where it goes, and the names of the
+      // employer's own hidden fields (their values can change with every page load; each is still checked against the
+      // consent rule and kept in the evidence). The same application on a fresh load gives the same hash.
+      const approvalHash = await hashApplyPayload({
+        user_id: facts.user_id,
+        posting: target.key,
+        destination: evidence.payload.destination,
+        fields: evidence.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })),
+        resume: artifact.sha256,
+        schema_hash: before,
+        page_field_names: Object.keys(pageFields || {}).sort(),
+      });
+      evidence.approval_hash = approvalHash;
       evidence.payload_hash = payloadHash;
       evidence.final_url = page.url();
       await send({ type: "screenshot", path: path.join(evidenceDir, "before-review.png") });
@@ -604,18 +735,30 @@ export async function runApply(args: string[]) {
       console.log("Resume SHA-256: " + artifact.sha256);
       console.log("Destination: " + destination);
       console.log("Payload SHA-256: " + payloadHash);
+      console.log("Approval hash: " + approvalHash);
       if (!o.submit) return write({ state: "not_submitted", reason: "dry_run" });
-      console.log(`Submit this application to ${target.employer}? (yes/no)`);
-      if (await answer() !== "yes") return write({ state: "not_submitted", reason: "user_declined" });
+      if (!o.approved) console.log(`Submit this application to ${target.employer}? (yes/no)`);
+      if (o.approved) {
+        if (o.approved !== approvalHash) {
+          return write({
+            state: "not_submitted",
+            reason: "APPROVED_APPLICATION_CHANGED",
+            approved: o.approved,
+            now: approvalHash,
+          });
+        }
+        console.log("Approved earlier as " + approvalHash + "; submitting without asking again.");
+      } else if (await answer() !== "yes") return write({ state: "not_submitted", reason: "user_declined" });
       if (sha(fs.readFileSync(o.facts)) !== factsHash) throw fail("FACTS_CHANGED");
       if (sha(fs.readFileSync(o.resume)) !== artifact.sha256) throw fail("RESUME_SHA_MISMATCH");
       const fresh = await observe();
       if (await hashApplyPayload(fresh.schema) !== before) throw fail("FORM_SCHEMA_CHANGED");
       await unconfirmed(fresh, planned);
       const actionNow = await formAction();
-      if (!actionNow || actionNow.url !== destination || actionNow.method.toLowerCase() !== "post") {
-        throw fail("SUBMIT_DESTINATION_CHANGED");
-      }
+      if (
+        destination &&
+        (!actionNow || actionNow.url !== destination || actionNow.method.toLowerCase() !== "post")
+      ) throw fail("SUBMIT_DESTINATION_CHANGED");
       for (const name of Object.keys(fresh.bindings)) {
         if (Object.hasOwn(history, name)) history[name] = fresh.bindings[name];
       }
@@ -654,10 +797,36 @@ export async function runApply(args: string[]) {
       });
       fenced = true;
       allowSubmit = true;
-      let cap = await send({
-        type: "submit_and_capture",
-        screenshotPath: path.join(evidenceDir, "after-submit.png"),
-      });
+      let cap: any;
+      if (personSubmits) {
+        // The person presses Submit in the window; Trainee clicks nothing. The route lets exactly one write through,
+        // and only with the approved answers in it. Ten minutes, then not sent.
+        console.log(
+          "Press Submit in the browser window now. Exactly one request goes to " + u.origin +
+            ", and only if it carries your approved answers.",
+        );
+        for (let i = 0; i < 1200 && mutations === 0 && !evidence.transport_rejection && !denied; i++) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+        if (evidence.transport_rejection) throw fail(evidence.transport_rejection);
+        if (mutations === 0) throw fail("PERSON_DID_NOT_SUBMIT");
+        await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
+        await page.waitForTimeout(2500);
+        await page.screenshot({ path: path.join(evidenceDir, "after-submit.png"), fullPage: true }).catch(() => {});
+        cap = {
+          clicked: true,
+          captcha: await page.evaluate(helper.detectChallenge),
+          finalUrl: page.url(),
+          text: await page.evaluate(() =>
+            String((globalThis as any).document.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6000)
+          ),
+        };
+      } else {
+        cap = await send({
+          type: "submit_and_capture",
+          screenshotPath: path.join(evidenceDir, "after-submit.png"),
+        });
+      }
       // An invisible check can turn into a challenge at the click. The send waits for the person: they complete it in
       // the window, the page sends the approved form itself, and the one-POST and body checks above still hold. Nothing
       // is clicked again by Trainee.

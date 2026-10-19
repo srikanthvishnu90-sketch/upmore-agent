@@ -36,7 +36,34 @@ function form(action, extra = "", script = "") {
     `<label for="resume">Resume</label><input type="file" id="resume" name="resume" required>` +
     `${extra}<button type="submit">Submit application</button></form>${script}`;
 }
-let providerChecks = 0;
+let providerChecks = 0, personGo = false, graphqlWrites = 0;
+const jsonReceipts = [];
+// An Ashby-shaped page: no <form>; the fields come from a GraphQL query posted to the page's own origin, a tracking
+// mutation fires at load, and "Submit application" sends JSON by script (resume as base64). The stand-in for the
+// person polls /__person and presses Submit only when the test says the engine asked for it.
+const spa = (tamper) => `<!doctype html><h1>TEST role</h1><div id="app">loading</div><script>
+const gql = (body) => fetch("/api/non-user-graphql", { method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body) });
+gql({ operationName: "Track", query: "mutation Track { track }" }).catch(() => {});
+gql({ operationName: "ApiJobPosting", query: "query ApiJobPosting { form { fields } }" }).then((r) => r.json()).then((d) => {
+  document.getElementById("app").innerHTML = d.fields.map((f) => f.type === "file"
+    ? '<label for="' + f.id + '">' + f.label + '</label><input type="file" id="' + f.id + '" required>'
+    : '<label for="' + f.id + '">' + f.label + '</label><input id="' + f.id + '" type="' + f.type + '" required>').join("") +
+    '<button type="button" id="go">Submit application</button>';
+  document.getElementById("go").onclick = async () => {
+    const file = document.getElementById("_systemfield_resume").files[0];
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(await file.arrayBuffer())));
+    const v = (id) => document.getElementById(id).value;
+    const r = await fetch("/api/apply", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: { first_name: v("first_name"), last_name: v("last_name"),
+        email: ${tamper ? '"attacker@example.test"' : 'v("email")'} }, resume: { name: file.name, content: b64 } }) });
+    if (r.ok) document.body.innerHTML = ${JSON.stringify(THANKS)};
+  };
+  const poll = setInterval(async () => {
+    if ((await (await fetch("/__person")).text()) === "go") { clearInterval(poll); document.getElementById("go").click(); }
+  }, 300);
+});
+</script>`;
 const provider = () => "http://127.0.0.2:" + server2.address().port + "/captcha-provider";
 // The Lever shape (captured): a hidden h-captcha-response input, a hidden submit button, an empty .h-captcha div and a
 // visible type=button "Submit application" whose click runs the check and then presses the hidden submit.
@@ -102,6 +129,25 @@ const pages = {
 
 before(async () => {
   server = http.createServer(async (req, res) => {
+    if (req.url === "/__person") return res.writeHead(200).end(personGo ? "go" : "wait");
+    if (req.method === "POST" && (req.url === "/api/non-user-graphql" || req.url === "/api/apply")) {
+      const parts = [];
+      for await (const c of req) parts.push(c);
+      const body = JSON.parse(Buffer.concat(parts).toString());
+      if (req.url === "/api/apply") {
+        jsonReceipts.push(body);
+        return res.writeHead(200, { "Content-Type": "application/json" }).end('{"ok":true}');
+      }
+      if (/\bmutation\b/.test(body.query)) graphqlWrites++;
+      return res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({
+        fields: [
+          { id: "first_name", label: "First name", type: "text" },
+          { id: "last_name", label: "Last name", type: "text" },
+          { id: "email", label: "Email", type: "email" },
+          { id: "_systemfield_resume", label: "Resume", type: "file" },
+        ],
+      }));
+    }
     if (req.method === "POST" && req.url === "/captcha-provider/check") {
       providerChecks++;
       return res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" })
@@ -156,6 +202,9 @@ before(async () => {
       return res.writeHead(200, { "Content-Type": "text/html" }).end(leverLike(new URL(req.url, base).searchParams.get("mode")));
     }
     if (route === "/enterprise-invisible") return res.writeHead(200, { "Content-Type": "text/html" }).end(enterpriseLike());
+    if (route === "/spa") {
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(spa(new URL(req.url, base).searchParams.get("tamper")));
+    }
     const html = pages[req.url];
     res.writeHead(html ? 200 : 404, { "Content-Type": "text/html" }).end(html || "not found");
   });
@@ -211,7 +260,7 @@ async function run({ route, url, flags = [], prompts = [], dir, saved, stateDir 
     out += b;
     while (pending.length && out.includes(pending[0][0])) {
       const [, line, delay] = pending.shift();
-      setTimeout(() => p.stdin.write(line + "\n"), delay || 0);
+      setTimeout(() => (typeof line === "function" ? line() : p.stdin.write(line + "\n")), delay || 0);
     }
   });
   p.stderr.on("data", (b) => (err += b));
@@ -348,4 +397,77 @@ test("an image host that refuses the connection fails that image, not the run", 
 test("--handoff without --headed is refused for a real employer (there is no window to complete a check in)", async () => {
   const r = await run({ url: "https://job-boards.greenhouse.io/acme/jobs/4000000001", flags: ["--handoff"], stateDir: false });
   assert.equal(r.result.reason, "HANDOFF_NEEDS_HEADED", JSON.stringify(r.result));
+});
+
+test("an Ashby-style form built by a GraphQL query renders; a GraphQL mutation never leaves before the yes", async () => {
+  const writes = graphqlWrites;
+  const r = await run({ route: "/spa", flags: ["--person-submits"] });
+  assert.equal(r.result.reason, "dry_run", JSON.stringify(r.result) + r.err.slice(-400));
+  assert.equal(graphqlWrites, writes, "the tracking mutation was stopped");
+  const ev = JSON.parse(fs.readFileSync(path.join(r.result.evidence_path, "evidence.json"), "utf8"));
+  assert.ok(ev.reads.includes("ApiJobPosting"), JSON.stringify(ev.reads));
+});
+
+test("a script-submitted form without --person-submits stops at SUBMIT_DESTINATION_NOT_BOUND", async () => {
+  const r = await run({ route: "/spa" });
+  assert.equal(r.result.reason, "SUBMIT_DESTINATION_NOT_BOUND", JSON.stringify(r.result));
+});
+
+test("--person-submits: the person's Submit sends one JSON request with the approved answers; its shape is kept, not its values", async () => {
+  const n = jsonReceipts.length;
+  personGo = false;
+  const r = await run({
+    route: "/spa",
+    flags: ["--submit", "--person-submits"],
+    prompts: [[SUBMIT, "yes"], ["Press Submit in the browser window", () => (personGo = true)]],
+  });
+  personGo = false;
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-400));
+  assert.equal(jsonReceipts.length, n + 1, "exactly one application reached the employer");
+  assert.equal(jsonReceipts[n].fields.first_name, "Mary Jane");
+  const ev = JSON.parse(fs.readFileSync(path.join(r.result.evidence_path, "evidence.json"), "utf8"));
+  assert.deepEqual(ev.request_shape.keys, ["fields.email", "fields.first_name", "fields.last_name", "resume.content", "resume.name"]);
+  assert.equal(ev.request_shape.content_type, "application/json");
+  assert.ok(!/Mary Jane|synthetic@example/.test(JSON.stringify(ev.request_shape)), "no values in the recorded shape");
+});
+
+test("--person-submits: a request that changed an approved answer is stopped before it leaves", async () => {
+  const n = jsonReceipts.length;
+  personGo = false;
+  const r = await run({
+    route: "/spa?tamper=1",
+    flags: ["--submit", "--person-submits"],
+    prompts: [[SUBMIT, "yes"], ["Press Submit in the browser window", () => (personGo = true)]],
+  });
+  personGo = false;
+  assert.equal(jsonReceipts.length, n, "the employer received nothing");
+  assert.equal(r.result.state, "not_submitted", JSON.stringify(r.result));
+  assert.equal(r.result.reason, "APPROVED_BODY_MISMATCH");
+});
+
+test("--person-submits without --headed is refused for a real employer", async () => {
+  const r = await run({ url: "https://job-boards.greenhouse.io/acme/jobs/4000000001", flags: ["--person-submits"], stateDir: false });
+  assert.equal(r.result.reason, "PERSON_SUBMITS_NEEDS_HEADED", JSON.stringify(r.result));
+});
+
+test("--approved: a dry run's approval hash lets the same application submit without asking again", async () => {
+  const dry = await run({ route: "/employer-hidden" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const n = receipts.length;
+  const r = await run({ route: "/employer-hidden", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-300));
+  assert.ok(!r.out.includes("Submit this application to"), "it did not ask again");
+  assert.equal(receipts.length, n + 1);
+});
+
+test("--approved: an application that changed since the approval is stopped with nothing sent", async () => {
+  const dry = await run({ route: "/employer-hidden" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const facts = JSON.parse(fs.readFileSync(path.join(dry.dir, "facts.json"), "utf8"));
+  facts.answers.email.value = "changed@example.test";
+  fs.writeFileSync(path.join(dry.dir, "facts.json"), JSON.stringify(facts));
+  const n = receipts.length;
+  const r = await run({ route: "/employer-hidden", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(r.result.reason, "APPROVED_APPLICATION_CHANGED", JSON.stringify(r.result));
+  assert.equal(receipts.length, n, "the employer received nothing");
 });

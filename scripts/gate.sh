@@ -3,14 +3,17 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 failed=0
+results=()
 step() {
   local label=$1 status
   shift
   if "$@"; then
     printf 'STEP %s OK\n' "$label"
+    results+=("OK      $label")
   else
     status=$?
     printf 'STEP %s FAILED (exit %s)\n' "$label" "$status" >&2
+    results+=("FAILED  $label (exit $status)")
     failed=1
   fi
 }
@@ -117,6 +120,8 @@ step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
 step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
 
+# Every step's result again at the end: a CI log read from its tail still shows which step failed.
+printf 'SUMMARY %s\n' "${results[@]}"
 if (( failed )); then
   echo 'GATE FAILED'
   exit 1

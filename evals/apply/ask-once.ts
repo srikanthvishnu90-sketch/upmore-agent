@@ -6,13 +6,13 @@
 //             the N most common remaining questions once covers those everywhere they recur
 // A posting is ready when every required question is covered. No answer is invented; this counts questions, nothing else.
 //   deno run --allow-read --allow-write evals/apply/ask-once.ts [questions-ci.json] [report.md]
-import { classifyField, normLabel } from "../../supabase/functions/_shared/career_apply.ts";
+import { classifyField, fileAlternative, normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 
 export interface Row { id: string; family: string; required: { label: string; type: string; key: string }[] }
 
 export function rowsOf(set: { postings: any[] }): Row[] {
   return set.postings.filter((p) => !p.reason).map((p) => ({ id: p.id, family: p.family,
-    required: p.fields.filter((f: any) => f.required).map((f: any) => ({ label: f.label, type: f.type, key: classifyField(f.label, f.type) })) }));
+    required: p.fields.filter((f: any) => f.required && !fileAlternative(f, p.fields)).map((f: any) => ({ label: f.label, type: f.type, key: classifyField(f.label, f.type) })) }));
 }
 
 // Coverage with the standard facts plus the `extra` most common unknown wordings answered once.

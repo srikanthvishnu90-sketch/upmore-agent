@@ -55,3 +55,49 @@ Deno.test("the person's own facts still map where the box asks for them", () => 
   ];
   for (const [label, type, key] of cases) eq(classifyField(label, type), key, label);
 });
+
+Deno.test("the resume answer goes only into a file upload, never typed into a text box", () => {
+  eq(classifyField("Link to your resume or portfolio", "input_text"), "website"); // the person's own link, never the file's hash
+  eq(classifyField("Resume", "text"), "unknown");
+  eq(classifyField("Paste your CV here", "textarea"), "unknown");
+  eq(classifyField("Resume/CV", "input_file"), "resume");
+  eq(classifyField("Resume", "file"), "resume");
+});
+
+Deno.test("how-did-you-hear is not a request for a profile link", () => {
+  eq(classifyField("How did you hear about us (e.g. LinkedIn, a friend)?", "input_text"), "how_heard");
+  eq(classifyField("How did you hear about this job? LinkedIn / Indeed / Other", "multi_value_single_select"), "how_heard");
+});
+
+Deno.test("a negated sponsorship question is asked, never answered from the sponsorship fact", () => {
+  eq(classifyField("Do you hold a visa that does NOT require sponsorship?", "multi_value_single_select"), "unknown");
+  eq(classifyField("Are you able to work without requiring sponsorship now and in the future?", "multi_value_single_select"), "unknown");
+  eq(classifyField("Will you now or in the future require visa sponsorship?", "multi_value_single_select"), "sponsorship");
+  // verbatim: the note after the question mentions "without"; the question itself is the sponsorship question
+  eq(classifyField("Will you now or in the future require sponsorship for employment visa status (e.g. H-1B, TN, F1, OPT, etc)? You must be work authorized in the United States without the need for employer sponsorship.", "multi_value_single_select"), "sponsorship");
+  eq(classifyField("Are you legally authorized to work in the US without sponsorship?", "multi_value_single_select"), "unknown");
+  eq(classifyField("Are you legally authorized to work in the United States?", "multi_value_single_select"), "work_authorization");
+});
+
+Deno.test("a long statement on one checkbox is an acknowledgement, never a fact", () => {
+  eq(classifyField("AHEAD will consider the contents of an uploaded resume or LinkedIn profile only insofar as it pertains to the job and will not consider disability or veteran status.", "checkbox"), "unknown");
+  // verbatim: a long question rendered as checkboxes is still the sponsorship question
+  eq(classifyField("Do you currently need, or will you need in the future, employer sponsorship to work legally in your country of residence for this role?", "checkbox"), "sponsorship");
+});
+
+Deno.test("a paste box next to its file upload is the upload's alternative, not a second required question", async () => {
+  const { planBatch, fileAlternative } = await import("../../supabase/functions/_shared/career_apply.ts");
+  const fields = [
+    { name: "resume", label: "Resume/CV", required: true, type: "input_file", options: [] },
+    { name: "resume_text", label: "Resume/CV", required: true, type: "textarea", options: [] },
+    { name: "first_name", label: "First Name", required: true, type: "input_text", options: [] },
+  ];
+  eq(fields.map((f) => fileAlternative(f, fields)), [false, true, false]);
+  const p = planBatch({ userId: "u", postings: [{ job_id: "gh:a:1", company: "A", title: "T", fields }], log: [], now: 0,
+    answers: { resume: { value: "sha", factId: "r" }, first_name: { value: "Ada", factId: "f" } }, saved: {} });
+  eq(p.ready.length, 1, "the file answers the question");
+  eq(p.ready[0].fields.map((f: any) => f.name), ["resume", "first_name"], "nothing is typed into the paste box");
+  // a paste box with no file upload beside it is still a question
+  const alone = [{ name: "resume_text", label: "Resume/CV", required: true, type: "textarea", options: [] }];
+  eq(fileAlternative(alone[0], alone), false);
+});

@@ -36,7 +36,9 @@ export function classifyOutcome(o: Observation): Outcome {
 
 // ------------------------------------------------------------------------------------------------ admission
 export interface Limits { daily?: number }
-export const DEFAULT_DAILY = 25, MAX_DAILY = 50, COMPANY_COOLDOWN_DAYS = 30;
+// Owner, 2026-10-19: "the current 15-per-day cap still applies" (supersedes D-011's 25, raisable to 50). The same 15
+// as module 149's SPEC_CAPS; raised only by the owner in writing.
+export const DEFAULT_DAILY = 15, MAX_DAILY = 15, COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
 // States that mean an application reached (or may have reached) the employer; a failed or not-submitted attempt can be retried.
 const COUNTED = new Set(["confirmed", "submitted_unconfirmed", "needs_user", "submitting", "queued", "planned"]);
@@ -79,6 +81,7 @@ const KEYS: [RegExp, string][] = [
   [/\b(tele)?phone\b|\bcell\b|^mobile\b(?!\s*(app|development|device|engineer))|mobile\s*(phone|number)/i, "phone"],
   [/resume|\bcv\b|curriculum/i, "resume"],
   [/cover\s*letter/i, "cover_letter"],
+  [/how did you (hear|learn|find out)/i, "how_heard"],
   [/linkedin/i, "linkedin"],
   [/github/i, "github"],
   [/(personal\s*)?(website|portfolio)/i, "website"],
@@ -87,7 +90,6 @@ const KEYS: [RegExp, string][] = [
   [/^(current\s*)?(location|city)|where are you (located|based)/i, "location"],
   [/start\s*date|when can you start|earliest.*start/i, "start_date"],
   [/salary|compensation\s*expectation|desired\s*pay/i, "salary_expectation"],
-  [/how did you hear/i, "how_heard"],
   [/gender|race|ethnicity|veteran|disability|hispanic|latino/i, "eeo"],
 ];
 // A wrong mapping sends a wrong answer; an unknown only asks. So the person's own contact facts go only into a free-text
@@ -100,12 +102,30 @@ const SOMEONE_ELSE = /\breferr|\breferen|\bteam member|\breferee|\bemergency|\bm
 export function classifyField(label: string, type: string): string {
   const l = String(label || "");
   if (/file/.test(type) && /resume|cv/i.test(l)) return "resume";
+  // One checkbox carrying a long statement (no question in it) is an acknowledgement for the person to read, never a
+  // fact. A long question rendered as checkboxes ("Will you ... require sponsorship ...?") is still a question.
+  if (type === "checkbox" && l.length > 120 && !l.includes("?")) return "unknown";
   for (const [re, key] of KEYS) {
     if (!re.test(l)) continue;
     if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
+    // The resume answer is the approved file itself: it goes into an upload, never typed into a box as text.
+    if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
+    // "a visa that does NOT require sponsorship" asks the opposite of the sponsorship fact: ask the person. Only the
+    // question itself counts (up to its "?"): a note after it ("you must be authorized without sponsorship") does not.
+    if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
+    // "authorized to work WITHOUT sponsorship?" needs both facts at once (authorized now, sponsorship later): ask.
+    if (key === "work_authorization" && /sponsor/i.test(l.split("?")[0])) continue;
     return key;
   }
   return "unknown";
+}
+
+// Greenhouse asks "Resume/CV" as one question with two ways to answer it: a file upload (resume) and a paste box
+// (resume_text), both marked required. The paste box beside its upload is the upload's alternative: uploading the
+// approved file answers the question, and nothing is typed into the box. 63 of 80 real Greenhouse postings carry it.
+export function fileAlternative(f: { name: string; type: string }, fields: { name: string; type: string }[]): boolean {
+  const base = /^(.+)_text$/.exec(String(f.name || ""))?.[1];
+  return !!base && !/file/.test(f.type) && fields.some((x) => x.name === base && /file/.test(x.type));
 }
 
 export interface Answer { value: string; factId: string }
@@ -135,6 +155,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     const filled: PlannedField[] = [];
     let blocked = false;
     for (const f of p.fields) {
+      if (fileAlternative(f, p.fields)) continue;
       const key = classifyField(f.label, f.type);
       const a: Answer | undefined = (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let value: string | null = a ? String(a.value) : null;

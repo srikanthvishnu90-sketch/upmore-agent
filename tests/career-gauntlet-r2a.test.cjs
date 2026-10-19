@@ -300,6 +300,7 @@ test("R2A guard: C37's exact wording still belongs to 141 and still halts with i
   const statePath = queueFile("queue_ap17");
   const s = H.session("R2A-GUARD1", "r2a-guard1");
   const r = L.chatTurn(s, "stop everything. don't contact anyone", { profile, queueStatePath: statePath });
+  assert.equal(r.handler, "141-career-doorstep.handleChat", "the legacy exact phrases still fall through to 141");
   assert.equal(r.result && r.result.halted_count, 3);
   assert.match(joined(r), /Nothing was sent/);
 });

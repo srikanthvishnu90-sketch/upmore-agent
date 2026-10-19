@@ -22,6 +22,8 @@ jobs:
           echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"
           echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
           echo "ESBUILD_BIN=$RUNNER_TEMP/wo001-tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+      - name: Allow sandboxed Chromium user namespaces for this gate job
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Career gate
         run: bash scripts/gate.sh
   database:

@@ -11,6 +11,7 @@
 // --brain agent needs OPENAI_API_KEY (model: CAREER_MODEL, default gpt-5-mini); nothing is sent anywhere else.
 // State lives in .simulator/state.json (gitignored) so a session resumes; --fresh starts over.
 import { handleInbound, memoryStore, type Brain, type Attachment, type MemoryState } from "../supabase/functions/_shared/conversation.ts";
+import { memoryChannel } from "../supabase/functions/_shared/channel.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../supabase/functions/_shared/router_core.career.js";
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
@@ -27,10 +28,13 @@ const MIME: Record<string, string> = { txt: "text/plain", md: "text/markdown", c
 if (brainName !== "router" && brainName !== "agent") { console.error("--brain must be router or agent"); Deno.exit(2); }
 if (brainName === "agent" && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
 
-type Saved = { mem: MemoryState; now: number; as: string };
+type Saved = { mem: MemoryState; now: number; as: string; optedOut?: string[] };
 let saved: Saved | null = null;
 if (!args.includes("--fresh")) { try { saved = JSON.parse(Deno.readTextFileSync(STATE_FILE)); } catch { saved = null; } }
 const mem = memoryStore(saved?.mem);
+// STOP / START / HELP go through the channel rules exactly as on a phone (WO-013a); a contact who texted STOP gets nothing.
+const channel = memoryChannel();
+for (const c of saved?.optedOut ?? []) await channel.setOptOut(c, true, 0);
 let now = saved?.now ?? Date.now();
 let as = opt("--as", saved?.as ?? "+15550000001")!;
 let pending: Attachment[] = [];
@@ -60,9 +64,14 @@ const agentBrain: Brain = async (a) => {
 const brain = brainName === "agent" ? agentBrain : routerBrain;
 
 const log = (line: string) => { console.log(line); if (transcript) Deno.writeTextFileSync(transcript, line + "\n", { append: true }); };
-function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as } satisfies Saved)); }
+function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as, optedOut: channel.optOuts() } satisfies Saved)); }
 function show(kind: string, bubbles: string[]) { for (const b of bubbles) log(`${kind === "proactive" ? "  ⟵ (Trainee, unprompted)" : "  ⟵"} ${b.replace(/\n/g, "\n     ")}`); }
-async function deliver() { for (const o of await mem.drainProactive(now)) { if (o.contact === as) show("proactive", o.bubbles); else log(`  (queued for ${o.contact} delivered: ${o.bubbles[0].slice(0, 60)}…)`); } }
+async function deliver() {
+  for (const o of await mem.drainProactive(now)) {
+    if (await channel.optedOut(o.contact)) { log(`  (not sent to ${o.contact}: they texted STOP)`); continue; }
+    if (o.contact === as) show("proactive", o.bubbles); else log(`  (queued for ${o.contact} delivered: ${o.bubbles[0].slice(0, 60)}…)`);
+  }
+}
 const parseDelta = (s: string) => { const m = /^\+?(\d+)\s*(m|h|d)$/.exec(s.trim()); return m ? Number(m[1]) * ({ m: 60000, h: 3600000, d: 86400000 } as any)[m[2]] : null; };
 
 async function line(input: string): Promise<boolean> {
@@ -85,7 +94,7 @@ async function line(input: string): Promise<boolean> {
     now += d; log(`  (clock: ${new Date(now).toISOString()})`); await deliver(); return true;
   }
   log(`⟶ ${as}: ${t}`);
-  const out = await handleInbound({ contact: as, text: t, at: now, attachments: pending }, { brain, store: mem });
+  const out = await handleInbound({ contact: as, text: t, at: now, attachments: pending }, { brain, store: mem, channel });
   pending = [];
   show("reply", out.bubbles);
   now += 60000;

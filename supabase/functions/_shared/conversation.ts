@@ -2,6 +2,7 @@
 // A person is their contact (phone or email). The first text creates them (no web account). The brain answers with
 // the person's history and state; the reply is split into texting-sized bubbles. Agent-initiated messages (alerts,
 // reports, nudges) are queued per person, delivered once each, and become part of the conversation.
+import { channelCommand, CHANNEL_REPLIES, type ChannelStore } from "./channel.ts";
 export interface Attachment { name: string; mime: string; bytes: Uint8Array }
 export interface Inbound { contact: string; text: string; at: number; attachments?: Attachment[] }
 export interface Outbound { contact: string; kind: "reply" | "proactive"; bubbles: string[] }
@@ -132,7 +133,15 @@ export function toBubbles(reply: string): string[] {
 const TEXT_MIME = /^text\/|^application\/(json|csv)$/;
 const decode = (a: Attachment) => (TEXT_MIME.test(a.mime) ? new TextDecoder().decode(a.bytes) : null);
 
-export async function handleInbound(i: Inbound, d: { brain: Brain; store: ConversationStore }): Promise<Outbound> {
+export async function handleInbound(i: Inbound, d: { brain: Brain; store: ConversationStore; channel?: Pick<ChannelStore, "setOptOut"> }): Promise<Outbound> {
+  // STOP / START / HELP are the channel's, never the brain's (WO-013a): answered with fixed words, recorded, and no
+  // person is created or history written for them.
+  const command = d.channel ? channelCommand(i.text) : null;
+  if (command && d.channel) {
+    const contact = normalizeContact(i.contact);
+    if (command !== "help") await d.channel.setOptOut(contact, command === "stop", i.at);
+    return { contact, kind: "reply", bubbles: toBubbles(CHANNEL_REPLIES[command]) };
+  }
   const person = await d.store.ensureUser(i.contact, i.at);
   const history = (await d.store.history(person.id)).slice(-HISTORY_TURNS);
   const stores = await d.store.stores(person.id);

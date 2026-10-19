@@ -15,7 +15,7 @@ real texting channel is last (D-009).
 | [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | in review (PR #3) | 001 | M1 | Claude (was Muse) |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
 | [006](WO-006-job-ingestion.md) | Real jobs: cloud ingestion of 300+ boards into a postings table; search_jobs ranked by fit | in review (PR #7) | 001 | M2 | Claude (was Muse) |
-| [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | 007a in review (PR #8) · 007b next | 004, 006 | M2 | Claude (was Muse) |
+| [007](WO-007-alerts-reports.md) | Instant job alerts (capped, quiet hours) and the daily report, as proactive texts | 007a in review (PR #8) · 007b in review (PR #9) | 004, 006 | M2 | Claude (was Muse) |
 | 008 | Resumes in and out: read PDF/DOCX/photo, tailored resume + cover letter rendered to PDF, short-link pages for long content | drafting | 005 | M3 | Codex |
 | [009](WO-009-real-submissions.md) | **Mass applying, fast (D-011, top priority):** 009a apply core (prepare every application before a browser opens) · 009b parallel apply worker, employer-confirmed | 009a in review (PR #6) · 009b ready | 001 | M4 | 009a Claude · 009b Codex (next after 001) |
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled | drafting | 002 | M5 | Codex |

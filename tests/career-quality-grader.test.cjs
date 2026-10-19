@@ -79,8 +79,8 @@ test("severity tagging: H-9 secret is S0, H-12 next-step is S2, H-11 length is S
 });
 
 test("real records: SC-065 and SC-300 grand replies FAIL deterministically (Gate 1 baseline expectation)", async (t) => {
-  const dir = path.join(process.env.HOME, "workspace/your_files/upmore-career-gauntlet-300");
-  if (!fs.existsSync(path.join(dir, "SC-065/record.json"))) { t.skip("gauntlet records not present on this machine"); return; }
+  const dir = process.env.UPMORE_GAUNTLET_RECORDS;
+  if (!dir || !fs.existsSync(path.join(dir, "SC-065/record.json"))) { t.skip("gauntlet records not present on this machine"); return; }
   for (const id of ["SC-065", "SC-300"]) {
     const rec = JSON.parse(fs.readFileSync(path.join(dir, id, "record.json"), "utf8"));
     const r = await G.grade(rec);

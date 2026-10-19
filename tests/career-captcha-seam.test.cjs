@@ -1,6 +1,6 @@
 "use strict";
 // FAIL-FIRST seam tests — captcha handoff (SC-082) + module-120 typed-result
-// contract (SC-286 class). Spec: ~/workspace/your_files/integrator-packs/captcha-120-pack.md
+// contract (SC-286 class).
 //
 // SC-082's canonical ask drives the ACCS-006 ticket lifecycle through the
 // chat path: a captcha stop mints a single-use handoff ticket and returns a

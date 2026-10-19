@@ -236,9 +236,7 @@ test("S9 mutant: stop-everything counts do not add up -> S9.stop_everything_coun
 });
 
 // ------------------------------------------------------------ SC-042 real record
-// The 5-person sample set from run-1 evidence
-// (~/workspace/your_files/upmore-career-conversations/
-//  SC-042-draft-surgery-shorter-less-formal.messages.json), rebuilt here
+// The 5-person sample set from run-1 evidence, rebuilt here
 // EXACTLY as scripts/career/scenarios/SC-042.cjs built it: w03-common
 // person(300+i) fixtures at the same five firms, one TEST personalization
 // fact each, drafted through the real 124 draftAndGate. SC-042 only ever

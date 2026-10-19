@@ -42,6 +42,12 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
+// Host routes and task/batch planners share this existing JSON reply boundary.
+type CareerTurnResult = {
+  intent: string; reply: string; handler?: string | null; resultStatus?: string;
+  contained?: boolean; capabilities?: unknown; action?: unknown;
+  result?: Record<string, unknown>; task?: unknown; batch?: unknown;
+};
 
 export async function handleChat(req: Request): Promise<Response> {
   const ctx: TurnCtx = { note: null, user: null, thread: null };
@@ -212,10 +218,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState }) as ReturnType<typeof host.createTurnCtx> & {
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown;
+      };
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
-      let out: any;
+      let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
       // Account controls (STOP, resume, erase) and an account pause are the host's, before any model call.
       if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
@@ -227,7 +235,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
           .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
         const postingsDb = supabasePostingsDb(admin);
-        const turn = await agentTurn({ message, history, stores: ctx as Record<string, unknown>, userId: user.id, threadId: tid, now: Date.now(),
+        const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now: Date.now(),
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: supabaseAlertStore(admin) });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
@@ -262,7 +270,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (careerBatch && (out.handler !== "CareerHostControl" || pausedBatchReadback)) {
         const plan = await planCareerBatchIntent({ batchRequest: careerBatch, message, userId: user.id, threadId: tid,
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence,
-          summarizeRun: (run) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
+          summarizeRun: (run: unknown) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
         out = plan.out; batchIntent = plan.intent;
       } else if (delegateBatch && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
         const plan = await planCareerBatchPrepare({ run: ctx.batchApplyState, userId: user.id, threadId: tid,

@@ -449,3 +449,25 @@ test("--person-submits without --headed is refused for a real employer", async (
   const r = await run({ url: "https://job-boards.greenhouse.io/acme/jobs/4000000001", flags: ["--person-submits"], stateDir: false });
   assert.equal(r.result.reason, "PERSON_SUBMITS_NEEDS_HEADED", JSON.stringify(r.result));
 });
+
+test("--approved: a dry run's approval hash lets the same application submit without asking again", async () => {
+  const dry = await run({ route: "/employer-hidden" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const n = receipts.length;
+  const r = await run({ route: "/employer-hidden", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-300));
+  assert.ok(!r.out.includes("Submit this application to"), "it did not ask again");
+  assert.equal(receipts.length, n + 1);
+});
+
+test("--approved: an application that changed since the approval is stopped with nothing sent", async () => {
+  const dry = await run({ route: "/employer-hidden" });
+  const hash = dry.out.match(/Approval hash: ([0-9a-f]{64})/)[1];
+  const facts = JSON.parse(fs.readFileSync(path.join(dry.dir, "facts.json"), "utf8"));
+  facts.answers.email.value = "changed@example.test";
+  fs.writeFileSync(path.join(dry.dir, "facts.json"), JSON.stringify(facts));
+  const n = receipts.length;
+  const r = await run({ route: "/employer-hidden", dir: dry.dir, flags: ["--submit", "--approved", hash] });
+  assert.equal(r.result.reason, "APPROVED_APPLICATION_CHANGED", JSON.stringify(r.result));
+  assert.equal(receipts.length, n, "the employer received nothing");
+});

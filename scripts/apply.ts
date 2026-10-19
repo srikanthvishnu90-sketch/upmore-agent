@@ -108,6 +108,10 @@ function options(args: string[]) {
     // forms that submit from a script (Greenhouse job-boards, Ashby), whose request is not a bound form post. Exactly one
     // request goes through, only if it carries the approved answers, and its shape (keys, never values) is recorded.
     else if (k === "--person-submits") o["person-submits"] = true;
+    // --approved <hash>: the person already approved this exact application (the approval hash a dry run printed, or
+    // a texted yes on its card). The run fills and reads back as always and submits without asking again only if the
+    // application is still exactly the one approved; any difference stops it with nothing sent.
+    else if (k === "--approved" && /^[0-9a-f]{64}$/.test(args[i + 1] || "")) o.approved = args[++i];
     else if (
       ["--url", "--facts", "--resume", "--state-dir", "--evidence-dir"].includes(k) && args[i + 1] &&
       !args[i + 1].startsWith("--")
@@ -695,6 +699,19 @@ export async function runApply(args: string[]) {
         ],
       };
       const payloadHash = await hashApplyPayload(evidence.payload);
+      // What the person approves: their answers, the resume, the form's questions, where it goes, and the names of the
+      // employer's own hidden fields (their values can change with every page load; each is still checked against the
+      // consent rule and kept in the evidence). The same application on a fresh load gives the same hash.
+      const approvalHash = await hashApplyPayload({
+        user_id: facts.user_id,
+        posting: target.key,
+        destination: evidence.payload.destination,
+        fields: evidence.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })),
+        resume: artifact.sha256,
+        schema_hash: before,
+        page_field_names: Object.keys(pageFields || {}).sort(),
+      });
+      evidence.approval_hash = approvalHash;
       evidence.payload_hash = payloadHash;
       evidence.final_url = page.url();
       await send({ type: "screenshot", path: path.join(evidenceDir, "before-review.png") });
@@ -718,9 +735,20 @@ export async function runApply(args: string[]) {
       console.log("Resume SHA-256: " + artifact.sha256);
       console.log("Destination: " + destination);
       console.log("Payload SHA-256: " + payloadHash);
+      console.log("Approval hash: " + approvalHash);
       if (!o.submit) return write({ state: "not_submitted", reason: "dry_run" });
-      console.log(`Submit this application to ${target.employer}? (yes/no)`);
-      if (await answer() !== "yes") return write({ state: "not_submitted", reason: "user_declined" });
+      if (!o.approved) console.log(`Submit this application to ${target.employer}? (yes/no)`);
+      if (o.approved) {
+        if (o.approved !== approvalHash) {
+          return write({
+            state: "not_submitted",
+            reason: "APPROVED_APPLICATION_CHANGED",
+            approved: o.approved,
+            now: approvalHash,
+          });
+        }
+        console.log("Approved earlier as " + approvalHash + "; submitting without asking again.");
+      } else if (await answer() !== "yes") return write({ state: "not_submitted", reason: "user_declined" });
       if (sha(fs.readFileSync(o.facts)) !== factsHash) throw fail("FACTS_CHANGED");
       if (sha(fs.readFileSync(o.resume)) !== artifact.sha256) throw fail("RESUME_SHA_MISMATCH");
       const fresh = await observe();

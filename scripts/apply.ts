@@ -701,7 +701,15 @@ export async function runApply(args: string[]) {
       });
       if (!p.ready.length) {
         for (const n of p.needs) console.log("Required confirmed answer: " + JSON.stringify(n.label));
-        return write({ state: "not_submitted", reason: "needs_answers", fields: p.needs.map((n: any) => n.label) });
+        // Each question as the form asks it (its type and the employer's own options), so it can be asked once by text and
+        // answered in the form's own terms; `fields` keeps the labels for older readers. A list longer than 60 (every
+        // country) goes as none: the answer is then typed and checked against the full list at the next preparation.
+        const questions = p.needs.map((n: any) => {
+          const f = current.schema.find((x: any) => x.label === n.label) || {};
+          const all = f.options || [];
+          return { label: n.label, type: String(f.type || "input_text"), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
+        });
+        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, fields: p.needs.map((n: any) => n.label), questions });
       }
       const fields = p.ready[0].fields, before = await hashApplyPayload(current.schema);
       for (const f of fields) {

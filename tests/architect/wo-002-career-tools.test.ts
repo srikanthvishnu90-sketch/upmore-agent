@@ -19,9 +19,9 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
   const tools = careerTools({ postings: async () => [] });
   eq(tools.map((t) => t.name).sort(), [
     "add_profile_fact", "confirm_profile_fact", "forget_instruction", "get_interview_questions", "get_job_alerts", "get_memory", "get_profile",
-    "interview_brief", "list_applications", "recall", "remember_instruction", "score_interview_answer", "search_jobs", "set_job_alerts",
-    "stop_job_alerts", "track_application",
-  ]); // the three alert tools: WO-007; standing instructions: WO-023; the pre-interview brief: WO-025; recall (the account's timeline): WO-027
+    "interview_brief", "list_applications", "recall", "remember_instruction", "save_resume_persona", "score_interview_answer",
+    "search_jobs", "set_job_alerts", "set_resume_contact", "stop_job_alerts", "tailor_resume", "track_application", "use_resume_persona",
+  ]); // the three alert tools: WO-007; standing instructions: WO-023; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
     remember_instruction: "write_own", forget_instruction: "write_own", get_memory: "read",
@@ -29,6 +29,7 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     list_applications: "read", track_application: "write_own", search_jobs: "read",
     set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own", recall: "read",
     get_interview_questions: "read", interview_brief: "read", score_interview_answer: "read",
+    tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own",
   });
   for (const t of tools) {
     assert(t.description.length >= 20 && t.description.length <= 400, `${t.name}: a real description`);

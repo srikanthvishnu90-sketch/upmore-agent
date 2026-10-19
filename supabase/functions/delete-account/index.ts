@@ -109,6 +109,37 @@ serve(async (req: Request) => {
     });
   } catch { /* best-effort: account deletion proceeds regardless */ }
 
+  // WO-028 (2026-10-20): tailored resumes live in the private Storage bucket career-resumes at <uid>/<sha256>.pdf and
+  // carry the person's name and email. Storage objects have no cascade from auth.users, so list the folder and remove
+  // every file before the auth user goes (Storage REST API, service key; best-effort like the Vault calls above).
+  try {
+    for (let round = 0; round < 50; round++) {
+      const listRes = await fetch(`${SUPABASE_URL}/storage/v1/object/list/career-resumes`, {
+        method: "POST",
+        headers: {
+          apikey: SERVICE_KEY,
+          Authorization: `Bearer ${SERVICE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prefix: `${uid}/`, limit: 1000, offset: 0 }),
+      });
+      if (!listRes.ok) break;
+      const objects = await listRes.json();
+      const prefixes = (objects || []).filter((o: any) => o && o.name).map((o: any) => `${uid}/${o.name}`);
+      if (!prefixes.length) break;
+      const rmRes = await fetch(`${SUPABASE_URL}/storage/v1/object/career-resumes`, {
+        method: "DELETE",
+        headers: {
+          apikey: SERVICE_KEY,
+          Authorization: `Bearer ${SERVICE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prefixes }),
+      });
+      if (!rmRes.ok) break;
+    }
+  } catch { /* best-effort: account deletion proceeds regardless */ }
+
   // FIX (QA-D2 2026-09-27): plaid_requests has no FK to profiles/auth.users,
   // so its rows do NOT cascade — delete them explicitly or they orphan.
   try {

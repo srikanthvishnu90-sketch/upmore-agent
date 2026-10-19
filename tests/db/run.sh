@@ -142,9 +142,12 @@ done
 # (20261020120100) needs career_watch_kv, so the ledger below applies it.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
+# WO-028: the private resume bucket and the tailored tag; idempotent, so it applies cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -176,4 +179,6 @@ echo "== career_connector.test.sql (double opt-in introductions: every refusal, 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_events.test.sql (the account timeline: own reads, recall, prepared on insert, wiped by an erase)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_resume_tailoring.test.sql (tailored resumes stay private; every application tagged tailored or not)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_resume_tailoring.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

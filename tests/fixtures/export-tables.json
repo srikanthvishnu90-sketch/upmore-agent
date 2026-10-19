@@ -516,6 +516,10 @@
    "order": ["shown_at", "id"]
   },
   {
+   "table": "connector_profiles",
+   "order": ["created_at"]
+  },
+  {
    "table": "career_events",
    "order": ["at", "id"]
   },
@@ -533,6 +537,8 @@
   "agent_workflow_rate_limits": "a rate-limit counter; not readable by the person",
   "broker_oauth_states": "a 15-minute connect attempt; not readable by the person",
   "broker_pending_links": "a connect awaiting confirmation; not readable by the person",
-  "agent_threads": "exported with agent_messages, per thread (messages carry no user_id)"
+  "agent_threads": "exported with agent_messages, per thread (messages carry no user_id)",
+  "connector_intros": "no user_id column (a_user, b_user) and no direct read, since a row names the other person before both said yes; exported as connector_intros through connector_my_proposals_own, redacted the same way",
+  "connector_blocks": "no direct read: a block row names a person the blocker may never have been told; kept only to stop proposals and for the human review of a report"
  }
 }

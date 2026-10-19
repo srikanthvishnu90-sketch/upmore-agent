@@ -62,6 +62,7 @@ MIGRATIONS=(
   20261020030000_career_apply_cards.sql
   20261020040000_career_apply_card_push.sql
   20261020050000_career_apply_daily_limit.sql
+  20261020110000_career_connector.sql
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
 )
@@ -76,6 +77,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_cards') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_push_for')"
   "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit')"
+  "to_regclass('public.connector_intros') is not null"
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
 )

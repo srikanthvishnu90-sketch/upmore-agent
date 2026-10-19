@@ -28,6 +28,8 @@ test("the app's export list equals the fixture the database check reads", () => 
 // A MOCK Supabase client: PostgREST's 1,000-row cap, a missing table, and the calls the export makes.
 function mockClient(db, calls) {
   return {
+    // connector_intros is read through its redacted function, never as a table.
+    rpc: async (fn, args) => { calls.push({ rpc: fn, args }); return fn in db ? { data: db[fn], error: null } : { data: null, error: { message: "function does not exist" } }; },
     from(table) {
       const q = { table, filters: [], orders: [], cols: "*" };
       const api = {
@@ -66,7 +68,8 @@ async function runExport(db) {
 
 test("a long history is exported whole, in pages of 1,000 in a stable order; a table that can't be read is named", async () => {
   const tx = Array.from({ length: 2345 }, (_, i) => ({ user_id: "u1", account_id: "chk", provider_transaction_id: `mock-${String(i).padStart(5, "0")}`, posted_on: `2026-${String(1 + (i % 9)).padStart(2, "0")}-01`, amount_cents: -100 - i }));
-  const db = { agent_financial_transactions: tx.concat([{ user_id: "someone-else", account_id: "x", provider_transaction_id: "z", posted_on: "2026-01-01" }]), agent_threads: [], profiles: [{ id: "u1" }] };
+  const intro = { id: "i1", kind: "meet", state: "proposed", side: "a", why: "You asked to meet someone at JPMorgan.", other_role: "alumni", other_user: null };
+  const db = { agent_financial_transactions: tx.concat([{ user_id: "someone-else", account_id: "x", provider_transaction_id: "z", posted_on: "2026-01-01" }]), agent_threads: [], profiles: [{ id: "u1" }], connector_my_proposals_own: [intro] };
   for (const e of DOC.export) if (!(e.table in db) && e.table !== "plaid_requests") db[e.table] = [];
   const { out, calls } = await runExport(db);
   assert.equal(out.agent_financial_transactions.length, 2345, "every transaction, past the 1,000-row cap");
@@ -77,4 +80,15 @@ test("a long history is exported whole, in pages of 1,000 in a stable order; a t
   assert.ok(txCalls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === "u1")), "only the person's own rows are asked for");
   assert.deepEqual(out._unreadable, ["plaid_requests"], "a missing table is named, never exported as empty");
   assert.equal(calls.find((c) => c.table === "brokerage_accounts").cols, DOC.export.find((e) => e.table === "brokerage_accounts").select);
+  // WO-026: the person's introductions come through the redacted read (the other side unnamed until both said yes).
+  assert.deepEqual(out.connector_intros, [intro]);
+  assert.deepEqual(calls.find((c) => c.rpc === "connector_my_proposals_own").args, { p_limit: 1000 });
+});
+
+test("WO-026: introductions that cannot be read are named, never exported as empty", async () => {
+  const db = { agent_threads: [], profiles: [{ id: "u1" }] };
+  for (const e of DOC.export) if (!(e.table in db)) db[e.table] = [];
+  const { out } = await runExport(db);
+  assert.deepEqual(out._unreadable, ["connector_intros"]);
+  assert.equal(out.connector_intros, undefined);
 });

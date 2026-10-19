@@ -9,9 +9,16 @@
 //
 // Never asked by text: an identity, bank or card number, or a password (NEVER_BY_TEXT); the person types those on the
 // form. An answer whose number the chat input removed (identity_redact.ts) is not saved.
+//
+// WO-030: a written answer can be drafted from the person's confirmed facts ("draft 2", essay_draft.ts), shown in full,
+// and saved only by "use 2" through the same check and store.answer as a typed answer. The draft waits on the account
+// beside the questions shown (career:questions-shown), under the same rules: this thread's last word, a day, the numbers
+// shown. The employer's own AI policy decides first.
 import { chooseOption, yesNoOf } from "./answer_options.ts";
 import { matchOption } from "./career_apply.ts";
 import { factType, mapQuestion, NEVER_BY_TEXT } from "./question_map.ts";
+import { readAiPolicy } from "./ai_policy.ts";
+import { type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
 
 export interface OpenQuestion {
   id: string;
@@ -24,8 +31,10 @@ export interface OpenQuestion {
   job_ids: string[];
   misfit: boolean;
   answer: string | null;
+  ai_policy?: string | null; // the posting's own words about AI help, carried by the person's computer (WO-030)
 }
-export interface Shown { thread: string; ids: string[]; at: string }
+export interface PendingDraft { text: string; at: string; n: number }
+export interface Shown { thread: string; ids: string[]; at: string; drafts?: Record<string, PendingDraft> }
 export interface QuestionStore {
   open(userId: string, limit: number): Promise<OpenQuestion[]>; // open questions, oldest first
   countOpen(userId: string): Promise<number>;
@@ -34,6 +43,9 @@ export interface QuestionStore {
   shown(userId: string): Promise<Shown | null>;
   setShown(userId: string, s: Shown): Promise<void>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
+  // Every stored question (open or answered) on these postings: the employer's AI policy may be any of them (WO-030).
+  // Without it no essay is drafted.
+  onPostings?(userId: string, jobIds: string[]): Promise<OpenQuestion[]>;
 }
 
 export const QUESTIONS_INTENT = "career_apply_questions";
@@ -151,6 +163,10 @@ const line = (q: OpenQuestion, n: number) => {
   return `${n}. ${q.label.replace(/\s+/g, " ").trim()}${where} ${hint(q)}${before}`.replace(/\s+$/, "");
 };
 
+// A written answer is offered for drafting unless its own words, or the posting's carried AI statement, rule it out.
+const offerDraft = (q: OpenQuestion) =>
+  q.kind === "essay" && !["prohibited", "unread"].includes(readAiPolicy([q.label, q.ai_policy ?? ""]).policy);
+
 // The questions that fit one text: at most 5, under 1,600 characters with two or more, and the first always.
 export function questionsText(qs: OpenQuestion[], total: number): { take: OpenQuestion[]; text: string } | null {
   const ask = qs.filter((q) => !NEVER_BY_TEXT.test(q.label));
@@ -161,8 +177,10 @@ export function questionsText(qs: OpenQuestion[], total: number): { take: OpenQu
       ? "One question only you can answer is holding up your applications. Answer it once and I won't ask again."
       : `${list.length} questions only you can answer are holding up your applications. Answer each once and I won't ask again.`;
     const rest = total - list.length;
+    const draftable = list.findIndex(offerDraft);
     const foot = [
       list.length === 1 ? "Just reply with your answer." : `Reply with each number and your answer, like "1 no 2 3 years".`,
+      draftable >= 0 ? `For a written answer, say "draft ${draftable + 1}" and I'll draft it from your confirmed facts for you to check first.` : "",
       rest > 0 ? `${rest} more after these.` : "",
     ].filter(Boolean).join(" ");
     return [head, ...list.map((q, i) => line(q, i + 1)), foot].join("\n");
@@ -184,7 +202,7 @@ const said = (q: OpenQuestion, value: string) => {
 // One turn, before any brain. Null when the text is neither a request for the questions nor an answer to the ones just
 // shown, so the turn goes on as before.
 export async function questionsTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: QuestionStore },
+  o: { message: string; userId: string; threadId: string; now: number; store: QuestionStore; draft?: DraftDeps },
 ): Promise<{ reply: string; status: string } | null> {
   if (isAsk(o.message)) {
     const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
@@ -209,6 +227,12 @@ export async function questionsTurn(
     return null;
   }
   if (!shown || shown.thread !== o.threadId || !shown.ids.length || Date.parse(shown.at) < o.now - 48 * 3600000) return null;
+  // WO-030: "draft 2", "redo 2", "use 2" under the same rule as an answer: the questions must be this thread's last word.
+  const cmd = parseDraftCommand(o.message);
+  if (cmd) {
+    if ((await o.store.lastAssistantIntent(o.threadId)) !== QUESTIONS_INTENT) return null;
+    return await draftTurn(o, shown, cmd);
+  }
   if (shown.ids.length === 1 && TALK.test(o.message.trim())) return null;
   const parts = splitAnswers(o.message, shown.ids.length);
   if (!parts) return null;
@@ -226,7 +250,9 @@ export async function questionsTurn(
     if (!c.ok) { open.push(`${n} ${c.why}.`); continue; }
     await o.store.answer(o.userId, q.id, c.value);
     saved.push(`${n}. ${said(q, c.value)}`);
+    if (shown.drafts?.[q.id]) delete shown.drafts[q.id]; // their own words replace a draft they did not use
   }
+  if (shown.drafts && saved.length) await o.store.setShown(o.userId, shown);
   const left = await o.store.countOpen(o.userId);
   const reply = [
     saved.length ? `Saved. I won't ask ${saved.length === 1 ? "this" : "these"} again:` : "Nothing was saved.",
@@ -236,6 +262,82 @@ export async function questionsTurn(
     left > 0 && !open.length ? `${left} more question${left === 1 ? "" : "s"} waiting; say "what do you need from me" for ${left === 1 ? "it" : "them"}.` : "",
   ].filter(Boolean).join("\n");
   return { reply, status: open.length ? "partial" : "answered" };
+}
+
+// "draft 2", "redo 2", "use 2": only for a number shown, while the questions are this thread's last word, for a day.
+// A draft is shown whole and kept beside the questions shown; "use 2" saves it through the same check and store.answer
+// as a typed answer, and nothing else ever saves it.
+const DAY = 24 * 3600000;
+async function draftTurn(
+  o: { userId: string; now: number; store: QuestionStore; draft?: DraftDeps },
+  shown: Shown,
+  cmd: { act: "draft" | "redo" | "use"; n: number | null },
+): Promise<{ reply: string; status: string }> {
+  if (Date.parse(shown.at) < o.now - DAY) {
+    return { reply: `Those questions are more than a day old, so nothing was drafted or saved. Say "what do you need from me" to see them again.`, status: "expired" };
+  }
+  const drafts = { ...(shown.drafts ?? {}) };
+  const pending = Object.values(drafts);
+  const n = cmd.n ?? (cmd.act === "use" && pending.length === 1 ? pending[0].n : shown.ids.length === 1 ? 1 : null);
+  if (n === null) return { reply: `Which one? Say "${cmd.act} 2" with the question's number.`, status: "draft_which" };
+  if (n < 1 || n > shown.ids.length) {
+    const range = shown.ids.length === 1 ? `"${cmd.act} 1"` : `"${cmd.act} 1" to "${cmd.act} ${shown.ids.length}"`;
+    return { reply: `I asked ${shown.ids.length === 1 ? "one question" : `${shown.ids.length} questions`}, so there's no ${n}. Say ${range}.`, status: "draft_none" };
+  }
+  const id = shown.ids[n - 1];
+  const q = (await o.store.get(o.userId, [id]))[0];
+  if (!q) return { reply: `${n}: that question is gone (the application was removed).`, status: "draft_none" };
+  if (NEVER_BY_TEXT.test(q.label)) return { reply: `${n}: type that one on the form yourself; Upmore never keeps it.`, status: "draft_none" };
+
+  if (cmd.act === "use") {
+    const d = drafts[id];
+    if (!d || d.n !== n) {
+      return { reply: `There's no draft for ${n} yet. Say "draft ${n}" and I'll write one from your confirmed facts for you to check.`, status: "draft_none" };
+    }
+    if (Date.parse(d.at) < o.now - DAY) return { reply: `That draft is more than a day old, so it wasn't saved. Say "draft ${n}" for a new one.`, status: "expired" };
+    const c = checkAnswer(q, d.text);
+    if (!c.ok) return { reply: `Nothing was saved: the draft for ${n} ${c.why}.`, status: "draft_none" };
+    await o.store.answer(o.userId, q.id, c.value);
+    delete drafts[id];
+    await o.store.setShown(o.userId, { ...shown, drafts });
+    const still = (await o.store.get(o.userId, shown.ids)).filter((x) => !x.answer || x.misfit).length;
+    return {
+      reply: [
+        "Saved, as drafted. I won't ask this again:",
+        `${n}. ${said(q, c.value)}`,
+        "It goes on the form the next time you prepare applications on your computer.",
+        still ? `${still} of the questions above ${still === 1 ? "is" : "are"} still open; answer by number as before.` : "",
+      ].filter(Boolean).join("\n"),
+      status: still ? "draft_used" : "answered",
+    };
+  }
+
+  if (q.kind !== "essay") return { reply: `${n} isn't a written answer, so there's nothing to draft. Reply "${n}" and your answer.`, status: "draft_not_essay" };
+  if (!o.draft) return { reply: `I can't draft here. Reply "${n}" and your own answer.`, status: "draft_off" };
+  // The employer's own policy may sit on any question of the same posting; if those cannot be read, nothing is drafted.
+  let siblings: OpenQuestion[];
+  try {
+    if (!o.store.onPostings) throw new Error("no posting reader");
+    siblings = await o.store.onPostings(o.userId, q.job_ids);
+  } catch {
+    return {
+      reply: `I couldn't check ${q.company ?? "this employer"}'s rules on AI help, so I won't draft ${n} right now. Reply "${n}" and your own answer, or try again later.`,
+      status: "draft_policy",
+    };
+  }
+  const outcome = await draftEssay({
+    q,
+    siblingLabels: siblings.filter((x) => x.id !== q.id).flatMap((x) => [x.label, x.ai_policy ?? ""]),
+    deps: o.draft,
+    previous: cmd.act === "redo" ? drafts[id]?.text ?? null : null,
+  }).catch((e) => ({ ok: false as const, why: "model" as const, policy: null, detail: [String(e?.message ?? e)], tries: 0 }));
+  if (!outcome.ok) {
+    if (outcome.why === "model") console.error("essay draft: not drafted:", outcome.detail[0]);
+    return { reply: draftReply(n, q, outcome), status: `draft_${outcome.why}` };
+  }
+  drafts[id] = { text: outcome.text, at: new Date(o.now).toISOString(), n };
+  await o.store.setShown(o.userId, { ...shown, drafts });
+  return { reply: draftReply(n, q, outcome), status: "drafted" };
 }
 
 // The store over the edge function's service client: every write names the person (the _as functions), every read is
@@ -248,7 +350,9 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
   const shape = (r: any): OpenQuestion => ({
     id: r.id, key: r.key, kind: r.kind, label: r.label, type: r.type, company: r.company ?? null, job_ids: r.job_ids ?? [],
     options: Array.isArray(r.options) ? r.options.map(String) : [], misfit: !!r.misfit, answer: r.answer ?? null,
+    ai_policy: typeof r.ai_policy === "string" ? r.ai_policy : null,
   });
+  const COLS = "id,key,kind,label,type,options,company,job_ids,misfit,answer,ai_policy";
   return {
     async open(userId, limit) {
       return (must(await admin.rpc("career_apply_questions_open_as", { p_user: userId, p_limit: limit }), "read open questions") ?? []).map(shape);
@@ -260,7 +364,7 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
     },
     async get(userId, ids) {
       return (must(
-        await admin.from("career_apply_questions").select("id,key,kind,label,type,options,company,job_ids,misfit,answer").eq("user_id", userId).in("id", ids),
+        await admin.from("career_apply_questions").select(COLS).eq("user_id", userId).in("id", ids),
         "read the questions shown",
       ) ?? []).map(shape);
     },
@@ -270,10 +374,23 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
     async shown(userId) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:questions-shown").maybeSingle(), "read the questions shown");
       const v = r?.value;
-      return v && typeof v.thread === "string" && Array.isArray(v.ids) ? { thread: v.thread, ids: v.ids.map(String), at: String(v.at) } : null;
+      if (!(v && typeof v.thread === "string" && Array.isArray(v.ids))) return null;
+      const drafts: Record<string, PendingDraft> = {};
+      for (const [id, d] of Object.entries(v.drafts && typeof v.drafts === "object" ? v.drafts : {})) {
+        const x = d as any;
+        if (x && typeof x.text === "string" && x.text.length <= 2000 && typeof x.at === "string" && Number.isInteger(x.n)) drafts[id] = { text: x.text, at: x.at, n: x.n };
+      }
+      return { thread: v.thread, ids: v.ids.map(String), at: String(v.at), ...(Object.keys(drafts).length ? { drafts } : {}) };
     },
     async setShown(userId, s) {
       must(await admin.from("career_watch_kv").upsert({ user_id: userId, key: "career:questions-shown", value: s }, { onConflict: "user_id,key" }), "keep the questions shown");
+    },
+    async onPostings(userId, jobIds) {
+      if (!jobIds.length) return [];
+      return (must(
+        await admin.from("career_apply_questions").select(COLS).eq("user_id", userId).overlaps("job_ids", jobIds).limit(200),
+        "read the posting's questions",
+      ) ?? []).map(shape);
     },
     async lastAssistantIntent(threadId) {
       const rows = must(

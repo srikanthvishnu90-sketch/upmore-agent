@@ -1,7 +1,5 @@
 // IB-TN INTEGRATION (Track + Negotiation wave) — fail-first chat-path tests
 // for the integrator briefs IB-TN-1..10 in docs/career/gauntlet-ledger.md.
-// The full patch specifications these tests encode live in
-// ~/workspace/your_files/integrator-packs/ib-tn-pack.md.
 //
 // Method: drives the staging chat path (pilot-lib chatTurn: 143 -> 120 ->
 // 130 -> 142 -> 141, replies composed by 140) exactly as the graders do,

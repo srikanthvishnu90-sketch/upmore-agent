@@ -44,6 +44,7 @@ export function createCareerPersistence(client) {
   };
 }
 
+/** @param {unknown} message @param {unknown} images @param {unknown} careerTask */
 export async function careerRequestHash(message, images, careerTask=null) {
   const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
   const bytes = new TextEncoder().encode(JSON.stringify(canonical({version:'career_turn/v2',message,acceptedImages:images||null,careerTask})));

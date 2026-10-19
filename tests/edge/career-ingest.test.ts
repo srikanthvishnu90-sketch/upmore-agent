@@ -110,14 +110,10 @@ Deno.test("WO-006/B6 the deadline: boards not started wait for the next run, and
   const boards = ["a", "b", "c", "d"].map((x) => ({ company: x, provider: "greenhouse", board: x }));
   const db = memoryPostingsDb(), seen: string[] = [];
   let clock = 0;
-  const realNow = Date.now;
-  try {
-    Date.now = () => clock;
-    const feed = async (b: Board) => { seen.push(b.board); clock += 60; return []; };
-    const st = await ingestBoards({ boards, db, now: T0, fetchFeed: feed, deadline: 100 });
-    eq([st.attempted, seen], [2, ["a", "b"]]);
-    eq(await db.getCursor(), 2);
-  } finally { Date.now = realNow; }
+  const feed = async (b: Board) => { seen.push(b.board); clock += 60; return []; };
+  const st = await ingestBoards({ boards, db, now: T0, fetchFeed: feed, deadline: 100, clock: () => clock });
+  eq([st.attempted, seen], [2, ["a", "b"]]);
+  eq(await db.getCursor(), 2);
 });
 
 Deno.test("WO-006/B7 concurrency: at most N boards in flight, every board read once", async () => {

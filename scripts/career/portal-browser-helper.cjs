@@ -163,17 +163,25 @@ function fnCaptchaTech() {
 function fnDiscoverFields(includeHidden) {
   const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'));
   const clean = (t) => (t || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  // Layout-dependent innerText includes select options differently after
+  // a section is hidden. The question itself must remain the same so
+  // prior-page handles can be checked without relaxing meaning checks.
+  const labelText = (node) => {
+    const clone = node.cloneNode(true);
+    for (const control of clone.querySelectorAll("input,select,textarea,button")) control.remove();
+    return clone.textContent || "";
+  };
   function labelFor(el) {
     let t = "";
-    if (el.id) { const l = document.querySelector('label[for="' + esc(el.id) + '"]'); if (l) t = l.innerText || l.textContent || ""; }
-    if (!t) { const wrap = el.closest("label"); if (wrap) t = wrap.innerText || wrap.textContent || ""; }
+    if (el.id) { const l = document.querySelector('label[for="' + esc(el.id) + '"]'); if (l) t = labelText(l); }
+    if (!t) { const wrap = el.closest("label"); if (wrap) t = labelText(wrap); }
     if (!t) {
       let node = el;
       for (let i = 0; i < 4 && node; i++) {
         node = node.parentElement; if (!node) break;
         const labs = Array.from(node.querySelectorAll(":scope > label, :scope > .field-label, :scope > .label"));
         const lab = labs.find((x) => !x.contains(el));
-        if (lab) { t = lab.innerText || lab.textContent || ""; break; }
+        if (lab) { t = labelText(lab); break; }
       }
     }
     if (!t) t = el.getAttribute("aria-label") || el.getAttribute("placeholder") || "";
@@ -181,13 +189,13 @@ function fnDiscoverFields(includeHidden) {
   }
   function groupLabelFor(el) {
     const fs = el.closest("fieldset");
-    if (fs) { const lg = fs.querySelector("legend"); if (lg) return lg.innerText || lg.textContent || ""; }
+    if (fs) { const lg = fs.querySelector("legend"); if (lg) return labelText(lg); }
     let node = el;
     for (let i = 0; i < 5 && node; i++) {
       node = node.parentElement; if (!node) break;
       const heads = Array.from(node.querySelectorAll(":scope > label, :scope > .application-label, :scope > .question, :scope > h4, :scope > .field-label"));
-      const head = heads.find((x) => !x.contains(el) && (x.innerText || x.textContent || "").trim().length > 0);
-      if (head) return head.innerText || head.textContent || "";
+      const head = heads.find((x) => !x.contains(el) && labelText(x).trim().length > 0);
+      if (head) return labelText(head);
     }
     return "";
   }

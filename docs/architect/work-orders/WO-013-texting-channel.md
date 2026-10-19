@@ -69,12 +69,20 @@ the owner checks every field, the webhook's payload, and which statuses LoopMess
 - Rows of a person with no texting contact stay queued and are never claimed.
 
 ### 013b-2: inbound (drafting)
-- `trainee-inbound`: secret-gated webhook (`?secret=` or `x-trainee-secret`, 32+ characters); ignores delivery
-  callbacks; dedupes by the provider's message id; STOP/START/HELP answered and recorded before any account exists; a new
-  contact gets an account and a thread (one person per contact); the turn runs through `agent-chat` as that person (the
-  existing service-role bridge); the reply is queued as `reply:<message id>` and delivered at once through the same
-  outbox, so the daily cap and the once rule cover replies too. A per-contact daily turn cap bounds model cost.
-- Retires `imessage-inbound` and its hard-coded phone number.
+- `trainee-inbound`: secret-gated webhook (`?secret=` or `x-trainee-secret`, 32+ characters; LoopMessage cannot send custom
+  auth headers); ignores delivery callbacks and non-text; dedupes by the provider's message id (a table with the id as
+  primary key, claimed before any work: a retried webhook never runs a second turn); STOP/START/HELP answered and recorded
+  before any account exists.
+- Who may sign up is the owner's call: `TRAINEE_SIGNUP` = `closed` (default: only contacts already linked, plus
+  `TRAINEE_ALLOWED_CONTACTS`, a comma list) or `open`. A contact refused by it gets one fixed reply and no account; no
+  model call is made for them.
+- A new allowed contact gets an account (auth user with no password, linked in `channel_contacts`) and one thread
+  (`channel_contacts.thread_id`). The turn runs through `agent-chat` as that person over the existing service-role path
+  (`as_user_id`), so history, erase, STOP-at-the-host, persistence and the 60-turns-an-hour limit are the chat's own.
+- The reply is queued in `career_outbox` as `reply:<message id>` and delivered at once through `deliverDue` on that row, so
+  the daily contact cap and the at-most-once rule cover replies; a failed send is retried by `trainee-deliver`.
+- Retires `imessage-inbound` and its hard-coded phone number (the function and the bridge comment in `handler-career.ts`
+  stop calling the path "test only").
 
 ## Out of scope
 SMS/RCS (WO-014), Apple Messages for Business, attachments beyond text (013b reads text only and says so).

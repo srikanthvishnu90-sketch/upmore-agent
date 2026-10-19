@@ -30,7 +30,7 @@ export async function handleIngest(req: Request, d: IngestDeps): Promise<Respons
     const stats = await ingestBoards({
       boards: d.boards, db, now: started, fetchFeed: d.fetchFeed(`Trainee job alerts (contact: ${contact})`),
       maxBoards: int(d.env.get("INGEST_MAX_BOARDS"), 100, 1, 400), concurrency: int(d.env.get("INGEST_CONCURRENCY"), 8, 1, 16),
-      deadline: started + 100000, touchAfterMs: 6 * 3600000,
+      deadline: started + 100000, clock: d.now, touchAfterMs: 6 * 3600000,
     });
     const result = { ...stats, directory: d.boards.length, ms: d.now() - started };
     await db.recordRun(result as IngestStats, new Date(started).toISOString());

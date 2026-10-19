@@ -1,0 +1,84 @@
+// WO-021 step 5, the receipt: each application that finished is said once, in one text, as it ended. Confirmed only
+// with the employer's own confirmation; anything not sent says nothing reached the employer; an unknown outcome is
+// said as unknown and is never resent. Every word is written here from the queue row, never by the model. The outbox
+// keeps one text per key, ever (receipt:<application id>), so a run that repeats sends nothing twice.
+export const FINAL_STATES = [
+  "confirmed",
+  "submitted_unconfirmed",
+  "needs_user",
+  "failed",
+  "not_submitted",
+  "unknown_outcome",
+] as const;
+
+// Employer and page text is other people's text: one line, bounded.
+const clean = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const httpsUrl = (u: unknown) => (/^https:\/\/\S+$/.test(String(u ?? "")) ? String(u).slice(0, 500) : "");
+
+// Why an application did not go, in the person's words. Each says whether anything reached the employer.
+const NOT_SENT: Record<string, string> = {
+  CAPTCHA_AT_SUBMIT: "a verification appeared at Submit and was not completed",
+  APPROVED_APPLICATION_CHANGED: "the form changed after you approved it, so it was stopped",
+  APPROVED_BODY_MISMATCH: "what the page tried to send was not exactly what you approved, so it was stopped",
+  RESUME_CHANGED: "your resume file is not the one you approved",
+  HOST_REDIRECT_REFUSED: "the page tried to go somewhere other than the employer's own site",
+  PERSON_DID_NOT_SUBMIT: "Submit was not pressed in the window within 10 minutes",
+  IDENTITY_NUMBER_REQUESTED: "the form asks for an ID number, which Trainee never fills in",
+  ACCOUNT_LOGIN_REQUIRED: "the employer's site needs you to sign in to an account first",
+  needs_answers: "the form has questions you have not answered yet",
+};
+const NEEDS_YOU: Record<string, string> = {
+  captcha: "the page asks you to complete a verification",
+  email_code: "the employer emailed you a code to finish it",
+};
+
+export function receiptText(
+  row: { company?: unknown; url?: unknown; state: string; reason?: unknown; confirmation_id?: unknown },
+): string {
+  const company = clean(row.company, 80) || "the employer", url = httpsUrl(row.url);
+  const tail = url ? ` ${url}` : "";
+  const reason = clean(row.reason, 200);
+  switch (row.state) {
+    case "confirmed": {
+      const id = clean(row.confirmation_id, 60);
+      return `Applied to ${company}: the employer confirmed it on their page${
+        id ? ` (confirmation ${id})` : ""
+      }.${tail}`;
+    }
+    case "submitted_unconfirmed":
+      return `Sent to ${company}. The employer has not confirmed it yet; their confirmation email is the proof.${tail}`;
+    case "needs_user":
+      return `${company} is not finished: ${NEEDS_YOU[reason] ?? "it needs you"}. Nothing else was sent.${tail}`;
+    case "failed":
+      return `${company} did not accept it${reason ? `: their form said "${reason}"` : ""}.${tail}`;
+    case "not_submitted":
+      return `Not sent to ${company}: ${
+        NOT_SENT[reason] ?? `it stopped before sending${reason ? ` (${reason})` : ""}`
+      }. Nothing reached the employer.${tail}`;
+    case "unknown_outcome":
+      return `${company}: Trainee cannot tell whether it went through, and will not send it again. If they email you a confirmation, it did.${tail}`;
+    default:
+      throw Error("not a finished application: " + row.state);
+  }
+}
+
+export interface ReceiptRow {
+  id: string;
+  user_id: string;
+  company?: string;
+  url?: string;
+  state: string;
+  reason?: string | null;
+  confirmation_id?: string | null;
+}
+export function planReceipts(rows: ReceiptRow[], now: number) {
+  return rows
+    .filter((r) => (FINAL_STATES as readonly string[]).includes(r.state))
+    .map((r) => ({
+      userId: r.user_id,
+      key: `receipt:${r.id}`,
+      kind: "receipt" as const,
+      text: receiptText(r),
+      at: now,
+    }));
+}

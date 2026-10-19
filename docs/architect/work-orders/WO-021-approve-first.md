@@ -39,6 +39,10 @@ Status: ready · Depends on: PR #25 (`--approved`), D-014 · Size: L, in four ca
      person again in one text.
 5. **Report.** Each application ends confirmed (with the employer's confirmation), unknown, or failed (with the
    reason), and that is said once, in one text.
+   - Built (architect, 2026-10-20): `_shared/career_apply_receipts.ts`. The scheduled `career-proactive` run queues one
+     text per finished application (outbox key `receipt:<application id>`, kind `receipt`, migration `20261020020000`),
+     whether or not the person has job alerts on. Each outcome has its own plain words; nothing is said as confirmed
+     without the employer's confirmation, and anything not sent says nothing reached the employer.
 
 ## Cards
 - **W1 (architect): preparation is an engine dry run.** The approval hash covers the live form's questions (the schema

@@ -3,7 +3,8 @@
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";
-import { runAlerts, type RunStats } from "../_shared/career_proactive_run.ts";
+import { runAlerts, runReceipts, type RunStats } from "../_shared/career_proactive_run.ts";
+import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
 
 export interface ProactiveDeps {
@@ -11,6 +12,8 @@ export interface ProactiveDeps {
   store: () => AlertStore & Outbox;
   recentPostings: (sinceIso: string) => Promise<any[]>;
   postingsById: (ids: string[]) => Promise<any[]>;
+  // Applications that finished since a time (career_apply_jobs), for their receipts. Absent: no receipts this run.
+  finishedApplications?: (sinceIso: string) => Promise<ReceiptRow[]>;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
   now: () => number;
 }
@@ -24,7 +27,8 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   const started = d.now(), at = new Date(started).toISOString();
   const store = d.store();
   try {
-    const stats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
+    const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
+    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications });
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });
     return json({ ...stats, ms });

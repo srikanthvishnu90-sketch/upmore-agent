@@ -13,6 +13,12 @@ serve((req) => {
   return handleProactive(req, {
     env: Deno.env, now: Date.now, store: () => supabaseAlertStore(admin),
     recentPostings: (since) => postings.newSince(since), postingsById: (ids) => postings.getMany(ids),
-    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
+    finishedApplications: async (since) => {
+      const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id")
+        .in("state", ["confirmed", "submitted_unconfirmed", "needs_user", "failed", "not_submitted", "unknown_outcome"]).gte("updated_at", since).limit(2000);
+      if (error) throw new Error(`read finished applications: ${error.message}`);
+      return data ?? [];
+    },
+    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
   });
 });

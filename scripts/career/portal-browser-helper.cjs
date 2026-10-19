@@ -20,7 +20,7 @@ const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
 
 const dir = process.argv[2];
-if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
+if (!dir && require.main === module) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
 
 function resolvePlaywright() {
   const tries = [];
@@ -36,7 +36,7 @@ function resolvePlaywright() {
   return null;
 }
 const pw = resolvePlaywright();
-if (!pw) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code: "PLAYWRIGHT_UNRESOLVABLE", message: "playwright not resolvable in helper (set UPMORE_PLAYWRIGHT_PATH)" })); process.exit(3); }
+if (!pw && require.main === module) { fs.writeFileSync(path.join(dir, "fatal.json"), JSON.stringify({ code: "PLAYWRIGHT_UNRESOLVABLE", message: "playwright not resolvable in helper (set UPMORE_PLAYWRIGHT_PATH)" })); process.exit(3); }
 
 const boards = new Map(); // boardId -> { context, page, url }
 let browser = null;
@@ -54,6 +54,7 @@ let lastActivity = Date.now();
 // Unset means sandboxed, always; the opt-out never engages silently.
 const SANDBOX_OFF = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
 async function getBrowser() {
+  if (!pw) throw Object.assign(new Error("PLAYWRIGHT_UNRESOLVABLE"), { code: "PLAYWRIGHT_UNRESOLVABLE" });
   if (browser) return browser;
   const launchOpts = { headless: true,
     ...(process.env.UPMORE_CHROMIUM_PATH ? { executablePath: process.env.UPMORE_CHROMIUM_PATH } : {}) };
@@ -1015,8 +1016,22 @@ async function pump() {
     try { fs.unlinkSync(full); } catch (e) {}
   }
 }
+// Trusted worker/terminal seam (WO-009b): same executor and widgets, one owned
+// context. A request can never choose another board or shut down its peers.
+module.exports.createSession = async () => {
+  if (SANDBOX_OFF) throw Object.assign(new Error("BROWSER_SANDBOX_REQUIRED"), { code: "BROWSER_SANDBOX_REQUIRED" });
+  const boardId = "worker-" + crypto.randomUUID();let closed = false;
+  const active = () => { if (closed) throw new Error("BROWSER_SESSION_CLOSED"); };
+  return {
+    send: cmd => { active();if (cmd.type === "shutdown") throw new Error("SESSION_COMMAND_REFUSED");return execute(boardId, { ...cmd, boardId }); },
+    page: async () => { active();return (await getBoard(boardId)).page; },
+    async close() { if (closed) return;closed = true;if (boards.has(boardId)) await execute(boardId, { type: "close", boardId });if (!boards.size && browser) { await browser.close();browser = null; } },
+  };
+};
+if (require.main === module) {
 fs.writeFileSync(path.join(dir, "ready.json"), JSON.stringify({ pid: process.pid, at: Date.now(), chromiumSandbox: !SANDBOX_OFF }));
 setInterval(() => {
   pump().catch(() => {});
   if (Date.now() - lastActivity > 15 * 60 * 1000) process.exit(0);
 }, 25);
+}

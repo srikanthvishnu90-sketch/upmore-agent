@@ -1,0 +1,106 @@
+{
+  "source_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+  "captured_at": "2026-10-19T07:01:14.808Z",
+  "http_status": 200,
+  "sha256": "8426831c2c9489078b1fb9c9608094ddaf6eea192abc7dd9c48e0e375286aeb3",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "location",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+      "label": "",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    }
+  ]
+}

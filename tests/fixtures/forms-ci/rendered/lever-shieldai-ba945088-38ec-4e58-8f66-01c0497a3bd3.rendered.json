@@ -1,0 +1,376 @@
+{
+  "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+  "family": "lever",
+  "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+  "rendered_at": "2026-10-19T07:02:48.229Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "Resume/CV ✱ ATTACH RESUME/CV",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "Full name ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "Email ✱",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "location",
+      "label": "Current location",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "Current company",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "LinkedIn URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Twitter]",
+      "label": "Twitter URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "GitHub URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "Portfolio URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "Other website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "Hiring our Heroes",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "NextOp",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "Skillbridge general (no program)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]",
+      "label": "",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Campus visit",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "LinkedIn Post",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "LinkedIn Sponsored Job/Ad",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Industry Conference",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Twitter/X",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Instagram",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Referral",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Handshake",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "Other",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]",
+      "label": "",
+      "type": "select-one",
+      "required": true
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "San Diego, California",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "Dallas, Texas",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "Washington, DC",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "Boston, MA",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "International",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "San Francisco, California",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "Seattle, Washington",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "English",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "Thai",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "Mandarin",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "Korean",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "German",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "Ukranian",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "French",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "Spanish",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "Gender Select ... Male Female Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Hispanic or Latino A person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race.",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "White (Not Hispanic or Latino) A person having origins in any of the original peoples of Europe, the Middle East, or North Africa.",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Black or African American (Not Hispanic or Latino) A person having origins in any of the black racial groups of Africa.",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino) A person having origins in any of the peoples of Hawaii, Guam, Samoa, or other Pacific Islands.",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Asian (Not Hispanic or Latino) A person having origins in any of the original peoples of the Far East, Southeast Asia, or the Indian Subcontinent, including, for example, Cambodia, China, India, Japan",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "American Indian or Alaska Native (Not Hispanic or Latino) A person having origins in any of the original peoples of North and South America (including Central America), and who maintain tribal affilia",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Two or More Races (Not Hispanic or Latino) All persons who identify with more than one of the above five races.",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Decline to self-identify",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "Veteran status Select ... I identify as one or more of the classifications of protected veteran listed above I am not a protected veteran I decline to self-identify for protected veteran status",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[disability]",
+      "label": "Disability status Select ... Yes, I have a disability, or have had one in the past No, I do not have a disability and have not had one in the past I do not want to answer",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[disabilitySignature]",
+      "label": "Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "eeo[disabilitySignatureDate]",
+      "label": "Date",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+  "sha256": "231fc671bf4d553d5bc2647408b696c6cfc0f3c271f6e358864ffd987f390be6",
+  "non_get_blocked": 12,
+  "status": "captured"
+}

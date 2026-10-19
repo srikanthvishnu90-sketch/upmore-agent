@@ -1,0 +1,16 @@
+{
+  "source_url": "https://jobs.smartrecruiters.com/AECOM2/744000156234495",
+  "captured_at": "2026-10-19T07:01:41.134Z",
+  "http_status": 200,
+  "sha256": "3eeab3765148b757a54a6796b1c1b27088dc161c6178ae7798cb500255ddb017",
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "",
+      "label": "Copy the link and open WeChat to share.",
+      "type": "text",
+      "required": false
+    }
+  ]
+}

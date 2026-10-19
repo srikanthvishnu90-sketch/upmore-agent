@@ -1,0 +1,2425 @@
+{
+  "source_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+  "captured_at": "2026-10-19T07:00:55.287Z",
+  "http_status": 200,
+  "sha256": "ac663fe908e272c6282e76277c87df313f66421c289fe7be4b309b7c419eadd8",
+  "forms": 1,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone *",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "candidate-location",
+      "label": "Location (City) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "school--0",
+      "label": "School *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "degree--0",
+      "label": "Degree *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "discipline--0",
+      "label": "Discipline",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413363002",
+      "label": "LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413364002",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_37413365002",
+      "label": "How did you hear about this job? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413366002",
+      "label": "Please specify",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413367002",
+      "label": "GPA (Undergraduate) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413368002",
+      "label": "GPA (Graduate) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413369002",
+      "label": "GPA (Doctorate) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413370002",
+      "label": "SAT Score *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413371002",
+      "label": "ACT Score *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413372002",
+      "label": "GRE Score *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413373002[]",
+      "label": "Active Security Clearance(s) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413374002",
+      "label": "SpaceX & SpaceXAI Employment History *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413375002",
+      "label": "Can you perform all of the essential functions of this role with or without reasonable accommodations? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413376002",
+      "label": "Are you legally authorized to work in the United States? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413377002",
+      "label": "Citizenship Status *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_37413378002",
+      "label": "If (f) Other, please explain:",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "hispanic_ethnicity",
+      "label": "Are you Hispanic/Latino?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "veteran_status",
+      "label": "Veteran Status",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "questions_source": "https://boards-api.greenhouse.io/v1/boards/spacex/jobs/8643277002?questions=true",
+  "questions_status": 200,
+  "questions": {
+    "absolute_url": "https://boards.greenhouse.io/spacex/jobs/8643277002?gh_jid=8643277002",
+    "data_compliance": [
+      {
+        "type": "gdpr",
+        "requires_consent": false,
+        "requires_processing_consent": false,
+        "requires_retention_consent": false,
+        "retention_period": null,
+        "demographic_data_consent_applies": false
+      }
+    ],
+    "education": "education_required",
+    "internal_job_id": 6451875002,
+    "location": {
+      "name": "Hawthorne, CA"
+    },
+    "metadata": [
+      {
+        "id": 4010460002,
+        "name": "Employment Type",
+        "value": "Regular",
+        "value_type": "single_select"
+      },
+      {
+        "id": 4026103002,
+        "name": "Discipline",
+        "value": "Corporate - Finance & Accounting",
+        "value_type": "single_select"
+      },
+      {
+        "id": 28070425002,
+        "name": "Program",
+        "value": [
+          "Corporate"
+        ],
+        "value_type": "multi_select"
+      }
+    ],
+    "id": 8643277002,
+    "updated_at": "2026-10-14T17:51:29-04:00",
+    "requisition_id": "6451875002",
+    "title": "Accountant",
+    "company_name": "SpaceX",
+    "first_published": "2026-07-21T19:49:28-04:00",
+    "language": "en",
+    "application_deadline": null,
+    "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;SpaceX was founded under the belief that a future where humanity is out exploring the stars is fundamentally more exciting than one where we are not. Today SpaceX is actively developing the technologies to make this possible, with the ultimate goal of&amp;nbsp;enabling human life on Mars.&lt;/p&gt;&lt;/div&gt;&lt;div&gt;\n&lt;p class=&quot;x_MsoNormal&quot;&gt;&lt;strong&gt;&lt;span data-olk-copy-source=&quot;MessageBody&quot;&gt;ACCOUNTANT&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;div&gt;\n&lt;p&gt;We are seeking detail-oriented, high-performing Accountants to join our Finance organization. Accountants will play a critical role in maintaining accurate financial records, supporting month-end close, variance analysis, reconciliations, and process improvements that enable SpaceX’s ambitious mission.&lt;/p&gt;\n&lt;p&gt;The ideal candidate excels in a dynamic, high-growth environment, while contributing to process improvements and collaborating effectively with team members.&lt;/p&gt;\n&lt;/div&gt;\n&lt;div&gt;\n&lt;p class=&quot;x_MsoNormal&quot;&gt;&lt;strong&gt;RESPONSIBILITIES:&lt;/strong&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;ul&gt;\n&lt;li&gt;Perform month-end, quarter-end, and year-end close activities, including journal entries, account reconciliations, and variance analysis&lt;/li&gt;\n&lt;li&gt;Support inventory, fixed assets, cost accounting, or other specialized areas as assigned&lt;/li&gt;\n&lt;li&gt;Prepare monthly, quarterly, and annual divisional balance sheet reconciliations&lt;/li&gt;\n&lt;li&gt;Collaborate with accounting staff to foster a supportive work environment&lt;/li&gt;\n&lt;li&gt;Work closely with stakeholders in Tax, FP&amp;amp;A, Financial Reporting, and other business units to build and implement solutions that ensure seamless operations&lt;/li&gt;\n&lt;li&gt;Collaborate with auditors to provide accurate and timely submission of requested documentation&lt;/li&gt;\n&lt;li&gt;Perform ad hoc duties and analysis as assigned by management&lt;/li&gt;\n&lt;li&gt;Ensure compliance with US GAAP, company policies, and internal controls&lt;/li&gt;\n&lt;li&gt;Identify and implement process improvements, automation opportunities, and best practices&lt;/li&gt;\n&lt;/ul&gt;\n&lt;div&gt;\n&lt;p class=&quot;x_MsoNormal&quot;&gt;&lt;strong&gt;BASIC QUALIFICATIONS:&lt;/strong&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;div&gt;\n&lt;ul&gt;\n&lt;li&gt;Bachelor’s degree&lt;/li&gt;\n&lt;li&gt;2+ years of accounting experience&lt;/li&gt;\n&lt;/ul&gt;\n&lt;/div&gt;\n&lt;div&gt;\n&lt;p class=&quot;x_MsoNormal&quot;&gt;&lt;strong&gt;PREFERRED SKILLS AND EXPERIENCE:&lt;/strong&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;ul type=&quot;disc&quot;&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Bachelor’s degree in accounting, finance, business, or other business discipline&lt;/li&gt;\n&lt;li&gt;CPA license or equivalent&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;“Run it like you own it” mentality with the ability to thrive in a high paced, ever-changing environment&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Deadline focused and loves being in the office working face-to-face with teams&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Excellent technical, analytical, and communication skills, both written and verbal&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Proficient computer skills, particularly with Excel&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Ability to collaborate, guide junior staff, and contribute to team development&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Familiarity with SQL&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Understanding of US GAAP&lt;/li&gt;\n&lt;/ul&gt;\n&lt;div&gt;\n&lt;p class=&quot;x_MsoNormal&quot;&gt;&lt;strong&gt;ADDITIONAL REQUIREMENTS:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;ul type=&quot;disc&quot;&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;Willingness to work long hours and weekend when needed to meet critical deadlines&lt;/li&gt;\n&lt;li class=&quot;x_MsoNormal&quot;&gt;This position is based in Hawthorne, CA and requires being onsite - remote work not considered&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;COMPENSATION AND BENEFITS:&lt;/strong&gt;&lt;br&gt;&lt;br&gt;Pay Range:&lt;br&gt;Level 1: $85,000.00 - $115,000.00&lt;br&gt;Level 2: $100,000.00 - $140,000.00&lt;/p&gt;\n&lt;p&gt;Your actual level and base salary will be determined on a case-by-case basis and may vary based on the following considerations: job-related knowledge and skills, education, and experience.&lt;/p&gt;\n&lt;p&gt;Base salary is just one part of your total rewards package at SpaceX. You may also be eligible for long-term incentives, in the form of company stock or long-term cash awards, as well as potential discretionary bonuses and the ability to purchase additional stock at a discount through an Employee Stock Purchase Plan. You will also receive access to comprehensive medical, vision, and dental coverage, access to a 401(k) retirement plan, short and long-term disability insurance, life insurance, paid parental leave, and various other discounts and perks. You may also accrue 3 weeks of paid vacation and will be eligible for 10 or more paid holidays per year. Employees accrue paid sick leave pursuant to Company policy which satisfies or exceeds the accrual, carryover, and use requirements of the law.&lt;/p&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;p&gt;&lt;strong&gt;ITAR REQUIREMENTS:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;To conform to U.S. Government export regulations, applicant must be a (i) U.S. citizen or national, (ii) U.S. lawful, permanent resident (aka green card holder), (iii) Refugee under 8 U.S.C. § 1157, or (iv) Asylee under 8 U.S.C. § 1158, or be eligible to obtain the required authorizations from the U.S. Department of State. Learn more about the ITAR &lt;a href=&quot;https://www.pmddtc.state.gov/?id=ddtc_kb_article_page&amp;amp;sys_id=24d528fddbfc930044f9ff621f961987&quot;&gt;here&lt;/a&gt;. &amp;nbsp;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;SpaceX is an Equal Opportunity Employer; employment with SpaceX is governed on the basis of merit, competence and qualifications and will not be influenced in any manner by race, color, religion, gender, national origin/ethnicity, veteran status, disability status, age, sexual orientation, gender identity, marital status, mental or physical disability or any other legally protected status.&lt;/p&gt;\n&lt;p&gt;Applicants wishing to view a copy of SpaceX’s Affirmative Action Plan for veterans and individuals with disabilities, or applicants requiring reasonable accommodation to the application/interview process should reach out to&amp;nbsp;&lt;a href=&quot;mailto:EEOCompliance@spacex.com&quot;&gt;EEOCompliance@spacex.com&lt;/a&gt;&lt;em&gt;.&amp;nbsp;&lt;/em&gt;&lt;/p&gt;&lt;/div&gt;",
+    "departments": [
+      {
+        "id": 4093729002,
+        "name": "Finance",
+        "child_ids": [],
+        "parent_id": null
+      }
+    ],
+    "offices": [
+      {
+        "id": 4000990002,
+        "name": "Hawthorne, CA",
+        "location": "Hawthorne, CA, United States",
+        "child_ids": [],
+        "parent_id": null
+      }
+    ],
+    "ai_disclaimer": null,
+    "include_ai_disclaimer": null,
+    "ai_opt_out_request_url": null,
+    "compliance": [
+      {
+        "type": "eeoc",
+        "questions": [
+          {
+            "required": false,
+            "label": "VeteranStatus",
+            "fields": [
+              {
+                "name": "veteran_status",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "I don't wish to answer",
+                    "value": "3"
+                  },
+                  {
+                    "label": "I identify as one or more of the classifications of a protected veteran",
+                    "value": "2"
+                  },
+                  {
+                    "label": "I am not a protected veteran",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "&lt;p&gt;\n  If you believe you belong to any of the categories of protected veterans listed below, please indicate by making the appropriate selection.\n  As a government contractor subject to the Vietnam Era Veterans&#39; Readjustment Assistance Act (VEVRAA), we request this information in order to measure\n  the effectiveness of the outreach and positive recruitment efforts we undertake pursuant to VEVRAA. Classification of protected categories\n  is as follows:\n&lt;/p&gt;\n&lt;p&gt;A &quot;disabled veteran&quot; is one of the following: a veteran of the U.S. military, ground, naval or air service who is entitled to compensation (or who but for the receipt of military retired pay would be entitled to compensation) under laws administered by the Secretary of Veterans Affairs; or a person who was discharged or released from active duty because of a service-connected disability.&lt;/p&gt;\n&lt;p&gt;A &quot;recently separated veteran&quot; means any veteran during the three-year period beginning on the date of such veteran&#39;s discharge or release from active duty in the U.S. military, ground, naval, or air service.&lt;/p&gt;\n&lt;p&gt;An &quot;active duty wartime or campaign badge veteran&quot; means a veteran who served on active duty in the U.S. military, ground, naval or air service during a war, or in a campaign or expedition for which a campaign badge has been authorized under the laws administered by the Department of Defense.&lt;/p&gt;\n&lt;p&gt;An &quot;Armed forces service medal veteran&quot; means a veteran who, while serving on active duty in the U.S. military, ground, naval or air service, participated in a United States military operation for which an Armed Forces service medal was awarded pursuant to Executive Order 12985.&lt;/p&gt;\n"
+      },
+      {
+        "type": "eeoc",
+        "questions": [
+          {
+            "required": false,
+            "label": "Race",
+            "fields": [
+              {
+                "name": "race",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "Decline To Self Identify",
+                    "value": "8"
+                  },
+                  {
+                    "label": "Two or More Races",
+                    "value": "7"
+                  },
+                  {
+                    "label": "Native Hawaiian or Other Pacific Islander",
+                    "value": "6"
+                  },
+                  {
+                    "label": "White",
+                    "value": "5"
+                  },
+                  {
+                    "label": "Hispanic or Latino",
+                    "value": "4"
+                  },
+                  {
+                    "label": "Black or African American",
+                    "value": "3"
+                  },
+                  {
+                    "label": "Asian",
+                    "value": "2"
+                  },
+                  {
+                    "label": "American Indian or Alaskan Native",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "required": false,
+            "label": "Gender",
+            "fields": [
+              {
+                "name": "gender",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "Decline To Self Identify",
+                    "value": "3"
+                  },
+                  {
+                    "label": "Female",
+                    "value": "2"
+                  },
+                  {
+                    "label": "Male",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "&lt;h3&gt;&lt;strong&gt;Voluntary Self-Identification&lt;/strong&gt;&lt;/h3&gt;&lt;br/&gt;&lt;p&gt;For government reporting purposes, we ask candidates to respond to the below self-identification survey.\nCompletion of the form is entirely voluntary. Whatever your decision, it will not be considered in the hiring\nprocess or thereafter. Any information that you do provide will be recorded and maintained in a\nconfidential file.&lt;/p&gt;\n\n&lt;p&gt;As set forth in SpaceX’s Equal Employment Opportunity policy,\nwe do not discriminate on the basis of any protected group status under any applicable law.&lt;/p&gt;\n"
+      }
+    ],
+    "demographic_questions": null,
+    "questions": [
+      {
+        "description": null,
+        "label": "First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "first_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Last Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "last_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Preferred First Name",
+        "required": false,
+        "fields": [
+          {
+            "name": "preferred_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Email",
+        "required": true,
+        "fields": [
+          {
+            "name": "email",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Phone",
+        "required": true,
+        "fields": [
+          {
+            "name": "phone",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Resume/CV",
+        "required": true,
+        "fields": [
+          {
+            "name": "resume",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "resume_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "LinkedIn Profile",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_37413363002",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Portfolio or Cover Letter",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_37413364002",
+            "type": "input_file",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p>If event or other, please specify below.</p>",
+        "label": "How did you hear about this job?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413365002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Campus - SpaceX event (indicate below)",
+                "value": 250103220002
+              },
+              {
+                "label": "Careers site",
+                "value": 250103221002
+              },
+              {
+                "label": "Event (indicate below)",
+                "value": 250103222002
+              },
+              {
+                "label": "Friend or family (non-employee)",
+                "value": 250103223002
+              },
+              {
+                "label": "Glassdoor",
+                "value": 250103224002
+              },
+              {
+                "label": "I am a current SpaceX employee",
+                "value": 250103225002
+              },
+              {
+                "label": "Indeed",
+                "value": 250103226002
+              },
+              {
+                "label": "LinkedIn",
+                "value": 250103227002
+              },
+              {
+                "label": "News/Media",
+                "value": 250103228002
+              },
+              {
+                "label": "Other (indicate below)",
+                "value": 250103229002
+              },
+              {
+                "label": "Referred by SpaceX employee (name below)",
+                "value": 250103230002
+              },
+              {
+                "label": "Contacted by SpaceX recruiter (name below)",
+                "value": 250103231002
+              },
+              {
+                "label": "X/Twitter",
+                "value": 250103232002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Please specify",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_37413366002",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p><!--StartFragment-->Please convert your GPA to a 4.0 scale. Select \"Not applicable/Do not recall\" if you do not have or do not remember your undergraduate GPA.&nbsp;<!--EndFragment--></p>",
+        "label": "GPA (Undergraduate)",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413367002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Not applicable/Do not recall",
+                "value": 250103233002
+              },
+              {
+                "label": "4.0 out of 4.0",
+                "value": 250103234002
+              },
+              {
+                "label": "3.9 out of 4.0",
+                "value": 250103235002
+              },
+              {
+                "label": "3.8 out of 4.0",
+                "value": 250103236002
+              },
+              {
+                "label": "3.7 out of 4.0",
+                "value": 250103237002
+              },
+              {
+                "label": "3.6 out of 4.0",
+                "value": 250103238002
+              },
+              {
+                "label": "3.5 out of 4.0",
+                "value": 250103239002
+              },
+              {
+                "label": "3.4 out of 4.0",
+                "value": 250103240002
+              },
+              {
+                "label": "3.3 out of 4.0",
+                "value": 250103241002
+              },
+              {
+                "label": "3.2 out of 4.0",
+                "value": 250103242002
+              },
+              {
+                "label": "3.1 out of 4.0",
+                "value": 250103243002
+              },
+              {
+                "label": "3.0 out of 4.0",
+                "value": 250103244002
+              },
+              {
+                "label": "Below 3.0 out of 4.0",
+                "value": 250103245002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": "<p><!--StartFragment-->Please convert your GPA to a 4.0 scale. Select \"Not applicable/Do not recall\" if you do not have or do not remember your graduate GPA.&nbsp;<!--EndFragment--></p>",
+        "label": "GPA (Graduate)",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413368002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Other/Not Applicable",
+                "value": 250103246002
+              },
+              {
+                "label": "4.0 out of 4.0",
+                "value": 250103247002
+              },
+              {
+                "label": "3.9 out of 4.0",
+                "value": 250103248002
+              },
+              {
+                "label": "3.8 out of 4.0",
+                "value": 250103249002
+              },
+              {
+                "label": "3.7 out of 4.0",
+                "value": 250103250002
+              },
+              {
+                "label": "3.6 out of 4.0",
+                "value": 250103251002
+              },
+              {
+                "label": "3.5 out of 4.0",
+                "value": 250103252002
+              },
+              {
+                "label": "3.4 out of 4.0",
+                "value": 250103253002
+              },
+              {
+                "label": "3.3 out of 4.0",
+                "value": 250103254002
+              },
+              {
+                "label": "3.2 out of 4.0",
+                "value": 250103255002
+              },
+              {
+                "label": "3.1 out of 4.0",
+                "value": 250103256002
+              },
+              {
+                "label": "3.0 out of 4.0",
+                "value": 250103257002
+              },
+              {
+                "label": "Below 3.0 out of 4.0",
+                "value": 250103258002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": "<p><!--StartFragment-->Please convert your GPA to a 4.0 scale. Select \"Not applicable/Do not recall\" if you do not have or do not remember your doctorate GPA.&nbsp;<!--EndFragment--></p>",
+        "label": "GPA (Doctorate)",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413369002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Not applicable/Do not recall",
+                "value": 250103259002
+              },
+              {
+                "label": "4.0 out of 4.0",
+                "value": 250103260002
+              },
+              {
+                "label": "3.9 out of 4.0",
+                "value": 250103261002
+              },
+              {
+                "label": "3.8 out of 4.0",
+                "value": 250103262002
+              },
+              {
+                "label": "3.7 out of 4.0",
+                "value": 250103263002
+              },
+              {
+                "label": "3.6 out of 4.0",
+                "value": 250103264002
+              },
+              {
+                "label": "3.5 out of 4.0",
+                "value": 250103265002
+              },
+              {
+                "label": "3.4 out of 4.0",
+                "value": 250103266002
+              },
+              {
+                "label": "3.3 out of 4.0",
+                "value": 250103267002
+              },
+              {
+                "label": "3.2 out of 4.0",
+                "value": 250103268002
+              },
+              {
+                "label": "3.1 out of 4.0",
+                "value": 250103269002
+              },
+              {
+                "label": "3.0 out of 4.0",
+                "value": 250103270002
+              },
+              {
+                "label": "Below 3.0 out of 4.0",
+                "value": 250103271002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "SAT Score",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413370002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Did not take/Do not recall",
+                "value": 250103272002
+              },
+              {
+                "label": "1600 out of 1600",
+                "value": 250103273002
+              },
+              {
+                "label": "1590 out of 1600",
+                "value": 250103274002
+              },
+              {
+                "label": "1580 out of 1600",
+                "value": 250103275002
+              },
+              {
+                "label": "1570 out of 1600",
+                "value": 250103276002
+              },
+              {
+                "label": "1560 out of 1600",
+                "value": 250103277002
+              },
+              {
+                "label": "1550 out of 1600",
+                "value": 250103278002
+              },
+              {
+                "label": "1540 out of 1600",
+                "value": 250103279002
+              },
+              {
+                "label": "1530 out of 1600",
+                "value": 250103280002
+              },
+              {
+                "label": "1520 out of 1600",
+                "value": 250103281002
+              },
+              {
+                "label": "1510 out of 1600",
+                "value": 250103282002
+              },
+              {
+                "label": "1500 out of 1600",
+                "value": 250103283002
+              },
+              {
+                "label": "1490 out of 1600",
+                "value": 250103284002
+              },
+              {
+                "label": "1480 out of 1600",
+                "value": 250103285002
+              },
+              {
+                "label": "1470 out of 1600",
+                "value": 250103286002
+              },
+              {
+                "label": "1460 out of 1600",
+                "value": 250103287002
+              },
+              {
+                "label": "1450 out of 1600",
+                "value": 250103288002
+              },
+              {
+                "label": "1440 out of 1600",
+                "value": 250103289002
+              },
+              {
+                "label": "1430 out of 1600",
+                "value": 250103290002
+              },
+              {
+                "label": "1420 out of 1600",
+                "value": 250103291002
+              },
+              {
+                "label": "1410 out of 1600",
+                "value": 250103292002
+              },
+              {
+                "label": "1400 out of 1600",
+                "value": 250103293002
+              },
+              {
+                "label": "1390 out of 1600",
+                "value": 250103294002
+              },
+              {
+                "label": "1380 out of 1600",
+                "value": 250103295002
+              },
+              {
+                "label": "1370 out of 1600",
+                "value": 250103296002
+              },
+              {
+                "label": "1360 out of 1600",
+                "value": 250103297002
+              },
+              {
+                "label": "1350 out of 1600",
+                "value": 250103298002
+              },
+              {
+                "label": "1340 out of 1600",
+                "value": 250103299002
+              },
+              {
+                "label": "1330 out of 1600",
+                "value": 250103300002
+              },
+              {
+                "label": "1320 out of 1600",
+                "value": 250103301002
+              },
+              {
+                "label": "1310 out of 1600",
+                "value": 250103302002
+              },
+              {
+                "label": "1300 out of 1600",
+                "value": 250103303002
+              },
+              {
+                "label": "1290 out of 1600",
+                "value": 250103304002
+              },
+              {
+                "label": "1280 out of 1600",
+                "value": 250103305002
+              },
+              {
+                "label": "1270 out of 1600",
+                "value": 250103306002
+              },
+              {
+                "label": "1260 out of 1600",
+                "value": 250103307002
+              },
+              {
+                "label": "1250 out of 1600",
+                "value": 250103308002
+              },
+              {
+                "label": "1240 out of 1600",
+                "value": 250103309002
+              },
+              {
+                "label": "1230 out of 1600",
+                "value": 250103310002
+              },
+              {
+                "label": "1220 out of 1600",
+                "value": 250103311002
+              },
+              {
+                "label": "1210 out of 1600",
+                "value": 250103312002
+              },
+              {
+                "label": "1200 out of 1600",
+                "value": 250103313002
+              },
+              {
+                "label": "1190 out of 1600",
+                "value": 250103314002
+              },
+              {
+                "label": "1180 out of 1600",
+                "value": 250103315002
+              },
+              {
+                "label": "1170 out of 1600",
+                "value": 250103316002
+              },
+              {
+                "label": "1160 out of 1600",
+                "value": 250103317002
+              },
+              {
+                "label": "1150 out of 1600",
+                "value": 250103318002
+              },
+              {
+                "label": "1140 out of 1600",
+                "value": 250103319002
+              },
+              {
+                "label": "1130 out of 1600",
+                "value": 250103320002
+              },
+              {
+                "label": "1120 out of 1600",
+                "value": 250103321002
+              },
+              {
+                "label": "1110 out of 1600",
+                "value": 250103322002
+              },
+              {
+                "label": "1100 out of 1600",
+                "value": 250103323002
+              },
+              {
+                "label": "1090 out of 1600",
+                "value": 250103324002
+              },
+              {
+                "label": "1080 out of 1600",
+                "value": 250103325002
+              },
+              {
+                "label": "1070 out of 1600",
+                "value": 250103326002
+              },
+              {
+                "label": "1060 out of 1600",
+                "value": 250103327002
+              },
+              {
+                "label": "1050 out of 1600",
+                "value": 250103328002
+              },
+              {
+                "label": "1040 out of 1600",
+                "value": 250103329002
+              },
+              {
+                "label": "1030 out of 1600",
+                "value": 250103330002
+              },
+              {
+                "label": "1020 out of 1600",
+                "value": 250103331002
+              },
+              {
+                "label": "1010 out of 1600",
+                "value": 250103332002
+              },
+              {
+                "label": "1000 out of 1600",
+                "value": 250103333002
+              },
+              {
+                "label": "Below 1000 out of 1600",
+                "value": 250103334002
+              },
+              {
+                "label": "-------------------",
+                "value": 250103335002
+              },
+              {
+                "label": "2400 out of 2400",
+                "value": 250103336002
+              },
+              {
+                "label": "2390 out of 2400",
+                "value": 250103337002
+              },
+              {
+                "label": "2380 out of 2400",
+                "value": 250103338002
+              },
+              {
+                "label": "2370 out of 2400",
+                "value": 250103339002
+              },
+              {
+                "label": "2360 out of 2400",
+                "value": 250103340002
+              },
+              {
+                "label": "2350 out of 2400",
+                "value": 250103341002
+              },
+              {
+                "label": "2340 out of 2400",
+                "value": 250103342002
+              },
+              {
+                "label": "2330 out of 2400",
+                "value": 250103343002
+              },
+              {
+                "label": "2320 out of 2400",
+                "value": 250103344002
+              },
+              {
+                "label": "2310 out of 2400",
+                "value": 250103345002
+              },
+              {
+                "label": "2300 out of 2400",
+                "value": 250103346002
+              },
+              {
+                "label": "2290 out of 2400",
+                "value": 250103347002
+              },
+              {
+                "label": "2280 out of 2400",
+                "value": 250103348002
+              },
+              {
+                "label": "2270 out of 2400",
+                "value": 250103349002
+              },
+              {
+                "label": "2260 out of 2400",
+                "value": 250103350002
+              },
+              {
+                "label": "2250 out of 2400",
+                "value": 250103351002
+              },
+              {
+                "label": "2240 out of 2400",
+                "value": 250103352002
+              },
+              {
+                "label": "2230 out of 2400",
+                "value": 250103353002
+              },
+              {
+                "label": "2220 out of 2400",
+                "value": 250103354002
+              },
+              {
+                "label": "2210 out of 2400",
+                "value": 250103355002
+              },
+              {
+                "label": "2200 out of 2400",
+                "value": 250103356002
+              },
+              {
+                "label": "2190 out of 2400",
+                "value": 250103357002
+              },
+              {
+                "label": "2180 out of 2400",
+                "value": 250103358002
+              },
+              {
+                "label": "2170 out of 2400",
+                "value": 250103359002
+              },
+              {
+                "label": "2160 out of 2400",
+                "value": 250103360002
+              },
+              {
+                "label": "2150 out of 2400",
+                "value": 250103361002
+              },
+              {
+                "label": "2140 out of 2400",
+                "value": 250103362002
+              },
+              {
+                "label": "2130 out of 2400",
+                "value": 250103363002
+              },
+              {
+                "label": "2120 out of 2400",
+                "value": 250103364002
+              },
+              {
+                "label": "2110 out of 2400",
+                "value": 250103365002
+              },
+              {
+                "label": "2100 out of 2400",
+                "value": 250103366002
+              },
+              {
+                "label": "2090 out of 2400",
+                "value": 250103367002
+              },
+              {
+                "label": "2080 out of 2400",
+                "value": 250103368002
+              },
+              {
+                "label": "2070 out of 2400",
+                "value": 250103369002
+              },
+              {
+                "label": "2060 out of 2400",
+                "value": 250103370002
+              },
+              {
+                "label": "2050 out of 2400",
+                "value": 250103371002
+              },
+              {
+                "label": "2040 out of 2400",
+                "value": 250103372002
+              },
+              {
+                "label": "2030 out of 2400",
+                "value": 250103373002
+              },
+              {
+                "label": "2020 out of 2400",
+                "value": 250103374002
+              },
+              {
+                "label": "2010 out of 2400",
+                "value": 250103375002
+              },
+              {
+                "label": "2000 out of 2400",
+                "value": 250103376002
+              },
+              {
+                "label": "1990 out of 2400",
+                "value": 250103377002
+              },
+              {
+                "label": "1980 out of 2400",
+                "value": 250103378002
+              },
+              {
+                "label": "1970 out of 2400",
+                "value": 250103379002
+              },
+              {
+                "label": "1960 out of 2400",
+                "value": 250103380002
+              },
+              {
+                "label": "1950 out of 2400",
+                "value": 250103381002
+              },
+              {
+                "label": "1940 out of 2400",
+                "value": 250103382002
+              },
+              {
+                "label": "1930 out of 2400",
+                "value": 250103383002
+              },
+              {
+                "label": "1920 out of 2400",
+                "value": 250103384002
+              },
+              {
+                "label": "1910 out of 2400",
+                "value": 250103385002
+              },
+              {
+                "label": "1900 out of 2400",
+                "value": 250103386002
+              },
+              {
+                "label": "1890 out of 2400",
+                "value": 250103387002
+              },
+              {
+                "label": "1880 out of 2400",
+                "value": 250103388002
+              },
+              {
+                "label": "1870 out of 2400",
+                "value": 250103389002
+              },
+              {
+                "label": "1860 out of 2400",
+                "value": 250103390002
+              },
+              {
+                "label": "1850 out of 2400",
+                "value": 250103391002
+              },
+              {
+                "label": "1840 out of 2400",
+                "value": 250103392002
+              },
+              {
+                "label": "1830 out of 2400",
+                "value": 250103393002
+              },
+              {
+                "label": "1820 out of 2400",
+                "value": 250103394002
+              },
+              {
+                "label": "1810 out of 2400",
+                "value": 250103395002
+              },
+              {
+                "label": "1800 out of 2400",
+                "value": 250103396002
+              },
+              {
+                "label": "1790 out of 2400",
+                "value": 250103397002
+              },
+              {
+                "label": "1780 out of 2400",
+                "value": 250103398002
+              },
+              {
+                "label": "1770 out of 2400",
+                "value": 250103399002
+              },
+              {
+                "label": "1760 out of 2400",
+                "value": 250103400002
+              },
+              {
+                "label": "1750 out of 2400",
+                "value": 250103401002
+              },
+              {
+                "label": "1740 out of 2400",
+                "value": 250103402002
+              },
+              {
+                "label": "1730 out of 2400",
+                "value": 250103403002
+              },
+              {
+                "label": "1720 out of 2400",
+                "value": 250103404002
+              },
+              {
+                "label": "1710 out of 2400",
+                "value": 250103405002
+              },
+              {
+                "label": "1700 out of 2400",
+                "value": 250103406002
+              },
+              {
+                "label": "1690 out of 2400",
+                "value": 250103407002
+              },
+              {
+                "label": "1680 out of 2400",
+                "value": 250103408002
+              },
+              {
+                "label": "1670 out of 2400",
+                "value": 250103409002
+              },
+              {
+                "label": "1660 out of 2400",
+                "value": 250103410002
+              },
+              {
+                "label": "1650 out of 2400",
+                "value": 250103411002
+              },
+              {
+                "label": "1640 out of 2400",
+                "value": 250103412002
+              },
+              {
+                "label": "1630 out of 2400",
+                "value": 250103413002
+              },
+              {
+                "label": "1620 out of 2400",
+                "value": 250103414002
+              },
+              {
+                "label": "1610 out of 2400",
+                "value": 250103415002
+              },
+              {
+                "label": "1600 out of 2400",
+                "value": 250103416002
+              },
+              {
+                "label": "1590 out of 2400",
+                "value": 250103417002
+              },
+              {
+                "label": "1580 out of 2400",
+                "value": 250103418002
+              },
+              {
+                "label": "1570 out of 2400",
+                "value": 250103419002
+              },
+              {
+                "label": "1560 out of 2400",
+                "value": 250103420002
+              },
+              {
+                "label": "1550 out of 2400",
+                "value": 250103421002
+              },
+              {
+                "label": "1540 out of 2400",
+                "value": 250103422002
+              },
+              {
+                "label": "1530 out of 2400",
+                "value": 250103423002
+              },
+              {
+                "label": "1520 out of 2400",
+                "value": 250103424002
+              },
+              {
+                "label": "1510 out of 2400",
+                "value": 250103425002
+              },
+              {
+                "label": "1500 out of 2400",
+                "value": 250103426002
+              },
+              {
+                "label": "Below 1500 out of 2400",
+                "value": 250103427002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "ACT Score",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413371002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Did not take/Do not recall",
+                "value": 250103428002
+              },
+              {
+                "label": "36 out of 36",
+                "value": 250103429002
+              },
+              {
+                "label": "35 out of 36",
+                "value": 250103430002
+              },
+              {
+                "label": "34 out of 36",
+                "value": 250103431002
+              },
+              {
+                "label": "33 out of 36",
+                "value": 250103432002
+              },
+              {
+                "label": "32 out of 36",
+                "value": 250103433002
+              },
+              {
+                "label": "31 out of 36",
+                "value": 250103434002
+              },
+              {
+                "label": "30 out of 36",
+                "value": 250103435002
+              },
+              {
+                "label": "29 out of 36",
+                "value": 250103436002
+              },
+              {
+                "label": "28 out of 36",
+                "value": 250103437002
+              },
+              {
+                "label": "27 out of 36",
+                "value": 250103438002
+              },
+              {
+                "label": "26 out of 36",
+                "value": 250103439002
+              },
+              {
+                "label": "25 out of 36",
+                "value": 250103440002
+              },
+              {
+                "label": "24 out of 36",
+                "value": 250103441002
+              },
+              {
+                "label": "23 out of 36",
+                "value": 250103442002
+              },
+              {
+                "label": "22 out of 36",
+                "value": 250103443002
+              },
+              {
+                "label": "21 out of 36",
+                "value": 250103444002
+              },
+              {
+                "label": "20 out of 36",
+                "value": 250103445002
+              },
+              {
+                "label": "Below 20 out of 36",
+                "value": 250103446002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "GRE Score",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413372002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Did not take/Do not recall",
+                "value": 250103447002
+              },
+              {
+                "label": "Other - did not take",
+                "value": 250103448002
+              },
+              {
+                "label": "340 out of 340",
+                "value": 250103449002
+              },
+              {
+                "label": "339 out of 340",
+                "value": 250103450002
+              },
+              {
+                "label": "338 out of 340",
+                "value": 250103451002
+              },
+              {
+                "label": "337 out of 340",
+                "value": 250103452002
+              },
+              {
+                "label": "336 out of 340",
+                "value": 250103453002
+              },
+              {
+                "label": "335 out of 340",
+                "value": 250103454002
+              },
+              {
+                "label": "334 out of 340",
+                "value": 250103455002
+              },
+              {
+                "label": "333 out of 340",
+                "value": 250103456002
+              },
+              {
+                "label": "332 out of 340",
+                "value": 250103457002
+              },
+              {
+                "label": "331 out of 340",
+                "value": 250103458002
+              },
+              {
+                "label": "330 out of 340",
+                "value": 250103459002
+              },
+              {
+                "label": "329 out of 340",
+                "value": 250103460002
+              },
+              {
+                "label": "328 out of 340",
+                "value": 250103461002
+              },
+              {
+                "label": "327 out of 340",
+                "value": 250103462002
+              },
+              {
+                "label": "326 out of 340",
+                "value": 250103463002
+              },
+              {
+                "label": "325 out of 340",
+                "value": 250103464002
+              },
+              {
+                "label": "324 out of 340",
+                "value": 250103465002
+              },
+              {
+                "label": "323 out of 340",
+                "value": 250103466002
+              },
+              {
+                "label": "322 out of 340",
+                "value": 250103467002
+              },
+              {
+                "label": "321 out of 340",
+                "value": 250103468002
+              },
+              {
+                "label": "320 out of 340",
+                "value": 250103469002
+              },
+              {
+                "label": "319 out of 340",
+                "value": 250103470002
+              },
+              {
+                "label": "318 out of 340",
+                "value": 250103471002
+              },
+              {
+                "label": "317 out of 340",
+                "value": 250103472002
+              },
+              {
+                "label": "316 out of 340",
+                "value": 250103473002
+              },
+              {
+                "label": "315 out of 340",
+                "value": 250103474002
+              },
+              {
+                "label": "314 out of 340",
+                "value": 250103475002
+              },
+              {
+                "label": "313 out of 340",
+                "value": 250103476002
+              },
+              {
+                "label": "312 out of 340",
+                "value": 250103477002
+              },
+              {
+                "label": "311 out of 340",
+                "value": 250103478002
+              },
+              {
+                "label": "310 out of 340",
+                "value": 250103479002
+              },
+              {
+                "label": "309 out of 340",
+                "value": 250103480002
+              },
+              {
+                "label": "308 out of 340",
+                "value": 250103481002
+              },
+              {
+                "label": "307 out of 340",
+                "value": 250103482002
+              },
+              {
+                "label": "306 out of 340",
+                "value": 250103483002
+              },
+              {
+                "label": "305 out of 340",
+                "value": 250103484002
+              },
+              {
+                "label": "304 out of 340",
+                "value": 250103485002
+              },
+              {
+                "label": "303 out of 340",
+                "value": 250103486002
+              },
+              {
+                "label": "302 out of 340",
+                "value": 250103487002
+              },
+              {
+                "label": "301 out of 340",
+                "value": 250103488002
+              },
+              {
+                "label": "300 out of 340",
+                "value": 250103489002
+              },
+              {
+                "label": "299 out of 340",
+                "value": 250103490002
+              },
+              {
+                "label": "298 out of 340",
+                "value": 250103491002
+              },
+              {
+                "label": "297 out of 340",
+                "value": 250103492002
+              },
+              {
+                "label": "296 out of 340",
+                "value": 250103493002
+              },
+              {
+                "label": "295 out of 340",
+                "value": 250103494002
+              },
+              {
+                "label": "294 out of 340",
+                "value": 250103495002
+              },
+              {
+                "label": "293 out of 340",
+                "value": 250103496002
+              },
+              {
+                "label": "292 out of 340",
+                "value": 250103497002
+              },
+              {
+                "label": "291 out of 340",
+                "value": 250103498002
+              },
+              {
+                "label": "290 out of 340",
+                "value": 250103499002
+              },
+              {
+                "label": "289 out of 340",
+                "value": 250103500002
+              },
+              {
+                "label": "288 out of 340",
+                "value": 250103501002
+              },
+              {
+                "label": "287 out of 340",
+                "value": 250103502002
+              },
+              {
+                "label": "286 out of 340",
+                "value": 250103503002
+              },
+              {
+                "label": "285 out of 340",
+                "value": 250103504002
+              },
+              {
+                "label": "284 out of 340",
+                "value": 250103505002
+              },
+              {
+                "label": "283 out of 340",
+                "value": 250103506002
+              },
+              {
+                "label": "282 out of 340",
+                "value": 250103507002
+              },
+              {
+                "label": "281 out of 340",
+                "value": 250103508002
+              },
+              {
+                "label": "280 out of 340",
+                "value": 250103509002
+              },
+              {
+                "label": "279 out of 340",
+                "value": 250103510002
+              },
+              {
+                "label": "278 out of 340",
+                "value": 250103511002
+              },
+              {
+                "label": "277 out of 340",
+                "value": 250103512002
+              },
+              {
+                "label": "276 out of 340",
+                "value": 250103513002
+              },
+              {
+                "label": "275 out of 340",
+                "value": 250103514002
+              },
+              {
+                "label": "274 out of 340",
+                "value": 250103515002
+              },
+              {
+                "label": "273 out of 340",
+                "value": 250103516002
+              },
+              {
+                "label": "272 out of 340",
+                "value": 250103517002
+              },
+              {
+                "label": "271 out of 340",
+                "value": 250103518002
+              },
+              {
+                "label": "270 out of 340",
+                "value": 250103519002
+              },
+              {
+                "label": "269 out of 340",
+                "value": 250103520002
+              },
+              {
+                "label": "268 out of 340",
+                "value": 250103521002
+              },
+              {
+                "label": "267 out of 340",
+                "value": 250103522002
+              },
+              {
+                "label": "266 out of 340",
+                "value": 250103523002
+              },
+              {
+                "label": "265 out of 340",
+                "value": 250103524002
+              },
+              {
+                "label": "264 out of 340",
+                "value": 250103525002
+              },
+              {
+                "label": "263 out of 340",
+                "value": 250103526002
+              },
+              {
+                "label": "262 out of 340",
+                "value": 250103527002
+              },
+              {
+                "label": "261 out of 340",
+                "value": 250103528002
+              },
+              {
+                "label": "260 out of 340",
+                "value": 250103529002
+              },
+              {
+                "label": "259 out of 340",
+                "value": 250103530002
+              },
+              {
+                "label": "258 out of 340",
+                "value": 250103531002
+              },
+              {
+                "label": "257 out of 340",
+                "value": 250103532002
+              },
+              {
+                "label": "256 out of 340",
+                "value": 250103533002
+              },
+              {
+                "label": "255 out of 340",
+                "value": 250103534002
+              },
+              {
+                "label": "254 out of 340",
+                "value": 250103535002
+              },
+              {
+                "label": "253 out of 340",
+                "value": 250103536002
+              },
+              {
+                "label": "252 out of 340",
+                "value": 250103537002
+              },
+              {
+                "label": "251 out of 340",
+                "value": 250103538002
+              },
+              {
+                "label": "250 out of 340",
+                "value": 250103539002
+              },
+              {
+                "label": "Below 250 out of 340",
+                "value": 250103540002
+              },
+              {
+                "label": "-----------------",
+                "value": 250103541002
+              },
+              {
+                "label": "1600 out of 1600",
+                "value": 250103542002
+              },
+              {
+                "label": "1590 out of 1600",
+                "value": 250103543002
+              },
+              {
+                "label": "1580 out of 1600",
+                "value": 250103544002
+              },
+              {
+                "label": "1570 out of 1600",
+                "value": 250103545002
+              },
+              {
+                "label": "1560 out of 1600",
+                "value": 250103546002
+              },
+              {
+                "label": "1550 out of 1600",
+                "value": 250103547002
+              },
+              {
+                "label": "1540 out of 1600",
+                "value": 250103548002
+              },
+              {
+                "label": "1530 out of 1600",
+                "value": 250103549002
+              },
+              {
+                "label": "1520 out of 1600",
+                "value": 250103550002
+              },
+              {
+                "label": "1510 out of 1600",
+                "value": 250103551002
+              },
+              {
+                "label": "1500 out of 1600",
+                "value": 250103552002
+              },
+              {
+                "label": "1490 out of 1600",
+                "value": 250103553002
+              },
+              {
+                "label": "1480 out of 1600",
+                "value": 250103554002
+              },
+              {
+                "label": "1470 out of 1600",
+                "value": 250103555002
+              },
+              {
+                "label": "1460 out of 1600",
+                "value": 250103556002
+              },
+              {
+                "label": "1450 out of 1600",
+                "value": 250103557002
+              },
+              {
+                "label": "1440 out of 1600",
+                "value": 250103558002
+              },
+              {
+                "label": "1430 out of 1600",
+                "value": 250103559002
+              },
+              {
+                "label": "1420 out of 1600",
+                "value": 250103560002
+              },
+              {
+                "label": "1410 out of 1600",
+                "value": 250103561002
+              },
+              {
+                "label": "1400 out of 1600",
+                "value": 250103562002
+              },
+              {
+                "label": "1390 out of 1600",
+                "value": 250103563002
+              },
+              {
+                "label": "1380 out of 1600",
+                "value": 250103564002
+              },
+              {
+                "label": "1370 out of 1600",
+                "value": 250103565002
+              },
+              {
+                "label": "1360 out of 1600",
+                "value": 250103566002
+              },
+              {
+                "label": "1350 out of 1600",
+                "value": 250103567002
+              },
+              {
+                "label": "1340 out of 1600",
+                "value": 250103568002
+              },
+              {
+                "label": "1330 out of 1600",
+                "value": 250103569002
+              },
+              {
+                "label": "1320 out of 1600",
+                "value": 250103570002
+              },
+              {
+                "label": "1310 out of 1600",
+                "value": 250103571002
+              },
+              {
+                "label": "1300 out of 1600",
+                "value": 250103572002
+              },
+              {
+                "label": "1290 out of 1600",
+                "value": 250103573002
+              },
+              {
+                "label": "1280 out of 1600",
+                "value": 250103574002
+              },
+              {
+                "label": "1270 out of 1600",
+                "value": 250103575002
+              },
+              {
+                "label": "1260 out of 1600",
+                "value": 250103576002
+              },
+              {
+                "label": "1250 out of 1600",
+                "value": 250103577002
+              },
+              {
+                "label": "1240 out of 1600",
+                "value": 250103578002
+              },
+              {
+                "label": "1230 out of 1600",
+                "value": 250103579002
+              },
+              {
+                "label": "1220 out of 1600",
+                "value": 250103580002
+              },
+              {
+                "label": "1210 out of 1600",
+                "value": 250103581002
+              },
+              {
+                "label": "1200 out of 1600",
+                "value": 250103582002
+              },
+              {
+                "label": "1190 out of 1600",
+                "value": 250103583002
+              },
+              {
+                "label": "1180 out of 1600",
+                "value": 250103584002
+              },
+              {
+                "label": "1170 out of 1600",
+                "value": 250103585002
+              },
+              {
+                "label": "1160 out of 1600",
+                "value": 250103586002
+              },
+              {
+                "label": "1150 out of 1600",
+                "value": 250103587002
+              },
+              {
+                "label": "1140 out of 1600",
+                "value": 250103588002
+              },
+              {
+                "label": "1130 out of 1600",
+                "value": 250103589002
+              },
+              {
+                "label": "1120 out of 1600",
+                "value": 250103590002
+              },
+              {
+                "label": "1110 out of 1600",
+                "value": 250103591002
+              },
+              {
+                "label": "1000 out of 1600",
+                "value": 250103592002
+              },
+              {
+                "label": "1090 out of 1600",
+                "value": 250103593002
+              },
+              {
+                "label": "1080 out of 1600",
+                "value": 250103594002
+              },
+              {
+                "label": "1070 out of 1600",
+                "value": 250103595002
+              },
+              {
+                "label": "1060 out of 1600",
+                "value": 250103596002
+              },
+              {
+                "label": "1050 out of 1600",
+                "value": 250103597002
+              },
+              {
+                "label": "1040 out of 1600",
+                "value": 250103598002
+              },
+              {
+                "label": "1030 out of 1600",
+                "value": 250103599002
+              },
+              {
+                "label": "1020 out of 1600",
+                "value": 250103600002
+              },
+              {
+                "label": "1010 out of 1600",
+                "value": 250103601002
+              },
+              {
+                "label": "Below 1000 out of 1600",
+                "value": 250103602002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Active Security Clearance(s)",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413373002[]",
+            "type": "multi_value_multi_select",
+            "values": [
+              {
+                "label": "Top Secret SCI with Polygraph",
+                "value": 250103603002
+              },
+              {
+                "label": "Top Secret SCI/SAP",
+                "value": 250103604002
+              },
+              {
+                "label": "Top Secret",
+                "value": 250103605002
+              },
+              {
+                "label": "DOE Level Q",
+                "value": 250103606002
+              },
+              {
+                "label": "Secret",
+                "value": 250103607002
+              },
+              {
+                "label": "Expired Clearance",
+                "value": 250103608002
+              },
+              {
+                "label": "Never held a clearance",
+                "value": 250103609002
+              },
+              {
+                "label": "Do not wish to disclose",
+                "value": 250103610002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": "<p><!--StartFragment-->This includes internships and full-time employment.<!--EndFragment--></p>",
+        "label": "SpaceX & SpaceXAI Employment History",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413374002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
+                "value": 250103611002
+              },
+              {
+                "label": "I am a former SpaceX, SpaceXAI, xAI, X, or Twitter employee",
+                "value": 250103612002
+              },
+              {
+                "label": "I am a current or former SpaceX, SpaceXAI, xAI, X, or Twitter Intern",
+                "value": 250103613002
+              },
+              {
+                "label": "I am a current SpaceX employee",
+                "value": 250103614002
+              },
+              {
+                "label": "I am a current SpaceXAI employee",
+                "value": 250103615002
+              },
+              {
+                "label": "I am currently working or have worked at a SpaceX, SpaceXAI, xAI, X, or Twitter facility for another employer (i.e. contracted by a third-party employer)",
+                "value": 250103616002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Can you perform all of the essential functions of this role with or without reasonable accommodations?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413375002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Are you legally authorized to work in the United States?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413376002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "I am authorized to work in the United States for any employer",
+                "value": 250103617002
+              },
+              {
+                "label": "I am authorized to work in the United States for my present employer only",
+                "value": 250103618002
+              },
+              {
+                "label": "I require sponsorship to work in the United States",
+                "value": 250103619002
+              },
+              {
+                "label": "I am not authorized to work in the United States",
+                "value": 250103620002
+              },
+              {
+                "label": "My status to work in the United States is unknown",
+                "value": 250103621002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": "<p id=\"itar\">To conform to U.S. Government space technology export regulations, including the International Traffic in Arms Regulations (ITAR) you must be a U.S. citizen, lawful permanent resident of the U.S., protected individual as defined by 8 U.S.C. 1324b(a)(3), or eligible to obtain the required authorizations from the U.S. Department of State. Learn more about ITAR&nbsp;<u><a href=\"https://www.pmddtc.state.gov/?id=ddtc_kb_article_page&amp;sys_id=24d528fddbfc930044f9ff621f961987\" target=\"_blank\" rel=\"noopener\">here</a></u>.</p>",
+        "label": "Citizenship Status",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_37413377002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "(a) U.S. citizen or national of the United States",
+                "value": 250103622002
+              },
+              {
+                "label": "(b) U.S. lawful permanent resident",
+                "value": 250103623002
+              },
+              {
+                "label": "(c) Refugee under 8 U.S.C. 1157",
+                "value": 250103624002
+              },
+              {
+                "label": "(d) Asylee under 8 U.S.C. 1158",
+                "value": 250103625002
+              },
+              {
+                "label": "(e) Authorized to work in the United States under the Deferred Action for Childhood Arrivals (DACA) program",
+                "value": 250103626002
+              },
+              {
+                "label": "(f) Other (please explain)",
+                "value": 250103627002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If (f) Other, please explain:",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_37413378002",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      }
+    ],
+    "location_questions": [
+      {
+        "description": null,
+        "label": "Longitude",
+        "required": true,
+        "fields": [
+          {
+            "name": "longitude",
+            "type": "input_hidden",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Latitude",
+        "required": true,
+        "fields": [
+          {
+            "name": "latitude",
+            "type": "input_hidden",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Location",
+        "required": true,
+        "fields": [
+          {
+            "name": "location",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      }
+    ]
+  }
+}

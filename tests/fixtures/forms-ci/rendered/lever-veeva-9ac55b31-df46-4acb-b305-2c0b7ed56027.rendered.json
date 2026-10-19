@@ -1,0 +1,112 @@
+{
+  "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+  "family": "lever",
+  "source_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+  "rendered_at": "2026-10-19T07:02:43.716Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "Resume/CV ATTACH RESUME/CV",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "Full name ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "Email ✱",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "location",
+      "label": "Current location",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "Current company",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "LinkedIn URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+      "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "Gender Select ... Male Female Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Race Select ... Hispanic or Latino White (Not Hispanic or Latino) Black or African American (Not Hispanic or Latino) Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino) Asian (Not Hispa",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "Veteran status Select ... I am a veteran I am not a veteran Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "Yes, Veeva Systems can contact me about future job opportunities for up to 2 years Privacy policy",
+      "type": "checkbox",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+  "sha256": "2534e58615e88f43cfdba445707a708f7f87bc10e9f42a562f0be75bf694e4fd",
+  "non_get_blocked": 11,
+  "status": "captured"
+}

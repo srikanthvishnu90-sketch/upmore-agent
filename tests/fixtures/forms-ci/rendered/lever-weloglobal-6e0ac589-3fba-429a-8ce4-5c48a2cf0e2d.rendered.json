@@ -1,0 +1,292 @@
+{
+  "id": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+  "family": "lever",
+  "source_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+  "rendered_at": "2026-10-19T07:02:52.872Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "Resume/CV ✱ ATTACH RESUME/CV",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "Full name ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "Email ✱",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "Current location",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "Current company",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "LinkedIn URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "GitHub URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "Portfolio URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "Other website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+      "label": "I'm not sure",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field1]",
+      "label": "Type your response",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field1]",
+      "label": "Type your response",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[913bd467-d4e0-4704-b53a-5e38d194b0dc][field0]",
+      "label": "Type your response",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
+      "label": "",
+      "type": "select-one",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "1",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "2",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "3",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "4",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "5",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "6",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "7",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "8",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "9",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "label": "+10",
+      "type": "checkbox",
+      "required": true
+    },
+    {
+      "name": "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+      "label": "Type your response",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field1]",
+      "label": "Type your response",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "Gender Select ... Male Female Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Race Select ... Hispanic or Latino White (Not Hispanic or Latino) Black or African American (Not Hispanic or Latino) Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino) Asian (Not Hispa",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "Veteran status Select ... I am a veteran I am not a veteran Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    }
+  ],
+  "captcha": false,
+  "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+  "sha256": "68c2ddd4f6346fb44e9fffb56f129e5a83683b10135b903f686bc7cfd7f704b1",
+  "non_get_blocked": 3,
+  "status": "captured"
+}

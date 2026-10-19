@@ -1,0 +1,22 @@
+{
+  "id": "smartrecruiters-aecom2-744000156234495",
+  "family": "smartrecruiters",
+  "source_url": "https://jobs.smartrecruiters.com/AECOM2/744000156234495",
+  "rendered_at": "2026-10-19T07:05:38.733Z",
+  "http_status": 200,
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "",
+      "label": "Copy the link and open WeChat to share.",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "captcha": false,
+  "final_url": "https://jobs.smartrecruiters.com/AECOM2/744000156234495",
+  "sha256": "f1fe4986efe286681f2e5aa817300efc7fade3cdfbc708b675db242e18b20e00",
+  "non_get_blocked": 3,
+  "status": "not_a_form"
+}

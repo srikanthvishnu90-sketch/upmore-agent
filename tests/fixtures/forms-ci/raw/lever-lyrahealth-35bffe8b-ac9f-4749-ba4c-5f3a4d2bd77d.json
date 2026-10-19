@@ -1,0 +1,562 @@
+{
+  "source_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+  "captured_at": "2026-10-19T07:01:20.834Z",
+  "http_status": 200,
+  "sha256": "081dfd8cbf457072acd1150e4ad1291d8019f99dd78d5282aa987ba2201d1b55",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "customPronounsOption",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Write here...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Twitter]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    }
+  ]
+}

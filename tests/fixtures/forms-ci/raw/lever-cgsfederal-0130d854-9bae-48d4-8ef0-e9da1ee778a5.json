@@ -1,0 +1,190 @@
+{
+  "source_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+  "captured_at": "2026-10-19T07:01:12.824Z",
+  "http_status": 200,
+  "sha256": "29114d541c11d97f998adc939013a7ab1cb977c3f0db8be93f626d8eb3a4624c",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "opportunityLocationId",
+      "label": "",
+      "type": "select",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "customPronounsOption",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Write here...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
+      "label": "",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
+      "label": "Type your response",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ]
+}

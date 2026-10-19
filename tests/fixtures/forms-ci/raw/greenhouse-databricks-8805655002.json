@@ -1,0 +1,397 @@
+{
+  "source_url": "https://job-boards.greenhouse.io/databricks/jobs/8805655002",
+  "captured_at": "2026-10-19T07:01:06.915Z",
+  "http_status": 302,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [],
+  "questions_source": "https://boards-api.greenhouse.io/v1/boards/databricks/jobs/8805655002?questions=true",
+  "questions_status": 200,
+  "questions": {
+    "absolute_url": "https://databricks.com/company/careers/open-positions/job?gh_jid=8805655002",
+    "data_compliance": [
+      {
+        "type": "gdpr",
+        "requires_consent": false,
+        "requires_processing_consent": false,
+        "requires_retention_consent": false,
+        "retention_period": null,
+        "demographic_data_consent_applies": false
+      }
+    ],
+    "internal_job_id": 6523784002,
+    "location": {
+      "name": "Tokyo, Japan"
+    },
+    "metadata": [
+      {
+        "id": 9740521002,
+        "name": "Company Assignment",
+        "value": "Databricks Japan K.K.",
+        "value_type": "single_select"
+      },
+      {
+        "id": 24059030002,
+        "name": "Career Page Posting Category",
+        "value": [
+          "Field Engineering"
+        ],
+        "value_type": "multi_select"
+      }
+    ],
+    "id": 8805655002,
+    "updated_at": "2026-10-06T07:04:54-04:00",
+    "requisition_id": "CSQ427R266",
+    "title": "デリバリーソリューションアーキテクト",
+    "company_name": "Databricks",
+    "first_published": "2026-09-16T09:11:57-04:00",
+    "language": "en",
+    "application_deadline": null,
+    "content": "&lt;p&gt;Req ID: CSQ427R266&lt;br&gt;Location: Tokyo, Japan&lt;/p&gt;\n&lt;p&gt;Databricksは、お客様がAIプラットフォームを活用して、世界で最も難しいなデータに関する課題を解決できるよう支援することをミッションとしています。デリバリーソリューションアーキテクト（DSA）は、この重要なミッションにおいて、セールスおよびフィールド・エンジニアリングチームと協力し、お客様のDatabricksプラットフォームの導入と利用拡大を加速させる重要な役割を担います。DSAとして、お客様がすでに導入を決定したDatabricksのワークロードについて、お客様がプラットフォームから最大限の価値と投資対効果を得られるよう、技術的な指導とサポートを提供し、お客様の成功を確実にします。特に、複雑な課題を抱えるお客様に対して、より重点的かつ技術的な責任を持って支援を行います。&lt;br&gt;このポジションは、技術とビジネスの両面を兼ね備えたハイブリッドな役割です。担当するお客様とユースケースにおいて、成長を推進します。ビジネス面では、お客様の意思決定者と関係を構築し、他の専門チームと連携しながら、Databricksが実行できる計画や戦略を策定・推進します。技術面ではDatabricksの全製品における、お客様導入後の技術的なリーダーとなります。組織内のあらゆるレベルの人々と、技術的な専門知識を活かしてコミュニケーションをとる能力が求められます。&lt;/p&gt;\n&lt;p&gt;あなたがもたらす影響 :&amp;nbsp;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;戦略的アカウントにおける複雑なユースケースおよび複数のワークストリーム全体で、技術的な実行戦略を定義し、影響を与える。&lt;/li&gt;\n&lt;li&gt;お客様のテクニカルリードやアーキテクトにとって信頼される技術アドバイザーとなり、アーキテクチャの議論をリードし、技術的な意思決定をガイドする。&lt;/li&gt;\n&lt;li&gt;パフォーマンス、コスト、信頼性、長期的なニーズのバランスを取りながら、安全かつガバナンスの効いたスケーラブルなDatabricksアーキテクチャを設計する。&lt;/li&gt;\n&lt;li&gt;お客様の成果を加速させる実用的なソリューション、プロトタイプ、再利用可能な技術資産を構築・実証する。&lt;/li&gt;\n&lt;li&gt;プラットフォームの成熟度とスケーリングのニーズを予測し、セキュリティ、ガバナンス、運用の卓越性に関するベストプラクティスを確立する。&lt;/li&gt;\n&lt;li&gt;アーキテクチャに影響を与え、デリバリーの障害を取り除き、技術的な実行をビジネス成果に結びつけることで、プラットフォームの採用と利用を促進する。&lt;/li&gt;\n&lt;li&gt;Databricks、お客様、導入チームと連携し、リソースの調整、リスク管理、デリバリーの加速を行う。&lt;/li&gt;\n&lt;li&gt;同僚を指導し、組織全体で活用できる再利用可能な技術ガイダンス、フレームワーク、およびイネーブルメントに貢献する。&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;必要な条件/経験:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;ソリューションアーキテクト、ソリューションエンジニアリング、技術コンサルティング、プロフェッショナルサービス、データエンジニアリング、または関連する技術的役割における5年以上の経験&lt;/li&gt;\n&lt;li&gt;複雑な顧客のユースケースや複数のワークストリーム全体で、技術戦略やアーキテクチャに影響を与えた経験&lt;/li&gt;\n&lt;li&gt;Python、SQL、または類似の言語における高いコーディング能力と、技術的ソリューションの構築、デバッグ、検証を行う能力&lt;/li&gt;\n&lt;li&gt;分散データシステム、データエンジニアリング、分析、データウェアハウジング、AI/ML、および最新のクラウドアーキテクチャに関する深い理解&lt;/li&gt;\n&lt;li&gt;安全でガバナンスが効き、スケーラブルかつ本番環境に対応したデータソリューションを設計した経験&lt;/li&gt;\n&lt;li&gt;不明確な技術的問題を解決し、トレードオフを評価し、構造化された分析や実験を通じてソリューションを検証する能力&lt;/li&gt;\n&lt;li&gt;技術リード、アーキテクト、および顧客のシニアステークホルダーとのアーキテクチャ議論をリードした経験&lt;/li&gt;\n&lt;li&gt;セキュリティ、ガバナンス、パフォーマンス、信頼性、コスト最適化など、プラットフォームの運用上の卓越性に関する深い理解&lt;/li&gt;\n&lt;li&gt;技術的リーダーシップを通じて、顧客の採用、利用、そして測定可能なビジネス成果を促進した実績&lt;/li&gt;\n&lt;li&gt;強力なステークホルダーマネジメントおよび部門横断的なリーダーシップスキル（正式な権限なしでチームを調整する能力を含む）&lt;/li&gt;\n&lt;li&gt;コンピュータサイエンス、工学、または同等の分野における学士号&lt;/li&gt;\n&lt;li&gt;日本語の完全な専門的習熟度が必須&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;望ましい経験/スキル&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Databricksの経験または認定資格&lt;/li&gt;\n&lt;li&gt;AI/ML、データエンジニアリング、ストリーミング、データウェアハウジング、ガバナンス、マイグレーションなどの技術分野における専門知識の構築&lt;/li&gt;\n&lt;li&gt;AWS、Azure、またはGCPおよび本番環境でのクラウドデプロイメントの経験&lt;/li&gt;\n&lt;li&gt;チーム全体で活用できる、再利用可能な技術フレームワーク、デモ、またはイネーブルメント（支援策）を作成した経験&lt;/li&gt;\n&lt;li&gt;ビジネスレベルの英語力があれば尚可&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;選考プロセス:&lt;/strong&gt; Recruiter Screen → Hiring Manager Screen → Design &amp;amp; Architecture → Vibe Coding → Build, Demo &amp;amp; Delivery → Reference Check&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;出張:&lt;/strong&gt; 必要に応じて最大30%程度&lt;/p&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;p&gt;&lt;strong&gt;About Databricks&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: arial, sans-serif;&quot;&gt;Databricks is the Data and AI company. More than 20,000 organizations worldwide — including adidas, AT&amp;amp;T, Bayer, Block, Mastercard, Rivian, Unilever, and 70% of the Fortune 500 — rely on the Databricks Data + AI Platform to build and scale data and AI apps, analytics and agents. Headquartered in San Francisco with 30+ offices around the globe, Databricks offers a unified platform that includes Genie, Lakebase, Agent Bricks, Lakeflow, Lakehouse, and Unity Catalog. To learn more, follow Databricks on &lt;a href=&quot;https://www.linkedin.com/company/databricks&quot;&gt;LinkedIn&lt;/a&gt;, &lt;a href=&quot;https://x.com/databricks&quot;&gt;X&lt;/a&gt;, &lt;a href=&quot;https://www.youtube.com/@Databricks&quot;&gt;YouTube&lt;/a&gt;, and &lt;a href=&quot;https://www.instagram.com/databricksinc/?hl=en&quot;&gt;Instagram&lt;/a&gt;.&lt;br&gt;&lt;br&gt;&lt;strong&gt;Benefits&lt;br&gt;&lt;br&gt;&lt;/strong&gt;&lt;/span&gt;At Databricks, we strive to provide comprehensive benefits and perks that meet the needs of all of our employees. For specific details on the benefits offered in your region click &lt;a href=&quot;https://docs.google.com/document/d/154un3e8Xav4BceOSlcYFZRGEuQI54xMxVydRwQn54eQ/edit?usp=sharing&quot;&gt;here&lt;/a&gt;.&lt;br&gt;&lt;br&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Our Commitment to Diversity and Inclusion&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;At Databricks, we are committed to fostering a diverse and inclusive culture where everyone can excel. We take great care to ensure that our hiring practices are inclusive and meet equal employment opportunity standards. Individuals looking for employment at Databricks are considered without regard to age, color, disability, ethnicity, family or marital status, gender identity or expression, language, national origin, physical and mental ability, political affiliation, race, religion, sexual orientation, socio-economic status, veteran status, and other protected characteristics.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Compliance&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;font-weight: 400;&quot;&gt;If access to export-controlled technology or source code is required for performance of job duties, it is within Employer&#39;s discretion whether to apply for a U.S. government license for such positions, and Employer may decline to proceed with an applicant on this basis alone.&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;&lt;/div&gt;",
+    "departments": [
+      {
+        "id": 4001270002,
+        "name": "Delivery Solutions Architects",
+        "child_ids": [],
+        "parent_id": 4069106002
+      }
+    ],
+    "offices": [
+      {
+        "id": 4056345002,
+        "name": "Remote - Japan",
+        "location": "Remote - Japan",
+        "child_ids": [],
+        "parent_id": 4033856002
+      }
+    ],
+    "ai_disclaimer": null,
+    "include_ai_disclaimer": null,
+    "ai_opt_out_request_url": null,
+    "compliance": [
+      {
+        "type": "eeoc",
+        "questions": [
+          {
+            "required": false,
+            "label": "VeteranStatus",
+            "fields": [
+              {
+                "name": "veteran_status",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "I don't wish to answer",
+                    "value": "3"
+                  },
+                  {
+                    "label": "I identify as one or more of the classifications of a protected veteran",
+                    "value": "2"
+                  },
+                  {
+                    "label": "I am not a protected veteran",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "&lt;p&gt;\n  If you believe you belong to any of the categories of protected veterans listed below, please indicate by making the appropriate selection.\n  As a government contractor subject to the Vietnam Era Veterans&#39; Readjustment Assistance Act (VEVRAA), we request this information in order to measure\n  the effectiveness of the outreach and positive recruitment efforts we undertake pursuant to VEVRAA. Classification of protected categories\n  is as follows:\n&lt;/p&gt;\n&lt;p&gt;A &quot;disabled veteran&quot; is one of the following: a veteran of the U.S. military, ground, naval or air service who is entitled to compensation (or who but for the receipt of military retired pay would be entitled to compensation) under laws administered by the Secretary of Veterans Affairs; or a person who was discharged or released from active duty because of a service-connected disability.&lt;/p&gt;\n&lt;p&gt;A &quot;recently separated veteran&quot; means any veteran during the three-year period beginning on the date of such veteran&#39;s discharge or release from active duty in the U.S. military, ground, naval, or air service.&lt;/p&gt;\n&lt;p&gt;An &quot;active duty wartime or campaign badge veteran&quot; means a veteran who served on active duty in the U.S. military, ground, naval or air service during a war, or in a campaign or expedition for which a campaign badge has been authorized under the laws administered by the Department of Defense.&lt;/p&gt;\n&lt;p&gt;An &quot;Armed forces service medal veteran&quot; means a veteran who, while serving on active duty in the U.S. military, ground, naval or air service, participated in a United States military operation for which an Armed Forces service medal was awarded pursuant to Executive Order 12985.&lt;/p&gt;\n"
+      },
+      {
+        "type": "eeoc",
+        "questions": [
+          {
+            "required": false,
+            "label": "Race",
+            "fields": [
+              {
+                "name": "race",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "Decline To Self Identify",
+                    "value": "8"
+                  },
+                  {
+                    "label": "Two or More Races",
+                    "value": "7"
+                  },
+                  {
+                    "label": "Native Hawaiian or Other Pacific Islander",
+                    "value": "6"
+                  },
+                  {
+                    "label": "White",
+                    "value": "5"
+                  },
+                  {
+                    "label": "Hispanic or Latino",
+                    "value": "4"
+                  },
+                  {
+                    "label": "Black or African American",
+                    "value": "3"
+                  },
+                  {
+                    "label": "Asian",
+                    "value": "2"
+                  },
+                  {
+                    "label": "American Indian or Alaskan Native",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "required": false,
+            "label": "Gender",
+            "fields": [
+              {
+                "name": "gender",
+                "type": "multi_value_single_select",
+                "values": [
+                  {
+                    "label": "Decline To Self Identify",
+                    "value": "3"
+                  },
+                  {
+                    "label": "Female",
+                    "value": "2"
+                  },
+                  {
+                    "label": "Male",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "&lt;h3&gt;&lt;strong&gt;Voluntary Self-Identification&lt;/strong&gt;&lt;/h3&gt;&lt;br/&gt;&lt;p&gt;For government reporting purposes, we ask candidates to respond to the below self-identification survey.\nCompletion of the form is entirely voluntary. Whatever your decision, it will not be considered in the hiring\nprocess or thereafter. Any information that you do provide will be recorded and maintained in a\nconfidential file.&lt;/p&gt;\n\n&lt;p&gt;As set forth in Databricks’s Equal Employment Opportunity policy,\nwe do not discriminate on the basis of any protected group status under any applicable law.&lt;/p&gt;\n"
+      }
+    ],
+    "demographic_questions": null,
+    "questions": [
+      {
+        "description": null,
+        "label": "First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "first_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Last Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "last_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Preferred First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "preferred_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Email",
+        "required": true,
+        "fields": [
+          {
+            "name": "email",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Phone",
+        "required": true,
+        "fields": [
+          {
+            "name": "phone",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Resume/CV",
+        "required": true,
+        "fields": [
+          {
+            "name": "resume",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "resume_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Cover Letter",
+        "required": false,
+        "fields": [
+          {
+            "name": "cover_letter",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "cover_letter_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "LinkedIn Profile",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_38312095002",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "How did you hear about this job?",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_38312097002",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Are you legally authorized to work in the country in which you are applying?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_38312098002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Do you now or will you in the future need sponsorship for employment visa status in the country in which you are applying?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_38312099002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Do you currently or have you previously worked for Databricks in the past?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_38312100002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "No",
+                "value": 253845822002
+              },
+              {
+                "label": "Yes - I currently work at Databricks",
+                "value": 253845823002
+              },
+              {
+                "label": "Yes - Previous Full-Time Employee",
+                "value": 253845824002
+              },
+              {
+                "label": "Yes - Previous Contractor",
+                "value": 253845825002
+              },
+              {
+                "label": "Yes - Previous Intern",
+                "value": 253845826002
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Do you possess business fluency in Japanese? ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_38357187002",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "location_questions": []
+  }
+}

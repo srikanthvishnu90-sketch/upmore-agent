@@ -1,0 +1,118 @@
+{
+  "source_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
+  "captured_at": "2026-10-19T07:01:10.795Z",
+  "http_status": 200,
+  "sha256": "c4b055b90ad5c10f5c41cc00cde503d75a4c293125f194548f962491526716e8",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "location",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Twitter]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]",
+      "label": "",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+      "label": "",
+      "type": "select",
+      "required": true
+    },
+    {
+      "name": "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
+      "label": "",
+      "type": "select",
+      "required": true
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    }
+  ]
+}

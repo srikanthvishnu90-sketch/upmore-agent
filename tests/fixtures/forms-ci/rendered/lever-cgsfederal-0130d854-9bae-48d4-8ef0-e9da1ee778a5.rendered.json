@@ -1,0 +1,196 @@
+{
+  "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+  "family": "lever",
+  "source_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+  "rendered_at": "2026-10-19T07:02:37.976Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "opportunityLocationId",
+      "label": "",
+      "type": "select-one",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Resume/CV ✱ ATTACH RESUME/CV",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "Full name ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "pronouns",
+      "label": "He/him",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "She/her",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "They/them",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Xe/xem",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Ze/hir",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Ey/em",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Hir/hir",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Fae/faer",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Hu/hu",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Use name only",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "customPronounsOption",
+      "label": "Custom",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Write here...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email ✱",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "Current location",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "Current company",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "LinkedIn URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "GitHub URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
+      "label": "",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "label": "Yes.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "label": "No.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "I am a U.S Citizen / Permanent Resident.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "Non-Citizen allowed to work for any employer.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "Non-Citizen allowed to work for current employer.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "label": "Non-Citizen seeking work Authorization.",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
+      "label": "Type your response",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+  "sha256": "1830ef644e9d6c86de26ac19071751db2f24a128ef3ad8673db8e2efc61f109b",
+  "non_get_blocked": 11,
+  "status": "captured"
+}

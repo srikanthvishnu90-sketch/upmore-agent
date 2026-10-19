@@ -1,0 +1,304 @@
+{
+  "id": "greenhouse-eosfitness-4336050009",
+  "family": "greenhouse",
+  "source_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+  "rendered_at": "2026-10-19T07:01:59.759Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 5,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "iti-0__search-input",
+      "label": "Search",
+      "type": "search",
+      "required": false
+    },
+    {
+      "name": "phone",
+      "label": "Phone*",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "cover_letter",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "school--0",
+      "label": "School",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "degree--0",
+      "label": "Degree",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "start-year--0",
+      "label": "Start date year",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "end-year--0",
+      "label": "End date year",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "question_6872424009",
+      "label": "Do you currently have your Personal Training certification up to date? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872425009[]",
+      "label": "Please select the certifications you currently have or are working on achieving below:*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872426009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872427009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872428009",
+      "label": "Do you currently have your CPR certification up to date?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872429009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872430009",
+      "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872431009",
+      "label": "Date Available to Start? (enter in MM/DD/YY format)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872432009[]",
+      "label": "What days and times are you available?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872433009",
+      "label": "Have you worked at EōS Fitness before? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872434009",
+      "label": "If yes, what position did you hold?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872435009",
+      "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its affiliates?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872436009",
+      "label": "If yes, please provide their names.",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "question_6872437009",
+      "label": "If hired, can you show proof you are at least 18 years old? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872438009",
+      "label": "If hired, can you show proof of authorization to work in the United States? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872439009",
+      "label": "If no, please describe your work authorization status.",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "question_6872440009",
+      "label": "Can you perform essential job functions as outlined in the job description, either with or without reasonable accommodation? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872441009",
+      "label": "If no, what special accommodations do you require?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872442009",
+      "label": "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well. Like our members, our team members know how to rise to a challenge and handle it head",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "question_6872443009",
+      "label": "SMS Messages Consent",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872444009",
+      "label": "Were you referred by a current EōS team member?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872445009",
+      "label": "Phone number of the person referring you",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872446009",
+      "label": "Please enter the referring team member's Full Legal First and Last Name.*",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+  "sha256": "0117ea3b33b37d8db2b4d53341279dbcd4ee781dac2bcfe4c2b6069a31501868",
+  "non_get_blocked": 1,
+  "status": "captured"
+}

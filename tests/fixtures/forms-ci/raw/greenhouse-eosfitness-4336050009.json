@@ -1,0 +1,1016 @@
+{
+  "source_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+  "captured_at": "2026-10-19T07:00:50.766Z",
+  "http_status": 200,
+  "sha256": "3d337ad36459b3ba83e69b2414d746d324a1e78f0b402de42188656cc2d94756",
+  "forms": 1,
+  "resume_inputs": 5,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone *",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "cover_letter",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "school--0",
+      "label": "School",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "degree--0",
+      "label": "Degree",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "start-year--0",
+      "label": "Start date year",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "end-year--0",
+      "label": "End date year",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "question_6872424009",
+      "label": "Do you currently have your Personal Training certification up to date? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872425009[]",
+      "label": "Please select the certifications you currently have or are working on achieving below: *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872426009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872427009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872428009",
+      "label": "Do you currently have your CPR certification up to date? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872429009",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_6872430009",
+      "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872431009",
+      "label": "Date Available to Start? (enter in MM/DD/YY format) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_6872432009[]",
+      "label": "What days and times are you available? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872433009",
+      "label": "Have you worked at EōS Fitness before? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872434009",
+      "label": "If yes, what position did you hold?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872435009",
+      "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its affiliates? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872436009",
+      "label": "If yes, please provide their names.",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "question_6872437009",
+      "label": "If hired, can you show proof you are at least 18 years old? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872438009",
+      "label": "If hired, can you show proof of authorization to work in the United States? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872439009",
+      "label": "If no, please describe your work authorization status.",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "question_6872440009",
+      "label": "Can you perform essential job functions as outlined in the job description, either with or without reasonable accommodation? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872441009",
+      "label": "If no, what special accommodations do you require?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872442009",
+      "label": "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well. Like our members, our team members know how to rise to a challenge and handle it head on. What makes you a strong candidate for our team? *",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "question_6872443009",
+      "label": "SMS Messages Consent",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872444009",
+      "label": "Were you referred by a current EōS team member? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_6872445009",
+      "label": "Phone number of the person referring you",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_6872446009",
+      "label": "Please enter the referring team member's Full Legal First and Last Name. *",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "questions_source": "https://boards-api.greenhouse.io/v1/boards/eosfitness/jobs/4336050009?questions=true",
+  "questions_status": 200,
+  "questions": {
+    "absolute_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+    "data_compliance": [
+      {
+        "type": "gdpr",
+        "requires_consent": false,
+        "requires_processing_consent": false,
+        "requires_retention_consent": false,
+        "retention_period": null,
+        "demographic_data_consent_applies": false
+      }
+    ],
+    "education": "education_optional",
+    "internal_job_id": 4189004009,
+    "location": {
+      "name": "Mesa, AZ: Power Rd / Elliot Rd"
+    },
+    "metadata": [
+      {
+        "id": 4071127009,
+        "name": "State",
+        "value": [
+          "Arizona"
+        ],
+        "value_type": "multi_select"
+      }
+    ],
+    "id": 4336050009,
+    "updated_at": "2026-10-15T15:32:57-04:00",
+    "requisition_id": "2999",
+    "title": "Assistant Fitness Manager",
+    "company_name": "EōS Fitness",
+    "first_published": "2026-10-13T03:00:02-04:00",
+    "language": "en",
+    "application_deadline": null,
+    "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;&lt;strong&gt;EōS Fitness is bold, upbeat, and motivating. Not only in our fitness routines, but in our work environment as well. Like our members, our employees know how to rise to a challenge and handle it head on. EōS Fitness&#39; Core Purpose is to create loyal, lifelong fans and exercise practitioners. To achieve this purpose, our Core Values are: Take Personal Responsibility, Be Optimistic &amp;amp; Have Fun, Learn &amp;amp; Grow, Be A Team Player, and Fight Hard To Win.&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;&lt;strong&gt;Core Purpose: To create loyal, lifelong fans and exercise practitioners.&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Responsibilities:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Ensure daily targets are met, particularly during weekends or when the Fitness Manager is not present, by leading the team and driving sales initiatives.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Drive sales by promoting personal training packages and building strong rapport with members.&amp;nbsp;&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Achieve sales targets for personal training services and small group training sessions, consistently meeting or exceeding performance goals.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Collaborate with the membership sales team to support new member onboarding, driving sales initiatives, and establishing a smooth transition into the club experience.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Conduct personalized welcome workouts for new members to evaluate their fitness needs and goals.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Guide new members through their initial club experience, fostering a positive, supportive environment that promotes personal training sales, member retention and engagement.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Facilitate professional development for personal trainers through regular coaching sessions and continuous support.&amp;nbsp;&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Effectively communicate goals, expectations, and procedures to staff members, ensuring everyone understands their roles and responsibilities.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Supervise the maintenance and cleanliness of the facility, including equipment, locker rooms, and common areas.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Ensure compliance with health and safety regulations, maintaining proper certifications, and implementing safety protocols.&amp;nbsp;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Qualifications:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;2-3 years of customer service experience.&lt;/li&gt;\n&lt;li&gt;1 year of sales experience.&lt;/li&gt;\n&lt;li&gt;1 year of supervisory experience.&lt;/li&gt;\n&lt;li&gt;Prior experience or strong interest in the fitness industry.&lt;/li&gt;\n&lt;li&gt;Strong communication skills, both verbally and in writing, for interacting with members, personal training clients, employees, management, and vendors.&lt;/li&gt;\n&lt;li&gt;Excellent relationship building and influencing skills with people at all levels and in all functions.&lt;/li&gt;\n&lt;li&gt;Strong detail orientation; systematic and thorough approach to problem solving; and good time management, organizational, and record-keeping skills.&lt;/li&gt;\n&lt;li&gt;Excellent MS Office skills.&lt;/li&gt;\n&lt;li&gt;Prior experience or strong interest in the fitness industry is a plus.&lt;/li&gt;\n&lt;li&gt;And, of course, someone who embraces our Core Values!&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Requirements:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Must be available to work nights and weekends.&lt;/li&gt;\n&lt;li&gt;Must successfully pass background check.&lt;/li&gt;\n&lt;li&gt;Must have a valid Personal Training certification&lt;/li&gt;\n&lt;li&gt;CPR certification required within 30 days of hire.&lt;/li&gt;\n&lt;li&gt;Ability to work in a gym setting; move about gym floors and rooms; communicate with employees, members, and the public&lt;/li&gt;\n&lt;li&gt;Ability to bend routinely and repetitively to lift more than 40 lbs.&lt;/li&gt;\n&lt;li&gt;Ability to access and operate the Company computer system including preparing documents, entering data into computer system, read reports from a computer data base or email system&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Eligible for additional compensation inclusive of:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Variable income opportunities including commission and bonus&lt;/li&gt;\n&lt;li&gt;Post training increase&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;div class=&quot;content-pay-transparency&quot;&gt;&lt;div class=&quot;pay-input&quot;&gt;&lt;div class=&quot;title&quot;&gt;HOURLY POSITION - ADDITIONAL COMPENSATION ELIGIBLE&lt;/div&gt;&lt;div class=&quot;pay-range&quot;&gt;&lt;span&gt;$18.50&lt;/span&gt;&lt;span class=&quot;divider&quot;&gt;&amp;mdash;&lt;/span&gt;&lt;span&gt;$20.50 USD&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;p&gt;&lt;strong&gt;Benefits and Perks:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;A highly energetic and collaborative team.&lt;/li&gt;\n&lt;li&gt;A management team that cares about your professional development.&lt;/li&gt;\n&lt;li&gt;Free membership for you and plus one family member.&lt;/li&gt;\n&lt;li&gt;Discounted Personal Training, and merchandise – including supplements.&lt;/li&gt;\n&lt;li&gt;Employee referral program.&lt;/li&gt;\n&lt;li&gt;Daily Pay offered - access your funds before payday.&lt;/li&gt;\n&lt;li&gt;Competitive pay plus vacation, holiday, and sick pay.*&lt;/li&gt;\n&lt;li&gt;Group Health, dental, vision, Supplemental Life, and Employee Assistant Program are offered!*&lt;/li&gt;\n&lt;li&gt;401(k) + Company matching!*&lt;/li&gt;\n&lt;li&gt;Personal education growth options with Sophia Learning.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 10pt;&quot;&gt;* Based on eligibility of tenure and full-time vs. part-time employment.&lt;/span&gt;&lt;/p&gt;\n&lt;p style=&quot;line-height: 1;&quot;&gt;&lt;sub&gt;EōS Fitness is an Equal Opportunity Employer. We celebrate diversity and are committed to creating an inclusive environment for all employees. Employment decisions are based on qualifications, merit, and business needs, without regard to race, color, religion, gender identity, sexual orientation, national origin, age, disability, or any other legally protected status.&lt;/sub&gt;&lt;/p&gt;\n&lt;p style=&quot;line-height: 1;&quot;&gt;&lt;sub&gt;To view more information on our CCPA policy, click &lt;a href=&quot;https://acrobat.adobe.com/id/urn:aaid:sc:US:01d8e276-0797-45a1-996c-2d86cef9691d&quot; target=&quot;_blank&quot;&gt;HERE&lt;/a&gt;.&lt;/sub&gt;&lt;/p&gt;\n&lt;p style=&quot;line-height: 1;&quot;&gt;&lt;sub&gt;&lt;a href=&quot;https://www.eeoc.gov/sites/default/files/2022-10/EEOC_KnowYourRights_screen_reader_10_20.pdf&quot;&gt;&lt;em&gt;EEO is The Law - click here for more information&lt;/em&gt;&lt;/a&gt;&lt;/sub&gt;&lt;br&gt;&lt;sub&gt;&lt;a href=&quot;https://www.eeoc.gov/sites/default/files/2022-10/EEOC_KnowYourRights_screen_reader_10_20.pdf&quot;&gt;&lt;em&gt;Equal Opportunity Employer Minorities/Women/Protected Veterans/Disabled&lt;br&gt;&lt;/em&gt;&lt;/a&gt;&lt;/sub&gt;&lt;/p&gt;\n&lt;p style=&quot;line-height: 1;&quot;&gt;&lt;sub&gt;EōS Fitness participates in the government eVerify program. &lt;a href=&quot;https://recruiting.adp.com/srccsa/disclaimer_eVerifyParticipationPoster.dbprop?x=y&amp;amp;oemID=RTI_1212101&amp;amp;_ext=pdf&quot;&gt;&lt;em&gt;Please review the details of this program by clicking here&lt;/em&gt;&lt;/a&gt;.&lt;/sub&gt;&lt;/p&gt;\n&lt;p style=&quot;line-height: 1;&quot;&gt;&lt;sub&gt;We endeavor to make this site accessible to any and all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please contact the Recruiting Help Line at &lt;a href=&quot;mailto:recruitinghelpline@eosfitness.com&quot;&gt;recruitinghelpline@eosfitness.com&lt;/a&gt; or by calling 949.309.4182.&amp;nbsp; To check on the status of your application, please visit the Greenhouse Candidate Portal at &lt;a href=&quot;https://my.greenhouse.io/users/sign_in&quot; target=&quot;_blank&quot;&gt;my.greenhouse.com&lt;/a&gt; for updates.&amp;nbsp;&amp;nbsp;&lt;/sub&gt;&lt;/p&gt;&lt;/div&gt;",
+    "departments": [
+      {
+        "id": 4004860009,
+        "name": "Gym Fitness",
+        "child_ids": [],
+        "parent_id": 4004857009
+      }
+    ],
+    "offices": [
+      {
+        "id": 4005193009,
+        "name": "AZMPE - Mesa, AZ: Power Rd / Elliot Rd",
+        "location": "Mesa, AZ: Power Rd / Elliot Rd",
+        "child_ids": [],
+        "parent_id": 4070993009
+      }
+    ],
+    "ai_disclaimer": null,
+    "include_ai_disclaimer": null,
+    "ai_opt_out_request_url": null,
+    "compliance": null,
+    "demographic_questions": null,
+    "questions": [
+      {
+        "description": null,
+        "label": "First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "first_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Last Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "last_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Preferred First Name",
+        "required": false,
+        "fields": [
+          {
+            "name": "preferred_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Email",
+        "required": true,
+        "fields": [
+          {
+            "name": "email",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Phone",
+        "required": true,
+        "fields": [
+          {
+            "name": "phone",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Resume/CV",
+        "required": false,
+        "fields": [
+          {
+            "name": "resume",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "resume_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Cover Letter",
+        "required": false,
+        "fields": [
+          {
+            "name": "cover_letter",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "cover_letter_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Do you currently have your Personal Training certification up to date? ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872424009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 19126430009
+              },
+              {
+                "label": "No",
+                "value": 19126431009
+              },
+              {
+                "label": "In Progress",
+                "value": 19126432009
+              },
+              {
+                "label": "No, willing to get it",
+                "value": 19126433009
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Please select the certifications you currently have or are working on achieving below:",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872425009[]",
+            "type": "multi_value_multi_select",
+            "values": [
+              {
+                "label": "ACTION-CPT",
+                "value": 19126434009
+              },
+              {
+                "label": "American Council on Exercise [ACE)",
+                "value": 19126435009
+              },
+              {
+                "label": "American College of Sports Medicine [ACSM)",
+                "value": 19126436009
+              },
+              {
+                "label": "American Fitness Professionals 6 Associates [AFPA)",
+                "value": 19126437009
+              },
+              {
+                "label": "Collegiate Strength and Conditioning Coaches Association [CSCCA)",
+                "value": 19126438009
+              },
+              {
+                "label": "Cooper Institute Certified Personal Trainer [CI-CPT)",
+                "value": 19126439009
+              },
+              {
+                "label": "Focus Personal Training Institute [FPTI)",
+                "value": 19126440009
+              },
+              {
+                "label": "International Fitness Professionals Association [IFPA)",
+                "value": 19126441009
+              },
+              {
+                "label": "International Personal Trainer Academy [IPTA)",
+                "value": 19126442009
+              },
+              {
+                "label": "International Sports Sciences Association [ISSA)",
+                "value": 19126443009
+              },
+              {
+                "label": "Institute of Motion [IOM)",
+                "value": 19126444009
+              },
+              {
+                "label": "National Academy of Sports Medicine [NASM)",
+                "value": 19126445009
+              },
+              {
+                "label": "National College of Exercise Professionals [NCEP)",
+                "value": 19126446009
+              },
+              {
+                "label": "National Council for Certified Personal Trainers [NCCPT)",
+                "value": 19126447009
+              },
+              {
+                "label": "National Council on Strength and Fitness [NCSF)",
+                "value": 19126448009
+              },
+              {
+                "label": "National Exercise Trainers Association [NETA)",
+                "value": 19126449009
+              },
+              {
+                "label": "National Exercise and Sports Trainer Association [NESTA)",
+                "value": 19126450009
+              },
+              {
+                "label": "National Federation of Professional Trainers [NFPT)",
+                "value": 19126451009
+              },
+              {
+                "label": "National Personal Training Institute [NPTI)",
+                "value": 19126452009
+              },
+              {
+                "label": "PTA Global [PTAG)",
+                "value": 19126453009
+              },
+              {
+                "label": "Show Up Fitness [SUF-CPT)",
+                "value": 19126454009
+              },
+              {
+                "label": "National Strength 6 Conditioning Association [NSCA)",
+                "value": 19126455009
+              },
+              {
+                "label": "World Instructor Training Schools [WITS)",
+                "value": 19126456009
+              },
+              {
+                "label": "YMCA Personal Training Certification",
+                "value": 19126457009
+              },
+              {
+                "label": "Other",
+                "value": 19126458009
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If yes, please upload your Personal Training certification here",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872426009",
+            "type": "input_file",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If you have more than one Personal Training certificate, please upload here",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872427009",
+            "type": "input_file",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Do you currently have your CPR certification up to date?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872428009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If yes, please upload your CPR certificate here",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872429009",
+            "type": "input_file",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872430009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Date Available to Start? (enter in MM/DD/YY format)",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872431009",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p><sup><strong>Please select all that apply.</strong>&nbsp; &nbsp;**Applicants do not need to identify absences needed for religious purposes. &nbsp;EōS Fitness will attempt to make reasonable accommodations for religious beliefs or practices.</sup></p>",
+        "label": "What days and times are you available?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872432009[]",
+            "type": "multi_value_multi_select",
+            "values": [
+              {
+                "label": "Open Availability",
+                "value": 19126459009
+              },
+              {
+                "label": "Weekdays ONLY",
+                "value": 19126460009
+              },
+              {
+                "label": "Weekends ONLY",
+                "value": 19126461009
+              },
+              {
+                "label": "Sunday Morning",
+                "value": 19126462009
+              },
+              {
+                "label": "Sunday Daytime",
+                "value": 19126463009
+              },
+              {
+                "label": "Sunday Night",
+                "value": 19126464009
+              },
+              {
+                "label": "Monday Morning",
+                "value": 19126465009
+              },
+              {
+                "label": "Monday Daytime",
+                "value": 19126466009
+              },
+              {
+                "label": "Monday Night",
+                "value": 19126467009
+              },
+              {
+                "label": "Tuesday Morning",
+                "value": 19126468009
+              },
+              {
+                "label": "Tuesday Daytime",
+                "value": 19126469009
+              },
+              {
+                "label": "Tuesday Night",
+                "value": 19126470009
+              },
+              {
+                "label": "Wednesday Morning",
+                "value": 19126471009
+              },
+              {
+                "label": "Wednesday Daytime",
+                "value": 19126472009
+              },
+              {
+                "label": "Wednesday Night",
+                "value": 19126473009
+              },
+              {
+                "label": "Thursday Morning",
+                "value": 19126474009
+              },
+              {
+                "label": "Thursday Daytime",
+                "value": 19126475009
+              },
+              {
+                "label": "Thursday Night",
+                "value": 19126476009
+              },
+              {
+                "label": "Friday Morning",
+                "value": 19126477009
+              },
+              {
+                "label": "Friday Daytime",
+                "value": 19126478009
+              },
+              {
+                "label": "Friday Night",
+                "value": 19126479009
+              },
+              {
+                "label": "Saturday Morning",
+                "value": 19126480009
+              },
+              {
+                "label": "Saturday Daytime",
+                "value": 19126481009
+              },
+              {
+                "label": "Saturday Night",
+                "value": 19126482009
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Have you worked at EōS Fitness before? ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872433009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If yes, what position did you hold?",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872434009",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p><sup>EōS Fitness will consider a member of an employee's immediate family or household for employment if the applicant possesses all of the qualifications for employment for the position.&nbsp; Immediate family or household members are not eligible for hire if doing so results in a direct or indirect supervisor/subordinate relationship or leads to an actual or perceived conflict of interest.</sup></p>",
+        "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its affiliates?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872435009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If yes, please provide their names.",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872436009",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If hired, can you show proof you are at least 18 years old?  ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872437009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If hired, can you show proof of authorization to work in the United States? ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872438009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If no, please describe your work authorization status.",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872439009",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p><sup>(Note: we comply with ADA and consider reasonable accommodation measures that may be necessary for eligible applicants/employees to perform essential functions. Hire may be subject to passing a medical examination, and to skill and agility tests.)</sup></p>",
+        "label": "Can you perform essential job functions as outlined in the job description, either with or without reasonable accommodation?\n\n",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872440009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If no, what special accommodations do you require?",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872441009",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well.\n\nLike our members, our team members know how to rise to a challenge and handle it head on. What makes you a strong candidate for our team?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872442009",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p>By clicking here, I am agreeing that future text messages relating to EOS Fitness, including company news, job posting and application status updates, and other information, may be sent on behalf of EOS Fitness to the cell phone number I provided above.</p>",
+        "label": "SMS Messages Consent",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872443009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Were you referred by a current EōS team member?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872444009",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": "<p>This is required to receive a referral bonus.&nbsp;</p>",
+        "label": "Phone number of the person referring you ",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_6872445009",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p>To be eligible for a referral bonus, you must enter the required referrers information.</p>",
+        "label": "Please enter the referring team member's Full Legal First and Last Name.",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_6872446009",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      }
+    ],
+    "location_questions": []
+  }
+}

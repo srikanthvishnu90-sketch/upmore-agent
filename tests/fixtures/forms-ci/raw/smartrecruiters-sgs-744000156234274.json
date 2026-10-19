@@ -1,0 +1,16 @@
+{
+  "source_url": "https://jobs.smartrecruiters.com/SGS/744000156234274",
+  "captured_at": "2026-10-19T07:01:45.332Z",
+  "http_status": 200,
+  "sha256": "0662741c4ef1af1fa977e15d7588643c05c35aa67359bb6eeec90616287ff883",
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "",
+      "label": "Copy the link and open WeChat to share.",
+      "type": "text",
+      "required": false
+    }
+  ]
+}

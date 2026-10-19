@@ -1,0 +1,304 @@
+{
+  "id": "greenhouse-spacex-8643277002",
+  "family": "greenhouse",
+  "source_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+  "rendered_at": "2026-10-19T07:02:03.796Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "iti-0__search-input",
+      "label": "Search",
+      "type": "search",
+      "required": false
+    },
+    {
+      "name": "phone",
+      "label": "Phone*",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "candidate-location",
+      "label": "Location (City)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "school--0",
+      "label": "School*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "degree--0",
+      "label": "Degree*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "discipline--0",
+      "label": "Discipline",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413363002",
+      "label": "LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413364002",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_37413365002",
+      "label": "How did you hear about this job?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413366002",
+      "label": "Please specify",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_37413367002",
+      "label": "GPA (Undergraduate)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413368002",
+      "label": "GPA (Graduate)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413369002",
+      "label": "GPA (Doctorate)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413370002",
+      "label": "SAT Score*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413371002",
+      "label": "ACT Score*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413372002",
+      "label": "GRE Score*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413373002[]",
+      "label": "Active Security Clearance(s)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413374002",
+      "label": "SpaceX & SpaceXAI Employment History*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413375002",
+      "label": "Can you perform all of the essential functions of this role with or without reasonable accommodations?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413376002",
+      "label": "Are you legally authorized to work in the United States?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413377002",
+      "label": "Citizenship Status*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_37413378002",
+      "label": "If (f) Other, please explain:",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "hispanic_ethnicity",
+      "label": "Are you Hispanic/Latino?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "veteran_status",
+      "label": "Veteran Status",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+  "sha256": "09317dbcee7793d3e1c89c259c4bcda1c99e0f2a65b1d4ca89dbbef032531bd6",
+  "non_get_blocked": 1,
+  "status": "captured"
+}

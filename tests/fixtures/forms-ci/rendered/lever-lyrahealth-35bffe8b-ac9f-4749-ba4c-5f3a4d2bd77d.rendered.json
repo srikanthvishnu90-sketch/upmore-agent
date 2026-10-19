@@ -1,0 +1,568 @@
+{
+  "id": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+  "family": "lever",
+  "source_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+  "rendered_at": "2026-10-19T07:02:56.260Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "Resume/CV ✱ ATTACH RESUME/CV",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "Full name ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "pronouns",
+      "label": "He/him",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "She/her",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "They/them",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Xe/xem",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Ze/hir",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Ey/em",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Hir/hir",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Fae/faer",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Hu/hu",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Use name only",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "customPronounsOption",
+      "label": "Custom",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "pronouns",
+      "label": "Write here...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email ✱",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "Current location",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "Current company ✱",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "LinkedIn URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Twitter]",
+      "label": "Twitter URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "GitHub URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "Portfolio URL",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "Other website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "label": "Yes",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "label": "No",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Health Employee",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Clinical Associate",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Health International LLC Employee (ICAS)",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Health Alumni",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Clinical Alumni",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Lyra Health International LLC Alumni (ICAS)",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Bend Health",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "label": "Other (ie. Contractor)",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "Yes",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "No",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "Gender Select ... Male Female Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "Race Select ... Hispanic or Latino White (Not Hispanic or Latino) Black or African American (Not Hispanic or Latino) Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino) Asian (Not Hispa",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "Veteran status Select ... I am a veteran I am not a veteran Decline to self-identify",
+      "type": "select-one",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Agender",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Gender non-conforming",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Genderqueer",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Intersex",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Man",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Non-binary",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Two-spirit",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Transgender",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Woman",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "label": "Prefer not to answer",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Asexual",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Bisexual",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Fluid",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Gay",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Lesbian",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Pansexual",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Queer",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Questioning or unsure",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Straight (Heterosexual)",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "label": "Prefer not to answer",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "Yes",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "No",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "label": "Prefer not to answer",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "American Sign Language",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Arabic",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Chinese",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "English",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Farsi",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Filipino",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "French",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "German",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Greek",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Hebrew",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Hindi",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Japanese",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Italian",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Korean",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Portuguese",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Polish",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Punjabi",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Urdu",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Russian",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Spanish",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Vietnamese",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "label": "Tagalog",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "Yes",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "No",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "label": "Prefer not to answer",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "Yes, Lyra Health can contact me about future job opportunities for up to 1 year Privacy policy",
+      "type": "checkbox",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+  "sha256": "5fccba50c469a62ac01451649d85413c56db8b697b563492602c0a5bbe272b18",
+  "non_get_blocked": 12,
+  "status": "captured"
+}

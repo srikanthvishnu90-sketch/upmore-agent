@@ -1,0 +1,1268 @@
+{
+  "source_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+  "captured_at": "2026-10-19T07:01:02.703Z",
+  "http_status": 200,
+  "sha256": "6e7a29d90ca515c596c9b8ab3a0d3200d619d4f1e9fff7a4812601f05d34b523",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "Phone *",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "candidate-location",
+      "label": "Location (City) *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_18820173008",
+      "label": "LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820174008",
+      "label": "Website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820175008",
+      "label": "Are you currently an intern, freelancer, or employee at WPP or one of its agencies? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_18820176008",
+      "label": "Current WPP Agency (if applicable)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820177008",
+      "label": "Have you previously worked at a WPP Agency? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_18820178008",
+      "label": "Are you lawfully authorized to work in the country where this job is located? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_18820179008",
+      "label": "Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_18820180008",
+      "label": "What are your salary expectations? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820181008",
+      "label": "What is your current notice period? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "4017729008",
+      "label": "What gender identity do you most closely identify with?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017730008",
+      "label": "What is your sexual orientation?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017731008",
+      "label": "What is your religion?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017732008",
+      "label": "I identify my race/ethnicity as (select all that apply)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017733008",
+      "label": "Do you consider yourself to have a disability, impairment or long-term health condition",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017898008",
+      "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017899008",
+      "label": "Do you identify as Trans?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017900008",
+      "label": "Which age range do you belong to?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017901008",
+      "label": "Did you receive free school meals, school uniform or PE kit funding?",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "questions_source": "https://boards-api.greenhouse.io/v1/boards/wppmedia/jobs/5437567008?questions=true",
+  "questions_status": 200,
+  "questions": {
+    "absolute_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+    "data_compliance": [
+      {
+        "type": "gdpr",
+        "requires_consent": false,
+        "requires_processing_consent": false,
+        "requires_retention_consent": false,
+        "retention_period": null,
+        "demographic_data_consent_applies": true
+      }
+    ],
+    "internal_job_id": 4554694008,
+    "location": {
+      "name": "London, United Kingdom"
+    },
+    "metadata": [
+      {
+        "id": 16829802008,
+        "name": "Post to StSt",
+        "value": null,
+        "value_type": "yes_no"
+      },
+      {
+        "id": 16829875008,
+        "name": "Product",
+        "value": null,
+        "value_type": "single_select"
+      },
+      {
+        "id": 16829878008,
+        "name": "Exact job location",
+        "value": null,
+        "value_type": "single_select"
+      }
+    ],
+    "id": 5437567008,
+    "updated_at": "2026-10-09T16:33:30-04:00",
+    "requisition_id": "OMGCS-3165",
+    "title": "Account Director, Data Operations ",
+    "company_name": "WPP Media",
+    "first_published": "2026-10-02T04:17:21-04:00",
+    "language": "en",
+    "application_deadline": null,
+    "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;strong&gt;About WPP Media&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;WPP is the trusted growth partner for the world’s leading brands. With exceptional talent, trusted data and intelligence, and world-class partnerships – all united by our pioneering agentic marketing platform, WPP Open – we help clients navigate change, capture opportunity, and deliver transformational growth. &lt;/p&gt;\n&lt;p&gt;WPP Media is WPP&#39;s AI-driven media operating unit, bringing together media, data, and partnerships to deliver creative personalisation at scale. Connected through WPP Open and powered by Open Intelligence, clients see exactly where, how, and why their media investment is working.&lt;/p&gt;\n&lt;p&gt;For more information, visit &lt;a href=&quot;wppmedia.com&quot;&gt;wppmedia.com&lt;/a&gt;.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;3165 - Account Director, Data Operations&amp;nbsp; - GCS&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Role Summary and Impact&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;div&gt;The Data Delivery &amp;amp; Project Manager is responsible for the end-to-end coordination, quality assurance, and governance of media data within the Cockpit programme across multiple markets. Acting as the central point of contact between local market teams, global Nestlé stakeholders, and external data partners, this role ensures the timely delivery of accurate, high-quality data that supports &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;MMM&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;modelling&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;business&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;decision-making.&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;The&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;successful&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;candidate&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;will&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;drive&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;process&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;consistency,&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;manage&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;complex&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;stakeholder&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;relationships,&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;resolve&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;data-related&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;issues,&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;oversee&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;programme&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;timelines&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;ensure&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;smooth&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;efficient&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;execution&lt;/span&gt; &lt;span class=&quot;___1cs5bdp f1w7gpdv f5p0z4x&quot;&gt;across&lt;/span&gt; &lt;span class=&quot;___xxxjie0 f1w7gpdv f1gqqdtu&quot;&gt;all&lt;/span&gt; &lt;span class=&quot;___xxxjie0 f1w7gpdv f1gqqdtu&quot;&gt;participating&lt;/span&gt; &lt;span class=&quot;___xxxjie0 f1w7gpdv f1gqqdtu&quot;&gt;markets.&lt;/span&gt;&lt;/div&gt;\n&lt;p&gt;&lt;strong&gt;Data Delivery and Project Management&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Own and maintain the Cockpit refresh calendar&amp;nbsp;for&lt;/strong&gt;&amp;nbsp;all participating markets, ensuring alignment with MMM modelling timelines.&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Coordinate with local market teams, data processing vendors (e.g., Redmill), and global &amp;amp; z-EUR Nestle to ensure timely submission of accurate data to meet cockpit calendar.&lt;/li&gt;\n&lt;li&gt;Manage ad-hoc refresh requests and assess feasibility against resource and process constraints.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Data Quality Assurance&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Review and validate incoming media plan data for completeness, accuracy, and adherence to agreed formats (e.g., no channels with impressions but zero spend).&lt;/li&gt;\n&lt;li&gt;Perform central QA checks&amp;nbsp;before data is loaded into Cockpit, or oversee local QA when/if decentralised.&lt;/li&gt;\n&lt;li&gt;Investigate and resolve data discrepancies (e.g., spend, impressions, reach) with local teams.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Process Governance &amp;amp; Standardisation&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;E&lt;strong&gt;nforce agreed actualisation processes&amp;nbsp;f&lt;/strong&gt;or Cockpit markets&lt;/li&gt;\n&lt;li&gt;Ensure consistent application of data governance rules, including mandatory metrics, cost allocation, and added value treatment.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Stakeholder Management&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Act as the&amp;nbsp;&lt;strong&gt;central point of contact for the cockpit program&lt;/strong&gt;&amp;nbsp;between:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Local OpenMind (OM) market teams&lt;/li&gt;\n&lt;li&gt;Global Nestlé stakeholders (e.g., Z-EUR, IT)&lt;/li&gt;\n&lt;li&gt;Data processing vendors (e.g., Redmill)&lt;/li&gt;\n&lt;li&gt;Facilitate alignment calls to resolve blockers and ensure all parties are informed of timelines, dependencies, and changes.&lt;/li&gt;\n&lt;li&gt;Communicate clearly on delays, risks, and mitigation plans.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Primary Skills&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Strong background in media planning, buying, or media operations&amp;nbsp;with a deep understanding of campaign structures, channels, and metrics.&lt;/li&gt;\n&lt;li&gt;Experience managing multi-market data workflows&amp;nbsp;and working with multiple stakeholders across geographies.&lt;/li&gt;\n&lt;li&gt;Proven ability to interpret and troubleshoot media data&amp;nbsp;(spend, impressions, reach, CPM/CPC calculations).&lt;/li&gt;\n&lt;li&gt;Strong project management skills, able to manage multiple deadlines and priorities in a fast-moving&amp;nbsp;environment.&lt;/li&gt;\n&lt;li&gt;Excellent communication skills, with the ability to explain technical data issues to non-technical stakeholders.&lt;/li&gt;\n&lt;li&gt;High attention to detail and commitment to data accuracy.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;#LI-Promoted&lt;/p&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;p&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span class=&quot;TextRun SCXW227196529 BCX8&quot; lang=&quot;EN-CA&quot; data-contrast=&quot;auto&quot;&gt;&lt;span class=&quot;NormalTextRun SCXW227196529 BCX8&quot;&gt;Please read our &lt;a href=&quot;https://www.wppmedia.com/pages/privacy-policy#:~:text=WPP%20Media%20Privacy%20Notice%20for%20Recruitment&quot;&gt;Privacy Notice&lt;/a&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;TextRun SCXW227196529 BCX8&quot; lang=&quot;EN-CA&quot; data-contrast=&quot;auto&quot;&gt;&amp;nbsp;&lt;span class=&quot;NormalTextRun SCXW227196529 BCX8&quot;&gt;for more information on how we process the information you provide.&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;EOP SCXW227196529 BCX8&quot; data-ccp-props=&quot;{&amp;quot;201341983&amp;quot;:0,&amp;quot;335559739&amp;quot;:0,&amp;quot;335559740&amp;quot;:276}&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;",
+    "departments": [
+      {
+        "id": 4062552008,
+        "name": "Technology & Data",
+        "child_ids": [],
+        "parent_id": null
+      }
+    ],
+    "offices": [
+      {
+        "id": 4047177008,
+        "name": "London",
+        "location": "London, England, United Kingdom",
+        "child_ids": [],
+        "parent_id": 4047178008
+      }
+    ],
+    "ai_disclaimer": null,
+    "include_ai_disclaimer": null,
+    "ai_opt_out_request_url": null,
+    "compliance": null,
+    "demographic_questions": {
+      "header": "Demographic Questions (UK)",
+      "description": "<p>At WPP Media we are committed to building a business and culture that is inclusive, and we believe that having a workforce that represents the society we live in is key to our success.</p>\n<p>As part of this commitment, we have created this voluntary survey to include the collection and analysis of diversity data across our recruitment.</p>\n<p>The following questions do not form part of your application, are completely optional and are not shared with our hiring teams, but we would be grateful if you would complete them to help us monitor fairness and equality across our recruitment process.<!--EndFragment--></p>",
+      "questions": [
+        {
+          "id": 4017729008,
+          "label": "What gender identity do you most closely identify with? ",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4106332008,
+              "label": "Female",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106333008,
+              "label": "Male",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106334008,
+              "label": "Non-Binary",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106336008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            },
+            {
+              "id": 4106337008,
+              "label": "Prefer to self-describe ",
+              "free_form": true,
+              "decline_to_answer": false
+            }
+          ]
+        },
+        {
+          "id": 4017730008,
+          "label": "What is your sexual orientation?",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4106338008,
+              "label": "Heterosexual",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106339008,
+              "label": "Bisexual",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106341008,
+              "label": "Homosexual",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106342008,
+              "label": "Pansexual",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106343008,
+              "label": "Asexual",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106344008,
+              "label": "Prefer to self-describe ",
+              "free_form": true,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106345008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        },
+        {
+          "id": 4017731008,
+          "label": "What is your religion?",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4106340008,
+              "label": "Agnostic/Atheist/No religion",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106346008,
+              "label": "Buddhist",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106347008,
+              "label": "Christian",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106348008,
+              "label": "Hindu",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106349008,
+              "label": "Jewish",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106350008,
+              "label": "Muslim",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106351008,
+              "label": "Sikh",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106352008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            },
+            {
+              "id": 4106353008,
+              "label": "Prefer to self-describe ",
+              "free_form": true,
+              "decline_to_answer": false
+            }
+          ]
+        },
+        {
+          "id": 4017732008,
+          "label": "I identify my race/ethnicity as (select all that apply)",
+          "required": false,
+          "type": "multi_value_multi_select",
+          "answer_options": [
+            {
+              "id": 4106354008,
+              "label": "English/Welsh/Scottish/Northern ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106355008,
+              "label": "Irish/British ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106356008,
+              "label": "Irish",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106357008,
+              "label": "Any other White Background ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106358008,
+              "label": "White and Black Caribbean ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106359008,
+              "label": "White and Black African",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106360008,
+              "label": "White and Asian",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106361008,
+              "label": "Any Other Mixed/Multiple Ethnic Background",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106362008,
+              "label": "Indian",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106363008,
+              "label": "Pakistani",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106364008,
+              "label": "Bangladeshi",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106365008,
+              "label": "Chinese",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106366008,
+              "label": "Any Other Asian Background African Caribbean ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106367008,
+              "label": "Any other Black/African/Caribbean Background ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106368008,
+              "label": "Arab",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106369008,
+              "label": "Any other ethnic group ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106370008,
+              "label": "Prefer to self-describe ",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106371008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        },
+        {
+          "id": 4017733008,
+          "label": "Do you consider yourself to have a disability, impairment or long-term health condition",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4106372008,
+              "label": "Yes",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106373008,
+              "label": "No",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4106374008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        },
+        {
+          "id": 4017898008,
+          "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)",
+          "required": false,
+          "type": "multi_value_multi_select",
+          "answer_options": [
+            {
+              "id": 4107352008,
+              "label": "Physical disability/impairment (e.g., mobility, dexterity)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107353008,
+              "label": "Sensory impairment (e.g., visual impairment, hearing impairment)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107354008,
+              "label": "Learning disability/difficulty (e.g., dyslexia, dyspraxia, ADHD, autism spectrum condition)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107355008,
+              "label": "Mental health condition (e.g., depression, anxiety, bipolar disorder)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107356008,
+              "label": "Long-term illness/health condition (e.g., diabetes, epilepsy, chronic fatigue syndrome, cancer, heart condition)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107357008,
+              "label": "Neurological condition (e.g., multiple sclerosis, Parkinson's disease, stroke)",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107358008,
+              "label": "Prefer not to say",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107359008,
+              "label": "Other (Please Self-Describe)",
+              "free_form": true,
+              "decline_to_answer": false
+            }
+          ]
+        },
+        {
+          "id": 4017899008,
+          "label": "Do you identify as Trans?",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4107360008,
+              "label": "Yes",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107361008,
+              "label": "No",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107362008,
+              "label": "Prefer to self-describe",
+              "free_form": true,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107363008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        },
+        {
+          "id": 4017900008,
+          "label": "Which age range do you belong to?",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4107364008,
+              "label": "16-24",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107365008,
+              "label": "25-34",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107366008,
+              "label": "35-44",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107367008,
+              "label": "45-54",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107368008,
+              "label": "55-64",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107369008,
+              "label": "65-74",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107370008,
+              "label": "75+",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107371008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        },
+        {
+          "id": 4017901008,
+          "label": "Did you receive free school meals, school uniform or PE kit funding?",
+          "required": false,
+          "type": "multi_value_single_select",
+          "answer_options": [
+            {
+              "id": 4107372008,
+              "label": "Yes",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107373008,
+              "label": "No",
+              "free_form": false,
+              "decline_to_answer": false
+            },
+            {
+              "id": 4107374008,
+              "label": "I don't wish to answer",
+              "free_form": false,
+              "decline_to_answer": true
+            }
+          ]
+        }
+      ]
+    },
+    "questions": [
+      {
+        "description": null,
+        "label": "First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "first_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Last Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "last_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Preferred First Name",
+        "required": false,
+        "fields": [
+          {
+            "name": "preferred_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Email",
+        "required": true,
+        "fields": [
+          {
+            "name": "email",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Phone",
+        "required": true,
+        "fields": [
+          {
+            "name": "phone",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Resume/CV",
+        "required": true,
+        "fields": [
+          {
+            "name": "resume",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "resume_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "LinkedIn Profile",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_18820173008",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Website",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_18820174008",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Are you currently an intern, freelancer, or employee at WPP or one of its agencies?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820175008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Current WPP Agency (if applicable)",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_18820176008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "AKQA",
+                "value": 45325187008
+              },
+              {
+                "label": "Burson",
+                "value": 45325188008
+              },
+              {
+                "label": "Ogilvy",
+                "value": 45325189008
+              },
+              {
+                "label": "VML",
+                "value": 45325190008
+              },
+              {
+                "label": "WPP Media",
+                "value": 45325191008
+              },
+              {
+                "label": "WPP Production",
+                "value": 45325192008
+              },
+              {
+                "label": "Acceleration",
+                "value": 45325193008
+              },
+              {
+                "label": "ArcTouch",
+                "value": 45325194008
+              },
+              {
+                "label": "AxiCom",
+                "value": 45325195008
+              },
+              {
+                "label": "Barrows",
+                "value": 45325196008
+              },
+              {
+                "label": "BDG Design",
+                "value": 45325197008
+              },
+              {
+                "label": "Bottle Rocket",
+                "value": 45325198008
+              },
+              {
+                "label": "Brand Power",
+                "value": 45325199008
+              },
+              {
+                "label": "Buchanan",
+                "value": 45325200008
+              },
+              {
+                "label": "Cartwright",
+                "value": 45325201008
+              },
+              {
+                "label": "Choreograph",
+                "value": 45325202008
+              },
+              {
+                "label": "Clarion",
+                "value": 45325203008
+              },
+              {
+                "label": "CMI",
+                "value": 45325204008
+              },
+              {
+                "label": "DAVID",
+                "value": 45325205008
+              },
+              {
+                "label": "Deeplocal",
+                "value": 45325206008
+              },
+              {
+                "label": "Design Bridge",
+                "value": 45325207008
+              },
+              {
+                "label": "Dewey Square Group",
+                "value": 45325208008
+              },
+              {
+                "label": "Eicoff",
+                "value": 45325209008
+              },
+              {
+                "label": "EssenceMediacom",
+                "value": 45325210008
+              },
+              {
+                "label": "Food Group",
+                "value": 45325211008
+              },
+              {
+                "label": "Gain Theory",
+                "value": 45325212008
+              },
+              {
+                "label": "GCI",
+                "value": 45325213008
+              },
+              {
+                "label": "Goat Solutions",
+                "value": 45325214008
+              },
+              {
+                "label": "Grey",
+                "value": 45325215008
+              },
+              {
+                "label": "iconmobile",
+                "value": 45325216008
+              },
+              {
+                "label": "InfoSum",
+                "value": 45325217008
+              },
+              {
+                "label": "JeffreyGroup",
+                "value": 45325218008
+              },
+              {
+                "label": "Landor",
+                "value": 45325219008
+              },
+              {
+                "label": "Made Thought",
+                "value": 45325220008
+              },
+              {
+                "label": "Mando",
+                "value": 45325221008
+              },
+              {
+                "label": "ManvsMachine",
+                "value": 45325222008
+              },
+              {
+                "label": "Media Solutions",
+                "value": 45325223008
+              },
+              {
+                "label": "Metro Production Group",
+                "value": 45325224008
+              },
+              {
+                "label": "Mindshare",
+                "value": 45325225008
+              },
+              {
+                "label": "MJM",
+                "value": 45325226008
+              },
+              {
+                "label": "MUV",
+                "value": 45325227008
+              },
+              {
+                "label": "New Commercial Arts",
+                "value": 45325228008
+              },
+              {
+                "label": "Ogilvy Health",
+                "value": 45325229008
+              },
+              {
+                "label": "PeclersParis",
+                "value": 45325230008
+              },
+              {
+                "label": "Potato",
+                "value": 45325231008
+              },
+              {
+                "label": "Prime Policy Group",
+                "value": 45325232008
+              },
+              {
+                "label": "PSB",
+                "value": 45325233008
+              },
+              {
+                "label": "Satalia",
+                "value": 45325234008
+              },
+              {
+                "label": "Scangroup",
+                "value": 45325235008
+              },
+              {
+                "label": "Spafax",
+                "value": 45325236008
+              },
+              {
+                "label": "Subvrsive",
+                "value": 45325237008
+              },
+              {
+                "label": "SYZYGY",
+                "value": 45325238008
+              },
+              {
+                "label": "Tank",
+                "value": 45325239008
+              },
+              {
+                "label": "The Lacek Group",
+                "value": 45325240008
+              },
+              {
+                "label": "T&Pm",
+                "value": 45325241008
+              },
+              {
+                "label": "Universal Design Studio",
+                "value": 45325242008
+              },
+              {
+                "label": "Verticurl",
+                "value": 45325243008
+              },
+              {
+                "label": "Village Marketing",
+                "value": 45325244008
+              },
+              {
+                "label": "Wavemaker",
+                "value": 45325245008
+              },
+              {
+                "label": "whiteGREY",
+                "value": 45325246008
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Have you previously worked at a WPP Agency?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820177008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Are you lawfully authorized to work in the country where this job is located?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820178008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820179008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Yes",
+                "value": 1
+              },
+              {
+                "label": "No",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "What are your salary expectations?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820180008",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "What is your current notice period?",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_18820181008",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Immediately Available",
+                "value": 45325247008
+              },
+              {
+                "label": "1 Month",
+                "value": 45325248008
+              },
+              {
+                "label": "2 Months",
+                "value": 45325249008
+              },
+              {
+                "label": "3 Months",
+                "value": 45325250008
+              },
+              {
+                "label": "3+ Months",
+                "value": 45325251008
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "location_questions": [
+      {
+        "description": null,
+        "label": "Longitude",
+        "required": true,
+        "fields": [
+          {
+            "name": "longitude",
+            "type": "input_hidden",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Latitude",
+        "required": true,
+        "fields": [
+          {
+            "name": "latitude",
+            "type": "input_hidden",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Location",
+        "required": true,
+        "fields": [
+          {
+            "name": "location",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      }
+    ]
+  }
+}

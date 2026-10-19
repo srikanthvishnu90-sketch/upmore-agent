@@ -1,0 +1,370 @@
+{
+  "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+  "captured_at": "2026-10-19T07:01:16.788Z",
+  "http_status": 200,
+  "sha256": "e9354f6a35a61f3d25edd03d5e4ce8f5fe97784b0588c0535d6f57e5f0fc0a53",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "resume",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "phone",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "location",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "org",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[LinkedIn]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Twitter]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[GitHub]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Portfolio]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urls[Other]",
+      "label": "",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]",
+      "label": "",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]",
+      "label": "",
+      "type": "select",
+      "required": true
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "label": "",
+      "type": "radio",
+      "required": true
+    },
+    {
+      "name": "eeo[gender]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[race]",
+      "label": "",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "eeo[veteran]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[disability]",
+      "label": "",
+      "type": "select",
+      "required": false
+    },
+    {
+      "name": "eeo[disabilitySignature]",
+      "label": "Enter your full name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "eeo[disabilitySignatureDate]",
+      "label": "MM/DD/YYYY",
+      "type": "text",
+      "required": false
+    }
+  ]
+}

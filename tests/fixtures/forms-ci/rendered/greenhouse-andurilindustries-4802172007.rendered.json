@@ -1,0 +1,328 @@
+{
+  "id": "greenhouse-andurilindustries-4802172007",
+  "family": "greenhouse",
+  "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+  "rendered_at": "2026-10-19T07:02:07.687Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "iti-0__search-input",
+      "label": "Search",
+      "type": "search",
+      "required": false
+    },
+    {
+      "name": "phone",
+      "label": "Phone*",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "cover_letter",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "school--0",
+      "label": "School*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "degree--0",
+      "label": "Degree*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "discipline--0",
+      "label": "Discipline*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "end-month--0",
+      "label": "End date month*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "end-year--0",
+      "label": "End date year*",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "question_9753034007",
+      "label": "LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_9753035007",
+      "label": "Website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_9753036007",
+      "label": "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753037007",
+      "label": "If you have held a U.S. security clearance in the past, what clearance level have you held? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753038007",
+      "label": "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below will be used solely to determine your eligi",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753039007",
+      "label": "U.S. WORK AUTHORIZATION*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753040007",
+      "label": "Will you require sponsorship from Anduril for employment now or in the future (e.g, H1B visa)?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753041007",
+      "label": "U.S. Person status and/or U.S. clearance eligibility is required for this role due to access requirements for U.S. export-controlled information/facilities and/or depending on program, are you eligibl",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753042007",
+      "label": "HISTORY WITH ANDURIL*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753043007",
+      "label": "Have you ever been employed by Anduril or any company that Anduril has acquired?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753044007",
+      "label": "CONFLICT OF INTEREST*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_12415488007",
+      "label": "What is your top location preference? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9753998007",
+      "label": "Do you have a minimum of 3 months - 2 years of technical work to include technical internship and able to start full time in 2026?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9755019007",
+      "label": "Are you open to a rotational program?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9802058007",
+      "label": "How did you hear about Anduril?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_9802065007",
+      "label": "If other, please specify",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "gender",
+      "label": "Gender",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "hispanic_ethnicity",
+      "label": "Are you Hispanic/Latino?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "veteran_status",
+      "label": "Veteran Status",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+  "sha256": "3d42672e9217567af1ea0add5beebdaf3a38f61799cbaed2c6c57c45d0b7929a",
+  "non_get_blocked": 1,
+  "status": "captured"
+}

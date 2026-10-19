@@ -1,0 +1,22 @@
+{
+  "id": "smartrecruiters-dominos-744000156228029",
+  "family": "smartrecruiters",
+  "source_url": "https://jobs.smartrecruiters.com/DominoS/744000156228029",
+  "rendered_at": "2026-10-19T07:04:45.092Z",
+  "http_status": 200,
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "",
+      "label": "Copy the link and open WeChat to share.",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "captcha": false,
+  "final_url": "https://jobs.smartrecruiters.com/DominoS/744000156228029",
+  "sha256": "ab5dd3dde2f80925bd8e140229e69667d2d1938174a92c0c6da8612b5b5afe11",
+  "non_get_blocked": 3,
+  "status": "not_a_form"
+}

@@ -1,0 +1,70 @@
+{
+  "id": "greenhouse-databricks-8805655002",
+  "family": "greenhouse",
+  "source_url": "https://job-boards.greenhouse.io/databricks/jobs/8805655002",
+  "rendered_at": "2026-10-19T07:02:15.672Z",
+  "http_status": 200,
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "ot-group-id-C0002",
+      "label": "Performance Cookies",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "ot-group-id-C0003",
+      "label": "Functional Cookies",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "ot-group-id-C0004",
+      "label": "Targeting Cookies",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "ot-group-id-TOTHR",
+      "label": "TOTHR",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "vendor-search-handler",
+      "label": "Cookie list search",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "select-all-hosts-groups-handler",
+      "label": "checkbox label",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "select-all-vendor-groups-handler",
+      "label": "checkbox label",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "select-all-vendor-leg-handler",
+      "label": "checkbox label",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "chkbox-id",
+      "label": "checkbox label",
+      "type": "checkbox",
+      "required": false
+    }
+  ],
+  "captcha": false,
+  "final_url": "https://www.databricks.com/company/careers/delivery-solutions-architects/-8805655002?gh_jid=8805655002",
+  "sha256": "90361e97343af7516e6e33f015453380ba75e56bdc59d670a9e8736efa4bdacc",
+  "non_get_blocked": 32,
+  "status": "not_a_form"
+}

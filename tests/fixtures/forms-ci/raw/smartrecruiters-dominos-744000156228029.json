@@ -1,0 +1,16 @@
+{
+  "source_url": "https://jobs.smartrecruiters.com/DominoS/744000156228029",
+  "captured_at": "2026-10-19T07:01:34.798Z",
+  "http_status": 200,
+  "sha256": "ac0e27e1141d8e705c0b90b9f5ce5790a2549cff3d5340e131a609adf449f65f",
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [
+    {
+      "name": "",
+      "label": "Copy the link and open WeChat to share.",
+      "type": "text",
+      "required": false
+    }
+  ]
+}

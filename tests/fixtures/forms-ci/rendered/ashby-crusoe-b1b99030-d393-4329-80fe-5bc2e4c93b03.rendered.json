@@ -1,0 +1,15 @@
+{
+  "id": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+  "family": "ashby",
+  "source_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
+  "rendered_at": "2026-10-19T07:04:10.477Z",
+  "http_status": 200,
+  "forms": 0,
+  "resume_inputs": 0,
+  "fields": [],
+  "captcha": false,
+  "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
+  "sha256": "bbec5e118649e622ed1271609a38e64aff48f10e635f1a21b8c1976d9c61ba67",
+  "non_get_blocked": 2,
+  "status": "not_a_form"
+}

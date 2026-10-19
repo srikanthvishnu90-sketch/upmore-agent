@@ -1,0 +1,232 @@
+{
+  "id": "greenhouse-wppmedia-5437567008",
+  "family": "greenhouse",
+  "source_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+  "rendered_at": "2026-10-19T07:02:11.693Z",
+  "http_status": 200,
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "iti-0__search-input",
+      "label": "Search",
+      "type": "search",
+      "required": false
+    },
+    {
+      "name": "phone",
+      "label": "Phone*",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "candidate-location",
+      "label": "Location (City)*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_18820173008",
+      "label": "LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820174008",
+      "label": "Website",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820175008",
+      "label": "Are you currently an intern, freelancer, or employee at WPP or one of its agencies?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820176008",
+      "label": "Current WPP Agency (if applicable)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_18820177008",
+      "label": "Have you previously worked at a WPP Agency?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820178008",
+      "label": "Are you lawfully authorized to work in the country where this job is located?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820179008",
+      "label": "Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820180008",
+      "label": "What are your salary expectations?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "question_18820181008",
+      "label": "What is your current notice period?*",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "4017729008",
+      "label": "What gender identity do you most closely identify with?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017730008",
+      "label": "What is your sexual orientation?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017731008",
+      "label": "What is your religion?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017732008",
+      "label": "I identify my race/ethnicity as (select all that apply)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017733008",
+      "label": "Do you consider yourself to have a disability, impairment or long-term health condition",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017898008",
+      "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017899008",
+      "label": "Do you identify as Trans?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017900008",
+      "label": "Which age range do you belong to?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "4017901008",
+      "label": "Did you receive free school meals, school uniform or PE kit funding?",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "gdpr_demographic_data_consent_given",
+      "label": "By checking this box, I consent to WPP Media collecting, storing, and processing my responses to the demographic data surveys above.",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
+  "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+  "sha256": "1b1b6a09a838c960d7a10a35eac297ee42dbc1762e78e3e0b1013677b223c470",
+  "non_get_blocked": 1,
+  "status": "captured"
+}

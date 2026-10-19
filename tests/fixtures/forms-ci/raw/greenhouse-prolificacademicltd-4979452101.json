@@ -1,0 +1,397 @@
+{
+  "source_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
+  "captured_at": "2026-10-19T07:00:48.617Z",
+  "http_status": 200,
+  "sha256": "1fe69d15754ad6c11a8466d2ae6164c7462d9db738d410d9a8f858d4662753f1",
+  "forms": 1,
+  "resume_inputs": 1,
+  "fields": [
+    {
+      "name": "first_name",
+      "label": "First Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "last_name",
+      "label": "Last Name *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "preferred_name",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "email",
+      "label": "Email *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "country",
+      "label": "Country",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "phone",
+      "label": "Phone",
+      "type": "tel",
+      "required": false
+    },
+    {
+      "name": "resume",
+      "label": "Attach",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "question_9668367101",
+      "label": "Please share a link to your LinkedIn profile if you have one:",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "question_9668368101",
+      "label": "Are you currently based in and can verify right to work from one of the following countries? *",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "",
+      "type": "input",
+      "required": true
+    },
+    {
+      "name": "question_9668369101",
+      "label": "If you selected \"REST OF WORLD\" in the previous question regarding country of residence, please let us know where you are based below:",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "questions_source": "https://boards-api.greenhouse.io/v1/boards/prolificacademicltd/jobs/4979452101?questions=true",
+  "questions_status": 200,
+  "questions": {
+    "absolute_url": "https://job-boards.eu.greenhouse.io/prolificacademicltd/jobs/4979452101",
+    "data_compliance": [
+      {
+        "type": "gdpr",
+        "requires_consent": false,
+        "requires_processing_consent": false,
+        "requires_retention_consent": false,
+        "retention_period": null,
+        "demographic_data_consent_applies": false
+      }
+    ],
+    "internal_job_id": 4518939101,
+    "location": {
+      "name": "Germany"
+    },
+    "metadata": null,
+    "id": 4979452101,
+    "updated_at": "2026-09-17T11:20:35-04:00",
+    "requisition_id": "185",
+    "title": "Abteilungsleiter / Head of Department (m/w/d) – Bezahlte Studie in Deutschland",
+    "company_name": "Prolific Academic Ltd",
+    "first_published": "2026-09-17T08:49:26-04:00",
+    "language": "en",
+    "application_deadline": null,
+    "content": "&lt;h2 style=&quot;text-align: center;&quot;&gt;Abteilungsleiter / Head of Department (m/w/d) – Bezahlte Studie in Deutschland&lt;/h2&gt;\n&lt;h3&gt;&lt;em&gt;About Prolific&lt;/em&gt;&lt;/h3&gt;\n&lt;p&gt;Prolific connects researchers and organisations with people from a wide range of professional backgrounds. More than 35,000 researchers and organisations use Prolific to collect high-quality human insights for research and product development.&lt;/p&gt;\n&lt;h3&gt;&lt;em&gt;The opportunity&lt;/em&gt;&lt;/h3&gt;\n&lt;p&gt;We are recruiting professionals currently working as a &lt;strong&gt;Abteilungsleiter / Head of Department in Germany&lt;/strong&gt; to participate in a paid online leadership research study.&lt;/p&gt;\n&lt;p&gt;The study explores how managers at large organisations approach leadership, decision-making, organisational change, career development, and the growing use of AI in the workplace. Your professional experience will help researchers understand how these developments affect leaders and their teams.&lt;/p&gt;\n&lt;h3&gt;&lt;em&gt;What you&#39;ll be doing&lt;/em&gt;&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Completing a short online survey in English&lt;/li&gt;\n&lt;li&gt;Sharing your views on leadership, management, and workplace change&lt;/li&gt;\n&lt;li&gt;Answering questions about your responsibilities and professional experience&lt;/li&gt;\n&lt;li&gt;Providing information about the size and type of organisation where you work&lt;/li&gt;\n&lt;li&gt;Giving honest, considered responses based on your own experience&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h3&gt;&lt;em&gt;Who we&#39;re looking for&lt;/em&gt;&lt;/h3&gt;\n&lt;p&gt;You may be eligible if you:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Currently live and work in Germany&lt;/li&gt;\n&lt;li&gt;Currently work as a &lt;strong&gt;Abteilungsleiter / Head of Department&lt;/strong&gt; or in a closely comparable senior role&lt;/li&gt;\n&lt;li&gt;Lead a department and have responsibility for people, budgets, performance, or departmental strategy&lt;/li&gt;\n&lt;li&gt;Work for an organisation with &lt;strong&gt;at least 1,000 employees&lt;/strong&gt;&lt;/li&gt;\n&lt;li&gt;Are comfortable completing an online survey in English&lt;/li&gt;\n&lt;li&gt;Meet the requirements in the study&#39;s short pre-screening questionnaire&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;Participants may be asked to verify their identity, location, professional background, or other eligibility information.&lt;/p&gt;\n&lt;h3&gt;&lt;em&gt;Why participate?&lt;/em&gt;&lt;/h3&gt;\n&lt;p&gt;Your experience will contribute to research into how large organisations can better support managers and employees as leadership expectations and workplace technologies change.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;This is a paid research opportunity, not an application for permanent employment.&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;If you already have a Prolific account, you do not need to register again. Please ensure your participant profile is complete and up to date.&lt;/p&gt;",
+    "departments": [
+      {
+        "id": 4069494101,
+        "name": "Human Data Recruitment ",
+        "child_ids": [
+          4070730101,
+          4070731101,
+          4070732101,
+          4070733101
+        ],
+        "parent_id": null
+      }
+    ],
+    "offices": [
+      {
+        "id": 4040294101,
+        "name": "Prolific Expert Network",
+        "location": "Remote",
+        "child_ids": [],
+        "parent_id": null
+      }
+    ],
+    "ai_disclaimer": null,
+    "include_ai_disclaimer": null,
+    "ai_opt_out_request_url": null,
+    "compliance": null,
+    "demographic_questions": null,
+    "questions": [
+      {
+        "description": null,
+        "label": "First Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "first_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Last Name",
+        "required": true,
+        "fields": [
+          {
+            "name": "last_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Preferred First Name",
+        "required": false,
+        "fields": [
+          {
+            "name": "preferred_name",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Email",
+        "required": true,
+        "fields": [
+          {
+            "name": "email",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Phone",
+        "required": false,
+        "fields": [
+          {
+            "name": "phone",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Resume/CV",
+        "required": false,
+        "fields": [
+          {
+            "name": "resume",
+            "type": "input_file",
+            "values": []
+          },
+          {
+            "name": "resume_text",
+            "type": "textarea",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "Please share a link to your LinkedIn profile if you have one:",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_9668367101",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      },
+      {
+        "description": "<p>At this time, we can only onboard successful participants who are currently based in, and able to verify their identification within, the specified regions.</p>\n<p>If you cannot find your current country of residence provided, please select: \"REST OF WORLD\"&nbsp;</p>",
+        "label": "Are you currently based in and can verify right to work from one of the following countries? ",
+        "required": true,
+        "fields": [
+          {
+            "name": "question_9668368101",
+            "type": "multi_value_single_select",
+            "values": [
+              {
+                "label": "Australia",
+                "value": 71989763101
+              },
+              {
+                "label": "Austria",
+                "value": 71989764101
+              },
+              {
+                "label": "Belgium",
+                "value": 71989765101
+              },
+              {
+                "label": "Canada",
+                "value": 71989766101
+              },
+              {
+                "label": "Chile",
+                "value": 71989767101
+              },
+              {
+                "label": "Croatia",
+                "value": 71989768101
+              },
+              {
+                "label": "Czech Republic",
+                "value": 71989769101
+              },
+              {
+                "label": "Denmark",
+                "value": 71989770101
+              },
+              {
+                "label": "Estonia",
+                "value": 71989771101
+              },
+              {
+                "label": "Finland",
+                "value": 71989772101
+              },
+              {
+                "label": "France",
+                "value": 71989773101
+              },
+              {
+                "label": "Germany",
+                "value": 71989774101
+              },
+              {
+                "label": "Greece",
+                "value": 71989775101
+              },
+              {
+                "label": "Hungary",
+                "value": 71989776101
+              },
+              {
+                "label": "Iceland",
+                "value": 71989777101
+              },
+              {
+                "label": "Ireland",
+                "value": 71989778101
+              },
+              {
+                "label": "Israel",
+                "value": 71989779101
+              },
+              {
+                "label": "Italy",
+                "value": 71989780101
+              },
+              {
+                "label": "Japan",
+                "value": 71989781101
+              },
+              {
+                "label": "Korea",
+                "value": 71989782101
+              },
+              {
+                "label": "Latvia",
+                "value": 71989783101
+              },
+              {
+                "label": "Luxembourg",
+                "value": 71989784101
+              },
+              {
+                "label": "Mexico",
+                "value": 71989785101
+              },
+              {
+                "label": "Netherlands",
+                "value": 71989786101
+              },
+              {
+                "label": "New Zealand",
+                "value": 71989787101
+              },
+              {
+                "label": "Norway",
+                "value": 71989788101
+              },
+              {
+                "label": "Poland",
+                "value": 71989789101
+              },
+              {
+                "label": "Portugal",
+                "value": 71989790101
+              },
+              {
+                "label": "Slovakia",
+                "value": 71989791101
+              },
+              {
+                "label": "Slovenia",
+                "value": 71989792101
+              },
+              {
+                "label": "South Africa",
+                "value": 71989793101
+              },
+              {
+                "label": "Spain",
+                "value": 71989794101
+              },
+              {
+                "label": "Sweden",
+                "value": 71989795101
+              },
+              {
+                "label": "Switzerland",
+                "value": 71989796101
+              },
+              {
+                "label": "United Kingdom",
+                "value": 71989797101
+              },
+              {
+                "label": "United States",
+                "value": 71989798101
+              },
+              {
+                "label": "REST OF WORLD",
+                "value": 71989799101
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "description": null,
+        "label": "If you selected \"REST OF WORLD\" in the previous question regarding country of residence, please let us know where you are based below: ",
+        "required": false,
+        "fields": [
+          {
+            "name": "question_9668369101",
+            "type": "input_text",
+            "values": []
+          }
+        ]
+      }
+    ],
+    "location_questions": []
+  }
+}

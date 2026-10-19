@@ -286,3 +286,14 @@ Deno.test("WO-024/M15 'where do I stand with JPMorgan?': every application there
   const ctx = { userId: "U1", threadId: "T1", now: NOW, state: { trackStore: { rows: [{ app_id: "t1", company: "JPMorgan Chase", role: "Markets Analyst", stage: "Submitted", applied_at: iso(NOW - 3 * DAY), events: [] }] } } as Record<string, any> };
   eq(((await tool.run({ company: "jpmorgan" }, ctx)) as any).text, s.text);
 });
+
+Deno.test("WO-024/M16 an offer, interview or rejection about nothing the person applied to is never texted: a scam 'offer' is not an offer", async () => {
+  const store = memoryMailStore({ people: [{ user_id: "U1", read_through: iso(NOW - 3600000) }], tracker: { U1: [] } });
+  const h = harness({ store, msgs: [
+    mail("gm-30", NOW - 20 * 60000, "Bright Path Staffing <hr@brightpath-careers.co>", "Immediate job offer - virtual assistant", "Congratulations! You have been selected for a remote virtual assistant position. Reply with your bank details to start."),
+    mail("gm-31", NOW - 15 * 60000, "Globex <careers@globex.example>", "Interview invitation: Analyst", "We are pleased to invite you to interview for the Analyst role."),
+  ] });
+  await h.run();
+  eq(h.outbox.dump().outbox.length, 0, "nothing texted for mail about applications the person never made");
+  eq((store.dump().events.U1 ?? []).length, 0, "and nothing tracked from it");
+});

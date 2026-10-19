@@ -357,8 +357,10 @@ export function planUpdates(mails: MailIn[], applications: TrackedApp[], now: nu
     let fresh = false;
     if (!app && hits.length) { plan.ambiguous++; continue; } // two applications there and nothing says which
     if (!app) {
-      // An application made by hand: tracked from the employer's own mail, only when the mail names the employer.
-      if (!c.company) { plan.unmatched++; continue; }
+      // An application made by hand: tracked only from the employer's own confirmation that it received the application,
+      // naming the employer. An offer, interview, test, rejection or reply about nothing the person applied to is not
+      // theirs to be told about ("Immediate job offer - virtual assistant" is a scam, not an offer): counted, never texted.
+      if (!c.company || c.kind !== "received") { plan.unmatched++; continue; }
       app = { ref: `mail:${slug(c.company)}${c.role ? ":" + slug(c.role) : ""}`, company: c.company, role: c.role, applied_at: m.date, stage: "Submitted", source: "mail", events: [] };
       if (apps.some((a) => a.ref === app!.ref)) { plan.unmatched++; continue; }
       apps.push(app);

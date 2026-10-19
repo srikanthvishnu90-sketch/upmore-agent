@@ -134,7 +134,7 @@ Deno.test("WO-022/5 the answer's words: what was approved, what was not and why"
     { n: 2, company: "B", result: "daily_cap" },
     { n: 3, company: "C", result: "company_cooldown" },
   ]);
-  assert(/^1 approved exactly as shown/.test(t) && /today's 15 are already used/.test(t) && /last 30 days/.test(t), t);
+  assert(/^1 approved exactly as shown/.test(t) && /today's daily limit is already used/.test(t) && /last 30 days/.test(t), t);
   assert(
     /^Nothing was approved\. Nothing went to an employer\./.test(
       answerText([{ n: 1, company: "A", result: "declined" }]),

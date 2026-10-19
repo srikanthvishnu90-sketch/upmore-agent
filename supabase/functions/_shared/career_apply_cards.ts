@@ -97,7 +97,7 @@ function render(list: Prepared[]) {
 const RESULT: Record<string, string> = {
   queued: "approved; it runs on your computer next",
   declined: "not sent",
-  daily_cap: "not sent: today's 15 are already used",
+  daily_cap: "not sent: today's daily limit is already used",
   company_cooldown: "not sent: you applied to them in the last 30 days",
   duplicate: "not sent: you already applied to this posting",
   stale: "not sent: your details changed after it was prepared; prepare it again",

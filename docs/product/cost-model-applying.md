@@ -28,16 +28,16 @@ tokens in and 200 out each, cached by the question's wording across all users; a
 |---|---|---|---|
 | Browser time | ~$0.008 | $0 | ~$0.008 |
 | Residential proxy | $0.024-0.04 if used (UNVERIFIED whether Tsenta uses one) | $0 (the person's own connection) | $0.012-0.04 |
-| Model: question mapping | not public | ~$0.0008, falling toward $0 as the shared cache fills | same |
-| Model: essay (24% of postings) | not public | ~$0.0005 | same |
-| Model: posting read | not public | ~$0.002 per posting, divided by everyone who applies to it | same |
-| **Total** | **~$0.01-0.05 (estimate)** | **~$0.003, falling with scale** | **~$0.02-0.05** |
+| Model: question mapping | not public | ~$0.0016 (2 x (1,500 x $0.25 + 200 x $2.00) per 1M), falling toward $0 as the shared cache fills | same |
+| Model: essay (24% of postings) | not public | ~$0.0005 (0.24 x (3,000 x $0.25 + 600 x $2.00) per 1M) | same |
+| Model: posting read | not public | ~$0.002 per posting (4,000 x $0.25 + 500 x $2.00 per 1M), divided by everyone who applies to it | same |
+| **Total** | **~$0.01-0.05 (estimate)** | **~$0.004, falling with scale** | **~$0.025-0.05** |
 
 Tsenta sells at $0.022-0.032 per application on its plans and $0.09 on its API, so its margin per application is thin
 on the consumer plans. That is the opening.
 
 ## Where the competitor has to subsidize (the efficiency attack)
-1. **Run in the person's browser.** Our cost per application is about one tenth of a server-browser model and needs no
+1. **Run in the person's browser.** Our cost per application (~$0.004) is about a tenth of a server-browser model (~$0.025-0.05) and needs no
    proxy, and the person's own connection is not a datacenter address. Tsenta's product promise (it keeps applying
    after you close the tab) is built on its own cloud. To match a free tier it pays browser time on every application.
 2. **Shared, compounding caches.** The question-meaning map and the posting read are paid once and reused by every
@@ -53,10 +53,10 @@ on the consumer plans. That is the opening.
 ## At 100 / 1,000 / 10,000 / 100,000 users (ASSUMED: 5 applications per user per day, in-browser path)
 | Users | Applications a month | Model | Database | Messaging (iMessage lines) | Total a month | Per user |
 |---|---|---|---|---|---|---|
-| 100 | 15,000 | ~$45 | $25 | $60 (1 line) | ~$130 | ~$1.30 |
-| 1,000 | 150,000 | ~$400 | ~$50 | $100 (1 line, 1,000 contacts a day) | ~$550 | ~$0.55 |
-| 10,000 | 1.5M | ~$3,000 (cache share rising) | ~$200 | ~$1,000 (10 lines) | ~$4,200 | ~$0.42 |
-| 100,000 | 15M | ~$20,000 | ~$1,500 | ~$10,000 (100 lines) | ~$31,500 | ~$0.32 |
+| 100 | 15,000 | ~$60 ($0.004 each) | $25 | $60 (1 line) | ~$145 | ~$1.45 |
+| 1,000 | 150,000 | ~$525 (~$0.0035 each, cache share rising) | ~$50 | $100 (1 line, 1,000 contacts a day) | ~$675 | ~$0.68 |
+| 10,000 | 1.5M | ~$3,750 (~$0.0025 each) | ~$200 | ~$1,000 (10 lines) | ~$4,950 | ~$0.50 |
+| 100,000 | 15M | ~$22,500 (~$0.0015 each) | ~$1,500 | ~$10,000 (100 lines) | ~$34,000 | ~$0.34 |
 
 The server-browser path at 100,000 users and the same volume would add about $0.03 per application (~$450,000 a
 month): it is a paid-tier option, never the default. Not yet counted: inbox reading (Gmail and Graph show quotas, no

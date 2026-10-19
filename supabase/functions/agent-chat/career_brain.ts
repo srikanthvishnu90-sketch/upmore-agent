@@ -5,6 +5,7 @@ import { careerTools } from "../_shared/agent/career_tools.ts";
 import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
 import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
+import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { AlertPrefs } from "../_shared/career_alerts.ts";
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
@@ -36,13 +37,15 @@ export function agentTurn(o: {
   // and where standing instructions are kept.
   known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null };
   memory?: MemoryStore | null;
+  // WO-024: applications and the status events found in the person's mail, for where_do_i_stand.
+  mail?: Pick<MailStore, "applications" | "events"> | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   return runAgentTurn({
     system: careerSystemPrompt(localDay(o.now, o.tz)) + (block ? "\n\n" + block : ""),
     history: o.history.slice(-20).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, mail: o.mail ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

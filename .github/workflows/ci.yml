@@ -1,5 +1,3 @@
-# Every push and pull request: the same checks a contributor runs locally (CLAUDE.md "Commands"). No step is allowed to
-# fail quietly; the live gauntlet is not here (it needs the deployed handler and a test JWT) and is run by go-live.sh.
 name: ci
 on:
   push:
@@ -7,48 +5,27 @@ on:
 permissions:
   contents: read
 jobs:
-  node:
+  gate:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "22" }
-      - name: Domain, registry, router, gauntlet grader, UI, secret scan
-        run: node --test tests/*.cjs
-      - name: Generated files are current
-        run: |
-          python3 scripts/build-router-core.py --check
-          python3 scripts/build-financial-core.py --check
-          node scripts/build-connect-cards.cjs --check
-          node scripts/build-connector-matrix.cjs --check
-          node scripts/build-teardowns.cjs --check
-          node scripts/build-methods.cjs --check
-          node scripts/build-mutation-report.cjs --check
-          python3 scripts/build-standalone-gauntlet.py --check
-          node evals/parity/build-matrix.cjs --check
-          node scripts/realworld-audit.cjs --check
-      - name: Datasets, eval harness, planted mutations
-        run: |
-          node evals/data/validate.cjs
-          node evals/runner.cjs
-          node evals/runner.cjs --mutations
-      - name: Agent100 dry run (must stay 103/103)
-        working-directory: tests/agent100
-        run: node harness/runner.js --mode dry --all
-  deno:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
+        with: { node-version: "22.23.3" }
       - uses: denoland/setup-deno@v2
-        with: { deno-version: v2.x }
-      - name: Edge function tests (typed, with no permissions, the way the evidence recorder runs them), including the live-failure replays
-        run: deno test tests/edge/
-      - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)
-        run: deno run -A evals/agent/run.ts --check
-      - name: Testing agent self-test (12 planted defects, each must turn its check red)
-        run: deno run -A evals/agent/mutations.ts
-      - name: Type-check the functions this branch deploys
-        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/agent-proactive/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts supabase/functions/manual-connect/index.ts supabase/functions/gmail-oauth/career.ts
+        with: { deno-version: "v2.9.6" }
+      - name: Install tooling and use the runner's packaged Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/wo001-tools" --no-audit --no-fund playwright@1.64.1 esbuild@0.25.12
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$RUNNER_TEMP/wo001-tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+      - name: Allow sandboxed Chromium user namespaces for this gate job
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Career gate
+        run: bash scripts/gate.sh
   database:
     runs-on: ubuntu-24.04
     steps:

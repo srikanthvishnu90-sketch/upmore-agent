@@ -80,6 +80,7 @@ edge_tests=(
   tests/edge/channel-inbound.test.ts
   tests/edge/capability-journey.test.ts
   tests/edge/eval-judge.test.ts
+  tests/edge/career-conversations-eval.test.ts
 )
 
 portable_test_paths() {

@@ -2,7 +2,7 @@
 // Job ingestion: public ATS boards -> postings, with honest first-seen times, closes only on a successful read,
 // and a rotating cursor so a big directory fits inside one function run. Network is injected (fetchFeed).
 // Contract in docs/architect/work-orders/WO-006-job-ingestion.md. Run: deno test -A --no-check tests/architect/
-import { ingestBoards, memoryPostingsDb, type Board, type FetchFeed } from "../../../supabase/functions/_shared/career_ingest.ts";
+import { ingestBoards, memoryPostingsDb, type Board, type FetchFeed } from "../../supabase/functions/_shared/career_ingest.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

@@ -9,8 +9,8 @@ real texting channel is last (D-009).
 
 | WO | Title | Status | Depends on | Milestone | Assignee |
 |---|---|---|---|---|---|
-| [001](WO-001-green-gate.md) | One green gate on trunk | in review (PR #4) | — | M0 | Codex |
-| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | in review (PR #2) | 001 | M1 | Claude |
+| [001](WO-001-green-gate.md) | One green gate on trunk | done (PR #4, 2026-10-19) | — | M0 | Codex |
+| [002](WO-002-agent-brain.md) | The agent brain (model + tools), behind a flag | done (PR #2, 2026-10-19) | 001 | M1 | Claude |
 | [003](WO-003-eval-runner.md) | Eval runner and rubric judge | in review (PR #5) | 001 | M1 | Claude (was Muse) |
 | [004](WO-004-conversation-simulator.md) | One conversation interface + the text simulator | in review (PR #3) | 001 | M1 | Claude (was Muse) |
 | [005](WO-005-approvals-outreach-tailoring.md) | Approvals by reply ("yes" approves the exact card), outreach email (simulated outbox), tailoring and cover-letter tools | ready | 002, 004 | M1 | Codex |
@@ -21,6 +21,6 @@ real texting channel is last (D-009).
 | 010 | Training: mock interviews run and graded from the banks; weak spots drilled (never finish on END/QUIT/CANCEL: those are STOP words, WO-013a) | drafting | 002 | M5 | Codex |
 | 011 | Delete shelved finance code and its tests | drafting | 001 | M0 | any |
 | 012 | Trainee web app replaces the finance app (pipeline, jobs, resume, approvals) | drafting | 005 | M6 | any |
-| [013](WO-013-texting-channel.md) | The texting channel: 013a delivery once-only + STOP/START/HELP + daily contact cap (no provider) · 013b LoopMessage webhook, Supabase conversation store, sends | 013a in review (PR #10) · 013b drafting | 004, 007 | M6 | Claude (was Muse) |
+| [013](WO-013-texting-channel.md) | The texting channel: 013a delivery once-only + STOP/START/HELP + daily contact cap (no provider) · 013b LoopMessage webhook, Supabase conversation store, sends | 013a in review (PR #10) · 013b-1 delivery building · 013b-2 inbound drafting | 004, 007 | M6 | Claude (was Muse) |
 | 014 | SMS/RCS for Android | drafting | 013 | M6 | Claude (was Muse) |
 | 015 | Inbox proof: read-only Gmail scan upgrades submitted_unconfirmed to confirmed and uses an employer's emailed code once (never stored, never in chat) | drafting | 009 | M4 | Codex |

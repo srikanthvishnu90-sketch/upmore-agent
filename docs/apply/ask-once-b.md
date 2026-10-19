@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci-b.json` (CI run 39230110480 of question-captur
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 596/883 (67%) | 31/100 (31%) |
-| + the 10 most common other questions, answered once | 613/883 (69%) | 31/100 (31%) |
-| + the 20 most common | 623/883 (71%) | 33/100 (33%) |
-| + the 40 most common | 643/883 (73%) | 34/100 (34%) |
+| The standard facts only | 591/883 (67%) | 31/100 (31%) |
+| + the 10 most common other questions, answered once | 608/883 (69%) | 31/100 (31%) |
+| + the 20 most common | 618/883 (70%) | 33/100 (33%) |
+| + the 40 most common | 638/883 (72%) | 34/100 (34%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
-| greenhouse | 40 | 433 | 299 (69%) | 10 | 10 |
-| lever | 30 | 245 | 153 (62%) | 13 | 13 |
-| ashby | 30 | 205 | 144 (70%) | 8 | 10 |
+| greenhouse | 40 | 433 | 296 (68%) | 10 | 10 |
+| lever | 30 | 245 | 152 (62%) | 13 | 13 |
+| ashby | 30 | 205 | 143 (70%) | 8 | 10 |
 
-Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 55/100, at most 5 81/100, most 14.
+Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 54/100, at most 5 81/100, most 14.
 
 ## The most common questions the standard facts do not answer
 
@@ -62,4 +62,4 @@ Questions left to ask per posting with the standard facts: median 2, none 31/100
 | Are you located in the US? | 1 |
 | Are you now or have you ever been a Penumbra employee? | 1 |
 
-Unique unanswered wordings: 277; asked on only one posting: 273.
+Unique unanswered wordings: 282; asked on only one posting: 278.

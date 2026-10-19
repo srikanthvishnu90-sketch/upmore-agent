@@ -6,7 +6,7 @@ Status: ready (after WO-016) · Depends on: WO-009a (planner), WO-009b-6 data ·
 `evals/apply/questions-ci.json`: the required questions of 99 real postings (40 Greenhouse, 30 Lever, 29 Ashby),
 captured in CI on 2026-10-19; report `docs/apply/ask-once.md` (`evals/apply/ask-once.ts`).
 - A posting asks a median of 9 required questions. Today's planner (`classifyField`, a keyword list of 17 facts) covers
-  56% of them; a median of 3 are left to ask per posting, and only 5 of 99 postings have nothing left to ask.
+  55% of them (56% before the 2026-10-19 precision fix; see `docs/apply/ask-once-samples.md`); a median of 3 are left to ask per posting, and only 5 of 99 postings have nothing left to ask.
 - Saving an answer by its exact wording barely helps: 432 different unanswered wordings, 420 of them on one posting
   only. People ask the same thing in different words ("If hired, can you show proof of authorization to work in the
   United States?" is work authorization; "Full Legal Name" is a name). Reuse has to be by meaning.

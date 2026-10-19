@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci.json` (CI run 39230110480 of question-capture.
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 584/1042 (56%) | 5/99 (5%) |
-| + the 10 most common other questions, answered once | 612/1042 (59%) | 6/99 (6%) |
-| + the 20 most common | 627/1042 (60%) | 9/99 (9%) |
-| + the 40 most common | 647/1042 (62%) | 9/99 (9%) |
+| The standard facts only | 577/1042 (55%) | 5/99 (5%) |
+| + the 10 most common other questions, answered once | 605/1042 (58%) | 6/99 (6%) |
+| + the 20 most common | 620/1042 (60%) | 9/99 (9%) |
+| + the 40 most common | 640/1042 (61%) | 9/99 (9%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
-| greenhouse | 40 | 543 | 292 (54%) | 1 | 2 |
-| lever | 30 | 286 | 144 (50%) | 3 | 5 |
-| ashby | 29 | 213 | 148 (69%) | 1 | 2 |
+| greenhouse | 40 | 543 | 287 (53%) | 1 | 2 |
+| lever | 30 | 286 | 141 (49%) | 3 | 5 |
+| ashby | 29 | 213 | 149 (70%) | 1 | 2 |
 
-Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 70/99, most 22.
+Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 42/99, at most 5 70/99, most 22.
 
 ## The most common questions the standard facts do not answer
 
@@ -65,4 +65,4 @@ You must be at least 18 years of age or older to work for this employer. | 1 |
 | Are you a Singapore permanent resident? | 1 |
 | Are you a transitioning service member? | 1 |
 
-Unique unanswered wordings: 435; asked on only one posting: 423.
+Unique unanswered wordings: 442; asked on only one posting: 430.

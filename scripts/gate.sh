@@ -83,6 +83,7 @@ done
 # suites. Explicit shared Edge files keep finance suites out of this selection.
 edge_tests=(
   tests/edge/chat-input.test.ts
+  tests/edge/gmail-code-window.test.ts
   tests/edge/chat-cors.test.ts
   tests/edge/chat-session.test.ts
   tests/edge/identity-redact.test.ts

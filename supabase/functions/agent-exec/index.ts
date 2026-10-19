@@ -28,6 +28,7 @@ import {
   normalizeMerchant, resolveMerchant,
   type MerchantPlaybook, type Resolution,
  } from "./merchant-catalog.ts";
+import { freshForCode, gmailCodeQuery } from "../_shared/gmail_code_window.ts";
 // Shared execution-trust logic (2026-09-28): the SAME module the fixtures
 // exercise. Guards live there once — index.ts calls them, never re-implements.
 import {
@@ -1355,7 +1356,7 @@ function extractMagicLink(text: string, hosts: string[]): string | null {
 }
 
 async function searchGmailForOtp(accessToken: string, sender: string): Promise<string | null> {
-  const q = `from:${sender} newer_than:15m`;
+  const q = gmailCodeQuery(sender);
   const listRes = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=5`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -1370,6 +1371,7 @@ async function searchGmailForOtp(accessToken: string, sender: string): Promise<s
     );
     const full = await fullRes.json().catch(() => ({}));
     if (!fullRes.ok) continue;
+    if (!freshForCode(full, Date.now())) continue; // older than 15 minutes: never a code for this sign-in
     const code = extractOtpCode(gmailMessageText(full));
     if (code) return code;
   }
@@ -1379,7 +1381,7 @@ async function searchGmailForOtp(accessToken: string, sender: string): Promise<s
 async function searchGmailForMagicLink(
   accessToken: string, sender: string, hosts: string[],
 ): Promise<string | null> {
-  const q = `from:${sender} newer_than:15m`;
+  const q = gmailCodeQuery(sender);
   const listRes = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=5`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -1394,6 +1396,7 @@ async function searchGmailForMagicLink(
     );
     const full = await fullRes.json().catch(() => ({}));
     if (!fullRes.ok) continue;
+    if (!freshForCode(full, Date.now())) continue; // older than 15 minutes: never a code for this sign-in
     const link = extractMagicLink(gmailMessageText(full), hosts);
     if (link) return link;
   }

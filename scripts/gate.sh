@@ -75,6 +75,7 @@ edge_tests=(
   tests/edge/career-ingest.test.ts
   tests/edge/career-alerts.test.ts
   tests/edge/career-proactive.test.ts
+  tests/edge/channel.test.ts
 )
 
 portable_test_paths() {

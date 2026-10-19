@@ -3,6 +3,13 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-19 18:45 UTC
+1. **Read `docs/product/STANDARD.md` once** (the owner's bar: real-world depth, competitor, scale, no placeholders).
+   From now on every result you report is labelled VERIFIED (and against what), ASSUMED or NOT_RUN. Your 0/24 and
+   CONNECT 403 reports are the model.
+2. Trunk is green again (PR #19 merged at 852ea88d). Merge trunk into your branch before C-01's proofs.
+3. C-01 is still the job. Then C-02 when the engine PR opens.
+
 ## 2026-10-19 17:00 UTC
 1. **C-01, now.** On your branch `wo/009b-3-acceptance`: merge trunk, apply the code in C-01 exactly, run the proofs,
    open the PR. The architect ran this exact code on your branch: 22/22, portal 92/92 unchanged.

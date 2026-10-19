@@ -7,6 +7,7 @@ import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../
 import { styleBlock } from "../_shared/agent/style.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
 import type { AlertPrefs } from "../_shared/career_alerts.ts";
+import { type CareerEvent, type EventStore, SUMMARY_UNREADABLE, threadSummary } from "../_shared/agent/timeline.ts";
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
   return env.get("CAREER_BRAIN") === "agent" ? "agent" : "router";
@@ -17,6 +18,25 @@ export function chooseBrain(env: { get(k: string): string | undefined }): "agent
 export function afterErase<T extends { meta?: unknown }>(newestFirst: T[]): T[] {
   const i = newestFirst.findIndex((m) => (m.meta as any)?.intent === "career_profile_erased");
   return i < 0 ? newestFirst : newestFirst.slice(0, i);
+}
+
+// WO-023 B5 / WO-027: the model sees the last 40 messages. The handler reads 41 rows newest first; past the latest erase
+// nothing is kept (afterErase), and when more than 40 remain the thread is longer than the window, so a summary written
+// in code from the account's events goes into the system prompt after the person block.
+export const HISTORY_WINDOW = 40;
+export function historyWindow(newestFirst: { role: string; content: unknown; meta?: unknown }[]): { history: { role: "user" | "assistant"; content: string }[]; cut: boolean } {
+  const kept = afterErase(newestFirst);
+  return {
+    cut: kept.length > HISTORY_WINDOW,
+    history: kept.slice(0, HISTORY_WINDOW).reverse()
+      .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string })),
+  };
+}
+// The summary when the window cut the thread, from the account's events (null: they could not be read, which is said).
+export function summaryFor(cut: boolean, events: CareerEvent[] | null, now: number, tz?: string): string | null {
+  if (!cut) return null;
+  return events ? threadSummary(events, now, tz) : SUMMARY_UNREADABLE;
 }
 
 export function localDay(now: number, tz = "America/New_York"): string {
@@ -37,13 +57,16 @@ export function agentTurn(o: {
   // and where standing instructions are kept.
   known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null };
   memory?: MemoryStore | null;
+  // WO-027: the account's timeline (written by the tools, read by recall), and the summary of what the window cut.
+  events?: EventStore | null;
+  summary?: string | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   return runAgentTurn({
-    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : ""),
-    history: o.history.slice(-20).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
+    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
+    history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

@@ -6,6 +6,7 @@ import { equalSecret } from "../_shared/message_service.ts";
 import { runAlerts, runCards, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
+import type { EventStore } from "../_shared/agent/timeline.ts";
 
 export interface ProactiveDeps {
   env: { get(k: string): string | undefined };
@@ -18,6 +19,8 @@ export interface ProactiveDeps {
   // cards this run.
   readyApplications?: () => Promise<ReadyRow[]>;
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
+  // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
+  events?: () => EventStore;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
   now: () => number;
 }
@@ -32,7 +35,7 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   const store = d.store();
   try {
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
-    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications });
+    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });

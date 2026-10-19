@@ -4,6 +4,10 @@
 //
 // Declining is "no", never "stop": over SMS, STOP is the carrier's opt-out keyword, and trainee-inbound treats it as the
 // channel command that silences every text before a turn runs.
+//
+// WO-027: each answered line is written to the account's timeline (approved, or the reason it was not sent). A timeline
+// that cannot be written never changes the answer.
+import { type EventStore, recordEvent } from "./agent/timeline.ts";
 
 export interface Prepared {
   id: string;
@@ -117,7 +121,7 @@ export function answerText(results: CardResult[]): string {
 
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export async function cardTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: CardStore },
+  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null },
 ): Promise<{ reply: string; status: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
@@ -169,6 +173,16 @@ export async function cardTurn(
   }
   try {
     const results = await o.store.answer(o.userId, card.id, numbers.filter((n) => !leaveOut.includes(n)));
+    for (const r of results) {
+      await recordEvent(o.events, {
+        user_id: o.userId,
+        at: o.now,
+        kind: r.result === "queued" ? "application_approved" : "status_change",
+        subject: r.company,
+        detail: { card: card.id, n: r.n, result: r.result },
+        source: "card",
+      });
+    }
     return { reply: answerText(results), status: "answered" };
   } catch (e: any) {
     const msg = String(e?.message ?? e);

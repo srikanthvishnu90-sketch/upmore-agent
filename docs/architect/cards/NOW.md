@@ -9,9 +9,7 @@ and build order are in `docs/product/REQUIREMENTS.md`.
 3. **C-03:** the live-assist guard. 120/120 on the labeled set, plus the prompt line.
 4. **WO-021 W2:** the batch card shows every answer.
 5. **WO-021 W3:** the texted yes ("yes", "yes but not N", "change N <field> to <value>", "stop").
-6. **Next card from the architect: C-04, the relevance floor.** Hard filters run before anything is queued: employment
-   type, seniority, location, exclusions, salary floor, staffing agency, closed posting, duplicate. Don't start it
-   until the card exists.
+6. **C-04, the relevance floor:** `docs/architect/cards/C-04-relevance-floor.md`, fully specified.
 
 Every result you report is labeled VERIFIED (against what), REPORTED, ASSUMED or NOT_RUN.
 

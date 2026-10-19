@@ -48,7 +48,7 @@ Function secrets are project-wide in Supabase: every function sees every one.
    `20261020020000_career_apply_receipts.sql`, `20261020030000_career_apply_cards.sql`,
    `20261020040000_career_apply_card_push.sql`, `20261020050000_career_apply_daily_limit.sql` (the approved-application
    queue, the person's own computer claiming its own applications, receipts, prepared applications and their card, the
-   card pushed into the thread, the daily limit), and `20261020060000_career_apply_questions.sql` (the questions only the person can answer, asked once by text). Each runs in one transaction with its row in
+   card pushed into the thread, the daily limit), and `20261020060000_career_apply_questions.sql` (the questions only the person can answer, asked once by text)., `20261020110000_career_connector.sql` (the Connector's profiles, introductions and blocks; nothing is proposed until 500 people opt in). Each runs in one transaction with its row in
    `public.upmore_migration_ledger` (when that ledger is in use; an empty or missing one is left for
    `apply-rails-and-seed.sh --pending` to backfill). A file whose objects are already live is not run again. The earlier
    career migrations (`20261015*`, `20261016*`) are only **checked**: they use plain `create table`, so a missing one stops

@@ -63,6 +63,7 @@ MIGRATIONS=(
   20261020040000_career_apply_card_push.sql
   20261020050000_career_apply_daily_limit.sql
   20261020060000_career_apply_questions.sql
+  20261020110000_career_connector.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -76,6 +77,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_card_push_for')"
   "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit')"
   "to_regclass('public.career_apply_questions') is not null"
+  "to_regclass('public.connector_intros') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

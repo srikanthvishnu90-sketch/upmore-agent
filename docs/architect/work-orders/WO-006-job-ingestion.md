@@ -1,6 +1,6 @@
 # WO-006: Real jobs — cloud ingestion into a postings table
 
-Status: in review · Depends on: WO-001 · Assignee: Claude (was Muse; taken by the architect as primary coder, 2026-10-19) · Size cap: ~600 lines excluding the architect tests and the board data
+Status: ready · Depends on: WO-001 · Assignee: Claude (was Muse; D-012) · Size cap: ~600 lines excluding the architect tests and the board data
 
 ## Why
 The live chat has zero jobs: polling ran only on the owner's VM, for the test account, and died silently three
@@ -71,35 +71,3 @@ Run the local ingest twice 10 minutes apart; the second run shows `new` > 0 only
 
 ## Out of scope
 Alerts and reports (WO-007), Workday (later order), paid job-data APIs (D-003), deploying or scheduling (the owner).
-
-## As built (architect, 2026-10-19)
-Where the build differs from the contract above, the build is the contract now:
-- **Store interface** gains batch methods so a 700-posting board is a handful of requests, not 1,400:
-  `getMany(ids)`, `putMany(ps)`, `touch(ids, at)` (seen again, unchanged: `last_seen_at` only), `close(ids, at)`,
-  `search(words, limit)`; `openForBoard` returns ids only. `supabasePostingsDb` adds `recordRun(stats, at)`.
-- **Partial reads**: a feed may return `{ postings, complete: false }` (SmartRecruiters past 10 pages of 100); a partial
-  read adds and refreshes but closes nothing. Stats add `boards_partial`, `reopened`, `attempted` and `large_closes`
-  (a board that lost half or more, at least 20, in one read).
-- **Job ids** are `provider:board:<the ATS's own posting id>` (also stored as `ats_id`), not 121's requisition-based id:
-  a requisition shared by two cities is two postings, and the apply worker (WO-009b) needs the ATS's id.
-- **Write economy**: an unchanged posting is not rewritten; `touchAfterMs` (6 h in the scheduled run) limits even the
-  `last_seen_at` touch. Without it every run would rewrite tens of thousands of rows.
-- **Cadence**: every 5 minutes (`scripts/launch/schedule-career-ingest.sql`, owner runs it), 100 boards per run
-  (`INGEST_MAX_BOARDS`), 8 at a time (`INGEST_CONCURRENCY`), no board started after 100 s; each of the 305 boards is
-  read about every 15 minutes. The cursor moves only past boards actually attempted.
-- **Function door**: `POST` with header `x-trainee-ingest-secret` equal to `CAREER_INGEST_SECRET` (32+ characters, or
-  503 not configured); `INGEST_CONTACT_EMAIL` is required (503 without it), sent in the User-Agent.
-- **Board list**: the function ships `supabase/functions/career-ingest/boards.json`, generated from the directory by
-  `deno run -A scripts/build-ingest-boards.ts` (B8 fails while it is stale). Final count **305 live boards**: 309 less
-  `lever:leverdemo`, `greenhouse:greenhouse`, `ashby:ashby` and the duplicate `smartrecruiters:palantir` (Palantir is
-  `lever:palantir`).
-- **Search** (`_shared/career_search.ts`): words minus filler ("jobs", "near", "any"), a light stem ("nurse" finds
-  "nursing"), Postgres `websearch` over a generated `tsvector` (title A, company and location B, description D) in
-  production; fit from **confirmed** facts only; a knocked-out posting ranks last with its reason, never hidden; years of
-  experience are unknown unless an experience fact has dates (the router's adapter says "0 yrs" for "3 years at Acme").
-  Results carry no description, so a tool result stays small. A chat turn reads at most the 150 newest matching postings
-  (with text, for fit), so a broad query ranks fit within those; a ranked database RPC is the next step if that bites.
-- The feed adapter clips every field to its column and drops rows without an https link or a title, so one bad row
-  can never fail a board's write on every run.
-- Indexes are partial on open postings (`closed_at is null`) plus a GIN index on `search`.
-- Greenhouse double-escapes entities; descriptions are decoded once more (`decodeEntities`).

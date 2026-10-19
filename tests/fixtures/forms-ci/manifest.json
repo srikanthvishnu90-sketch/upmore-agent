@@ -1,7 +1,7 @@
 {
  "version": 1,
  "captured_in": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19)",
- "note": "Rendered application pages with <script> and <style> bodies removed; the summary is what the live page held before stripping.",
+ "note": "Rendered application pages with <script> and <style> bodies and iframes removed; the summary is what the live page held before stripping.",
  "forms": [
   {
    "id": "greenhouse-prolificacademicltd-4979452101",
@@ -46,7 +46,7 @@
     "recaptcha_enterprise"
    ],
    "html": "greenhouse-prolificacademicltd-4979452101.html",
-   "html_sha256": "229efcd93d31467f39d04949dc2bb29ab436bbbffbc82de201a611c446bbde53"
+   "html_sha256": "b6f73436ae3dc2f43d5294f378551098beae5deba1bcc2864de14ba311254e68"
   },
   {
    "id": "greenhouse-eosfitness-4336050009",
@@ -211,7 +211,7 @@
     "recaptcha_enterprise"
    ],
    "html": "greenhouse-eosfitness-4336050009.html",
-   "html_sha256": "641c8acc8b05a256fa8049324b43443d3a60d9eb02fbc1aab664bcb447263a89"
+   "html_sha256": "6aec43d61beb57c4ac8a6897935585a2056844c0366d88db9d7c31463f039a10"
   },
   {
    "id": "greenhouse-spacex-8643277002",
@@ -411,7 +411,7 @@
     "recaptcha_enterprise"
    ],
    "html": "greenhouse-spacex-8643277002.html",
-   "html_sha256": "8eab9d3cc43b2b8b9d862f15123ffd30940d1086773e0c4738ee3d71af87adb7"
+   "html_sha256": "bddbc2663fdc33ee3251581573edc0434cd1587b17352ddfe673056da25c0e33"
   },
   {
    "id": "greenhouse-andurilindustries-4802172007",
@@ -636,7 +636,7 @@
     "recaptcha_enterprise"
    ],
    "html": "greenhouse-andurilindustries-4802172007.html",
-   "html_sha256": "3b289a1b390bef9fd55c5723c0aae480478c46ceef018fedc280019bd4e5239d"
+   "html_sha256": "e7b5b4ce0d66121c83caaec878fa5b2150847819193ff3cb35c129178aeca98c"
   },
   {
    "id": "greenhouse-wppmedia-5437567008",
@@ -751,7 +751,7 @@
     "recaptcha_enterprise"
    ],
    "html": "greenhouse-wppmedia-5437567008.html",
-   "html_sha256": "54924be9e8a504696fd825fd5419dadf18f5d077abdad99c89470ea86fff75a1"
+   "html_sha256": "8ab8fc46f5c0d5385e2d43efcd0471ef34d072fc7dc99d6b476f9eecf38b9e42"
   },
   {
    "id": "greenhouse-databricks-8805655002",
@@ -811,7 +811,7 @@
     "hcaptcha"
    ],
    "html": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7.html",
-   "html_sha256": "b6c0c8355a0bf34b59ec2c3baa501d273e6493789adf0dd85f24fbab6de78408"
+   "html_sha256": "811a2fc3f7b17ae504ef377254032e06095560b010279c86709fece6191e1fae"
   },
   {
    "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
@@ -891,7 +891,7 @@
     "hcaptcha"
    ],
    "html": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5.html",
-   "html_sha256": "131fed8977fcf1cab595a6dee3606bddd1d0af8fdad812cc01032cdad9b0fde5"
+   "html_sha256": "46bfc2ce0e87a08f43c9c8203ef1469decccdb02ab11478b5e94d1d0b9e05bfa"
   },
   {
    "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
@@ -946,7 +946,7 @@
     "hcaptcha"
    ],
    "html": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027.html",
-   "html_sha256": "76bf9cb0390dd0c6e2b220cf07705966be58b7aa7e5e463c72347141c45805ce"
+   "html_sha256": "fd366af78edc4130719c79068b1d490335aea7404f561c44e77839e946ca7749"
   },
   {
    "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
@@ -1081,7 +1081,7 @@
     "hcaptcha"
    ],
    "html": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3.html",
-   "html_sha256": "8dbd7be9f84abd55b885edb70b479570e0bc0c8317315a97ff9c203637a08535"
+   "html_sha256": "40c927b2c1405d4af5bf43f6f51644a32b4c981b1deeffabf7e20bfd7c723f3e"
   },
   {
    "id": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
@@ -1266,7 +1266,7 @@
     "hcaptcha"
    ],
    "html": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d.html",
-   "html_sha256": "57e793b8e3ddf793f84df6fc3e5724b2372ac2710c6a0b15c0602f1409f09b8b"
+   "html_sha256": "cd791f2b73462968a54259501d87403081f66e6de363dc1c2fa97d6e8f3fbdb6"
   },
   {
    "id": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
@@ -1336,7 +1336,7 @@
     "hcaptcha"
    ],
    "html": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d.html",
-   "html_sha256": "09760b8376606063ed6189cc4941797234db7d947919c6599050224d57ccdb8e"
+   "html_sha256": "0d6c8a72363f8928eac8f8f96aca1f8cbe6dca740c4c7c4ba84dd2be3f06dd00"
   },
   {
    "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
@@ -1381,7 +1381,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3.html",
-   "html_sha256": "c2fd5d7e34ba450adc46b10cb307a4b95c4708186860b02439ad38955f44101e"
+   "html_sha256": "03fe093a0258e23d659e921f0eea82db0d67e357efe252e0db22588fcf406895"
   },
   {
    "id": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
@@ -1446,7 +1446,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c.html",
-   "html_sha256": "5ee56349810158d825d8ce13653e66e156365cd672a53db850d5a6bb3c857a02"
+   "html_sha256": "ffdd39d23e3d09560837782a850e79eecef0d6d2600dc4945bb52f814d0158ae"
   },
   {
    "id": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
@@ -1506,7 +1506,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3.html",
-   "html_sha256": "df9ddaf746f0177b446b85b2b56bf051d1bdb6a46d337eee007652c5763c37b3"
+   "html_sha256": "bf972819b6d10a5b52b5a625660668573facebb9b498854a9dbc06b9e1ca802e"
   },
   {
    "id": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
@@ -1551,7 +1551,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75.html",
-   "html_sha256": "47f94cac7ac9e153aeccfc53121ddc27c3840564bd88639f5957af0197c5c86a"
+   "html_sha256": "36f08c49cde4f13e8c06c5713973be9ea5f4a98863983ae78d041fd8707e2948"
   },
   {
    "id": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
@@ -1586,7 +1586,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03.html",
-   "html_sha256": "d8b50d90e8a77fe54444d36692a60137c376ed7abc32650686e52eb22f8705b6"
+   "html_sha256": "a67a44705628ff37c8ed2416ab35dc7a6a23a043b1f90bdeb8ad163cfacb2009"
   },
   {
    "id": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
@@ -1646,7 +1646,7 @@
     "recaptcha_enterprise"
    ],
    "html": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778.html",
-   "html_sha256": "fe62bd3dabefa74b8587d9212a3de7b290068c43397d3889d3bbcedc936e2808"
+   "html_sha256": "175ecaa7c0d1c0819275568e3cc96f42cae057b388de3e0a6a7aceca2a05bb9d"
   },
   {
    "id": "smartrecruiters-dominos-744000156228029",

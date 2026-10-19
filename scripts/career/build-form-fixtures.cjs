@@ -1,6 +1,6 @@
 // WO-009b-2 fixtures: turn a render-form.cjs output directory into tests/fixtures/forms-ci: one manifest entry per
 // source (what the live page held, its bot check, and whether it is an application), and for each application the
-// rendered HTML with <script> and <style> bodies removed (the form markup is what the fill harness needs).
+// rendered HTML with <script> and <style> bodies and iframes removed (the form markup is what the fill harness needs).
 //   node scripts/career/build-form-fixtures.cjs <rendered-dir> <sources.json> <out-dir> <provenance note>
 "use strict";
 const fs = require("node:fs");
@@ -8,7 +8,10 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 
 const BOT_CHECKS = [["recaptcha_enterprise", "recaptcha/enterprise"], ["hcaptcha", "hcaptcha"], ["datadome", "captcha-delivery.com"], ["turnstile", "turnstile"]];
-const strip = (html) => html.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, "$1$2").replace(/(<style\b[^>]*>)[\s\S]*?(<\/style>)/gi, "$1$2");
+// Script and style bodies go; third-party iframes (an "Apply with LinkedIn" widget, captcha frames) go whole, since the
+// form does not need them and their encoded settings are not ours to keep. The bot check is read before stripping.
+const strip = (html) => html.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, "$1$2").replace(/(<style\b[^>]*>)[\s\S]*?(<\/style>)/gi, "$1$2")
+  .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "").replace(/<iframe\b[^>]*\/?>/gi, "");
 
 function build(renderedDir, sources, outDir, note) {
   fs.mkdirSync(outDir, { recursive: true });
@@ -30,7 +33,7 @@ function build(renderedDir, sources, outDir, note) {
     }
     return e;
   });
-  const manifest = { version: 1, captured_in: note, note: "Rendered application pages with <script> and <style> bodies removed; the summary is what the live page held before stripping.", forms };
+  const manifest = { version: 1, captured_in: note, note: "Rendered application pages with <script> and <style> bodies and iframes removed; the summary is what the live page held before stripping.", forms };
   fs.writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify(manifest, null, 1) + "\n");
   return manifest;
 }

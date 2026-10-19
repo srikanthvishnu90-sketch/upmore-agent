@@ -52,5 +52,6 @@ test("WO-009b-2 the renderer is read-only: GETs and GraphQL queries pass; mutati
   assert.equal(readOnly(r("POST", G, "not json")), false);
   assert.equal(readOnly(r("PUT", G, "{}")), false);
   assert.throws(() => publicURL("https://jobs.lever.co.evil.test/a"));
-  assert.equal(strip('<script src="a.js"></script><script>var a=1</script><style>p{}</style><p>x</p>'), '<script src="a.js"></script><script></script><style></style><p>x</p>');
+  assert.equal(strip('<script src="a.js"></script><script>var a=1</script><style>p{}</style><iframe id="{&quot;a&quot;:1}"><p>w</p></iframe><p>x</p>'),
+    '<script src="a.js"></script><script></script><style></style><p>x</p>');
 });

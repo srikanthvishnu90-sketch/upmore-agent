@@ -3,6 +3,16 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-20 02:00 UTC: your queue, in this order
+1. **C-01 (PR #28): fix the two blocking findings in my review on #28 before anything else.**
+   - (1) Module 150 puts `education_school` into a yes/no checkbox ("…publicly-funded institution…" got "TEST University"). Apply the free-text-only rule to the education keys and add that label as a trap.
+   - (2) Ashby yes/no questions bound to a lone checkbox are planned "Yes"/"No" with no readback; stop them as a live widget or bind Yes as checked with a boolean readback.
+   - Then merge trunk and re-pin the Ashby counts, with the reason.
+2. **C-02:** the safety review of PR #25 and #27 (both merged; review them anyway) and #29 (open). Post the findings on each.
+3. **C-03:** the live-assist guard (unchanged).
+4. **WO-021 W2, then W3** (unchanged). The worker that runs an approved application on the person's own computer is in PR #29 (`approve-first.ts run`, own-person queue functions).
+5. **C-04 moved to the architect** (PR on `wo/c04-relevance-floor`). Do not start it.
+
 ## 2026-10-20 00:00 UTC: your queue, in this order
 1. **C-02:** the safety review of PR #23 (merged; review it anyway) and PR #25. Post the findings on each PR.
 2. **C-01:** open the PR for the module-150 contact precision. The code is already verified at 22/22.

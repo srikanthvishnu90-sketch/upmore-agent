@@ -3,6 +3,9 @@
 # employer), fetches Greenhouse's public questions API once each, renders the Lever and Ashby application pages in
 # sandboxed Chromium (GETs and GraphQL queries only; nothing clicked or typed), builds evals/apply/questions-ci.json,
 # measures docs/apply/ask-once.md with the product's own classifier, and commits both to ci/question-capture only.
+# Sample A is the biggest boards (a re-run measures the same employers, so it shows the capture repeats). Sample B is a
+# second, independent 100: seeded random boards and postings, no employer from A, measured into ask-once-b.md, so a
+# number is only trusted if it holds on both.
 name: question-capture
 on:
   push:
@@ -32,22 +35,28 @@ jobs:
           echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
           echo "UPMORE_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Pick 100 real postings
-        run: node scripts/career/pick-form-sources.cjs "$RUNNER_TEMP/sources.json" greenhouse=40,lever=30,ashby=30
+      - name: Pick 100 real postings (sample A, biggest boards) and 100 more (sample B, seed 2, other employers)
+        run: |
+          node scripts/career/pick-form-sources.cjs "$RUNNER_TEMP/a/sources.json" greenhouse=40,lever=30,ashby=30
+          node scripts/career/pick-form-sources.cjs "$RUNNER_TEMP/b/sources.json" greenhouse=40,lever=30,ashby=30 --seed 2 --exclude "$RUNNER_TEMP/a/sources.json"
       - name: Greenhouse questions (public API, one GET each)
-        run: node scripts/career/capture-greenhouse-questions.cjs "$RUNNER_TEMP/sources.json" "$RUNNER_TEMP/gh"
+        run: for s in a b; do node scripts/career/capture-greenhouse-questions.cjs "$RUNNER_TEMP/$s/sources.json" "$RUNNER_TEMP/$s/gh"; done
       - name: Lever and Ashby application pages (Chromium, read-only)
         run: |
-          node -e 'const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1]));fs.writeFileSync(process.argv[2],JSON.stringify(s.filter(x=>x.family!=="greenhouse")))' "$RUNNER_TEMP/sources.json" "$RUNNER_TEMP/render-sources.json"
-          node scripts/career/render-form.cjs "$RUNNER_TEMP/render-sources.json" "$RUNNER_TEMP/rendered"
-      - name: Build the question set and measure ask-once
+          for s in a b; do
+            node -e 'const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1]));fs.writeFileSync(process.argv[2],JSON.stringify(s.filter(x=>x.family!=="greenhouse")))' "$RUNNER_TEMP/$s/sources.json" "$RUNNER_TEMP/$s/render-sources.json"
+            node scripts/career/render-form.cjs "$RUNNER_TEMP/$s/render-sources.json" "$RUNNER_TEMP/$s/rendered"
+          done
+      - name: Build the question sets and measure ask-once
         run: |
-          deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/sources.json" "$RUNNER_TEMP/gh" "$RUNNER_TEMP/rendered" evals/apply/questions-ci.json "CI run ${{ github.run_id }} of question-capture.yml at ${{ github.sha }}"
+          deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/a/sources.json" "$RUNNER_TEMP/a/gh" "$RUNNER_TEMP/a/rendered" evals/apply/questions-ci.json "CI run ${{ github.run_id }} of question-capture.yml at ${{ github.sha }}, sample A (biggest boards)"
           deno run --allow-read --allow-write evals/apply/ask-once.ts evals/apply/questions-ci.json docs/apply/ask-once.md
+          deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/b/sources.json" "$RUNNER_TEMP/b/gh" "$RUNNER_TEMP/b/rendered" evals/apply/questions-ci-b.json "CI run ${{ github.run_id }} of question-capture.yml at ${{ github.sha }}, sample B (seed 2, no employer from A)"
+          deno run --allow-read --allow-write evals/apply/ask-once.ts evals/apply/questions-ci-b.json docs/apply/ask-once-b.md
       - name: Commit to ci/question-capture
         run: |
           git config user.name "question-capture[ci]"
           git config user.email "question-capture@users.noreply.github.com"
-          git add evals/apply/questions-ci.json docs/apply/ask-once.md
-          git commit -m "WO-009b-6 data: required questions of 100 real postings, and the ask-once measure" || exit 0
+          git add evals/apply/questions-ci.json docs/apply/ask-once.md evals/apply/questions-ci-b.json docs/apply/ask-once-b.md
+          git commit -m "WO-009b-6 data: required questions of two independent 100-posting samples, and the ask-once measure of each" || exit 0
           git push origin HEAD:ci/question-capture

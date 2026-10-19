@@ -85,6 +85,37 @@ Files: `tests/career-apply-forms.test.cjs` (new), `tests/fixtures/portal-fixture
   hash; ≥ 95% of required fields read back equal to the planned value; any unknown required field stops the drive with
   its label. The test prints the per-form table (fields required, bound, read back, unknown).
 
+### 009b-3 review, 2026-10-19 (architect, on Codex's `wo/009b-3-rendered-readback` at db0cae0c)
+Run as a non-root user (Chromium will not start its sandbox as root; the gate's GitHub runner is not root): 14/15 pass.
+The one red test is the real-form acceptance, and what it reports on the 17 saved pages is the finding:
+
+| ATS | Real forms | Stop | Why |
+|---|---|---|---|
+| Greenhouse | 5 | RENDERED_WIDGET_REQUIRES_LIVE_PAGE, all 5 | its selects are React widgets; the saved pages have no scripts, so no saved page can fill them |
+| Lever | 6 | CAPTCHA_HANDOFF 5, awaiting_user 1 | see the detector defect below |
+| Ashby | 5 | awaiting_user, all 5 | correct: required questions the synthetic profile does not answer, each named |
+
+The acceptance as written ("every required field bound, >= 95% read back" on every real form) cannot pass on saved
+pages, and a test that can never pass may not sit in the gate. That is the architect's error, not the code's. Revised:
+- Synthetic controls: unchanged (prepared, 100% read back, the resume's hash, no submit). Already green.
+- Every real form: submit is never called; the stop is one of `prepared` (only with >= 95% read back and the resume's
+  hash), `awaiting_user` (every unknown required question named, review never reached), or `blocked` with a named code
+  (`RENDERED_WIDGET_REQUIRES_LIVE_PAGE`, `CAPTCHA_HANDOFF`); every required native control the profile answers is bound
+  and reads back equal. The per-form table is printed, and the count of each stop per ATS is pinned in the test, so a
+  regression (one more form blocked) turns it red and an improvement is a deliberate pin change.
+- **Defect to fix in this order (trunk code, `scripts/career/portal-browser-helper.cjs` `fnDetectChallenge`):** a
+  visible `.h-captcha` or `.g-recaptcha` element counts as a challenge. 5 of the 6 saved Lever applications carry
+  `<div class="h-captcha" data-sitekey=...>`, the empty container of hCaptcha's invisible mode, and those 5 stop at
+  open before one field is filled; the sixth (weloglobal) has no container and gets past open to its unknown questions. The design is a hand-off when a challenge is actually shown, at open or at submit, never a solve; an empty
+  container is not one. A challenge is: a challenge frame of non-zero size (an hCaptcha or reCAPTCHA iframe whose src is
+  the challenge, or reCAPTCHA's `bframe`), `#challenge-form`, or the challenge text already matched. Tests: the saved
+  Lever pages get past open; a synthetic page with a visible challenge frame still stops with `CAPTCHA_HANDOFF` and
+  nothing typed. Whether the live Lever page shows a challenge at submit is what the owner's Lever trials answer.
+- Drop the `scripts/gate.sh` reordering (the file is already in `career_tests` by its name) unless it fixes a measured
+  problem, and say which.
+- Format the new code like the file it sits in (one statement per line); 3 KB lines cannot be reviewed.
+- `wo/009b-3-fill-readback` is superseded by this branch; delete it once the PR is open.
+
 ## 009b-4: `scripts/apply.ts` — the first real application, from a terminal
 Files: `scripts/apply.ts` (new), `tests/career-apply-script.test.cjs` or `tests/edge/apply-script.test.ts` (new), `scripts/gate.sh`.
 - `deno run -A scripts/apply.ts --url <posting> --facts <confirmed-facts.json> --resume <file.pdf> [--submit]`.
@@ -113,3 +144,18 @@ URLs), `docs/apply/coverage.md` (generated), `tests/apply-coverage.test.cjs` (ne
   questions `planBatch` can answer, the questions it cannot, ranked by how often they appear, and the time to plan.
 - `--check` fails when the report is stale. The report is the input to the next order (which facts to ask once).
 - Acceptance: the report exists, every number links to its posting, and nothing was submitted (the script has no submit path).
+
+### 009b-6 redirected, 2026-10-19 (architect)
+Codex's `wo/009b-6-coverage` (64bb0325) is honest (NOT_RUN, 0/100 measured), because the sandbox could not fetch the
+questions. The architect captured them in CI since: `evals/apply/questions-ci.json` (sample A: the 100 biggest boards'
+postings, 99 with required questions) and `evals/apply/questions-ci-b.json` (sample B: 100 more by seed, no employer
+shared with A), each with every required question, its options and its source URL (`.github/workflows/question-capture.yml`;
+the ask-once measure from them is `docs/apply/ask-once.md` and `ask-once-b.md`). So:
+- `coverage.cjs` reads those two files, fetches nothing, and runs `planBatch` (149, the planner that fills the form)
+  over each posting's required questions with the synthetic profile and with the 20 most common facts confirmed.
+- The report puts `planBatch`'s answered share next to ask-once's classifier share for the same postings, and lists
+  every question one answers and the other does not: the filler and the classifier must agree before WO-020 builds on
+  either.
+- `evals/apply/postings.json` and the saved-snapshot inventory are retired.
+- Acceptance: at least 95 postings measured in each sample, every number links to its posting, `--check` fails on a
+  stale report, nothing is fetched or submitted.

@@ -104,7 +104,7 @@ step architect-tests deno test -A --no-check --ignore=tests/architect/pending te
 step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts
+step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts
 
 if (( failed )); then
   echo 'GATE FAILED'

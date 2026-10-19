@@ -15,6 +15,8 @@ Source: `evals/apply/questions-ci.json` (CI run 39225221238 of question-capture.
 | lever | 30 | 286 | 144 (50%) | 3 | 5 |
 | ashby | 29 | 213 | 148 (69%) | 1 | 2 |
 
+Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 43/99, at most 5 71/99, most 22.
+
 ## The most common questions the standard facts do not answer
 
 | Question (as first seen) | Postings |

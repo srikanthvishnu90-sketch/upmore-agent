@@ -49,6 +49,10 @@ if (import.meta.main) {
     const readyB = rs.filter((r) => r.required.every((q) => q.key !== "unknown" || new Set(b.ranked.slice(0, 20).map(([k]) => k)).has(normLabel(q.label)))).length;
     lines.push(`| ${f} | ${rs.length} | ${a.required} | ${a.covered} (${pct(a.question_rate)}) | ${a.ready_postings} | ${readyB} |`);
   }
+  const left = rows.map((r) => r.required.filter((q) => q.key === "unknown").length).sort((a, b) => a - b);
+  const share = (n: number) => `${left.filter((x) => x <= n).length}/${left.length}`;
+  lines.push("", `Questions left to ask per posting with the standard facts: median ${left[Math.floor(left.length / 2)] ?? 0}, ` +
+    `none ${share(0)}, at most 2 ${share(2)}, at most 5 ${share(5)}, most ${left[left.length - 1] ?? 0}.`);
   const c0 = coverage(rows, 0);
   lines.push("", "## The most common questions the standard facts do not answer", "", "| Question (as first seen) | Postings |", "|---|---|",
     ...c0.ranked.slice(0, 40).map(([, e]) => `| ${e.label.replace(/\|/g, "/").slice(0, 160)} | ${e.postings} |`));

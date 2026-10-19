@@ -87,3 +87,20 @@ begin
 end $$;
 revoke all on function public.career_apply_canonical(jsonb),public.career_apply_current(uuid,jsonb),public.career_apply_enqueue(jsonb,text,text,integer),public.career_apply_claim(timestamptz,integer),public.career_apply_sweep(timestamptz),public.career_apply_finish(uuid,uuid,text,jsonb) from public,anon,authenticated;
 grant execute on function public.career_apply_canonical(jsonb),public.career_apply_current(uuid,jsonb),public.career_apply_enqueue(jsonb,text,text,integer),public.career_apply_claim(timestamptz,integer),public.career_apply_sweep(timestamptz),public.career_apply_finish(uuid,uuid,text,jsonb) to service_role;
+
+-- WO-009b-5. Outcomes use the existing delivery queue and its owner/key uniqueness.
+alter table public.career_outbox drop constraint if exists career_outbox_key_check;
+alter table public.career_outbox add constraint career_outbox_key_check check(key ~ '^(alert|report|reply|apply):.+$' and length(key)<=310);
+alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
+alter table public.career_outbox add constraint career_outbox_kind_check check(kind in ('alert','report','reply','apply'));
+grant select,insert on public.career_outbox to service_role;
+grant usage,select on sequence public.career_outbox_id_seq to service_role;
+create or replace function public.career_apply_notifications(p_limit integer default 100)
+returns setof public.career_apply_jobs language sql stable set search_path=public,pg_temp as $$
+ select j.* from public.career_apply_jobs j
+ where j.state not in ('queued','driving')
+ and not exists(select from public.career_outbox o where o.user_id=j.user_id and o.key='apply:'||j.id::text)
+ order by j.updated_at,j.id limit greatest(0,least(100,coalesce(p_limit,0)));
+$$;
+revoke all on function public.career_apply_notifications(integer) from public,anon,authenticated;
+grant execute on function public.career_apply_notifications(integer) to service_role;

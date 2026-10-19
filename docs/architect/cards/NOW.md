@@ -3,6 +3,23 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-19 21:00 UTC
+1. **Your detector fix is in PR #23** (ported from `58e7b97d`, credited in the code): only a visible challenge frame
+   counts, plus two rules I added. A visible checkbox widget with no token is a challenge (the person must tick it).
+   A token in `g-recaptcha-response`, `h-captcha-response` or `cf-turnstile-response` means it was passed.
+   Once #23 merges, merge trunk into `wo/009b-3-acceptance` and keep my version of `fnDetectChallenge`. Then re-run
+   your forms acceptance and report the count against the 17 forms (VERIFIED, with the command).
+2. **C-02 now covers the captcha commit on #23 too.** Check these, in addition to the seven rules:
+   - The provider allowlist `CAPTCHA_PROVIDER` is anchored to the host; try to get a look-alike host through it.
+   - A provider can never be a page navigation.
+   - The token's value is never written to evidence; only its field and length are.
+   - Hand-off at submit never clicks submit again; the one-POST and body checks still decide.
+   - Without `--handoff`, a challenge at the click ends `not_submitted` / `CAPTCHA_AT_SUBMIT` with nothing sent.
+   Post every hole you find, or "no holes" plus what you tried.
+3. **The owner's build standard is the bar for everything:** `docs/product/BUILD-STANDARD-TSENTA.md` (coming in the
+   competitors PR). Every number you report carries VERIFIED, REPORTED or ASSUMED.
+4. Unchanged: the daily cap is 15. Nothing on networking, interview or offers until the first real application is proven (P0).
+
 ## 2026-10-19 19:30 UTC
 1. **C-02 is open: PR #23** (`WO-009b-4 engine: ...`). Review it against the seven rules and post on the PR. One of
    your tests changed there (`009b-4 a submit handler cannot change a confirmed answer`: now `not_submitted` /

@@ -1,7 +1,7 @@
 // WO-002 hardening (Codex's findings on PR #2, confirmed 2026-10-19): account controls and an account pause are the
 // host's before any model call; what a person erased never reaches the model; a turn that saved something and then
 // failed keeps its honest reply instead of the router's. Run: deno test --no-check tests/edge/agent-guards.test.ts
-import { afterErase } from "../../supabase/functions/agent-chat/career_brain.ts";
+import { afterErase, historyWindow } from "../../supabase/functions/agent-chat/career_brain.ts";
 import { CareerHost } from "../../supabase/functions/_shared/career_host.js";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../../supabase/functions/_shared/router_core.career.js";
 import SRC from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
@@ -36,7 +36,10 @@ Deno.test("WO-002/G3 what was erased never reaches the model: history is cut at 
   ];
   eq(afterErase(rows).map((r) => r.content), ["I'm a nurse"], "newest first, cut at the latest erase");
   eq(afterErase([{ role: "user", content: "hi", meta: {} }]).length, 1, "no erase: everything stays");
-  assert(/select\("role,content,meta"\)/.test(SRC) && /afterErase\(/.test(SRC), "the handler reads meta and applies the cut");
+  // WO-027: the handler's window (historyWindow, 40 messages) applies the same cut before anything else.
+  eq(historyWindow(rows).history.map((r) => r.content), ["I'm a nurse"], "the 40-message window keeps the cut");
+  eq(historyWindow(rows).cut, false, "what was erased never counts as a longer thread");
+  assert(/select\("role,content,meta"\)/.test(SRC) && /historyWindow\(\(hist\.data/.test(SRC), "the handler reads meta and applies the cut");
 });
 
 Deno.test("WO-002/G4 a model failure after a save keeps the turn's honest reply; only a failure with nothing saved falls back to the router", () => {

@@ -6,7 +6,7 @@
 //                     the person's confirmed facts; anything missing is asked once for the whole batch and saved, so later
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
-import { mapQuestion } from "./question_map.ts";
+import { answerKey, mapQuestion } from "./question_map.ts";
 import { chooseOption, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
@@ -138,7 +138,7 @@ export const normLabel = (l: string) => String(l || "").toLowerCase().replace(/[
 const yesNo = (v: string) => (/^(y|yes|true)$/i.test(v.trim()) ? "yes" : /^(n|no|false)$/i.test(v.trim()) ? "no" : null);
 
 // A select is answered only with one of the employer's own options, matched exactly (or yes/no to Yes/No). Never forced.
-function matchOption(value: string, options: { label: string; value: string }[]): string | null {
+export function matchOption(value: string, options: { label: string; value: string }[]): string | null {
   const v = value.trim().toLowerCase();
   const exact = options.find((o) => o.label.trim().toLowerCase() === v || o.value.trim().toLowerCase() === v);
   if (exact) return exact.value;
@@ -200,7 +200,10 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       const key = classifyField(f.label, f.type);
-      const direct: Answer | undefined = (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+      // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
+      // this posting, then this wording (a fact for every employer arrives in `answers` instead).
+      const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
+        (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);

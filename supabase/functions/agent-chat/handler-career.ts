@@ -38,6 +38,7 @@ import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
+import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
@@ -235,10 +236,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
         : null;
+      // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
+      // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
+      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
+        : null;
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
         out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
+      } else if (mock) {
+        // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
+        out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

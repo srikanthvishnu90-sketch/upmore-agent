@@ -27,7 +27,7 @@ So the product target is not "never ask": it is about two short questions per ap
 approval text, with each answer reused by meaning from then on.
 
 ## What
-1. `supabase/functions/_shared/fact_schema.json` (built; next to the map so a deployed function carries it): about 40 facts a person states once (identity, contact, location
+1. `supabase/functions/_shared/fact_schema.ts` (built; next to the map so a deployed function carries it): about 40 facts a person states once (identity, contact, location
    and relocation, work authorization and sponsorship, age 18+, education and GPA, current employer and title,
    start date and notice, salary, clearance, links, referral, how heard, EEO with decline-to-answer), each with type
    and the value forms ATS options take.

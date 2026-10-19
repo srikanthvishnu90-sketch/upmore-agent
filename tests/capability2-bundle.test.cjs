@@ -70,10 +70,11 @@ if (!vm.SourceTextModule) {
       const messages = db.messages, writes = db.writes;
       let handle, networkCalls = 0;
       const client = { auth: { getUser: async () => ({ data: { user: { id: user } } }) }, rpc: (name, args) => persistenceRpc(db, user, thread, name, args), from(table) {
-        assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table));
+        assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages", "career_watch_kv"].includes(table));
         const filters = {};
         const query = { select() { return query; }, eq(k, v) { filters[k] = v; return query; }, async maybeSingle() {
           assert.equal(filters.user_id, user);
+          if (table === "career_watch_kv") { assert.match(filters.key, /^career:mock:/); return { data: null, error: null }; } // WO-025: the mock session read; none is running
           if (table === "agent_threads") return { data: { id: thread, user_id: user }, error: null };
           assert.equal(table, "agent_flow_state");
           return { data: { state: structuredClone(db.state) }, error: null };

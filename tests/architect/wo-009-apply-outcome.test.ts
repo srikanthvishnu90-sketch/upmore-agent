@@ -4,7 +4,7 @@
 // The real cases come from the 2026-10-15 armed run (BUG-207/208/209): a posting's word "security" was taken as a
 // confirmation id while the form was still open, and empty required fields went out.
 // Contract: docs/architect/work-orders/WO-009-real-submissions.md. Run: deno test -A --no-check tests/architect/
-import { classifyOutcome, admitApplication, type Observation } from "../../../supabase/functions/_shared/career_apply.ts";
+import { classifyOutcome, admitApplication, type Observation } from "../../supabase/functions/_shared/career_apply.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
@@ -74,7 +74,8 @@ Deno.test("WO-009/10 admission: a per-person daily limit over any 24 hours (defa
   const log = Array.from({ length: 25 }, (_, i) => ({ user_id: "u1", job_id: `gh:co${i}:1`, company: `Co${i}`, at: T0 - i * 600000, state: "confirmed" }));
   eq(admitApplication(log, app("gh:new:1", "New"), T0).reason, "daily_cap");
   eq(admitApplication(log, app("gh:new:1", "New"), T0, { daily: 50 }).ok, true, "a person who raised the limit to 50");
-  eq(admitApplication(log, app("gh:new:1", "New"), T0, { daily: 500 }).reason, "daily_cap", "the limit never goes above 50");
+  const log50 = Array.from({ length: 50 }, (_, i) => ({ user_id: "u1", job_id: `gh:co${i}:1`, company: `Co${i}`, at: T0 - i * 60000, state: "confirmed" }));
+  eq(admitApplication(log50, app("gh:new:1", "New"), T0, { daily: 500 }).reason, "daily_cap", "the limit never goes above 50");
   eq(admitApplication(log, { ...app("gh:new:1", "New"), user_id: "u2" }, T0).ok, true);
   eq(admitApplication(log, app("gh:new:1", "New"), T0 + DAY).ok, true, "a rolling 24 hours");
 });

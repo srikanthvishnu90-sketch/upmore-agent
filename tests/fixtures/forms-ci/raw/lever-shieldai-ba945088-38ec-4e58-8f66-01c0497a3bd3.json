@@ -1,8 +1,8 @@
 {
   "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-  "captured_at": "2026-10-19T07:01:16.788Z",
+  "captured_at": "2026-10-19T07:23:06.761Z",
   "http_status": 200,
-  "sha256": "e9354f6a35a61f3d25edd03d5e4ce8f5fe97784b0588c0535d6f57e5f0fc0a53",
+  "sha256": "12a6d7b723be95ad0d26e45b27bb7fd8425977219c152a5932c7d674678e0101",
   "forms": 1,
   "resume_inputs": 1,
   "fields": [
@@ -364,6 +364,12 @@
       "name": "eeo[disabilitySignatureDate]",
       "label": "MM/DD/YYYY",
       "type": "text",
+      "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "",
+      "type": "checkbox",
       "required": false
     }
   ]

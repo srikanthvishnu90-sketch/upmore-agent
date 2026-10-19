@@ -1,15 +1,15 @@
 {
   "id": "smartrecruiters-crossmark1-743999658732332",
   "family": "smartrecruiters",
-  "source_url": "https://jobs.smartrecruiters.com/CROSSMARK1/743999658732332",
-  "rendered_at": "2026-10-19T07:05:03.168Z",
-  "http_status": 200,
+  "source_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/CROSSMARK1/publication/97f34cb9-66a5-439c-bc06-015a0a360dfa?dcr_ci=CROSSMARK1",
+  "rendered_at": "2026-10-19T07:25:34.025Z",
+  "http_status": 403,
   "forms": 0,
   "resume_inputs": 0,
   "fields": [],
   "captcha": false,
-  "final_url": "https://jobs.smartrecruiters.com/CROSSMARK1/743999658732332",
-  "sha256": "40449b7d3e93d7bcd8d46764cf037b1cf286248e903c733a204900494e67718a",
-  "non_get_blocked": 3,
+  "final_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/CROSSMARK1/publication/97f34cb9-66a5-439c-bc06-015a0a360dfa?dcr_ci=CROSSMARK1",
+  "sha256": "05cfbdfcf4c1ba1c50528dcbec301d0a46dbf30cd6db1f3829ebd93f97e55b85",
+  "non_get_blocked": 4,
   "status": "not_a_form"
 }

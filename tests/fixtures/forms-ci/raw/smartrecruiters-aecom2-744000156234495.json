@@ -1,16 +1,9 @@
 {
-  "source_url": "https://jobs.smartrecruiters.com/AECOM2/744000156234495",
-  "captured_at": "2026-10-19T07:01:41.134Z",
-  "http_status": 200,
-  "sha256": "3eeab3765148b757a54a6796b1c1b27088dc161c6178ae7798cb500255ddb017",
+  "source_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/AECOM2/publication/820d3fe0-8b3c-4381-b39c-66d770eb013c?dcr_ci=AECOM2",
+  "captured_at": "2026-10-19T07:23:30.672Z",
+  "http_status": 403,
+  "sha256": "151b3165b5910510993613dbc2d16241ca63540b265e12195daf4b5dd3ce0f10",
   "forms": 0,
   "resume_inputs": 0,
-  "fields": [
-    {
-      "name": "",
-      "label": "Copy the link and open WeChat to share.",
-      "type": "text",
-      "required": false
-    }
-  ]
+  "fields": []
 }

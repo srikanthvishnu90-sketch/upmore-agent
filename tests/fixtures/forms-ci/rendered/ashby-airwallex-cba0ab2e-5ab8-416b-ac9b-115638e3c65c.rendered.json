@@ -2,14 +2,117 @@
   "id": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
   "family": "ashby",
   "source_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-  "rendered_at": "2026-10-19T07:03:18.251Z",
+  "rendered_at": "2026-10-19T07:24:53.141Z",
   "http_status": 200,
   "forms": 0,
-  "resume_inputs": 0,
-  "fields": [],
-  "captcha": false,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "_systemfield_name",
+      "label": "Full Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "d3315ee6-7808-40ad-bb16-75f5e5d06c0e",
+      "label": "First Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "ec863876-a2c3-4675-82f9-7cb2d0c57c41",
+      "label": "Middle Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "386e7831-bd04-4d0b-a7e1-5816b2b0b0ca",
+      "label": "Last Name / Surname",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "_systemfield_email",
+      "label": "Email",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "28359782-77a8-4b04-bdbc-5225bd34cca6",
+      "label": "Phone",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "Start typing...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "_systemfield_resume",
+      "label": "Resume",
+      "type": "file",
+      "required": true
+    },
+    {
+      "name": "1b628532-6f2d-4729-a502-459c234b38e3",
+      "label": "Linkedin Link",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "37f9cdbb-c5c4-495e-876e-593908d37fe6",
+      "label": "Salary Expectations",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "184096a9-5750-4da5-ade0-bec5148fe278",
+      "label": "What is your notice period?",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "7fcfdda5-b2a6-448a-8ec2-a751c6afef28",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "fbcbdbf8-19db-4666-970b-e7384ac0719f",
+      "label": "If Yes, please state their name here",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "d63bb003-f10c-499e-ad90-d4a49ecc3080",
+      "label": "How did you first hear about Airwallex?",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "ee1ba3aa-f450-4c91-bb9e-eb7c9087ea10",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
   "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-  "sha256": "236e7e5479e3571ab6a7361eba46ea1f6c7aeddc54de08d7e56c3854ac42683e",
-  "non_get_blocked": 2,
+  "sha256": "f38d5a1b4cfc3d31bcb26bc873a0b2b5160b1e96b4b4658336115f0dbd23c4d5",
+  "non_get_blocked": 0,
   "status": "not_a_form"
 }

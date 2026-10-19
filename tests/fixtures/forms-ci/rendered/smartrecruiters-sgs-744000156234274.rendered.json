@@ -1,22 +1,15 @@
 {
   "id": "smartrecruiters-sgs-744000156234274",
   "family": "smartrecruiters",
-  "source_url": "https://jobs.smartrecruiters.com/SGS/744000156234274",
-  "rendered_at": "2026-10-19T07:06:14.465Z",
-  "http_status": 200,
+  "source_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/SGS/publication/50c87330-8f47-4f72-8cf7-5360fbeba545?dcr_ci=SGS",
+  "rendered_at": "2026-10-19T07:26:43.136Z",
+  "http_status": 403,
   "forms": 0,
   "resume_inputs": 0,
-  "fields": [
-    {
-      "name": "",
-      "label": "Copy the link and open WeChat to share.",
-      "type": "text",
-      "required": false
-    }
-  ],
+  "fields": [],
   "captcha": false,
-  "final_url": "https://jobs.smartrecruiters.com/SGS/744000156234274",
-  "sha256": "96660268cbd748b46f4127dfa962f93ab1acb223322ee5a178704605d358646a",
-  "non_get_blocked": 7,
+  "final_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/SGS/publication/50c87330-8f47-4f72-8cf7-5360fbeba545?dcr_ci=SGS",
+  "sha256": "aaa6477524990681e9896047b0bf9d887ad4c3f608186c92ac3a527e332eeb70",
+  "non_get_blocked": 4,
   "status": "not_a_form"
 }

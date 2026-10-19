@@ -2,14 +2,141 @@
   "id": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
   "family": "ashby",
   "source_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-  "rendered_at": "2026-10-19T07:03:52.944Z",
+  "rendered_at": "2026-10-19T07:25:02.234Z",
   "http_status": 200,
   "forms": 0,
-  "resume_inputs": 0,
-  "fields": [],
-  "captcha": false,
+  "resume_inputs": 3,
+  "fields": [
+    {
+      "name": "",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "_systemfield_name",
+      "label": "Full Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "_systemfield_email",
+      "label": "Email",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "3fdc76ed-6ac2-497a-a6cc-e07ed517ec1d",
+      "label": "Phone Number",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "_systemfield_resume",
+      "label": "Resume",
+      "type": "file",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "Start typing...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "f63fdc3f-8d4c-49fc-9388-3a9ef836de55",
+      "label": "LinkedIn Profile, if available",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "28ff5b93-a104-45f7-9d46-2d13d3217dca",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "b1890667-a914-4163-b3c1-c5b694fd412c",
+      "label": "Additional Attachments",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "c779ac6e-f4fe-4dfe-9dfa-acd7e2823ba7",
+      "label": "Where have you most recently worked?",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "962f2552-c3ca-4d6c-a7d8-b7b1340558ae",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "a3cc08ef-4552-444a-b493-c608c65670df",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+      "label": "I am a U.S. person",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+      "label": "I am a citizen of Cuba, Iran, North Korea, or Syria AND I am NOT a U.S. person",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+      "label": "None of the above; I am a citizen of a different country",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_5c859149-0940-42e7-8962-ec82679d8074",
+      "label": "Yes - I have previously worked at, or is currently working at PwC",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_5c859149-0940-42e7-8962-ec82679d8074",
+      "label": "No - I have never been employed by PwC",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "a7d1a4bb-e59b-4149-a733-f46f352b0cb5",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+      "label": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
   "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-  "sha256": "4f90c72b6e04422c44362783243c6b74299851c366488620ffab240cf2d51993",
-  "non_get_blocked": 2,
+  "sha256": "b805241ede08dfb61e6109252cab8d33102a87cd6c43c132f748b61b00d466f4",
+  "non_get_blocked": 0,
   "status": "not_a_form"
 }

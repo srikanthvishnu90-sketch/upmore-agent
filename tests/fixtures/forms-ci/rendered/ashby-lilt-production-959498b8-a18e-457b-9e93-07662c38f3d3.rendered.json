@@ -2,14 +2,93 @@
   "id": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
   "family": "ashby",
   "source_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-  "rendered_at": "2026-10-19T07:03:35.585Z",
+  "rendered_at": "2026-10-19T07:24:57.631Z",
   "http_status": 200,
   "forms": 0,
-  "resume_inputs": 0,
-  "fields": [],
-  "captcha": false,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "_systemfield_name",
+      "label": "Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "769eeb4a-2fe7-45d0-86d3-87b2caa2c658",
+      "label": "Preferred Name",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "f9b3f66d-2515-4312-bd27-c323ec883f8c",
+      "label": "Phone Number",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "_systemfield_email",
+      "label": "Email",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "_systemfield_resume",
+      "label": "Resume",
+      "type": "file",
+      "required": true
+    },
+    {
+      "name": "0203f527-33a0-4720-9e38-b6ad568f43fc",
+      "label": "Link to your LinkedIn Profile",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "a2804e1f-f78b-42f3-9a93-6f7195b8c64c",
+      "label": "How long have you been a professional Translator?",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "538d63d0-e2cb-4266-8735-3c6dd40f3dcf",
+      "label": "Do you have translation experience in Marketing?",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "2a4201dd-1268-43c8-9472-e62c492c092e",
+      "label": "Do you have Technology translation experience?",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "794c985a-3972-49f0-a6bd-ff9fe66c5eb2",
+      "label": "Do you have Legal translation experience?",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "eb87c1b6-59a2-4f29-9e28-5dbfb12454bf",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
   "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-  "sha256": "7bdf7e4eb5156ea58d5ce601965f095513a464ef8475a7fbe9b59a2cd4538d65",
-  "non_get_blocked": 2,
+  "sha256": "e7079f3a05a014d8d43c70682966161f13d689ef23ffc0cf734a6cfc39b7de57",
+  "non_get_blocked": 0,
   "status": "not_a_form"
 }

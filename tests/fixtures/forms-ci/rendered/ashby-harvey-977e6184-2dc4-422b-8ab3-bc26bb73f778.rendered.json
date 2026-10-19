@@ -2,14 +2,141 @@
   "id": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
   "family": "ashby",
   "source_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-  "rendered_at": "2026-10-19T07:04:27.768Z",
+  "rendered_at": "2026-10-19T07:25:12.158Z",
   "http_status": 200,
   "forms": 0,
-  "resume_inputs": 0,
-  "fields": [],
-  "captcha": false,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "_systemfield_name",
+      "label": "Legal First and Last Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "7c3610a2-745f-4bd7-927a-d8e97e80472c",
+      "label": "Preferred First Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+      "label": "Preferred Last Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "_systemfield_email",
+      "label": "Email",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "a2a0b8a6-0b1f-44ad-9fc9-4ef424704c26",
+      "label": "Phone Number",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "Start typing...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "dd1d5af7-8d94-4ab6-860a-59b5fca04147",
+      "label": "Current or Most Recent Employer",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "a0393613-cd27-4354-b328-4b8fdabcdb4e",
+      "label": "University or School Attended",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "35987d90-0b56-44cc-b2f6-f59f86c3cc57",
+      "label": "Pronouns",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "74da689e-2056-420d-9a18-4227f9bf998e",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_eebeac06-e08c-4eee-b866-81971c178736",
+      "label": "Yes, I will require Harvey to sponsor my employment",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_eebeac06-e08c-4eee-b866-81971c178736",
+      "label": "No, I do not require sponsorship to work in the country where this role is located",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+      "label": "Yes, I’m based in this location and able to work from the office 3 days per week",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+      "label": "No, I’m not based in this location but willing to relocate",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+      "label": "No, I’m only able to work remotely",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+      "label": "Other (optional context)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "8b9dae4d-2ed4-4da0-a994-e7b1d73d3a5e",
+      "label": "If you selected “Other,” please provide additional details.",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "39ebb162-1514-4658-8940-c15a1a71881f",
+      "label": "LinkedIn",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "_systemfield_resume",
+      "label": "Resume",
+      "type": "file",
+      "required": true
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
   "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-  "sha256": "f5948ca90e272cae3a6dd53b8f19b5218648fd6e7b87191bb652c4e929dcabb5",
-  "non_get_blocked": 2,
+  "sha256": "1fd2f4eb04e9e243101a9128bbb5f246d3084e1959ef5c605fb7575d9726f493",
+  "non_get_blocked": 0,
   "status": "not_a_form"
 }

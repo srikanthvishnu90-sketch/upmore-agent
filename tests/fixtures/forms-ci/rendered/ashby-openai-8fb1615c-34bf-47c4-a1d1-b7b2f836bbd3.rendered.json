@@ -2,14 +2,189 @@
   "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
   "family": "ashby",
   "source_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-  "rendered_at": "2026-10-19T07:03:00.868Z",
+  "rendered_at": "2026-10-19T07:24:48.388Z",
   "http_status": 200,
   "forms": 0,
-  "resume_inputs": 0,
-  "fields": [],
-  "captcha": false,
+  "resume_inputs": 2,
+  "fields": [
+    {
+      "name": "",
+      "label": "",
+      "type": "file",
+      "required": false
+    },
+    {
+      "name": "_systemfield_name",
+      "label": "Legal Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "09a328e0-8d57-4f88-86ab-688de1657b17",
+      "label": "Preferred Name (if applicable)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "_systemfield_email",
+      "label": "Email",
+      "type": "email",
+      "required": true
+    },
+    {
+      "name": "_systemfield_resume",
+      "label": "Resume",
+      "type": "file",
+      "required": true
+    },
+    {
+      "name": "20f8883c-d278-427c-9465-dc614f612e1f",
+      "label": "Phone Number",
+      "type": "tel",
+      "required": true
+    },
+    {
+      "name": "",
+      "label": "Start typing...",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "",
+      "label": "Pick date...",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "bda78810-f000-4f1c-99c5-f783e161f2f7",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63",
+      "label": "",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "f189fed2-624b-41a1-a76f-0c67a2611d1a",
+      "label": "Additional Information",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.",
+      "label": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "I confirm I have read the above.",
+      "label": "I confirm I have read the above.",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender",
+      "label": "Male",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender",
+      "label": "Female",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender",
+      "label": "Decline to self-identify",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Hispanic or Latino",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "White (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Black or African American (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Asian (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "American Indian or Alaska Native (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Two or More Races (Not Hispanic or Latino)",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+      "label": "Decline to self-identify",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_veteran_status",
+      "label": "I identify as one or more of the classifications of protected veteran listed above",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_veteran_status",
+      "label": "I am not a protected veteran",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_veteran_status",
+      "label": "I decline to self-identify for protected veteran status",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "name": "g-recaptcha-response",
+      "label": "",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "captcha": true,
   "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-  "sha256": "e8979f35be46cd1f3e4c1ce8713091fd9f6cb576390007418aa3043a9d483efc",
-  "non_get_blocked": 2,
+  "sha256": "6388bcf538acbdd3b58185f7ade4047ce034dcdd33c0d63ef73d64e12dabf2c6",
+  "non_get_blocked": 0,
   "status": "not_a_form"
 }

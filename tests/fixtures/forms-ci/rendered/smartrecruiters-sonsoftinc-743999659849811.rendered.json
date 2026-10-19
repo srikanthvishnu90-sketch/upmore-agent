@@ -1,15 +1,15 @@
 {
   "id": "smartrecruiters-sonsoftinc-743999659849811",
   "family": "smartrecruiters",
-  "source_url": "https://jobs.smartrecruiters.com/SonsoftInc/743999659849811",
-  "rendered_at": "2026-10-19T07:05:20.977Z",
-  "http_status": 200,
+  "source_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/SonsoftInc/publication/30074fb5-dc8b-4219-9f31-3ac28fd0c8c6?dcr_ci=SonsoftInc",
+  "rendered_at": "2026-10-19T07:25:51.287Z",
+  "http_status": 403,
   "forms": 0,
   "resume_inputs": 0,
   "fields": [],
   "captcha": false,
-  "final_url": "https://jobs.smartrecruiters.com/SonsoftInc/743999659849811",
-  "sha256": "81f87b8ba5bc2fb1e1f1977b194e04e47fb1477e414daa637e7cdf86aa825372",
-  "non_get_blocked": 3,
+  "final_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/SonsoftInc/publication/30074fb5-dc8b-4219-9f31-3ac28fd0c8c6?dcr_ci=SonsoftInc",
+  "sha256": "fe9c093cd3683c0061557f505170d5b2f911d0865733df95aa65523659f885ed",
+  "non_get_blocked": 4,
   "status": "not_a_form"
 }

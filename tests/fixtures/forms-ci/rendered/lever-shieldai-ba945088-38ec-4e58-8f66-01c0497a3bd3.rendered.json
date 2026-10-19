@@ -2,7 +2,7 @@
   "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
   "family": "lever",
   "source_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-  "rendered_at": "2026-10-19T07:02:48.229Z",
+  "rendered_at": "2026-10-19T07:24:35.767Z",
   "http_status": 200,
   "forms": 1,
   "resume_inputs": 1,
@@ -366,11 +366,17 @@
       "label": "Date",
       "type": "text",
       "required": false
+    },
+    {
+      "name": "consent[marketing]",
+      "label": "Yes, Shield AI can contact me about future job opportunities for up to 1 year Privacy policy",
+      "type": "checkbox",
+      "required": false
     }
   ],
   "captcha": true,
   "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-  "sha256": "231fc671bf4d553d5bc2647408b696c6cfc0f3c271f6e358864ffd987f390be6",
+  "sha256": "47617b0946a4dfc71d93471b13b0195cb5d9a500f7cac655fe1de7c51093e54c",
   "non_get_blocked": 12,
   "status": "captured"
 }

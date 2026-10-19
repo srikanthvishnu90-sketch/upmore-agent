@@ -126,9 +126,11 @@ done
 # After channel inbound, as in production order: the receipts migration widens the outbox kinds it set.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020020000_career_apply_receipts.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020020000_career_apply_receipts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020030000_career_apply_cards.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020030000_career_apply_cards.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -148,4 +150,6 @@ echo "== career_apply_jobs.test.sql (complete career authority schema)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_jobs.test.sql"
 echo "== career_apply_own.test.sql (the person's own computer claims only their own applications)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_own.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_cards.test.sql (prepared, shown on a card, approved by one text)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

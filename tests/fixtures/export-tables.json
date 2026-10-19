@@ -508,6 +508,14 @@
    "order": ["created_at", "id"]
   },
   {
+   "table": "career_apply_prepared",
+   "order": ["created_at", "id"]
+  },
+  {
+   "table": "career_apply_cards",
+   "order": ["shown_at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

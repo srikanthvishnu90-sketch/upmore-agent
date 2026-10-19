@@ -21,3 +21,10 @@
    `career_apply_claim_own` / `career_apply_finish_own` (`20261020010000_career_apply_own_worker.sql`,
    `tests/db/career_apply_own.test.sql`); the card now names the real file.
 5. `docs/apply/owner-first-trials.md` step 3 said "On Lever, the engine clicks", but its own command passes `--person-submits`, where the engine never clicks (`scripts/apply.ts`, `personSubmits`). The person presses Submit on every site. The runbook also had no step for an emailed code (built in PR #27) and did not say Lever's resume upload is stopped without `--approved`. All three are now in the runbook.
+6. `scripts/launch/trainee-go-live.sh` and `docs/launch/TRAINEE-GO-LIVE.md` said go-live applies "the four Trainee
+   migrations" (`20261019*`). Trunk had since gained six apply-pipeline migrations (`20261020000000` to
+   `20261020050000`: the queue, the person's own worker, receipts, cards, card push, the daily limit) that the deployed
+   chat and the scheduled run read, and go-live neither applied nor checked them, so a go-live from trunk would have
+   deployed functions against tables that were not there. The script now lists every migration from `20261019` on with
+   its proof on the live schema, and `tests/trainee-go-live.test.cjs` reads the list from the migrations folder, so a new
+   migration that go-live does not apply fails the test (found by the WO-027 builder, 2026-10-19).

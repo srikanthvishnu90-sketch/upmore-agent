@@ -46,13 +46,14 @@ if (!vm.SourceTextModule) {
       auth: { getUser: async () => ({ data: { user: { id: USER } } }) },
       rpc: (name,args) => require("./helpers/career-persistence-fake.cjs")(db,USER,THREAD,name,args),
       from(table) {
-        assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table), `unexpected table: ${table}`);
+        assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages", "career_watch_kv"].includes(table), `unexpected table: ${table}`);
         const filters = {};
         const query = {
           select() { return query; },
           eq(key, value) { filters[key] = value; return query; },
           async maybeSingle() {
             assert.equal(filters.user_id, USER);
+            if (table === "career_watch_kv") { assert.match(filters.key, /^career:mock:/); return { data: null, error: null }; } // WO-025: the mock session read; none is running
             if (table === "agent_threads") {
               assert.equal(filters.id, THREAD);
               return { data: { id: THREAD, user_id: USER }, error: null };

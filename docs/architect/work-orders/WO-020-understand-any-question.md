@@ -1,6 +1,6 @@
 # WO-020: Understand any application question, ask the rest once and in one text
 
-Status: ready (after WO-016) · Depends on: WO-009a (planner), WO-009b-6 data · Size: M · Owner: Codex
+Status: part 1 built by the architect (owner, 2026-10-19: "ultra depth application filler"): the fact schema, `_shared/question_map.ts` and its measure (`evals/apply/question-map.ts`, report `docs/apply/question-map.md`, independent blind labels on 240 random questions: precision 97.5%, fill precision 99.5%, recall 97.9%, in-sample; sample A 66/99 and B 80/100 postings with nothing left to ask, median 0). Part 2, wiring the map into planBatch, option choice and the approval card, is next · Depends on: WO-009a (planner), WO-009b-6 data · Size: M · Owner: architect
 
 ## Why (measured, not guessed)
 `evals/apply/questions-ci.json`: the required questions of 99 real postings (40 Greenhouse, 30 Lever, 29 Ashby),
@@ -27,7 +27,7 @@ So the product target is not "never ask": it is about two short questions per ap
 approval text, with each answer reused by meaning from then on.
 
 ## What
-1. `packages/career-data/fact-schema.json` (new): about 40 facts a person states once (identity, contact, location
+1. `supabase/functions/_shared/fact_schema.ts` (built; next to the map so a deployed function carries it): about 40 facts a person states once (identity, contact, location
    and relocation, work authorization and sponsorship, age 18+, education and GPA, current employer and title,
    start date and notice, salary, clearance, links, referral, how heard, EEO with decline-to-answer), each with type
    and the value forms ATS options take.

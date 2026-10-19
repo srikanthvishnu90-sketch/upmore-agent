@@ -7,6 +7,7 @@
 // answers are rebuilt from the approved payload itself, so the engine reproduces the same application or stops it
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
+import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -78,7 +79,7 @@ export async function prepare(o: {
   };
   const card = [
     payload.company,
-    ...fields.filter((f: any) => f.value !== payload.resume_sha256).map((f: any) => `${f.label}: ${shown(f)}`),
+    ...fields.filter((f: any) => f.value !== payload.resume_sha256).map((f: any) => `${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${f.label}: ${shown(f)}`),
     `Resume: ${ev.payload.resume.filename} (${payload.resume_sha256.slice(0, 12)})`,
     ...(payload.page_field_names.length
       ? [`Also sent, set by the employer's page, unchanged: ${payload.page_field_names.join(", ")}`]
@@ -94,6 +95,10 @@ export async function prepare(o: {
   ];
   return { ready: true as const, payload, hash: await hashApplyPayload(payload), card };
 }
+
+// On the card, an answer the person must read as theirs says so: a consent they give, a legal statement they make, an
+// answer about this job's terms. The mark is drawn from the question's meaning; the application carries the answer only.
+const MARK: Record<string, string> = { consent: "You agree: ", attestation: "Your statement: ", screen: "About this job: " };
 
 // The approved answers as the engine's confirmed facts: each under its question, with its fact id, so the engine maps
 // the same question to the same answer and the approval hash comes out the same.

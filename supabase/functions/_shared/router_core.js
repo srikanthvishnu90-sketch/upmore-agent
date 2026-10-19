@@ -26664,6 +26664,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTrac
 
    Functions:
      normalizeCir(cir)                 tolerant reader for the 15 merged CIR shapes
+     cirLibrary()                      every company record on file (disk in Node, embedded in the bundle)
      composeBrief({cir, jdText, role, round})   PREP-001 brief: bar, stages, emphasis
      questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged;
                                        for a named sector the wired interview bank
@@ -26742,6 +26743,27 @@ const CareerPrep = (() => {
     const want = lc(company).replace(/[^a-z0-9]/g, "");
     for (const c of cirs || []) { const n = normalizeCir(c); if (n && (lc(n.company_id).replace(/[^a-z0-9]/g, "") === want || lc(n.company_name).replace(/[^a-z0-9]/g, "").includes(want) || want.includes(lc(n.company_id).replace(/[^a-z0-9]/g, "")))) return c; }
     return null;
+  }
+
+  // ---------- The company-file library (WO-025) ----------
+  // Every company record on file, read lazily on the BUG-174 pattern: from
+  // packages/career-data/cirs/ in Node, from the CAREER_CIRS_JSON const the
+  // bundle build appends in Deno (readable only at call time). An empty
+  // result is not cached, so a later call can still pick the const up.
+  let _cirLib = null;
+  function cirLibrary() {
+    if (_cirLib && _cirLib.length) return _cirLib;
+    let list = [];
+    try {
+      const fs = require("fs"); const path = require("path");
+      const dir = path.join(__dirname, "..", "career-data", "cirs");
+      list = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+    } catch { list = []; }
+    if (!list.length) {
+      try { if (typeof CAREER_CIRS_JSON !== "undefined" && Array.isArray(CAREER_CIRS_JSON)) list = CAREER_CIRS_JSON; } catch { list = []; }
+    }
+    if (list.length) _cirLib = list;
+    return list;
   }
 
   // ---------- JD emphasis (grounded only in text the caller supplies) ----------
@@ -27819,7 +27841,7 @@ const CareerPrep = (() => {
       survival_rules: ["Depth over breadth in the final round: follow-ups on your own resume are the test, per the CIR stage record", "If a technical stalls, state your structure out loud and work it — silent freezing is the failure mode, not a wrong first step", "Names + one specific per interviewer, written down immediately"], sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
   }
 
-  return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
+  return { normalizeCir, findCir, cirLibrary, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,

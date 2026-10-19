@@ -13,7 +13,7 @@
 #   UPMORE_TEST_JWT (optional), TRAINEE_SMOKE_CONTACT (with --allow-send)        for the smoke checks
 # Steps, each a numbered STEP line ending OK or FAILED; the run stops at the first failure:
 #   1 preflight   tools, inputs, a clean tree at an exact commit, deno check of the five entry points
-#   2 migrations  the four Trainee migrations in order, each once (the ledger or the live schema says it is there), each
+#   2 migrations  every Trainee migration in order, each once (the ledger or the live schema says it is there), each
 #                 in one transaction; the earlier career migrations are only checked (plain `create table`, so not safe
 #                 to replay), and one missing live stops the run before anything is deployed on top of it
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
@@ -48,12 +48,37 @@ while (( $# )); do
 done
 [[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == router ]] || { echo "--brain takes agent or router"; exit 64; }
 
-MIGRATIONS=(20261019000000_career_postings.sql 20261019010000_career_alerts.sql 20261019020000_channel_delivery.sql 20261019030000_channel_inbound.sql)
-# Each migration's proof on the live schema: one object it creates. A file runs in one transaction, so one is enough.
-MIGRATION_MARK=("to_regclass('public.career_ingest_state') is not null"
+# Every migration from the Trainee set on, in order, each with its proof on the live schema: one object it creates (a
+# file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
+# 20261019 on is not listed here, so a new one cannot ship without go-live applying it.
+MIGRATIONS=(
+  20261019000000_career_postings.sql
+  20261019010000_career_alerts.sql
+  20261019020000_channel_delivery.sql
+  20261019030000_channel_inbound.sql
+  20261020000000_career_apply_jobs.sql
+  20261020010000_career_apply_own_worker.sql
+  20261020020000_career_apply_receipts.sql
+  20261020030000_career_apply_cards.sql
+  20261020040000_career_apply_card_push.sql
+  20261020050000_career_apply_daily_limit.sql
+  20261020100000_career_mail_tracking.sql
+  20261020110000_career_connector.sql
+)
+MIGRATION_MARK=(
+  "to_regclass('public.career_ingest_state') is not null"
   "to_regclass('public.career_proactive_runs') is not null"
   "exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')"
-  "exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')")
+  "exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')"
+  "to_regclass('public.career_apply_jobs') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_claim_own')"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'receipts')"
+  "to_regclass('public.career_apply_cards') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_card_push_for')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit')"
+  "to_regclass('public.career_mail_events') is not null"
+  "to_regclass('public.connector_intros') is not null"
+)
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
   20261016010000_career_batch_intents_v1.sql 20261016120000_career_account_stated_facts.sql)

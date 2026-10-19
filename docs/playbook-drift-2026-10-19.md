@@ -20,3 +20,4 @@
    own computer could not run it without holding a key that reaches everyone's applications. Fixed with
    `career_apply_claim_own` / `career_apply_finish_own` (`20261020010000_career_apply_own_worker.sql`,
    `tests/db/career_apply_own.test.sql`); the card now names the real file.
+5. `docs/apply/owner-first-trials.md` step 3 said "On Lever, the engine clicks", but its own command passes `--person-submits`, where the engine never clicks (`scripts/apply.ts`, `personSubmits`). The person presses Submit on every site. The runbook also had no step for an emailed code (built in PR #27) and did not say Lever's resume upload is stopped without `--approved`. All three are now in the runbook.

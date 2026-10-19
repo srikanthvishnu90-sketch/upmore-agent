@@ -495,12 +495,15 @@ function probeSnapshot({url,snapshot,packet,resumePath,evidenceDir}){
     const session=Portal.createPortalSession({userId:packet.user_id,board});
     try{result=Portal.runApply(session,{posting:{id:snapshot.id,canonicalKey:'TEST:'+snapshot.id,company:'SYNTHETIC fixture',url,status:'open'},profile,attestations:packet.attestations,log:{records:[]}});}catch(e){if(e.code==='RESUME_SHA_MISMATCH')throw e;result={resultStatus:'blocked',code:e.code||'BROWSER_BLOCKED'};}
     let current={};try{current=board.answers();}catch{result={resultStatus:'blocked',code:'READBACK_UNAVAILABLE'};}
-    const answers={...session.preparationPayload,...current},required=[...defs.values()].filter(f=>f.required),equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const answers=current,required=[...defs.values()].filter(f=>f.required),equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
     const bound=required.filter(f=>planned.has(f.field_id)),read=bound.filter(f=>equal(answers[f.field_id],board.renderedValues[f.field_id]??planned.get(f.field_id)));
     const raw=[...raws.values()],expected=(snapshot.fields||[]).filter(f=>f.required),available=raw.filter(r=>r.required),detected=[],undetected=[];
-    for(const [i,f] of expected.entries()){const n=available.findIndex(r=>!!f.name&&(r.name||r.id)===f.name&&(!f.type||r.inputType===f.type));if(n>=0)detected.push(available.splice(n,1)[0]);else undetected.push(f.label||f.name||`[unnamed ${f.type||'control'} #${i+1}]`);}
+    const type=t=>/^select-(one|multiple)$/.test(t)?'select':t==='input'?'text':t,label=t=>String(t||'').replace(/[*✱]\s*$/,'').trim().replace(/\s+/g,' ');
+    for(const [i,f] of expected.entries()){const n=available.findIndex(r=>(f.name?(r.name||r.id)===f.name:!r.name&&!r.id&&!!label(f.label)&&label(r.label)===label(f.label))&&(!f.type||type(r.inputType)===type(f.type)));if(n>=0)detected.push(available.splice(n,1)[0]);else undetected.push(f.label||f.name||`[unnamed ${f.type||'control'} #${i+1}]`);}
     const unknown=(result.asks||[]).filter(a=>defs.get(a.field_id)?.required).map(a=>defs.get(a.field_id).label);
-    return {id:snapshot.id,evidence:snapshot.synthetic?'SYNTHETIC_CONTROL':'SAVED_REAL_FORM',source_url:snapshot.source_url||null,status:result.resultStatus,code:result.code||null,expected_raw:expected.length,detected_raw:detected.length,undetected,required:required.length,bound:bound.length,read_back:read.length,ratio:required.length?read.length/required.length:0,unknown,requires_live_widget:[...liveWidgets.values()],resume_verified:Object.values(answers).some(a=>a&&typeof a==='object'&&a.sha256===sha256&&a.filename===packet.resume.filename),review_calls:reviews,submit_calls:board.calls.submit};
+    const resumeVerified=Object.values(answers).some(a=>a&&typeof a==='object'&&a.sha256===sha256&&a.filename===packet.resume.filename);
+    if(result.resultStatus==='prepared'&&(!resumeVerified||!required.length||read.length/required.length<0.95))result={resultStatus:'blocked',code:'FINAL_OBSERVATION_INCOMPLETE'};
+    return {id:snapshot.id,evidence:snapshot.synthetic?'SYNTHETIC_CONTROL':'SAVED_REAL_FORM',source_url:snapshot.source_url||null,status:result.resultStatus,code:result.code||null,expected_raw:expected.length,detected_raw:detected.length,undetected,required:required.length,bound:bound.length,read_back:read.length,ratio:required.length?read.length/required.length:0,unknown,requires_live_widget:[...liveWidgets.values()],resume_verified:resumeVerified,review_calls:reviews,submit_calls:board.calls.submit};
   }finally{board.close();}
 }
 function shutdownProbe(){require('../../packages/domain/150-career-portal-browser.js').shutdownAll();}

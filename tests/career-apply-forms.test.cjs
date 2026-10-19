@@ -6,7 +6,7 @@ const form=extra=>`<!doctype html><h1>SYNTHETIC TEST FORM</h1><form method="post
 before(async()=>{
  const check=spawnSync(process.execPath,['-e',`const a=require(${JSON.stringify(fixtureFile)});if(typeof a.loadSnapshots!=='function'||typeof a.probeSnapshot!=='function')throw Error('SNAPSHOT_HARNESS_MISSING');`],{encoding:'utf8',timeout:4000});assert.equal(check.status,0,check.stderr||check.error?.message);
  api=require(fixtureFile);root=fs.mkdtempSync(path.join(os.tmpdir(),'upmore-fill-harness-'));resume=path.join(root,packet.resume.filename);fs.writeFileSync(resume,packet.resume.text);
- const cases=[{id:'synthetic-widget',synthetic:true,html:form('<label for="country">Country</label><input class="select__input" id="country" name="country" role="combobox" required>'),fields:[]},{id:'synthetic-ready',synthetic:true,html:form(),fields:[]},{id:'synthetic-unknown',synthetic:true,html:form('<label for="unknown">Favorite programming language</label><input id="unknown" name="unknown" required>'),fields:[]},{id:'synthetic-offsite',synthetic:true,html:'<script>location.href="https://jobs.lever.co/never-requested/id"</script>',fields:[]}];
+ const cases=[{id:'synthetic-unnamed',synthetic:true,html:form('<label>Preferred start date<input type="date" required></label>'),fields:[]},{id:'synthetic-widget',synthetic:true,html:form('<label for="country">Country</label><input class="select__input" id="country" name="country" role="combobox" required>'),fields:[]},{id:'synthetic-ready',synthetic:true,html:form(),fields:[]},{id:'synthetic-unknown',synthetic:true,html:form('<label for="unknown">Favorite programming language</label><input id="unknown" name="unknown" required>'),fields:[]},{id:'synthetic-offsite',synthetic:true,html:'<script>location.href="https://jobs.lever.co/never-requested/id"</script>',fields:[]}];
  const inventory=api.loadSnapshots(process.env.UPMORE_FORM_SNAPSHOT_ROOT||path.join(__dirname,'fixtures/forms-ci'));
  const config=path.join(root,'local-bundle.json');fs.writeFileSync(config,JSON.stringify([...cases,...inventory.snapshots]));child=spawn(process.execPath,[fixtureFile,'--snapshot-bundle',config],{stdio:['ignore','pipe','pipe']});
  base=await new Promise((resolve,reject)=>{let out='';const timer=setTimeout(()=>reject(Error('fixture server startup')),10000);child.stdout.on('data',b=>{out+=b;const m=out.match(/FIXTURE_PORT (\d+)/);if(m){clearTimeout(timer);resolve('http://localhost:'+m[1]);}});child.once('exit',()=>{clearTimeout(timer);reject(Error('fixture server exited'));});});
@@ -44,6 +44,19 @@ test('009b-3 stripped React widgets have a named live-page limitation, never a f
 });
 test('009b-3 149/150 fill and read back all required fields and the exact resume, without submit',async()=>{
  const r=probe('synthetic-ready');console.log('SYNTHETIC_CONTROL '+JSON.stringify(r));assert.equal(r.status,'prepared');assert.equal(r.expected_raw,4);assert.equal(r.detected_raw,4);assert.equal(r.required,4);assert.equal(r.bound,4);assert.equal(r.read_back,4);assert.equal(r.ratio,1);assert.equal(r.resume_verified,true);assert.equal(r.submit_calls,0);assert.equal((await(await fetch(base+'/__snapshot_stats')).json()).mutations,0);
+});
+test('009b-3 captured native control types match the actual browser controls',()=>{
+ const fields=expectedFields.map(f=>({...f,type:f.name==='resume'?'file':f.name==='work_authorization'?'select-one':'text'}));
+ const r=probe('synthetic-ready',{snapshot:{id:'synthetic-ready',synthetic:true,fields}});assert.equal(r.expected_raw,4);assert.equal(r.detected_raw,4);assert.deepEqual(r.undetected,[]);
+});
+test('009b-3 a nameless labeled required control matches once, never by blank identity',()=>{
+ const extra={name:'',label:'Preferred start date',type:'date',required:true},r=probe('synthetic-unnamed',{snapshot:{id:'synthetic-unnamed',synthetic:true,fields:[...expectedFields,extra,extra,{name:'',label:'',type:'date',required:true}]}});
+ assert.equal(r.expected_raw,7);assert.equal(r.detected_raw,5);assert.equal(r.undetected.length,2);assert.equal(r.status,'awaiting_user');assert.ok(r.unknown.includes('Preferred start date'));assert.equal(r.review_calls,0);assert.equal(r.submit_calls,0);
+});
+test('009b-3 absent final observation cannot reuse cached preparation as equal readback or resume proof',()=>{
+ const Portal=require('../packages/domain/149-career-portal-apply.js'),Browser=require('../packages/domain/150-career-portal-browser.js'),run=Portal.runApply,create=Browser.createBrowserBoard;let returned=false;
+ Portal.runApply=(...args)=>{const r=run(...args);returned=true;return r;};Browser.createBrowserBoard=(...args)=>{const b=create(...args),read=b.answers.bind(b);b.answers=()=>returned?{}:read();return b;};
+ try{const r=probe('synthetic-ready');assert.equal(r.read_back,0);assert.equal(r.resume_verified,false);assert.equal(r.ratio,0);assert.equal(r.code,'FINAL_OBSERVATION_INCOMPLETE');assert.equal(r.status,'blocked');assert.equal(r.submit_calls,0);}finally{Portal.runApply=run;Browser.createBrowserBoard=create;}
 });
 test('009b-3 unknown required questions stop before review and name the question',()=>{
  const r=probe('synthetic-unknown');console.log('SYNTHETIC_CONTROL '+JSON.stringify(r));assert.equal(r.status,'awaiting_user');assert.ok(r.unknown.includes('Favorite programming language'));assert.equal(r.review_calls,0);assert.equal(r.submit_calls,0);

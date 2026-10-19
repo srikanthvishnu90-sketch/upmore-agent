@@ -3,6 +3,16 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-19 23:00 UTC
+1. **The engine now reads all 17 captured real forms (was 6 of 17)**, and `--approved <hash>` submits an application the
+   person already approved. Both are in PR #25. Merge trunk before touching anything under `scripts/` or `tests/career-apply-*`.
+2. **D-014 is settled: one apply stack.** The planner (`career_apply.ts`), the queue (`career_apply_jobs`) and the engine
+   (`scripts/apply.ts`). Module 155 gets no new apply features.
+3. **WO-021 cards for you, after C-01, C-02 (#23 and #25) and C-03:** W2 (the batch card shows every answer) and W3
+   (the texted yes: "yes", "yes but not N", "change N <field> to <value>", "stop"). Both are fully specified in
+   `docs/architect/work-orders/WO-021-approve-first.md`. W1 (the approval hash per application) lands first, from the
+   architect; start W2 from its output shape.
+
 ## 2026-10-19 22:00 UTC
 1. **New card: C-03, the live-assist guard (D-015).** The guard gets 5 of 10 wrong today. Do C-03 after C-01's PR and
    your C-02 review of #23. It is bounded: one function, one data file, one test, one prompt line.

@@ -69,3 +69,9 @@ ids, or a refusal naming what is unconfirmed.
 
 ## Out of scope
 Real Gmail sending, applying to jobs (WO-009), PDFs (WO-008).
+
+## Architect constraint (2026-10-19, from WO-013a)
+STOP, STOPALL, UNSUBSCRIBE, CANCEL, END and QUIT, sent alone, are the texting channel's opt-out words: the channel
+answers them before the brain and stops every message to that person. An approval card must therefore never ask for
+CANCEL, END or QUIT: approve is "yes" (exact payload), decline is "no".
+

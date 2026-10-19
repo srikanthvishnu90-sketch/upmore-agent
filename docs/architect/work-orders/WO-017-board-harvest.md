@@ -55,6 +55,10 @@ as exactly that.
   Read honestly: a 2-6x gain for tech and startup roles; nursing, accounting and marketing stay near zero, because those
   employers hire on Workday, iCIMS and Taleo, which we do not read. The next coverage lever is a Workday reader (254
   tenants recorded, about 1,360 sites not yet checked), not more Greenhouse boards.
-- Owner check before deploying (not a blocker to merge, a blocker to deploy): about 260,000 posting rows with
-  descriptions up to 20,000 characters is on the order of 1-2 GB in `career_postings`. Check the database plan's
-  size first; the Supabase free plan's database is 500 MB.
+- Storage, measured (coverage-personas run 39208189165, every live board read): open postings 30,953 (the 305 old
+  boards) -> 173,262 (2,179); text as ingest stores it 158 million -> 564 million characters, 94% of it descriptions
+  (clipped at 4,000 characters it would still be 361 million). Postgres compresses long text, but the search column and
+  its index come on top: an estimated 0.6-1 GB for the full directory, against the free plan's 500 MB (the live
+  database is 60 MB today and has no postings table). The old 305 boards alone are an estimated 200-350 MB.
+  The size comes from boards, not users: it is reached on the first full ingest pass, about 2 hours after the schedule
+  starts. Owner decision before go-live: a paid plan (Pro includes 8 GB), or a board cap until then.

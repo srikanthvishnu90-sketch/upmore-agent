@@ -1,0 +1,392 @@
+{
+  "version": 1,
+  "target_postings": 100,
+  "note": "Partial public-source inventory by verified content reference; original source URLs resolve from existing snapshot files. No new fetch, fabricated posting or saved question set. Public demos are excluded.",
+  "postings": [
+    {
+      "id": "public-source-001",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [14,229,206,214,224,174,239,125,144,89,18,6,243,54,223,9,98,12,48,17,30,79,173,108,216,55,96,54,241,186,155,90]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-002",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [74,194,51,229,197,220,87,187,101,244,11,177,93,230,229,51,204,210,216,44,12,10,125,7,209,204,237,85,17,113,141,91]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-003",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [112,151,113,18,243,128,124,30,185,186,123,34,227,0,17,164,188,196,130,203,244,67,63,51,101,49,171,145,84,111,77,135]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-004",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [64,200,26,209,103,8,15,198,80,45,41,111,234,58,98,135,121,208,165,212,107,190,148,64,110,50,206,220,54,231,244,188]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-005",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [141,107,102,6,36,72,1,17,113,153,181,20,77,203,243,212,61,19,14,212,22,208,70,84,12,186,85,82,78,108,157,9]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-006",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [172,206,31,200,154,44,214,192,236,236,67,70,30,222,203,138,4,78,74,145,115,150,27,14,118,25,198,220,181,121,43,111]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-007",
+      "family": "ashby",
+      "source_ref": {
+        "sha256_bytes": [95,86,117,114,57,103,170,24,60,220,16,249,210,243,247,170,161,165,27,139,8,135,23,73,9,54,195,56,64,180,91,27]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-008",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [231,50,37,161,252,36,2,198,135,21,79,28,47,129,136,116,6,61,151,47,24,65,56,228,47,124,74,232,25,95,159,137]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-009",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [183,99,112,75,7,21,202,36,138,202,118,111,222,166,40,179,45,206,224,151,218,19,46,142,207,23,96,118,53,48,163,2]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-010",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [192,221,71,226,253,26,184,4,139,173,14,125,61,196,78,32,218,235,15,139,224,211,251,206,74,248,238,19,215,85,126,209]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-011",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [117,214,239,134,87,248,26,189,12,93,178,169,107,142,143,189,214,45,232,50,211,84,231,54,137,205,241,87,118,200,175,233]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-012",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [247,190,214,202,177,149,196,79,62,199,75,61,51,16,207,82,213,161,182,181,255,196,172,10,30,198,177,175,232,98,247,0]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-013",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [191,114,251,52,44,157,31,95,130,144,129,142,207,184,136,177,169,214,60,49,226,84,211,125,107,238,224,178,26,43,201,73]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-014",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [16,196,81,99,161,179,149,128,134,218,191,52,169,197,98,89,2,19,227,108,23,136,227,221,34,113,162,131,134,61,180,78]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-015",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [149,102,79,134,32,189,154,100,186,131,100,147,89,208,187,176,47,38,220,78,67,38,212,134,179,238,178,220,178,77,246,183]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-016",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [38,34,216,92,184,244,234,36,110,162,139,15,141,156,122,247,218,110,192,135,142,166,121,10,191,99,203,161,72,106,83,15]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-017",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [82,212,254,111,107,129,118,26,87,0,26,139,213,254,3,198,132,143,250,91,24,80,130,116,41,167,91,133,213,246,247,20]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-018",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [6,118,127,47,11,99,33,171,207,176,114,117,220,238,165,83,29,67,38,240,230,184,157,25,87,85,24,60,229,86,255,126]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-019",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [9,78,57,243,49,76,244,50,233,82,205,49,142,42,10,66,16,178,48,231,149,115,60,21,204,175,65,185,196,121,61,61]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-020",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [114,108,172,80,195,192,249,155,217,245,197,226,10,32,23,59,101,101,177,247,161,97,240,100,128,167,189,176,8,235,227,73]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-021",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [81,13,253,102,32,14,16,153,158,86,56,10,185,227,164,130,4,252,125,46,221,63,197,0,74,153,250,148,150,160,106,50]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-022",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [161,228,135,92,61,198,123,89,43,25,91,227,247,248,42,210,88,102,230,120,160,187,102,163,9,157,114,101,160,29,186,96]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-023",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [236,115,31,84,118,109,93,111,43,125,199,48,204,45,44,158,252,207,161,203,36,113,74,125,8,78,28,19,84,104,99,11]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-024",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [246,88,60,26,41,84,159,132,246,9,182,6,246,51,244,191,108,51,11,133,67,192,40,29,195,221,58,233,209,231,49,19]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-025",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [163,72,126,121,53,143,41,6,212,242,131,147,239,145,120,139,206,195,61,114,90,103,182,188,6,63,102,169,149,203,107,151]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-026",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [49,82,190,249,106,11,243,196,193,19,132,28,73,109,189,179,137,188,235,254,100,139,248,126,89,29,73,246,248,16,210,181]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-027",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [96,157,164,67,168,110,134,80,81,41,46,228,67,101,178,9,253,41,56,97,63,228,96,210,184,77,5,3,44,161,38,182]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-028",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [245,106,231,92,196,52,117,29,65,53,234,178,94,128,150,11,152,191,203,149,48,132,107,230,145,52,138,242,249,195,13,237]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-029",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [105,186,219,157,9,214,147,116,169,4,140,115,38,152,238,233,37,253,4,165,0,240,76,3,121,31,215,80,200,91,253,208]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-030",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [170,47,245,187,4,237,215,171,110,225,196,87,51,26,58,226,238,164,22,213,45,57,245,53,95,208,201,116,244,152,3,134]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-031",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [121,149,157,253,133,240,188,106,99,83,82,183,159,57,39,113,30,37,200,229,150,112,100,119,223,66,43,126,147,136,130,64]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-032",
+      "family": "greenhouse",
+      "source_ref": {
+        "sha256_bytes": [89,6,182,162,87,119,78,93,241,166,173,66,119,95,140,55,140,42,100,217,240,55,183,242,229,158,23,202,16,128,144,205]
+      },
+      "source_url": {
+        "from_snapshot": "absolute_url"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    },
+    {
+      "id": "public-source-033",
+      "family": "lever",
+      "source_ref": {
+        "sha256_bytes": [108,90,144,147,80,161,127,75,207,85,7,253,162,19,132,117,217,13,133,29,89,82,241,63,123,110,66,200,3,179,151,250]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "PUBLIC_DEMO"
+    },
+    {
+      "id": "public-source-034",
+      "family": "lever",
+      "source_ref": {
+        "sha256_bytes": [42,62,187,80,251,237,118,77,21,47,145,21,155,22,116,152,60,80,74,192,54,193,4,180,53,214,6,154,60,7,201,45]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "PUBLIC_DEMO"
+    },
+    {
+      "id": "public-source-035",
+      "family": "smartrecruiters",
+      "source_ref": {
+        "sha256_bytes": [64,117,47,41,253,172,126,145,34,151,19,211,218,225,104,227,88,198,58,42,47,14,134,81,202,166,40,196,177,188,182,237]
+      },
+      "source_url": {
+        "from_snapshot": "applyUrl"
+      },
+      "evidence": "SAVED_PUBLIC_SOURCE"
+    }
+  ]
+}

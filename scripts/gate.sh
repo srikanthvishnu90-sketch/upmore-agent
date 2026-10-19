@@ -28,6 +28,7 @@ JS
 }
 
 shared_tests=(
+  tests/apply-coverage.test.cjs
   tests/router-bundle.test.cjs
   tests/chat-request-controller.test.cjs
   tests/chat-request-integration.test.cjs

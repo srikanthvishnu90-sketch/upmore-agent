@@ -5100,6 +5100,22 @@ const CareerPrep = (() => {
     return null;
   }
 
+  let _cirLib = null;
+  function cirLibrary() {
+    if (_cirLib && _cirLib.length) return _cirLib;
+    let list = [];
+    try {
+      const fs = require("fs"); const path = require("path");
+      const dir = path.join(__dirname, "..", "career-data", "cirs");
+      list = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+    } catch { list = []; }
+    if (!list.length) {
+      try { if (typeof CAREER_CIRS_JSON !== "undefined" && Array.isArray(CAREER_CIRS_JSON)) list = CAREER_CIRS_JSON; } catch { list = []; }
+    }
+    if (list.length) _cirLib = list;
+    return list;
+  }
+
   const JD_KEYS = ["python", "java", "go", "rust", "javascript", "react", "sql", "postgres", "kubernetes", "aws", "distributed", "system design", "data structures", "algorithms", "machine learning", "probability", "statistics", "excel", "financial model", "dcf", "trading", "leadership", "teamwork", "communication", "product", "experimentation", "mentoring"];
   function jdKeywords(jdText) { const t = lc(jdText); return JD_KEYS.filter((k) => t.includes(k)); }
 
@@ -6027,7 +6043,7 @@ const CareerPrep = (() => {
       survival_rules: ["Depth over breadth in the final round: follow-ups on your own resume are the test, per the CIR stage record", "If a technical stalls, state your structure out loud and work it — silent freezing is the failure mode, not a wrong first step", "Names + one specific per interviewer, written down immediately"], sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
   }
 
-  return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
+  return { normalizeCir, findCir, cirLibrary, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,

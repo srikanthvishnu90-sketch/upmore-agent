@@ -3,6 +3,7 @@
 // model writes the words. No reply prose lives here.
 import { CareerProfile, CareerTrack, CareerPrep } from "../router_core.career.js";
 import type { ToolSpec, ToolCtx } from "./loop.ts";
+import { searchPostings } from "../career_search.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -19,9 +20,10 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
 }
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
-const words = (s: unknown) => String(s ?? "").toLowerCase().split(/[^a-z0-9+#]+/).filter((w) => w.length > 1);
 
-export function careerTools(deps: { postings: () => Promise<any[]> }): ToolSpec[] {
+// `postings(query)` returns candidate open postings: in production a full-text search of career_postings
+// (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
+export function careerTools(deps: { postings: (query: string) => Promise<any[]> }): ToolSpec[] {
   return [
     {
       name: "get_profile", effect: "read",
@@ -69,16 +71,14 @@ export function careerTools(deps: { postings: () => Promise<any[]> }): ToolSpec[
     },
     {
       name: "search_jobs", effect: "read",
-      description: "Search live job postings by keywords (role, skill, place). Returns real postings with their links and when they were first seen; an empty pool is reported as source 'none'.",
+      description: "Search live job postings by keywords (role, skill, place). Returns real postings with their links, when they were first seen, and, when the person has confirmed facts, a fit score with reasons and gaps (ranked best fit first; a posting they are knocked out of ranks last with the reason). An empty pool is reported as source 'none'.",
       input_schema: obj({ query: str("Keywords, e.g. 'data analyst remote'"), limit: { type: "number", description: "Max results, default 10" } }),
-      run: async (i) => {
-        const pool = await deps.postings();
+      run: async (i, c) => {
+        const query = String(i.query ?? "");
+        const pool = await deps.postings(query);
         if (!pool.length) return { postings: [], total: 0, source: "none" };
-        const q = words(i.query);
-        const hits = pool.filter((p) => { const hay = `${p.title || ""} ${p.description || ""} ${p.location || ""} ${p.company || ""}`.toLowerCase(); return q.every((w) => hay.includes(w)); })
-          .sort((a, b) => String(b.first_seen_at || "").localeCompare(String(a.first_seen_at || "")));
-        const limit = Math.max(1, Math.min(50, Number(i.limit) || 10));
-        return { postings: hits.slice(0, limit), total: hits.length, source: "live" };
+        const r = searchPostings(pool, query, c.state.profile, Number(i.limit) || 10);
+        return { ...r, source: "live" };
       },
     },
     {

@@ -26,7 +26,7 @@ export function agentTurn(o: {
   stores: Record<string, unknown>;
   userId: string; threadId: string; now: number;
   model: ModelFn;
-  postings?: () => Promise<any[]>;
+  postings?: (query: string) => Promise<any[]>;
   tz?: string;
 }): Promise<TurnResult> {
   return runAgentTurn({

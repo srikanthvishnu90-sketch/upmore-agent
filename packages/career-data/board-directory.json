@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generated_at": "2026-10-14T19:22:58.007Z",
+  "generated_at": "2026-10-17T08:00:00.000Z",
   "generator": "scripts/career/board-discovery.py + build-board-directory.mjs",
   "doctrine": "an entry is live only if a real fetch in the discovery run returned the board's postings JSON; calibration probes (one gibberish token per provider) were run first and their signatures recorded here",
   "calibration": {
@@ -49,12 +49,133 @@
    "lever:error": 137,
    "greenhouse:error": 245
   },
-  "live_supported": 107,
+  "live_supported": 309,
   "live_unsupported": 2,
-  "total_postings_seen": 22442,
-  "discovery_accounting": "Two tranches, both 2026-10-14. Tranche 1 (corpus lists + registry + first slug pass): 953 probe outcomes (465 dead, 94 live, 26 unverifiable, 368 transport errors) -> directory v1, 91 entries / 89 watchable. Tranche 2 (the completed employer-slug sweep for the four supported providers, 1,310 candidates): an initial pass over 1,055 of them found 25 live boards but its records were lost when the sandbox /tmp was wiped; the sweep was therefore re-probed in full into durable storage (1,310 outcomes: 483 dead, 145 unverifiable, 662 transport errors, 20 live) and merged live-beats-non-live over v1. Directory v2: 109 entries, 107 watchable. The probe_stats block counts only the merged v2 record file (v1 entries carried as verified-live records + tranche-2 outcomes); tranche-1's non-live outcomes survive in the day's reports, not in this file. The Phase-3 watch proof ran over v1's 89 boards; the 18 net-new v2 boards are verified live by discovery fetches (the directory standard) but were not in that watch window."
+  "total_postings_seen": 62853,
+  "discovery_accounting": "Two tranches, both 2026-10-14. Tranche 1 (corpus lists + registry + first slug pass): 953 probe outcomes (465 dead, 94 live, 26 unverifiable, 368 transport errors) -> directory v1, 91 entries / 89 watchable. Tranche 2 (the completed employer-slug sweep for the four supported providers, 1,310 candidates): an initial pass over 1,055 of them found 25 live boards but its records were lost when the sandbox /tmp was wiped; the sweep was therefore re-probed in full into durable storage (1,310 outcomes: 483 dead, 145 unverifiable, 662 transport errors, 20 live) and merged live-beats-non-live over v1. Directory v2: 109 entries, 107 watchable. The probe_stats block counts only the merged v2 record file (v1 entries carried as verified-live records + tranche-2 outcomes); tranche-1's non-live outcomes survive in the day's reports, not in this file. The Phase-3 watch proof ran over v1's 89 boards; the 18 net-new v2 boards are verified live by discovery fetches (the directory standard) but were not in that watch window.",
+  "tranche2_mi034": {
+   "date": "2026-10-17",
+   "branch": "work/mi034-board-tranche2",
+   "banks_probe_stats": {
+    "ashby:dead": 370,
+    "ashby:live": 18,
+    "greenhouse:dead": 348,
+    "greenhouse:live": 40,
+    "lever:dead": 383,
+    "lever:live": 5,
+    "smartrecruiters:live": 6,
+    "smartrecruiters:unverifiable": 396
+   },
+   "general_probe_stats": {
+    "ashby:dead": 648,
+    "ashby:live": 25,
+    "greenhouse:dead": 639,
+    "greenhouse:live": 29,
+    "lever:dead": 659,
+    "lever:live": 14,
+    "smartrecruiters:live": 18,
+    "smartrecruiters:unverifiable": 441
+   },
+   "live_before": 107,
+   "live_after": 262,
+   "by_provider_before": {
+    "smartrecruiters": 7,
+    "greenhouse": 72,
+    "ashby": 17,
+    "lever": 11
+   },
+   "by_provider_after": {
+    "smartrecruiters": 31,
+    "greenhouse": 141,
+    "lever": 30,
+    "ashby": 60
+   },
+   "token_label_overrides": [
+    "ashby:circle",
+    "ashby:unit",
+    "greenhouse:apollo",
+    "greenhouse:current",
+    "greenhouse:galaxy",
+    "greenhouse:wise"
+   ],
+   "note": "Banks-first tranche (1,566 probes: live 69 / dead 1,101 / unverifiable 396 / transport-error 0) plus a general tranche-2 sweep (2,473 probes: live 86 / dead 1,946 / unverifiable 441 / transport-error 0; 16 candidates skipped as already live); combined +155 live boards, 107 -> 262. A board is live only on a real postings-JSON fetch this run; 429 never occurred, no provider hard-stopped. Per-board fetch records: docs/career/board-tranche2-probes/{banks,general}.jsonl (every probed candidate named with its verdict). Token-label overrides: postings spot-checks disproved the slug-guess hint (greenhouse current = a digital agency, galaxy = security services, wise = US field-sales org, apollo 0 postings unattributable, ashby circle = community-platform company, unit unattributable) — entries stay token-labeled per directory precedent. Egress items (Tyson remainder, Workday 422 tenants, Corpus 3A untested candidates) NOT attempted this run — named as remaining."
+  },
+  "egress2_mi034": {
+   "date": "2026-10-17",
+   "branch": "work/mi034-egress-2",
+   "base": "work/mi034-board-tranche2 @ 9b2832d",
+   "probe_stats": {
+    "greenhouse:live": 17,
+    "greenhouse:dead": 799,
+    "lever:live": 7,
+    "lever:dead": 831,
+    "ashby:live": 7,
+    "ashby:dead": 831,
+    "smartrecruiters:live": 16,
+    "smartrecruiters:unverifiable": 981
+   },
+   "live_before": 262,
+   "live_after": 309,
+   "by_provider_before": {
+    "smartrecruiters": 31,
+    "greenhouse": 141,
+    "lever": 30,
+    "ashby": 60
+   },
+   "by_provider_after": {
+    "smartrecruiters": 47,
+    "greenhouse": 158,
+    "lever": 37,
+    "ashby": 67
+   },
+   "token_label_overrides": [
+    "ashby:ondeck",
+    "ashby:project44",
+    "greenhouse:coursehero",
+    "greenhouse:greenpeace",
+    "greenhouse:mit",
+    "lever:blueorigin",
+    "lever:mit"
+   ],
+   "note": "Corpus-egress continuation (run 9): resumed Corpus 3A's untested board candidates. 3A's exact candidate list was never persisted (2026-10-14 egress outages + VM restart), so the pool was REGENERATED from 3A's recorded methodology (employer names in its priority non-tech classes -> concatenated + hyphenated slugs x Greenhouse/Lever/Ashby, extended to SmartRecruiters per run 8's 4-provider standard) using board-discovery.py's persisted employer universe plus a supplementary priority-class list, excluding every (provider, token) already live or already probed by run 8 (1,238 excluded: 63 already live, 1,175 already probed). 3,489 candidates probed: live 47 / dead 2,461 / unverifiable 981 (all SmartRecruiters) / transport-error 0 in the final accounting. Calibration first, gibberish token per provider, identical in both probe parts: Greenhouse 404/dead, Lever 404/dead, Ashby 404/dead, SmartRecruiters 200/unverifiable. HTTP 429 never occurred; no provider hard-stopped. Mid-run the first probe process was killed when egress collapsed (its final 34 records are http=0 transport errors across all four providers at once, preserved verbatim in egress2.jsonl); a resume pass re-probed those 34 plus the 2,318 never-probed (2,352 records in egress2-resume.jsonl) and every one reached a conclusive verdict, so raw records total 3,523 with 34 superseded errors. A board is live only on a real postings-JSON fetch this run. Per-board fetch records: docs/career/board-egress2-probes/{egress2,egress2-resume}.jsonl (every probed candidate named with its verdict). Token-label overrides: seven 0-posting boards (ashby ondeck/project44, greenhouse coursehero/greenpeace/mit, lever blueorigin/mit) are real but unattributable from zero postings — labeled by token per the run-8 apollo precedent; all 40 other new boards' postings were spot-checked against their company hints and support them. Tyson Foods on the four supported providers: tysonfoods/tyson/tyson-foods all dead or unverifiable (in the probe records) — no supported board; its Workday board stays NOT_WIRED (four CXS total probes this run returned HTTP 303 with empty bodies — no total obtained, recorded as transport evidence only; the corpus pull3-portals.jsonl still holds its 412 banked postings, remainder unpulled). The 27 HTTP-422 Workday tenants stay NOT_WIRED — recorded, not wired. Live 262 -> 309; 691 boards remain to 1,000."
+  },
+  "wo006": {
+   "date": "2026-10-19",
+   "dropped": [
+    {
+     "provider": "lever",
+     "board_token": "leverdemo",
+     "reason": "the ATS vendor demo board, not an employer"
+    },
+    {
+     "provider": "greenhouse",
+     "board_token": "greenhouse",
+     "reason": "the ATS vendor own board"
+    },
+    {
+     "provider": "ashby",
+     "board_token": "ashby",
+     "reason": "the ATS vendor own board"
+    },
+    {
+     "provider": "smartrecruiters",
+     "board_token": "palantir",
+     "reason": "duplicate Palantir: 10 postings on a slug guess; Palantir hires on lever:palantir (314 postings)"
+    }
+   ],
+   "live": 305
+  }
  },
  "boards": [
+  {
+   "company": "Domino's",
+   "provider": "smartrecruiters",
+   "board_token": "DominoS",
+   "status": "live",
+   "postings_seen": 24868,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
   {
    "company": "BoschGroup",
    "provider": "smartrecruiters",
@@ -63,6 +184,15 @@
    "postings_seen": 5032,
    "last_verified": "2026-10-14",
    "source": "registry-121"
+  },
+  {
+   "company": "EOS Fitness",
+   "provider": "greenhouse",
+   "board_token": "eosfitness",
+   "status": "live",
+   "postings_seen": 2776,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "spacex",
@@ -74,6 +204,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Securitas",
+   "provider": "smartrecruiters",
+   "board_token": "Securitas",
+   "status": "live",
+   "postings_seen": 1227,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Veeva",
+   "provider": "lever",
+   "board_token": "veeva",
+   "status": "live",
+   "postings_seen": 938,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "databricks",
    "provider": "greenhouse",
    "board_token": "databricks",
@@ -83,6 +231,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Boyd Gaming",
+   "provider": "smartrecruiters",
+   "board_token": "BoydGaming",
+   "status": "live",
+   "postings_seen": 857,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "openai",
    "provider": "ashby",
    "board_token": "openai",
@@ -90,6 +247,15 @@
    "postings_seen": 806,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Equinox",
+   "provider": "smartrecruiters",
+   "board_token": "Equinox",
+   "status": "live",
+   "postings_seen": 756,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "stripe",
@@ -128,6 +294,42 @@
    "source": "corpus-list"
   },
   {
+   "company": "Accor",
+   "provider": "smartrecruiters",
+   "board_token": "Accor",
+   "status": "live",
+   "postings_seen": 570,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Lyra Health",
+   "provider": "lever",
+   "board_token": "lyrahealth",
+   "status": "live",
+   "postings_seen": 513,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Airwallex",
+   "provider": "ashby",
+   "board_token": "airwallex",
+   "status": "live",
+   "postings_seen": 496,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Expeditors",
+   "provider": "smartrecruiters",
+   "board_token": "Expeditors",
+   "status": "live",
+   "postings_seen": 493,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
    "company": "cloudflare",
    "provider": "greenhouse",
    "board_token": "cloudflare",
@@ -146,6 +348,15 @@
    "source": "registry-121"
   },
   {
+   "company": "Wise",
+   "provider": "smartrecruiters",
+   "board_token": "Wise",
+   "status": "live",
+   "postings_seen": 419,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "mongodb",
    "provider": "greenhouse",
    "board_token": "mongodb",
@@ -153,6 +364,15 @@
    "postings_seen": 405,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "One Medical",
+   "provider": "greenhouse",
+   "board_token": "onemedical",
+   "status": "live",
+   "postings_seen": 389,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "Elastic",
@@ -200,6 +420,15 @@
    "source": "employer-slug"
   },
   {
+   "company": "Harvard University",
+   "provider": "smartrecruiters",
+   "board_token": "HarvardUniversity",
+   "status": "live",
+   "postings_seen": 333,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
    "company": "braze",
    "provider": "greenhouse",
    "board_token": "braze",
@@ -209,7 +438,16 @@
    "source": "corpus-list"
   },
   {
-   "company": "palantir",
+   "company": "Toast",
+   "provider": "greenhouse",
+   "board_token": "toast",
+   "status": "live",
+   "postings_seen": 318,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Palantir",
    "provider": "lever",
    "board_token": "palantir",
    "status": "live",
@@ -236,6 +474,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Adyen",
+   "provider": "greenhouse",
+   "board_token": "adyen",
+   "status": "live",
+   "postings_seen": 250,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "samsara",
    "provider": "greenhouse",
    "board_token": "samsara",
@@ -243,6 +490,24 @@
    "postings_seen": 248,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Oscar Health",
+   "provider": "greenhouse",
+   "board_token": "oscar",
+   "status": "live",
+   "postings_seen": 248,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Natera",
+   "provider": "greenhouse",
+   "board_token": "natera",
+   "status": "live",
+   "postings_seen": 230,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "Block",
@@ -270,6 +535,15 @@
    "postings_seen": 224,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Point72",
+   "provider": "greenhouse",
+   "board_token": "point72",
+   "status": "live",
+   "postings_seen": 221,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
   },
   {
    "company": "gitlab",
@@ -335,6 +609,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "IMC",
+   "provider": "greenhouse",
+   "board_token": "imc",
+   "status": "live",
+   "postings_seen": 172,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Whoop",
+   "provider": "ashby",
+   "board_token": "whoop",
+   "status": "live",
+   "postings_seen": 171,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "airbnb",
    "provider": "greenhouse",
    "board_token": "airbnb",
@@ -369,6 +661,15 @@
    "postings_seen": 153,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Forvis Mazars",
+   "provider": "greenhouse",
+   "board_token": "forvismazars",
+   "status": "live",
+   "postings_seen": 147,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
   },
   {
    "company": "figma",
@@ -407,6 +708,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Wynn Resorts",
+   "provider": "smartrecruiters",
+   "board_token": "WynnResorts",
+   "status": "live",
+   "postings_seen": 141,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Preply",
+   "provider": "ashby",
+   "board_token": "preply",
+   "status": "live",
+   "postings_seen": 132,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "notion",
    "provider": "ashby",
    "board_token": "notion",
@@ -414,6 +733,15 @@
    "postings_seen": 130,
    "last_verified": "2026-10-14",
    "source": "registry-121"
+  },
+  {
+   "company": "Plaid",
+   "provider": "ashby",
+   "board_token": "plaid",
+   "status": "live",
+   "postings_seen": 128,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
   },
   {
    "company": "instacart",
@@ -434,6 +762,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Fortune Brands",
+   "provider": "smartrecruiters",
+   "board_token": "FortuneBrands",
+   "status": "live",
+   "postings_seen": 109,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "zoominfo",
    "provider": "greenhouse",
    "board_token": "zoominfo",
@@ -450,6 +787,24 @@
    "postings_seen": 104,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Ripple",
+   "provider": "greenhouse",
+   "board_token": "ripple",
+   "status": "live",
+   "postings_seen": 103,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Blank Street",
+   "provider": "greenhouse",
+   "board_token": "blankstreet",
+   "status": "live",
+   "postings_seen": 103,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "langchain",
@@ -470,6 +825,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Jump Trading",
+   "provider": "greenhouse",
+   "board_token": "jumptrading",
+   "status": "live",
+   "postings_seen": 101,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "gongio",
    "provider": "greenhouse",
    "board_token": "gongio",
@@ -488,6 +852,33 @@
    "source": "corpus-list"
   },
   {
+   "company": "StepStone Group",
+   "provider": "smartrecruiters",
+   "board_token": "StepstoneGroup",
+   "status": "live",
+   "postings_seen": 98,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Tower Research",
+   "provider": "greenhouse",
+   "board_token": "towerresearchcapital",
+   "status": "live",
+   "postings_seen": 96,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Upstart",
+   "provider": "greenhouse",
+   "board_token": "upstart",
+   "status": "live",
+   "postings_seen": 95,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "vercel",
    "provider": "greenhouse",
    "board_token": "vercel",
@@ -495,6 +886,24 @@
    "postings_seen": 90,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "University of Notre Dame",
+   "provider": "smartrecruiters",
+   "board_token": "UniversityOfNotreDame",
+   "status": "live",
+   "postings_seen": 84,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "e.l.f. Beauty",
+   "provider": "lever",
+   "board_token": "elfbeauty",
+   "status": "live",
+   "postings_seen": 82,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "spotify",
@@ -506,6 +915,33 @@
    "source": "corpus-list"
   },
   {
+   "company": "Oura",
+   "provider": "greenhouse",
+   "board_token": "oura",
+   "status": "live",
+   "postings_seen": 80,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "FanDuel",
+   "provider": "greenhouse",
+   "board_token": "fanduel",
+   "status": "live",
+   "postings_seen": 78,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Hinge Health",
+   "provider": "ashby",
+   "board_token": "hinge-health",
+   "status": "live",
+   "postings_seen": 76,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "carta",
    "provider": "greenhouse",
    "board_token": "carta",
@@ -513,6 +949,15 @@
    "postings_seen": 73,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Blue Bottle Coffee",
+   "provider": "lever",
+   "board_token": "bluebottlecoffee",
+   "status": "live",
+   "postings_seen": 73,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "chime",
@@ -524,6 +969,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Northwestern Mutual",
+   "provider": "smartrecruiters",
+   "board_token": "NorthwesternMutual",
+   "status": "live",
+   "postings_seen": 69,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Sweetgreen",
+   "provider": "greenhouse",
+   "board_token": "sweetgreen",
+   "status": "live",
+   "postings_seen": 68,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "workato",
    "provider": "greenhouse",
    "board_token": "workato",
@@ -533,13 +996,13 @@
    "source": "corpus-list"
   },
   {
-   "company": "ashby",
-   "provider": "ashby",
-   "board_token": "ashby",
+   "company": "Allegiant Air",
+   "provider": "lever",
+   "board_token": "allegiantair",
    "status": "live",
-   "postings_seen": 63,
-   "last_verified": "2026-10-14",
-   "source": "registry-121"
+   "postings_seen": 61,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "duolingo",
@@ -551,6 +1014,15 @@
    "source": "corpus-list"
   },
   {
+   "company": "Geotab",
+   "provider": "greenhouse",
+   "board_token": "geotab",
+   "status": "live",
+   "postings_seen": 59,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "zocdoc",
    "provider": "greenhouse",
    "board_token": "zocdoc",
@@ -558,6 +1030,33 @@
    "postings_seen": 58,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "William Blair",
+   "provider": "greenhouse",
+   "board_token": "williamblair",
+   "status": "live",
+   "postings_seen": 58,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Instructure",
+   "provider": "ashby",
+   "board_token": "instructure",
+   "status": "live",
+   "postings_seen": 58,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Man Group",
+   "provider": "greenhouse",
+   "board_token": "mangroup",
+   "status": "live",
+   "postings_seen": 57,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
   },
   {
    "company": "pagerduty",
@@ -569,6 +1068,51 @@
    "source": "corpus-list"
   },
   {
+   "company": "Pathward",
+   "provider": "greenhouse",
+   "board_token": "pathward",
+   "status": "live",
+   "postings_seen": 56,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "AQR Capital",
+   "provider": "greenhouse",
+   "board_token": "aqr",
+   "status": "live",
+   "postings_seen": 56,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Benchling",
+   "provider": "ashby",
+   "board_token": "benchling",
+   "status": "live",
+   "postings_seen": 56,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Clover Health",
+   "provider": "greenhouse",
+   "board_token": "cloverhealth",
+   "status": "live",
+   "postings_seen": 56,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "BitGo",
+   "provider": "greenhouse",
+   "board_token": "bitgo",
+   "status": "live",
+   "postings_seen": 54,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "apolloio",
    "provider": "greenhouse",
    "board_token": "apolloio",
@@ -578,6 +1122,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "StepStone Group",
+   "provider": "greenhouse",
+   "board_token": "stepstone",
+   "status": "live",
+   "postings_seen": 53,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Globalization Partners",
+   "provider": "greenhouse",
+   "board_token": "globalizationpartners",
+   "status": "live",
+   "postings_seen": 53,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "mixpanel",
    "provider": "greenhouse",
    "board_token": "mixpanel",
@@ -585,6 +1147,33 @@
    "postings_seen": 52,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "dLocal",
+   "provider": "lever",
+   "board_token": "dlocal",
+   "status": "live",
+   "postings_seen": 52,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Included Health",
+   "provider": "lever",
+   "board_token": "includedhealth",
+   "status": "live",
+   "postings_seen": 51,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Peloton",
+   "provider": "greenhouse",
+   "board_token": "peloton",
+   "status": "live",
+   "postings_seen": 51,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "sofi",
@@ -605,6 +1194,24 @@
    "source": "employer-slug"
   },
   {
+   "company": "Sword Health",
+   "provider": "greenhouse",
+   "board_token": "swordhealth",
+   "status": "live",
+   "postings_seen": 49,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Vaco",
+   "provider": "greenhouse",
+   "board_token": "vaco",
+   "status": "live",
+   "postings_seen": 49,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "discord",
    "provider": "greenhouse",
    "board_token": "discord",
@@ -623,6 +1230,15 @@
    "source": "registry-121"
   },
   {
+   "company": "Flow Traders",
+   "provider": "greenhouse",
+   "board_token": "flowtraders",
+   "status": "live",
+   "postings_seen": 47,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "wing",
    "provider": "greenhouse",
    "board_token": "wing",
@@ -630,6 +1246,42 @@
    "postings_seen": 45,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Coalition",
+   "provider": "greenhouse",
+   "board_token": "coalition",
+   "status": "live",
+   "postings_seen": 44,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Gallup",
+   "provider": "greenhouse",
+   "board_token": "gallup",
+   "status": "live",
+   "postings_seen": 43,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Lincoln International",
+   "provider": "greenhouse",
+   "board_token": "lincolninternational",
+   "status": "live",
+   "postings_seen": 42,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "AppLovin",
+   "provider": "greenhouse",
+   "board_token": "applovin",
+   "status": "live",
+   "postings_seen": 42,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "oldmissioncapital",
@@ -650,6 +1302,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Akuna Capital",
+   "provider": "greenhouse",
+   "board_token": "akunacapital",
+   "status": "live",
+   "postings_seen": 40,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Cross River",
+   "provider": "greenhouse",
+   "board_token": "crossriverbank",
+   "status": "live",
+   "postings_seen": 40,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
    "company": "MetLife",
    "provider": "lever",
    "board_token": "metlife",
@@ -657,6 +1327,24 @@
    "postings_seen": 39,
    "last_verified": "2026-10-14",
    "source": "employer-slug"
+  },
+  {
+   "company": "Lemonade",
+   "provider": "ashby",
+   "board_token": "lemonade",
+   "status": "live",
+   "postings_seen": 39,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "SimpliSafe",
+   "provider": "greenhouse",
+   "board_token": "simplisafe",
+   "status": "live",
+   "postings_seen": 36,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "squarespace",
@@ -695,6 +1383,15 @@
    "source": "registry-121"
   },
   {
+   "company": "Toptal",
+   "provider": "lever",
+   "board_token": "toptal",
+   "status": "live",
+   "postings_seen": 32,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "certik",
    "provider": "lever",
    "board_token": "certik",
@@ -713,6 +1410,24 @@
    "source": "corpus-list"
   },
   {
+   "company": "Freenome",
+   "provider": "greenhouse",
+   "board_token": "freenome",
+   "status": "live",
+   "postings_seen": 30,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Turing",
+   "provider": "greenhouse",
+   "board_token": "turing",
+   "status": "live",
+   "postings_seen": 30,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "komodohealth",
    "provider": "greenhouse",
    "board_token": "komodohealth",
@@ -720,6 +1435,78 @@
    "postings_seen": 28,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Pie Insurance",
+   "provider": "greenhouse",
+   "board_token": "pieinsurance",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "iFit",
+   "provider": "greenhouse",
+   "board_token": "ifit",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Braintrust",
+   "provider": "ashby",
+   "board_token": "braintrust",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "project44",
+   "provider": "greenhouse",
+   "board_token": "project44",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Netradyne",
+   "provider": "greenhouse",
+   "board_token": "netradyne",
+   "status": "live",
+   "postings_seen": 28,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Fireblocks",
+   "provider": "greenhouse",
+   "board_token": "fireblocks",
+   "status": "live",
+   "postings_seen": 26,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "GoStudent",
+   "provider": "greenhouse",
+   "board_token": "gostudent",
+   "status": "live",
+   "postings_seen": 26,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "General Assembly",
+   "provider": "greenhouse",
+   "board_token": "generalassembly",
+   "status": "live",
+   "postings_seen": 26,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "talkspace",
@@ -738,6 +1525,24 @@
    "postings_seen": 25,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Tonal",
+   "provider": "ashby",
+   "board_token": "tonal",
+   "status": "live",
+   "postings_seen": 24,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Udacity",
+   "provider": "greenhouse",
+   "board_token": "udacity",
+   "status": "live",
+   "postings_seen": 24,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "webflow",
@@ -767,6 +1572,51 @@
    "source": "corpus-list"
   },
   {
+   "company": "wise",
+   "provider": "greenhouse",
+   "board_token": "wise",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Alchemy",
+   "provider": "ashby",
+   "board_token": "alchemy",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Column",
+   "provider": "ashby",
+   "board_token": "column",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Virta Health",
+   "provider": "ashby",
+   "board_token": "virtahealth",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Oyster",
+   "provider": "ashby",
+   "board_token": "oyster",
+   "status": "live",
+   "postings_seen": 22,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "formationbio",
    "provider": "greenhouse",
    "board_token": "formationbio",
@@ -785,13 +1635,85 @@
    "source": "corpus-list"
   },
   {
-   "company": "greenhouse",
+   "company": "Belvedere Trading",
+   "provider": "lever",
+   "board_token": "belvederetrading",
+   "status": "live",
+   "postings_seen": 20,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Paxos",
+   "provider": "ashby",
+   "board_token": "paxos",
+   "status": "live",
+   "postings_seen": 20,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Coursera",
    "provider": "greenhouse",
-   "board_token": "greenhouse",
+   "board_token": "coursera",
+   "status": "live",
+   "postings_seen": 20,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "FalconX",
+   "provider": "greenhouse",
+   "board_token": "falconx",
+   "status": "live",
+   "postings_seen": 19,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Color Health",
+   "provider": "ashby",
+   "board_token": "color-health",
+   "status": "live",
+   "postings_seen": 18,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Omada Health",
+   "provider": "greenhouse",
+   "board_token": "omadahealth",
+   "status": "live",
+   "postings_seen": 18,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Andreessen Horowitz",
+   "provider": "greenhouse",
+   "board_token": "a16z",
    "status": "live",
    "postings_seen": 17,
-   "last_verified": "2026-10-14",
-   "source": "corpus-list"
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Lead Bank",
+   "provider": "ashby",
+   "board_token": "leadbank",
+   "status": "live",
+   "postings_seen": 17,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "ACLU",
+   "provider": "greenhouse",
+   "board_token": "aclu",
+   "status": "live",
+   "postings_seen": 15,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "CACI",
@@ -801,6 +1723,42 @@
    "postings_seen": 14,
    "last_verified": "2026-10-14",
    "source": "employer-slug"
+  },
+  {
+   "company": "FourKites",
+   "provider": "greenhouse",
+   "board_token": "fourkites",
+   "status": "live",
+   "postings_seen": 14,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "D2L",
+   "provider": "greenhouse",
+   "board_token": "d2l",
+   "status": "live",
+   "postings_seen": 14,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "General Atlantic",
+   "provider": "greenhouse",
+   "board_token": "generalatlantic",
+   "status": "live",
+   "postings_seen": 13,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Insitro",
+   "provider": "ashby",
+   "board_token": "insitro",
+   "status": "live",
+   "postings_seen": 13,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
   },
   {
    "company": "shiftkey",
@@ -821,22 +1779,40 @@
    "source": "corpus-list"
   },
   {
-   "company": "leverdemo",
-   "provider": "lever",
-   "board_token": "leverdemo",
+   "company": "Lithic",
+   "provider": "greenhouse",
+   "board_token": "lithic",
    "status": "live",
-   "postings_seen": 10,
-   "last_verified": "2026-10-14",
-   "source": "registry-121"
+   "postings_seen": 11,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
   },
   {
-   "company": "Palantir",
+   "company": "Gap Inc",
    "provider": "smartrecruiters",
-   "board_token": "palantir",
+   "board_token": "GapInc",
+   "status": "live",
+   "postings_seen": 11,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "Babbel",
+   "provider": "ashby",
+   "board_token": "babbel",
+   "status": "live",
+   "postings_seen": 11,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Motive",
+   "provider": "greenhouse",
+   "board_token": "motive",
    "status": "live",
    "postings_seen": 10,
-   "last_verified": "2026-10-14",
-   "source": "employer-slug"
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "amwell",
@@ -857,6 +1833,42 @@
    "source": "employer-slug"
   },
   {
+   "company": "Consensys",
+   "provider": "greenhouse",
+   "board_token": "consensys",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Capsule",
+   "provider": "ashby",
+   "board_token": "capsule",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Arlo",
+   "provider": "ashby",
+   "board_token": "arlo",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Upwork",
+   "provider": "greenhouse",
+   "board_token": "upwork",
+   "status": "live",
+   "postings_seen": 9,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
    "company": "llamaindex",
    "provider": "ashby",
    "board_token": "llamaindex",
@@ -864,6 +1876,159 @@
    "postings_seen": 8,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Sequoia Capital",
+   "provider": "ashby",
+   "board_token": "sequoia",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "circle",
+   "provider": "ashby",
+   "board_token": "circle",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Consensys",
+   "provider": "ashby",
+   "board_token": "consensys",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Udemy",
+   "provider": "greenhouse",
+   "board_token": "udemy",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Outschool",
+   "provider": "ashby",
+   "board_token": "outschool",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Human Rights Watch",
+   "provider": "greenhouse",
+   "board_token": "humanrightswatch",
+   "status": "live",
+   "postings_seen": 8,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "current",
+   "provider": "greenhouse",
+   "board_token": "current",
+   "status": "live",
+   "postings_seen": 7,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Contra",
+   "provider": "ashby",
+   "board_token": "contra",
+   "status": "live",
+   "postings_seen": 7,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Cambly",
+   "provider": "ashby",
+   "board_token": "cambly",
+   "status": "live",
+   "postings_seen": 7,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Paradigm",
+   "provider": "ashby",
+   "board_token": "paradigm",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Highnote",
+   "provider": "greenhouse",
+   "board_token": "highnote",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Khan Academy",
+   "provider": "greenhouse",
+   "board_token": "khanacademy",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "BetterUp",
+   "provider": "ashby",
+   "board_token": "betterup",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "ICON",
+   "provider": "ashby",
+   "board_token": "icon",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Atlas",
+   "provider": "ashby",
+   "board_token": "atlas",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Nomi Health",
+   "provider": "lever",
+   "board_token": "nomihealth",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Sierra Club",
+   "provider": "lever",
+   "board_token": "sierraclub",
+   "status": "live",
+   "postings_seen": 6,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "pinecone",
@@ -875,6 +2040,60 @@
    "source": "corpus-list"
   },
   {
+   "company": "LPL Financial",
+   "provider": "greenhouse",
+   "board_token": "lpl",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Lightspeed Venture",
+   "provider": "ashby",
+   "board_token": "lightspeed",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Dave",
+   "provider": "ashby",
+   "board_token": "dave",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "MasterClass",
+   "provider": "greenhouse",
+   "board_token": "masterclass",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Noodle",
+   "provider": "lever",
+   "board_token": "noodle",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "D2L",
+   "provider": "lever",
+   "board_token": "d2l",
+   "status": "live",
+   "postings_seen": 5,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "airtable",
    "provider": "greenhouse",
    "board_token": "airtable",
@@ -882,6 +2101,51 @@
    "postings_seen": 4,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Jump Trading",
+   "provider": "greenhouse",
+   "board_token": "jumpcrypto",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Vivint",
+   "provider": "smartrecruiters",
+   "board_token": "Vivint",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Lemon.io",
+   "provider": "ashby",
+   "board_token": "lemon-io",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Instructure",
+   "provider": "smartrecruiters",
+   "board_token": "Instructure",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Springboard",
+   "provider": "greenhouse",
+   "board_token": "springboard",
+   "status": "live",
+   "postings_seen": 4,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "weaviate",
@@ -902,6 +2166,105 @@
    "source": "employer-slug"
   },
   {
+   "company": "StepStone Group",
+   "provider": "smartrecruiters",
+   "board_token": "stepstone",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "galaxy",
+   "provider": "greenhouse",
+   "board_token": "galaxy",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Grayscale",
+   "provider": "greenhouse",
+   "board_token": "grayscale",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "unit",
+   "provider": "ashby",
+   "board_token": "unit",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Echelon",
+   "provider": "ashby",
+   "board_token": "echelon",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Four Seasons",
+   "provider": "greenhouse",
+   "board_token": "fourseasons",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Criteria Corp",
+   "provider": "smartrecruiters",
+   "board_token": "CriteriaCorp",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Pymetrics",
+   "provider": "smartrecruiters",
+   "board_token": "Pymetrics",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Fiverr",
+   "provider": "smartrecruiters",
+   "board_token": "Fiverr",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Unacademy",
+   "provider": "smartrecruiters",
+   "board_token": "Unacademy",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Maven",
+   "provider": "ashby",
+   "board_token": "maven",
+   "status": "live",
+   "postings_seen": 3,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "mastra",
    "provider": "ashby",
    "board_token": "mastra",
@@ -909,6 +2272,96 @@
    "postings_seen": 2,
    "last_verified": "2026-10-14",
    "source": "corpus-list"
+  },
+  {
+   "company": "Khosla Ventures",
+   "provider": "ashby",
+   "board_token": "khoslaventures",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Degreed",
+   "provider": "greenhouse",
+   "board_token": "degreed",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Calm",
+   "provider": "greenhouse",
+   "board_token": "calm",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Devoted Health",
+   "provider": "smartrecruiters",
+   "board_token": "DevotedHealth",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "ResMed",
+   "provider": "smartrecruiters",
+   "board_token": "Resmed",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "HireVue",
+   "provider": "smartrecruiters",
+   "board_token": "Hirevue",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Remote",
+   "provider": "greenhouse",
+   "board_token": "remote",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "A.Team",
+   "provider": "ashby",
+   "board_token": "a-team",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "A.Team",
+   "provider": "ashby",
+   "board_token": "ateam",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Sierra Club",
+   "provider": "smartrecruiters",
+   "board_token": "SierraClub",
+   "status": "live",
+   "postings_seen": 2,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   },
   {
    "company": "glide",
@@ -974,6 +2427,150 @@
    "source": "employer-slug"
   },
   {
+   "company": "Stifel",
+   "provider": "smartrecruiters",
+   "board_token": "Stifel",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "B. Riley",
+   "provider": "smartrecruiters",
+   "board_token": "brileyfinancial",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Masimo",
+   "provider": "smartrecruiters",
+   "board_token": "Masimo",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "24 Hour Fitness",
+   "provider": "smartrecruiters",
+   "board_token": "24HourFitness",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Crunch Fitness",
+   "provider": "smartrecruiters",
+   "board_token": "CrunchFitness",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Shake Shack",
+   "provider": "smartrecruiters",
+   "board_token": "ShakeShack",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Dribbble",
+   "provider": "smartrecruiters",
+   "board_token": "Dribbble",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Sutter Health",
+   "provider": "smartrecruiters",
+   "board_token": "SutterHealth",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "Kimberly-Clark",
+   "provider": "smartrecruiters",
+   "board_token": "KimberlyClark",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "University of Chicago",
+   "provider": "greenhouse",
+   "board_token": "universityofchicago",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "Netradyne",
+   "provider": "smartrecruiters",
+   "board_token": "Netradyne",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "HNI Corporation",
+   "provider": "smartrecruiters",
+   "board_token": "hni",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Tempur Sealy",
+   "provider": "smartrecruiters",
+   "board_token": "tempur-sealy",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "Turner Construction",
+   "provider": "smartrecruiters",
+   "board_token": "TurnerConstruction",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "italki",
+   "provider": "smartrecruiters",
+   "board_token": "Italki",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "VIPKid",
+   "provider": "smartrecruiters",
+   "board_token": "Vipkid",
+   "status": "live",
+   "postings_seen": 1,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
    "company": "crisp",
    "provider": "greenhouse",
    "board_token": "crisp",
@@ -1035,6 +2632,303 @@
    "postings_seen": 0,
    "last_verified": "2026-10-14",
    "source": "employer-slug"
+  },
+  {
+   "company": "apollo",
+   "provider": "greenhouse",
+   "board_token": "apollo",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Thoma Bravo",
+   "provider": "lever",
+   "board_token": "thomabravo",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Permira",
+   "provider": "greenhouse",
+   "board_token": "permira",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Index Ventures",
+   "provider": "lever",
+   "board_token": "indexventures",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Insight Partners",
+   "provider": "ashby",
+   "board_token": "insightpartners",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "General Catalyst",
+   "provider": "greenhouse",
+   "board_token": "generalcatalyst",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Optiver",
+   "provider": "greenhouse",
+   "board_token": "optiver",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Hudson River Trading",
+   "provider": "ashby",
+   "board_token": "hrt",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Treasury Prime",
+   "provider": "greenhouse",
+   "board_token": "treasuryprime",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Synctera",
+   "provider": "ashby",
+   "board_token": "synctera",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "KPMG",
+   "provider": "lever",
+   "board_token": "kpmg",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "banks-tranche"
+  },
+  {
+   "company": "Lyra Health",
+   "provider": "ashby",
+   "board_token": "lyrahealth",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Carbon Health",
+   "provider": "ashby",
+   "board_token": "carbonhealth",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Carbon Health",
+   "provider": "lever",
+   "board_token": "carbonhealth",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "ICON",
+   "provider": "greenhouse",
+   "board_token": "icon",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Transcarent",
+   "provider": "lever",
+   "board_token": "transcarent",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Sword Health",
+   "provider": "lever",
+   "board_token": "swordhealth",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Signos",
+   "provider": "greenhouse",
+   "board_token": "signos",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Whoop",
+   "provider": "lever",
+   "board_token": "whoop",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Mirror",
+   "provider": "lever",
+   "board_token": "mirror",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Stevens Transport",
+   "provider": "lever",
+   "board_token": "stevenstransport",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Blink",
+   "provider": "ashby",
+   "board_token": "blink",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Lever",
+   "provider": "lever",
+   "board_token": "lever",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Deel",
+   "provider": "ashby",
+   "board_token": "deel",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Velocity Global",
+   "provider": "lever",
+   "board_token": "velocityglobal",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "Turing",
+   "provider": "ashby",
+   "board_token": "turing",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "general-tranche2"
+  },
+  {
+   "company": "blueorigin",
+   "provider": "lever",
+   "board_token": "blueorigin",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "mit",
+   "provider": "greenhouse",
+   "board_token": "mit",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "mit",
+   "provider": "lever",
+   "board_token": "mit",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-regen"
+  },
+  {
+   "company": "project44",
+   "provider": "ashby",
+   "board_token": "project44",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "coursehero",
+   "provider": "greenhouse",
+   "board_token": "coursehero",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "ondeck",
+   "provider": "ashby",
+   "board_token": "ondeck",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
+  },
+  {
+   "company": "greenpeace",
+   "provider": "greenhouse",
+   "board_token": "greenpeace",
+   "status": "live",
+   "postings_seen": 0,
+   "last_verified": "2026-10-17",
+   "source": "corpus3a-supp"
   }
  ]
 }

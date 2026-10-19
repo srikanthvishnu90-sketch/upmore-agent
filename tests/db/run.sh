@@ -105,6 +105,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
 # Idempotent: the OAuth vault cascade must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
+# Idempotent: the career postings migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

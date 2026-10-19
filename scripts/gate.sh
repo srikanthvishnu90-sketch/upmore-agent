@@ -34,6 +34,7 @@ shared_tests=(
   tests/photo-only.test.cjs
   tests/no-password-storage.test.cjs
   tests/no-secrets.test.cjs
+  tests/export-coverage.test.cjs
   tests/trainee-go-live.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
@@ -55,9 +56,9 @@ declare -A archive_tests=(
   [tests/career-template-breakup-guard.test.cjs]=1
   [tests/career-wording-backlog-guard.test.cjs]=1
 )
-career_tests=()
+career_tests=(tests/career-apply-script.test.cjs)
 for test_file in tests/career-*.test.cjs; do
-  if [[ ${archive_tests[$test_file]:-0} != 1 ]]; then
+  if [[ "$test_file" != tests/career-apply-script.test.cjs && ${archive_tests[$test_file]:-0} != 1 ]]; then
     career_tests+=("$test_file")
   fi
 done
@@ -81,6 +82,7 @@ edge_tests=(
   tests/edge/channel-inbound.test.ts
   tests/edge/capability-journey.test.ts
   tests/edge/eval-judge.test.ts
+  tests/edge/career-apply-store.test.ts
   tests/edge/career-coverage-personas.test.ts
   tests/edge/career-backlog-alerts.test.ts
   tests/edge/career-conversations-eval.test.ts
@@ -109,6 +111,7 @@ step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "$
 step browser-runtime browser_ready
 # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
 step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
+step apply-cli-typecheck deno check scripts/apply.ts
 step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step career-bundle python3 scripts/build-router-core.py --career-only --check

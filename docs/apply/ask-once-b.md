@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci-b.json` (CI run 39230110480 of question-captur
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 596/883 (67%) | 31/100 (31%) |
-| + the 10 most common other questions, answered once | 613/883 (69%) | 31/100 (31%) |
-| + the 20 most common | 623/883 (71%) | 33/100 (33%) |
-| + the 40 most common | 643/883 (73%) | 34/100 (34%) |
+| The standard facts only | 551/847 (65%) | 31/100 (31%) |
+| + the 10 most common other questions, answered once | 568/847 (67%) | 31/100 (31%) |
+| + the 20 most common | 578/847 (68%) | 33/100 (33%) |
+| + the 40 most common | 598/847 (71%) | 34/100 (34%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
-| greenhouse | 40 | 433 | 299 (69%) | 10 | 10 |
+| greenhouse | 40 | 397 | 257 (65%) | 10 | 10 |
 | lever | 30 | 245 | 153 (62%) | 13 | 13 |
-| ashby | 30 | 205 | 144 (70%) | 8 | 10 |
+| ashby | 30 | 205 | 141 (69%) | 8 | 10 |
 
-Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 55/100, at most 5 81/100, most 14.
+Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 54/100, at most 5 81/100, most 14.
 
 ## The most common questions the standard facts do not answer
 
@@ -45,6 +45,7 @@ Questions left to ask per posting with the standard facts: median 2, none 31/100
 | Are you able to work in-person at least 3-4 days a week in the following locations? | 1 |
 | Are you able to work in person at our Louisville, CO HQ? | 1 |
 | Are you able to work in US shift ? | 1 |
+| Are you authorized to work lawfully in the US without sponsorship? | 1 |
 | Are you aware this position requires relocating to Denver, CO? | 1 |
 | Are you based in the U.S.? We are only able to hire within the U.S. at this time. | 1 |
 | Are you comfortable working on a defined, time-bound project or engagement with a clear scope/end date, rather than an open-ended permanent role? | 1 |
@@ -57,9 +58,8 @@ Questions left to ask per posting with the standard facts: median 2, none 31/100
 | Are you currently employed by Maven Clinic in any capacity? If so, please list current role. | 1 |
 | Are you currently located in Canada or the U.S? | 1 |
 | Are you currently on "layoff" status and subject to recall by another organization? | 1 |
+| Are you legally authorized to work in the United States without sponsorship now or in the future? | 1 |
+| Are you legally authorized to work in the US without sponsorship? | 1 |
 | Are you legally eligible for employment in the U.S.? | 1 |
-| Are you local to NYC or the Tri-State area and able to commute in for a Hybrid work schedule? | 1 |
-| Are you located in the US? | 1 |
-| Are you now or have you ever been a Penumbra employee? | 1 |
 
-Unique unanswered wordings: 277; asked on only one posting: 273.
+Unique unanswered wordings: 286; asked on only one posting: 282.

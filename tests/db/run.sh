@@ -112,6 +112,10 @@ done
 # Idempotent: the career alerts migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
+# The table is part of export coverage; its account-authority RPCs run only
+# after the complete career migration ledger below has created career_watch_kv.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
 # Idempotent: the channel delivery migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
@@ -119,6 +123,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019030000_channel_inbound.sql"
 
 for t in "$HERE"/*.test.sql; do
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -134,4 +139,6 @@ AGAIN="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WO
 echo "  ok   ledger backfilled, only new files applied, a re-run applies nothing"
 echo "== concurrent message workers"
 python3 "$HERE/message_concurrency.py" "${PSQL[@]}"
+echo "== career_apply_jobs.test.sql (complete career authority schema)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_jobs.test.sql"
 echo "db tests passed"

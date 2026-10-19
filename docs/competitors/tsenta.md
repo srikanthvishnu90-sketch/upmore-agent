@@ -100,7 +100,11 @@ real time; inbox routing; a second channel (web or extension) beside iMessage.
 
 **Outcomes**
 - People sending 11-20 applications interviewed at 9.25% per application vs 2.58% for 100+ (Huntr Q1 2026, self-logged, correlational). VERIFIED-S
-- Tailored resumes 5.71% vs untailored 3.09% interview rate (Huntr Q2 2026, n 101,501 vs 1,893,054, association). VERIFIED-S
+- Tailored resumes 5.71% vs untailored 3.09% interview rate (Huntr Q2 2026, 1.85x, association; 13,037 tailored resumes
+  linked to applications). VERIFIED-S. Corrected 2026-10-19: the "n 101,501 vs 1,893,054" previously cited here is in no
+  extract of the Q2 page and is withdrawn (`docs/competitors/huntr.md`).
+- The per-application rate falls with volume, but Huntr says this does not show the effect of sending fewer
+  applications, and per person the high-volume group still had more interviews (ASSUMED from bucket midpoints).
 - Referrals: 6.1% of applicants, 21.4% of those interviewed, 29.1% of hires at one firm (Brown, Setren & Topa, JOLE 2016). VERIFIED-S
 - Applying early: no primary dataset found; the common "first 48 hours" figures trace to blogs and vendors. UNVERIFIED. Tsenta's "you're applicant #4 of 312" is a claim we cannot check.
 

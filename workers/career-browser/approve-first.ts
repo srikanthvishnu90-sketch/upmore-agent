@@ -161,18 +161,29 @@ export async function runApproved(d: {
 }
 
 // The engine as a child process: scripts/apply.ts with a fresh private evidence folder; reads its RESULT line and its
-// evidence file. No result line is null (the caller decides what that means).
+// evidence file. No result line is null (the caller decides what that means). The person is in the loop for anything
+// that is theirs (a verification at the click, a code the employer emails): the engine's lines reach them as they are
+// printed and their Enter reaches the engine.
 export function engineRunner(o: { root: string; extra?: string[]; deno?: string }): RunEngine {
   return async (args) => {
     const evidenceDir = await Deno.makeTempDir({ prefix: "trainee-evidence-" });
     await Deno.remove(evidenceDir);
-    const cmd = new Deno.Command(o.deno || Deno.execPath(), {
+    const child = new Deno.Command(o.deno || Deno.execPath(), {
       args: ["run", "-A", o.root + "/scripts/apply.ts", ...args, ...(o.extra || []), "--evidence-dir", evidenceDir],
-      stdin: "null",
+      stdin: "inherit",
       stdout: "piped",
       stderr: "piped",
-    });
-    const out = new TextDecoder().decode((await cmd.output()).stdout);
+    }).spawn();
+    const stderr = new Response(child.stderr).text();
+    let out = "", pending = "";
+    for await (const chunk of child.stdout.pipeThrough(new TextDecoderStream())) {
+      out += chunk;
+      const lines = (pending + chunk).split("\n");
+      pending = lines.pop()!;
+      for (const l of lines) if (!l.startsWith("RESULT ")) console.log(l);
+    }
+    await child.status;
+    await stderr;
     const line = out.split("\n").filter((l) => l.startsWith("RESULT ")).at(-1);
     if (!line) return null;
     const result = JSON.parse(line.slice(7));

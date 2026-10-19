@@ -502,6 +502,13 @@
     "created_at",
     "id"
    ]
+  },
+  {
+   "table": "channel_contacts",
+   "order": [
+    "created_at",
+    "contact"
+   ]
   }
  ],
  "excluded": {

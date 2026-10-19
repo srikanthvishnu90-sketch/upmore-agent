@@ -41,9 +41,16 @@ Status: ready · Depends on: PR #25 (`--approved`), D-014 · Size: L, in four ca
    reason), and that is said once, in one text.
 
 ## Cards
-- **W1 (architect): approval hash per prepared application, stored with the card; the enqueue call.** Function
-  `prepareBatch()` in `career_apply.ts`. It returns, per application, the payload, the approval hash, and the card
-  lines, including every answer.
+- **W1 (architect): preparation is an engine dry run.** The approval hash covers the live form's questions (the schema
+  hash) and its destination, and only the engine sees those. So the worker prepares each application by running
+  `scripts/apply.ts` without `--submit`, and stores the following with the card:
+  - the approval hash;
+  - every field with its label, value and fact id;
+  - the destination;
+  - the questions still open.
+
+  The enqueue call takes that hash as the approval reference. A planner-side hash would not match the engine's, so it
+  would stop every application.
 - **W2 (Codex): the batch card text shows every answer** (6a).
   - Use the card lines from W1; the text stays under 1,600 characters per card.
   - Tests: the card names every field the payload sends, and nothing else.

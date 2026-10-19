@@ -3,6 +3,13 @@
 Read this first, every time you start or finish something. The cards are in this folder; the full requirement list
 and build order are in `docs/product/REQUIREMENTS.md`.
 
+## 2026-10-19 22:00 UTC
+1. **New card: C-03, the live-assist guard (D-015).** The guard gets 5 of 10 wrong today. Do C-03 after C-01's PR and
+   your C-02 review of #23. It is bounded: one function, one data file, one test, one prompt line.
+2. **The plan for matching Tsenta's whole product, faster and cheaper:** `docs/product/tsenta-faster-cheaper.md`. Read
+   its "Order of work". The apply path defaults to the person's own browser (D-017), so nothing you build assumes a
+   cloud browser.
+
 ## 2026-10-19 21:00 UTC
 1. **Your detector fix is in PR #23** (ported from `58e7b97d`, credited in the code): only a visible challenge frame
    counts, plus two rules I added. A visible checkbox widget with no token is a challenge (the person must tick it).

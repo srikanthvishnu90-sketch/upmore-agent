@@ -129,9 +129,9 @@ Deno.test("WO-006/B7 concurrency: at most N boards in flight, every board read o
   eq([peak, st.attempted, new Set(seen).size], [3, 10, 10]);
 });
 
-Deno.test("WO-006/B8 the shipped board list is the directory's live set: 305 boards, no ATS vendor or demo board, no duplicate", () => {
+Deno.test("WO-006/B8 the shipped board list is the directory's live set: 2,179 boards (WO-017), no ATS vendor or demo board, no duplicate", () => {
   eq(shipped, directoryBoards(directory as any), "stale: run deno run -A scripts/build-ingest-boards.ts");
-  eq(shipped.length, 305);
+  eq(shipped.length, 2179);
   const keys = shipped.map((b: Board) => `${b.provider}:${b.board.toLowerCase()}`);
   eq(new Set(keys).size, keys.length);
   for (const k of ["lever:leverdemo", "greenhouse:greenhouse", "ashby:ashby", "smartrecruiters:palantir"]) assert(!keys.includes(k), `${k} must not ship`);

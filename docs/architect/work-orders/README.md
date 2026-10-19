@@ -25,3 +25,4 @@ real texting channel is last (D-009).
 | 014 | SMS/RCS for Android | drafting | 013 | M6 | Claude (was Muse) |
 | 015 | Inbox proof: read-only Gmail scan upgrades submitted_unconfirmed to confirmed and uses an employer's emailed code once (never stored, never in chat) | drafting | 009 | M4 | Codex |
 | [016](WO-016-brain-to-the-bar.md) | The agent brain to the D-008 bar (≥ 80% and ≥ router + 40 on the eval set), measured on the real model, ≤ $25 a night | ready | 002, 003 | M1 | Codex |
+| [019](WO-019-conversation-memory.md) | A conversation that holds together: 20-conversation eval (part A, done), then person block, thread references and a longer window (part B) to ≥ 17/20 | A done, B after 016 | 002, 003, 016 | M1 | Architect (A), Codex (B) |

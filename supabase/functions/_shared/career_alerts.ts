@@ -5,7 +5,10 @@
 //   matchPosting   the person's keywords (every word, whole words, in the title), places or remote, open postings only
 //   planProactive  instant alerts, freshest first, up to the person's daily cap; the rest held for the report; quiet
 //                  hours move an alert to the end of quiet hours in the person's zone; one report per local day at or
-//                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"
+//                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
+//                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
+import { freshWhenSeen } from "./career_ingest.ts";
+
 export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
@@ -70,7 +73,7 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     // after": a posting first seen at the very instant of a check would otherwise be skipped forever; the outbox's
     // once-per-key rule keeps the rare re-plan from ever sending twice.
     const fresh = o.postings
-      .filter((p) => ms(p.first_seen_at) >= since && matchPosting(p, prefs))
+      .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs))
       .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
     let room = Math.max(0, Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0));
     const at = isQuiet(l.hour, prefs) ? nextLocal(o.now, u.tz, prefs.quiet_end) : o.now;
@@ -85,7 +88,7 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     if (l.hour >= prefs.report_hour && u.last_report_on !== l.date) {
       const held = new Set(u.held || []);
       const day = o.postings
-        .filter((p) => matchPosting(p, prefs) && (ms(p.first_seen_at) > o.now - DAY || held.has(p.job_id)))
+        .filter((p) => matchPosting(p, prefs) && ((ms(p.first_seen_at) > o.now - DAY && freshWhenSeen(p)) || held.has(p.job_id)))
         .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
       const text = day.length
         ? [`Your daily job report: ${day.length} match${day.length === 1 ? "" : "es"} in the last day.`,

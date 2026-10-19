@@ -7,6 +7,7 @@ import { searchPostings } from "../career_search.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
+import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -26,9 +27,42 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 
 // `postings(query)` returns candidate open postings: in production a full-text search of career_postings
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
-export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null }): ToolSpec[] {
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
+  const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
   return [
+    {
+      name: "remember_instruction", effect: "write_own",
+      description: "Keep something the person said must always hold (a need, a must, a never: \"I need visa sponsorship\", \"no staffing agencies\", \"never before 9am\") on their account for every future conversation. quote must be their own words from THIS message; it refuses anything they did not say. Restate it to them after saving.",
+      input_schema: obj({ instruction: str("The instruction, short and plain, e.g. 'Needs visa sponsorship (F-1 OPT)'"), quote: str("Their exact words from this message that say it") }, ["instruction", "quote"]),
+      run: async (i, c) => {
+        if (!c.turn || !quotedFrom(c.turn.message, String(i.quote ?? ""))) throw new Error("not kept: the quote is not in the person's message this turn; only what they said is kept");
+        const store = memoryOf(), r = addStanding(await store.standing(c.userId), { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
+        if (!r.ok) throw new Error(r.error);
+        await store.saveStanding(c.userId, r.items);
+        return { kept: r.item, total: r.items.length };
+      },
+    },
+    {
+      name: "forget_instruction", effect: "write_own",
+      description: "Remove one standing instruction, only when the person asks in this message (\"forget the sponsorship one\", \"I don't need that anymore\").",
+      input_schema: obj({ id: str("The instruction id, e.g. S-001") }, ["id"]),
+      run: async (i, c) => {
+        if (!c.turn || !/\b(forget|remove|delete|drop|clear|no longer|not anymore|anymore|don'?t need|doesn'?t matter|cancel|never ?mind|scratch)\b/i.test(c.turn.message)) {
+          throw new Error("not removed: the person did not ask to remove anything in this message");
+        }
+        const store = memoryOf(), items = await store.standing(c.userId), id = String(i.id);
+        if (!items.some((x) => x.id === id)) throw new Error(`no standing instruction ${id}`);
+        await store.saveStanding(c.userId, items.filter((x) => x.id !== id));
+        return { removed: id, left: items.length - 1 };
+      },
+    },
+    {
+      name: "get_memory", effect: "read",
+      description: "Read everything kept about the person across conversations: standing instructions and profile facts (for \"what do you remember about me\").",
+      input_schema: obj(),
+      run: async (_i, c) => ({ standing: deps.memory ? await deps.memory.standing(c.userId) : [], facts: (profileOf(c).facts || []) }),
+    },
     {
       name: "get_profile", effect: "read",
       description: "Read what is on file about the person: confirmed facts (usable in applications) and facts still waiting for their confirmation.",
@@ -92,19 +126,21 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
     },
     {
       name: "set_job_alerts", effect: "write_own",
-      description: "Turn on job alerts: new postings whose titles match the keywords are texted within minutes (up to max_instant_per_day), the rest go in one daily report at report_hour, quiet 22:00-07:00 in their zone. Restate exactly what will be watched.",
+      description: "Turn on or change job alerts: matching new postings are texted within minutes (up to max_instant_per_day), the rest in a daily report, none in quiet hours (default 22-7). Send only what changed: a field left out keeps its value, [] clears a list, and turning alerts back on after a stop keeps the old settings. Restate exactly what will be watched.",
       input_schema: obj({
         keywords: { type: "array", items: { type: "string" }, description: "Job titles or title words to watch, e.g. ['data analyst']" },
         locations: { type: "array", items: { type: "string" }, description: "Cities or regions; empty means anywhere" },
         remote_ok: { type: "boolean", description: "Count remote postings (default true)" },
         report_hour: { type: "number", description: "Local hour 0-23 for the daily report (default 8)" },
+        quiet_start: { type: "number", description: "Local hour 0-23 when texts stop (default 22)" },
+        quiet_end: { type: "number", description: "Local hour 0-23 when texts may start again (default 7); 'not before 9am' is 9" },
         max_instant_per_day: { type: "number", description: "Instant alerts per day, 0-10 (default 3)" },
         timezone: str("IANA zone, e.g. America/Chicago, if the person said where they are"),
         floor: {
           type: "object",
           description: "Only what the person said they want filtered out, never inferred: levels (intern, entry, mid, senior, lead, exec) they want, types (full_time, part_time, contract, internship, temporary) they want, exclude_words, exclude_companies, min_pay {amount, period: year|hour}, allow_staffing. Restate it exactly.",
         },
-      }, ["keywords"]),
+      }),
       run: async (i, c) => {
         const store = alertsOf();
         const prev = await store.get(c.userId);

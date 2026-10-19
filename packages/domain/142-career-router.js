@@ -1857,6 +1857,25 @@ const CareerRouter = (() => {
     const t = lc(text);
     if (!/\b(draft|write|compose)\b/.test(t)) return null;
     if (!/\bcounter\b|\bextension\b/.test(t) && !/\b(email|letter)\b/.test(t)) return null;
+    // PROBE D DRAFT-BINDING (LF-02 class; live v229 ad53453 and
+    // v230 6bc96af, the custom battery's Probe D verbatim): an ask
+    // naming NEITHER the counter nor the extension is not the
+    // negotiation's to claim when THIS thread's live artifact is
+    // a campaign plan. The host seeds every fresh thread's
+    // negotiation record and offer store from the ACCOUNT record
+    // (fromAccount lineage), so the context gate below is
+    // satisfied by the account's history alone — on the live
+    // account, "draft the first email for me" one turn after a
+    // healthcare-consulting plan was composed served the held
+    // counter draft ("Subject: summer analyst internship —
+    // Lincoln International") and composed no networking draft
+    // at all. The plan's draft continuation — dispatched after
+    // this block, and the owner of exactly this ask's vocabulary
+    // ("the first email") — takes the turn instead. An ask
+    // NAMING the counter or the extension stays the negotiation's
+    // in any thread, plan threads included; in a thread with no
+    // plan standing, this branch behaves exactly as before.
+    if (!/\bcounter\b|\bextension\b/.test(t) && ctx.plan && ctx.plan.kind === "campaign_plan") return null;
     const th = negotiationThreadOf(ctx);
     const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
     const hasCtx = !!((th && (th.firm || th.amount || th.hourly || th.deadline)) || off.company || off.base_salary || off.hourly_rate);

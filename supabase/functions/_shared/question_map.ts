@@ -62,7 +62,9 @@ const RULES: Rule[] = [
   ["legal_name", /\bfull legal name\b|legal (first|last)? ?name and legal|^legal name\b/, (q, t) => !/native language|referr|team member/.test(t)],
   ["first_name", /^(legal )?first name\b|^given name\b|^prénom\b|^voornaam\b|^名$/],
   ["last_name", /^(legal )?(last|family) name\b|^surname\b|^nom( de famille)?$|^achternaam\b|^姓$/],
-  ["preferred_name", /^preferred (first |last )?name\b/],
+  // A preferred last name is not the preferred (first) name the person gave: left to them (WO-042, Harvey).
+  ["preferred_last_name", /^preferred (last|family|sur) ?name\b/],
+  ["preferred_name", /^preferred (first )?name\b/],
   ["pronouns", /\bpronouns?\b/],
   ["full_name", /^(full )?name\b|^your name\b|^nom complet\b/, (q, t) => !/referr|company|school|university|employer/.test(t)],
   ["signature", /^signature\b|\bsign(ature)? (here|below)\b|\btype your (full )?name\b/],
@@ -74,7 +76,7 @@ const RULES: Rule[] = [
   ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address/.test(t)],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
   ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/, (q, t) => !/\bstate\b/.test(t)],
-  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
+  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
   ["timezone", /\btime ?zone are you\b|\bwhat time ?zone\b|\btime zone you are located\b|\bwhich time zone\b/],
   ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/],
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
@@ -99,7 +101,7 @@ const RULES: Rule[] = [
 
   // Availability.
   ["notice_period", /\bnotice period\b|\bhow much notice\b|\bpréavis\b|\blwd\b/],
-  ["start_date", /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b/],
+  ["start_date", /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b|\bavailable for full[- ]time (work|employment)\b/],
   ["employment_type", /\b(looking for|seeking|interested in) (full|part)-?time\b|\bfull-?time or part-?time (employment|role|position|work)\b|^are you looking for full-?time or part-?time/, (q, t) => !/employed by|worked (at|for)|employee of/.test(t)],
 
   // Pay.
@@ -116,9 +118,12 @@ const RULES: Rule[] = [
   ["education_level", /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/],
   ["major", /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
   ["graduation_date", /\bgraduation (date|year)\b|\bgraduat(e|ed|ion) date\b|\bexpected graduation\b|\bdiplôme\b|\bhave you graduated\b/],
-  ["school", /\b(college|university|school)( name)?\b.*\b(attend|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/],
+  ["school", /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/],
 
   // Skills.
+  // "What other languages do you speak?" asks for languages besides the one a person always has: their language fact
+  // alone does not answer it (WO-042, Welo Global).
+  ["languages_other", /\b(other|additional|another|second|foreign)\b.{0,30}\blanguages?\b|\blanguages?\b.{0,30}\b(other than|besides|apart from|in addition to)\b/],
   ["languages", /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/],
   ["drivers_license", /\bdriver'?s'? licen[cs]e\b/],
   // A license or ID number is never held (no identity digits); it is asked.
@@ -159,6 +164,10 @@ const RULES: Rule[] = [
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/],
 
   // This job's screens.
+  // Before the other screens: a question that names an essential function but asks about commuting is about commuting.
+  // Whether the person lives within commuting distance of this job's office depends on where that office is, which their
+  // stated yes to working on site does not say: asked (WO-042, Snowflake).
+  ["job_commute", /\bcommut\w*\b.*\b(distance|range)\b|\breside within\b|\bwithin \d+ (miles|km|kilometers)\b|\b(live|reside|located|based) (near|close to|nearby)\b|\bwithin (a )?commut/, (q, t) => !/\bif you (do not|don'?t) (currently )?(live|reside)\b/.test(t)],
   ["essential_functions", /\bessential functions?\b|\bwith or without (a )?reasonable accommodation/],
   ["meets_qualifications", /\bmeet (each of |all )?(the )?(basic |essential |required )?qualifications\b|\bread the required qualifications\b/],
   ["job_physical", /\blift(ing)?\b.*\b(lbs?|pounds?)\b|\bstand(ing)? for\b|\bclimb\b|\bmedical waste\b/],

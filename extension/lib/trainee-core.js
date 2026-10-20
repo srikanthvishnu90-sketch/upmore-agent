@@ -245,6 +245,12 @@
         "type": "text",
         "group": "identity"
       },
+      "preferred_last_name": {
+        "kind": "fact",
+        "type": "text",
+        "group": "identity",
+        "note": "only what the person stated; never their legal last name or preferred first name (WO-042)"
+      },
       "pronouns": {
         "kind": "fact",
         "type": "enum",
@@ -466,6 +472,12 @@
         "group": "education",
         "note": "SAT/ACT/GRE as the person states them, or 'did not take'"
       },
+      "languages_other": {
+        "kind": "fact",
+        "type": "text",
+        "group": "skills",
+        "note": "languages besides the person's first language; their language fact alone does not answer it (WO-042)"
+      },
       "languages": {
         "kind": "fact",
         "type": "list",
@@ -625,6 +637,12 @@
         "kind": "screen",
         "type": "yesno",
         "group": "job"
+      },
+      "job_commute": {
+        "kind": "screen",
+        "type": "yesno",
+        "group": "job",
+        "note": "lives within commuting distance of this posting's office: no stated preference answers it (WO-042)"
       },
       "job_onsite": {
         "kind": "screen",
@@ -797,9 +815,14 @@
       "last_name",
       /^(legal )?(last|family) name\b|^surname\b|^nom( de famille)?$|^achternaam\b|^姓$/
     ],
+    // A preferred last name is not the preferred (first) name the person gave: left to them (WO-042, Harvey).
+    [
+      "preferred_last_name",
+      /^preferred (last|family|sur) ?name\b/
+    ],
     [
       "preferred_name",
-      /^preferred (first |last )?name\b/
+      /^preferred (first )?name\b/
     ],
     [
       "pronouns",
@@ -844,7 +867,7 @@
     ],
     [
       "state",
-      /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bpermanent work location\b/,
+      /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/,
       (q, t) => !/\bcity\b/.test(t)
     ],
     [
@@ -925,7 +948,7 @@
     ],
     [
       "start_date",
-      /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b/
+      /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b|\bavailable for full[- ]time (work|employment)\b/
     ],
     [
       "employment_type",
@@ -978,9 +1001,15 @@
     ],
     [
       "school",
-      /\b(college|university|school)( name)?\b.*\b(attend|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/
+      /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/
     ],
     // Skills.
+    // "What other languages do you speak?" asks for languages besides the one a person always has: their language fact
+    // alone does not answer it (WO-042, Welo Global).
+    [
+      "languages_other",
+      /\b(other|additional|another|second|foreign)\b.{0,30}\blanguages?\b|\blanguages?\b.{0,30}\b(other than|besides|apart from|in addition to)\b/
+    ],
     [
       "languages",
       /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/
@@ -1104,6 +1133,14 @@
       /\breferences?\b(?!.*\b(cv|resume)\b)/
     ],
     // This job's screens.
+    // Before the other screens: a question that names an essential function but asks about commuting is about commuting.
+    // Whether the person lives within commuting distance of this job's office depends on where that office is, which their
+    // stated yes to working on site does not say: asked (WO-042, Snowflake).
+    [
+      "job_commute",
+      /\bcommut\w*\b.*\b(distance|range)\b|\breside within\b|\bwithin \d+ (miles|km|kilometers)\b|\b(live|reside|located|based) (near|close to|nearby)\b|\bwithin (a )?commut/,
+      (q, t) => !/\bif you (do not|don'?t) (currently )?(live|reside)\b/.test(t)
+    ],
     [
       "essential_functions",
       /\bessential functions?\b|\bwith or without (a )?reasonable accommodation/
@@ -1734,6 +1771,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       factId: a.factId
     };
   }
+  var ASKS_DATA = /\b(name|e-?mail|phone|number|date|address|url|link|website|zip|postal|street)\b/;
+  var ASKED_YES_NO = /^(are|do|does|have|has|will|would|can|could|is|did|were|was|may|should|shall)\b|\byes\s*(\/|or)\s*no\b|\(y\/n\)/;
+  var DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
+  var DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
+  var YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+  function fitsField(f, value) {
+    if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
+    const t = norm(f.label), v = String(value).trim();
+    if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
+    if ((f.type === "date" || DATE_FORMAT.test(t)) && !DATE_VALUE.test(v)) return false;
+    if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
+    return true;
+  }
   var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
   function planBatch(o) {
     const ready = [];
@@ -1759,20 +1809,23 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         if (fileAlternative(f, p.fields)) continue;
         const key = classifyField(f.label, f.type);
         const followUp = FOLLOW_UP.test(f.label);
+        const own = o.saved[answerKey(f, p.job_id, {
+          haveFact: true
+        })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
         const direct = o.saved[answerKey(f, p.job_id, {
           haveFact: true
         })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
-        if (value === null && !direct && !followUp) {
+        if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
           const m = byMeaning(f, p.company, o.answers);
           if (m) {
             a = m;
             value = m.value;
           }
         }
-        if (value !== null && value !== "") {
+        if (value !== null && value !== "" && (a === own || fitsField(f, value))) {
           filled.push({
             name: f.name,
             label: f.label,

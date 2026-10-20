@@ -6,7 +6,7 @@
 //                     the person's confirmed facts; anything missing is asked once for the whole batch and saved, so later
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
-import { answerKey, mapQuestion } from "./question_map.ts";
+import { answerKey, mapQuestion, norm as normQuestion } from "./question_map.ts";
 import { chooseOption, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
@@ -194,6 +194,27 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
 // A follow-up ("If no, please describe...", "If you selected Other...") depends on another answer on the form: a fact never
 // answers it ("If no, describe your work authorization" is not the authorization itself). Only an answer the person gave
 // for that wording fills it; otherwise it is left (optional) or asked (required). WO-031.
+// WO-042, zero wrong answers: a value from the person's facts goes into a field only when it has that field's shape.
+// - A yes or no never answers a field that asks for a name, a number, a date, an address or a link ("Please enter the
+//   referring team member's full name": "No" is not a name).
+// - A field that asks for a date in a stated format, or a date input, takes only a date ("2 weeks" is not MM/DD/YY).
+// - A number input takes only a number.
+// Anything else is left: asked when required, empty when optional. An answer the person gave for this exact question is
+// theirs and is not second-guessed here. Options are matched by chooseOption, checkboxes by yesNoFromFact.
+const ASKS_DATA = /\b(name|e-?mail|phone|number|date|address|url|link|website|zip|postal|street)\b/;
+const ASKED_YES_NO = /^(are|do|does|have|has|will|would|can|could|is|did|were|was|may|should|shall)\b|\byes\s*(\/|or)\s*no\b|\(y\/n\)/;
+const DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
+const DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
+const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+export function fitsField(f: FormField, value: string): boolean {
+  if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
+  const t = normQuestion(f.label), v = String(value).trim();
+  if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
+  if ((f.type === "date" || DATE_FORMAT.test(t)) && !DATE_VALUE.test(v)) return false;
+  if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
+  return true;
+}
+
 const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
@@ -211,16 +232,19 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).
+      const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
       const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
         (key !== "unknown" && key !== "eeo" && !followUp ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
-      if (value === null && !direct && !followUp) {
+      // A fact the keyword classifier picked that fits none of the options (the long "U.S. person" explanation names
+      // "citizen") gives way to the meaning map, as no answer at all does (WO-042, Snowflake).
+      if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
         const m = byMeaning(f, p.company, o.answers);
         if (m) { a = m; value = m.value; }
       }
-      if (value !== null && value !== "") { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
+      if (value !== null && value !== "" && (a === own || fitsField(f, value))) { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;
       const k = normLabel(f.label);

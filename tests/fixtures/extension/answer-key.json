@@ -10,6 +10,13 @@
     "Expected value, computed by tests/career-extension-browser.test.cjs expectedValue(): a file field is the resume's file name; a field with options is the option whose text equals the persona's value, else for a yes/no fact the one option starting with that yes or no, else the entry's explicit expect; a single checkbox is 'Yes (checked)' for yes and 'No' for no; anything else is the persona's value as stated.",
     "An entry {fact, expect} gives the exact expected value where the rule above cannot (a graduation year from a graduation date, an option worded unlike the persona's value)."
   ],
+  "corrections": [
+    {
+      "by": "the architect, WO-042, 2026-10-20, before WO-042's runs were compared",
+      "fields": ["lever-shieldai cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3] (When are you available to start your fellowship?, textarea): null -> start_date", "ashby-openai 3f4e05d4-dd62-48ef-96ca-d9f293ae18d4 (When can you start a new role?, text): null -> start_date"],
+      "why": "A free-text question asking when the person can start is answered by their confirmed start_date ('2 weeks'). The key's own rule leaves a stated value empty only when it does not fit the field's format ('2 weeks' in a date field, as on EOS's MM/DD/YY field, which stays null); these two entries contradicted it. Every WO-042 number uses the corrected key."
+    }
+  ],
   "split": {
     "rule": "per family, the two captured forms with the lowest sha256(id) are held out; the rest are dev. Reader changes are made only from dev results; the held-out forms are measured, never tuned on.",
     "heldout": [
@@ -240,7 +247,7 @@
       "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]": null,
       "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]": null,
       "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]": null,
-      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]": null,
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]": "start_date",
       "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]": "start_date",
       "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]": null,
       "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]": { "fact": "how_heard", "expect": "Other" },
@@ -322,7 +329,7 @@
       "_systemfield_resume": "resume",
       "20f8883c-d278-427c-9465-dc614f612e1f": "phone",
       "_systemfield_location": "location",
-      "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4": null,
+      "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4": "start_date",
       "bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d": "work_authorization",
       "bda78810-f000-4f1c-99c5-f783e161f2f7": "sponsorship",
       "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63": "onsite_ok",

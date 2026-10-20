@@ -28,7 +28,7 @@ const HIDDEN = ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET', 'WHATSAPP_TOKEN
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-channels-test-'));
 const dry = (env, args = []) => { const r = spawnSync('bash', [SCRIPT, '--dry-run', ...args], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home, ...env } }); return { code: r.status, out: r.stdout + r.stderr }; };
 
-test('go-live: the channel inputs are set masked, the two webhooks deploy without JWT, the channel migration applies last', () => {
+test('go-live: the channel inputs are set masked, the two webhooks deploy without JWT, the channel migration applies', () => {
   const { code, out } = dry({ ...BASE_ENV, ...CHANNEL });
   assert.equal(code, 0, out);
   for (const k of HIDDEN) assert.ok(!out.includes(CHANNEL[k]), `${k} is never printed`);
@@ -36,7 +36,9 @@ test('go-live: the channel inputs are set masked, the two webhooks deploy withou
   assert.match(out, /supabase functions deploy trainee-inbound [^\n]*--no-verify-jwt[\s\S]*supabase functions deploy trainee-telegram --project-ref abcdefghijklmnopqrst --no-verify-jwt[\s\S]*supabase functions deploy trainee-whatsapp --project-ref abcdefghijklmnopqrst --no-verify-jwt/);
   assert.match(out, /deno check [^\n]*trainee-telegram\/index\.ts [^\n]*trainee-whatsapp\/index\.ts/);
   const migs = [...out.matchAll(/-f supabase\/migrations\/(\S+\.sql)/g)].map((m) => m[1]);
-  assert.equal(migs[migs.length - 1], '20261021070000_channel_parity.sql');
+  // The channel migration applies; that no later migration narrows the outbox kinds or key prefixes it sets is
+  // tests/outbox-kinds.test.cjs (they only grow in file order, and the go-live list ends on the latest).
+  assert.ok(migs.includes('20261021070000_channel_parity.sql'), 'the channel migration applies');
   assert.match(out, /Telegram webhook \(setWebhook with secret_token=<TELEGRAM_WEBHOOK_SECRET>\): https:\/\/abcdefghijklmnopqrst\.supabase\.co\/functions\/v1\/trainee-telegram/);
   assert.match(out, /WhatsApp callback URL \(verify token <WHATSAPP_VERIFY_TOKEN>, subscribe to messages\): https:\/\/abcdefghijklmnopqrst\.supabase\.co\/functions\/v1\/trainee-whatsapp/);
   assert.match(out, /TELEGRAM_WEBHOOK_SECRET=\*\*\* WHATSAPP_VERIFY_TOKEN=\*\*\* [^\n]*node scripts\/launch\/trainee-smoke\.cjs/, 'the smoke gets the channel secrets, masked');

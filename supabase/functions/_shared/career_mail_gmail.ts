@@ -103,7 +103,11 @@ export interface TokenDeps {
   env: { get(k: string): string | undefined };
   now: () => number;
 }
-export function careerToken(d: TokenDeps, scope: string = CAREER_READ_SCOPE): (userId: string) => Promise<string | null> {
+export function careerToken(d: TokenDeps): (userId: string) => Promise<string | null> {
+  return careerTokenFor(d, CAREER_READ_SCOPE);
+}
+// The same token for any scope the grant must carry (WO-033 sends with gmail.send through this reader).
+export function careerTokenFor(d: TokenDeps, scope: string): (userId: string) => Promise<string | null> {
   return async (userId) => {
     const name = `oauth_google_career_${userId}`;
     const conn = await d.connection(userId);

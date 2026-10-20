@@ -12,7 +12,7 @@ export interface AlertStore {
   save(row: AlertRow): Promise<void>;
   active(): Promise<AlertRow[]>; // everyone with alerts on
 }
-export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt" | "status" | "followup"; text: string; at: number }): Promise<boolean> } // false: that key was already queued or sent
+export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt" | "status" | "followup" | "brief" | "digest"; text: string; at: number }): Promise<boolean> } // false: that key was already queued or sent
 
 // The person's words, checked: what the tools accept and what the table's constraint accepts are the same rules.
 export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DEFAULT_PREFS): { ok: true; prefs: AlertPrefs } | { ok: false; error: string } {

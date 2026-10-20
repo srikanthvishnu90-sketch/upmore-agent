@@ -232,11 +232,12 @@ language sql security definer set search_path = public, pg_temp as $$ select pub
 alter table public.career_apply_questions add column if not exists pushed_at timestamptz;
 alter table public.career_outbox drop constraint if exists career_outbox_key_check;
 alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|questions):.+$' and length(key) <= 310);
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|brief|digest|questions):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
--- Every kind an earlier migration allows stays (mail's status and followup; the voice mock's 'mock', PR #52), plus ours.
+-- Every kind on trunk stays (mail's status and followup; the voice mock's mock; WO-034's brief and digest, whose file
+-- 20261021050000 comes later and keeps ours), plus ours.
 alter table public.career_outbox add constraint career_outbox_kind_check
-  check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'questions'));
+  check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'brief', 'digest', 'questions'));
 alter table public.career_proactive_runs add column if not exists questions int not null default 0 check (questions >= 0);
 alter table public.career_proactive_runs add column if not exists confirmations int not null default 0 check (confirmations >= 0);
 alter table public.career_proactive_runs add column if not exists asks int not null default 0 check (asks >= 0);

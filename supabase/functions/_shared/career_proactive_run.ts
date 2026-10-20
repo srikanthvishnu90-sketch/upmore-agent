@@ -7,15 +7,18 @@ import { DEFAULT_PREFS, planProactive, quietAt } from "./career_alerts.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 import { cardFor, type Prepared } from "./career_apply_cards.ts";
-import { draftOffer, foldEvents, planUpdates } from "./career_mail.ts";
+import { draftOffer, foldEvents, type MailIn, planUpdates, type StatusEvent, type TrackedApp } from "./career_mail.ts";
 import type { ReadResult } from "./career_mail_gmail.ts";
 import type { MailPerson, MailStore } from "./career_mail_store.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 import { type AskStore, type ConfirmStore, planConfirmations } from "./career_apply_confirm.ts";
 import { receiptText } from "./career_apply_receipts.ts";
 import { type OpenQuestion, questionsText } from "./career_apply_questions.ts";
+import { extractInvite, type InterviewRow, interviewDrafts, interviewRow, inviteBrief, inviteRef } from "./career_invite.ts";
+import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
+import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; questions?: number; confirmations?: number; asks?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -118,18 +121,42 @@ export async function runCards(o: {
 // the 5-minute schedule everyone is read within the hour up to MAIL_PEOPLE_PER_RUN x 12 people. A rate limit keeps what
 // was read and moves the cursor only that far. One person's failure does not stop the others; the run then records it.
 export const MAIL_PEOPLE_PER_RUN = 200, MAIL_OVERLAP_MS = 10 * 60000, MAIL_FIRST_LOOKBACK_MS = 3 * 86400000;
-export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; confirmations: number; asks: number }
+export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; briefs: number; brief_ms_max: number | null; confirmations: number; asks: number }
 function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
   const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
   let at = now;
   try { while (quietAt(at, tz || "America/New_York", quiet) && at < now + 86400000) at += 15 * 60000; } catch { return now; }
   return at;
 }
+// WO-034: with an interview store, an interview invite found in this run is briefed in this run: its stated facts are
+// stored (career_interviews, once per message), and the brief is queued as two texts (brief:<message hash>:1 and :2) right
+// after the status text, at most one brief per application a week (a reschedule or a second email about the same round
+// is stored, not briefed again). The time from the email's arrival to the brief being queued is recorded on the row and
+// the run. An application with a stated interview date leaves its thank-you and nudge to runInterviewDrafts.
+export const BRIEF_AGAIN_MS = 7 * 86400000;
+async function briefMail(o: { outbox: Outbox; now: number; briefs: InterviewStore }, userId: string, e: StatusEvent, m: MailIn, had: InterviewRow[], at: number): Promise<{ ms: number; row: InterviewRow } | null> {
+  const sent = Date.parse(m.date) || o.now;
+  const inv = extractInvite({ text: m.snippet, subject: m.subject, from: m.from, sentAt: sent, company: e.company, role: e.role ?? null });
+  const row = interviewRow(inv, { key: e.hash, source: "mail", ref: e.ref, mail_at: new Date(sent).toISOString(), seen_at: o.now });
+  if (!(await o.briefs.save(userId, row))) return null;
+  if (had.some((r) => r.ref === e.ref && r.brief_at && o.now - Date.parse(r.brief_at) < BRIEF_AGAIN_MS)) return null;
+  const b = inviteBrief(inv, { now: o.now });
+  let queued = 0;
+  for (const [i, text] of b.texts.entries()) if (await o.outbox.enqueue(userId, { key: `brief:${e.hash}:${i + 1}`, kind: "brief", text, at })) queued++;
+  if (!queued) return null;
+  const ms = Math.max(0, o.now - sent);
+  await o.briefs.briefed(userId, e.hash, o.now, ms);
+  return { ms, row: { ...row, brief_at: new Date(o.now).toISOString(), brief_ms: ms } };
+}
+const withInterviews = (apps: TrackedApp[], rows: InterviewRow[]) =>
+  apps.map((a) => { const r = rows.find((x) => x.date && inviteRef(x) === a.ref); return r ? { ...a, interview_on: r.date! } : a; });
+
 export async function runMail(o: {
   outbox: Outbox; now: number; store: MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult>; batch?: number;
+  briefs?: InterviewStore | null;
   confirm?: ConfirmStore | null;
 }): Promise<MailStats> {
-  const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0, confirmations: 0, asks: 0 };
+  const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0, briefs: 0, brief_ms_max: null, confirmations: 0, asks: 0 };
   const failed: string[] = [];
   const one = async (p: MailPerson) => {
     const since = p.read_through ? Date.parse(p.read_through) - MAIL_OVERLAP_MS : o.now - MAIL_FIRST_LOOKBACK_MS;
@@ -137,11 +164,24 @@ export async function runMail(o: {
     if (r.status === "NOT_WIRED") { stats.not_wired++; return; }
     if (r.status === "ERROR") failed.push(r.detail);
     stats.people++;
-    const plan = planUpdates(r.mails, foldEvents(await o.store.applications(p.user_id), await o.store.events(p.user_id)), o.now);
+    const had = o.briefs ? await o.briefs.list(p.user_id) : [];
+    const plan = planUpdates(r.mails, withInterviews(foldEvents(await o.store.applications(p.user_id), await o.store.events(p.user_id)), had), o.now);
     const fresh = await o.store.record(p.user_id, plan.events);
     const at = awake(o.now, p.tz, p);
     for (const t of plan.texts) {
       if (fresh.has(t.hash) && await o.outbox.enqueue(p.user_id, { key: t.key, kind: "status", text: t.text, at })) stats.statuses++;
+    }
+    if (o.briefs) {
+      const byHash = new Map(r.mails.map((m) => [m.hash, m]));
+      for (const e of plan.events) {
+        const m = byHash.get(e.hash);
+        if (e.kind !== "interview" || e.flagged || !fresh.has(e.hash) || !m) continue;
+        const done = await briefMail({ outbox: o.outbox, now: o.now, briefs: o.briefs }, p.user_id, e, m, had, at);
+        if (!done) continue;
+        stats.briefs++;
+        stats.brief_ms_max = Math.max(stats.brief_ms_max ?? 0, done.ms);
+        had.push(done.row);
+      }
     }
     for (const d of plan.drafts) {
       if (await o.store.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) stats.followups++;
@@ -167,6 +207,54 @@ export async function runMail(o: {
   }
   if (failed.length) throw new Error(`mail tracking failed for ${failed.length} people (${stats.statuses} status texts queued): ${failed[0]}`);
   return stats;
+}
+
+// Thank-you and nudge for interviews with a stated date (WO-034), for everyone with one, mail grant or not: the planner
+// in career_invite.ts decides, the draft is stored once (career_mail_drafts, key thank_you:...), and one text offers it in
+// full, after quiet hours. Nothing is ever sent to the employer: the person sends the draft themselves.
+export async function runInterviewDrafts(o: {
+  outbox: Outbox; now: number; interviews: InterviewStore; drafts: Pick<MailStore, "applications" | "events" | "saveDraft">;
+}): Promise<number> {
+  const day = (t: number) => new Date(t).toISOString().slice(0, 10);
+  let n = 0;
+  const failed: string[] = [];
+  for (const p of await o.interviews.dated(day(o.now - 31 * 86400000), day(o.now + 86400000))) {
+    try {
+      const rows = await o.interviews.list(p.user_id);
+      const apps = foldEvents(await o.drafts.applications(p.user_id), await o.drafts.events(p.user_id));
+      const at = awake(o.now, p.tz, p);
+      for (const d of interviewDrafts(rows, apps, o.now, p.tz || "America/New_York")) {
+        if (await o.drafts.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) n++;
+      }
+    } catch (e) {
+      failed.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (failed.length) throw new Error(`interview drafts failed for ${failed.length} people (${n} queued): ${failed[0]}`);
+  return n;
+}
+
+// The weekly digest (WO-034): checked in the first 5 minutes of each hour (the run is every 5 minutes, so once an hour),
+// queued for each person whose day it is and whose hour has come, in their zone, keyed digest:<ISO week> so it is said
+// once a week; a digest hour inside the person's quiet hours waits for them to end. Nothing on file, nothing said.
+export const DIGEST_CHECK_MINUTES = 5;
+export async function runDigest(o: { outbox: Outbox; now: number; store: DigestStore }): Promise<number> {
+  if (new Date(o.now).getUTCMinutes() >= DIGEST_CHECK_MINUTES) return 0;
+  let n = 0;
+  const failed: string[] = [];
+  for (const p of await o.store.people(o.now)) {
+    const tz = p.tz || "America/New_York";
+    const { due, week } = digestDue(p.prefs ?? DEFAULT_DIGEST, o.now, tz);
+    if (!due) continue;
+    try {
+      const d = buildDigest(await o.store.rows(p.user_id, new Date(o.now - 7 * 86400000).toISOString()), { now: o.now, tz });
+      if (d && await o.outbox.enqueue(p.user_id, { key: `digest:${week}`, kind: "digest", text: d.text, at: awake(o.now, tz, p) })) n++;
+    } catch (e) {
+      failed.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (failed.length) throw new Error(`digest failed for ${failed.length} people (${n} queued): ${failed[0]}`);
+  return n;
 }
 
 // The questions a preparation left open (WO-032, ask once pushed): texted once, without being asked for, with the same

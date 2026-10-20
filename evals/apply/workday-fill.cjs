@@ -115,6 +115,9 @@ const settled = (url) => (c) => c.url === url && ["ready", "blocked", "stopped"]
 const SECTION_NAMES = { workExperienceSection: "Work Experience", educationSection: "Education", languageSection: "Languages", languagesSection: "Languages", websiteSection: "Websites", websitesSection: "Websites",
   workExperience: "Work Experience", education: "Education", language: "Languages", languages: "Languages", website: "Websites", websites: "Websites" };
 const ACTION_KINDS = { sign_in: "sign-in", create_account: "create-account", add_row: "add-row", submit: "submit" };
+// WO-058: a schema-2 key's own type names for two kinds the reader knows by schema 1's names (sealed-wd2: a race
+// "checkbox-group" read as a fieldset's value, a how-heard "multiselect" read as the search box, both always "").
+const TYPE_KINDS = { "checkbox-group": "checkboxGroup", multiselect: "multiPrompt" };
 const MATCH_KINDS = ["exact", "casefold", "contains-casefold", "digits", "url", "empty", "empty-or-na", "set"];
 const pageName = (p) => String(p ?? "").replace(/\.html$/, "");
 function normalizeKey(key, dir) {
@@ -122,6 +125,7 @@ function normalizeKey(key, dir) {
   const warnings = [];
   const fields = key.rows.map((r, i) => {
     const f = { ...r, page: pageName(r.page), expected: r.expected === undefined ? null : r.expected };
+    if (TYPE_KINDS[r.type]) f.type = TYPE_KINDS[r.type];
     if (f.automationId === undefined && r.formField !== undefined) f.automationId = r.formField;
     if (r.section !== undefined) {
       f.sectionId = r.section;
@@ -207,7 +211,17 @@ function readRows(rows) {
     try {
       els = Array.from(document.querySelectorAll(r.selector));
     } catch { /* a selector this page cannot read */ }
+    // WO-058: a schema-2 radio row names its group (`[id="<name>"]`, the radios' shared name, no element of that id).
+    const group = !els.length && r.type === "radio" ? /^\[id="([^"]+)"\]$/.exec(String(r.selector)) : null;
+    if (group) els = Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(group[1])}"]`));
     if (!els.length) return { found: false, hidden: true, value: "", names: [] };
+    // WO-058: a row that names the group's own box (a fieldset with the radios or checkboxes inside, sealed-wd2 t2) is read
+    // by the inputs inside it.
+    const kind = r.type === "radio" ? "radio" : r.type === "checkboxGroup" ? "checkbox" : null;
+    if (kind && !els.some((x) => x.matches?.(`input[type="${kind}"]`))) {
+      const inner = els.flatMap((x) => Array.from(x.querySelectorAll(`input[type="${kind}"]`)));
+      if (inner.length) els = inner;
+    }
     const el = els[0];
     const wrap = el.closest('[data-automation-id^="formField-"], [data-automation-id="attachments-FileUpload"]');
     let value, list; // list: the chosen labels one by one, for a schema-2 "set" comparison (not used by schema 1)

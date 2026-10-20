@@ -5,6 +5,27 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { handleProactive } from "./handler.ts";
+import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { careerScopedToken, gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
+
+// WO-033: the career grant's token for one scope (gmail.send to send, gmail.readonly for replies); null is NOT_WIRED.
+const careerTokenFor = (admin: any) => careerScopedToken({
+  env: Deno.env, fetch, now: Date.now,
+  connection: async (u) => {
+    const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
+    if (error) throw new Error(`read the career grant: ${error.message}`);
+    return data ?? null;
+  },
+  readVault: async (name) => {
+    const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
+    if (error) throw new Error("read the career grant's vault entry");
+    return data ? String(data) : null;
+  },
+  writeVault: async (name, secret) => {
+    const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+    if (error) throw new Error("save the refreshed career grant");
+  },
+});
 
 serve((req) => {
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -39,6 +60,14 @@ serve((req) => {
       if (error) throw new Error(`push a card: ${error.message}`);
       return data ?? null;
     },
+    // Outreach sends from people's own Gmail, so it runs only once the owner turns it on at deploy (CAREER_OUTREACH_SEND=on).
+    outreach: Deno.env.get("CAREER_OUTREACH_SEND") === "on" ? async (now) => {
+      const store = supabaseOutreachStore(admin), token = careerTokenFor(admin), events = supabaseEventStore(admin);
+      const tz = async (u: string) => { const { data } = await admin.from("career_alert_prefs").select("tz").eq("user_id", u).maybeSingle(); return data?.tz ?? undefined; };
+      const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events });
+      const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events });
+      return { ...sends, replies };
+    } : undefined,
     recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
   });
 });

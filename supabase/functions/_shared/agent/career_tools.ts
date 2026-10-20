@@ -11,6 +11,12 @@ import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
 import { missingIntegration } from "./integrations.ts";
 import { brief as interviewBrief, findRecord } from "../career_mock.ts";
+import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, sameFirm, type Verifier, vendorSource } from "../career_contacts.ts";
+import {
+  BATCH_MAX, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+  type OutreachStore, payloadHash, recordOutreach, SIGNATURE_ASK,
+} from "../career_outreach.ts";
+import { legacyRows, REFERRAL_ASK, referralMap, targetFirms } from "../career_referrals.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -26,14 +32,19 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   return null;
 }
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
+const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
 
 // `postings(query)` returns candidate open postings: in production a full-text search of career_postings
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
 // `events` is the account's timeline (WO-027): each tool that changes something records it, and recall reads it back.
 // Recording never fails the tool (recordEvent logs and goes on).
-export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; tz?: string }): ToolSpec[] {
+// `outreach` (WO-033): where drafts, approvals, the do-not-contact list and the person's outreach settings are kept, and
+// the model that writes each draft (the fact-lock checks every one). Absent: the outreach tools say so, never pretend.
+export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; tz?: string; outreach?: OutreachDeps | null; verifier?: Verifier | null }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
+  const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
   const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
   const record = (c: ToolCtx, kind: string, subject: unknown, detail: Record<string, unknown> = {}) =>
     recordEvent(deps.events, { user_id: c.userId, at: c.now, kind, subject, detail, source: "chat" });
@@ -195,7 +206,7 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
     },
     {
       name: "recall", effect: "read",
-      description: "Look up what happened on the person's account, newest first, with dates: applications prepared, approved and finished, alerts set or changed, instructions kept, facts confirmed, searches, outreach, intros. Filter by kinds, a subject (company, person or role) and when ('in October', 'last week', 'yesterday').",
+      description: "Look up what happened on the person's account, newest first, with dates: applications, alerts, instructions, facts confirmed, searches, outreach emails (drafted, approved, sent, replied, bounced: name, firm, role like Banker), intros. Filter by kinds, a subject (company, person or role, e.g. 'bankers') and when ('in October', 'last week').",
       input_schema: obj({
         kinds: { type: "array", items: { type: "string", enum: [...EVENT_KINDS] }, description: "Only these kinds of events; leave out for all" },
         subject: str("A company, person or role to match, e.g. 'JPMorgan', 'Stripe', 'data analyst'"),
@@ -246,6 +257,148 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
       description: "Score a practice interview answer with the rubric (structure, evidence, specificity) and return what to fix.",
       input_schema: obj({ answer: str("The person's answer, verbatim") }, ["answer"]),
       run: async (i) => CareerPrep.scoreAnswer(String(i.answer)),
+    },
+    {
+      name: "contact_list", effect: "read",
+      description: "Report on contacts the person sent as a CSV (their own LinkedIn export or a list they have): how many, how many addresses passed which checks (labeled exactly), cost, top firms. For a bulk list they don't have (\"500 bankers\"), set bulk: no vendor is set up, and it says what to send instead.",
+      input_schema: obj({ file: str("Only this file, if they named one"), bulk: str("What they asked to be found, if it's a list they don't have, e.g. '500 bulge bracket bankers'") }),
+      run: async (i, c) => {
+        if (i.bulk) return { ...(await vendorSource().fetch()), asked: String(i.bulk).slice(0, 120) };
+        const rows = contactsOf(c.state).filter((r) => !i.file || r.file === String(i.file));
+        if (!rows.length) return { contacts: 0, ask: CONTACTS_ASK };
+        const files = [...new Set(rows.map((r) => r.file))];
+        const costs = deps.outreach ? ((await deps.outreach.store.prefs(c.userId).catch(() => null))?.list_costs ?? {}) as Record<string, any> : {};
+        const vendorFiles = files.filter((f) => rows.some((r) => r.file === f && r.vendor));
+        const known = vendorFiles.every((f) => costs[f]);
+        const cost = vendorFiles.reduce((s, f) => s + (Number(costs[f]?.usd) || 0), 0);
+        return {
+          files, ...listReport(rows, known ? cost : null),
+          costs: files.map((f) => vendorFiles.includes(f) ? (costs[f] ? { file: f, usd: costs[f].usd, label: costs[f].label, under_50: costs[f].under_target } : { file: f, usd: null, note: "not recorded: ask for the plan price, the exports used this billing period, and the invoice number" }) : { file: f, usd: 0, label: "VERIFIED", note: "their own export" }),
+        };
+      },
+    },
+    {
+      name: "verify_contacts", effect: "write_own",
+      description: "Run the paid independent check (Hunter) on up to 100 addresses from the person's lists that passed the free checks and were not checked this month. Only Hunter's 'valid' counts as deliverable; accept-all and webmail are reported apart. Run it when they ask to verify a list; say how many are left.",
+      input_schema: obj({ file: str("Only this file, if they named one") }),
+      run: async (i, c) => {
+        if (!deps.verifier) return { checked: 0, status: "NOT_WIRED", note: "The independent email check isn't connected here; the free checks still stand. Say so." };
+        const all = contactsOf(c.state), pick = all.filter((r) => !i.file || r.file === String(i.file));
+        if (!pick.length) return { checked: 0, ask: CONTACTS_ASK };
+        const r = await hunterPass(pick, deps.verifier, { max: 100 });
+        const byKey = new Map(r.rows.map((x) => [`${x.file}#${x.row}`, x]));
+        c.state.contacts = all.map((x) => byKey.get(`${x.file}#${x.row}`) ?? x);
+        return { checked: r.checked, from_cache: r.cached, left: r.left, stopped: r.stopped, report: listReport(r.rows, null) };
+      },
+    },
+    {
+      name: "record_list_cost", effect: "write_own",
+      description: "Record what a contact list cost, from the numbers the person types in THIS message: the vendor plan's price for the billing period, how many exports that period had, and the invoice number. The list's share is price x rows / exports; it is VERIFIED only with an invoice number, else ASSUMED.",
+      input_schema: obj({ file: str("The list's file name"), plan_price_usd: { type: "number", description: "The plan's price for the billing period, in dollars" }, exports_in_period: { type: "number", description: "Contacts exported in that billing period" }, invoice: str("The invoice number they typed, if any") }, ["file", "plan_price_usd", "exports_in_period"]),
+      run: async (i, c) => {
+        const msg = String(c.turn?.message ?? "").replace(/,(?=\d{3})/g, "");
+        const said = (n: unknown) => new RegExp(`(^|[^\\d.])${String(Number(n)).replace(".", "\\.")}(?![\\d])`).test(msg);
+        if (!said(i.plan_price_usd) || !said(i.exports_in_period)) throw new Error("not recorded: the price and the exports must be numbers the person typed in this message");
+        if (i.invoice && !msg.includes(String(i.invoice).trim())) throw new Error("not recorded: the invoice number must be the one the person typed");
+        const rows = contactsOf(c.state).filter((r) => r.file === String(i.file)).length;
+        if (!rows) throw new Error(`no list named ${String(i.file).slice(0, 80)}; ask which file`);
+        const cost = listCost({ file: String(i.file), plan_price_usd: i.plan_price_usd, exports_in_period: i.exports_in_period, rows, invoice: i.invoice, now: c.now });
+        if ("error" in cost) throw new Error(`not recorded: ${cost.error}`);
+        const store = outreachOf().store, prefs = await store.prefs(c.userId);
+        await store.setPrefs(c.userId, { list_costs: { ...(prefs.list_costs ?? {}), [cost.file]: cost } });
+        return { cost, target: `under $${LIST_TARGET_USD} a list: ${cost.under_target ? "yes" : "no"} (${cost.label})` };
+      },
+    },
+    {
+      name: "draft_outreach", effect: "write_own",
+      description: "Draft up to 10 cold emails, one per person, from contacts the person sent (only addresses that passed every check run; never anyone already emailed or on their do-not-contact list). Each uses only their confirmed facts, that person's row and what both share. Code shows the batch in full; nothing is sent until they approve.",
+      input_schema: obj({ firm: str("Only people at this firm, if they said one"), title: str("Only people whose title has these words, e.g. 'analyst'"), count: { type: "number", description: `How many, at most ${BATCH_MAX}` } }),
+      run: async (i, c) => {
+        const o = outreachOf();
+        const prefs = await o.store.prefs(c.userId);
+        if (!prefs.signature) return { drafted: 0, needs: "signature", ask: SIGNATURE_ASK };
+        const facts = confirmed(profileOf(c).facts || []);
+        if (!facts.length) return { drafted: 0, needs: "facts", note: "No confirmed facts to write from: ask about their school, experience and goal, and confirm them first." };
+        const rows = contactsOf(c.state);
+        if (!rows.length) return { drafted: 0, needs: "contacts", ask: CONTACTS_ASK };
+        if (!o.model) throw new Error("drafting isn't available here right now; nothing was drafted");
+        const [dnc, contacted] = await Promise.all([o.store.dnc(c.userId), o.store.contacted(c.userId)]);
+        const held = { no_email: 0, not_verified: 0, already_contacted: 0, do_not_contact: 0 };
+        const words = String(i.title ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+        const want = Math.max(1, Math.min(BATCH_MAX, Math.floor(Number(i.count) || BATCH_MAX)));
+        const pick: typeof rows = [];
+        for (const r of rows) {
+          if (pick.length >= want) break;
+          if (i.firm && !sameFirm(r.firm, String(i.firm))) continue;
+          if (words.length && !words.every((w) => r.title.toLowerCase().includes(w))) continue;
+          if (!r.email) { held.no_email++; continue; }
+          if (!r.verified) { held.not_verified++; continue; }
+          if (contacted.has(r.email.toLowerCase())) { held.already_contacted++; continue; }
+          if (dnc.has(await emailHash(r.email))) { held.do_not_contact++; continue; }
+          pick.push(r);
+        }
+        if (!pick.length) return { drafted: 0, held_out: held, note: "No one on their list fits; say why from held_out." };
+        const recipientOf = (r: typeof rows[number]) => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}` });
+        const results: Awaited<ReturnType<typeof draftFor>>[] = [];
+        for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r) }))));
+        const footer = footerOf(prefs.signature), ok: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[] = [], notDrafted: { name: string; why: string }[] = [];
+        for (const [k, d] of results.entries()) {
+          if (!d.ok) { notDrafted.push({ name: pick[k].name, why: `${d.why}: ${d.detail.slice(0, 3).join("; ")}` }); continue; }
+          const draft = { n: ok.length + 1, recipient: recipientOf(pick[k]), subject: d.subject, body: d.body, footer, shared: d.shared, status: "shown" as const, hash: "",
+            approved_hash: null, approved_at: null, sent_at: null, gmail_id: null, gmail_thread: null, result: null, created_at: new Date(c.now).toISOString() };
+          draft.hash = await payloadHash(messageOf(draft));
+          ok.push(draft);
+        }
+        if (!ok.length) return { drafted: 0, not_drafted: notDrafted, held_out: held };
+        const saved = await o.store.saveBatch(c.userId, c.threadId, ok, c.now);
+        for (const d of saved) await recordOutreach(deps.events, c.userId, "outreach_drafted", d, c.now);
+        const left = notDrafted.length ? `\n\nNot drafted, because I couldn't write to them without making something up: ${notDrafted.map((x) => x.name).join(", ")}.` : "";
+        if (c.turn) c.turn.show = { intent: OUTREACH_INTENT, text: batchText(saved) + left };
+        return { drafted: saved.length, not_drafted: notDrafted, held_out: held, shown: "Code shows the batch to the person in full; do not repeat or change it." };
+      },
+    },
+    {
+      name: "set_outreach_signature", effect: "write_own",
+      description: "Save how the person signs their outreach emails, exactly as they wrote it in THIS message (their name, and a phone or school line if they gave one). It goes at the bottom of every email, shown in each draft.",
+      input_schema: obj({ signature: str("The signature exactly as they wrote it, lines separated by a newline") }, ["signature"]),
+      run: async (i, c) => {
+        const lines = String(i.signature ?? "").replace(/\r/g, "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+        const sig = lines.slice(0, 4).join("\n");
+        if (!sig || sig.length > 300) throw new Error("not saved: a signature is 1 to 300 characters");
+        const said = ` ${String(c.turn?.message ?? "").replace(/\s+/g, " ").toLowerCase()} `;
+        if (!c.turn || !lines.every((l) => said.includes(l.toLowerCase()))) throw new Error("not saved: the signature must be the person's own words from this message");
+        await outreachOf().store.setPrefs(c.userId, { signature: sig });
+        return { signature: sig };
+      },
+    },
+    {
+      name: "set_outreach_limit", effect: "write_own",
+      description: `Set how many outreach emails may go out a day, only when the person asks in this message. Default 20, up to ${MAX_DAILY}, never more; the first week of sending stays at 10 a day whatever is set.`,
+      input_schema: obj({ per_day: { type: "number", description: `1 to ${MAX_DAILY}` } }, ["per_day"]),
+      run: async (i, c) => {
+        const n = Number(i.per_day);
+        if (!Number.isInteger(n) || n < 1) throw new Error("not changed: a whole number from 1");
+        if (n > MAX_DAILY) throw new Error(`not changed: ${MAX_DAILY} a day is the most, ever, so their Gmail stays deliverable`);
+        if (!c.turn || !new RegExp(`(^|\\D)${n}(\\D|$)`).test(c.turn.message)) throw new Error("not changed: the person did not ask for that number in this message");
+        await outreachOf().store.setPrefs(c.userId, { daily_cap: n });
+        return { per_day: n, first_week: Math.min(n, 10) };
+      },
+    },
+    {
+      name: "referral_map", effect: "read",
+      description: "Warm paths into the person's target firms (up to 20: firms named in this message, then their stated target and alert words), only from their own exports and confirmed facts: connections there, people from their school, their own internships. Each path names its source row. No export: the one-line ask.",
+      input_schema: obj({ firms: { type: "array", items: { type: "string" }, description: "Firms the person named in this message" } }),
+      run: async (i, c) => {
+        const msg = String(c.turn?.message ?? "").toLowerCase();
+        const said = (Array.isArray(i.firms) ? i.firms.map(String) : []).filter((f: string) => f.trim() && msg.includes(f.trim().toLowerCase().split(/\s+/)[0]));
+        const sf: any = c.state.statedFacts;
+        const stated = (Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : []).filter((f: any) => f?.kind === "target_firm").map((f: any) => String(f.value ?? ""));
+        const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
+        const targets = targetFirms([said, stated, (saved?.prefs?.keywords ?? []).map(knownFirm).filter((f): f is string => !!f)]);
+        const rows = [...contactsOf(c.state), ...legacyRows(profileOf(c).connections)];
+        if (!targets.length) return { firms: [], ask: "Which firms are you targeting? Name up to 20.", ...(rows.length ? {} : { export_ask: REFERRAL_ASK }) };
+        return referralMap({ targets, rows, facts: profileOf(c).facts || [] });
+      },
     },
   ];
 }

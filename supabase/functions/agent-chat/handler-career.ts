@@ -43,6 +43,22 @@ import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shar
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
+import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
+import { missingIntegration } from "../_shared/agent/integrations.ts";
+
+// WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
+async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
+  const { data, error } = await admin.from("user_oauth_connections").select("scopes").eq("user_id", userId).eq("provider", "google_career").maybeSingle();
+  if (error || !data) return false;
+  const scopes = Array.isArray(data.scopes) ? data.scopes : String(data.scopes ?? "").split(/[\s,]+/);
+  return scopes.includes(scope);
+}
+async function recordTurnCost(admin: any, userId: string, threadId: string, meter: ReturnType<typeof newMeter>) {
+  const { error } = await admin.from("agent_turn_costs").insert({ user_id: userId, thread_id: threadId, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
+  if (error) console.error("outreach turn cost not recorded:", error.message);
+}
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -248,6 +264,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin) })
         : null;
+      // WO-033: the outreach batch and the one text that answers it ("send all", "send 1-7,9", "redo 3", "skip 4", "edit 3:
+      // ..."), code's like the card, only while the batch is this thread's last word. The approval binds each exact
+      // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
+      const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
+      const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
+      const outreachAns = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
+            redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
+            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
+          .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
+        : null;
+      if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -259,6 +287,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them.
         const waiting = ["shown", "partial"].includes(asked.status);
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
+      } else if (outreachAns) {
+        out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -283,6 +313,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           events, tz, summary,
+          // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
+          outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
+          verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
@@ -292,7 +325,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           console.error("agent brain: model unavailable, answering with the router");
           out = host.runTurn(message, ctx);
         } else {
-          out = { reply: turn.reply, intent: "agent", resultStatus: turn.stopped, contained: false, handler: "agent" };
+          // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
+          out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent" };
           agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
       } else {

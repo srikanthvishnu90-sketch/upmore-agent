@@ -21,6 +21,9 @@ export interface ProactiveDeps {
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
   // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
   events?: () => EventStore;
+  // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
+  // A failure here is reported in the run's answer and never stops the alerts.
+  outreach?: (now: number) => Promise<Record<string, unknown>>;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
   now: () => number;
 }
@@ -37,9 +40,10 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
     if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
+    const outreach = d.outreach ? await d.outreach(started).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : null;
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });
-    return json({ ...stats, ms });
+    return json({ ...stats, ...(outreach ? { outreach } : {}), ms });
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     console.error("career-proactive failed:", error);

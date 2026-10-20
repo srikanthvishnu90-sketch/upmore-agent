@@ -144,7 +144,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_outreach.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -176,4 +176,9 @@ echo "== career_connector.test.sql (double opt-in introductions: every refusal, 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_events.test.sql (the account timeline: own reads, recall, prepared on insert, wiped by an erase)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-033: outreach drafts, do-not-contact and the claim. The migration needs career_watch_kv (its erase trigger), so the
+# ledger above applied it once; it must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021010000_career_outreach.sql"
+echo "== career_outreach.test.sql (approval is the exact message; 10 a day the first week, 20 by default, 30 at most; 90 seconds apart; stop is forever)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

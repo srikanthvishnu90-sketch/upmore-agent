@@ -592,6 +592,33 @@ Files and tests:
   updates only an open question of this posting; otherwise inserts an answered one under the 500-question cap);
 - tests: WO-042/11, the browser test "ask once, from the form", and `tests/db/career_apply_form_answers.test.sql`.
 
+### Session run 6: ask once from the form, after its fixes (VERIFIED-S: simulated person, reading model ASSUMED; offline)
+
+`node evals/apply/sixty-in-thirty.cjs --n 60 --person model --families lever,ashby --label run6-model-lever-ashby`,
+on 52ba4649.
+
+| | Run 4 | Run 6 |
+|---|---|---|
+| Sent, confirmed by the TEST employer | 60/60 | 60/60 |
+| Wrong-answer submissions | 0 | **0** |
+| Wall clock | 25:39 (25.66 s each) | **22:42 (22.70 s each)**, about 79 in 30 min at this pace |
+| Field precision / coverage (original key) | 100% / 93.0% | 100% / 94.3% |
+| Cards needing the person | 50 | 45 |
+| The person typed / picked | 40 / 110 | **24 / 77** |
+| The person's own earlier answers filled again (`reused_own`) | n/a | 40 |
+| Tap to next card visible, p50 / p90 | 2.80 s / 3.17 s | 2.86 s / 3.31 s |
+
+- **What changed between the two runs:** the person's own answers are kept from the form. Agreements and
+  self-identification answers stay with their posting.
+- **What did not change:** machine time per card (fill p50 0.72 s, tap to next card p50 2.86 s).
+- **Caveat:** the browser accuracy tests ran during this run from 06:32:46 to 06:33:40 UTC. At most two of the 60 cards
+  shared the machine with them, so their machine times may be slower.
+- **The same limits as run 4 still apply:**
+  - the 60 are 12 Lever and Ashby forms opened 5 times each under other tenants;
+  - reading is modeled;
+  - Greenhouse does not run offline;
+  - D-011 caps a person at 50 a day.
+
 ## 4. What blocks 60, in order of size
 
 1. **D-011 caps a person at 50 applications a day** (25 by default). One session of 60 in a day breaks the owner's own

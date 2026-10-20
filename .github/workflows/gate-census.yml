@@ -1,0 +1,62 @@
+# Gate census (architect): of live job postings today, which application forms put up a human gate before or at submit
+# (a captcha, a bot-challenge page, a sign-in wall, emailed-code wording), measured where the internet is. Decides whether
+# the cloud worker can submit unattended or the person's own browser (the extension) has to.
+# Discovery: ~120 live postings (Greenhouse 40, Lever 30, Ashby 30, SmartRecruiters 10, Workday 10) from the board
+# directory's public posting lists, seeded (seed 21), no employer from the sealed samples A-H.
+# Census: each application page loaded read-only in Playwright's Chromium (evals/apply/gate-census.cjs): nothing clicked
+# or typed, every non-GET/HEAD request aborted, no captcha solved, LinkedIn and Indeed never opened, 2 pages at most.
+# Commits evals/apply/gate-census/results-<run_id>.json and summary-<run_id>.md to ci/gate-census only.
+name: gate-census
+on:
+  push:
+    branches: [ci/gate-census]
+    paths:
+      - .github/workflows/gate-census.yml
+      - evals/apply/gate-census.cjs
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: gate-census, cancel-in-progress: false }
+jobs:
+  census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Playwright's Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
+          (cd "$RUNNER_TEMP/tools" && npx --no-install playwright install chromium)
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Discover live postings (public posting lists, seed 21, no sealed-sample employer)
+        run: node evals/apply/gate-census.cjs discover "$RUNNER_TEMP/postings.json" --seed 21
+      - name: Census (read-only page loads)
+        run: |
+          mkdir -p evals/apply/gate-census
+          node evals/apply/gate-census.cjs census "$RUNNER_TEMP/postings.json" "evals/apply/gate-census/results-${{ github.run_id }}.json" \
+            --label "CI run ${{ github.run_id }} of gate-census.yml at ${{ github.sha }}"
+      - name: Summary
+        run: |
+          node evals/apply/gate-census.cjs summary "evals/apply/gate-census/results-${{ github.run_id }}.json" \
+            "evals/apply/gate-census/summary-${{ github.run_id }}.md" "run ${{ github.run_id }} (VERIFIED-LIVE)"
+          cat "evals/apply/gate-census/summary-${{ github.run_id }}.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-census
+          path: |
+            ${{ runner.temp }}/postings.json
+            evals/apply/gate-census/
+          retention-days: 14
+      - name: Commit the results to ci/gate-census
+        if: always()
+        run: |
+          git config user.name "gate-census[ci]"
+          git config user.email "gate-census@users.noreply.github.com"
+          git add evals/apply/gate-census/ || true
+          git commit -m "Gate census data: run ${{ github.run_id }}" || exit 0
+          git pull --rebase origin ci/gate-census || true
+          git push origin HEAD:ci/gate-census

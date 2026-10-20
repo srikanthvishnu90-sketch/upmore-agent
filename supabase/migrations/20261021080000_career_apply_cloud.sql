@@ -20,7 +20,7 @@
 --    auto-throttle (a portal pauses 6 hours at 2% user-facing failures or 2 bot checks in its last 20 attempts; a person
 --    pauses until tomorrow, UTC, at 2 bot checks in a day). The person and the owner are told once per pause, as a
 --    status text; the outbox's kinds are not touched.
--- Aligned with WO-032 (20261021040000_career_apply_ops.sql), whichever applies first: the same columns and constraint,
+-- Aligned with WO-032 (20261021075000_career_apply_ops.sql), whichever applies first: the same columns and constraint,
 -- the same claims (career_apply_claim_own(integer[, text]) and career_apply_claim set the source), and a row is
 -- 'confirmed' only by the employer's email: a page's confirmation is evidence, and the row stays submitted_unconfirmed.
 --  - career_apply_cloud_claim / _finish / _resume / _report: the worker's only doors, service role only.
@@ -74,7 +74,7 @@ language sql immutable set search_path = pg_catalog as $$
 $$;
 
 -- The person's own claim records who sends it: their computer (own_computer) or their browser extension (extension).
--- As WO-032 defines it (20261021040000), with one difference: its sweep leaves cloud rows to the cloud claim, which
+-- As WO-032 defines it (20261021075000), with one difference: its sweep leaves cloud rows to the cloud claim, which
 -- records each in the telemetry.
 create or replace function public.career_apply_claim_own(p_limit integer, p_source text) returns setof public.career_apply_jobs
 language plpgsql security definer set search_path=public,pg_temp as $$

@@ -34,20 +34,40 @@ const NEEDS_YOU: Record<string, string> = {
   bot_check: "a verification check appeared, and Trainee never solves one, so finish this one yourself at this link",
 };
 
+// WO-032: a row is confirmed only by the employer's email matched to it (career_apply_confirm.ts); its receipt says whose
+// email and when. A page's "thank you for applying" is kept as evidence and said as what it is, never as confirmation.
+// The date is the person's own (their alert time zone), UTC when it is not known or not a zone.
+const emailDay = (iso: unknown, tz?: unknown) => {
+  const t = Date.parse(String(iso ?? ""));
+  if (!Number.isFinite(t)) return "";
+  const day = (timeZone: string) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
+  try { return day(typeof tz === "string" && tz ? tz : "UTC"); } catch { return day("UTC"); }
+};
 export function receiptText(
-  row: { company?: unknown; url?: unknown; state: string; reason?: unknown; confirmation_id?: unknown },
+  row: {
+    company?: unknown; url?: unknown; state: string; reason?: unknown; confirmation_id?: unknown;
+    email_confirmed_at?: unknown; evidence?: { page_confirmation?: unknown } | null; source?: unknown; tz?: unknown;
+  },
 ): string {
   const company = clean(row.company, 80) || "the employer", url = httpsUrl(row.url);
   const tail = url ? ` ${url}` : "";
   const reason = clean(row.reason, 200);
   switch (row.state) {
     case "confirmed": {
+      if (row.email_confirmed_at) {
+        const when = emailDay(row.email_confirmed_at, row.tz);
+        return `Applied to ${company}: confirmed by ${company}'s email${when ? ` on ${when}` : ""}.${tail}`;
+      }
       const id = clean(row.confirmation_id, 60);
       return `Applied to ${company}: the employer confirmed it on their page${
         id ? ` (confirmation ${id})` : ""
       }.${tail}`;
     }
     case "submitted_unconfirmed":
+      if (row.source === "email") return `Emailed your application to ${company} from your Gmail. Their reply is the proof; I'll mark it confirmed when it comes.${tail}`;
+      if (row.evidence?.page_confirmation === true) {
+        return `Sent to ${company}. Their page said it was received; their confirmation email is the proof, and I'll mark it confirmed when it comes.${tail}`;
+      }
       return `Sent to ${company}. The employer has not confirmed it yet; their confirmation email is the proof.${tail}`;
     case "needs_user":
       return `${company} is not finished: ${NEEDS_YOU[reason] ?? "it needs you"}. Nothing else was sent.${tail}`;
@@ -72,6 +92,9 @@ export interface ReceiptRow {
   state: string;
   reason?: string | null;
   confirmation_id?: string | null;
+  email_confirmed_at?: string | null;
+  evidence?: { page_confirmation?: boolean } | null;
+  source?: string | null;
 }
 export function planReceipts(rows: ReceiptRow[], now: number) {
   return rows

@@ -135,8 +135,9 @@ step architect-tests deno test -A --no-check --ignore=tests/architect/pending te
 step apply-cli-typecheck deno check scripts/apply.ts
 step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
+step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/career-voice/index.ts
+step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.
 printf 'SUMMARY %s\n' "${results[@]}"

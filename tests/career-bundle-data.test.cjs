@@ -20,6 +20,9 @@ const expected = {
   CAREER_INTERVIEW_BANKS_JSON: () => Object.fromEntries(fs.readdirSync(dir('interview-banks')).filter((f) => f.endsWith('.md')).sort()
     .map((f) => [f.replace(/\.md$/, ''), fs.readFileSync(path.join(dir('interview-banks'), f), 'utf8')])),
   CAREER_KB_JSON: () => readJson(dir('kb-aggregates.json')),
+  CAREER_PAY_JSON: () => Object.fromEntries(Object.entries({ maps: 'pay-maps.json', lca_wages: 'dol-lca-wages.json', oews_metro: 'bls-oews-metro.json',
+    bls_national: 'bls-labor-data.json', lca_companies: 'dol-lca-fy2025q4-cir-companies.json' }).map(([k, f]) => [k, readJson(dir(path.join('datasets', f)))])),
+  CAREER_FIRM_GUIDE_JSON: () => readJson(dir('firm-guide.json')),
   CAREER_PATTERNS_JSON: () => readJson(dir('interview-patterns.json')),
 };
 

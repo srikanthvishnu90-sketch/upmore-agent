@@ -11,6 +11,12 @@
 #   LOOPMESSAGE_API_KEY, OPENAI_API_KEY          Enter keeps the one already set on the project
 #   INGEST_CONTACT_EMAIL, TRAINEE_ALLOWED_CONTACTS, LOOPMESSAGE_DAILY_CONTACTS   settings; Enter keeps what is set
 #   UPMORE_TEST_JWT (optional), TRAINEE_SMOKE_CONTACT (with --allow-send)        for the smoke checks
+#   PDL_API_KEY (optional)                       People Data Labs, hired-candidate aggregates (WO-036, D-018); Enter keeps
+# Optional, one channel each (WO-038); a channel left empty stays NOT_WIRED (its rows wait, its webhook answers 503):
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET (Enter generates one when a token is given), TELEGRAM_BOT_USERNAME
+#   WHATSAPP_TOKEN (the permanent system-user token), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET,
+#   WHATSAPP_VERIFY_TOKEN (Enter generates one when a token is given), WHATSAPP_TEMPLATE_UPDATES (the approved template's
+#   name), WHATSAPP_TEMPLATE_LANGUAGE (default en_US), WHATSAPP_DAILY_TEMPLATES (default 250)
 # Steps, each a numbered STEP line ending OK or FAILED; the run stops at the first failure:
 #   1 preflight   tools, inputs, a clean tree at an exact commit, deno check of the five entry points
 #   2 migrations  every Trainee migration in order, each once (the ledger or the live schema says it is there), each
@@ -19,8 +25,8 @@
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
-#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound with --no-verify-jwt (pg_cron and
-#                 LoopMessage carry no JWT; each function checks its own secret)
+#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
@@ -71,8 +77,13 @@ MIGRATIONS=(
   20261020130000_career_resume_tailoring.sql
   20261021010000_career_outreach.sql
   20261021020000_career_voice_mock.sql
+  20261021030000_career_hired_backgrounds.sql
   20261021050000_career_brief_digest.sql
+  20261021070000_channel_parity.sql
+  20261021075000_career_apply_ops.sql
   20261021080000_career_apply_cloud.sql
+  20261021090000_career_mail_erase.sql
+  20261021100000_career_proactive_last_word.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -94,8 +105,13 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_claim')"
   "exists (select 1 from pg_proc where proname = 'career_voice_create')"
+  "to_regclass('public.career_pdl_calls') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
+  "exists (select 1 from pg_proc where proname = 'channel_link_nonce_redeem')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_gate_status')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_open')"
+  "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
+  "exists (select 1 from pg_proc where proname = 'career_outbox_to_thread')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -107,6 +123,10 @@ EARLIER_MARK=("to_regclass('public.career_kb_roles') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%stated_facts%')")
 SCHEDULED=(career-ingest career-proactive trainee-deliver trainee-inbound)
 SCHED_VARS=(CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET)
+# WO-038: the Telegram and WhatsApp webhooks (deployed always; without their secrets they answer 503 NOT_WIRED).
+CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
+CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
+CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
 
 CUR=""; REPORTED=""; ENVF=""; STAGE=""
 cleanup() {
@@ -126,7 +146,8 @@ fail() { echo "STEP $CUR: FAILED: $1"; REPORTED=1; exit 1; }
 mask_values() {
   local v
   for v in SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
-    LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL; do
+    LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL PDL_API_KEY \
+    TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN; do
     [[ -n "${!v:-}" ]] && printf '%s\n' "${!v}"
   done
   # The database password on its own too (an error may print the URL's parts, never the whole URL).
@@ -215,11 +236,43 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   ask INGEST_CONTACT_EMAIL "Contact email the job boards see in the User-Agent (Enter to keep the one already set)" plain
   ask TRAINEE_ALLOWED_CONTACTS "Phone numbers allowed to sign up, comma-separated (Enter to keep what is set)" hidden
   ask LOOPMESSAGE_DAILY_CONTACTS "LoopMessage contacts a day, 300 or 1000 by plan (Enter to keep; unset means 300)" plain
-  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS; do
+  ask PDL_API_KEY "People Data Labs API key for hired-candidate backgrounds (Enter to keep; without one Trainee says it has no data)" hidden
+  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS PDL_API_KEY; do
     if [[ -n "${!v:-}" ]] && ! env_safe "${!v}"; then fail "$v has a space, quote, # or backslash (the value is not shown)"; fi
   done
   [[ -z "${INGEST_CONTACT_EMAIL:-}" || "$INGEST_CONTACT_EMAIL" == *@* ]] || fail "INGEST_CONTACT_EMAIL is not an email address"
   [[ -z "${LOOPMESSAGE_DAILY_CONTACTS:-}" || "$LOOPMESSAGE_DAILY_CONTACTS" =~ ^[1-9][0-9]*$ ]] || fail "LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day"
+  # WO-038: Telegram and WhatsApp, each optional (docs/launch/TRAINEE-GO-LIVE.md has where each value comes from).
+  ask TELEGRAM_BOT_TOKEN "Telegram bot token from @BotFather (Enter: Telegram stays NOT_WIRED or keeps what is set)" hidden
+  ask TELEGRAM_BOT_USERNAME "Telegram bot username, without @ (Enter to keep)" plain
+  ask WHATSAPP_TOKEN "WhatsApp permanent system-user token (Enter: WhatsApp stays NOT_WIRED or keeps what is set)" hidden
+  ask WHATSAPP_PHONE_NUMBER_ID "WhatsApp phone number ID from WhatsApp Manager > API Setup (Enter to keep)" plain
+  ask WHATSAPP_APP_SECRET "Meta app secret, App settings > Basic (Enter to keep)" hidden
+  ask WHATSAPP_TEMPLATE_UPDATES "Approved WhatsApp template name, e.g. trainee_updates (Enter to keep; unset: outside the window nothing is sent)" plain
+  ask WHATSAPP_TEMPLATE_LANGUAGE "That template's language code (Enter to keep; unset means en_US)" plain
+  ask WHATSAPP_DAILY_TEMPLATES "WhatsApp templates a day, your messaging limit (Enter to keep; unset means 250)" plain
+  # A webhook secret lives outside this project too (Telegram's setWebhook, Meta's webhook settings): generated only
+  # when its channel is being wired now, and never in place of one already set (TRAINEE_ROTATE_CHANNELS=1 replaces it).
+  for pair in TELEGRAM_BOT_TOKEN:TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN:WHATSAPP_VERIFY_TOKEN; do
+    tok="${pair%%:*}"; v="${pair##*:}"
+    [[ -n "${!tok:-}" ]] && ask "$v" "$v (Enter to generate a new 48-character one)" hidden
+    if [[ -n "${!tok:-}" && -z "${!v:-}" && -z "$DRY" ]]; then
+      if [[ "${TRAINEE_ROTATE_CHANNELS:-}" != 1 ]] && supabase secrets list --project-ref "$REF" 2>/dev/null | grep -qw "$v"; then
+        fail "$v is already set on the project and the platform's webhook carries it: give the same value, or set TRAINEE_ROTATE_CHANNELS=1 to replace it and then update the webhook"
+      fi
+      printf -v "$v" '%s' "$(gen_secret)"; GENERATED+=("$v")
+    fi
+  done
+  [[ -z "${TELEGRAM_WEBHOOK_SECRET:-}" || "$TELEGRAM_WEBHOOK_SECRET" =~ ^[A-Za-z0-9_-]{32,256}$ ]] || fail "TELEGRAM_WEBHOOK_SECRET must be 32 to 256 of A-Z a-z 0-9 _ - (Telegram's rule; the value is not shown)"
+  [[ -z "${WHATSAPP_VERIFY_TOKEN:-}" || "$WHATSAPP_VERIFY_TOKEN" =~ ^[A-Za-z0-9_-]{32,}$ ]] || fail "WHATSAPP_VERIFY_TOKEN must be 32 or more of A-Z a-z 0-9 _ - (the value is not shown)"
+  [[ -z "${TELEGRAM_BOT_USERNAME:-}" || "$TELEGRAM_BOT_USERNAME" =~ ^@?[A-Za-z0-9_]{5,32}$ ]] || fail "TELEGRAM_BOT_USERNAME is not a bot username"
+  [[ -z "${WHATSAPP_PHONE_NUMBER_ID:-}" || "$WHATSAPP_PHONE_NUMBER_ID" =~ ^[0-9]{5,30}$ ]] || fail "WHATSAPP_PHONE_NUMBER_ID is the numeric ID, not the phone number"
+  [[ -z "${WHATSAPP_TEMPLATE_UPDATES:-}" || "$WHATSAPP_TEMPLATE_UPDATES" =~ ^[a-z0-9_]{1,512}$ ]] || fail "WHATSAPP_TEMPLATE_UPDATES is not a template name (lowercase letters, digits, _)"
+  [[ -z "${WHATSAPP_TEMPLATE_LANGUAGE:-}" || "$WHATSAPP_TEMPLATE_LANGUAGE" =~ ^[a-z]{2,3}(_[A-Z]{2})?$ ]] || fail "WHATSAPP_TEMPLATE_LANGUAGE is not a language code such as en_US"
+  [[ -z "${WHATSAPP_DAILY_TEMPLATES:-}" || "$WHATSAPP_DAILY_TEMPLATES" =~ ^[1-9][0-9]*$ ]] || fail "WHATSAPP_DAILY_TEMPLATES must be a whole number of templates a day"
+  for v in "${CHANNEL_HIDDEN[@]}"; do
+    if [[ -n "${!v:-}" ]] && ! env_safe "${!v}"; then fail "$v has a space, quote, # or backslash (the value is not shown)"; fi
+  done
 fi
 ask UPMORE_TEST_JWT "Test user JWT for the agent-chat check (Enter to skip that check)" hidden
 if [[ -n "$ALLOW_SEND" ]]; then
@@ -228,7 +281,8 @@ if [[ -n "$ALLOW_SEND" ]]; then
 fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
-    supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts)
+    supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -293,8 +347,13 @@ else
   if [[ -n "${LOOPMESSAGE_API_KEY:-}" ]]; then add LOOPMESSAGE_API_KEY "$LOOPMESSAGE_API_KEY" "***"; else echo "  kept: LOOPMESSAGE_API_KEY (not given; without one, delivery and inbound answer 503 NOT_WIRED)"; fi
   if [[ -n "${LOOPMESSAGE_DAILY_CONTACTS:-}" ]]; then add LOOPMESSAGE_DAILY_CONTACTS "$LOOPMESSAGE_DAILY_CONTACTS" "***"; else echo "  kept: LOOPMESSAGE_DAILY_CONTACTS (unset means 300 a day)"; fi
   if [[ -n "${TRAINEE_ALLOWED_CONTACTS:-}" ]]; then add TRAINEE_ALLOWED_CONTACTS "$TRAINEE_ALLOWED_CONTACTS" "***"; else echo "  kept: TRAINEE_ALLOWED_CONTACTS (sign-up stays closed to anyone not listed or already linked)"; fi
+  if [[ -n "${PDL_API_KEY:-}" ]]; then add PDL_API_KEY "$PDL_API_KEY" "***"; else echo "  kept: PDL_API_KEY (not given; hired-candidate backgrounds say NO DATA until it is set)"; fi
   # OpenAI only (owner, 2026-10-12): the key goes with MODEL_PROVIDER=openai, as in go-live.sh.
   if [[ -n "${OPENAI_API_KEY:-}" ]]; then add OPENAI_API_KEY "$OPENAI_API_KEY" "***"; add MODEL_PROVIDER openai openai; else echo "  kept: OPENAI_API_KEY (not given; an already-set key stays as it is)"; fi
+  # WO-038: each channel's values when given; a channel never given stays NOT_WIRED.
+  for v in "${CHANNEL_HIDDEN[@]}" "${CHANNEL_PLAIN[@]}"; do
+    if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"; else echo "  kept: $v (not given; what is set stays, and with nothing set that channel is NOT_WIRED)"; fi
+  done
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
   if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
@@ -320,7 +379,7 @@ else
       IFS= read -r yn </dev/tty || yn=""
       if [[ "$yn" == y || "$yn" == Y ]]; then
         for v in "${GENERATED[@]}"; do printf '  %s=%s\n' "$v" "${!v}" >/dev/tty; done
-        printf 'WARNING: copy what you need now (the inbound one into the LoopMessage webhook URL), then clear the screen.\n' >/dev/tty
+        printf 'WARNING: copy what you need now (the inbound one into the LoopMessage webhook URL, the Telegram one into setWebhook, the WhatsApp one into Meta), then clear the screen.\n' >/dev/tty
       fi
     fi
   fi
@@ -349,7 +408,7 @@ else
     (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice; do
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
   done
   ok
@@ -374,7 +433,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 step "6/6 smoke"
 SMOKE_ENV=("SUPABASE_URL=$BASE"); SMOKE_SHOWN="SUPABASE_URL=$BASE"
-for v in "${SCHED_VARS[@]}" SUPABASE_DB_URL UPMORE_TEST_JWT TRAINEE_SMOKE_CONTACT; do
+for v in "${SCHED_VARS[@]}" TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_VERIFY_TOKEN SUPABASE_DB_URL UPMORE_TEST_JWT TRAINEE_SMOKE_CONTACT; do
   if [[ -n "${!v:-}" ]]; then SMOKE_ENV+=("$v=${!v}"); SMOKE_SHOWN+=" $v=***"; fi
 done
 SMOKE_ARGS=()
@@ -396,4 +455,6 @@ ok
 
 echo
 echo "done on $SHA. LoopMessage webhook: $BASE/functions/v1/trainee-inbound?secret=<TRAINEE_INBOUND_SECRET>"
-echo "rollback and what each step changed: docs/launch/TRAINEE-GO-LIVE.md"
+echo "Telegram webhook (setWebhook with secret_token=<TELEGRAM_WEBHOOK_SECRET>): $BASE/functions/v1/trainee-telegram"
+echo "WhatsApp callback URL (verify token <WHATSAPP_VERIFY_TOKEN>, subscribe to messages): $BASE/functions/v1/trainee-whatsapp"
+echo "rollback, the Telegram and WhatsApp steps and what each step changed: docs/launch/TRAINEE-GO-LIVE.md"

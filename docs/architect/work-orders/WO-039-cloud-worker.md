@@ -107,7 +107,7 @@ Built:
   others can read.
 
 ## Contracts for other orders
-- **WO-032** (branch `wo/032-apply-ops`, migration `20261021040000_career_apply_ops.sql`) uses this order's names. Both
+- **WO-032** (branch `wo/032-apply-ops`, migration `20261021075000_career_apply_ops.sql`, renamed from `20261021040000`) uses this order's names. Both
   migrations define them the same way, so whichever applies first, the other changes nothing:
   - the `source` column and its check;
   - `email_confirmed_at` and `confirmation_mail_hash`, with `career_apply_jobs_mail_confirm_check`;

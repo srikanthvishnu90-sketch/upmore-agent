@@ -234,6 +234,11 @@ Deno.test("WO-033/P3 the batch is shown in full and numbered, split on purpose a
   const all = msgs.join("\n\n");
   for (const d of b) assert(all.includes(`${d.n}. To: ${d.recipient.name}`) && all.includes(d.body) && all.includes(d.footer), `draft ${d.n} in full`);
   assert(all.includes(BATCH_FOOT) && !/[*_#`]{2}|\[[^\]]+\]\(/.test(all), "the reply words, no markdown");
+  // "show me the drafts" answers with the same messages as parts (WO-038), each under the 4,000-character outbox limit.
+  store.setIntent(TH, OUTREACH_INTENT);
+  const shown = await turn(store, "show me the drafts", OCT14);
+  assert(shown && shown.parts && shown.parts.length > 1 && shown.parts.every((p) => p.length <= 4000), JSON.stringify(shown?.parts?.map((p) => p.length)));
+  eq(shown!.parts!.join("\n\n"), shown!.reply, "the parts are exactly the reply");
 });
 
 // ------------------------------------------------------------------------------------------------ approval, edits, caps
@@ -384,6 +389,9 @@ Deno.test("WO-033/E1 'which bankers did I email in October?' end to end: import,
   eq([out.drafted, out.held_out], [2, { no_email: 0, not_verified: 2, already_contacted: 0, do_not_contact: 0 }], "only addresses that passed every check run");
   assert(c.turn.show?.intent === OUTREACH_INTENT && /1\. To: Avery Synthetic, Investment Banking Analyst, Goldman Sachs/.test(c.turn.show.text) && /Sam Student\nNYU '27/.test(c.turn.show.text), c.turn.show?.text);
   assert(!/Goldman Sachs.*intern/i.test(c.turn.show.text.split("Subject:")[1] ?? ""), "a fact still waiting for a yes is never used");
+  // WO-038's contract: the batch also goes as separate messages, so a texting channel delivers each draft whole.
+  eq(c.turn.show.parts, batchMessages(await store.latestBatch(U)), "the shown batch travels as its own messages");
+  eq(c.turn.show.parts.join("\n\n"), c.turn.show.text, "the parts are exactly the shown text");
   store.setIntent(TH, OUTREACH_INTENT);
   await turn(store, "send all", OCT14, { events });
   for (let k = 0; k < 2; k++) await runOutreachSends({ store, sender: gmail, now: OCT14 + k * 91_000, events });

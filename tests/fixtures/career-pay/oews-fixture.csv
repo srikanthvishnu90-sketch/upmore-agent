@@ -1,0 +1,6 @@
+AREA,AREA_TITLE,OCC_CODE,OCC_TITLE,O_GROUP,TOT_EMP,A_PCT25,A_MEDIAN,A_PCT75
+35620,"New York-Newark-Jersey City, NY-NJ-PA",13-2051,Financial and Investment Analysts,detailed,"60,000","90,000","120,000","160,000"
+35620,"New York-Newark-Jersey City, NY-NJ-PA",15-1252,Software Developers,detailed,"100,000","130,000","160,000",#
+35620,"New York-Newark-Jersey City, NY-NJ-PA",29-1141,Registered Nurses,detailed,"200,000","90,000","100,000","120,000"
+99999,"Seattle-Tacoma-Bellevue, WA",15-1252,Software Developers,detailed,"80,000","140,000",#,#
+12345,"Nowhere, ZZ",15-1252,Software Developers,detailed,"1,000","70,000","80,000","90,000"

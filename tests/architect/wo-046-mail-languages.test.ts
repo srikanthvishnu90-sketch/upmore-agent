@@ -16,6 +16,7 @@ import dev5 from "../../evals/career/mail-dev5.json" with { type: "json" };
 import dev6 from "../../evals/career/mail-dev6.json" with { type: "json" };
 import blind160 from "../../evals/career/mail-blind160.json" with { type: "json" };
 import blind200 from "../../evals/career/mail-blind200.json" with { type: "json" };
+import blind240 from "../../evals/career/mail-blind240.json" with { type: "json" };
 import LANGS_SRC from "../../supabase/functions/_shared/career_mail_langs.ts" with { type: "text" };
 
 function eq(a: unknown, b: unknown, m = "") {
@@ -287,4 +288,15 @@ Deno.test("WO-046/W1 the language data is pure: no network, no model, no clock; 
   // Calendar notices and forwards are decided outside the scorer, so the weights never learn from them.
   eq(mailFeatures({ from: GCAL, subject: "Invitation: Stripe Interview – Backend Engineer @ Tue", snippet: "Stripe Interview – Backend Engineer.", date: DATE }), null);
   eq(mailFeatures({ from: "A B <a.b@gmail.com>", subject: "Fwd: Your application to Figma", snippet: "From: Figma <no-reply@ashbyhq.com> We've received your application.", date: DATE }), null);
+});
+
+Deno.test("WO-046/E9 blind240, written by an agent that never read the classifier, is a floor at its one-time score", () => {
+  // Architect review, 2026-10-20: 240 SYNTHETIC emails (192 status; 60 in six other languages by the writer's count),
+  // sealed (sha256 62690765...) and scored once. Trunk 1afaa0b1: 98.4% (127/129) precision, 66.1% recall. This branch
+  // (cab14bda): 99.4% (171/172) / 89.1% (171/192). By a word-list split (57 detected as non-English): English 99.2% /
+  // 86.9%, the 57 others 100.0% / 95.7%. Precision meets 97%; recall is below 95%.
+  assert(SEALED.includes("blind240"), "blind240 prints only when named");
+  const r = evaluate(blind240.mails as any);
+  assert(r.status.precision >= 0.994 && r.status.recall >= 0.890, `blind240 ${JSON.stringify(r.status)}`);
+  assert(r.confusions.rejection_as_interview === 0, "blind240: a rejection read as an interview");
 });

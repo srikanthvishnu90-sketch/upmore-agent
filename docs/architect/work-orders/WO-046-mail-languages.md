@@ -380,3 +380,19 @@ moves anything.
 - `evals/career/mail-eval.ts` (dev6 splits, dev6check sealed);
 - `tests/architect/wo-046-mail-languages.test.ts`;
 - this document.
+
+## Architect review: blind240 (2026-10-20)
+240 SYNTHETIC emails written by a separate agent that never read the classifier, any labeled mail or any eval file
+(192 status; 60 in Spanish, Portuguese, French, German, Italian or Dutch by the writer's count), sealed outside the repo
+(sha256 62690765...) and scored once.
+
+| | trunk 1afaa0b1 | WO-046 cab14bda |
+|---|---|---|
+| all, status precision / recall | 98.4% / 66.1% | **99.4% / 89.1%** |
+| English (183, by a word-list split) | 99.2% / 82.8% | 99.2% / 86.9% |
+| the others (57 detected of 60) | 87.5% / 14.9% | 100.0% / 95.7% |
+| rejection read as interview | 0 | 0 |
+
+By kind on WO-046 (precision / recall): received 97.3/100, rejection 100/95.0, interview 100/84.1, assessment 100/91.7,
+offer 100/77.8, recruiter reply 100/80.0. Precision meets 97%; recall is below 95%, now mostly English. blind240 is
+committed as `evals/career/mail-blind240.json`, sealed in `SEALED`, and a floor in WO-046/E9. It is spent.

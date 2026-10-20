@@ -14,8 +14,8 @@
 //     [--domains-limit 3000] [--gap-ms 200] [--workers 4] [--max-minutes 300] [--gather-minutes 90] [--providers a,b]
 //     [--only provider] [--resume prior-verdicts.jsonl[.gz]] [--out-dir discovery-out] [--merge]
 import {
-  type Candidate, ccDataCandidates, commonCrawlCandidates, guessesFromDomain, keyOf, knownDead, mergeDirectory, type Provider, PROVIDERS,
-  sitemapCandidates, tally, type VerdictRow, verifyCandidates,
+  type Candidate, ccDataCandidates, commonCrawlCandidates, guessesFromDomain, keyOf, knownDead, mergeDirectory, PROVIDERS, robotsReport,
+  SITEMAP_HOSTS, sitemapCandidates, tally, type VerdictRow, verifyCandidates, waybackCandidates,
 } from "./board_discovery.ts";
 
 const opt = (k: string, d?: string) => { const i = Deno.args.indexOf(k); return i >= 0 ? Deno.args[i + 1] : d; };
@@ -53,6 +53,16 @@ async function gather(deadline: number) {
     for (const x of c.candidates) if (PROVIDERS.includes(x.provider) && x.provider !== "workday") add({ provider: x.provider, slug: String(x.token), source: "wo017-candidates", company_hint: x.company_hint });
   }
   const log = (s: string) => console.log(s);
+  if (sources.has("diagnose")) {
+    for (const r of await robotsReport(["index.commoncrawl.org", "data.commoncrawl.org", "web.archive.org", "api.smartrecruiters.com", ...SITEMAP_HOSTS, "apply.workable.com", "acme.bamboohr.com", "nvidia.wd5.myworkdayjobs.com"]))
+      console.log(`ROBOTS ${r.host} ${r.status} ${r.text}`);
+  }
+  if (sources.has("wayback")) {
+    const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), deadline, log });
+    extra.wayback = { pages: r.pages, errors: r.errors, blocked: !!r.blocked, by_query: r.by_query, slugs: r.candidates.length };
+    console.log(`WAYBACK ${JSON.stringify(extra.wayback)}`);
+    for (const c of r.candidates) add(c);
+  }
   if (sources.has("ccdata")) {
     const crawls = String(opt("--cc-crawls", "CC-MAIN-2026-39,CC-MAIN-2026-34")).split(",").filter(Boolean);
     const r = await ccDataCandidates({ crawls, latest: Number(opt("--crawls", "2")), maxBlocks: Number(opt("--cc-blocks", "1500")), concurrency: 4, gapMs: 200, deadline, log });

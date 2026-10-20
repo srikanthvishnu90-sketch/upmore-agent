@@ -278,7 +278,7 @@ export function gibberishFor(provider: Provider, sample?: string): string {
   return w ? `${w.tenant}.${w.wd}/${GIBBERISH}` : `${GIBBERISH}.wd1/${GIBBERISH}`;
 }
 // Sources in the order a run spends its time on them: the ones that find real boards first, slug guesses last.
-const SOURCE_RANK: Record<string, number> = { directory: 0, ccdata: 1, commoncrawl: 1, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
+const SOURCE_RANK: Record<string, number> = { directory: 0, ccdata: 1, commoncrawl: 1, wayback: 1, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
 export const sourceRank = (source: string) => SOURCE_RANK[String(source).split(":")[0]] ?? 5;
 
 // Every candidate gets one request, paced per platform, after its host's robots.txt is read and its provider's gibberish
@@ -487,8 +487,10 @@ export function boardRoot(key: string): string | null {
   const close = key.indexOf(")");
   if (HOST_SLUG.has(s.provider) || (s.provider === "workable" && !/^com,workable,apply\)/.test(key))) return key.slice(0, close + 1);
   const rest = key.slice(close + 1);
-  const m = s.provider === "workday" ? /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?[^/?#]+\//.exec(rest) : /^\/[^/?#]+\//.exec(rest);
-  return m ? key.slice(0, close + 1) + m[0] : null;
+  const m = s.provider === "workday" ? /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?([^/?#]+)\//.exec(rest) : /^\/([^/?#]+)\//.exec(rest);
+  const named = s.provider === "workday" ? s.slug.slice(s.slug.indexOf("/") + 1) : s.slug;
+  // The segment must be the slug itself (a greenhouse embed page names its board in the query, not the path).
+  return m && m[1].toLowerCase() === named.toLowerCase() ? key.slice(0, close + 1) + m[0] : null;
 }
 export interface ClusterBlock { key: string; file: string; offset: number; length: number }
 export function parseClusterLine(line: string): ClusterBlock | null {
@@ -664,6 +666,90 @@ export async function ccDataCandidates(o: {
   return { candidates: [...found.values()], crawls, blocks_read: read, blocks_skipped: skipped, bytes, errors, by_prefix: by };
 }
 
+// ------------------------------------------------------------------------------------------------ the Wayback Machine
+// WO-044. The Internet Archive's CDX server (web.archive.org/cdx/search/cdx; github.com/internetarchive/wayback/tree/master/wayback-cdx-server)
+// lists archived URLs under a prefix or a domain, the same way Common Crawl's index does. Its robots.txt is read first and
+// obeyed; one request at a time, paced (the archive asks callers to go slowly and answers 429 when they do not); pages
+// capped per query. collapse=urlkey: one line per URL, not one per capture.
+export const WAYBACK_QUERIES: { provider: Provider; url: string; matchType: "prefix" | "domain" }[] = [
+  { provider: "greenhouse", url: "boards.greenhouse.io/", matchType: "prefix" },
+  { provider: "greenhouse", url: "job-boards.greenhouse.io/", matchType: "prefix" },
+  { provider: "lever", url: "jobs.lever.co/", matchType: "prefix" },
+  { provider: "ashby", url: "jobs.ashbyhq.com/", matchType: "prefix" },
+  { provider: "workable", url: "apply.workable.com/", matchType: "prefix" },
+  { provider: "recruitee", url: "recruitee.com", matchType: "domain" },
+  { provider: "bamboohr", url: "bamboohr.com", matchType: "domain" },
+  { provider: "teamtailor", url: "teamtailor.com", matchType: "domain" },
+  { provider: "breezy", url: "breezy.hr", matchType: "domain" },
+  { provider: "personio", url: "jobs.personio.de", matchType: "domain" },
+  { provider: "personio", url: "jobs.personio.com", matchType: "domain" },
+  { provider: "workday", url: "myworkdayjobs.com", matchType: "domain" },
+];
+export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; by_query: Record<string, { pages: number; read: number; slugs: number }> }> {
+  const net = o.net ?? realNet, log = o.log ?? (() => {});
+  const host = "web.archive.org";
+  const pacer = new HostPacer({ gapMs: o.gapMs ?? 2000, now: net.now, sleep: net.sleep, maxGapMs: 300000 });
+  await pacer.wait(host);
+  const robots = await (async () => { try { const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) }); return robotsFromResponse(r.status, r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "")); } catch { return DISALLOW_ALL; } })();
+  const found = new Map<string, Candidate>();
+  const by: Record<string, { pages: number; read: number; slugs: number }> = {};
+  let pages = 0, errors = 0, blocked = 0;
+  const queries = o.queries ?? WAYBACK_QUERIES;
+  // Round-robin: page 0 of every query, then page 1 of every query, ... so a deadline thins every provider alike.
+  const totals = new Map<string, number>();
+  const path = (q: (typeof queries)[number]) => `/cdx/search/cdx?url=${encodeURIComponent(q.url)}&matchType=${q.matchType}&fl=original&collapse=urlkey`;
+  for (const q of queries) {
+    by[q.url] = { pages: 0, read: 0, slugs: 0 };
+    if (!robots.allowed(path(q))) { blocked++; log(`WAYBACK ${q.url} blocked by robots`); continue; }
+    await pacer.wait(host);
+    const np = await getJson(net, `https://${host}${path(q)}&showNumPages=true`, 120000);
+    const total = Number(typeof np.data === "number" ? np.data : (np.data as any)?.pages ?? NaN);
+    if (np.status === 429) pacer.backoff(host, Number(np.headers?.get("retry-after")) || null);
+    by[q.url].pages = Number.isFinite(total) ? total : 0;
+    totals.set(q.url, Number.isFinite(total) ? Math.min(total, o.maxPages ?? 50) : 0);
+    log(`WAYBACK ${q.url}: http ${np.status}, ${Number.isFinite(total) ? total : "?"} pages, reading ${totals.get(q.url)}`);
+  }
+  const maxTake = Math.max(0, ...totals.values());
+  for (let p = 0; p < maxTake; p++) {
+    for (const q of queries) {
+      if (p >= (totals.get(q.url) ?? 0)) continue;
+      if (o.deadline && net.now() >= o.deadline) { log("WAYBACK deadline reached"); return { candidates: [...found.values()], pages, errors, by_query: by }; }
+      await pacer.wait(host);
+      let r: Response | null = null;
+      try { r = await net.fetch(`https://${host}${path(q)}&page=${p}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(300000) }); } catch { r = null; }
+      if (!r || r.status !== 200) {
+        errors++;
+        if (r && (r.status === 429 || r.status === 503)) pacer.backoff(host, Number(r.headers.get("retry-after")) || null);
+        await r?.body?.cancel().catch(() => {});
+        continue;
+      }
+      pacer.relax(host);
+      let text = "";
+      try { text = await r.text(); } catch { errors++; continue; }
+      pages++; by[q.url].read++;
+      for (const s of slugsFromCdx(text)) {
+        const k = keyOf(s.provider, s.slug);
+        if (!found.has(k)) { found.set(k, { ...s, source: "wayback" }); by[q.url].slugs++; }
+      }
+    }
+  }
+  return { candidates: [...found.values()], pages, errors, by_query: by, ...(blocked === queries.length ? { blocked: true } : {}) };
+}
+
+// What a host's robots.txt says (status and its first lines), for the run log: a source that finds nothing says why.
+export async function robotsReport(hosts: string[], o: { net?: Net } = {}): Promise<{ host: string; status: number; text: string }[]> {
+  const net = o.net ?? realNet, out: { host: string; status: number; text: string }[] = [];
+  for (const host of hosts) {
+    try {
+      const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) });
+      const text = r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "");
+      out.push({ host, status: r.status, text: text.replace(/\r/g, "").split("\n").filter((l) => /^\s*(user-agent|disallow|allow|sitemap|crawl-delay)\s*:/i.test(l)).slice(0, 25).join(" | ").slice(0, 1500) });
+    } catch (e) { out.push({ host, status: 0, text: String((e as Error).message).slice(0, 200) }); }
+    await net.sleep(500);
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------------------------------------ sitemaps
 // WO-044. The boards' own hosts: their robots.txt names their sitemaps (or /sitemap.xml is tried when it names none and
 // robots allows it). A sitemap index is followed to its sitemaps; every <loc> is a candidate URL. Paced, robots obeyed,
@@ -709,7 +795,7 @@ export async function sitemapCandidates(o: { net?: Net; hosts?: string[]; maxFil
       await pacer.wait(u.host);
       let r: Response | null = null;
       try { r = await net.fetch(url, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(60000) }); } catch { r = null; }
-      if (!r || r.status !== 200 || !r.body) { errors++; await r?.body?.cancel().catch(() => {}); continue; }
+      if (!r || r.status !== 200 || !r.body) { errors++; log(`SITEMAP_FILE ${url} http ${r?.status ?? 0}`); await r?.body?.cancel().catch(() => {}); continue; }
       let text: string;
       try {
         const gz = /\.gz($|\?)/.test(u.pathname) || /gzip/.test(r.headers.get("content-type") ?? "");
@@ -717,6 +803,7 @@ export async function sitemapCandidates(o: { net?: Net; hosts?: string[]; maxFil
       } catch { errors++; continue; }
       files++; by[host].files++;
       const { index, locs } = locsOf(text);
+      if (by[host].files <= 3) log(`SITEMAP_FILE ${url} http 200, ${index ? "index" : "urlset"}, ${locs.length} locs, first: ${locs.slice(0, 3).join(" ")}`);
       if (index) { queue.push(...locs); continue; }
       for (const l of locs) {
         const s = slugFromUrl(l);

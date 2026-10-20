@@ -18,6 +18,7 @@
 // Declining a batch is "send none", never "stop": over SMS, STOP is the carrier's opt-out keyword (WO-013a).
 import { type EventStore, dayIn, localMidnight, recordEvent } from "./agent/timeline.ts";
 import { normalizeFirm, sameFirm } from "./career_contacts.ts";
+import { factLock } from "./essay_draft.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
 export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[] }
@@ -158,6 +159,14 @@ export function outreachLock(text: string, s: LockSources): Lock {
   for (const m of text.matchAll(MONTH)) {
     if (m[1] === "May" && /(^|[.!?]\s+)$/.test(text.slice(0, m.index))) continue;
     if (!hasWords(all, m[1])) miss(m[1]);
+  }
+  // WO-030's fact-lock (essay_draft.ts) on top: titles, degrees, tools, scale words and units must trace too ("a junior"
+  // is a claim when the facts say "Class of 2027"). A number of minutes is a request, and an opening word is no claim.
+  const asked = text.replace(/\b\d{1,2}(?:\s*(?:-|to)\s*\d{1,2})?\s*(?:min|mins|minutes?)\b/gi, "a few minutes");
+  for (const u of factLock(asked, [all]).untraced) {
+    const w = u.replace(/['’]s$/, "");
+    if (GENERIC_CAPS.has(w) || COMMON.has(w.toLowerCase().replace(/['’]/g, "")) || inAny(w)) continue;
+    miss(u);
   }
   // 2. Who a claim is about. "I ... at X" is about the person: X must be in their confirmed facts.
   for (const m of text.matchAll(FIRST)) {

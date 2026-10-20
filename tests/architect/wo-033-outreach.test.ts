@@ -9,7 +9,7 @@ import {
   admitSend, batchMessages, BATCH_FOOT, capFor, classifyReply, draftFor, emailHash, memoryOutreachStore, messageOf, OPT_OUT_LINE, OUTREACH_INTENT,
   type OutreachDraft, outreachLock, outreachTurn, parseOutreachReply, payloadHash, recordReply, runOutreachSends, type Sender, sharedFacts,
 } from "../../supabase/functions/_shared/career_outreach.ts";
-import { buildRaw, careerScopedToken, gmailSender, GMAIL_SEND_SCOPE } from "../../supabase/functions/_shared/career_outreach_gmail.ts";
+import { buildRaw, careerTokenFor, gmailSender, GMAIL_SEND_SCOPE } from "../../supabase/functions/_shared/career_outreach_gmail.ts";
 import { REFERRAL_ASK, referralMap, targetFirms } from "../../supabase/functions/_shared/career_referrals.ts";
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { memoryEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
@@ -46,7 +46,7 @@ function scripted(mode: "honest" | "invent" | "invent_once" = "honest") {
     const shared = /- same school: (.+)/.exec(t)?.[1];
     const invent = mode === "invent" || (mode === "invent_once" && calls === 1);
     const common = invent ? "As a fellow Wharton alum, I'd value your view." : shared ? `As a fellow ${shared} student, I'd value your view.` : "";
-    return { stop_reason: "end_turn", content: [{ type: "text", text: `Subject: Question about your path at ${firm}\n\nHi ${name},\n\nI'm a junior at NYU studying economics, and I interned at Lazard last summer. ${common} Would you have 15 minutes next week to talk about your work at ${firm}?` }] };
+    return { stop_reason: "end_turn", content: [{ type: "text", text: `Subject: Question about your path at ${firm}\n\nHi ${name},\n\nI'm studying economics at NYU, and I interned at Lazard last summer. ${common} Would you have 15 minutes next week to talk about your work at ${firm}?` }] };
   };
   return Object.assign(fn, { calls: () => calls });
 }
@@ -167,9 +167,11 @@ Deno.test("WO-033/F1 the fact-lock: an invented shared school is caught; claims 
   assert(!theirs.pass && theirs.misattributed.some((x) => /says this about them/.test(x)), "the person's firm claimed as theirs");
   const made = outreachLock("I led a $2B deal at Evercore in March.", { facts, recipient: r, shared });
   assert(!made.pass && ["$2B", "Evercore", "March"].every((w) => made.untraced.some((u) => u.includes(w))), JSON.stringify(made));
+  const junior = outreachLock("I'm a junior at NYU and know Python.", { facts, recipient: r, shared });
+  assert(!junior.pass && junior.untraced.includes("junior") && junior.untraced.includes("Python"), `WO-030's lock catches titles and tools too: ${JSON.stringify(junior)}`);
   const honestR = recipient({ school: "NYU" }), honestShared = sharedFacts(FACTS, honestR);
   eq(honestShared.map((s) => [s.kind, s.value, s.fact, s.field]), [["school", "NYU", "F-001", "school"]]);
-  const ok = outreachLock("Hi Avery,\n\nI'm a junior at NYU and interned at Lazard. As a fellow NYU student, would you have 15 minutes to talk about your work at Goldman Sachs?", { facts, recipient: honestR, shared: honestShared });
+  const ok = outreachLock("Hi Avery,\n\nI'm studying at NYU and interned at Lazard. As a fellow NYU student, would you have 15 minutes to talk about your work at Goldman Sachs?", { facts, recipient: honestR, shared: honestShared });
   assert(ok.pass, JSON.stringify(ok));
   eq(sharedFacts(FACTS, recipient()).length, 0, "a fact still waiting for the person's yes (F-003) is never a shared firm");
 });
@@ -304,8 +306,9 @@ Deno.test("WO-033/S3 Gmail: one recipient, no Cc or Bcc, no smuggled header, NOT
   const calls: string[] = [];
   const g = gmailSender({ fetch: (async (u: string) => { calls.push(u); return new Response("{}"); }) as any, token: async () => null });
   eq([(await g.send(U, { to: "a@x.example", subject: "S", text: "T" })).status, calls.length], ["NOT_WIRED", 0]);
-  const tok = careerScopedToken({ connection: async () => ({ vault_name: `oauth_google_career_${U}`, scopes: "https://www.googleapis.com/auth/gmail.readonly" }), readVault: async () => JSON.stringify({ access_token: "t", expires_at: OCT14 + 3600_000 }), writeVault: async () => {}, fetch: fetch, env: { get: () => undefined }, now: () => OCT14 });
-  eq(await tok(U, GMAIL_SEND_SCOPE), null, "a grant without gmail.send cannot send");
+  const deps = { connection: async () => ({ vault_name: `oauth_google_career_${U}`, scopes: "https://www.googleapis.com/auth/gmail.readonly" }), readVault: async () => JSON.stringify({ access_token: "t", expires_at: OCT14 + 3600_000 }), writeVault: async () => {}, fetch: fetch, env: { get: () => undefined }, now: () => OCT14 };
+  eq(await careerTokenFor(deps, GMAIL_SEND_SCOPE)(U), null, "a grant without gmail.send cannot send");
+  eq(await careerTokenFor(deps, "https://www.googleapis.com/auth/gmail.readonly")(U), "t", "the same reader, asked for the scope it has");
   // Approved, but no grant: nothing goes, the approval stays for when Gmail is connected.
   const store = memoryOutreachStore();
   await batchOf(store, 1); await turn(store, "send all");

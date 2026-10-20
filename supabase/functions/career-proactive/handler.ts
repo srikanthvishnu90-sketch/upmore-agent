@@ -3,9 +3,11 @@
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";
-import { runAlerts, runCards, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import { runAlerts, runCards, runMail, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
+import type { MailStore } from "../_shared/career_mail_store.ts";
+import type { ReadResult } from "../_shared/career_mail_gmail.ts";
 import type { EventStore } from "../_shared/agent/timeline.ts";
 
 export interface ProactiveDeps {
@@ -19,6 +21,9 @@ export interface ProactiveDeps {
   // cards this run.
   readyApplications?: () => Promise<ReadyRow[]>;
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
+  // Mail tracking (WO-024): where events, drafts and cursors live, and the read of one person's new mail. Absent: no mail
+  // is read this run. Nothing here sends mail.
+  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
   // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
   events?: () => EventStore;
   // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
@@ -40,6 +45,11 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
     if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
+    if (d.mail) {
+      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read });
+      stats.statuses = m.statuses;
+      stats.followups = m.followups;
+    }
     const outreach = d.outreach ? await d.outreach(started).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : null;
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });

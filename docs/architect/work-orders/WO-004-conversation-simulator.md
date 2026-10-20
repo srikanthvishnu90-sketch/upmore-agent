@@ -38,7 +38,7 @@ export interface ConversationStore {
   drainProactive(now: number): Promise<Outbound[]>; // due items in time order, each once; appended to history as assistant turns
 }
 export const SAFE_ERROR_REPLY: string; // honest, says nothing was saved, sent or submitted
-export function toBubbles(reply: string): string[]; // moved from imessage-inbound unchanged (≤4 bubbles, ≤700 chars, bare link alone, HTML comments stripped)
+export function toBubbles(reply: string): string[]; // moved from imessage-inbound (≤700 chars, bare link alone, HTML comments stripped; 2026-10-20: nothing up to the outbox's 4,000 characters is ever cut, at most 16 bubbles, see tests/edge/channel-integrity.test.ts)
 export function memoryStore(): ConversationStore;
 export function handleInbound(i: Inbound, d: { brain: Brain; store: ConversationStore }): Promise<Outbound>;
 ```

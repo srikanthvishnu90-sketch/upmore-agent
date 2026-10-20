@@ -8,6 +8,7 @@
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
 import { answerKey, mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
+import { aiPolicyStatements } from "../../supabase/functions/_shared/ai_policy.ts";
 import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -139,6 +140,9 @@ export function questionsToStore(result: any, o: { facts: Record<string, unknown
   const posting = String(result?.posting || "");
   const out = new Map<string, Record<string, unknown>>();
   if (!posting) return { posting, questions: [] as Record<string, unknown>[] };
+  // The form's own words about AI help go with each written answer of this posting (WO-030): Trainee reads them before it
+  // drafts one, even when a standing consent already answered that statement on the form.
+  const aiPolicy = aiPolicyStatements(Array.isArray(result?.ai_policy) ? result.ai_policy : []).join("\n").slice(0, 1200);
   for (const q of Array.isArray(result?.questions) ? result.questions : []) {
     const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
     if (!label || NEVER_BY_TEXT.test(label)) continue;
@@ -148,7 +152,10 @@ export function questionsToStore(result: any, o: { facts: Record<string, unknown
     const m = mapQuestion(shape);
     const key = answerKey(shape, posting, { haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact) });
     if (out.has(key)) continue;
-    out.set(key, { key, kind: m.kind, label, type, options, company: result?.company ? String(result.company).slice(0, 200) : null, misfit: o.answered.has(key) });
+    out.set(key, {
+      key, kind: m.kind, label, type, options, company: result?.company ? String(result.company).slice(0, 200) : null, misfit: o.answered.has(key),
+      ...(m.kind === "essay" && aiPolicy ? { ai_policy: aiPolicy } : {}),
+    });
   }
   return { posting, questions: [...out.values()] };
 }

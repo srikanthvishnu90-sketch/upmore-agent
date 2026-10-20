@@ -52,7 +52,7 @@ test('iMessage gets the line and the link as two bubbles, so it draws the previe
   // toBubbles lives in the conversation interface every channel shares (WO-004); the texting channel imports it (WO-013b-2).
   assert.match(read('supabase/functions/trainee-inbound/handler.ts'), /import \{[^}]*\btoBubbles\b[^}]*\} from "\.\.\/_shared\/conversation\.ts"/);
   const src = read('supabase/functions/_shared/conversation.ts');
-  const consts = src.match(/^const (MAX_BUBBLES|BUBBLE_CHARS) = \d+;$/gm).join('\n');
+  const consts = src.match(/^(?:export )?const (OUTBOX_CHARS|MAX_BUBBLES|BUBBLE_CHARS) = \d+;$/gm).map((l) => l.replace(/^export /, '')).join('\n');
   const body = src.slice(src.indexOf('// ---- bubble formatting'), src.indexOf('\nexport async function handleInbound')).replace(/^export /gm, '');
   const js = require('node:module').stripTypeScriptTypes(consts + '\n' + body + '\nmodule.exports = toBubbles;');
   const mod = { exports: null }; new Function('module', js)(mod);

@@ -43,6 +43,7 @@ import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shar
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
@@ -261,9 +262,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
       // answers them by number. Code checks every answer against the employer's own choices; the model never decides.
       // Each of card, mock and questions answers only while its own prompt is the thread's last word, so they never overlap.
+      // WO-030: "draft 2" drafts a written answer from the person's confirmed facts through the same gateway and model the
+      // brain uses (the model only writes; code checks the employer's AI policy, every fact and the length), and only
+      // "use 2" saves it.
+      const draftMeter = newMeter();
+      const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
       const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin) })
+        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
+          draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      if (draftMeter.calls) {
+        const m = draftMeter;
+        const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+        if (costErr) console.error("essay draft cost not recorded:", costErr.message);
+      }
       // WO-033: the outreach batch and the one text that answers it ("send all", "send 1-7,9", "redo 3", "skip 4", "edit 3:
       // ..."), code's like the card, only while the batch is this thread's last word. The approval binds each exact
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
@@ -284,8 +296,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
       } else if (asked) {
-        // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them.
-        const waiting = ["shown", "partial"].includes(asked.status);
+        // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them; so does
+        // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
+        const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
       } else if (outreachAns) {
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach" };
@@ -312,6 +325,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const summary = summaryFor(win.cut, recent, now, tz);
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
+          mail: supabaseMailStore(admin),
           events, tz, summary,
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },

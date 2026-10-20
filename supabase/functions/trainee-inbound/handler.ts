@@ -5,7 +5,7 @@
 // the outbox so the daily contact cap and the at-most-once rule cover it.
 import { equalSecret } from "../_shared/message_service.ts";
 import { channelCommand, CHANNEL_REPLIES, type Send } from "../_shared/channel.ts";
-import { normalizeContact, toBubbles } from "../_shared/conversation.ts";
+import { fitOutbox, normalizeContact, toBubbles } from "../_shared/conversation.ts";
 import { parseLoopInbound } from "../_shared/loopmessage.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
@@ -88,7 +88,7 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
       reply = CHAT_DOWN_REPLY;
     }
     const key = `reply:${msg.messageId}`;
-    await store.enqueueReply(person.userId, key, reply.slice(0, 4000), now);
+    await store.enqueueReply(person.userId, key, fitOutbox(reply), now);
     // The reply is queued; sending it now is a head start on the every-minute run, never a second path. A failure here may
     // come after the provider took it, so it must not reach the catch below (which would also say "couldn't answer").
     try { await d.deliverReply({ userId: person.userId, key, apiKey, now }); }

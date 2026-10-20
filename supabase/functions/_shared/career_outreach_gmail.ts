@@ -62,42 +62,7 @@ export function gmailThreadReader(d: GmailDeps) {
 }
 
 // ------------------------------------------------------------------------------------------------ the token
-// The career grant's access token for one scope, refreshed when about to expire and written back to the vault. null
-// (so the rail is NOT_WIRED) when there is no career grant, it lacks the scope, there is no refresh token, the OAuth
-// client is not configured, or Google says the grant was revoked. The same shape as WO-024's reader (career_mail_gmail.ts
-// careerToken), which needs gmail.readonly; this one is asked for the scope the caller needs.
-export interface TokenDeps {
-  connection: (userId: string) => Promise<{ vault_name: string; scopes?: string | string[] | null } | null>;
-  readVault: (name: string) => Promise<string | null>;
-  writeVault: (name: string, secret: string) => Promise<void>;
-  fetch: typeof fetch;
-  env: { get(k: string): string | undefined };
-  now: () => number;
-}
-export function careerScopedToken(d: TokenDeps): (userId: string, scope: string) => Promise<string | null> {
-  return async (userId, scope) => {
-    const name = `oauth_google_career_${userId}`;
-    const conn = await d.connection(userId);
-    if (!conn || conn.vault_name !== name) return null;
-    const scopes = Array.isArray(conn.scopes) ? conn.scopes : String(conn.scopes ?? "").split(/[\s,]+/);
-    if (!scopes.includes(scope)) return null;
-    const raw = await d.readVault(name);
-    if (!raw) return null;
-    let tok: any;
-    try { tok = JSON.parse(raw); } catch { return null; }
-    if (tok.access_token && d.now() < Number(tok.expires_at || 0) - 60000) return String(tok.access_token);
-    const id = d.env.get("GOOGLE_OAUTH_CLIENT_ID"), secret = d.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
-    if (!tok.refresh_token || !id || !secret) return null;
-    const r = await d.fetch("https://oauth2.googleapis.com/token", {
-      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ client_id: id, client_secret: secret, refresh_token: String(tok.refresh_token), grant_type: "refresh_token" }),
-    });
-    const nt: any = await r.json().catch(() => ({}));
-    if (!r.ok || !nt.access_token) {
-      if (r.status === 400 || r.status === 401) return null;
-      throw new Error(`refresh the career grant: HTTP ${r.status}`);
-    }
-    await d.writeVault(name, JSON.stringify({ ...tok, access_token: nt.access_token, refresh_token: nt.refresh_token || tok.refresh_token, expires_at: d.now() + (Number(nt.expires_in) || 3600) * 1000 }));
-    return String(nt.access_token);
-  };
-}
+// WO-024's reader of the career grant (career_mail_gmail.ts careerTokenFor), asked for the scope each rail needs: null
+// (NOT_WIRED) when there is no career grant, it lacks the scope, there is no refresh token, the OAuth client is not
+// configured, or Google says the grant was revoked.
+export { careerTokenFor, type TokenDeps } from "./career_mail_gmail.ts";

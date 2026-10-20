@@ -572,6 +572,7 @@ async function personAnswers(page, log, o = {}) {
         // A page-set value with nothing in the key: the person keeps it, as their own choice (re-confirmed).
         await personGives(page, w, t, t.mode === "pageSet" && !a ? { same: true } : a);
         done.push(t.mode === "pageSet" ? "page-set:" + t.kind : t.kind);
+        o.gave?.push({ kind: t.kind, mode: t.mode, from: !a ? (t.mode === "pageSet" ? "kept" : "generic") : a.upload ? "TEST resume" : a.clear ? "cleared" : "key" });
       } catch (e) {
         log(`  the test person could not answer a ${t.mode === "pageSet" ? "page-set" : "required"} ${t.kind}${a && "value" in a ? ` (${JSON.stringify(a.value)})` : ""}: ${String(e.message).split("\n")[0]}`);
         if (a && "value" in a && t.mode === "empty") {
@@ -789,7 +790,8 @@ async function runTenant(o) {
       // exact payload. Round 3: while the card still blocks, the person answers what it names: a required question still
       // open, a value the page set (changed to the key's answer, cleared, or kept as theirs).
       const keyRows = rows.map((r) => ({ ...r, selector: remapSelector(r.selector, map) }));
-      const answered = await personAnswers(page, log, { rows: keyRows });
+      pg.person_gave = []; // how each answer was given: from the key, generic, the TEST resume, cleared or kept
+      const answered = await personAnswers(page, log, { rows: keyRows, gave: pg.person_gave });
       const ready = (c) => c.url === url && c.status === "ready";
       card = await waitCard(sw, tabId, ready, 5000);
       for (let k = 0; !card && k < 3; k++) {
@@ -799,7 +801,7 @@ async function runTenant(o) {
           continue;
         }
         const names = (c.payload?.fields || []).filter((f) => f.source === "page").map((f) => f.name);
-        answered.push(...await personAnswers(page, log, { rows: keyRows, names, labels: c.openRequired || [] }));
+        answered.push(...await personAnswers(page, log, { rows: keyRows, names, labels: c.openRequired || [], gave: pg.person_gave }));
         card = await waitCard(sw, tabId, ready, 6000);
       }
       if (!card) {
@@ -825,7 +827,7 @@ async function runTenant(o) {
             break;
           }
           log(`  ${file}: Workday did not save the page (${String(c?.message || "").slice(0, 160)}); the person answers what it needs and approves again`);
-          const more = await personAnswers(page, log, { rows: keyRows });
+          const more = await personAnswers(page, log, { rows: keyRows, gave: pg.person_gave });
           answered.push(...more);
           await panel.click("#fill");
           if (!(await waitCard(sw, tabId, ready, 30000))) {

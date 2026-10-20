@@ -443,6 +443,8 @@ test("the harness's test person completes a tenant: signs in, answers what Train
   assert.deepEqual([travel.verdict, travel.got, travel.source], ["asked-correctly", "Up to 75%", "page"]);
   const q = r.pages.find((p) => p.file === "1-questions.html");
   assert.deepEqual(q.person_answered.slice().sort(), ["file", "page-set:list", "prompt"], JSON.stringify(q.person_answered));
+  assert.deepEqual(q.person_gave.map((g) => `${g.kind} ${g.mode} ${g.from}`).sort(), ["file empty TEST resume", "list pageSet key", "prompt empty key"],
+    "the key's answers (Career Fair; Up to 25%) and the TEST resume, nothing generic");
 });
 
 // Round 2: the spent tenants s1-s4 too (scored once blind by the architect; now development fixtures, NOT blind). Each

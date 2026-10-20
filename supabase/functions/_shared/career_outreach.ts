@@ -30,7 +30,8 @@ export interface OutreachDraft {
   gmail_id: string | null; gmail_thread: string | null; result: string | null; created_at: string;
   shared?: Shared[];
 }
-export type Admit = "ok" | "not_approved" | "changed" | "do_not_contact" | "daily_cap" | "spacing" | "recipient_cap";
+// WO-091c: "expired" (approved more than APPROVAL_TTL_MS ago) and "paused" (the account is paused, opted out or erased).
+export type Admit = "ok" | "not_approved" | "changed" | "expired" | "paused" | "do_not_contact" | "daily_cap" | "spacing" | "recipient_cap";
 // One recipient, every Trainee user: at scale thousands of people target the same few hundred thousand professionals, so a
 // per-person cap alone would still flood them (and their spam reports land on every sender). A recipient gets at most
 // RECIPIENT_CAP Trainee-drafted emails in any RECIPIENT_WINDOW_DAYS, from anyone; and a "stop" to any Trainee user stops
@@ -56,6 +57,8 @@ export interface OutreachStore {
 export const OUTREACH_INTENT = "career_outreach_batch";
 export const BATCH_MAX = 10, DEFAULT_DAILY = 20, MAX_DAILY = 30, WARMUP_DAILY = 10, WARMUP_DAYS = 7, GAP_MS = 90_000;
 export const BATCH_TTL_MS = 72 * 3600_000, MAX_WORDS = 120, MESSAGE_MAX = 1500;
+// WO-091c: an approval is for a send soon after it, not whenever Gmail sending starts to work: after 7 days it is dropped.
+export const APPROVAL_TTL_MS = 7 * 86400_000;
 export const OPT_OUT_LINE = "If you'd rather not hear from me, reply stop and I won't write again.";
 export const SIGNATURE_ASK = "How do you sign your emails? Send your name the way you want it at the bottom (and a phone or school line if you like).";
 
@@ -346,9 +349,13 @@ export function capFor(p: { own: number | null | undefined; firstSentAt: string 
   return { cap: warmup ? Math.min(own, WARMUP_DAILY) : own, warmup };
 }
 // The one admission rule (the database's career_outreach_claim enforces the same numbers).
-export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean; recipientSends?: number }): Admit {
+export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean; recipientSends?: number; quiet?: boolean }): Admit {
   if (o.draft.status !== "approved" || !o.draft.approved_hash) return "not_approved";
   if (o.draft.approved_hash !== o.hash || o.draft.hash !== o.hash) return "changed";
+  // The database's anchor (career_outreach_claim): the later of the approval and the draft.
+  const anchor = Math.max(...[o.draft.approved_at, o.draft.created_at].map((t) => Date.parse(String(t ?? ""))).filter(Number.isFinite));
+  if (Number.isFinite(anchor) && anchor < o.now - APPROVAL_TTL_MS) return "expired";
+  if (o.quiet) return "paused";
   if (o.dnc) return "do_not_contact";
   if ((o.recipientSends ?? 0) >= RECIPIENT_CAP) return "recipient_cap";
   const { cap } = capFor({ own: o.own, firstSentAt: o.firstSentAt, now: o.now });
@@ -462,38 +469,53 @@ export type ReplyRead = { status: "ok"; messages: ReplyMail[] } | { status: "NOT
 export type ReplyReader = (userId: string, threadId: string) => Promise<ReplyRead>;
 
 // At most one send per person per run (the run is every few minutes, so sends are spread, never a burst), and only
-// through the claim, which checks the approval's hash, the do-not-contact list, the daily cap, warm-up and the gap.
-export async function runOutreachSends(o: { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; maxUsers?: number }) {
-  const stats = { sent: 0, refused: {} as Record<string, number>, not_wired: 0, failed: 0 };
+// through the claim, which checks the approval's hash and age, the person's pause or STOP, the do-not-contact list, the
+// daily cap, warm-up and the gap. An expired approval is dropped and does not use the person's turn this run. One person's
+// failure (a store or claim error) is counted and never stops the next person's send (WO-091c).
+type SendStats = { sent: number; refused: Record<string, number>; not_wired: number; failed: number; errors: number; error: string | null };
+type SendRun = { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; maxUsers?: number };
+export async function runOutreachSends(o: SendRun) {
+  const stats: SendStats = { sent: 0, refused: {}, not_wired: 0, failed: 0, errors: 0, error: null };
   const due = await o.store.approvedDue(500);
   const seen = new Set<string>();
   for (const { user_id, draft } of due) {
     if (seen.has(user_id) || seen.size >= (o.maxUsers ?? 200)) continue;
     seen.add(user_id);
-    const m = messageOf(draft);
-    if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; continue; }
-    const hash = await payloadHash(m);
-    const tz = o.tz ? await o.tz(user_id).catch(() => undefined) : undefined;
-    const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));
-    if (admit !== "ok") {
-      stats.refused[admit] = (stats.refused[admit] ?? 0) + 1;
-      if (admit === "changed" || admit === "do_not_contact" || admit === "recipient_cap") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
-      continue;
-    }
-    const sending: OutreachDraft = { ...draft, status: "sending", sent_at: new Date(o.now).toISOString() };
-    const r = await o.sender.send(user_id, m).catch((e) => ({ status: "ERROR", detail: String(e) }) as SendResult);
-    if (r.status === "sent") {
-      const done = { ...sending, status: "sent" as Status, gmail_id: r.id, gmail_thread: r.thread_id, result: "sent" };
-      await o.store.update(user_id, done, { status: "sending" });
-      await recordOutreach(o.events, user_id, "outreach_sent", done, o.now);
-      stats.sent++;
-    } else {
-      // Not sent: back to approved (the claim's time is cleared), so it goes on a later run once the rail is there.
-      await o.store.update(user_id, { ...draft, status: r.status === "ERROR" ? "failed" : "approved", sent_at: null, result: r.status === "NOT_WIRED" ? "not_wired" : r.status === "RATE_LIMITED" ? "rate_limited" : `error: ${r.detail}`.slice(0, 200) }, { status: "sending" });
-      if (r.status === "NOT_WIRED") stats.not_wired++; else stats.failed++;
+    try {
+      if (!(await sendOne(o, stats, user_id, draft))) seen.delete(user_id);
+    } catch (e) {
+      stats.errors++;
+      stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
     }
   }
   return stats;
+}
+// One approved draft through the claim and the sender. False: it was dropped as expired without using the person's turn.
+async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<boolean> {
+  const m = messageOf(draft);
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return true; }
+  const hash = await payloadHash(m);
+  const tz = o.tz ? await o.tz(user_id).catch(() => undefined) : undefined;
+  const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));
+  if (admit !== "ok") {
+    stats.refused[admit] = (stats.refused[admit] ?? 0) + 1;
+    if (admit === "changed" || admit === "do_not_contact" || admit === "recipient_cap" || admit === "expired") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
+    // A paused account keeps its approval: a resume inside the 7 days lets it go, and nothing older ever does.
+    return admit !== "expired";
+  }
+  const sending: OutreachDraft = { ...draft, status: "sending", sent_at: new Date(o.now).toISOString() };
+  const r = await o.sender.send(user_id, m).catch((e) => ({ status: "ERROR", detail: String(e) }) as SendResult);
+  if (r.status === "sent") {
+    const done = { ...sending, status: "sent" as Status, gmail_id: r.id, gmail_thread: r.thread_id, result: "sent" };
+    await o.store.update(user_id, done, { status: "sending" });
+    await recordOutreach(o.events, user_id, "outreach_sent", done, o.now);
+    stats.sent++;
+  } else {
+    // Not sent: back to approved (the claim's time is cleared), so it goes on a later run once the rail is there.
+    await o.store.update(user_id, { ...draft, status: r.status === "ERROR" ? "failed" : "approved", sent_at: null, result: r.status === "NOT_WIRED" ? "not_wired" : r.status === "RATE_LIMITED" ? "rate_limited" : `error: ${r.detail}`.slice(0, 200) }, { status: "sending" });
+    if (r.status === "NOT_WIRED") stats.not_wired++; else stats.failed++;
+  }
+  return true;
 }
 
 const BOUNCE_FROM = /\b(mailer-daemon|postmaster|mail delivery (subsystem|system))\b/i;
@@ -516,26 +538,33 @@ export async function recordReply(o: { store: OutreachStore; userId: string; dra
   return kind;
 }
 export async function runOutreachReplies(o: { store: OutreachStore; read: ReplyReader; now: number; events?: EventStore | null; limit?: number }) {
-  const stats = { checked: 0, replies: 0, stops: 0, bounces: 0, not_wired: 0 };
+  const stats = { checked: 0, replies: 0, stops: 0, bounces: 0, not_wired: 0, errors: 0, error: null as string | null };
   for (const { user_id, draft } of await o.store.sentAwaiting(o.limit ?? 20, new Date(o.now - 30 * 86400_000).toISOString())) {
     if (!draft.gmail_thread) continue;
     const r = await o.read(user_id, draft.gmail_thread).catch((e) => ({ status: "ERROR", detail: String(e) }) as ReplyRead);
     if (r.status === "NOT_WIRED") { stats.not_wired++; continue; }
     if (r.status !== "ok") continue;
     stats.checked++;
-    for (const mail of r.messages) {
-      const k = await recordReply({ store: o.store, userId: user_id, draft, mail, now: o.now, events: o.events });
-      if (k === "other") continue;
-      if (k === "bounce") stats.bounces++; else if (k === "stop") { stats.stops++; stats.replies++; } else stats.replies++;
-      break;
+    // WO-091c: a failed write for one thread is counted; the next thread is still read.
+    try {
+      for (const mail of r.messages) {
+        const k = await recordReply({ store: o.store, userId: user_id, draft, mail, now: o.now, events: o.events });
+        if (k === "other") continue;
+        if (k === "bounce") stats.bounces++; else if (k === "stop") { stats.stops++; stats.replies++; } else stats.replies++;
+        break;
+      }
+    } catch (e) {
+      stats.errors++;
+      stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
     }
   }
   return stats;
 }
 
 // ------------------------------------------------------------------------------------------------ stores
-export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void } {
+export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
+  const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
   const self: any = {
@@ -579,7 +608,7 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       const h = await emailHash(cur.recipient.email), to = cur.recipient.email.toLowerCase();
       const recipientSends = drafts.filter((d) => d.recipient.email.toLowerCase() === to && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status)
         && Date.parse(d.sent_at) > now - RECIPIENT_WINDOW_DAYS * 86400_000).length;
-      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: Object.values(dnc).some((set) => set.has(h)), recipientSends });
+      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: Object.values(dnc).some((set) => set.has(h)), recipientSends, quiet: quiet.has(u) });
       if (admit === "ok") { cur.status = "sending"; cur.sent_at = new Date(now).toISOString(); }
       return admit;
     },
@@ -588,6 +617,7 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     },
     async lastAssistantIntent(threadId: string) { return intents[threadId] ?? null; },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
+    setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
     dump() { return { drafts: copy(drafts), dnc: Object.fromEntries(Object.entries(dnc).map(([k, v]) => [k, [...v]])), prefs: copy(prefs) }; },
   };
   return self;

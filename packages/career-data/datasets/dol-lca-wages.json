@@ -1,0 +1,14 @@
+{
+ "dataset_id": "dol-lca-wages",
+ "title": "DOL H-1B LCA: employers' filed wages per company, occupation (SOC) and metro (WO-036)",
+ "source": "U.S. Department of Labor, OFLC LCA disclosure data (public, no key)",
+ "source_url": "https://www.dol.gov/agencies/eta/foreign-labor/performance",
+ "what_it_is": "Wages employers filed for H-1B workers on certified Labor Condition Applications: not offers, not pay received. A floor signal: an employer must pay at least the filed wage.",
+ "aggregator": "python3 scripts/career/datasets/aggregate-lca.py --wages <LCA_Disclosure_Data_FYxxxx_Qx.xlsx> packages/career-data/datasets/dol-lca-wages.json \"FYxxxx Qx\"",
+ "status": "awaiting_import",
+ "awaiting_reason": "Built 2026-10-20 in an environment that could not reach dol.gov, so the quarter file was not downloaded. The importer and its test fixture are in the repo; CI or the owner runs the command above and commits the result.",
+ "period": null,
+ "rows_scanned": 0,
+ "rows_used": 0,
+ "cells": []
+}

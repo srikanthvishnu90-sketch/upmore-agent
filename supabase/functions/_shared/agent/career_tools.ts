@@ -1,7 +1,7 @@
 // The career tools (WO-002): thin wrappers over the domain modules that already work, operating on the same per-person
 // career state the CareerHost persists (ctx.state is the host's turn ctx: profile, trackStore, …). Tools return data; the
 // model writes the words. No reply prose lives here.
-import { CareerProfile, CareerTrack, CareerPrep } from "../router_core.career.js";
+import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
 import type { ToolSpec, ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
@@ -11,6 +11,9 @@ import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
 import { missingIntegration } from "./integrations.ts";
 import { brief as interviewBrief, findRecord } from "../career_mock.ts";
+import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
+import { findFirm, pathAnswer } from "../career_path.ts";
+import type { HiredResult, HiredSource } from "../career_hired.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -32,7 +35,7 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
 // `events` is the account's timeline (WO-027): each tool that changes something records it, and recall reads it back.
 // Recording never fails the tool (recordEvent logs and goes on).
-export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; tz?: string }): ToolSpec[] {
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; tz?: string; hired?: HiredSource | null }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
   const record = (c: ToolCtx, kind: string, subject: unknown, detail: Record<string, unknown> = {}) =>
@@ -239,6 +242,39 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         const company = String(i.company ?? "").trim(), role = String(i.role ?? "").trim();
         const postings = await deps.postings(`${role} ${company}`.trim()).catch(() => []);
         return interviewBrief({ company, role, cir: company ? findRecord(company) : null, postings });
+      },
+    },
+    {
+      // WO-036. The half-told offer waits in the thread's state (offerBenchmark) so the missing piece is asked once.
+      name: "offer_benchmark", effect: "write_own",
+      description: "Use when the person texts a job offer (\"JPM offered 110k base, 15k signing, NYC, analyst\"). Reads it from their words in THIS message, asks once for a missing company, base, city or title, places the base against public pay data and drafts a counter from their own facts. Send its messages as written. Nothing is sent to the employer.",
+      input_schema: obj({ offer_words: str("The person's exact words about the offer from this message; leave out to read the whole message") }),
+      run: async (i, c) => {
+        const message = c.turn?.message ?? "";
+        const words = i.offer_words ? String(i.offer_words) : message;
+        if (!c.turn || !words.trim() || !saidIn(message, words)) throw new Error("not read: the offer must be the person's own words in this message; ask them to text the offer");
+        const pending = (c.state.offerBenchmark as OfferPending | undefined) ?? null;
+        const { result, pending: next } = offerTurn({ words, pending, now: c.now });
+        if (next) c.state.offerBenchmark = next;
+        else delete c.state.offerBenchmark;
+        return { status: result.status, ask: result.ask, offer: result.offer, not_given: result.status === "ask" ? [] : result.missing, benchmarks: result.benchmarks, draft: result.draft, messages: result.messages };
+      },
+    },
+    {
+      name: "career_path_answer", effect: "read",
+      description: "Use for \"how do I get into <firm>\" and \"what are my chances at <firm>\". Answers only from data on file: the firm's programs, timelines and stated requirements with sources, its H-1B filings, a published base rate if any, and 3 moves from gaps between the person's confirmed facts and those requirements. Send its messages as written; add no odds or hiring stories.",
+      input_schema: obj({ firm: str("The firm as the person named it, e.g. 'Palantir'"), role: str("The role or program they want, if said, e.g. 'software engineer', 'summer analyst'") }, ["firm"]),
+      run: async (i, c) => {
+        const facts = CareerProfile.confirmedFacts(profileOf(c)).map((f: any) => ({ id: String(f.id), kind: f.kind, text: String(f.text ?? "") }));
+        const role = i.role ? String(i.role) : "";
+        // Who the firm hired, from PDL aggregates when the owner's key is set; a failure is said, never a guess.
+        const firm = findFirm(String(i.firm ?? ""), (CareerPaths as any).firmGuide());
+        let hired: HiredResult = { status: "NOT_WIRED", ask: "" };
+        if (firm && deps.hired) {
+          try { hired = await deps.hired.backgrounds({ firm_id: firm.firm_id, name: firm.name }, role, c.now); }
+          catch (e) { console.error("hired backgrounds:", (e as Error)?.message ?? e); hired = { status: "unavailable", reason: "could not be read" }; }
+        }
+        return pathAnswer({ firm: String(i.firm ?? ""), role, facts, tracked: trackOf(c).rows || [], hired });
       },
     },
     {

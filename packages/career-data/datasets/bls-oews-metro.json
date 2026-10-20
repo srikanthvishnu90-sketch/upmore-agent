@@ -1,0 +1,12 @@
+{
+ "dataset_id": "bls-oews-metro",
+ "title": "BLS OEWS: annual wage percentiles per occupation (SOC) and metropolitan area (WO-036)",
+ "source": "U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics, metropolitan and nonmetropolitan area file",
+ "source_url": "https://www.bls.gov/oes/tables.htm",
+ "what_it_is": "What employers in the metro paid workers in the occupation (all employers, all experience levels), from the BLS employer survey. Not entry-level pay and not one employer's pay.",
+ "importer": "python3 scripts/career/datasets/import-oews.py <MSA_M20xx_dl.xlsx|.csv> packages/career-data/datasets/bls-oews-metro.json \"May 20xx\"",
+ "status": "awaiting_import",
+ "awaiting_reason": "Built 2026-10-20 in an environment that could not reach bls.gov, so the OEWS metro file was not downloaded. The importer and its test fixture are in the repo; CI or the owner runs the command above and commits the result.",
+ "reference_period": null,
+ "cells": []
+}

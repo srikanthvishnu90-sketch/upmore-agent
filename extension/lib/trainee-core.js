@@ -3729,6 +3729,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdaySignIn: () => workdaySignIn,
     workdaySubmitLine: () => workdaySubmitLine
   });
+
+  // supabase/functions/_shared/posting_key.ts
   var GREENHOUSE = /^(job-boards|boards)(\.eu)?\.greenhouse\.io$/;
   var LEVER = /^jobs(\.eu)?\.lever\.co$/;
   var ASHBY = /^jobs\.ashbyhq\.com$/;
@@ -3784,6 +3786,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return u.href;
   }
   var tenantOf = (key) => key.split(":")[1] || "";
+
+  // extension/src/apply_core.ts
   var IDENTITY_EXTRA = /\bsin\b|social insurance|social security|\bssn\b|national (identification|identity|id|insurance)\b|\bnin\b|\bni (number|no\b)|passport\s*(#|no\b|num|number)|driver'?s'? licen[cs]e\s*(#|no\b|num|number)|licen[cs]e\s*(#|number)|tax file number|\btfn\b|aadhaa?r|government[- ]issued( photo)? id|personnummer|\bcpf\b|\bcurp\b|\bpesel\b|\bnric\b|\bbsn\b|\bdni\b|\bnie\b|\bpps\b|\b(id|identity|identification) (card |document )?(number|no\b|#)|\btax (id|identification)|\biban\b|sort code|account number|routing number|card number|\bcvv\b|\bpassword\b|\bpin\b/i;
   var isIdentityField = (f) => {
     const label = String(f.label || ""), name = String(f.name || "").replace(/[_\-\[\]]+/g, " ");

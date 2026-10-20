@@ -27,6 +27,9 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
+import { queueWants, type WantStore } from "../career_apply_want.ts";
+import { payFrom } from "../posting_pay.ts";
+import type { Limits } from "../career_apply.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -40,6 +43,19 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   if (t.added.includes(id)) return `fact ${id} was added in this turn; show it to the person and wait for their reply before confirming`;
   if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
   return null;
+}
+// D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the
+// fact's own words (3+ letters, not filler) must be in their message, and words of inference are refused outright.
+const FILLER = new Set(["the", "and", "for", "with", "has", "have", "had", "was", "are", "is", "years", "year", "wants", "want", "work", "worked", "role", "roles", "job", "jobs", "their", "they", "from", "who", "that", "this", "person", "user"]);
+const GUESSED = /\b(assum\w*|infer\w*|probabl\w*|likely|presumabl\w*|guess\w*|seems?|maybe|perhaps|implied)\b/i;
+export function factRefusal(text: string, message: string | undefined): string | null {
+  if (GUESSED.test(text)) return "not saved: a fact about the person is only what they said, never an assumption or inference";
+  if (message === undefined) return null;
+  const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !FILLER.has(w));
+  const said = new Set(words(message)), mine = words(text);
+  if (!mine.length) return null;
+  const hit = mine.filter((w) => said.has(w) || [...said].some((s) => s.length >= 4 && (s.startsWith(w.slice(0, 4)) || w.startsWith(s.slice(0, 4))))).length;
+  return hit * 2 >= mine.length ? null : "not saved: the person did not say this in their message; save only what they said, in their words";
 }
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
@@ -59,9 +75,13 @@ export interface TailorTools { posting: (jobId: string) => Promise<any | null>; 
 export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 // `interviews` and `digest` (WO-034) keep a pasted invite (for its thank-you, nudge and the digest) and the weekly digest's
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
+// `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
+// queue_applications says applying from chat is not connected here. `limits` is the person's daily application limit.
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
+  wants?: WantStore | null; limits?: Limits;
+  posting?: ((jobId: string) => Promise<any | null>) | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -117,6 +137,8 @@ export function careerTools(deps: {
       description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words. It is not usable until they confirm it.",
       input_schema: obj({ kind: str("experience | education | skill | goal | location | preference | other"), text: str("The fact in the person's own words") }, ["kind", "text"]),
       run: async (i, c) => {
+        const refused = factRefusal(String(i.text ?? ""), c.turn?.message);
+        if (refused) throw new Error(refused);
         const fact = CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" });
         c.turn?.added.push(fact.id);
         return { fact };
@@ -152,6 +174,32 @@ export function careerTools(deps: {
         const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
         await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
         return { application };
+      },
+    },
+    {
+      name: "queue_applications", effect: "write_own",
+      description: "Start applying: put the postings the person chose (links exactly as search_jobs returned them) in their own apply queue, up to their daily limit. Nothing is sent: the Trainee extension prepares each in their browser and shows a card, and each goes only after they approve it. Say how many were queued, what was refused and why.",
+      input_schema: obj({ postings: { type: "array", description: "The postings to apply to, from search_jobs", items: obj({ url: str("The posting's link as search_jobs returned it"), company: str("Employer"), title: str("Job title") }, ["url"]) } }, ["postings"]),
+      run: async (i, c) => {
+        if (!deps.wants) throw new Error("applying from chat is not connected here; say so, and that the person can paste posting links into the Trainee extension's queue");
+        const picks = Array.isArray(i.postings) ? i.postings.slice(0, 100) : [];
+        const r = await queueWants(deps.wants, c.userId, picks, c.now, { limits: deps.limits, tz: deps.tz });
+        await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: r.refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
+        return { ...r, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card." };
+      },
+    },
+    {
+      name: "get_posting", effect: "read",
+      description: "Read one posting in full by its job_id from search_jobs: title, company, place, link, the pay it states (or null: then say pay is not listed) and its text with the requirements. Use it before prepping, tailoring or answering questions about a posting.",
+      input_schema: obj({ job_id: str("The job_id search_jobs returned") }, ["job_id"]),
+      run: async (i) => {
+        const get = deps.posting ?? (deps.tailor ? deps.tailor.posting : null);
+        if (!get) throw new Error("posting details are not connected here; say so, and use only what search_jobs returned");
+        const p = await get(String(i.job_id));
+        if (!p) throw new Error(`no posting ${String(i.job_id)} on file; it may have closed. Search again`);
+        const text = String(p.description ?? "").replace(/\s+/g, " ").trim();
+        return { job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, closed: !!p.closed_at,
+          pay: p.pay ?? payFrom(text), text: text.length > 4000 ? `${text.slice(0, 4000)}… [cut]` : text };
       },
     },
     {

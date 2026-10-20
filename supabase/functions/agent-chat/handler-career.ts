@@ -44,6 +44,7 @@ import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shar
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
+import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
@@ -378,6 +379,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const tz = alertRow?.tz;
         const recent = win.cut ? await events.recall(user.id, { limit: 200 }).catch((e) => { console.error("agent memory: events", e?.message ?? e); return null; }) : null;
         const summary = summaryFor(win.cut, recent, now, tz);
+        // WO-066: the person's own daily application limit (the queue's SQL holds the same bound); unread, the default.
+        const daily = await admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => r.error ? undefined : Number(r.data) || undefined, () => undefined);
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
@@ -386,6 +389,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
+          // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
+          // goes only on its card's tap.
+          wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });

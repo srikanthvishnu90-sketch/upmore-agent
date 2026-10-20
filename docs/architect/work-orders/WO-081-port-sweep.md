@@ -121,27 +121,37 @@ So these are live code, and they are ported.
 - **#116 is stacked on #115.** Both change module 150's question binding, so merge #115 first. GitHub retargets #116
   to trunk when #115's branch goes.
 - Every other PR is independent and branches from trunk.
-- **`scripts/gate.sh` will conflict on merge.** #104, #110 and #113 each add files to the gate's shared list at the
-  same point. Merge one; for each of the others, keep every line from both sides.
+- **#104 is merged** (da63ef5d).
+- **`scripts/gate.sh` will conflict between #110 and #113.** Each adds files to the gate's shared list at the same
+  point. Merge one, then resolve the other by keeping every line from both sides.
+- **#111 is already fixed for the others.** The full integration showed that its injection guards (DC-1, EX-3, AI-2,
+  XU-2) would fail next to #119 and #116: MI-106 adds four typed fields to the alert record, and MI-118 writes
+  telemetry rows to the ledger. a99fa656 on #111 allows those four fields and counts only application records.
+  XU-2 also now checks that no row names the other user.
 - **The router bundles need no hand work.** Merging them textually gives the same bytes as regenerating them: in the
   local integration below, the regeneration after every merge changed nothing.
-- **Trunk moved while this order ran.** It gained dc8e5802 (the writing-pattern scrub), then #103, #105, #106 and #109
-  (6f92997b). #104, #110 and #113 have trunk merged in, for the gate list. Every branch merges cleanly into 6f92997b.
+- **Trunk moved while this order ran:** dc8e5802 (the writing-pattern scrub), then #103–#109, #117, #120, #121, #126
+  and #131 (724406ea). #110, #111 and #113 have trunk merged in, and their own tests and both bundle checks were
+  re-run. Every open branch merges cleanly into 724406ea.
 
 ## The ports together (local integration, not pushed)
-All eight branches were merged into trunk 6f92997b, in the order #101, #104, #110, #111, #113, #115, #116, #119, and
-every gate was run on the result (VERIFIED):
+The open branches were merged into trunk 724406ea in the order #101, #110, #111, #113, #115, #116, #119, and every
+gate was run on the result (VERIFIED; the merge commit was 0b37b55b):
 
 | Gate | Result |
 |---|---|
-| Architect suite | **638 passed, 0 failed** |
+| Architect suite | **664 passed, 0 failed** |
 | Edge list | **135 passed** |
+| Node lists | 2,344 tests; 60 not-ok, **all in the trunk baseline, 0 new** |
 | Shared tests added by this order | 129 pass, 1 skipped (the H20 loop case), 0 fail |
 | Both bundle checks, `extension/build.ts --check`, `trainee-go-live` | green (`trainee-go-live` 14/14) |
-| DB suite (local Postgres 16) | passed |
-| Node lists | 61 not-ok: the trunk baseline's 60, plus one load timeout (below) |
+| DB suite (local Postgres 16) | passed (1,573 checks) |
 
-**The load timeout.** In the full run, `009b-3 real forms preserve the architect's prepared, unknown and runtime stop
+Two earlier runs, against trunk 6f92997b and 4f08e28f, found two things:
+- the injection-guard composition, now fixed on #111;
+- a load timeout, described next.
+
+**The load timeout.** In one full run, `009b-3 real forms preserve the architect's prepared, unknown and runtime stop
 contracts` (#115) failed once:
 - One Ashby form hit the engine's 60-second command limit (`DRIVER_TIMEOUT`). The test takes about 150 seconds even
   on its own.

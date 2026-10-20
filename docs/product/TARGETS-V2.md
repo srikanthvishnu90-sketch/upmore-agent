@@ -20,7 +20,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 | Target | Status | What is true | Next |
 |---|---|---|---|
 | Extension-assisted apply: 50 per 30 min, 90%+ fields (Greenhouse, Lever, Ashby), 70%+ Workday, zero wrong submits, under 10 s each | BUILDING (WO-031) | MV3 extension over the same planner, answer keys and ask-once store. One-tap review card, bound to a hash of the exact payload. Bot checks are handed to the person. Measured on captured forms. | Merge; Muse runs a 20-posting session (plan 3.6) |
-| Cloud autonomous 100-150/day | GATED | PR #16 gate: 3 hand submissions per portal, each confirmed by the employer's email. Zero recorded. | Plan 3.5 tonight |
+| Cloud autonomous 100-150/day | BUILDING (WO-039), locked in code | The worker for the D-010 machine is being built now. It unlocks per portal only when the database holds 3 employer-confirmed hand submissions for that portal (the PR #16 gate, D-022). Zero recorded today. | Plan 3.5 tonight: the hand submissions |
 | Answer bank 58% to 85%+ of required questions | BUILT offline | Planner fills 85.4% (A) / 83.8% (B) of required questions with a complete synthetic persona (#38, #40). VERIFIED offline. A real person's rate is NOT_RUN. | Live rate from plan 3.1 |
 | Every unknown asked once over text, never again | BUILT | Ask-once (#45): questions stored by meaning, asked by text, answers checked against the form's choices, read back at the next preparation. | Push the questions without being asked (WO-032) |
 | Essays drafted from confirmed facts | BUILT | WO-030 (#48): the employer's AI policy decides first. A fact-lock blocks invented content. Saved only on "use N". | Live draft quality NOT_RUN |
@@ -47,7 +47,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 ## Networking (outbound)
 | Target | Status | What is true | Next |
 |---|---|---|---|
-| 500-person verified-email lists in 24 h, 85%+ deliverable, under $50 | GATED (data vendor); pipeline BUILDING (WO-033) | Import, verification (syntax, MX, role and disposable flags) and cost behind a vendor seam. A vendor comparison with sources. | Owner picks and funds a vendor |
+| 500-person verified-email lists in 24 h, 85%+ deliverable, under $50 | BUILDING (WO-033); vendors chosen (D-018) | Apollo CSV export imported by Trainee. Every address checked by Hunter; only `valid` counts as deliverable. Cost per list from the owner's real invoice. | Owner signs up for Apollo and Hunter |
 | Drafts approved 10 at a time | BUILDING (WO-033) | A fact-lock on every claim. "send 1-7,9", "redo 3", "skip 4". The approval binds to the exact text. | |
 | 20-30 sends a day from Gmail, no blast | BUILDING (WO-033) | Caps in code: 20 by default, 30 at most, 10 a day during the first-week warm-up, one recipient per message. Stop and unsubscribe go to a do-not-contact list. | Needs the career Google grant |
 | Referral map, top 20 firms | BUILDING (WO-033) | Warm paths from the person's own exports only. No LinkedIn automation. | |
@@ -68,7 +68,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 ## Career guidance
 | Target | Status | What is true | Next |
 |---|---|---|---|
-| Real hired-candidate backgrounds | GATED | No licensed data. Trainee says so in one line and never invents it. | Owner decision on Revelio, PDL or Coresignal |
+| Real hired-candidate backgrounds | BUILDING (WO-036); funded (D-018) | People Data Labs Person Search, shown as aggregates only (schools, prior employers, degrees; nothing under n=5), never a named person. Without the key, Trainee says it has no data and never invents any. | Owner signs up for PDL Pro |
 | "How do I get into X": real data, honest probability, 3 moves | BUILDING (WO-036) | Firm programs, timelines and requirements with URLs and checked dates. A probability only with a cited base rate. Every move cites a requirement and a fact or gap. | |
 | Offer to benchmark and negotiation script, under 30 min | BUILDING (WO-036) | Public filed wages (DOL LCA, BLS OEWS) with n and year. Never n<5 as a benchmark. Never an invented competing offer. | |
 

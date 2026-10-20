@@ -22,6 +22,17 @@ Nothing in it is a pass until it is run on the live project and recorded.
 
 ## 0. Before anything (owner, on your own machine)
 
+**Sign-ups (D-018, up to $300/month):**
+- Apollo: lists, exported as CSV.
+- Hunter: email verification, `HUNTER_API_KEY`.
+- People Data Labs Pro: hired-candidate aggregates, `PDL_API_KEY`.
+
+**Accounts (D-019):**
+- Meta business verification for WhatsApp. It can take days, so start it first.
+- A Telegram bot from @BotFather.
+
+Enter every key only at the go-live prompt, never in chat.
+
 1. **Pull trunk.** Use the commit the architect names as tonight's (every PR below that says "merged").
 2. **Run go-live:**
    ```
@@ -81,7 +92,7 @@ The apply engine runs on the tester's own computer, signed in as themselves. It 
 | 3.2 | The questions Trainee asks by text | Each unknown is asked once; answers are checked against the form's own choices. | No question asked twice (ask again with `what do you need from me`) |
 | 3.3 | `draft 2` on a written question | A full draft from confirmed facts only, never saved until `use 2` | No invented fact (check every claim against the facts file). Canonical-style "no AI" forms are never drafted. |
 | 3.4 | Reply `yes` to a card | The run applies on the computer; a receipt text arrives per application. | Receipt per application |
-| 3.5 | **Real submissions (the PR #16 gate)** | 3 hand-watched submissions per portal (Greenhouse, Lever, Ashby), each confirmed by the employer's email | Record: screenshot, captured answers, employer email. **This is the gate before any automation.** |
+| 3.5 | **Real submissions (the PR #16 gate)** | 3 hand-watched submissions per portal (Greenhouse, Lever, Ashby), on roles the tester genuinely wants, each confirmed by the employer's email | Record: screenshot, captured answers, employer email. **The cloud worker (WO-039) unlocks per portal only when these 3 confirmations are in the database.** |
 | 3.6 | Extension (WO-031, when it lands) | Load `extension/` unpacked in Chrome. Run the queue over 20 postings, tapping approve on each. | Time per application (**target under 10 s**). Fields right vs fields filled. Zero wrong submissions. |
 
 ## 4. Resume

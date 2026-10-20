@@ -57,6 +57,8 @@ shared_tests=(
   tests/trainee-go-live.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
+  tests/correction-authority-privacy.test.cjs
+  tests/live-career-release.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -139,7 +141,8 @@ step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts
+step live-release node scripts/career/check-live-release.cjs
+step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/releases/career-case2-isolation-v1/agent-chat/src/index.ts supabase/releases/career-case2-isolation-v1/telegram-inbound/telegram-inbound/index.ts
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.
 printf 'SUMMARY %s\n' "${results[@]}"

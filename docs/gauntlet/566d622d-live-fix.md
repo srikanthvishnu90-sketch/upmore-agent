@@ -235,3 +235,194 @@ asserting the two `channel_artifacts` rows and the sha equality.
 
 Fallback expectation across all four probes: zero contained
 turns.
+
+
+## Deploy + live re-gauntlet — 49b7ae36 as agent-chat v241 (2026-10-20, deploy lane 2)
+
+Owner's deploy word on this exact commit: 2026-10-20 09:11 CDT ("Deploy
+49b7ae36 now"), covering merge + deploy + gauntlet + record per his
+2026-10-16 ruling. Project: upmore only (`mrwngntwmnaqrqhupvlt`).
+
+### Merge + deploy
+
+- `integration/v2-candidate` fast-forwarded 71e01ef6 → **49b7ae36** and
+  pushed (ls-remote verified at 49b7ae367bdd…).
+- **agent-chat v241 ACTIVE**, verify_jwt=true. Staged from the 49b7ae36
+  tree via the prune-lane recipe (`stage-graph.cjs`, entry
+  `agent-chat/index-career.ts` → `agent-chat/index.ts`, mode all-js):
+  12 files, 3,465,810 B (v240's stage: 3,457,882 B; delta = the fix).
+  All staged .js pass `node --check`; file shape identical to the v240
+  stage. Fix markers verified in the staged bundle before deploy:
+  `loadTargeted` in `_shared/career_pool.js` and bound in
+  `handler-career.ts`, `namedRoleTargetOf` in handler + career bundle,
+  `career_resume_ingest` in `router_core.career.js`. Stage kept at
+  `~/workspace/prune-lane/stage-49b7ae36`. Deployed with the /tmp sb.py
+  copy (entrypoint `agent-chat/index.ts`).
+- **No migration, no channel-function deploys, no env changes** —
+  telegram-inbound v3 / whatsapp-inbound v3 untouched; worker env
+  still unset by design (BOARD_NOT_WIRED stops below are correct).
+
+### Live re-gauntlet (test user, magic-link JWT; rate window reset first)
+
+Measurement note: the egress proxy severed several responses and the
+client retried; Probe D's second turn executed 3× server-side (the
+thread holds 4 user + 4 assistant rows; all three draft executions are
+`outreach_draft`). One runner's /tmp progress file was lost to a VM
+/tmp reset mid-lane; every turn below was recovered from the product's
+own `agent_messages` + DB state, the same recovery as the v240 record.
+Contained-turn expectation (zero) was **not** met — see (j).
+
+#### Regression subset (from the v240 gauntlet)
+
+- **(a) Probe D: PASS.** Fresh thread `bd3d9cd0`: campaign ask →
+  `outreach_clarification`; "Draft the first email for me." →
+  `outreach_draft`, the campaign's first email ("Subject: Sophomore
+  interested in healthcare consulting firms — 15 minutes? … held as a
+  sample, sending nothing"). SQL check across all assistant rows in
+  the thread: zero counter / "$52" / signing-bonus content.
+- **(d) MI-123 re-probe: PASS.** Fresh thread `382f9b15`, "I got an
+  offer! Help me negotiate a higher salary." → `tracking_status`:
+  "Noted — a offer landed. … I will not guess a company onto it. Name
+  the company and the row moves in the same turn, from your words."
+  No figure narrated as stated; no company invented. Context verified
+  by SQL: unlike the v240 run, the account record (`career:account`)
+  holds **no $85,000 offer text at probe time**, so no earlier-record
+  reference was owed — the safety property (never adopt an inherited
+  figure, never guess a company) holds on the surface either way.
+- **(b) TN-1a: PASS.** Thread `9794bacd`, intent
+  `intent_prior_application`, the same honest reply as v240; no
+  company invented.
+- **(e) Discovery: PASS.** Thread `f54e1ecf`, `career_discovery`:
+  real KB roles served (Accounting Manager, Tokenized Equities at
+  coinbase; Senior Technical Account Manager at affirm; Group Product
+  Manager at reddit…).
+
+#### (h) Watch: **PASS** — the v240 failure is closed live
+
+Fresh thread `06eda668`. "Watch data analyst roles for me." → intent
+`career_watch_create`, reply "Watch set: Data Analyst. Watching: Data
+Analyst — any location + remote. …" — NOT contained. "What am I
+watching now?" → `career_watch_manage`, naming the Data Analyst watch
+first among the 2 standing watches. DB proof: the
+`career:watch-profile:<user>` Data Analyst interest's `created_at` is
+**2026-10-20T14:16:58.521Z** — this turn's own second (its pre-run
+value was 2026-10-20T12:26:18Z from an earlier unattributed write) —
+SOC 15-2051, and the profile's `updated_at` advanced to 14:17:27Z.
+
+#### (i) Memory: **FAIL** — the statement turn now dies at the save, reproducibly
+
+"My recruiter contact at Northwind Ledger is Dana." was attempted
+**three times** and never landed once:
+
+1. Scripted run (fresh thread): **HTTP 503**,
+   `{"error": "storage_unavailable", "reply": "I could not confirm
+   that your career reply or changes were saved. Retry with the same
+   request key; do not repeat an uncertain external action."}`,
+   thread_id null.
+2. Fresh retry (new runner, same message): **HTTP 503**, identical
+   body, `turn_key` `d78a676c-eb69-4c92-beca-2d1cef9965ad`.
+3. The product's own prescribed recovery — retry **with that same
+   turn_key** in the request body: **HTTP 503** again, thread null.
+
+SQL after all three attempts: no user message for this sentence
+exists in `agent_messages` from today (the only row is the v240
+gauntlet's, 13:27:36Z), and `career:account` → `stated_facts` holds
+**no Dana / Northwind Ledger / recruiter fact** (baseline before the
+run was likewise empty). The recall turn therefore routed
+`company_intel` in both fresh threads (`65d926df`, `448b6c09`) —
+"Northwind Ledger has no company file yet…" — since there was
+nothing to recall.
+
+This is sharper than the v240 failure, and different in kind: on v240
+the turn executed and fell to containment; on v241 it **never
+commits**. Other write classes committed fine in the same minutes
+(tracker assertion, watch create, resume ingest, batch state), so
+storage itself is up; the failure is specific to this turn's write
+path. Hypothesis for the fix lane (evidence-backed, not established):
+on v240 the statement captured nothing (the 1-token PERSON miss), so
+the turn had no account write to confirm; the fix makes the capture
+succeed in-router, and the account-patch commit carrying the new
+keyed fact is what now fails storage confirmation. Replay = the
+three attempts above; the turn_key is spent — a fresh statement is
+the clean replay.
+
+#### (j) Doc contract: **FAIL at step 3** — ingest is live; the confirmation claim never fires
+
+Thread `5a589101`, verbatim script:
+
+1. CB-0495 → `career_tailor`, the needs-facts reply. **PASS** (as
+   v240).
+2. Verbatim paste of `packages/career-data/fixtures/test-resume.txt`
+   → `career_resume_ingest`: "Your resume is on record — as drafts,
+   awaiting your word. I read it as **15 facts (1 education, 2
+   experience, 2 project, 1 leadership, 9 skill)** — every one is
+   held as a DRAFT on your profile, not yet confirmed… Say "yes,
+   that's my resume" and I confirm them and tailor for the Natera
+   role in the same turn." **PASS — new live proof**: the resume-paste
+   claim the fix added works on the deployed product.
+3. "Yes, that's my resume." → stored intent `career_fallback`, reply
+   "I didn't catch that. Try naming the job, company, or person — or
+   say 'find jobs' and I'll start there." (single stored execution).
+   **FAIL.**
+4. "Send me the PDF as a file in this chat." →
+   `career_document_delivery`, the honest no-document reply —
+   consistent with no document existing. `channel_artifacts` for the
+   test user: **0 rows before → 0 rows after** the whole sequence.
+
+Post-script diagnostic (extra turn, same thread, does not change the
+grade): the product's own j2 reply prescribes the affirmation in
+lowercase with no period, so the diagnostic sent exactly
+`yes, that's my resume` — it **also** landed on `career_fallback`
+with the same contained reply. Case/punctuation sensitivity is
+therefore NOT the mechanism: the confirmation claim does not fire on
+the deployed path in either phrasing, while the fix lane's guard
+proves it on the staged handler. The live-vs-staged divergence for
+this claim is the open question for the next fix lane (the state the
+claim reads — the thread's ingest-draft/target mirror — is the first
+place to look). The artifacts[0] / sha-equality / byte-identical
+re-delivery half of the contract remains proven at tier 2 only.
+
+#### (f2) Gusto beyond the window: **PASS** — the targeted lookup is live
+
+Precondition re-verified by SQL: the Gusto posting
+(`job-boards.greenhouse.io/gusto/jobs/8257115`) is in
+`career_kb_postings` with **1,736 newer rows** — outside the 600-row
+window. Fresh thread `cc8bb562`, the owner's sentence verbatim →
+intent `career_batch_apply`, reply "Found 1 Finance Intern (Summer
+2027) roles. 1 were eligible; I took the 1 you named. **Stopped —
+gusto: BOARD_NOT_WIRED** — no board adapter is wired for this
+posting's family in this run." The reply does NOT contain "not in
+the list I can work from" (the stop line carries the company's
+lowercase slug — the product's consistent shape, cf. v240's
+"Stopped — natera:"; the script above quoted the display casing).
+DB proof, two surfaces: the thread state's `namedApply` is exactly
+`{"role": "Finance Intern (Summer 2027)", "company": "Gusto"}` (and
+"Gusto. The" appears nowhere in the state), and the batch record
+shows the posting selected **by its real URL**
+(`https://job-boards.greenhouse.io/gusto/jobs/8257115`) —
+discovered → screened (1 eligible) → stopped BOARD_NOT_WIRED,
+submitted 0.
+
+### Score
+
+Regression subset: **4/4 PASS** (Probe D, MI-123, TN-1a, discovery).
+Re-gauntlet: **(h) PASS · (f2) PASS · (i) FAIL · (j) FAIL at the
+confirmation step** (steps 1–2 pass; the resume-paste ingest is newly
+proven live). Fallback tally across the scripted turns: exactly one
+contained turn (j3) plus (i)'s three 503s, which never reached a
+reply surface. Two of the four v240 defects are closed live on the
+exact deployed commit; (i) regressed in kind (executes-but-contained
+→ never-commits 503) and (j)'s confirmation claim is a live-vs-staged
+divergence — both recorded verbatim above for the next fix lane
+under Crew A allocation. No fix attempted in this lane; no rollback
+(v241 is strictly better than v240: (h) and (f2) closed, (j) ingest
+gained; (i)'s 503 replaces a contained reply for the same turn class,
+and every other surface is unchanged or better).
+
+### Not done by this lane (by design)
+
+- Worker flip — env untouched; BOARD_NOT_WIRED remains the honest
+  stop until the owner's host decision lands.
+- (i)/(j) fixes — recorded, not attempted (fix lane's, per bug law).
+- Rollback, if ever ordered: `~/workspace/prune-lane/stage-566d622d`
+  restores the v240 tree; `stage-75ccf5f5` restores v238.

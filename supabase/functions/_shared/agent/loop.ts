@@ -35,6 +35,35 @@ export const MODEL_ERROR_REPLY = "I can't answer right now because the AI servic
 // When a turn saved something before it stopped, it says so: "nothing saved" would be false.
 export const MAX_STEPS_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't finish the rest in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do next.";
 export const MODEL_ERROR_AFTER_SAVE_REPLY = "I saved what you told me, but the AI service stopped responding before I could finish. Nothing was sent or submitted. Try again in a minute.";
+// WO-077: a reply never claims a change that did not happen this turn (battery run 39485101366, T12: "Kept for good" after
+// only a read). Each kind of claim names the tools that make it true; a sentence that negates, offers or asks is not a
+// claim. An unbacked claim is put to the model once (do it, or say it plainly); if it stands, the reply is this one.
+export const CLAIM_UNBACKED_REPLY = "I haven't actually done that yet: nothing was saved, set up or queued this time. Tell me again and I'll do it.";
+const CLAIMS: { kind: string; said: RegExp; by: string[] | "any_write" }[] = [
+  { kind: "an alert set", said: /\b(?:i(?:'ve| have)? (?:set|created|turned on|switched on)(?: up)? (?:an?|your|the) (?:job )?alerts?|alerts? (?:is |are )?(?:now )?(?:set|on|live|active)\b)/i, by: ["set_job_alerts"] },
+  { kind: "postings queued", said: /\b(?:(?:were|was|have been|has been|i(?:'ve| have)?|are now) queued\b|queued (?:\d+|them|it|all|these|those)\b|added (?:\d+|them|it|these|those) to your (?:apply )?queue)/i, by: ["queue_applications"] },
+  { kind: "an application tracked", said: /\b(?:i(?:'m| am) (?:now )?tracking|now tracking|added (?:it|this|that|them) to your (?:tracker|applications)|(?:is|are) now (?:on|in) your tracker)/i, by: ["track_application"] },
+  { kind: "something saved", said: /\b(?:kept for good|saved(?: as\b|:| it\b| that\b| this\b| your\b| for good)|i(?:'ve| have)? (?:saved|kept|noted|remembered|stored|recorded)\b|i(?:'ll| will) (?:keep|remember) (?:that|this|it)\b|(?:saved|kept) as a standing)/i, by: "any_write" },
+];
+// Only what comes before the claim can negate or condition it ("Nothing was sent, saved…", "If you say yes, I'll queue");
+// the instruction quoted after it ("Saved: you never want agencies") cannot. A question is never a claim.
+const NEGATED = /\b(?:nothing|not|never|no longer|haven't|hasn't|didn't|couldn't|can't|cannot|won't|unable|if|want me|should i|shall i|do you want|would you like|i can|i could|will|going to|tell you|once|when|after|until)\b|n't\b|'ll\b/i;
+// What follows a claim can undo it too: "Saved: none.", "I'll keep it in this conversation" (kept nowhere else).
+const UNDONE = /^\s*:?\s*(?:none|nothing)\b|^[^.!?]{0,40}\b(?:in this (?:conversation|chat)|for (?:this|the rest of this) (?:conversation|chat)|for now)\b/i;
+export function unbackedClaim(reply: string, calls: { name: string; ok: boolean; effect: Effect | null }[]): string | null {
+  const sentences = String(reply || "").split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+  const claims = (re: RegExp) => sentences.some((x) => {
+    if (/\?\s*$/.test(x)) return false;
+    const m = re.exec(x);
+    return !!m && !NEGATED.test(x.slice(0, m.index)) && !UNDONE.test(x.slice(m.index + m[0].length));
+  });
+  for (const c of CLAIMS) {
+    if (!claims(c.said)) continue;
+    const backed = calls.some((t) => t.ok && (c.by === "any_write" ? t.effect === "write_own" : c.by.includes(t.name)));
+    if (!backed) return c.kind;
+  }
+  return null;
+}
 const MAX_TOKENS = 1200;
 const RESULT_CHARS = 12000; // a tool result larger than this is cut, and the cut is said
 
@@ -52,7 +81,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
   o.ctx.turn = { message: o.message, added: [] };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
-  let steps = 0;
+  let steps = 0, checked = false;
   while (steps < max) {
     steps++;
     let res;
@@ -67,7 +96,15 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     if (!uses.length) {
       const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
       const show = o.ctx.turn?.show;
-      return { reply: show ? show.text : reply, steps, tool_calls, pending_approvals, stopped: "final", ...(show ? { show } : {}) };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      const claim = unbackedClaim(reply, tool_calls);
+      if (claim && !checked && steps < max) {
+        checked = true;
+        messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
+        messages.push({ role: "user", content: [{ type: "text", text: `[check, not from the person] Your reply says ${claim}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` }] });
+        continue;
+      }
+      return { reply: claim ? CLAIM_UNBACKED_REPLY : reply, steps, tool_calls, pending_approvals, stopped: "final" };
     }
     messages.push({ role: "assistant", content });
     const results: any[] = [];

@@ -145,6 +145,15 @@ export function wordStem(w: string): string {
   const s = w.replace(/(ing|ed|es|s|e)$/, "");
   return s.length >= 4 ? s : w;
 }
+// WO-073: how much of the query the title itself carries: 0 every word, 1 some, 2 none (it is only in the description,
+// the company or the place). A search for a role ranks the role first ("product manager" is not a recruiter whose
+// posting mentions product managers).
+export function titleTier(p: { title?: string }, words: string[]): 0 | 1 | 2 {
+  if (!words.length) return 0;
+  const t = String(p.title || "").toLowerCase();
+  const n = words.filter((w) => t.includes(w) || t.includes(wordStem(w))).length;
+  return n === words.length ? 0 : n > 0 ? 1 : 2;
+}
 export function matchesWords(p: { title?: string; company?: string; location?: string; description?: string }, words: string[]): boolean {
   if (!words.length) return true;
   const hay = `${p.title || ""} ${p.company || ""} ${p.location || ""} ${p.description || ""}`.toLowerCase();
@@ -168,7 +177,10 @@ export function memoryPostingsDb(): PostingsDb {
     async close(ids, at) { for (const id of ids) { const p = rows.get(id); if (p) rows.set(id, { ...p, closed_at: at }); } },
     async openForBoard(b) { return open().filter((p) => p.provider === b.provider && p.board === b.board).map((p) => ({ job_id: p.job_id })); },
     async newSince(t) { return open().filter((p) => p.first_seen_at > t && freshWhenSeen(p)).sort(newest).map((p) => ({ ...p })); },
-    async search(words, limit) { return open().filter((p) => matchesWords(p, words)).sort(newest).slice(0, limit).map((p) => ({ ...p })); },
+    async search(words, limit) {
+      return open().filter((p) => matchesWords(p, words)).sort((a, b) => titleTier(a, words) - titleTier(b, words) || newest(a, b))
+        .slice(0, limit).map((p) => ({ ...p }));
+    },
     async getCursor() { return cursor; },
     async setCursor(c) { cursor = c; },
   };
@@ -232,9 +244,20 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
       return out.filter(freshWhenSeen);
     },
     async search(words, limit) {
-      let q = admin.from(T).select("*").is("closed_at", null);
-      if (words.length) q = q.textSearch("search", words.join(" "), { type: "websearch", config: "english" });
-      return must<Posting[]>(await q.order("first_seen_at", { ascending: false }).limit(limit), "search postings") || [];
+      const base = () => admin.from(T).select("*").is("closed_at", null);
+      if (!words.length) return must<Posting[]>(await base().order("first_seen_at", { ascending: false }).limit(limit), "search postings") || [];
+      // WO-073: postings whose title carries every word first (the search column weights the title A), then the rest, each
+      // once, newest first within each: the limit never cuts the role itself in favour of newer postings that mention it.
+      const lexemes = words.map((w) => w.replace(/[^a-z0-9]/g, "")).filter(Boolean);
+      const titled = lexemes.length
+        ? must<Posting[]>(await base().textSearch("search", lexemes.map((w) => `${w}:A`).join(" & "), { config: "english" })
+          .order("first_seen_at", { ascending: false }).limit(limit), "search postings by title") || []
+        : [];
+      if (titled.length >= limit) return titled;
+      const rest = must<Posting[]>(await base().textSearch("search", words.join(" "), { type: "websearch", config: "english" })
+        .order("first_seen_at", { ascending: false }).limit(limit), "search postings") || [];
+      const seen = new Set(titled.map((p) => p.job_id));
+      return [...titled, ...rest.filter((p) => !seen.has(p.job_id))].slice(0, limit);
     },
     async getCursor() { const r = must<{ cursor: number } | null>(await admin.from(S).select("cursor").eq("id", 1).maybeSingle(), "read ingest cursor"); return r ? Number(r.cursor) || 0 : 0; },
     async setCursor(c) { must(await admin.from(S).upsert({ id: 1, cursor: c }, { onConflict: "id" }), "write ingest cursor"); },

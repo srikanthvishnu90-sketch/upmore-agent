@@ -11,8 +11,11 @@ import { draftOffer, foldEvents, planUpdates } from "./career_mail.ts";
 import type { ReadResult } from "./career_mail_gmail.ts";
 import type { MailPerson, MailStore } from "./career_mail_store.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
+import { type AskStore, type ConfirmStore, planConfirmations } from "./career_apply_confirm.ts";
+import { receiptText } from "./career_apply_receipts.ts";
+import { type OpenQuestion, questionsText } from "./career_apply_questions.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; questions?: number; confirmations?: number; asks?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -115,7 +118,7 @@ export async function runCards(o: {
 // the 5-minute schedule everyone is read within the hour up to MAIL_PEOPLE_PER_RUN x 12 people. A rate limit keeps what
 // was read and moves the cursor only that far. One person's failure does not stop the others; the run then records it.
 export const MAIL_PEOPLE_PER_RUN = 200, MAIL_OVERLAP_MS = 10 * 60000, MAIL_FIRST_LOOKBACK_MS = 3 * 86400000;
-export interface MailStats { people: number; not_wired: number; statuses: number; followups: number }
+export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; confirmations: number; asks: number }
 function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
   const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
   let at = now;
@@ -124,8 +127,9 @@ function awake(now: number, tz: string | null | undefined, q: { quiet_start?: nu
 }
 export async function runMail(o: {
   outbox: Outbox; now: number; store: MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult>; batch?: number;
+  confirm?: ConfirmStore | null;
 }): Promise<MailStats> {
-  const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0 };
+  const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0, confirmations: 0, asks: 0 };
   const failed: string[] = [];
   const one = async (p: MailPerson) => {
     const since = p.read_through ? Date.parse(p.read_through) - MAIL_OVERLAP_MS : o.now - MAIL_FIRST_LOOKBACK_MS;
@@ -142,6 +146,19 @@ export async function runMail(o: {
     for (const d of plan.drafts) {
       if (await o.store.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) stats.followups++;
     }
+    // WO-032: the same mail confirms applications in the queue, only on the stricter match in career_apply_confirm.ts.
+    // A received email that confirms one is said once (status:confirmed:<application>); a rejection, interview or offer
+    // that confirms one already has its own status text. Two that fit are asked about once, by runAsks.
+    if (o.confirm && r.mails.length) {
+      for (const c of planConfirmations(r.mails, await o.confirm.queue(p.user_id))) {
+        if (c.kind === "ask") { if (await o.confirm.ask(p.user_id, c)) stats.asks++; continue; }
+        if ((await o.confirm.confirm(p.user_id, c)) !== "confirmed") continue;
+        stats.confirmations++;
+        if (c.mail_kind !== "received") continue;
+        const text = receiptText({ company: c.company, url: c.url, state: "confirmed", email_confirmed_at: c.mail_at });
+        if (await o.outbox.enqueue(p.user_id, { key: `status:confirmed:${c.id}`, kind: "status", text, at })) stats.statuses++;
+      }
+    }
     if (r.readThrough !== null) await o.store.saveCursor(p.user_id, r.readThrough);
   };
   const people = await o.store.people(MAIL_PEOPLE_PER_RUN), size = o.batch ?? 5;
@@ -150,4 +167,56 @@ export async function runMail(o: {
   }
   if (failed.length) throw new Error(`mail tracking failed for ${failed.length} people (${stats.statuses} status texts queued): ${failed[0]}`);
   return stats;
+}
+
+// The questions a preparation left open (WO-032, ask once pushed): texted once, without being asked for, with the same
+// formatter as "what do you need from me" (questionsText: at most 5, the rest counted). Only questions never pushed, once
+// the preparation has settled (nothing new in the last 10 minutes), never in the person's quiet hours, one text per person
+// per run. The database decides the rest in one transaction (career_apply_questions_push_for): a texting thread and no
+// STOP, at most one such text a day, nothing else waiting in the thread, every question still open and never pushed, the
+// text carrying every question; and it makes the text the thread's last word with the questions intent and records the
+// questions shown, so the numbered answers go to questionsTurn as if the person had asked.
+export interface QuestionRow extends OpenQuestion {
+  user_id: string; created_at: string; pushed_at?: string | null; tz?: string | null; quiet_start?: number; quiet_end?: number;
+}
+export const QUESTIONS_SETTLE_MS = CARD_SETTLE_MS;
+export async function runQuestions(o: {
+  now: number; open: () => Promise<QuestionRow[]>; push: (userId: string, ids: string[], text: string) => Promise<boolean>;
+}): Promise<number> {
+  const byUser = new Map<string, QuestionRow[]>();
+  for (const q of await o.open()) byUser.set(q.user_id, [...(byUser.get(q.user_id) ?? []), q]);
+  let pushed = 0;
+  const failed: string[] = [];
+  for (const [userId, rows] of byUser) {
+    // Open only: an answered question is never asked again (the database checks it once more).
+    const open = rows.filter((q) => !q.answer || q.misfit).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    const fresh = open.filter((q) => !q.pushed_at);
+    if (!fresh.length || Math.max(...open.map((q) => Date.parse(q.created_at))) > o.now - QUESTIONS_SETTLE_MS) continue;
+    const quiet = { quiet_start: fresh[0].quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: fresh[0].quiet_end ?? DEFAULT_PREFS.quiet_end };
+    if (quietAt(o.now, fresh[0].tz || "America/New_York", quiet)) continue;
+    const t = questionsText(fresh, open.length);
+    if (!t) continue;
+    try {
+      if (await o.push(userId, t.take.map((q) => q.id), t.text)) pushed++;
+    } catch (e) {
+      failed.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (failed.length) throw new Error(`questions push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`);
+  return pushed;
+}
+
+// Which application an employer's email confirms, when two fit (WO-032): each ask texted once, outside quiet hours, one
+// per person per run; the database refuses it while the thread waits on something else, and it waits for a later run.
+export async function runAsks(o: { now: number; store: Pick<AskStore, "pending" | "push"> }): Promise<number> {
+  const seen = new Set<string>();
+  let pushed = 0;
+  for (const a of await o.store.pending()) {
+    if (seen.has(a.user_id) || !a.text) continue;
+    const quiet = { quiet_start: a.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: a.quiet_end ?? DEFAULT_PREFS.quiet_end };
+    if (quietAt(o.now, a.tz || "America/New_York", quiet)) continue;
+    seen.add(a.user_id);
+    if (await o.store.push(a.user_id, a.hash, a.text)) pushed++;
+  }
+  return pushed;
 }

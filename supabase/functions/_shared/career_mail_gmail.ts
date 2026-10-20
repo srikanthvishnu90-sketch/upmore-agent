@@ -7,6 +7,9 @@ import type { MailIn } from "./career_mail.ts";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
 export const CAREER_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+// WO-032: the same career grant carries gmail.send (gmail-oauth start_career); it is used only to send an application the
+// person approved word for word (career_apply_email.ts), never anything else.
+export const CAREER_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 
 export type ReadResult =
   | { status: "ok"; mails: MailIn[]; readThrough: number; listed: number }
@@ -89,8 +92,9 @@ export async function readMailSince(
 
 // ------------------------------------------------------------------------------------------------ the token
 // The career grant's access token, refreshed when it is about to expire and written back to the vault. Returns null (so
-// the read is NOT_WIRED) when the person has no career grant, it lacks gmail.readonly, there is no refresh token, the
-// OAuth client is not configured, or Google says the grant was revoked.
+// the read is NOT_WIRED) when the person has no career grant, it lacks the scope asked for (gmail.readonly unless the
+// caller asks for gmail.send), there is no refresh token, the OAuth client is not configured, or Google says the grant was
+// revoked.
 export interface TokenDeps {
   connection: (userId: string) => Promise<{ vault_name: string; scopes?: string | string[] | null } | null>;
   readVault: (name: string) => Promise<string | null>;
@@ -99,13 +103,13 @@ export interface TokenDeps {
   env: { get(k: string): string | undefined };
   now: () => number;
 }
-export function careerToken(d: TokenDeps): (userId: string) => Promise<string | null> {
+export function careerToken(d: TokenDeps, scope: string = CAREER_READ_SCOPE): (userId: string) => Promise<string | null> {
   return async (userId) => {
     const name = `oauth_google_career_${userId}`;
     const conn = await d.connection(userId);
     if (!conn || conn.vault_name !== name) return null;
     const scopes = Array.isArray(conn.scopes) ? conn.scopes : String(conn.scopes ?? "").split(/[\s,]+/);
-    if (!scopes.includes(CAREER_READ_SCOPE)) return null;
+    if (!scopes.includes(scope)) return null;
     const raw = await d.readVault(name);
     if (!raw) return null;
     let tok: any;
@@ -125,4 +129,56 @@ export function careerToken(d: TokenDeps): (userId: string) => Promise<string | 
     await d.writeVault(name, JSON.stringify({ ...tok, access_token: nt.access_token, refresh_token: nt.refresh_token || tok.refresh_token, expires_at: d.now() + (Number(nt.expires_in) || 3600) * 1000 }));
     return String(nt.access_token);
   };
+}
+
+// ------------------------------------------------------------------------------------------------ sending (WO-032)
+// One message, to one recipient, from the person's own Gmail (users.messages.send): To and Subject only, never Cc or Bcc,
+// the text and one attachment. The caller has the person's yes to exactly this payload; this only refuses what no
+// approved payload may hold (a second address, a header break). No token: NOT_WIRED and nothing is sent. Gmail's own 4xx
+// refusal means nothing went (REFUSED); a network failure or a 5xx may have sent it (UNKNOWN), and it is never retried.
+export type SendResult =
+  | { status: "sent"; idHash: string }
+  | { status: "NOT_WIRED"; reason: string }
+  | { status: "REFUSED"; detail: string }
+  | { status: "UNKNOWN"; detail: string };
+export interface OutMail { to: string; subject: string; body: string; attachment?: { filename: string; bytes: Uint8Array; mime?: string } | null }
+export const ONE_ADDRESS = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+const b64 = (bytes: Uint8Array) => {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+const lines76 = (s: string) => s.replace(/.{1,76}/g, "$&\r\n").replace(/\r\n$/, "");
+const utf8 = (s: string) => new TextEncoder().encode(s);
+const encodedWord = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(utf8(s))}?=`);
+export function mimeOf(m: OutMail, boundary = "trainee-application-boundary"): string {
+  if (!ONE_ADDRESS.test(m.to)) throw new Error("one recipient only");
+  if (/[\r\n]/.test(m.subject)) throw new Error("a header may not break a line");
+  const name = String(m.attachment?.filename ?? "").replace(/["\\\r\n]/g, "").slice(0, 120) || "resume.pdf";
+  const parts = [
+    `To: ${m.to}`, `Subject: ${encodedWord(m.subject)}`, "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`, "", `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", lines76(b64(utf8(m.body))),
+  ];
+  if (m.attachment) {
+    parts.push(`--${boundary}`, `Content-Type: ${m.attachment.mime ?? "application/pdf"}; name="${name}"`,
+      `Content-Disposition: attachment; filename="${name}"`, "Content-Transfer-Encoding: base64", "", lines76(b64(m.attachment.bytes)));
+  }
+  parts.push(`--${boundary}--`, "");
+  return parts.join("\r\n");
+}
+export async function sendMail(d: { fetch: typeof fetch; token: (userId: string) => Promise<string | null> }, userId: string, m: OutMail): Promise<SendResult> {
+  const raw = b64(utf8(mimeOf(m))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const token = await d.token(userId);
+  if (!token) return { status: "NOT_WIRED", reason: "no career Google grant that may send" };
+  let r: Response;
+  try {
+    r = await d.fetch(`${API}/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw }) });
+  } catch (e) {
+    return { status: "UNKNOWN", detail: `send: ${e instanceof Error ? e.message : String(e)}` };
+  }
+  if (r.status >= 400 && r.status < 500) return { status: "REFUSED", detail: `send: HTTP ${r.status}` };
+  if (!r.ok) return { status: "UNKNOWN", detail: `send: HTTP ${r.status}` };
+  const body = await r.json().catch(() => ({}));
+  return { status: "sent", idHash: await messageHash(userId, String((body as any)?.id ?? "")) };
 }

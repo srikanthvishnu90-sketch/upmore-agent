@@ -45,6 +45,9 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
+import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
+import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "../_shared/career_apply_email.ts";
+import { CAREER_SEND_SCOPE, careerToken, sendMail } from "../_shared/career_mail_gmail.ts";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -256,6 +259,37 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
+      // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
+      // and "yes" while it is the last word sends exactly that email once from the person's Gmail. Code's, like the card.
+      const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+      const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
+      const sendToken = careerToken({
+        env: Deno.env, fetch, now: Date.now,
+        connection: async (u) => {
+          const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
+          if (error) throw new Error(`read the career grant: ${error.message}`);
+          return data ?? null;
+        },
+        readVault: async (name) => {
+          const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
+          if (error) throw new Error("read the career grant's vault entry");
+          return data ? String(data) : null;
+        },
+        writeVault: async (name, secret) => {
+          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+          if (error) throw new Error("save the refreshed career grant");
+        },
+      }, CAREER_SEND_SCOPE);
+      // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
+      const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
+      const emailed = free && !which
+        ? await emailTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
+          store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
+          draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
+          canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+        } })
+        : null;
       if (draftMeter.calls) {
         const m = draftMeter;
         const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
@@ -273,6 +307,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
         const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
+      } else if (which) {
+        // A number not on the list leaves the ask waiting; anything else answered it.
+        out = { reply: which.reply, intent: which.status === "not_on_list" ? CONFIRM_INTENT : "career_apply_confirm_answer", resultStatus: which.status, contained: false, handler: "confirm" };
+      } else if (emailed) {
+        // The email card waits for its yes while it is shown (or changed, or waiting for Gmail to be connected); anything else answered it.
+        const waiting = ["shown", "NOT_WIRED"].includes(emailed.status);
+        out = { reply: emailed.reply, intent: waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

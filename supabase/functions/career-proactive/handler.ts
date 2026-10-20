@@ -3,7 +3,8 @@
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";
-import { runAlerts, runCards, runMail, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import { type QuestionRow, runAlerts, runAsks, runCards, runMail, runQuestions, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import type { AskStore, ConfirmStore } from "../_shared/career_apply_confirm.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
@@ -23,7 +24,12 @@ export interface ProactiveDeps {
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
   // Mail tracking (WO-024): where events, drafts and cursors live, and the read of one person's new mail. Absent: no mail
   // is read this run. Nothing here sends mail.
-  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
+  // WO-032: with `confirm`, the same mail confirms applications in the queue (only from the employer's own email).
+  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult>; confirm?: () => ConfirmStore };
+  // WO-032: open questions pushed once (career_apply_questions_push_as), and the asks about which application an
+  // employer's email confirms. Absent: neither this run.
+  questions?: { open: () => Promise<QuestionRow[]>; push: (userId: string, ids: string[], text: string) => Promise<boolean> };
+  asks?: () => Pick<AskStore, "pending" | "push">;
   // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
   events?: () => EventStore;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
@@ -43,10 +49,14 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
     if (d.mail) {
-      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read });
+      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, confirm: d.mail.confirm ? d.mail.confirm() : null });
       stats.statuses = m.statuses;
       stats.followups = m.followups;
+      if (d.mail.confirm) stats.confirmations = m.confirmations;
     }
+    // After cards and mail: a card or an ask pushed this run keeps the thread busy, so these wait their turn.
+    if (d.asks) stats.asks = await runAsks({ now: started, store: d.asks() });
+    if (d.questions) stats.questions = await runQuestions({ now: started, open: d.questions.open, push: d.questions.push });
     const ms = d.now() - started;
     await d.recordRun({ ...stats, ms, error: null, at });
     return json({ ...stats, ms });

@@ -278,6 +278,18 @@ export function candidates(mail: Classified, apps: TrackedApp[]): TrackedApp[] {
       (mail.company && urlSlugs(a.url).includes(collapsed(mail.company)))) &&
     !(mail.role && a.role && roleWords(mail.role).size && roleWords(a.role).size && roleOverlap(a.role, mail.role) === 0));
 }
+// WO-032: the message comes from this employer itself, or from the applicant tracking system it applies through naming
+// it; never from a personal address, a job board, an assessment vendor or any other domain ("Stripe <apply@talent-mail.io>"
+// says Stripe in its name and nothing else does). Used where a message decides something, not just tracks it.
+export function fromEmployer(mail: Classified, app: { company: string; url?: string }): boolean {
+  const domain = mail.domain ?? "";
+  if (!domain || endsWithDomain(domain, [...ASSESSMENT_VENDORS, ...JOB_BOARDS, ...FREE_MAIL])) return false;
+  if (endsWithDomain(domain, ATS)) return !!mail.company && sameCompany(app.company, mail.company);
+  const label = registrableLabel(domain);
+  return sameCompany(app.company, DOMAIN_ALIASES[label] ?? label) || urlSlugs(app.url).includes(label);
+}
+export { roleOverlap };
+
 // One of them, only when it is the only one or its role is the clear best; otherwise null (a forced match would move
 // the wrong application).
 function pick(hits: TrackedApp[], said: string): TrackedApp | null {

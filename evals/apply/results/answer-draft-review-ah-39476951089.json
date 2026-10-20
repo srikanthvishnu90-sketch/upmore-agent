@@ -1,0 +1,1800 @@
+{
+ "a": [
+  {
+   "key": "job:a71d745f44f48fc1",
+   "company": "WPP Media",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:eadabbd4fbf9b5e5",
+   "company": "stripe",
+   "question": "Please select the country or countries you anticipate working in for the role in which you are applying.",
+   "options": [
+    "Australia",
+    "Belgium",
+    "Brazil",
+    "Canada",
+    "France",
+    "Germany",
+    "India",
+    "Indonesia",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Japan",
+    "Luxembourg",
+    "Malaysia",
+    "Mexico",
+    "New Zealand",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Singapore",
+    "South Korea",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "Taiwan",
+    "Thailand",
+    "The Netherlands",
+    "UAE",
+    "UK",
+    "US"
+   ],
+   "answer": "US",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:91dcd3904436789e",
+   "company": "datadog",
+   "question": "In what cities are you available to work?",
+   "options": [
+    "Amsterdam",
+    "Atlanta",
+    "Bangalore",
+    "Barcelona",
+    "Barueri São Paulo",
+    "Bordeaux",
+    "Boston",
+    "Chicago",
+    "Copenhagen",
+    "Denver",
+    "Dubai",
+    "Dublin",
+    "Grenoble",
+    "Hamburg",
+    "Jakarta",
+    "Lisbon",
+    "London",
+    "Lyon",
+    "Madrid",
+    "Melbourne",
+    "Mexico City",
+    "Montpellier",
+    "Mumbai",
+    "Nantes",
+    "New York City",
+    "Nice",
+    "Osaka",
+    "Paris",
+    "Pittsburgh",
+    "Remote",
+    "Riyadh",
+    "Salt Lake City",
+    "San Francisco",
+    "San Jose (Campbell)",
+    "San Sebastian",
+    "São Paulo",
+    "Seattle",
+    "Seoul",
+    "Singapore",
+    "Sophia Antipolis",
+    "Stockholm",
+    "Sydney",
+    "Tel Aviv",
+    "Tokyo",
+    "Toronto"
+   ],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "job:8346b7f283fdf048",
+   "company": "DH Pace",
+   "question": "Start date of current/most recent employer:",
+   "options": [],
+   "answer": "June 2023",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "job:e42b607800bd7963",
+   "company": "DH Pace",
+   "question": "Second most recent employer:",
+   "options": [],
+   "answer": "Sample Retail",
+   "facts": [
+    "former employers: Example Analytics; Sample Retail"
+   ]
+  },
+  {
+   "key": "job:cf91ec6a52dd7750",
+   "company": "DH Pace",
+   "question": "Start date of second most recent employer:",
+   "options": [],
+   "answer": "June 2021",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:6803e3068aae7def",
+   "company": "DH Pace",
+   "question": "End date of second most recent employer:",
+   "options": [],
+   "answer": "August 2021",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:d6a303ed64447991",
+   "company": "DH Pace",
+   "question": "Job title at second most recent employer:",
+   "options": [],
+   "answer": "Analytics Intern",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:bdd6ba3814879fe0",
+   "company": "AvePoint",
+   "question": "Please provide your salary expectations.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:6cb053df7f44b30f",
+   "company": "Wing Assistant",
+   "question": "Current Location (City, Country)",
+   "options": [],
+   "answer": "Chicago, United States",
+   "facts": [
+    "city: Chicago",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:34a1fe2819811a10",
+   "company": "AHEAD",
+   "question": "Provide All Post-Secondary Education Attained - Formatted as: College Name; Degree Obtained (e.g.: University of Somewhere; Bachelor of Science). Please include only educational programs from which you graduated. **Any additional information provided, such as dates/year of graduation, will be disreg",
+   "options": [],
+   "answer": "Example State University; Bachelor of Science in Statistics",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:98c76b9d46cb3816",
+   "company": "Woven",
+   "question": "3. Do you have at least 1 year professional work experience? | 1年以上の職歴をお持ちですか？",
+   "options": [
+    "Yes | はい",
+    "No | いいえ"
+   ],
+   "answer": "Yes | はい",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:74dc5cb3e7bbcc34",
+   "company": "Thomas & Hutton",
+   "question": "Start Date",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:2ec8bedfc15f331d",
+   "company": "Airwallex",
+   "question": "Salary Expectations",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:fdfaa63526f399ba",
+   "company": "Checkout.com",
+   "question": "Expected Salary: What are your yearly base salary expectations? Please include currency",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "b": [
+  {
+   "key": "label:3bafffc4e4fa9606",
+   "company": "Vestwell",
+   "question": "What is the annual salary or range you are targeting?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:6e477406707bf8b0",
+   "company": "Newsela",
+   "question": "What are your base compensation expectations for this position?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:ca902a020ba2c53a",
+   "company": "IEM",
+   "question": "How many years of relevant professional experience do you have?",
+   "options": [
+    "No experience",
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "5-7 years",
+    "7-10 years",
+    "10-15 years",
+    "15+ years"
+   ],
+   "answer": "1-3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:84920c2f9d200b98",
+   "company": "Strada Education Foundation",
+   "question": "What is your available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:5f87362015f2054d",
+   "company": "Endpoint Clinical",
+   "question": "Desired Salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:1c4b7ff037b18a96",
+   "company": "Included Health",
+   "question": "Which best describes your total experience in recruiting operations, talent programs, or a closely related field?",
+   "options": [
+    "Less than 5 years",
+    "5–6 years",
+    "7–9 years",
+    "10+ years"
+   ],
+   "answer": "Less than 5 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:2d7188cfb24bddc4",
+   "company": "Oyster",
+   "question": "Salary Expectations",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:6c13be2d65ac811c",
+   "company": "Trunk Tools",
+   "question": "Country",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:f4d5a2926d226454",
+   "company": "Relay Technologies",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "USD ($) 95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "c": [
+  {
+   "key": "label:1f6017ab4be0bd1e",
+   "company": "Rocket EMS",
+   "question": "Current job title & company",
+   "options": [],
+   "answer": "Data Analyst, Example Analytics",
+   "facts": [
+    "current title: Data Analyst",
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "job:6ab367acdda947c3",
+   "company": "Space Kinetic",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:6da9377565949baf",
+   "company": "Yext",
+   "question": "Desired salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:aac7c130ec5a64df",
+   "company": "Yext",
+   "question": "Years of Experience: Relevant Experience",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:555d8dbea611f948",
+   "company": "Freenome",
+   "question": "Do you have experience with Python?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:e28929d82bbb2151",
+   "company": "mthree",
+   "question": "Quelle est la première date disponible pour commencer la formation? / What is your first available date to start training?",
+   "options": [],
+   "answer": "05/2022",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:741983e3e8cafeea",
+   "company": "RAPP",
+   "question": "Desired Salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:527ea9333c74a0e3",
+   "company": "InterSystems",
+   "question": "Job Location",
+   "options": [
+    "Able to work at job location",
+    "Able to relocate to job location",
+    "Unable to work or relocate to job location (remote work required)"
+   ],
+   "answer": "Able to work at job location",
+   "facts": [
+    "onsite ok: Yes",
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "label:517da9ed1610de52",
+   "company": "Aevex Aerospace",
+   "question": "Are you currently a U.S. government military or civilian employee?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "job:dfbb55e1003c87c4",
+   "company": "Moonpig",
+   "question": "Salary expectation",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:029f02a1a0d00f26",
+   "company": "BioAgilytix",
+   "question": "What is the earliest date you would be able to begin work?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:d239e088b02a34fd",
+   "company": "BioAgilytix",
+   "question": "What is your salary target for this role?",
+   "options": [
+    "30,000 - 40,000",
+    "41,000 - 50,000",
+    "51,000 - 60,000",
+    "61,000 - 70,000",
+    "71,000 - 80,000",
+    "81,000 - 90,000",
+    "91,000 - 100,000",
+    "101,000 - 125,000",
+    "125,000 - 150,000",
+    "150,000+",
+    "choose not to answer"
+   ],
+   "answer": "91,000 - 100,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:5de98c0211bf2ad7",
+   "company": "BioAgilytix",
+   "question": "Are you fluent in English?",
+   "options": [
+    "Yes",
+    "No",
+    "Limited Ability"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "label:6e2d190a42c3c023",
+   "company": "Penta Group",
+   "question": "If offered the position, how soon would you be able to start?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:f7c129b65a6fab44",
+   "company": "Patch My PC",
+   "question": "Are you open to occasional travel, including international travel, as needed for company events (e.g., summit, offsites)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:64262daa39bcb6a4",
+   "company": "ShyftLabs",
+   "question": "Experience with Python?",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:75e0947fb349b05d",
+   "company": "Hive",
+   "question": "Please check all that apply:",
+   "options": [
+    "Friend",
+    "Recruiter/current employee",
+    "School job posting/career fair",
+    "LinkedIn",
+    "AngelList",
+    "Advertisement (e.g. billboard)",
+    "Online article/press",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "job:7f3d4e2fad201d99",
+   "company": "Frontier Health",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:ddedb4d32dff44da",
+   "company": "Focal",
+   "question": "Current Location (City, State, Country)",
+   "options": [],
+   "answer": "Chicago, IL, United States",
+   "facts": [
+    "full address: 1 Example St, Chicago, IL 60601",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:aade0204d5a89090",
+   "company": "Sylvera",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:43bcf7c97d8978a0",
+   "company": "Quantum",
+   "question": "Salary Expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "d": [
+  {
+   "key": "job:2d317dae918c86d4",
+   "company": "Detroit Lions",
+   "question": "Please list your earliest start date:",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:6ddd17e0c9448272",
+   "company": "Detroit Lions",
+   "question": "Are you subject to a non-compete or confidentiality agreement with a previous employers that might affect your ability to accept a job offer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:0fc2fa42d1b36963",
+   "company": "think-cell",
+   "question": "What is your desired salary?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:30d75055050d705a",
+   "company": "Garda Capital Partners",
+   "question": "What country is your current legal residence in?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States",
+    "full address: 1 Example St, Chicago, IL 60601"
+   ]
+  },
+  {
+   "key": "label:92f6e32a8f450e35",
+   "company": "Charles River Associates (CRA)",
+   "question": "Language Fluency",
+   "options": [
+    "Chinese (Mandarin)",
+    "Dutch/Flemish",
+    "English",
+    "French",
+    "German",
+    "Portuguese",
+    "Spanish",
+    "Swiss German"
+   ],
+   "answer": "English",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "label:05dc0260af4c5810",
+   "company": "komodohealth",
+   "question": "Which of these languages have you written and run in production? Select all that apply.",
+   "options": [
+    "Rust",
+    "Python",
+    "C++",
+    "Erlang",
+    "Go",
+    "Zig",
+    "None of these"
+   ],
+   "answer": "Python",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:15673d603d199904",
+   "company": "komodohealth",
+   "question": "Are you currently subject to or will you be subject to if hired by Komodo a non-compete agreement, non-solicit agreement or any other similar restrictions which may limit your ability to work at Komodo or perform the job functions for the job for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:aec3d711355dd6a1",
+   "company": "Real Chemistry",
+   "question": "What is your city of residence?",
+   "options": [],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago",
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "label:bfd90b53fc428705",
+   "company": "STEM Healthcare",
+   "question": "Variable Salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:a51a3fedfc969d17",
+   "company": "Hudl",
+   "question": "Are you comfortable traveling at least 8 - 10 times / year?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:c0f49def3a1952c0",
+   "company": "Hudl",
+   "question": "Have you agreed to any post-employment restrictions, such as non-competition or non-solicitation restrictions, with your current or any prior employer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:a08390a891302349",
+   "company": "Liberis",
+   "question": "Your availability for starting a new role.",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:76d4ac965c5a45e4",
+   "company": "H1",
+   "question": "Are you aware of, or subject to, any restrictive covenants (including, but not limited to, any non-compete agreement or provision) that would impact your ability to fully perform the duties of the role to which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:9289ae22b49fb76b",
+   "company": "Olo",
+   "question": "Desired Salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:f29e711b7b89aa16",
+   "company": "SEP",
+   "question": "Years of relevant experience?",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:3306274f18e4c089",
+   "company": "ShopBack",
+   "question": "Varsity",
+   "options": [
+    "University",
+    "Polytechnic",
+    "Others"
+   ],
+   "answer": "University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:e6ea762a968de860",
+   "company": "Datalab USA",
+   "question": "How many years of SQL work experience do you have",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Skill: SQL",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:2333d2fbb2436f25",
+   "company": "Lovable",
+   "question": "What is the earliest date you can join us?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:4ae986d538c49fcc",
+   "company": "Lovable",
+   "question": "What are your compensation expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:fa7f81769f66c15c",
+   "company": "Faculty AI",
+   "question": "What is your salary expectation?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:33cd62b4f28624b2",
+   "company": "Epia Neuro",
+   "question": "How many years of hands-on experience do you have with Python and C/C++?",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Skill: Python",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "job:2f0ddbb32cdb2fc9",
+   "company": "loveholidays",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:a6e5bc9abe724cb0",
+   "company": "mastra",
+   "question": "What location / time zone will you be working from?",
+   "options": [],
+   "answer": "Central time",
+   "facts": [
+    "timezone: Central time",
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "job:b562b9b3f3fb7498",
+   "company": "Carwow",
+   "question": "What is your expected salary bracket?",
+   "options": [],
+   "answer": "$95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "e": [
+  {
+   "key": "job:56e610ec05f000de",
+   "company": "Cision",
+   "question": "What are your annual salary expectations in local currency?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:604663890a88602d",
+   "company": "Torc Robotics",
+   "question": "What is your availability or desired start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:5d1262b5f6c245e2",
+   "company": "Scout Motors",
+   "question": "How many years of relevant, professional experience do you have?",
+   "options": [
+    "No experience",
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "5-7 years",
+    "7-10 years",
+    "10-15 years",
+    "15+ years"
+   ],
+   "answer": "3-5 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:4a9fd415995cb8d4",
+   "company": "Wikimedia Foundation",
+   "question": "In 2-3 sentences, give one example of a time you influenced a non-finance leader’s decision. What did you do, and what was the result?",
+   "options": [],
+   "answer": "I presented analysis to a non-finance leader and provided data that influenced their decision.",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "job:90a15fad260882d6",
+   "company": "Momentum",
+   "question": "What is your graduation date (mm/dd/yyyy)?",
+   "options": [],
+   "answer": "05/2022",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:f2a1fe36f5f4dbda",
+   "company": "K2 Space",
+   "question": "What is your ideal start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:7aa106e0425f2ff8",
+   "company": "Rhombus Power",
+   "question": "How many years of relevant work experience do you have?",
+   "options": [
+    "Less than 1 year",
+    "1 to 3 years",
+    "4 to 7 years",
+    "8 or more years"
+   ],
+   "answer": "1 to 3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:deaccce302a3927d",
+   "company": "Artera",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:4bd6bb0b27a76d60",
+   "company": "LeanTaaS",
+   "question": "Do you have data analysis experience?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:4c6930adcda68066",
+   "company": "Nextech Systems",
+   "question": "How many years of enterprise software sales experience do you have?",
+   "options": [
+    "Less than 5 years",
+    "5-9 years",
+    "10-14 years",
+    "15+ years"
+   ],
+   "answer": "Less than 5 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:e5dcafcc47960f26",
+   "company": "Gr0",
+   "question": "What type of role are you looking for?",
+   "options": [
+    "Full-Time Employee",
+    "Full-Time Contractor",
+    "Part-Time Contractor",
+    "Contract to Hire"
+   ],
+   "answer": "Full-Time Employee",
+   "facts": [
+    "employment type: Full-time"
+   ]
+  },
+  {
+   "key": "label:1c3011a8abc003db",
+   "company": "Mastery Charter Schools",
+   "question": "Where have you seen jobs at Mastery posted/advertised? (Please select all that apply.)",
+   "options": [
+    "Breakthrough Collaborative",
+    "CareerBuilder",
+    "City Year Job Board",
+    "College Job Board/Career Center/Handshake",
+    "Education Pioneers",
+    "Facebook",
+    "Glassdoor",
+    "Idealist",
+    "Indeed.com",
+    "Instagram",
+    "Job/Career Fair",
+    "LinkedIn",
+    "Mastery Staff/Word of Mouth",
+    "Mastery Website",
+    "NJ School Jobs",
+    "PA Reap",
+    "Print Ad/Magazine/Newspaper",
+    "Relay Graduate School of Education",
+    "TeachPHL",
+    "TFA Job Board",
+    "The Center for Black Educator Development (CBED)",
+    "Twitter/X",
+    "ZipRecruiter",
+    "Other/Unknown"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "job:62b2dd4012d15a92",
+   "company": "Mastery Charter Schools",
+   "question": "Undergraduate GPA, if attained.",
+   "options": [
+    "3.5-4.0",
+    "3.0-3.5",
+    "2.5-3.0",
+    "2.0-2.5",
+    "unsure"
+   ],
+   "answer": "3.5-4.0",
+   "facts": [
+    "gpa: 3.6"
+   ]
+  },
+  {
+   "key": "label:e425df5a792cf12e",
+   "company": "Samba TV",
+   "question": "How much (timeline) notice do you need to give your current job?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:fae6a4f61c14c9b4",
+   "company": "General Intuition &amp; Medal",
+   "question": "Contact phone number",
+   "options": [],
+   "answer": "+1 555 010 0000",
+   "facts": [
+    "phone: +1 555 010 0000"
+   ]
+  },
+  {
+   "key": "job:9247b4aa6f27fb47",
+   "company": "Niural",
+   "question": "Expected Salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "f": [
+  {
+   "key": "job:c501b96c0a385662",
+   "company": "Muon Space",
+   "question": "When is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:4200c54a33633c9c",
+   "company": "impact.com",
+   "question": "What is your expected annual salary in ZAR?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:c1b237a975601136",
+   "company": "CharterUP",
+   "question": "What are your compensations expectations? Please provide a range.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:61488fc5daae25e5",
+   "company": "Calm",
+   "question": "Calm uses a geographic pay model. Please provide your current primary residence ZIP code and city to determine your pay tier.\"",
+   "options": [],
+   "answer": "60601, Chicago",
+   "facts": [
+    "postal code: 60601",
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "label:43822dfa9e534192",
+   "company": "Datacor",
+   "question": "What is the most recent degree you obtained?",
+   "options": [],
+   "answer": "B.S. Statistics",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:0605bbb9a7d66903",
+   "company": "Datacor",
+   "question": "Location (City, State, Country)",
+   "options": [],
+   "answer": "Chicago, IL, United States",
+   "facts": [
+    "city: Chicago",
+    "state: IL",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:b11ef4d5c3013c06",
+   "company": "Pico",
+   "question": "What is your notice period or earliest date of availability?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:ebe04e3594135bb1",
+   "company": "Voloridge",
+   "question": "Please select the college or university you currently attend or previously attended:",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:4c4be7d64b98b61f",
+   "company": "Voloridge",
+   "question": "Please select your declared major:",
+   "options": [
+    "Physics",
+    "Mathematics",
+    "Statistics",
+    "Computer Science",
+    "Other"
+   ],
+   "answer": "Statistics",
+   "facts": [
+    "major: Statistics"
+   ]
+  },
+  {
+   "key": "job:d820dcd941d298d7",
+   "company": "Veeam Software",
+   "question": "What are your salary expectations for this role? Please indicate your expected annual GROSS salary in your local currency.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:3f87dd4d36dc15ef",
+   "company": "Wheely",
+   "question": "What are your salary expectations for this role? Please provide a specific number or range. Kindly avoid responses such as 'negotiable' or 'market average'.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:5c447c9e28349389",
+   "company": "Cohere Health",
+   "question": "In which of the following locations do you live?",
+   "options": [
+    "United States",
+    "Hyderabad, Telangana, India",
+    "Any other locations in India"
+   ],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:bb390df93403050c",
+   "company": "NewsBreak",
+   "question": "What's your earliest start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:113dc1b02a67019b",
+   "company": "NewsBreak",
+   "question": "What are your salary expectations? Please state a range.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:a4010bfbbaa4aa81",
+   "company": "Beghou Consulting",
+   "question": "What is your current compensation? What is your expected compensation?",
+   "options": [],
+   "answer": "Current: 85000 USD ($); Expected: 95000 USD ($)",
+   "facts": [
+    "current compensation: 85000",
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:a2c81fde533211e9",
+   "company": "WEP Clinical",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:8026e378da710345",
+   "company": "Belvedere Trading",
+   "question": "Name of School",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University",
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:6aaed23c880dfbfa",
+   "company": "Hatch IT",
+   "question": "How many years of professional work experience do you have?",
+   "options": [
+    "entry level",
+    "0-2",
+    "2-4",
+    "4-6",
+    "7+"
+   ],
+   "answer": "2-4",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:644ab58c395cf1a4",
+   "company": "Seer Interactive",
+   "question": "Earliest start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:58d78d77d04aff90",
+   "company": "Stand Together",
+   "question": "Are you currently, or have you been in the last two years, employed by a federal, state, or local government or any related entity?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "job:04fc188b8c4e7c34",
+   "company": "Magnet Forensics",
+   "question": "What is your notice period to begin working with Magnet Forensics?",
+   "options": [
+    "Available Immediately",
+    "1-2 weeks",
+    "2-4 weeks",
+    "4-6 weeks",
+    "6-8 weeks",
+    "8+ weeks"
+   ],
+   "answer": "1-2 weeks",
+   "facts": [
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:a0e8d41573a784e9",
+   "company": "Trading212",
+   "question": "What are your salary expectations? (gross annual)",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:815c378eb469a1e4",
+   "company": "Atominvest",
+   "question": "What is your current total compensation?",
+   "options": [],
+   "answer": "85000",
+   "facts": [
+    "current compensation: 85000"
+   ]
+  },
+  {
+   "key": "job:3b0280e59b388740",
+   "company": "Alta Ares",
+   "question": "Compensation Expectations",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:c5a11c5cc1f5a0b1",
+   "company": "KAYAK",
+   "question": "What are your salary expectations for this position?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "g": [
+  {
+   "key": "label:81c62e59a3573850",
+   "company": "Charles Schwab",
+   "question": "Please note your potential starting date.",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:fd94bf3ae5c38394",
+   "company": "Charles Schwab",
+   "question": "What is your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:26a45675b5bf2ebd",
+   "company": "Gallup",
+   "question": "Are you a U.S. federal government, foreign government, or United Nations employee, or have you worked for the U.S. federal government, foreign government, or United Nations in the past 24 months?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "label:214560683e73facf",
+   "company": "Fanatics",
+   "question": "Are you bound by any restrictive covenants (non-compete, non-solicitation)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:d20ca388c0267b21",
+   "company": "Rise8",
+   "question": "When is your expected Skillbridge Start Date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:3e807c07e8b56bc8",
+   "company": "Colibri Group",
+   "question": "What is your available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:1e71e5cc3c5f9551",
+   "company": "Kabam",
+   "question": "Which city are you currently based in? (Please also tell us which country if you are not in Canada or USA)",
+   "options": [],
+   "answer": "Chicago, IL",
+   "facts": [
+    "city: Chicago",
+    "state: IL"
+   ]
+  },
+  {
+   "key": "label:0716647707a75cc4",
+   "company": "Nexus Engineering Group",
+   "question": "What is the name of your College or University?",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University",
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:0e784aca28b832b4",
+   "company": "Global Lending Services",
+   "question": "Are you subject to the terms of any legal agreement that may impact employment such as a Non-Compete or Confidentiality Agreement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:d9eee835a7e72e43",
+   "company": "certik",
+   "question": "What is your expected annual base salary? Please specify the currency.",
+   "options": [],
+   "answer": "95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:3c2458d342f9e0eb",
+   "company": "UnitX",
+   "question": "Are you comfortable with traveling as needed? (both domestic and international)",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "job:40fb23d84fa8380c",
+   "company": "Quantexa",
+   "question": "What are you salary expectations?",
+   "options": [],
+   "answer": "95,000 - 95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:d6c17e8778399da3",
+   "company": "Quantexa",
+   "question": "If applicable, what is your current notice period?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks"
+   ]
+  }
+ ],
+ "h": [
+  {
+   "key": "job:8c14088af89bd29f",
+   "company": "Fospha",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:fff7abfe63281865",
+   "company": "Netradyne",
+   "question": "Are you currently subject to any non-compete, non-solicitation, confidentiality, or other restrictive covenant agreement that may limit your ability to perform the duties of the position for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:e288714047926611",
+   "company": "Relay",
+   "question": "When is your desired start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:acff85343ffc1592",
+   "company": "Mechanical Licensing Collective",
+   "question": "Your current job title",
+   "options": [],
+   "answer": "Data Analyst",
+   "facts": [
+    "current title: Data Analyst"
+   ]
+  },
+  {
+   "key": "label:85bb65483eb2f37a",
+   "company": "Mechanical Licensing Collective",
+   "question": "Academic Program or Department Website",
+   "options": [],
+   "answer": "https://example.test",
+   "facts": [
+    "website: https://example.test"
+   ]
+  },
+  {
+   "key": "job:88fd695f2816d1fd",
+   "company": "Tebra",
+   "question": "Do you regularly use AI-assisted development tools (e.g., GitHub Copilot, ChatGPT, Cursor) to increase your coding, debugging, or research velocity? 1 = Yes, it is a core part of my workflow. 2 = I use them occasionally. 3 = No, I do not currently use AI tools for development.",
+   "options": [
+    "1",
+    "2",
+    "3"
+   ],
+   "answer": "3",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "label:556a7a6c7fbbb87d",
+   "company": "OpenEye",
+   "question": "Are you currently subject to any restrictive covenant, non-compete, non-solicit, confidentiality or any other agreement that may limit or restrict your scope and ability to work for Alarm.com (or its subsidiaries)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:d7e141a4bb31848c",
+   "company": "moo",
+   "question": "As part of our process and to ensure alignment early on, could you please share your salary expectations for this role? This helps us save time and ensure we are aligned on compensation expectations.",
+   "options": [],
+   "answer": "95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:a0f9c89e68ee6525",
+   "company": "Perr&Knight",
+   "question": "How many years of experience do you have with Microsoft Excel?",
+   "options": [
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "More than 5 years"
+   ],
+   "answer": "3-5 years",
+   "facts": [
+    "Skill: Excel",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:213b30bcc798277d",
+   "company": "CrowdGen by Appen",
+   "question": "Primary Language Spoken",
+   "options": [],
+   "answer": "English",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "job:7bfb9b01ec2089c0",
+   "company": "GeoComply",
+   "question": "What is your salary expectation?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:02560b8075cfd4a8",
+   "company": "GoMaterials",
+   "question": "What is your expected or actual graduation date?",
+   "options": [],
+   "answer": "05/2022",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:21ea03aa15442d92",
+   "company": "GoMaterials",
+   "question": "Which university are you attending / graduated from?",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:d441a03cb40ea55c",
+   "company": "Immiland Canada",
+   "question": "What is your Country of Residency?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:fe7d9462d6035516",
+   "company": "Matillion",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:6d7abd9bc4a7fee3",
+   "company": "Provectus",
+   "question": "What is your country?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:3fd8204b37d5c0ef",
+   "company": "Provectus",
+   "question": "What is your state/ province?",
+   "options": [],
+   "answer": "IL",
+   "facts": [
+    "state: IL"
+   ]
+  },
+  {
+   "key": "label:aec3d711355dd6a1",
+   "company": "Provectus",
+   "question": "What is your city of residence?",
+   "options": [],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "job:a5ddfad342edfb66",
+   "company": "Smarkets",
+   "question": "Salary Expectation",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:a898228148cd35ac",
+   "company": "SentiLink",
+   "question": "What is your most recent job title?",
+   "options": [],
+   "answer": "Data Analyst",
+   "facts": [
+    "current title: Data Analyst"
+   ]
+  },
+  {
+   "key": "job:7fe08f82cfdb8f63",
+   "company": "Trainline",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  }
+ ]
+}

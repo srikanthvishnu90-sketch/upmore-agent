@@ -208,7 +208,7 @@ export function yesNoFromFact(fact: string, value: string, question: string): "y
     const yn = yesNoOf(v);
     return yn === "yes" ? "no" : yn === "no" ? "yes" : null;
   }
-  const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
+  const usAsked = /\bu\. ?s\.?a?\b|\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q); // "U. S." too (Tenet3, WO-057)
   // "In Canada or the U.S.?", "a U.S. citizen or permanent resident?": a yes from the person's country is right; a no is not
   // known, since the other half may be true of them (WO-047).
   if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
@@ -268,7 +268,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       if (!rule) return null;
       // A nested list's option reads "Category > Leaf" (Workday's prompt): it matches by its leaf or by its whole path.
       // WO-052: "Ad on Website" is an advertisement, not the careers site (Accenture).
-      const hit = (re: RegExp) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop()!)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+      const hit = (re: RegExp) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop()!)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)) && !/universit|college|school|campus|student|handshake/.test(low(o.label)));
       const named = hit(rule[1]);
       if (named.length || !rule[2]) return only(named);
       return only(hit(rule[2]).filter((o) => !/\bother\b/.test(low(o.label))));

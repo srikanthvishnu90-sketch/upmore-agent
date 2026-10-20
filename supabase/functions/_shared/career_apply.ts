@@ -232,6 +232,8 @@ const BEYOND_FACT: [string[], RegExp][] = [
   // WO-056: a question for those who served ("If you've previously served in the U.S. Armed Forces: ...") is not the
   // person's "no government employment"; its "Not Applicable" is theirs to pick.
   [["government_employment"], /\bif you('ve| have)? (previously |ever )?served\b|\bauthori[sz]e the release\b/i],
+  // WO-057: acting for a political party is not employment the person's list records.
+  [["worked_here_before", "government_employment"], /\brepresentative of\b|\bpolitical party\b/i],
   [["applied_before"], /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i],
 ];
 // An answer to a question the person's fact does not answer at this posting (above) is this posting's alone: it is stored
@@ -241,11 +243,15 @@ export function factStaysHere(q: { label: string; type: string; options?: { labe
   const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
   return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
 }
+const byNationalityList = (options: { label: string }[]) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
 export function beyondFact(fact: string, f: { label: string; type: string; options?: { label: string }[] }): boolean {
   // A "select all that apply" list about where they live and would move is answered as a whole, by the person.
   if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
   // WO-056: "no clearance" does not say whether one was held before, where the list tells "Expired" from "Never held".
   if (fact === "security_clearance" && (f.options ?? []).some((o) => /\b(expired|inactive|previously held|lapsed)\b/i.test(o.label))) return true;
+  // WO-057: a list that tells authorization by nationality from a work permit asks which, not only whether: never the
+  // direct "yes" (byMeaning answers it for a US citizen at a US job).
+  if (fact === "work_authorization" && byNationalityList(f.options ?? [])) return true;
   return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
 }
 
@@ -337,6 +343,13 @@ const SPLIT = /\s*[;,\n]\s*/;
 function byMeaning(f: FormField, company: string, answers: Record<string, Answer>, places: string[] = [], posting: PlacePart[] = [], location?: string): Answer | null {
   const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
   if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+  // WO-057: a list that tells authorization by nationality from a work permit (Magnet, Exegy): a US citizen at a job in
+  // the US, or one that names no place, is authorized by nationality; anyone else, or a job abroad, is asked.
+  if ((m.fact === "work_authorization" || m.fact === "citizenship") && byNationalityList(f.options)) {
+    const pick = f.options.filter((o) => /nationality|citizen/i.test(o.label) && !/\bnot\b/i.test(o.label));
+    const citizen = answers.citizenship && NAMES_US.test(String(answers.citizenship.value)) && yesNoOf(answers.work_authorization?.value ?? "") === "yes";
+    return citizen && pick.length === 1 && postingCountry(posting) !== "abroad" ? { value: pick[0].value, factId: answers.citizenship.factId } : null;
+  }
   // WO-052: the employer list derives "worked here before"; it is never typed as one employer, a title or a date.
   if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
   if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
@@ -433,6 +446,8 @@ export function fitsField(f: FormField, value: string): boolean {
   if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
   if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t))) && !DATE_VALUE.test(v)) return false;
   if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
+  // WO-057: "What date are you available to begin (Month and Year)" takes a month and year, never "2 weeks".
+  if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
   return true;
 }
 

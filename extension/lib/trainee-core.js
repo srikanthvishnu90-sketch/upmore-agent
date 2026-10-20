@@ -999,7 +999,7 @@
     [
       "full_address",
       /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/,
-      (q, t) => !/e-?mail|ip address|work address/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)
+      (q, t) => !/e-?mail|ip address|work address|\b(staying|living|located|residing) in (?!the (u\.?s\.?|united states))[a-z]/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)
     ],
     [
       "unknown",
@@ -1101,7 +1101,8 @@
     ],
     [
       "years_experience",
-      /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/
+      /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/,
+      (q, t) => !/\bexperience\b[^?]*\b(in|with|using|doing|working in|working with)\s+(?!(a |the |your )?(related|similar|relevant|this|that|same)\b)[a-z]/.test(t)
     ],
     // Availability.
     [
@@ -1257,7 +1258,8 @@
     ],
     [
       "security_clearance",
-      /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/
+      /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/,
+      (q, t) => !/\bare you (currently |now )?(a )?(u\. ?s\.?|united states) citizen\b/.test(t)
     ],
     // When the person's authorization ends is theirs to state; a "yes" to being authorized is not "no expiry".
     [
@@ -1360,7 +1362,7 @@
     [
       "relative_here",
       /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/,
-      (q, t) => !/friend|household|supplier|vendor|partner|personal relationship|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)
+      (q, t) => !/friend|household|supplier|vendor|partner|personal (or social )?relationship|social relationship|\bcontacts?\b|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)
     ],
     [
       "applied_before",
@@ -1441,7 +1443,8 @@
     ],
     [
       "travel_ok",
-      /\bopen to travel\b|\bwhat % of travel\b|\bwilling to travel\b/
+      /\bopen to travel\b|\bwhat % of travel\b|\bwilling to travel\b/,
+      (q, t) => !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bdays (a|per) week\b/.test(t)
     ],
     [
       "job_relocation",
@@ -1972,7 +1975,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const yn = yesNoOf(v);
       return yn === "yes" ? "no" : yn === "no" ? "yes" : null;
     }
-    const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
+    const usAsked = /\bu\. ?s\.?a?\b|\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
     if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
     if (fact === "education_level") {
       const order = [
@@ -2025,7 +2028,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       case "how_heard": {
         const rule = HOW_HEARD.find(([v2]) => v2.test(v));
         if (!rule) return null;
-        const hit = (re) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop())) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+        const hit = (re) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop())) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)) && !/universit|college|school|campus|student|handshake/.test(low(o.label)));
         const named = hit(rule[1]);
         if (named.length || !rule[2]) return only(named);
         return only(hit(rule[2]).filter((o) => !/\bother\b/.test(low(o.label))));
@@ -2736,6 +2739,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ],
       /\bif you('ve| have)? (previously |ever )?served\b|\bauthori[sz]e the release\b/i
     ],
+    // WO-057: acting for a political party is not employment the person's list records.
+    [
+      [
+        "worked_here_before",
+        "government_employment"
+      ],
+      /\brepresentative of\b|\bpolitical party\b/i
+    ],
     [
       [
         "applied_before"
@@ -2751,9 +2762,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     });
     return m.kind === "fact" && (otherCountry(m.fact, q.label, location2, homeInUs(answers)) || beyondFact(m.fact, q));
   }
+  var byNationalityList = (options) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
   function beyondFact(fact, f) {
     if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
     if (fact === "security_clearance" && (f.options ?? []).some((o) => /\b(expired|inactive|previously held|lapsed)\b/i.test(o.label))) return true;
+    if (fact === "work_authorization" && byNationalityList(f.options ?? [])) return true;
     return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
   }
   var STATE_CODE = /,\s*([A-Z]{2})\b/g;
@@ -2861,6 +2874,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       options: f.options
     });
     if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+    if ((m.fact === "work_authorization" || m.fact === "citizenship") && byNationalityList(f.options)) {
+      const pick2 = f.options.filter((o) => /nationality|citizen/i.test(o.label) && !/\bnot\b/i.test(o.label));
+      const citizen = answers.citizenship && NAMES_US.test(String(answers.citizenship.value)) && yesNoOf(answers.work_authorization?.value ?? "") === "yes";
+      return citizen && pick2.length === 1 && postingCountry(posting) !== "abroad" ? {
+        value: pick2[0].value,
+        factId: answers.citizenship.factId
+      } : null;
+    }
     if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location2, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
     if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
     if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
@@ -2944,6 +2965,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
     if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t)) && !DATE_VALUE.test(v)) return false;
     if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
+    if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
     return true;
   }
   var EDU_END = /^end-(month|year)--0$/;

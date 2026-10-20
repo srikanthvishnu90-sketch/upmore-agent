@@ -167,16 +167,31 @@ async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<bo
   };
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   const city = placeQuery(wanted);
+  // Lever's retrieveLocations.js (read live in run 10) looks a place up only on a keydown, 500 ms after the last one,
+  // reading the text then; input events only show its dropdown. So Lever gets the city key by key, the way that listed
+  // its places in run 10 (6 of 6 forms, from the extension's world and the page's). Ashby answers the input event, as
+  // in run 5 (5 of 5), and keeps the one typing.
+  const keys = !!el.classList?.contains("location-input");
   const type = () => {
     el.focus();
-    setNative(el, city);
-    el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
-    el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
+    if (!keys) {
+      setNative(el, city);
+      el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
+      el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
+      return;
+    }
+    setNative(el, "");
+    for (const ch of city) {
+      const k = { key: ch, bubbles: true, cancelable: true };
+      el.dispatchEvent(new W.KeyboardEvent("keydown", k));
+      el.dispatchEvent(new W.KeyboardEvent("keypress", k));
+      setNative(el, el.value + ch);
+      el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: ch }));
+      el.dispatchEvent(new W.KeyboardEvent("keyup", k));
+    }
   };
-  // Lever (live runs 5 and 6): typing during the page load listed nothing in 3 s; after the load, two tries of 2.5 s
-  // each listed nothing either, while the same typing a few seconds later did. A first place lookup can be slow, and a
-  // second typing cancels it. So the load is awaited, the city typed once, and the list awaited up to 8 s. The wait
-  // happens while the person reads the card before; it is never a fixed sleep.
+  // The load is awaited, the city typed once (a second typing would restart the lookup), and the list awaited up to
+  // 8 s. The wait happens while the person reads the card before; it is never a fixed sleep.
   await until(() => (doc().readyState === "complete" ? true : null), 5000);
   type();
   const opts = await until(listed, 8000);

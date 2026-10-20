@@ -2738,18 +2738,39 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     const pick = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
     const city = placeQuery(wanted);
+    const keys = !!el.classList?.contains("location-input");
     const type = () => {
       el.focus();
-      setNative(el, city);
-      el.dispatchEvent(new W.InputEvent("input", {
-        bubbles: true,
-        inputType: "insertText",
-        data: city
-      }));
-      el.dispatchEvent(new W.KeyboardEvent("keyup", {
-        key: city.slice(-1),
-        bubbles: true
-      }));
+      if (!keys) {
+        setNative(el, city);
+        el.dispatchEvent(new W.InputEvent("input", {
+          bubbles: true,
+          inputType: "insertText",
+          data: city
+        }));
+        el.dispatchEvent(new W.KeyboardEvent("keyup", {
+          key: city.slice(-1),
+          bubbles: true
+        }));
+        return;
+      }
+      setNative(el, "");
+      for (const ch of city) {
+        const k = {
+          key: ch,
+          bubbles: true,
+          cancelable: true
+        };
+        el.dispatchEvent(new W.KeyboardEvent("keydown", k));
+        el.dispatchEvent(new W.KeyboardEvent("keypress", k));
+        setNative(el, el.value + ch);
+        el.dispatchEvent(new W.InputEvent("input", {
+          bubbles: true,
+          inputType: "insertText",
+          data: ch
+        }));
+        el.dispatchEvent(new W.KeyboardEvent("keyup", k));
+      }
     };
     await until(() => doc().readyState === "complete" ? true : null, 5e3);
     type();

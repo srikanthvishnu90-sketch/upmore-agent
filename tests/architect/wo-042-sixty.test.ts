@@ -104,3 +104,14 @@ Deno.test("WO-042/7 a place search waits for the page's load, types once and awa
   assert(/until\(listed, 8000\)/.test(body), "the list is awaited up to 8 s");
   assert(/press\(hit\)/.test(body) && /if \(!hit\)/.test(body), "a place is clicked only when the planner names one");
 });
+
+Deno.test("WO-042/8 Lever's place search gets the city key by key: its lookup starts only on a keydown (live run 10)", async () => {
+  const body = DOM.slice(DOM.indexOf("async function drivePlace"), DOM.indexOf("export interface Resume"));
+  assert(/contains\("location-input"\)/.test(body), "Lever's input is told apart");
+  assert(/for \(const ch of city\)[\s\S]{0,200}"keydown"[\s\S]{0,300}"keyup"/.test(body), "a keydown and a keyup per character");
+  // The offline stand-in follows Lever's own rules, so a driver without the keydown fails offline as it did live.
+  const WORLD = await Deno.readTextFile(new URL("../fixtures/extension/world.cjs", import.meta.url));
+  assert(/addEventListener\("keydown"[\s\S]{0,900}\}, 500\)/.test(WORLD), "the stand-in looks up 500 ms after a keydown");
+  const lever = WORLD.slice(WORLD.indexOf("function wireLever"), WORLD.indexOf("function wire(input)"));
+  assert(/addEventListener\("input", function \(\) \{ box\.style\.display = "flex"; \}\)/.test(lever), "input only shows the dropdown");
+});

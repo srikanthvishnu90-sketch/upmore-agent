@@ -293,6 +293,39 @@ What changed:
   one and the page's main one). It records the lookups each one causes and what Lever lists. Nothing is chosen, and
   each typing is cleared. The mechanism was checked locally against a stand-in page: all 10 ways look up there.
 
+### Live run 10 (VERIFIED-LIVE, CI run of 5f686b78, never sent): the cause, read from Lever's own script
+
+- **Precision 100% (187/187), coverage 92.1%, Lever's location 0/6.** This run measured; it changed nothing.
+- **Lever's `retrieveLocations.js`** (fetched with a GET and printed in the run log, 6,469 chars):
+  - A `keydown` other than an arrow or Enter calls a 500 ms debounced lookup, which reads the input's value then.
+  - An `input` event only shows the dropdown.
+  - A `mousedown` on `.dropdown-location` sets the text and `#selected-location` (`name=selectedLocation`).
+  - A `blur` while the dropdown shows clears both.
+- **The driver sent `input` and `keyup`, never a `keydown`,** so Lever never looked anything up.
+- **Typing ways measured on all 6 Lever forms** (lookups caused, places listed):
+
+  | Way | Isolated world | Main world |
+  |---|---|---|
+  | Driver's events (input, keyup) | 6/6 | 0/6 |
+  | Synthetic focus events first | 0/6 | 0/6 |
+  | Cleared with `input`, then typed | 0/6 | 0/6 |
+  | **Key by key (keydown, keypress, input, keyup)** | **6/6, 4 places listed** | **6/6, 4 places listed** |
+  | Driver's events plus `change` | 0/6 | 0/6 |
+
+  The driver's events looked up once in the isolated world, but only as the first way tried on each page. Some
+  earlier keydown (the driver's Escape on giving up is one) is the likely trigger. Only key-by-key typing works in
+  both worlds and in any order, so that is what the driver uses.
+
+### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
+
+- **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a
+  mousedown picks, a blur while the dropdown shows clears. With the old driver, offline Lever fell to 67/76 (0.882),
+  the live number. The suite failed its 0.96 floor, so offline now catches what only live did before.
+- **Fix:** Lever's input gets the city key by key. Ashby keeps its single typing (5/5 live). Offline Lever is 73/76
+  (0.961), precision 100% in every family.
+- **Pinned:** architect test WO-042/8.
+- **Live run 11** will show whether it holds on the 6 real Lever pages.
+
 ### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
 
 WO-031's fix round brings:
@@ -369,8 +402,8 @@ content.js `steps.begun`.
 2. Greenhouse widgets: the open mechanism and the real option texts are read live (CI probe). The driver then picks an
    option with the same `chooseOption` the planner uses for ordinary selects. The phone-country default is resolved
    from the person's own country. **Done** for toggled lists (live run 4: 32/42). Lever's and Ashby's place searches:
-   **done offline** (Run 2); Ashby live in run 5 (5/5). Lever live: **0/6, open** (live run 9: Lever's page makes no lookup for the
-   driver's typing; run 10 measures which typing it answers).
+   **done offline** (Run 2); Ashby live in run 5 (5/5). Lever live: 0/6 through run 10, the cause found in
+   Lever's own script (a lookup only on keydown); typed key by key since Run 3, live in run 11.
 3. A pipelined queue: the next two postings are opened, read, planned and filled in background tabs while the person
    reads the current card. The person's tap switches to a prepared card at once. The employer's answer and its proof
    arrive in the background and show in the queue. No `setTimeout` sleeps in the fill path, because Chrome runs timers

@@ -93,41 +93,72 @@ function placeScript(form) {
   return `<script>/* TEST stand-in for ${form.company}'s place search (stripped from the capture). */
 (function () {
   var PLACES = ["Chicago, Illinois, United States", "Chicago Heights, Illinois, United States", "North Chicago, Illinois, United States", "East Chicago, Indiana, United States", "Chicago Ridge, Illinois, United States", "Illinois, United States", "Illinois City, Illinois, United States"];
-  function wire(input) {
-    var lever = input.classList.contains("location-input");
+  // Lever: the same rules as its retrieveLocations.js (read live in run 10). Only a keydown, other than an arrow or
+  // Enter, starts a lookup, 500 ms later, of the value then; input only shows the dropdown; a mousedown on a place picks
+  // it and writes selectedLocation; a blur while the dropdown shows clears the text and the pick.
+  function wireLever(input) {
     var field = input.closest(".application-field") || input.parentElement;
-    var hidden = lever ? field.querySelector("input[name=selectedLocation]") : null;
+    var hidden = field.querySelector("input[name=selectedLocation]");
+    var box = field.querySelector(".dropdown-container"), list = field.querySelector(".dropdown-results");
+    var found = null, timer = null;
+    box.style.display = "none";
+    // Not measured live; kept so the driver never depends on the list being visible.
+    list.style.visibility = "hidden";
+    function empty() { list.innerHTML = ""; found = null; }
+    input.addEventListener("input", function () { box.style.display = "flex"; });
+    input.addEventListener("keydown", function (e) {
+      if (/^(ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Enter)$/.test(e.key)) return;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        empty();
+        var q = input.value;
+        if (!q) return;
+        found = PLACES.filter(function (p) { return p.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+        found.forEach(function (p, i) {
+          var item = document.createElement("div");
+          item.className = "dropdown-location"; item.id = "location-" + i; item.textContent = p;
+          list.appendChild(item);
+        });
+      }, 500);
+    });
+    input.addEventListener("blur", function () {
+      if (box.style.display !== "none") { box.style.display = "none"; empty(); input.value = ""; hidden.value = ""; }
+    });
+    document.addEventListener("mousedown", function (e) {
+      var item = e.target.closest && e.target.closest(".dropdown-location");
+      if (!item || !field.contains(item)) return;
+      box.style.display = "none";
+      input.value = item.textContent;
+      hidden.value = JSON.stringify({ name: found[Number(item.id.split("-")[1])] });
+      empty();
+    });
+  }
+  function wire(input) {
+    if (input.classList.contains("location-input")) return wireLever(input);
     var picked = null, timer = null;
-    var list = lever ? field.querySelector(".dropdown-results") : null;
-    // As on the live page while another window has focus (live run 8): Lever's list is laid out but visibility: hidden.
-    if (lever && list && list.parentElement) list.parentElement.style.visibility = "hidden";
-    if (!lever) {
-      list = document.createElement("ul");
-      list.setAttribute("role", "listbox");
-      list.id = "trainee-test-places-" + Math.random().toString(36).slice(2);
-      input.setAttribute("aria-controls", list.id);
-      input.parentElement.appendChild(list);
-    }
+    var list = document.createElement("ul");
+    list.setAttribute("role", "listbox");
+    list.id = "trainee-test-places-" + Math.random().toString(36).slice(2);
+    input.setAttribute("aria-controls", list.id);
+    input.parentElement.appendChild(list);
     function render(q) {
       list.innerHTML = "";
       if (!q) return;
       PLACES.filter(function (p) { return p.toLowerCase().indexOf(q.toLowerCase()) >= 0; }).forEach(function (p) {
-        var item = document.createElement(lever ? "div" : "li");
-        if (lever) item.className = "dropdown-location"; else item.setAttribute("role", "option");
+        var item = document.createElement("li");
+        item.setAttribute("role", "option");
         item.textContent = p;
         item.addEventListener("mousedown", function (e) { e.preventDefault(); });
-        item.addEventListener("click", function () {
-          picked = p; input.value = p; if (hidden) hidden.value = JSON.stringify({ name: p }); list.innerHTML = "";
-        });
+        item.addEventListener("click", function () { picked = p; input.value = p; list.innerHTML = ""; });
         list.appendChild(item);
       });
     }
     input.addEventListener("input", function () {
-      picked = null; if (hidden) hidden.value = "";
+      picked = null;
       clearTimeout(timer); var q = input.value; timer = setTimeout(function () { render(q); }, 150);
     });
     input.addEventListener("blur", function () {
-      setTimeout(function () { if (!picked || input.value !== picked) { input.value = ""; if (hidden) hidden.value = ""; list.innerHTML = ""; } }, 200);
+      setTimeout(function () { if (!picked || input.value !== picked) { input.value = ""; list.innerHTML = ""; } }, 200);
     });
   }
   document.querySelectorAll("input.location-input, input[role=combobox][aria-autocomplete=list]").forEach(function (el) {

@@ -1,0 +1,49 @@
+// WO-061 (architect): the eval's spend cap. The owner gave the brain-versus-router eval $15 of OpenAI spend in total
+// (D-027); the runner counts what earlier runs recorded and stops before the item that would cross it. A stopped run is
+// marked and is never read as a score.
+import { budgetStop, runEval, spentUsd, type EvalItem } from "../../evals/career/run.ts";
+
+function eq(a: unknown, b: unknown, m = "") {
+  const x = JSON.stringify(a), y = JSON.stringify(b);
+  if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`);
+}
+const items: EvalItem[] = Array.from({ length: 10 }, (_, i) => ({ id: `E${i}`, persona: "p", turns: ["hi"], must: ["x"] }));
+
+Deno.test("WO-061/1 the spend already recorded counts every earlier run, not the label being written", () => {
+  const prior = [
+    { label: "router-1", cost_usd: { brain: 0, judge: 0.4 } },
+    { label: "agent-1", cost_usd: { brain: 2.1, judge: 0.5 } },
+    { label: "agent-2", cost_usd: { brain: 9, judge: 9 } },
+    { label: "broken" },
+  ];
+  eq(Math.round(spentUsd(prior, "agent-2") * 1000), 3000, "agent-2 is being rewritten: not counted twice");
+});
+
+Deno.test("WO-061/2 the run stops before the item that would cross the cap, and says so", async () => {
+  let spent = 13.5; // $1.50 left; each item costs $0.20, under the $0.25 reserve
+  const brain = async () => { spent += 0.2; return { replies: ["ok"], state: null }; };
+  const judge = async () => ({ pass: true, failed: [], score: 5, note: "" });
+  const r = await runEval(items, brain, judge, budgetStop(15, () => spent));
+  eq(r.total, 7, "items start at 13.5, 13.7 ... 14.7; at 14.9 the next could cross");
+  eq(r.planned, 10);
+  if (!r.stopped || !/budget/.test(r.stopped)) throw new Error(`not marked stopped: ${r.stopped}`);
+  if (spent > 15) throw new Error(`spent ${spent}: over the cap`);
+});
+
+Deno.test("WO-061/3 no budget: every item runs and the run is not marked stopped", async () => {
+  const r = await runEval(items, async () => ({ replies: ["ok"], state: null }), async () => ({ pass: false, failed: ["x"], score: 1, note: "" }), budgetStop(null, () => 99));
+  eq([r.total, r.stopped, r.pass_rate], [10, null, 0]);
+});
+
+Deno.test("WO-061/4 a run already at the cap runs nothing", async () => {
+  const r = await runEval(items, async () => { throw new Error("must not run"); }, async () => ({ pass: true, failed: [], score: 5, note: "" }), budgetStop(15, () => 14.9));
+  eq([r.total, r.passed], [0, 0]);
+  if (!r.stopped) throw new Error("not stopped");
+});
+
+Deno.test("WO-061/5 the workflow passes the cap and never reads a stopped run as a score", async () => {
+  const wf = await Deno.readTextFile(".github/workflows/brain-eval.yml");
+  if (!/EVAL_BUDGET_USD: "15"/.test(wf)) throw new Error("the $15 cap is not set");
+  if (!/r\.stopped \|\| a\.stopped/.test(wf)) throw new Error("the verdict reads a stopped run");
+  if (!/a\.pass_rate >= 0\.95 && gap >= 40/.test(wf)) throw new Error("the owner's bar (D-027) is not the verdict");
+});

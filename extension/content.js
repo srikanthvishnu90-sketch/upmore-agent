@@ -171,8 +171,11 @@
         const s = form.schema.find((x) => x.name === p.name);
         const listed = b.widget || D.isPlaceSearch(D.element(b.selector));
         const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now() }) : undefined;
+        const t0 = Date.now();
         const ok = await D.fill(b, p.value, resume, choose);
         await sleep(20);
+        // WO-042: the fields that take time (over 300 ms), named, for the benchmark's slowest-step list.
+        if (Date.now() - t0 > 300) (timing.slow ??= {})[p.name] = Date.now() - t0;
         let v = D.readValue(b);
         if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = NO_UNCHECKED;
         const label = D.takeWidgetChoice();

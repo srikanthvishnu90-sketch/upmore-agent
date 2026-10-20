@@ -1091,7 +1091,7 @@
     [
       "current_employer",
       /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/,
-      (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b/.test(t)
+      (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b|non-?compete|non-?solicit|agreement|obligation|restrict/.test(t)
     ],
     [
       "employment_status",
@@ -1129,9 +1129,11 @@
       "current_compensation",
       /\bcurrent (ctc|compensation|salary|base)\b/
     ],
+    // "Your salary expectations (including currency)" asks the amount, with its currency; "what currency should we use?" asks the currency.
     [
       "salary_currency",
-      /\bcurrency\b/
+      /\bcurrency\b/,
+      (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b/.test(t)
     ],
     [
       "salary_expectation",
@@ -1307,7 +1309,7 @@
     [
       "non_compete",
       /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/,
-      (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory/.test(t)
+      (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|non-?solicit|restrictive covenant|post-employment restriction/.test(t)
     ],
     // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
     [
@@ -1349,7 +1351,8 @@
     // The application and this employer.
     [
       "referral",
-      /\breferr(ed|al|ing)\b/
+      /\breferr(ed|al|ing)\b/,
+      (q, t) => !/government official|public official|politically exposed|public function/.test(t)
     ],
     [
       "relative_here",
@@ -1535,6 +1538,7 @@
     const job = `job:${h16(`${jobId}
 ${words}`)}`, wording = `label:${h16(words)}`;
     if (m.kind === "fact") {
+      if (o.here) return job;
       if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
       if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
       if (o.haveFact) return job;
@@ -2592,7 +2596,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
       if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
       if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
-      if (key === "salary_expectation" && /current|present|monthly|per month|hourly|per hour|range|format|\$00/i.test(l)) continue;
+      if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
       if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
       if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
       if (key === "work_authorization" && /sponsor/i.test(l.split("?")[0])) continue;
@@ -2648,10 +2652,88 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     job_relocation: "relocation",
     job_travel: "travel_ok"
   };
-  function otherCountry(fact, label, location2) {
+  var PAY_FACTS = /* @__PURE__ */ new Set([
+    "salary_expectation",
+    "current_compensation"
+  ]);
+  var OTHER_CURRENCY = /\b(gbp|eur|jpy|inr|cad|aud|sgd|chf|sek|nok|dkk|pln|brl|mxn|cny|rmb|hkd|nzd|zar|aed|sar|krw|ils)\b|[£€¥₹]|\blakhs?\b|\bcrores?\b/i;
+  var VARIABLE_PAY = /\b(including|inclusive of|incl\b\.?)[^.?\[]*\b(bonus|commission|equity|incentive)|\b(plus|\+|and) (bonus|commission|equity)\b|^variable\b|\bvariable (pay|salary|compensation)\b|\bote\b|\bon-target\b/i;
+  var HOME_PLACE = /\b(country|location|place) (where |in which )?you (currently )?(reside|live|are (currently )?(based|located|living))\b|\bcountry of residence\b|\byour current (location|country|work authori[sz]ation)\b/i;
+  var homeInUs = (answers = {}) => {
+    const v = (k) => String(answers[k]?.value ?? "");
+    return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
+  };
+  function otherCountry(fact, label, location2, homeUs = false) {
+    if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
+    const abroad = postingCountry(postingPlaces(location2 ?? "")) === "abroad";
     if (AUTH_FACTS.has(fact) && RELATIVE_PLACE.test(label)) return postingCountry(postingPlaces(location2 ?? "")) !== "us";
+    if (AUTH_FACTS.has(fact) && abroad && !NAMES_US.test(label)) return true;
+    if (fact === "salary_currency" && abroad) return true;
+    if (PAY_FACTS.has(fact) && (abroad || OTHER_CURRENCY.test(label) || VARIABLE_PAY.test(askedPart(label)) || /\b(bracket|band|range)\b/i.test(askedPart(label)))) return true;
     if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
     return fact === "sponsorship" || !NAMES_US.test(label);
+  }
+  var BEYOND_FACT = [
+    // the person's visa type; a sponsorship question that lists OPT among its examples is still the sponsorship question
+    [
+      [
+        "work_authorization"
+      ],
+      /\bcpt\b|\bopt\b|curricular practical|optional practical/i
+    ],
+    [
+      [
+        "school"
+      ],
+      /\bcurrently (attending|enrolled)\b|\bare you (currently )?(attending|enrolled)\b|\byou are attending\b/i
+    ],
+    [
+      [
+        "school",
+        "major",
+        "education_level",
+        "graduation_date"
+      ],
+      /\bsecond[- ](highest|most recent)\b|\b2nd\b|\bother than your highest\b|\badditional (degree|qualification)\b/i
+    ],
+    [
+      [
+        "relocation",
+        "job_relocation"
+      ],
+      /\b(need|have|required?) to relocate\b/i
+    ],
+    [
+      [
+        "us_person"
+      ],
+      /\bclearance\b/i
+    ],
+    // work through a vendor or an agency is not on the person's own list of employers; a contractor's is
+    [
+      [
+        "worked_here_before"
+      ],
+      /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\bfor an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i
+    ],
+    [
+      [
+        "applied_before"
+      ],
+      /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i
+    ]
+  ];
+  function factStaysHere(q, location2, answers) {
+    const m = mapQuestion({
+      label: q.label,
+      type: q.type,
+      options: q.options ?? []
+    });
+    return m.kind === "fact" && (otherCountry(m.fact, q.label, location2, homeInUs(answers)) || beyondFact(m.fact, q));
+  }
+  function beyondFact(fact, f) {
+    if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
+    return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
   }
   var STATE_CODE = /,\s*([A-Z]{2})\b/g;
   var PLACE_WORDS = /\b(?:in|at|from|to|near|around|within|of)\s+(?:our\s+|the\s+)?((?:[A-Z][\w.'’-]+)(?:\s+[A-Z][\w.'’-]+){0,3})/g;
@@ -2703,6 +2785,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return code && /^\d[\d,.]*$/.test(value.trim()) ? `${value.trim()} ${code}` : null;
   }
   var WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
+  var askedPart = (label) => {
+    const parts = label.split(/(?<=[.?!])\s+/).filter((x) => x.trim());
+    return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? label;
+  };
   function authorizedWithoutSponsorship(answers) {
     const w = answers.work_authorization, sp = answers.sponsorship;
     if (!w || !sp) return null;
@@ -2753,7 +2839,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       options: f.options
     });
     if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
-    if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location2)) return null;
+    if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location2, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
     if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
     if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
     let a;
@@ -2784,7 +2870,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     } else if (m.kind === "screen") {
       const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
       if (pref && yesNoOf(pref.value)) a = pref;
-    } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(f.label)) {
+    } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(askedPart(f.label))) {
       a = authorizedWithoutSponsorship(answers) ?? void 0;
     } else {
       a = answers[m.fact];
@@ -2833,6 +2919,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const t = norm(f.label), v = String(value).trim();
     if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
     if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
+    if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
     if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t)) && !DATE_VALUE.test(v)) return false;
     if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
     return true;
@@ -3153,12 +3240,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         }
         const key = classifyField(f.label, f.type);
         const followUp = FOLLOW_UP.test(f.label);
+        const here = factStaysHere(f, p.location, o.answers);
         const own = o.saved[answerKey(f, p.job_id, {
-          haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
+          haveFact: true,
+          here
+        })] ?? o.saved[answerKey(f, p.job_id, {
+          here
+        })] ?? o.saved[normLabel(f.label)];
         const direct = o.saved[answerKey(f, p.job_id, {
-          haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
+          haveFact: true,
+          here
+        })] ?? o.saved[answerKey(f, p.job_id, {
+          here
+        })] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -3367,8 +3461,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         }))
       };
       const m = mapQuestion(shape);
+      const here = factStaysHere(shape, result?.location ? String(result.location) : void 0, o.facts);
       const key = answerKey(shape, posting, {
-        haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact)
+        haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact),
+        here
       });
       if (out.has(key)) continue;
       out.set(key, {
@@ -3718,6 +3814,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return questionsToStore({
       posting: o.jobId,
       company: o.company,
+      location: o.location,
       questions: o.needs
     }, {
       facts: o.answers,

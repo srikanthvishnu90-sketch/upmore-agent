@@ -169,8 +169,8 @@ export function chooseWidgetOption(o: {
 }
 
 // The rows career_apply_questions_put_own stores, keyed by how far each answer may travel (answerKey).
-export function questionsForTrainee(o: { jobId: string; company: string; needs: { label: string; type: string; options: string[] }[]; answers: Record<string, unknown>; answered: Set<string> }) {
-  return questionsToStore({ posting: o.jobId, company: o.company, questions: o.needs }, { facts: o.answers, answered: o.answered });
+export function questionsForTrainee(o: { jobId: string; company: string; location?: string; needs: { label: string; type: string; options: string[] }[]; answers: Record<string, unknown>; answered: Set<string> }) {
+  return questionsToStore({ posting: o.jobId, company: o.company, location: o.location, questions: o.needs }, { facts: o.answers, answered: o.answered });
 }
 
 // Ask once, from the form (WO-042, session run 4: every repeat of a question cost the person the same seconds, since
@@ -196,7 +196,7 @@ const namesEmployer = (answer: string, company: string) => {
   return c.length >= 3 && ` ${answer.toLowerCase().replace(/[^a-z0-9 ]/g, " ")} `.includes(` ${c} `);
 };
 export function formAnswersToKeep(o: {
-  jobId: string; company: string; needs: { label: string; type: string; options: string[] }[];
+  jobId: string; company: string; location?: string; needs: { label: string; type: string; options: string[] }[];
   fields: { name: string; label: string; value: string; source: string }[]; answers: Record<string, unknown>; answered: Set<string>;
 }) {
   const q = questionsForTrainee(o);

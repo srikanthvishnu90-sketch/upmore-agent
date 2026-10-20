@@ -130,7 +130,7 @@ export function classifyField(label: string, type: string): string {
     // WO-052: "City, State, Zip" and "City, Country" ask for more than the place the person gave; a current, monthly,
     // hourly or ranged pay is not the expected annual salary.
     if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
-    if (key === "salary_expectation" && /current|present|monthly|per month|hourly|per hour|range|format|\$00/i.test(l)) continue;
+    if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
     // The resume answer is the approved file itself: it goes into an upload, never typed into a box as text.
     if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
     // "a visa that does NOT require sponsorship" asks the opposite of the sponsorship fact: ask the person. Only the
@@ -188,11 +188,56 @@ const PREFERENCE: Record<string, string> = { job_onsite: "onsite_ok", job_reloca
 // 1. Work rights are the person's for the country they stated. A question about another country's authorization or
 //    visa ("authorized to work in South Korea?", "¿Tienes permiso de trabajo en España?", "visa sponsorship in the UK?")
 //    is asked; "the US or Canada" may still take the US yes, never a sponsorship "no" for both.
-export function otherCountry(fact: string, label: string, location?: string): boolean {
+// WO-055 (sample D, scored once): at a job abroad, work rights and pay are that country's. "Will you require us to sponsor
+// a visa?" at a Tokyo posting is about Japan, and a bare 95000 in a London pay box reads as pounds: both asked. A question
+// that names the US ("authorized to work in the US?") stays the person's own anywhere.
+const PAY_FACTS = new Set(["salary_expectation", "current_compensation"]);
+const OTHER_CURRENCY = /\b(gbp|eur|jpy|inr|cad|aud|sgd|chf|sek|nok|dkk|pln|brl|mxn|cny|rmb|hkd|nzd|zar|aed|sar|krw|ils)\b|[£€¥₹]|\blakhs?\b|\bcrores?\b/i;
+// Pay that is more than the stated expectation, when it is what is asked ("including base salary and bonus", "Variable
+// Salary", OTE); an example list after the question ("[Example: base salary, annual commission]") is not the ask.
+const VARIABLE_PAY = /\b(including|inclusive of|incl\b\.?)[^.?\[]*\b(bonus|commission|equity|incentive)|\b(plus|\+|and) (bonus|commission|equity)\b|^variable\b|\bvariable (pay|salary|compensation)\b|\bote\b|\bon-target\b/i;
+// Work rights where the person lives ("in your country of residence", "remain in your current location", "your current
+// work authorization status") are the person's own wherever the job is: their facts answer for a home in the US.
+const HOME_PLACE = /\b(country|location|place) (where |in which )?you (currently )?(reside|live|are (currently )?(based|located|living))\b|\bcountry of residence\b|\byour current (location|country|work authori[sz]ation)\b/i;
+const homeInUs = (answers: Record<string, unknown> = {}) => {
+  const v = (k: string) => String((answers[k] as { value?: unknown } | undefined)?.value ?? "");
+  return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
+};
+export function otherCountry(fact: string, label: string, location?: string, homeUs = false): boolean {
+  if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
+  const abroad = postingCountry(postingPlaces(location ?? "")) === "abroad";
   if (AUTH_FACTS.has(fact) && RELATIVE_PLACE.test(label)) return postingCountry(postingPlaces(location ?? "")) !== "us";
+  if (AUTH_FACTS.has(fact) && abroad && !NAMES_US.test(label)) return true;
+  if (fact === "salary_currency" && abroad) return true; // "the currency of the country where this position is based"
+  if (PAY_FACTS.has(fact) && (abroad || OTHER_CURRENCY.test(label) || VARIABLE_PAY.test(askedPart(label)) || /\b(bracket|band|range)\b/i.test(askedPart(label)))) return true;
   if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
   return fact === "sponsorship" || !NAMES_US.test(label);
 }
+// WO-055 (sample D): a question can name a fact's topic and still ask what the fact does not say. Each is asked.
+const BEYOND_FACT: [string[], RegExp][] = [
+  // the person's visa type; a sponsorship question that lists OPT among its examples is still the sponsorship question
+  [["work_authorization"], /\bcpt\b|\bopt\b|curricular practical|optional practical/i],
+  [["school"], /\bcurrently (attending|enrolled)\b|\bare you (currently )?(attending|enrolled)\b|\byou are attending\b/i],
+  [["school", "major", "education_level", "graduation_date"], /\bsecond[- ](highest|most recent)\b|\b2nd\b|\bother than your highest\b|\badditional (degree|qualification)\b/i],
+  [["relocation", "job_relocation"], /\b(need|have|required?) to relocate\b/i], // whether moving is needed, not whether they would
+  [["us_person"], /\bclearance\b/i], // able to obtain a clearance is its own fact
+  // work through a vendor or an agency is not on the person's own list of employers; a contractor's is
+  [["worked_here_before"], /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\bfor an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i],
+  [["applied_before"], /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i],
+];
+// An answer to a question the person's fact does not answer at this posting (above) is this posting's alone: it is stored
+// and read back under a job key (answerKey `here`), so a "Yes" to a London posting's "Will you require sponsorship?" never
+// becomes the person's US sponsorship fact, and a US "No" saved as the fact never answers London's question.
+export function factStaysHere(q: { label: string; type: string; options?: { label: string }[] }, location?: string, answers?: Record<string, unknown>): boolean {
+  const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
+  return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
+}
+export function beyondFact(fact: string, f: { label: string; type: string }): boolean {
+  // A "select all that apply" list about where they live and would move is answered as a whole, by the person.
+  if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
+  return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
+}
+
 // 2. The person's yes to working on site is for where they live (onsite_ok, "a posting's city makes a screen"): an
 //    office the question names in another city ("in-office 5 days a week in Sunnyvale?", "our Louisville, CO HQ") is
 //    asked. The places a form names on its other office questions count too (Anthropic names SF/NYC one question
@@ -255,6 +300,12 @@ function payShape(f: FormField, value: string, fact: string, answers: Record<str
 }
 // 3. "Authorized to work in the US without sponsorship?" is yes only when the person is authorized and needs none.
 const WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
+// The question a label asks: its last sentence that asks something ("...without sponsorship. Will you require
+// sponsorship?" asks the second; WO-055, sample D). A label cut off before its "?" asks in its last sentence.
+const askedPart = (label: string) => {
+  const parts = label.split(/(?<=[.?!])\s+/).filter((x) => x.trim());
+  return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? label;
+};
 function authorizedWithoutSponsorship(answers: Record<string, Answer>): Answer | null {
   const w = answers.work_authorization, sp = answers.sponsorship;
   if (!w || !sp) return null;
@@ -273,7 +324,7 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
   const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
   if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
   // WO-052: the employer list derives "worked here before"; it is never typed as one employer, a title or a date.
-  if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location)) return null;
+  if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
   if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
   // The person's own contact and identity facts never answer a question about someone else, by meaning either
   // ("Phone number of the person referring you"; WO-031, tests/fixtures/extension/answer-key.json).
@@ -307,7 +358,7 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
     // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
     if (pref && yesNoOf(pref.value)) a = pref;
-  } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(f.label)) {
+  } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(askedPart(f.label))) {
     a = authorizedWithoutSponsorship(answers) ?? undefined;
   } else {
     a = answers[m.fact];
@@ -363,6 +414,9 @@ export function fitsField(f: FormField, value: string): boolean {
   const t = normQuestion(f.label), v = String(value).trim();
   if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
   if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
+  // WO-055: a box that says "y/n" or "yes/no" takes a yes or a no, never a fact's text ("U.S. Citizenship is required.
+  // Are you able to meet this requirement? y/n" is not "United States").
+  if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
   if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t))) && !DATE_VALUE.test(v)) return false;
   if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
   return true;
@@ -630,9 +684,10 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).
-      const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
-      const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
-        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+      const here = factStaysHere(f, p.location, o.answers);
+      const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ?? o.saved[normLabel(f.label)];
+      const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ??
+        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);

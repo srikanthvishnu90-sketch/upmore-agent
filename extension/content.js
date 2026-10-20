@@ -275,7 +275,7 @@
       }
       // Ask once: what only the person can answer goes to Trainee, to be asked by text and saved for every later form.
       timing.fill = Date.now();
-      if (plan.needs.length && portal.family !== "workday") send({ type: "questions", jobId, company, needs: plan.needs });
+      if (plan.needs.length && portal.family !== "workday") send({ type: "questions", jobId, company, location: where, needs: plan.needs });
       shownAt = Date.now();
       await refresh();
       return { ok: true };
@@ -406,7 +406,7 @@
     // later forms. Never a row of a repeating section (its answer is one job's or school's, matched by the page, not by
     // wording), never the person's disability form, never one the page already shows a value for.
     const asked = plan.needs.filter((n) => !form.schema.some((s) => s.label === n.label && (s.section || s.personal || D.readValue(form.bindings[s.name]))));
-    if (asked.length) send({ type: "questions", jobId, company, needs: asked, step: step.title });
+    if (asked.length) send({ type: "questions", jobId, company, location: where, needs: asked, step: step.title });
     // Where Workday's own value and the person's confirmed answer differ: side by side on the card, Workday's left.
     wd.conflicts = plan.fill.filter((p) => pageSet.has(p.name) && !sameAnswer(form.schema.find((s) => s.name === p.name), pageSet.get(p.name), p.value))
       .map((p) => {
@@ -520,7 +520,7 @@
     steps.screenshot = Date.now();
     const planned = [...filled.keys()];
     // The person's own answers to this posting's open questions, kept for later forms once this one is sent (ask once).
-    const formAnswers = C.formAnswersToKeep({ jobId, company, needs: plan?.needs || [], fields: reviewed.payload.fields, answers: ctx.answers, answered: new Set(ctx.answered || []) });
+    const formAnswers = C.formAnswersToKeep({ jobId, company, location: where, needs: plan?.needs || [], fields: reviewed.payload.fields, answers: ctx.answers, answered: new Set(ctx.answered || []) });
     const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, formAnswers, screenshot: { sha256: shot.sha256, dataUrl: shot.dataUrl } });
     if (!begun?.ok) {
       submitting = false;

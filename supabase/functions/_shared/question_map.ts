@@ -118,7 +118,7 @@ const RULES: Rule[] = [
   ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/, (q, t) => !/\b(and|&)\s*(company|employer)\b|\b(company|employer)\b/.test(t)],
   ["unknown", /\bmay we contact your current employer\b/],
   ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
-  ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b/.test(t)],
+  ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b|non-?compete|non-?solicit|agreement|obligation|restrict/.test(t)],
   ["employment_status", /\bare you (currently )?employed\b|\bcurrent employment status\b/, (q, t) => !/\bemployed (by|with|at|in)\b|layoff|recall/.test(t)],
   ["years_experience", /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/],
 
@@ -131,7 +131,8 @@ const RULES: Rule[] = [
   ["pay_range_ok", /\bcompensation (expectations )?(range )?(align|aligns)\b|\balign(s)? with (the posted range|my expectations)\b|\bpays a rate of\b.*\baccept\b/],
   ["unknown", /\b(salary|compensation|pay|ctc)\b.*\b(range|monthly|per month|a month|hourly|per hour|an hour|formatting|format)\b|\b(range|monthly|hourly)\b.*\b(salary|compensation|pay)\b|\$00/],
   ["current_compensation", /\bcurrent (ctc|compensation|salary|base)\b/],
-  ["salary_currency", /\bcurrency\b/],
+  // "Your salary expectations (including currency)" asks the amount, with its currency; "what currency should we use?" asks the currency.
+  ["salary_currency", /\bcurrency\b/, (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b/.test(t)],
   ["salary_expectation", /\bexpected (annual |base )?(ctc|compensation|salary)\b|\b(compensation|salary) (expectation|you expect|are you seeking|requirement)|\bdesired (salary|compensation)\b|\bideal annual compensation\b|\bexpected total annual compensation\b|\bcompensation you (expect|are seeking)\b|\bsalary expectations?\b/],
 
   // Education.
@@ -193,7 +194,7 @@ const RULES: Rule[] = [
   ["unknown", /\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/],
   ["criminal_history", /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\billegally or unlawfully\b/],
   ["government_employment", /\b(u\.?s\.? )?government (\(|employee|employment|or military)|\bgovernment employee\b|\barmed forces\b|\breserves or the national guard\b|\bstate-owned\b|\bus government employment\b|\bprior us government\b/],
-  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory/.test(t)],
+  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|non-?solicit|restrictive covenant|post-employment restriction/.test(t)],
   // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
   ["background_check_ok", /\bbackground (check|investigation)\b/, (q, t) => !/drug|substance|reference check|monitor/.test(t)],
 
@@ -209,7 +210,7 @@ const RULES: Rule[] = [
   ["unknown", /\b(personal data|your data|data from your application)\b/],
 
   // The application and this employer.
-  ["referral", /\breferr(ed|al|ing)\b/],
+  ["referral", /\breferr(ed|al|ing)\b/, (q, t) => !/government official|public official|politically exposed|public function/.test(t)],
   ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal relationship|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
   // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
@@ -299,11 +300,14 @@ export const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_pers
 // WO-053: work rights "in the country where this job is located" (or "...in which you are applying") are the person's US
 // ones only when the posting's own location is in the US; abroad or unsettled, asked.
 export const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
-export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean } = {}): string {
+export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean; here?: boolean } = {}): string {
   const m = mapQuestion(q);
   const words = norm(q.label);
   const job = `job:${h16(`${jobId}\n${words}`)}`, wording = `label:${h16(words)}`;
   if (m.kind === "fact") {
+    // WO-055: where the planner would not use the person's fact here (a job abroad, a question beyond what the fact says;
+    // career_apply.ts factStaysHere), the answer is this posting's, never the person's fact or a wording that travels.
+    if (o.here) return job;
     if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
     if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
     if (o.haveFact) return job;

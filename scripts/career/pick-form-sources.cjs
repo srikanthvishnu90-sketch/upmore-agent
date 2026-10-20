@@ -10,6 +10,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const { locationOf } = require("./posting-location.cjs");
 const UA = { "user-agent": "Trainee form fixtures (read-only; github.com/srikanthvishnu90-sketch/upmore-agent)", accept: "application/json" };
 
 // Per family: where its postings list is, and how a posting becomes the public application page.
@@ -64,7 +65,8 @@ async function pick(directory, perFamily, fetchFn = fetch, gapMs = 2000, opts = 
         const p = seeded ? jobs[Math.floor(rand() * jobs.length)] : jobs[0];
         if (!p || !p.id || (family === "smartrecruiters" && !p.uuid)) continue;
         const id = `${family}-${String(b.board_token).toLowerCase().replace(/[^a-z0-9_-]/g, "-")}-${String(p.id).toLowerCase().replace(/[^a-z0-9_-]/g, "-")}`.slice(0, 160);
-        out.push({ id, family, company: b.company, ...f.source(b.board_token, p) });
+        // WO-053: the posting's own location text, as its list entry gives it (the planner reads it for office questions).
+        out.push({ id, family, company: b.company, location: locationOf(family, p), ...f.source(b.board_token, p) });
         companies.add(company);
         got++;
       } catch { /* a board that does not answer is skipped, never guessed */ }

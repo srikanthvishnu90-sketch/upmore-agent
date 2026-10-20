@@ -19,7 +19,7 @@ export interface ToolSpec {
   effect: Effect;
   run(input: any, ctx: ToolCtx): Promise<unknown>;
 }
-export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number }) =>
+export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number; tool_choice?: { type: "none" } }) =>
   Promise<{ content: any[]; stop_reason: string; usage?: unknown }>;
 export interface TurnResult {
   reply: string;
@@ -64,6 +64,10 @@ export function unbackedClaim(reply: string, calls: { name: string; ok: boolean;
   }
   return null;
 }
+// WO-085: a refusal that means "the next move is the person's" (a resume waiting on their yes). The model reads its
+// message like any refusal; the loop then forbids tools on the next call, so the model writes the question and the turn
+// ends on its words, never on max steps.
+export class AskPerson extends Error {}
 const MAX_TOKENS = 1200;
 const RESULT_CHARS = 12000; // a tool result larger than this is cut, and the cut is said
 
@@ -81,11 +85,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
   o.ctx.turn = { message: o.message, added: [] };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
-  let steps = 0, checked = false;
+  let steps = 0, checked = false, ask = false;
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS }); }
+    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -125,7 +129,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         const out = await t.run(input, o.ctx);
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
-      } catch (e) { fail(t.effect, e instanceof Error ? e.message : String(e)); }
+      } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e)); }
     }
     messages.push({ role: "user", content: results });
   }

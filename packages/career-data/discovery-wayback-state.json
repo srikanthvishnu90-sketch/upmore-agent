@@ -1,0 +1,62 @@
+{
+ "boards.greenhouse.io/": {
+  "key": "eJzLzNdJL0pNzcvILy1O1UnKTyxKKdbUzyotSyxKVTAyMDI2MDYwN7QwMjcyBwBUlw2y",
+  "done": false,
+  "limit": 250
+ },
+ "job-boards.greenhouse.io/": {
+  "key": "eJzLzNdJL0pNzcvILy1O1cnKT9JNyk8sSinW1C8szUzO1i1KzUlNLE5VMDIwMjUwMzAyNDEyNzABABzeEa8",
+  "done": false,
+  "limit": 250
+ },
+ "jobs.lever.co/": {
+  "key": "eJxLztfJSS1LLdLJyk8q1tTPzSxKLC5JLEpLLlUwMjAyMTQCQksTExMjAC5QDNY",
+  "done": false,
+  "limit": 250
+ },
+ "jobs.ashbyhq.com/": {
+  "key": "eJxLzs_VSSzOSKrMKNTJyk8q1tQvLU5NK81RMDIwMjKwNDAztDA2MzEDABFWDBM",
+  "done": true,
+  "limit": 625
+ },
+ "apply.workable.com/": {
+  "key": "eJxLzs_VKc8vyk5MyknVSSwoyKnU1C_LT0_NKU7MS1cwMjAyNTA3NjAwNDQ0MgIAZZkODQ",
+  "done": true,
+  "limit": 1250
+ },
+ "recruitee.com": {
+  "key": "eJxLzs_VKUpNLirNLElN1cnJSS1LLUpMT9XUVzAyMDI1MDMwMTQxNjQ0BgAi9gxP",
+  "done": false,
+  "limit": 250
+ },
+ "bamboohr.com": {
+  "key": "eJxLzs_VSUrMTcrPzyjSSclMzAPCknxN_Yz83FQFIwMjU0MjIyMDMyNTAzMATy8NdQ",
+  "done": false,
+  "limit": 312
+ },
+ "teamtailor.com": {
+  "key": "eJxLzs_VKUlNzC1JzMzJL9JJTiwuycxL19RPTCnWK6koUTAyMDIxNDAyNDQysjAyBgCGYA6v",
+  "done": false,
+  "limit": 250
+ },
+ "breezy.hr": {
+  "key": "eJzLKNJJKkpNrarUKU3OSSwvTtPUr64uSk1LLSpKzIkvyc9OzautVTAyMDI1MDcwMbQ0MDUxBQAHBBHA",
+  "done": true,
+  "limit": 5000
+ },
+ "jobs.personio.de": {
+  "key": "eJxLSdUpSC0qzs_LzNfJyk8q1inLzMvW1E9LLMtMzs_TAxIKRgZGJgamBsYGpkbGBkYAt0YPpg",
+  "done": true,
+  "limit": 2500
+ },
+ "jobs.personio.com": {
+  "key": "eJxLzs_VKUgtKs7Py8zXycpPKtYpScwpSCzOzyktyczPK9bUL05NLErO0MsCKlEwMjAyNjQ0AiJTAxNjALQ1FHQ",
+  "done": true,
+  "limit": 5000
+ },
+ "myworkdayjobs.com": {
+  "key": null,
+  "done": false,
+  "limit": 250
+ }
+}

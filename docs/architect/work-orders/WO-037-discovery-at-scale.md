@@ -14,7 +14,7 @@ Status: in review · Depends on: WO-006, WO-007, WO-013, WO-017 (done) · Assign
 |---|---|---|
 | 50,000+ boards | NOT MET (count PENDING) | Verified today: 2,179 live boards (WO-017). The first discovery run (CI run 39345730265, job `discover`) was still running when this was committed; its VERIFIED count lands on branch `discovery/boards-39345730265` and in the run's `VERIFIED` annotation. Not counted until then. |
 | Every board within 6 h | BUILT, simulated | Sharded scheduler: the oldest read is under 6 h at every run of a simulated 30 h, at 2,179 boards (1 lane) and at 50,000 (8 lanes), with 10% of runs lost and 10% cut short (VERIFIED, `wo-037-refresh.test.ts` R1, R2). Live: NOT_RUN. CPU is the blocker at scale, below. |
-| Detected to delivered < 15 min | MET for one alert, with a race; NOT MET under load | Worst case 201 s (3.4 min) with today's cron offsets, but about 4-5% of matches are never alerted (simulated, inputs ASSUMED). Proposed offset: 261 s, none lost. Delivery is 20 rows a minute, so more than ~240 alerts from one alerts run (or a sustained 100+ every 5 minutes) passes 15 minutes. Live p50/p95: NOT_RUN (`career_alert_latency`). |
+| Detected to delivered < 15 min | MET for one alert, with a race; NOT MET under load | Worst case 201 s (3.4 min) with today's cron offsets, but about 4-5% of matches are never alerted (simulated, inputs ASSUMED). The schedule change plus the code fix: 261 s, none lost; the schedule change alone holds only while ingest runs finish within 180 s. Delivery is 20 rows a minute, so more than ~240 alerts from one alerts run (or a sustained 100+ every 5 minutes) passes 15 minutes. Live p50/p95: NOT_RUN (`career_alert_latency`). |
 | Precision 90%+ on 200 roles | NOT_RUN on human labels | The 200 real rows exist; human labels: 0 of 200. On the architect's proposed labels (ASSUMED): precision 73.3% (95% CI 62.4-82.0%), recall 91.7%. |
 | Zero alerts below threshold | BUILT, tested | The run re-checks every alert against the person's own gate before queuing it (A1, planted P6). |
 | Zero spam weeks | BUILT, tested | Rolling 7-day cap (default 15, the person's own 0-25) on top of the daily cap, quiet hours, once per posting, one report a day; a store that cannot count sends nothing (A2, A3, planted P7, P8). |
@@ -66,7 +66,7 @@ commit; from trunk the workflow runs only on dispatch and on its weekly schedule
 fixed bucket (0..63, FNV-1a of `provider:board`); lane k of `INGEST_LANES` owns buckets b with b % lanes == k, so lanes
 run in parallel without overlap (one pg_cron call per lane per tick, `?lane=k`). Each run takes its lane's boards that
 have waited longest (never-read first) up to `ceil(N / 72 runs / lanes x 1.5)`; the 1.5 headroom absorbs lost and
-cut-short runs. Every attempt is recorded in `career_board_state` (migration `20261021060000_career_board_state.sql`):
+cut-short runs. Every attempt is recorded in `career_board_state` (migration `20261021110000_career_board_state.sql`):
 last attempt, last success, status, fail count, and the board's ETag / Last-Modified.
 
 **Conditional requests:** the board's last validators go back as If-None-Match / If-Modified-Since on the one-request
@@ -111,13 +111,20 @@ or set `INGEST_EVERY_MIN=1` with a one-minute schedule (10 boards per run). At 5
 | | Worst, one alert | 15-min burst limit | Simulated 24 h, 20 alerts per ingest run |
 |---|---|---|---|
 | Today (alerts 2 min after ingest) | 201 s (3.4 min) | 240 alerts | p50 192 s, p95 203 s, max 204 s; **229 of 5,760 never sent** |
-| Proposed (alerts 3 min after ingest, `0-59/5`) | 261 s (4.4 min) | 220 alerts | p50 253 s, p95 263 s, max 264 s; 0 lost |
+| Proposed: alerts 3 min after ingest (`0-59/5`) **and** the code fix (read with an overlap) | 261 s (4.4 min) | 220 alerts | p50 253 s, p95 263 s, max 264 s; 0 lost |
 
 - **Finding (a race, not a timing detail):** `first_seen_at` is the ingest run's start, and the alerts run reads only
   postings first seen since its own last start. A board written after the alerts run read (ingest runs up to ~125 s; the
   alerts run starts 120 s after ingest) falls behind `last_checked_at` and is never alerted. Proposed: schedule the alerts
   run at `0-59/5` (3 min after ingest) and, in a later order, read with an overlap and let the outbox's once-per-key rule
   drop repeats. Not changed here: the schedule is the owner's to run.
+- **Architect's correction (review, 2026-10-20):**
+  - The "0 lost" row above is the schedule change **with** the code fix (`raceFixed: true` in
+    `scripts/career/alert_latency.ts`).
+  - The schedule change alone avoids the race only while every ingest run writes its last board within 180 s. The 125 s
+    maximum is ASSUMED, so a slower run still loses alerts.
+  - The code fix is the real one, and it must not let a re-read posting use up the day's alert room. Queued as its own
+    order (§ Not built).
 - **Under load:** delivery sends 20 rows a minute (`ROWS_PER_RUN`), 1,200 an hour. One alerts run may queue about 240
   alerts and still deliver them all inside 15 minutes; sustained above 100 per 5 minutes the queue grows without bound
   (simulated 300 per run: p50 over 22 hours). Sustained 100 per 5 minutes is 28,800 a day, about 9,600 people at the
@@ -193,7 +200,7 @@ needs about 16 hidden (32%). Fewer than 50 counted is PARTIAL.
 | P11 | a 304 read as a complete empty board (closes everything) | WO-037/R4 |
 
 ## Owner steps (nothing here deploys or spends)
-- Apply `20261021060000_career_board_state.sql` (in `trainee-go-live.sh`), deploy `career-ingest` and `career-proactive`.
+- Apply `20261021110000_career_board_state.sql` (in `trainee-go-live.sh`), deploy `career-ingest` and `career-proactive`.
   `career-ingest` then runs sharded (1 lane); with 2,179 boards it reads every board about every 4 hours.
 - Optional: move the alerts schedule to `0-59/5` (section 3).
 - Label tonight: `deno run -A scripts/career/label-alerts.ts --by <name>`, then `deno run -A evals/career/alert-precision.ts`.
@@ -204,7 +211,9 @@ needs about 16 hidden (32%). Fewer than 50 counted is PARTIAL.
   later order).
 - Normalize-only-changed in ingest (the CPU fix above): it changes WO-006's write path; its own order.
 - The alerts race fix in code (read with an overlap): it changes WO-007's "a posting is alerted at most once since the
-  last check" semantics; proposed, with the schedule change as the cheap fix.
+  last check" semantics. Proposed, with the schedule change as the cheap partial fix.
+  - Requirement from review: a posting already alerted to the person, re-read inside the overlap, is excluded before the
+    day's room is counted. The outbox's once-per-key rule stops a second send, but not the room being used up.
 - Delivery throughput past 20 rows a minute: not needed at today's user count.
 - Gate fixes from the ASSUMED labels (staffing list, remote country, phrase match): they wait for human labels.
 - Workday (254 tenants recorded): needs a reader and D-013.

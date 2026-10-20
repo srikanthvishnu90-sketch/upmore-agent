@@ -7,7 +7,7 @@
 //   pickDue      the run's boards: never-read first, then the longest since the last attempt, up to capacity.
 //   sizeIngest   the arithmetic for N boards against the Edge Function limits (requests/hour, wall clock, CPU).
 // Each board's read state (last attempt, last success, its ETag / Last-Modified for a conditional request) lives in
-// career_board_state (supabase/migrations/20261021060000_career_board_state.sql); memoryBoardState is the same in memory.
+// career_board_state (supabase/migrations/20261021110000_career_board_state.sql); memoryBoardState is the same in memory.
 import type { Board } from "./career_ingest.ts";
 
 export const BUCKETS = 64;

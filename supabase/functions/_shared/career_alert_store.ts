@@ -112,7 +112,7 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
         if (got.length < PAGE) return out;
       }
     },
-    // career_alerts_sent_since (20261021060000_career_board_state.sql): one row per person, counted in the database.
+    // career_alerts_sent_since (20261021110000_career_board_state.sql): one row per person, counted in the database.
     async alertsSince(since) {
       const out = new Map<string, number>();
       for (const r of must<any[]>(await admin.rpc("career_alerts_sent_since", { p_since: since }), "count this week's alerts") || []) out.set(r.user_id, Number(r.n) || 0);

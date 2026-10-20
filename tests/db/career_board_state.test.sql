@@ -1,4 +1,4 @@
--- WO-037 (20261021060000_career_board_state.sql): board read state is the service role's alone and holds its shape; the
+-- WO-037 (20261021110000_career_board_state.sql): board read state is the service role's alone and holds its shape; the
 -- latency report measures first seen -> delivered per alert and leaves quiet-hours waits out of the percentiles; the
 -- weekly count is per person; nobody but the service role can call either.
 begin;

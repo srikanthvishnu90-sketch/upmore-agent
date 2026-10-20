@@ -39069,6 +39069,75 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
     return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // FIX LANE T1 (TG-LONGPLAN-FALLBACK, live Telegram battery
+  // 2026-10-20 turn 4): "Give me a complete plan for preparing for a
+  // finance internship interview over the next two weeks, day by
+  // day." matched NO prep shape — the session claim wants practice
+  // openers, the extras gate wants its fixed phrase list — and fell
+  // to the generic fallback, although the prep capability answers it
+  // directly. The plan is composed FROM that capability (127): drill
+  // days name the question bank's own questions for the track, the
+  // penultimate day is a full timed mock, the last day is the day-of
+  // discipline. The gate is the ask's own shape — a plan, for
+  // preparing, for an interview, over a stated horizon — nothing
+  // narrower (a phrase list) and nothing wider (any "plan").
+  // RE-DRIVE 2026-10-20 16:16 CDT: the same ask in "get ready" words
+  // ("…a plan for this week to get ready for data analyst interviews
+  // in two weeks.") never reached this handler at all — the A3
+  // people-ask gate upstream read "get" + "analysts" as a sourcing
+  // ask and answered with the networking list build. The prep
+  // markers here now include "get ready" / "prep", and the A3 gate
+  // stands down on interview-prep shapes (see its LF-02 comment
+  // block) — neither half alone fixes the turn.
+  function handlePrepPlan(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const t = lc(text);
+    if (!/\bplan\b/.test(t) || !/\binterviews?\b/.test(t) || !/\bprepar|\bget(ting)? ready\b|\bprep\b/.test(t)) return null;
+    if (!/day[ -]by[ -]day/.test(t) && !/\b(next|coming)\b[^.]*\b(days?|weeks?)\b/.test(t) && !/\b\d+\s*(days?|weeks?)\b/.test(t) && !/\b(a|one|two|three|four)\s+weeks?\b/.test(t) && !/\bover the\b[^.]*\b(days?|weeks?)\b/.test(t)) return null;
+    let days = 7;
+    const wm = t.match(/\b(\d+)\s*weeks?\b/), dm = t.match(/\b(\d+)\s*days?\b/);
+    if (/\btwo weeks?\b/.test(t)) days = 14;
+    else if (/\bthree weeks?\b/.test(t)) days = 21;
+    else if (/\bfour weeks?\b/.test(t)) days = 28;
+    else if (wm) days = Math.min(28, 7 * Number(wm[1]));
+    else if (dm) days = Math.min(28, Math.max(3, Number(dm[1])));
+    if (days < 3) days = 3;
+    const roleFamily = /\bfinance|banking|\bbank\b|\bdcf\b|\bquant\b/.test(t) ? "finance"
+      : /\bsoftware|\bcoding\b|\bswe\b|\bengineer/.test(t) ? "swe"
+      : /\bproduct management\b|\bpm prep\b/.test(t) ? "product" : null;
+    let stories = [];
+    try { stories = (Prep.buildStoryBank && ctx.profile) ? (Prep.buildStoryBank(ctx.profile).stories || []) : []; } catch { stories = []; }
+    let bank = null;
+    try { bank = Prep.questionBank({ roleFamily, cir: cirFor(text, ctx), stories }); } catch { bank = null; }
+    const rows = ((bank && (bank.questions || bank)) || []).map((q) => (typeof q === "string" ? { q } : q)).filter((q) => q && s(q.q).trim());
+    const tech = rows.filter((q) => q.round !== "behavioral");
+    const behav = rows.filter((q) => q.round === "behavioral");
+    let ti = 0, bi = 0;
+    const lines = [];
+    for (let d = 1; d <= days; d++) {
+      if (d === days) {
+        lines.push(`Day ${d} — Interview day: the checklist is done the night before (logistics, links, tech check, materials), then sleep — today is delivery, not more input. Walk in with two questions of your own ready.`);
+      } else if (d === 1) {
+        const q = tech[0] || behav[0];
+        lines.push(q ? `Day 1 — Baseline: answer this cold, out loud, timed: "${s(q.q)}" Write down exactly where it broke — that list runs the rest of the plan.` : "Day 1 — Baseline: take one full practice run cold and timed, and write down exactly where it broke — that list runs the rest of the plan.");
+        if (tech.length) ti = 1;
+      } else if (d === days - 1) {
+        lines.push(`Day ${d} — Full mock: one timed run end to end with no notes — technicals first, then behavioral — scored against the gaps from day 1.`);
+      } else if (d % 3 === 2) {
+        const q = tech.length ? tech[ti++ % tech.length] : null;
+        lines.push(q ? `Day ${d} — Technicals drill: "${s(q.q)}" Method first, numbers second, until the structure is automatic.` : `Day ${d} — Technicals drill: work the track's core technical set, method first and numbers second, until the structure is automatic.`);
+      } else if (d % 3 === 0) {
+        const q = behav.length ? behav[bi++ % behav.length] : null;
+        lines.push(q ? `Day ${d} — Behavioral: build one STAR story against "${s(q.q)}" — the situation, your action, and the number it moved.` : `Day ${d} — Behavioral: build one STAR story end to end — the situation, your action, and the number it moved — and say it out loud twice.`);
+      } else {
+        lines.push(`Day ${d} — The role itself: pull the target posting apart — the requirements it repeats are the questions it will ask — and map one of your stories to each.`);
+      }
+    }
+    const trackWord = roleFamily === "finance" ? "finance " : roleFamily === "swe" ? "software " : roleFamily === "product" ? "product " : "";
+    const whatFor = /\binternship\b/.test(t) ? `${trackWord}internship interview` : `${trackWord}interviews`;
+    const reply = [`Your ${days}-day plan for the ${whatFor}, day by day.`, ...lines, "Day 1 can start right now — say \"drill me\" and the first question runs timed."].join("\n");
+    return { intent: "prep_plan", reply, resultStatus: "prepared", sends: 0, payload: { kind: "prep_plan", days, role_family: roleFamily } };
+  }
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
@@ -39113,11 +39182,30 @@ const CareerRouter = (() => {
     const bankArgs = () => {
       const roleFamily = /\btechnicals?\b|\bdcf\b|\blbo\b|\bcomps\b|three statements|\bquant\b|\bprobability\b|market[- ]making/.test(t) ? "finance"
         : /\bpm prep\b|\bproduct sense\b|\bproduct management\b/.test(t) ? "product"
-        : /\bswe\b|\bcoding\b|\bsoftware\b/.test(t) ? "swe" : null;
+        : /\bswe\b|\bcoding\b|\bsoftware\b|\bbackend\b|\bback[ -]end\b|\bfront[ -]?end\b|\bengineers?\b|\bdeveloper\b/.test(t) ? "swe" : null;
+      // WAVE-1 (BL-256…BL-263): the role the ask itself names ("…
+      // ask for Backend Engineer, New Grad roles?") rides into the
+      // bank build — 127's sector selection reads it, so a named
+      // engineering role gets the engineering bank instead of the
+      // generic behavioral set every unnamed ask used to get.
+      const roleM = t.match(/\bask for (.+?) roles?\b/) || t.match(/\bfor an?\s+(.+?)\s+roles?\b/);
+      const namedRole = roleM ? roleM[1].replace(/[\s,]+$/, "").trim() : null;
       let stories = [];
       try { stories = (Prep.buildStoryBank ? Prep.buildStoryBank(profile).stories : []) || []; } catch { stories = []; }
-      return { args: { company: company || null, role: /\bquant\b/.test(t) ? "quant" : null, roleFamily, cir: cirFor(text, ctx), stories }, roleFamily };
+      return { args: { company: company || null, role: /\bquant\b/.test(t) ? "quant" : (namedRole || null), roleFamily, cir: cirFor(text, ctx), stories }, roleFamily };
     };
+    // WAVE-1 (BL-256…BL-263): the question-bank ask in its natural
+    // shape — "what questions does <Company> ask for <Role>
+    // roles?" — names the bank's subject (a company, a role) and
+    // asks what THEY ask. It never contained the words "question
+    // bank", so the literal branch below never fired and the ask
+    // fell to the generic fallback. The direction is the mechanism:
+    // questions a company asks the candidate (this branch) versus
+    // questions the candidate should ask them (the questions-to-ask
+    // producer, which keeps its shapes — "should I ask", "to ask",
+    // "ask the panel" all stand this branch down).
+    const qbAsk = /\bquestion bank\b/.test(t)
+      || (/\b(what|which) questions\b/.test(t) && /\bask(s|ed)?\b/.test(t) && !/\bshould i ask\b|\bi should ask\b|\bto ask\b|\bask (them|the panel|the interviewer|him|her)\b/.test(t));
     const payloadFor = (bank) => { const bp = briefPayload(); return (bp && bp.status === "OK") ? bp : bank; };
     try {
       // IB-F5F7-3: the case plan and the structure drill are their own
@@ -39236,11 +39324,20 @@ const CareerRouter = (() => {
         const reply = compose({ headline, facts, nextStep: "Start the first one as a timed drill?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, bank, payload: payloadFor(bank) };
       }
-      if (/\bquestion bank\b/.test(t) && Prep.questionBank) {
-        const { args } = bankArgs();
+      if (qbAsk && Prep.questionBank) {
+        const { args, roleFamily } = bankArgs();
         const bank = Prep.questionBank(args);
         const qs = (bank && (bank.questions || bank)) || [];
-        const rows = Array.isArray(qs) ? qs : [];
+        let rows = Array.isArray(qs) ? qs : [];
+        // A role-named ask in the NATURAL shape leads with the
+        // role's own rows (the generic behavioral set leads 127's
+        // return order). The literal "question bank" shape keeps
+        // its established order — only the newly-reachable shape
+        // gets the role-first serve.
+        if (roleFamily && !/\bquestion bank\b/.test(t)) {
+          const roleRows = rows.filter((q) => q && q.source && !/generic_behavioral/.test(s(q.source.type || "")));
+          if (roleRows.length) rows = [...roleRows, ...rows.filter((q) => !(q && q.source && !/generic_behavioral/.test(s(q.source.type || ""))))];
+        }
         const list = rows.slice(0, 4).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean);
         if (list.length) {
           // WORDING-BACKLOG (BUG-134): the story match is spoken per
@@ -42718,7 +42815,7 @@ const CareerRouter = (() => {
   function detectContradiction(answer, profile) {
     const parts = [];
     const jobClaim = s(answer).match(/my (?:last|previous) ([a-z][a-z ]+?) job/i) || s(answer).match(/worked as an?\s+([a-z][a-z ]+?)(?:\s+for|\s+at|\.|,)/i);
-    const profText = lc(profileFactsText(profile) + " " + ((profile.preferences || {}).dealBreakers || []).join(" "));
+    const profText = lc(profileFactsText(profile) + " " + (((profile && profile.preferences) || {}).dealBreakers || []).join(" "));
     if (jobClaim) {
       const phrase = lc(jobClaim[1]).trim();
       const head = phrase.replace(/^(data|software|product|operations)\s+/, (m) => m);
@@ -42740,7 +42837,47 @@ const CareerRouter = (() => {
   function handlePrepStart(text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || null;
-    const bank = Prep.questionBank({ company: posting ? posting.company : null, role: posting ? posting.title : null });
+    // WAVE-1 (BL-240…BL-255/BL-264…BL-269): a mock start NAMED its
+    // role and company in the ask itself ("start a mock interview
+    // for a Backend Engineer, New Grad role at Fieldnote Software
+    // (fictional)", "run a short mock interview for Ironstack
+    // Payments") — the session's subject comes from the ASK when no
+    // posting is in hand, exactly as it comes from the posting when
+    // one is. Without this the session carried no subject, the bank
+    // served was the generic behavioral set for every role, and the
+    // start gate below refused the turn outright for any user whose
+    // record is stated facts rather than a full profile — so no
+    // session ever existed for the answer turns to land in.
+    const namedRole = (() => {
+      if (posting) return { title: posting.title, company: posting.company };
+      const raw = s(text);
+      const m = raw.match(/\bfor an?\s+(.+?)\s+roles?\s+at\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,3}(?:\s+\(fictional\))?)\s*[.!?]*$/i)
+        || raw.match(/\bfor an?\s+(.+?)\s+roles?\s+at\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,3}(?:\s+\(fictional\))?)\b/i);
+      if (m) return { title: m[1].replace(/[\s,]+$/, "").trim(), company: m[2].replace(/[?.!,]+$/, "").trim() };
+      // The company-only frame: "run a short mock interview for
+      // Ironstack Payments (fictional)" — the mock's own "for <Co>"
+      // names its subject (companyFromText has no "for" frame).
+      const fm = raw.match(/\bmock\b[^.?!]*?\bfor\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,3}(?:\s+\(fictional\))?)\s*[.!?]*$/i);
+      if (fm) return { title: null, company: fm[1].replace(/[?.!,]+$/, "").trim() };
+      const co = (() => { try { return companyFromText(text, ctx); } catch { return null; } })();
+      if (co) return { title: null, company: co };
+      return null;
+    })();
+    // 127's bank selects its sector sets from the role FAMILY —
+    // a bare "Backend Engineer" title matches none of its family
+    // tokens ("engineering" is the token it keys on), so the title
+    // is translated to its family here, at the one caller that
+    // holds the ask's own words.
+    const namedFamily = (() => {
+      const tt = lc(namedRole ? namedRole.title || "" : "");
+      if (!tt) return null;
+      if (/\bquant|trading|banking|finance|investment|accounting\b/.test(tt)) return "finance";
+      if (/\bproduct\b/.test(tt)) return "product";
+      if (/\bdata\b/.test(tt)) return "data";
+      if (/\bengineer|developer|software|swe\b/.test(tt)) return "swe";
+      return null;
+    })();
+    const bank = Prep.questionBank({ company: namedRole ? namedRole.company : null, role: namedRole ? namedRole.title : null, roleFamily: namedFamily });
     const store = Prep.makePrepStore();
     const mock = Prep.startMock(store, { bank, count: 5 });
     // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t6):
@@ -42754,7 +42891,7 @@ const CareerRouter = (() => {
       const openerM = s(text).match(/\bstart with\s+['"]([^'"]{2,90})['"]/i) || s(text).match(/\bfirst question\s*(?:is|:)\s*['"]([^'"]{2,90})['"]/i);
       if (openerM && mock.questions && mock.questions.length) mock.questions[0] = Object.assign({}, mock.questions[0], { q: openerM[1].trim() });
     } catch { /* the bank's own opener stands */ }
-    const state = { store, mockId: mock.mock_id, phase: "question", currentQ: mock.questions[0].q, role: posting ? { title: posting.title, company: posting.company } : null };
+    const state = { store, mockId: mock.mock_id, phase: "question", currentQ: mock.questions[0].q, role: namedRole };
     if (profile && typeof profile === "object") profile._careerRouterPrep = state;
     // PREP-KB ROUTING (LF-07, custom battery 2026-10-18, Block 2 t6):
     // the mock state ALSO lives on the prep-thread record, which
@@ -42768,8 +42905,16 @@ const CareerRouter = (() => {
     // survives in.
     try { prepThreadForWrite(ctx).prepMock = state; } catch { /* profile copy stands */ }
     const facts = [];
-    if (state.role) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
-    facts.push(`Grounded in your own profile record and public interview-pattern data, as of ${asOfMonthYear(ctx)}.`);
+    if (state.role && state.role.title && state.role.company) facts.push(`This is a mock for ${state.role.title} at ${state.role.company}.`);
+    else if (state.role && state.role.company) facts.push(`This is a mock for ${state.role.company}.`);
+    // The grounding claim matches the record that actually exists:
+    // with a profile, the mock grounds in it; without one, it runs
+    // on the researched bank for the named role and says so — a
+    // bank-scored mock never needed the user's history to be real,
+    // and claiming a profile grounding that does not exist would be
+    // the invention the needs-profile answer exists to prevent.
+    if (profile && typeof profile === "object") facts.push(`Grounded in your own profile record and public interview-pattern data, as of ${asOfMonthYear(ctx)}.`);
+    else facts.push(`No profile is on file, so this mock runs from the researched question bank for ${state.role && state.role.title ? `the ${state.role.title} role` : "this role"} — your answers are scored on structure, evidence and specificity, and nothing about your history is assumed or invented.`);
     facts.push("Answer in your own words and I will score each answer against a rubric as we go, with the scored feedback at the end.");
     // WORDING-BACKLOG (BUG-135): the posed question CLOSES the reply
     // (as the next step) — a mock whose last line is a grounding
@@ -42785,7 +42930,7 @@ const CareerRouter = (() => {
     const threadState = (() => { try { const th = prepThreadOf(ctx); return th && th.prepMock ? th.prepMock : null; } catch { return null; } })();
     const state = threadState || profile._careerRouterPrep;
     if (/^\s*(i\s+)?(don'?t know|do not know|no idea|not sure|pass)\b/i.test(text)) {
-      const story = ((profile.facts) || []).find((f) => ["experience", "project"].includes(f.kind));
+      const story = (((profile && profile.facts) || [])).find((f) => ["experience", "project"].includes(f.kind));
       const facts = ["That is fine — we build it from your real work instead of guessing."];
       if (story) facts.push(`Use ${story.title}: set the scene, name your task, say what you did, and end with the result.`);
       facts.push("That order — situation, task, action, result — is exactly what the rubric scores.");
@@ -42864,6 +43009,47 @@ const CareerRouter = (() => {
     state.currentQ = m.questions[m.idx].q;
     const reply = compose({ headline: state.currentQ, facts: ["Skipped — no answer recorded for the last one."] });
     return { intent: "prep_mock_next", reply, resultStatus: "running", sends: 0, mock: { id: state.mockId, question: state.currentQ } };
+  }
+
+  // WAVE-1 (BL-264…BL-269): a DEBRIEF ask during a running mock —
+  // "how did I do? score me honestly", "grade my answers", "give
+  // me the debrief" — is a CONTROL turn of the session, not a new
+  // task: it is answered FROM the session's own record (127's
+  // mockSummary over the answers actually recorded, each scored by
+  // scoreAnswer at answer time) and it closes the session. Before
+  // this handler the ask matched no route: it is question-shaped,
+  // so the answer-capture released it, and it died on the generic
+  // fallback with the mock still pending — the session's whole
+  // point (the scored verdict) was the one turn that never landed.
+  // Session-gated like handleMockAdvance: with no live mock this
+  // returns null and the turn keeps its ordinary routes. With a
+  // live mock but zero recorded answers there is nothing honest to
+  // score, so the session stays open and the reply says exactly
+  // that instead of inventing a verdict.
+  function handleMockDebrief(text, ctx, state) {
+    const t = lc(text).trim();
+    if (!/\bhow did i do\b|\bhow (am|was) i doing\b|\bhow was (my|that) (answer|mock|performance)\b|\bscore me\b|\bgrade (me|my|the|that|this)\b|\bscore (my|the|that|this) (answer|answers|mock|performance)\b|\bdebrief\b|\bgive me (the )?feedback\b|\bwhat'?s my score\b|\bmy verdict\b/.test(t)) return null;
+    const store = state && state.store;
+    const m = store && Array.isArray(store.mocks) ? store.mocks.find((x) => x.mock_id === state.mockId) : null;
+    if (!m) return null;
+    const answered = Array.isArray(m.answers) ? m.answers.length : 0;
+    if (!answered) {
+      const reply = compose({ headline: "Nothing to score yet — no answer is recorded in this mock.", facts: ["A debrief scores what you actually answered; so far every question is still open, so any score now would be invented."], nextStep: state.currentQ ? `Answer this one and the scoring starts: ${state.currentQ}` : "Answer the pending question and the scoring starts." });
+      return { intent: "prep_mock_debrief", reply, resultStatus: "running", sends: 0, mock: { id: state.mockId, question: state.currentQ } };
+    }
+    let summary = null;
+    try { summary = Prep.mockSummary(store, state.mockId); } catch { summary = null; }
+    m.status = "complete"; m.finished_at = new Date(nowOf(ctx)).toISOString();
+    const profile = ctx.profile;
+    if (profile) profile._careerRouterPrep = null;
+    try { const th = prepThreadForWrite(ctx); if (th) delete th.prepMock; } catch { /* the profile clear stands */ }
+    const avg = (summary && summary.average_scores) || {};
+    const facts = [`Scored on the ${answered} answer${answered === 1 ? "" : "s"} you actually gave (of ${Array.isArray(m.questions) ? m.questions.length : answered} questions in the set) — unanswered questions are not scored and are not counted against you.`,
+      `Rubric averages: structure ${avg.structure != null ? avg.structure : 0} of 5, evidence ${avg.evidence != null ? avg.evidence : 0} of 5, specificity ${avg.specificity != null ? avg.specificity : 0} of 5.`,
+      `Honest verdict: your weakest area is ${summary ? summary.fix_first : "structure"} — that is the one to drill before the real round.`];
+    if (summary && Array.isArray(summary.what_didnt) && summary.what_didnt.length) facts.push(`The answer that needs work first: "${s(summary.what_didnt[0].q).slice(0, 90)}".`);
+    const reply = compose({ headline: "Your debrief — scored from this session's record.", facts, nextStep: "Want to retry your weakest answer once more, or run a fresh mock?" });
+    return { intent: "prep_mock_debrief", reply, resultStatus: "prepared", sends: 0, summary };
   }
 
   // ---------- dead-board discovery (121 registry via 131 plan) ----------
@@ -43839,6 +44025,39 @@ const CareerRouter = (() => {
     if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
     m = raw.match(new RegExp(`\\b(?:the|that|this)\\s+(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${CO}`, "i"));
     if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, live Telegram battery
+    // 2026-10-20 turn 5): the possessive frame — "Gusto's finance
+    // internship" — names company and role with no "at X" / "role at
+    // X" frame at all, so every pattern above missed it: the host's
+    // targeted pool supplement (which keys off this parser) never
+    // fired for the shape, and no route could resolve the posting
+    // the shelf holds. The company must be capitalized — a lowercase
+    // possessive is a common noun's, not a firm's — and the role
+    // must end in a role noun. "internship" normalizes to "intern"
+    // so the title-token scoring sees the posting's own word.
+    // NOTE: no /i flag — the company's capitalization IS the gate;
+    // case-insensitive matching lets the group swallow leading
+    // lowercase words ("apply to Gusto's…" parsed the company as
+    // "apply to Gusto" — caught by this lane's own guard).
+    m = raw.match(/\b([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,3})['’]s\s+(?:the\s+|The\s+)?([A-Za-z][A-Za-z -]*?)\s+([Ii]nternship|[Rr]ole|[Jj]ob|[Pp]osition|[Oo]pening)\b/);
+    if (m) {
+      const role = `${m[2]} ${m[3]}`.replace(/\binternship\b/gi, "intern").replace(/\s+/g, " ").trim();
+      return { company: namedRoleCompanyOf(m[1]), role };
+    }
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, re-drive 2026-10-20
+    // 16:17 CDT): the company-first demonstrative frame — "that
+    // Gusto data analyst role" — names the company BEFORE the role
+    // words, with no preposition and no possessive; every frame
+    // above missed it, no target resolved, and the turn was read as
+    // a send attempt ("send me the link…") and answered with a
+    // batch-status text. Case-sensitive for the same reason as the
+    // possessive frame, and a city is never a company (the
+    // companyFromText FACT_CITIES discipline).
+    m = raw.match(/\b(?:the|that|this)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,2})\s+([A-Za-z][A-Za-z -]*?)\s+([Ii]nternship|[Rr]ole|[Jj]ob|[Pp]osition|[Oo]pening)\b/);
+    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) {
+      const role = `${m[2]} ${m[3]}`.replace(/\binternship\b/gi, "intern").replace(/\s+/g, " ").trim();
+      return { company: namedRoleCompanyOf(m[1]), role };
+    }
     return null;
   }
   function stagePostingFromLink(text, ctx) {
@@ -43876,6 +44095,54 @@ const CareerRouter = (() => {
   function namedApplyContextOf(ctx) {
     const m = threadMirrorOf(ctx);
     return (m && m.namedApply && typeof m.namedApply === "object") ? m.namedApply : null;
+  }
+  // FIX LANE T1 (TG-START-FALLBACK, live Telegram battery 2026-10-20
+  // turn 0): platform commands and bare greetings had NO route —
+  // "/start", the first message every Telegram user sends, fell to
+  // the generic fallback (or to silence), so the product's first
+  // word on a channel was "I didn't catch that." The claim is
+  // whole-turn by construction: the message must be NOTHING but the
+  // command or the greeting, so a greeting that carries an ask
+  // ("Hi! I'm looking for…") keeps its standing owner.
+  function handleGreeting(text, ctx) {
+    const raw = s(text).trim();
+    const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
+    const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
+    if (!isStart && !isGreeting) return null;
+    const reply = compose({
+      headline: "Hi — I'm Trainee, your career agent.",
+      facts: [
+        "I find roles that fit you, tailor your resume to each posting, prep you for interviews, and keep track of every application — all right here in this chat.",
+        "What you tell me about your search stays on your record — your target firms, your contacts, your deadlines — and you can ask me what I have on record any time, and correct anything that is wrong.",
+      ],
+      nextStep: "Tell me the role and field you're after — or just say \"find jobs\" — and I'll start there.",
+    });
+    return { intent: "career_greeting", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, live Telegram battery
+  // 2026-10-20 turn 5): a LINK ask for a named role — "Where can I
+  // apply to Gusto's finance internship? Give me the link." — is not
+  // an apply instruction and not a company-file question: it asks
+  // for the posting itself. It fell to the company-intel branch,
+  // which answered "no company file yet" and served no link,
+  // although the served pool held the exact posting and its URL.
+  // This route serves the posting FIRST; the company-file-absence
+  // note, when there is no file, rides after it — never instead of
+  // it. Nothing resolves → null: the standing owners keep the turn.
+  function handleNamedPostingLink(text, ctx) {
+    const t = lc(text);
+    if (!/\bgive me the link\b|\bthe link\b|\bapply link\b|\bwhere (can|do|should) i apply\b|\blink to\b/.test(t)) return null;
+    const target = namedRoleTargetOf(text, ctx);
+    if (!target || !target.company) return null;
+    const posting = resolveNamedPosting(target, ctx);
+    if (!posting || !posting.url) return null;
+    const co = posting.company || target.company;
+    const facts = [`${posting.title || target.role} at ${co} — apply here: ${posting.url}`];
+    const meta = [posting.location, posting.posted_at || posting.postedAt].filter(Boolean).join(" · ");
+    if (meta) facts.push(`Posting details: ${meta}.`);
+    if (!cirFor(text, ctx)) facts.push(`${co} has no company file yet, so no dossier exists on record for this firm — the posting above is the board's own listing, and nothing has been invented around it.`);
+    const reply = compose({ headline: `The posting you asked for — ${posting.title || target.role} at ${co}.`, facts, nextStep: "Say \"apply\" with the role named and I will prepare the application from this posting." });
+    return { intent: "named_role_link", reply, resultStatus: "prepared", sends: 0 };
   }
   function handleNamedRoleApply(text, ctx) {
     const BatchApply = getBatchApply();
@@ -44086,6 +44353,12 @@ const CareerRouter = (() => {
     // is still re-derived each turn (corrections re-aim it, erasures
     // drop it); a real profile is left standing.
     { const bp = profileFromStatedFacts(c); if (bp) { if (!c.profile || c.profile._fromStatedFacts) c.profile = bp; } else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
+    // FIX LANE T1 (TG-START-FALLBACK): a channel command ("/start")
+    // or a bare greeting is a whole-turn shape — it carries no other
+    // intent — so it is claimed first, before every content route:
+    // on Telegram "/start" is the first message every user sends,
+    // and the generic fallback was the product's first word.
+    { const gr = handleGreeting(text, c); if (gr) return gr; }
     // DEPTH LANE A (LF-01h): an explicit memory invocation — "draft
     // it from what you know about me" — is the most specific claim a
     // turn can carry: the user is ordering the record's USE. It is
@@ -44116,6 +44389,13 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED): a LINK ask for a named
+    // role is served the posting itself (with its URL) here, before
+    // the apply machinery and the company-intel branch — the apply
+    // route reads it as no instruction at all, and intel answered
+    // it with the company-file absence and no link.
+    const namedLink = handleNamedPostingLink(text, c);
+    if (namedLink) return namedLink;
     // LANE A v2: a SINGLE named-role apply (by name / link / pasted
     // posting / count-1 shape) reaches the apply machinery here —
     // ahead of recommendations and the discovery tail, which read
@@ -44227,10 +44507,21 @@ const CareerRouter = (() => {
       // where a new task actually lives (the SC-178 poisonings were
       // task-shaped asks, not 100+ character first-person answers).
       const answerShaped = narrativeLed && s(text).length >= 120 && !/^(i have|i got|i'm a|i am a)\b/.test(t);
-      const taskShaped = !narrativeLed || (!answerShaped && (/^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text))) || /^(i have|i got|i'm a|i am a)\b/.test(t);
+      // WAVE-1 (BL-264…BL-269): an explicitly LABELED answer ("My
+      // answer: …") is session content by its own declaration — the
+      // label-led release shape below read its colon as a new task's
+      // label and released the very turn the user had marked as
+      // their answer, so the debrief scenarios' answers never
+      // landed in the mock they belonged to.
+      const answerLabelled = /^\s*(my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text));
+      const taskShaped = !answerLabelled && (!narrativeLed || (!answerShaped && (/^[A-Za-z][^:]{1,48}:\s/.test(text) || /^[A-Z][^—]{3,60}—/.test(text) || /\?/.test(text))) || /^(i have|i got|i'm a|i am a)\b/.test(t));
       if (!taskShaped) {
         try { return handlePrepAnswer(text, c); } catch { if (profile) profile._careerRouterPrep = null; try { const th = prepThreadForWrite(c); if (th) delete th.prepMock; } catch { /* ignore */ } }
       }
+      // WAVE-1 (BL-264…BL-269): a DEBRIEF ask ("how did I do? score
+      // me honestly") is the session's own verdict turn — claim it
+      // before the release, exactly like the advance below.
+      { const deb = handleMockDebrief(text, c, pendingMock); if (deb) return deb; }
       // LANE A ITEM 3 (CB-0321): a task-shaped CONTROL instruction
       // ("keep going — next question") is the mock's own advance, not
       // a new task — claim it before the release.
@@ -44257,8 +44548,21 @@ const CareerRouter = (() => {
     // and no mock ever ran (the user's answer next turn then had no
     // session to land in). A verb (let's / do / run / start / begin /
     // give me) within a few words of "mock" is a start request.
-    if (/\b(mock interview|interview me|practice interview|mock me|text mock|full mock|behavioral round)\b/.test(t) || /\b(let'?s|do|run|start|begin|give me)\b[^.?!]{0,24}\bmock\b/.test(t) || /\bmock\b[^.?!]{0,16}\b(start|begin|now)\b/.test(t)) {
-      if (!profile) return { intent: "prep_needs_profile", reply: compose({ headline: "I need your profile record to run a mock from your real work." }) };
+    if (/\b(mock interview\w*|interview me|practice interview\w*|mock me|text mock|full mock|behavioral round)\b/.test(t) || /\b(let'?s|do|run|start|begin|give me)\b[^.?!]{0,24}\bmock\b/.test(t) || /\bmock\b[^.?!]{0,16}\b(start|begin|now)\b/.test(t)) {
+      // WAVE-1 (BL-240…BL-269): the mock no longer refuses a
+      // profile-less start. The gate read the STALE pre-bridge
+      // `profile` const (captured before the stated-facts bridge
+      // installs c.profile at the top of dispatch), so even a user
+      // whose facts were on record was refused; and the refusal
+      // itself was the mechanism failure — a text mock is scored
+      // from the researched bank + the rubric, neither of which
+      // needs a profile (127's startMock takes a bank, nothing
+      // else). The session state lives on the prep-thread record,
+      // which survives the turn boundary with or without a profile.
+      // handlePrepStart speaks its grounding honestly for the
+      // record that exists. (The old stub also stranded every
+      // following turn: no session existed, so answers, advances
+      // and debrief asks all fell to the generic fallback.)
       return handlePrepStart(text, c);
     }
     // Relayed replies without the frame (quoted reply text, OOO notices,
@@ -44496,9 +44800,18 @@ const CareerRouter = (() => {
     // on the record's firm. Role-evidence shapes stand this gate
     // down; the intel branch's KB role branch answers them with the
     // library's numbers and n.
+    // FIX LANE T1 (TG-LONGPLAN-FALLBACK, re-drive 2026-10-20 16:16
+    // CDT): the same theft, one family over — an INTERVIEW-PREP ask
+    // ("Give me a plan for this week to get ready for data analyst
+    // interviews in two weeks.") carries the sourcing verb "get" and
+    // the people noun "analysts", so this gate planned it as a
+    // networking list and the prep capability never saw it.
+    // Interview-prep shapes stand this gate down the same way;
+    // handlePrepPlan, in the prep zone, owns them.
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
+      && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
@@ -44851,7 +45164,18 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "For a first round: dress one notch above the room you are walking into.", facts: [fin ? "In finance that means a suit — jacket, trousers or skirt, button-down or blouse, closed shoes — even when the invite says business casual; first rounds are scored on polish before they are scored on answers." : "The safe default is business formal — suit, button-down or blouse, closed shoes — and for tech or startups, clean business casual: no tie needed, but nothing you would wear to class.", "Fit and condition carry more weight than labels: pressed, clean shoes, nothing distracting. When a company's file or invite names a dress code, that instruction wins over any general rule."], nextStep: "Tell me the company and round, and I will tune this to their file if one exists." });
       return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0 };
     }
-    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
+    // FIX LANE T1 (TG-LONGPLAN-FALLBACK): a complete-plan ask for
+    // interview preparation over a stated horizon reaches the prep
+    // capability here — the extras gate below keys on its fixed
+    // phrase list ("prep set", "question bank", …), which this
+    // natural shape never says, so the battery's plan ask fell to
+    // the generic fallback. handlePrepPlan self-gates on the ask's
+    // shape (plan + preparing + interview + horizon).
+    {
+      const pp = handlePrepPlan(text, c);
+      if (pp) return pp;
+    }
+    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\b(what|which) questions\b[^.]*\bask(s|ed)?\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
       // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — the
       // extras run profile-less where their product allows, and what
       // genuinely needs the record gets the honest needs-profile
@@ -45225,7 +45549,12 @@ const CareerRouter = (() => {
     if (!clean) return false;
     if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) ctx.statedFacts = { facts: [] };
     const facts = ctx.statedFacts.facts;
-    const k = s(key || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").trim();
+    // FIX LANE T3: a stored key never ends in a bare conjunction —
+    // "northwind ledger and" (live 2026-10-20) was sentence syntax
+    // swallowed into the key, duplicating the "northwind ledger"
+    // fact instead of replacing it. Sanitized here, at the single
+    // store choke point, so every caller inherits the rule.
+    const k = s(key || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").replace(/\s+(?:and|or|&)$/, "").trim();
     const ev = s(evidence || "").slice(0, 200);
     const ex = facts.find((f) => f.kind === kind && s(f.key || "").toLowerCase() === k);
     if (ex) {
@@ -45272,6 +45601,22 @@ const CareerRouter = (() => {
     return true;
   }
   const _cleanFactVal = (v) => s(v).replace(/\b(btw|though|now|mostly|please|thx|thanks)\b.*$/i, "").replace(/[\s,;.]+$/, "").trim();
+  // FIX LANE T3 (live 2026-10-20, same store as FACT-KEY-GARBLE-DUP):
+  // a stated-fact VALUE must be a complete noun phrase, never a
+  // clause fragment. The bounded lazy "X major" span minted
+  // "at fintechs in SF who share my" as a majors fact — the span
+  // STARTS with a preposition, CONTAINS a relative pronoun, and ENDS
+  // on a dangling possessive. A real field-of-study phrase does none
+  // of those three, so any one of them marks the span as a fragment
+  // and the frame records nothing.
+  const _spanIsFragment = (v) => {
+    const t = s(v).trim();
+    if (!t) return true;
+    if (/^(at|in|on|with|for|to|from|by|as|and|&|my|who|that|which)\b/i.test(t)) return true;
+    if (/\b(who|whom|whose|which|that|where)\b/i.test(t)) return true;
+    if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
+    return false;
+  };
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -45287,6 +45632,9 @@ const CareerRouter = (() => {
       const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
       if (clean && statedFactsOf(ctx).some((f) => f.kind === kind && lc(f.value) === lc(clean)) && !restated.some((r) => r.kind === kind)) restated.push({ kind, value: clean });
     };
+    // FIX LANE T3: majors frames record only complete phrases —
+    // a fragment span (see _spanIsFragment) records nothing.
+    const pushMajors = (value, clause) => { const v = _cleanFactVal(value); if (v && !_spanIsFragment(v)) push("majors", v, clause); };
     // (0) Explicit corrections REPLACE the fact they correct — the
     // correction clause itself is the assertion ("make it Chicago
     // not New York", "actually Denver, not Boston").
@@ -45383,7 +45731,24 @@ const CareerRouter = (() => {
       // (BUG-169), so a one-token value slot is safe here.
       const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})";
       const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
-      const cleanCo = (v) => s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+      const cleanCo = (v) => {
+        let out = s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+        // FIX LANE T3 (FACT-KEY-GARBLE-DUP, live 2026-10-20): a
+        // company span must stop at a conjunction / clause boundary.
+        // The CO pattern runs case-insensitively over the WHOLE turn,
+        // so in "my target firm is Northwind Ledger and my recruiter
+        // contact there is Dana" the greedy span swallowed the
+        // sentence's "and" (keying the contact "northwind ledger
+        // and", a duplicate of the clean key) — and with a one-token
+        // company it swallows on into "Gusto and my". Rules: cut the
+        // span at a conjunction that a clause word follows (a name
+        // token after "and" — "Johnson and Johnson" — is NOT cut),
+        // then strip a trailing bare conjunction token.
+        const cut = out.match(/^(.*?)\s+(?:and|or)\s+(?=(?:my|the|a|an|this|that|there|it|he|she|they|we|you|i|is|was|are|were|who)\b)/i);
+        if (cut) out = cut[1].trim();
+        while (/\s+(?:and|or|&)$/i.test(out)) out = out.replace(/\s+(?:and|or|&)$/i, "").trim();
+        return out;
+      };
       const turnCompany = () => {
         const pats = [
           new RegExp(`\\btarget\\s+(?:company|firm|bank|shop|employer)\\s+is\\s+${CO}`, "i"),
@@ -45455,12 +45820,12 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+a\s+(first|second|third|fourth)[- ]year\b/i))) push("year", { first: "freshman", second: "sophomore", third: "junior", fourth: "senior" }[m[1].toLowerCase()], m[0]);
       else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+)?(?:rising\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
-      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
-      else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) pushMajors(m[1], m[0]);
+      else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) pushMajors(m[1], m[0]);
       // DEPTH LANE A: the inverted statement ("finance and computer
       // science are my majors") names the same fact subject-last.
-      else if ((m = cl.match(/^([a-z][a-z &,]{2,40}?)\s+(?:is|are)\s+my\s+majors?\b/i))) push("majors", _cleanFactVal(m[1]), m[0]);
-      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^(a|the|my)\s+/i, "")), m[0]);
+      else if ((m = cl.match(/^([a-z][a-z &,]{2,40}?)\s+(?:is|are)\s+my\s+majors?\b/i))) pushMajors(m[1], m[0]);
+      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) pushMajors(m[1].replace(/^(a|the|my)\s+/i, ""), m[0]);
       // LF-08 (BUG-270 / FR-425): this frame was the one proper-name
       // geography frame with NO city gate — "targeting Meridian
       // Capital" filed a FIRM name as geography (the reply then
@@ -45940,6 +46305,52 @@ const CareerRouter = (() => {
       const lines = pool.map((f) => `${factLine(f)}.`);
       const reply = compose({ headline: company ? `Here is what I have on record about your ${company} plans — your words, as stated.` : "Here is what I have on record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
       return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (e) FIX LANE T1 (TG-RECALL-ABSENT, live Telegram battery
+    // 2026-10-20, turns 3→7): the compound question in the user's
+    // own framing — "What firm did I say I'm targeting, and who is
+    // my contact there?" — matched none of (a)–(d): (d) wants "who
+    // is my RECRUITER contact", the direct read-back wants "what's
+    // my target firm", and bare "my contact" is nobody's shape. Four
+    // minutes after the plant committed both facts in the same
+    // thread, the turn fell to the generic fallback. This branch
+    // resolves the two stated-fact kinds the framing asks about —
+    // the target firm, and the recruiter contact keyed to it (or to
+    // a company the ask itself names) — under (d)'s CB-0443
+    // discipline: it claims ONLY when at least one asked fact
+    // resolves, and a half that was asked but is not on record is
+    // stated as absent, never filled.
+    {
+      const firmAsk = /\bwhat (firm|company) did i say\b/.test(t) || /\bwhich (firm|company) did i say\b/.test(t) || /\bwhat (firm|company) am i targeting\b/.test(t) || /\bwhich (firm|company) am i targeting\b/.test(t);
+      const contactAsk = /\bwho is my (contact|person)\b/.test(t) || /\bwho'?s my (contact|person)\b/.test(t);
+      if (firmAsk || contactAsk) {
+        const tf = all.find((f) => f.kind === "target_firm");
+        const firm = tf ? tf.value : null;
+        const namedM = s(text).match(/\b(?:at|for)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/);
+        const coName = (namedM ? namedM[1].replace(/[?.!,]+$/, "") : null) || firm;
+        let contact = null;
+        if (contactAsk) {
+          const key = coKey(coName || "");
+          let hits = all.filter((f) => f.kind === "recruiter_contact" && !!key && coKey(f.key) === key);
+          if (!hits.length && key) {
+            // A stored key carrying a swallowed trailing word (the
+            // record's own garble shape) still resolves when it is
+            // the ONLY key that extends the asked company.
+            const slack = all.filter((f) => f.kind === "recruiter_contact" && coKey(f.key).startsWith(`${key} `));
+            if (slack.length === 1) hits = slack;
+          }
+          if (!hits.length && !coName) hits = all.filter((f) => f.kind === "recruiter_contact");
+          if (hits.length === 1) contact = hits[0].value;
+          else if (hits.length > 1) contact = hits.map((h) => `${h.value} (at ${h.key})`).join("; ");
+        }
+        if ((firmAsk && firm) || (contactAsk && contact)) {
+          const lines = [];
+          if (firmAsk) lines.push(firm ? `the firm you said you're targeting is ${firm}.` : "You haven't named a target firm on your record yet.");
+          if (contactAsk) lines.push(contact ? `your contact${coName ? ` at ${coName}` : ""} is ${contact}.` : "No recruiter contact is on record yet.");
+          const reply = compose({ headline: "From your record — your words, as stated.", facts: lines, nextStep: "Correct either one the same way you stated it, or tell me what to run on it first." });
+          return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
     }
     return null;
   }

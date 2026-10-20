@@ -277,6 +277,7 @@ async function personDropsFile(page, wrapper) {
   for (const type of ["dragEnter", "dragOver", "drop"]) await cdp.send("Input.dispatchDragEvent", { type, x, y, data });
   await cdp.detach().catch(() => {});
 }
+const POPUP = '[role="listbox"]:not([data-automation-id="selectedItemList"])';
 async function personAnswers(page, log) {
   const done = [];
   for (let round = 0; round < 4; round++) {
@@ -294,16 +295,19 @@ async function personAnswers(page, log) {
           await page.keyboard.type(t.parts === 1 ? "2020" : t.parts === 2 ? "012020" : "01012020", { delay: 15 });
         } else if (t.kind === "list") {
           await w.locator('button[aria-haspopup="listbox"]').first().click();
-          const opt = page.locator('[role="listbox"] [role="option"]:not([aria-disabled="true"])').filter({ hasNotText: /^\s*Select One\s*$/i }).first();
+          const opt = page.locator(`${POPUP} [role="option"]:not([aria-disabled="true"])`).filter({ hasNotText: /^\s*Select One\s*$/i }).first();
           await opt.click({ timeout: 3000 });
         } else if (t.kind === "prompt") {
+          // The open list's options (never a chosen pill of another prompt, which is an option of its own list); a category
+          // opens the next level, which replaces the list.
           await w.locator('[data-automation-id="searchBox"]').first().click();
-          for (let k = 0; k < 3; k++) {
-            const opt = page.locator('[role="listbox"] [role="option"]').first();
+          for (let k = 0; k < 4; k++) {
+            const opt = page.locator(`${POPUP} [role="option"]`).first();
             await opt.waitFor({ timeout: 3000 });
-            const cat = (await opt.getAttribute("aria-haspopup")) === "true";
+            const cat = (await opt.getAttribute("aria-haspopup")) === "true" || (await opt.locator('[data-automation-id="promptOptionMore"], .wd-icon-chevron-right-small').count()) > 0;
             await opt.click();
             if (!cat) break;
+            await sleep(150);
           }
           await page.keyboard.press("Escape").catch(() => {});
         }
@@ -318,24 +322,58 @@ async function personAnswers(page, log) {
   await page.evaluate(() => document.querySelectorAll("[data-eval-person]").forEach((e) => e.removeAttribute("data-eval-person")));
   return done;
 }
-// The person signs in on Workday's own sign-in step, themselves (TEST credentials, typed by the test person).
+// The person signs in on Workday's own sign-in step, themselves (TEST credentials, typed by the test person, with real
+// keys and a real pointer). Round 2: Workday lays a click_filter over its own Sign In button, so the person's click lands
+// on whatever is on top at the button's centre (as a real click does), never on a hidden control; an email-first sign-in
+// (only the email and Next, the password on the next view) takes two rounds. Nothing here is the extension's.
 async function personSignsIn(page) {
-  return await page.evaluate(() => {
-    const vis = (el) => !!el && el.getClientRects().length > 0;
-    const view = Array.from(document.querySelectorAll('[data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).find(vis) || document.body;
-    Array.from(view.querySelectorAll("input")).filter(vis).forEach((i, n) => i.setAttribute("data-eval-signin", String(n)));
-    return Array.from(view.querySelectorAll("[data-eval-signin]")).map((i) => ({ n: i.getAttribute("data-eval-signin"), type: i.type, aid: i.getAttribute("data-automation-id") }));
-  }).then(async (inputs) => {
-    for (const i of inputs) {
-      if (i.aid === "beecatcher") continue;
-      const v = i.type === "password" ? "TEST-password-typed-by-the-person" : i.type === "checkbox" ? null : "test.person@example.test";
+  const before = page.url();
+  for (let round = 0; round < 3; round++) {
+    const inputs = await page.evaluate(() => {
+      const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const view = Array.from(document.querySelectorAll('[data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).find(vis) || document.body;
+      document.querySelectorAll("[data-eval-signin]").forEach((e) => e.removeAttribute("data-eval-signin"));
+      return Array.from(view.querySelectorAll("input")).filter((i) => vis(i) && i.type !== "hidden" && i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1)
+        .map((i, n) => (i.setAttribute("data-eval-signin", String(n)), { n: String(n), type: i.type, empty: i.type === "checkbox" ? !i.checked : !i.value }));
+    });
+    for (const i of inputs.filter((x) => x.empty)) {
       const loc = page.locator(`[data-eval-signin="${i.n}"]`);
-      if (v === null) await loc.check().catch(() => {});
-      else await loc.fill(v).catch(() => {});
+      if (i.type === "checkbox") await loc.check().catch(() => {});
+      else {
+        await loc.click().catch(() => {});
+        await page.keyboard.type(i.type === "password" ? "TEST-password-typed-by-the-person" : "test.person@example.test", { delay: 5 });
+      }
     }
-    const btn = page.locator('[data-automation-id="click_filter"][aria-label="Sign In"], [data-automation-id="signInSubmitButton"], [data-automation-id="click_filter"][aria-label="Create Account"], [data-automation-id="createAccountSubmitButton"]').first();
-    await btn.click({ timeout: 5000 });
-  });
+    // The button the person presses: the view's own submit (Sign In, Create Account, Next, Continue), by its centre.
+    const box = await page.evaluate(() => {
+      const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const label = (b) => String(b.getAttribute("aria-label") || b.value || b.textContent || "").replace(/\s+/g, " ").trim();
+      const b = Array.from(document.querySelectorAll('[data-automation-id="click_filter"], button, [role="button"], input[type="submit"]'))
+        .find((x) => vis(x) && /^(sign in|create account|next|continue|log in)$/i.test(label(x)));
+      if (!b) return null;
+      b.scrollIntoView({ block: "center" });
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    if (!box) throw Error("the test person found no Sign In, Next or Continue button");
+    await page.mouse.click(box.x, box.y);
+    // Moved on (signed in), or the next view of the same sign-in (the password after the email).
+    const end = Date.now() + 8000;
+    let more = false;
+    while (Date.now() < end) {
+      if (page.url() !== before) return;
+      more = await page.evaluate(() => Array.from(document.querySelectorAll("input")).some((i) => i.getClientRects().length > 0 && i.type !== "hidden" &&
+        i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1 && (i.type === "checkbox" ? false : !i.value))).catch(() => false);
+      if (more) break;
+      await sleep(150);
+    }
+    if (!more) {
+      // Workday answered nothing to the click: the person presses Enter in the last box, as people do.
+      await page.keyboard.press("Enter").catch(() => {});
+      await sleep(1500);
+      if (page.url() !== before) return;
+    }
+  }
 }
 
 // ------------------------------------------------------------------------------------------------ one tenant
@@ -440,6 +478,8 @@ async function runTenant(o) {
     }
     report.submitted = await page.evaluate(() => window.__submitted === true).catch(() => false);
     report.records = world.state.begins.length;
+    // Ask once (round 2): what the extension sent Trainee to ask by text, step by step (labels only).
+    report.questions_stored = world.state.putCalls.map((c) => (c.p_questions || []).map((q) => q.label));
     report.served = tenant.served.slice();
     report.drafts_kept = (await sw.evaluate(async () => (await chrome.storage.local.get("workday_drafts")).workday_drafts || [])).length;
   } catch (e) {
@@ -496,5 +536,5 @@ async function main() {
   console.log(report.summary);
   process.exit(report.errors.length ? 1 : 0);
 }
-module.exports = { runTenant, launch, openPanel, signIn, waitCard, cardOf, tabIdOf, matches, grade, summarize, slug };
+module.exports = { runTenant, launch, openPanel, signIn, waitCard, cardOf, tabIdOf, matches, grade, summarize, slug, personSignsIn, personAnswers };
 if (require.main === module) main();

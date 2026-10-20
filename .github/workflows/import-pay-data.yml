@@ -10,6 +10,7 @@ on:
       - .github/workflows/import-pay-data.yml
       - scripts/career/datasets/aggregate-lca.py
       - scripts/career/datasets/import-oews.py
+      - scripts/career/datasets/fetch-oews-api.py
       - packages/career-data/datasets/pay-maps.json
   workflow_dispatch:
 permissions:
@@ -34,7 +35,9 @@ jobs:
         id: lca
         run: |
           set -u
-          for q in FY2026_Q4 FY2026_Q3 FY2026_Q2 FY2026_Q1 FY2025_Q4; do
+          # Each quarter's file is the fiscal year to date, so a Q4 file is a whole year (the most filings, so the most
+          # cells at n >= 5); a later partial year is used only when no whole year is published.
+          for q in FY2026_Q4 FY2025_Q4 FY2026_Q3 FY2026_Q2 FY2026_Q1; do
             url="https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_${q}.xlsx"
             code=$(curl -sS -L -A "$UA" -o lca.xlsx -w '%{http_code}' --retry 3 --retry-delay 5 "$url" || echo 000)
             echo "LCA $q -> HTTP $code, $(stat -c %s lca.xlsx 2>/dev/null || echo 0) bytes"
@@ -45,24 +48,12 @@ jobs:
           echo "No LCA disclosure file could be downloaded"; exit 1
       - name: Aggregate LCA filed wages (aggregates only)
         run: python3 scripts/career/datasets/aggregate-lca.py --wages lca.xlsx packages/career-data/datasets/dol-lca-wages.json "${{ steps.lca.outputs.period }}"
-      - name: Download the newest BLS OEWS metro file
-        id: oews
-        run: |
-          set -u
-          for y in 25 24; do
-            url="https://www.bls.gov/oes/special-requests/oesm${y}ma.zip"
-            code=$(curl -sS -L -A "$UA" -H 'Accept-Language: en-US' -o oews.zip -w '%{http_code}' --retry 3 --retry-delay 5 "$url" || echo 000)
-            echo "OEWS 20$y -> HTTP $code, $(stat -c %s oews.zip 2>/dev/null || echo 0) bytes"
-            if [ "$code" = 200 ] && unzip -tq oews.zip >/dev/null 2>&1; then
-              f=$(unzip -Z1 oews.zip | grep -iE 'MSA_M20[0-9]{2}_dl\.xlsx$' | head -1)
-              [ -n "$f" ] || { echo "no MSA_M20xx_dl.xlsx in the zip"; unzip -Z1 oews.zip; exit 1; }
-              unzip -jo oews.zip "$f" -d oews
-              echo "period=May 20$y" >> "$GITHUB_OUTPUT"; echo "xlsx=oews/$(basename "$f")" >> "$GITHUB_OUTPUT"; exit 0
-            fi
-          done
-          echo "No OEWS metro file could be downloaded"; exit 1
-      - name: Import OEWS metro wages
-        run: python3 scripts/career/datasets/import-oews.py "${{ steps.oews.outputs.xlsx }}" packages/career-data/datasets/bls-oews-metro.json "${{ steps.oews.outputs.period }}"
+      # www.bls.gov answers 403 to automated downloads without a contact email in the request; the BLS Public Data API
+      # is BLS's programmatic route and needs none (BLS_API_KEY, a free registration, only raises the daily limit).
+      - name: OEWS metro wages from the BLS Public Data API
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python3 scripts/career/datasets/fetch-oews-api.py packages/career-data/datasets/bls-oews-metro.json
       - name: Show what was imported
         run: |
           for f in dol-lca-wages bls-oews-metro; do
@@ -82,5 +73,5 @@ jobs:
           git add packages/career-data/datasets/dol-lca-wages.json packages/career-data/datasets/bls-oews-metro.json
           if git diff --cached --quiet; then echo "datasets unchanged"; exit 0; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -m "WO-036: import ${{ steps.lca.outputs.period }} LCA wages and ${{ steps.oews.outputs.period }} OEWS metro wages (CI)"
+            commit -m "WO-036: import ${{ steps.lca.outputs.period }} LCA wages and OEWS metro wages from the BLS API (CI)"
           git push origin "HEAD:${{ github.head_ref }}"

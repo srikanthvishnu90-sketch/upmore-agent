@@ -35,7 +35,7 @@ const DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|prov
 // WO-052 (independent review of every fill): a standing consent covers what it names and nothing more. An agreement to
 // arbitrate, a confidentiality or non-disclosure agreement, terms and conditions, a whistleblower policy, sharing the
 // person's data with others or keeping it for other roles, being recorded, monitored or matched by AI: the person's own.
-const BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance/;
+const BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
 const ackOpt = (x: string) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
 function ackShaped(q: Question, t: string): boolean {
   const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -114,7 +114,8 @@ const RULES: Rule[] = [
   ["website", /\b(portfolio|personal (web)?site|website)\b(?!.*\b(upload|file)\b)/, (q) => !LONG_TYPES.has(String(q.type))],
 
   // Work history.
-  ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/],
+  // WO-052 (sample C): "Current job title & company" asks for two things; the title alone is half an answer: asked.
+  ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/, (q, t) => !/\b(and|&)\s*(company|employer)\b|\b(company|employer)\b/.test(t)],
   ["unknown", /\bmay we contact your current employer\b/],
   ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
   ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project/.test(t)],
@@ -209,7 +210,7 @@ const RULES: Rule[] = [
 
   // The application and this employer.
   ["referral", /\breferr(ed|al|ing)\b/],
-  ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal relationship/.test(t)],
+  ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal relationship|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
   // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
   // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.

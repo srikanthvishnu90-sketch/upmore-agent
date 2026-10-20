@@ -72,3 +72,11 @@ Deno.test("WO-052/5 a dropdown whose options load on open is answered on its own
   // "Up to date" is not a date: planned (the option itself is chosen when the menu opens).
   eq(plan("Do you currently have your Personal Training certification up to date? *") !== "ASKED", true);
 });
+
+Deno.test("WO-052/6 the four fills sample C's independent review judged wrong (scored once; fixed after, never re-scored on C)", () => {
+  eq(fill("Current job title & company", []), "ASKED", "two things asked; the title alone is half an answer");
+  eq(fill("Are you under 18?", ["Yes", "No"]), "No", "the opposite of the person's over 18");
+  eq(fill("Are you comfortable with Noida hybrid mode?", [], { type: "checkbox" }), "ASKED", "an office in another city");
+  eq(fill("I certify that the answers given herein are true and complete to the best of my knowledge. I hereby understand and acknowledge that any employment relationship with this organization is of an “at will” nature.", ["Yes", "No"]), "ASKED", "at-will terms are more than certifying the answers");
+  eq(fill("Are any of your immediate family members practicing health care professionals that may use or purchase Heartflow products?", ["Yes", "No"], { company: "HeartFlow" }), "ASKED", "relatives at the company are not relatives' occupations");
+});

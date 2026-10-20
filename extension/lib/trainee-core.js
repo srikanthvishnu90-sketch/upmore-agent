@@ -792,7 +792,7 @@
   var yesNoOnly = (q) => !q.options?.length || /^(yes|no|sí|si|ja|nee|はい|いいえ|n\/a|not sure|i'?m not sure| \| )+$/i.test(opts(q).replace(/[.\s]+/g, " ").replace(/ \| /g, " | ").trim()) || q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
   var WHY = /\bwhy\b(?!.*\b(good|great) fit\b)(?!.*\bwhy you'?re\b)|pourquoi|por qué|\binterest(s|ed)? you\b|\bexcites? you\b|\bexcited about\b|\bresonate|\bdrew you|\bwhat interested you\b|\bwhy are you interested\b|\bwhy do you want\b|\bmakes you excited\b|\bwhat makes you want\b/;
   var DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
-  var BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance/;
+  var BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
   var ackOpt = (x) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
   function ackShaped(q, t) {
     const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -1015,9 +1015,11 @@
       (q) => !LONG_TYPES.has(String(q.type))
     ],
     // Work history.
+    // WO-052 (sample C): "Current job title & company" asks for two things; the title alone is half an answer: asked.
     [
       "current_title",
-      /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/
+      /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/,
+      (q, t) => !/\b(and|&)\s*(company|employer)\b|\b(company|employer)\b/.test(t)
     ],
     [
       "unknown",
@@ -1293,7 +1295,7 @@
     [
       "relative_here",
       /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/,
-      (q, t) => !/friend|household|supplier|vendor|partner|personal relationship/.test(t)
+      (q, t) => !/friend|household|supplier|vendor|partner|personal relationship|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)
     ],
     [
       "applied_before",
@@ -1889,6 +1891,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const q = low(question), v = low(value);
     if (fact === "languages") return languageNo(question, value);
     if (fact === "location") return locationNo(question, value);
+    if (fact === "over_18" && /\bunder (the age of )?18\b|\byounger than 18\b|\ba minor\b/.test(q)) {
+      const yn = yesNoOf(v);
+      return yn === "yes" ? "no" : yn === "no" ? "yes" : null;
+    }
     const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
     if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
     if (fact === "education_level") {
@@ -1929,10 +1935,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function chooseOption(fact, value, options, question = "") {
     if (!options.length) return null;
     const v = low(value);
+    const derived = question ? yesNoFromFact(fact, value, question) : null;
+    if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options);
     const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
     if (exact.length) return exact[0].value;
     if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
-    const derived = question ? yesNoFromFact(fact, value, question) : null;
     if (derived) {
       const yn2 = byYesNo(derived, options);
       if (yn2 || options.some((o) => yesNoOf(o.label) === "yes")) return yn2;
@@ -2293,6 +2300,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const m of label.matchAll(STATE_CODE)) if (STATE_NAMES[m[1].toLowerCase()]) add(m[1]);
     for (const m of label.matchAll(PLACE_WORDS)) add(m[1]);
     for (const m of label.matchAll(OUR_PLACE)) add(m[1]);
+    for (const m of label.matchAll(/\b([A-Z][\w.'’-]+(?:\s+[A-Z][\w.'’-]+)?)\s+(?:hybrid|office|offices|onsite|on-site|in-office|hq|headquarters|campus)\b/g)) add(m[1]);
     return out;
   }
   var STATE_NAMES = {

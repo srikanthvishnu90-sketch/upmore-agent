@@ -212,6 +212,8 @@ export function placesNamed(label: string, company = ""): string[] {
   for (const m of label.matchAll(STATE_CODE)) if (STATE_NAMES[m[1].toLowerCase()]) add(m[1]);
   for (const m of label.matchAll(PLACE_WORDS)) add(m[1]);
   for (const m of label.matchAll(OUR_PLACE)) add(m[1]);
+  // "Noida hybrid mode", "SF office", "Austin HQ": a place named right before the way of working (WO-052, sample C).
+  for (const m of label.matchAll(/\b([A-Z][\w.'’-]+(?:\s+[A-Z][\w.'’-]+)?)\s+(?:hybrid|office|offices|onsite|on-site|in-office|hq|headquarters|campus)\b/g)) add(m[1]);
   return out;
 }
 const STATE_NAMES: Record<string, string> = { al: "alabama", ak: "alaska", az: "arizona", ar: "arkansas", ca: "california", co: "colorado",

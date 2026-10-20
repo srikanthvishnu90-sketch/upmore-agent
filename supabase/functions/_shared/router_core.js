@@ -43673,6 +43673,40 @@ const CareerRouter = (() => {
   // producing the approval card where the composition supports it,
   // or the product's true named stop (role not in the served list /
   // worker not wired), stated as itself, never discovery boilerplate.
+  // The company a frame captures ENDS at its sentence boundary: the
+  // CO token class admits '.' plus up to three further capitalized
+  // tokens, so "…role at Northwind Ledger. The posting is on
+  // Greenhouse…" captured "Northwind Ledger. The posting" and the
+  // pool lookup missed a role the pool holds (composition probe
+  // S1b, docs/gauntlet/99e975e1.md; the owner's live Gusto phrasing
+  // has the same shape). A period closing a word token ends the
+  // company — except an abbreviation chain ("J.P.", "U.S."), "St.",
+  // and a corporate suffix (Inc./Corp./Co./Ltd./Bros.) followed by
+  // a non-opener capitalized word; a fused "Word.Opener" token
+  // ("Gusto.The") ends it too. The cut never invents: a company the
+  // user did not state still parses to no company (TN-1a intact).
+  const NAMED_ROLE_SENTENCE_OPENERS = new Set(["the", "please", "it", "this", "that", "there", "here", "i", "my", "we", "they", "he", "she", "you", "a", "an", "and", "but", "so", "then", "now", "also"]);
+  const NAMED_ROLE_COMPANY_SUFFIXES = new Set(["inc.", "corp.", "co.", "ltd.", "bros."]);
+  function cutCompanyAtSentence(value) {
+    const toks = s(value).split(/\s+/).filter(Boolean);
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+      const tok = toks[i];
+      const fused = tok.match(/^([A-Za-z][A-Za-z0-9&'-]{1,})\.(the|please|it|this|that|there|here)$/i);
+      if (fused) { out.push(fused[1]); break; }
+      out.push(tok);
+      if (!tok.endsWith(".") || i === toks.length - 1) continue;
+      if (/^(?:[A-Z]\.)+$/.test(tok)) continue;
+      if (lc(tok) === "st.") continue;
+      const next = lc(toks[i + 1] || "").replace(/[^a-z]/g, "");
+      if (NAMED_ROLE_COMPANY_SUFFIXES.has(lc(tok)) && next && !NAMED_ROLE_SENTENCE_OPENERS.has(next)) continue;
+      break;
+    }
+    return out.join(" ");
+  }
+  function namedRoleCompanyOf(value) {
+    return cutCompanyAtSentence(s(value).replace(/[?.!,]+$/, "").trim()).replace(/[?.!,]+$/, "").trim();
+  }
   function namedRoleTargetOf(text, ctx) {
     const raw = s(text);
     const CO = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+(?:[A-Z][A-Za-z0-9&.'-]+|\\d+)){0,3}(?:\\s+\\(fictional\\))?)";
@@ -43682,13 +43716,13 @@ const CareerRouter = (() => {
     if (m) {
       const a = m[1].replace(/[\s,]+$/, "").trim(), b = m[2].replace(/[?.!,]+$/, "").trim();
       const looksCompany = (v) => /^[A-Z]/.test(v) && !/\b(intern|analyst|engineer|manager|developer|scientist|designer|associate|consultant|summer|graduate)\b/i.test(v);
-      if (/\bposting:\s*/i.test(raw) && looksCompany(a) && !looksCompany(b)) return { company: a, role: b };
-      return { role: a, company: b };
+      if (/\bposting:\s*/i.test(raw) && looksCompany(a) && !looksCompany(b)) return { company: namedRoleCompanyOf(a), role: b };
+      return { role: a, company: namedRoleCompanyOf(b) };
     }
     m = raw.match(new RegExp(`^\\s*(?:the role is|that role is|it'?s|it is)\\s*:?\\s*(.+?)\\s+at\\s+${CO}\\.?\\s*$`, "i"));
-    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: m[2].replace(/[?.!,]+$/, "").trim() };
+    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
     m = raw.match(new RegExp(`\\b(?:the|that|this)\\s+(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${CO}`, "i"));
-    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: m[2].replace(/[?.!,]+$/, "").trim() };
+    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
     return null;
   }
   function stagePostingFromLink(text, ctx) {
@@ -43742,7 +43776,7 @@ const CareerRouter = (() => {
     if (/\bcan you (actually |really )?(submit|apply)\b/.test(t) || (/\bwhat (exactly )?can you do\b/.test(t) && /\b(apply|submit|application)\b/.test(t))) {
       const aboutCo = raw.match(/\babout the ([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,2})\s+(?:role|posting|job)\b/);
       const nctx = namedApplyContextOf(ctx);
-      const co = (target && target.company) || (aboutCo && aboutCo[1]) || (nctx && nctx.company) || (ctx.posting && ctx.posting.company) || null;
+      const co = (target && target.company) || (aboutCo && namedRoleCompanyOf(aboutCo[1])) || (nctx && nctx.company) || (ctx.posting && ctx.posting.company) || null;
       const role = (target && target.role) || (nctx && nctx.role) || (ctx.posting && ctx.posting.title) || null;
       const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
       const facts = ["What I can do: prepare the full application for a named role — the tailored resume and the complete packet — run it to an approval card in this conversation, and submit only after your tap on that card, through the browser worker."];

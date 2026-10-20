@@ -279,11 +279,14 @@ Deno.test("WO-033/S2 caps: warm-up 10, then 20, the person's 30, never 31; 90 se
   eq(gmail.sent.length, 10, "first week: at most 10 a day");
   // Past the first week: 20 by default; the 21st refused.
   const day8 = Date.parse("2026-10-22T13:00:00Z");
-  for (let b = 0; b < 2; b++) { await batchOf(store, 10, day8 + b); await turn(store, "send all"); }
+  // WO-091c: an approval lasts 7 days, so the 10 approved on day 0 and never sent are dropped on day 8, not sent; three
+  // fresh batches leave 10 waiting past the cap.
+  for (let b = 0; b < 3; b++) { await batchOf(store, 10, day8 + b); await turn(store, "send all"); }
   const before = gmail.sent.length;
   let last: any;
   for (let k = 0; k < 30; k++) last = await runOutreachSends({ store, sender: gmail, now: day8 + k * 91_000 });
   eq([gmail.sent.length - before, last.refused.daily_cap], [20, 1], "20 a day by default: the 21st is refused");
+  eq(store.dump().drafts.filter((d) => d.result === "expired").length, 10, "day 0's unsent approvals expired on day 8");
   // The person's own 30, through the tool; 31 never.
   const tools = byName(careerTools({ postings: async () => [], outreach: { store } }));
   await rejects(() => tools.set_outreach_limit.run({ per_day: 31 }, { userId: U, threadId: TH, now: day8, state: {}, turn: { message: "raise my limit to 31 a day", added: [] } }), /30 a day is the most, ever/);

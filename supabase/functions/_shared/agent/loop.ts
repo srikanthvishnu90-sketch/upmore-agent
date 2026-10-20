@@ -11,7 +11,9 @@ export type Effect = "read" | "write_own" | "external";
 // `show` (WO-033): a tool whose output the person must read exactly (a batch of outreach drafts, each in full) sets it;
 // the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it. `parts`
 // (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string; parts?: string[] } } }
+// `before` (WO-091b): the previous turn's reply as the person saw it ("" on a first turn), so a tool can check that "the
+// first one" is a posting that reply showed. Undefined only for a caller that runs a tool without the loop's history.
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -19,12 +21,13 @@ export interface ToolSpec {
   effect: Effect;
   run(input: any, ctx: ToolCtx): Promise<unknown>;
 }
-export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number }) =>
+export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number; tool_choice?: { type: "none" } }) =>
   Promise<{ content: any[]; stop_reason: string; usage?: unknown }>;
 export interface TurnResult {
   reply: string;
   steps: number;
-  tool_calls: { name: string; ok: boolean; effect: Effect | null }[];
+  // WO-080: a failed call carries `error`, its reason cleaned by scrubError; a call that ran carries none.
+  tool_calls: { name: string; ok: boolean; effect: Effect | null; error?: string }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error";
   show?: { intent: string; text: string; parts?: string[] };
@@ -64,6 +67,43 @@ export function unbackedClaim(reply: string, calls: { name: string; ok: boolean;
   }
   return null;
 }
+// WO-080: a failed tool call's record carries its reason, so a diagnosis starts from the record, not from the code. The
+// reason is cleaned first: tokens, keys, long secrets, database URLs, secret-carrying query values, emails and phone
+// numbers become [bracketed] placeholders; the words that say what went wrong, and record ids (UUIDs), stay. Pure; at
+// most 300 characters.
+// (What the model is told about the failure is unchanged.)
+export const ERROR_CHARS = 300;
+const SCRUB: [RegExp, string][] = [
+  [/\bpostgres(?:ql)?:\/\/[^\s"'<>]+/gi, "[db-url]"],
+  [/\b(authorization["']?\s*[:=]\s*)(?:(?:Bearer|Basic|Token|Digest)\s+)?[^\s,;)}\]]+/gi, "$1[redacted]"],
+  [/\b(Bearer|Basic)\s+(?=[A-Za-z0-9._~+\/=-]*\d)[A-Za-z0-9._~+\/=-]{8,}/gi, "$1 [token]"],
+  [/\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+/g, "[jwt]"],
+  [/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{12,}/g, "[key]"],
+  [/\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, "[key]"],
+  [/([?&#][^=&\s#"']*(?:secret|token|key|password|passwd|sig|signature|auth|code)[^=&\s#"']*=)[^&\s#"']*/gi, "$1[redacted]"],
+  [/\b((?:api[_-]?key|apikey|password|passwd|pwd|secret|token|access[_-]?token|refresh[_-]?token|authorization|client[_-]?secret)["']?\s*[:=]\s*)(?!\[)(?:"[^"]*"|'[^']*'|[^\s,;)}\]]+)/gi, "$1[redacted]"],
+  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g, "[email]"],
+  [/(?<![\w.\/-])\+\d{1,3}[\s.-]?(?:\(\d{1,4}\)|\d{1,4})(?:[\s.-]?\d{2,4}){2,4}(?![\w-])/g, "[phone]"],
+  [/(?<![\w.\/-])(?:\([2-9]\d{2}\)|[2-9]\d{2})[\s.-]?\d{3}[\s.-]?\d{4}(?![\w-])/g, "[phone]"],
+  [/\b[A-Fa-f0-9]{24,}\b/g, "[secret]"],
+  [/(?<![A-Za-z0-9+\/_-])(?![0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?![A-Za-z0-9+\/_-]))(?=[A-Za-z0-9+\/_-]*\d)(?=[A-Za-z0-9+\/_-]*[A-Za-z])[A-Za-z0-9+\/_-]{24,}={0,2}/g, "[secret]"],
+];
+function errorText(e: unknown): string {
+  if (e instanceof Error) return e.message || e.name;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && typeof (e as { message?: unknown }).message === "string") return (e as { message: string }).message;
+  try { return JSON.stringify(e) ?? String(e); } catch { return String(e); }
+}
+export function scrubError(text: string): string {
+  let s = errorText(text);
+  for (const [re, to] of SCRUB) s = s.replace(re, to);
+  s = s.replace(/\s+/g, " ").trim();
+  return s.length > ERROR_CHARS ? `${s.slice(0, ERROR_CHARS - 1)}…` : s;
+}
+// WO-085: a refusal that means "the next move is the person's" (a resume waiting on their yes). The model reads its
+// message like any refusal; the loop then forbids tools on the next call, so the model writes the question and the turn
+// ends on its words, never on max steps.
+export class AskPerson extends Error {}
 const MAX_TOKENS = 1200;
 const RESULT_CHARS = 12000; // a tool result larger than this is cut, and the cut is said
 
@@ -79,13 +119,16 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
-  o.ctx.turn = { message: o.message, added: [] };
+  const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
+  const before = !last ? "" : typeof last.content === "string" ? last.content
+    : Array.isArray(last.content) ? last.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : "";
+  o.ctx.turn = { message: o.message, added: [], before };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
-  let steps = 0, checked = false;
+  let steps = 0, checked = false, ask = false;
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS }); }
+    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -110,7 +153,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     const results: any[] = [];
     for (const u of uses) {
       const t = byName.get(u.name);
-      const fail = (effect: Effect | null, msg: string) => { tool_calls.push({ name: u.name, ok: false, effect }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
+      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => { tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
       if (!t) { fail(null, `unknown tool: ${u.name}`); continue; }
       const input = u.input && typeof u.input === "object" ? u.input : {};
       const missing = (t.input_schema.required || []).filter((k) => input[k] === undefined || input[k] === null || input[k] === "");
@@ -125,7 +168,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         const out = await t.run(input, o.ctx);
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
-      } catch (e) { fail(t.effect, e instanceof Error ? e.message : String(e)); }
+      } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
   }

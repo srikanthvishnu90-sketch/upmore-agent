@@ -46,8 +46,49 @@ export function quotedFrom(message: string, quote: string): boolean {
   const q = plain(quote);
   return q.split(" ").filter(Boolean).length >= 2 && ` ${plain(message)} `.includes(` ${q} `);
 }
+// WO-091b (audit chat-brain F4, BR-084): a standing instruction goes into every later turn's system prompt as something
+// to follow, so one that waives the person's approval ("autopilot", "don't ask me", "without asking"), or asks for an act
+// Trainee never does (sharing their resume on its own, passwords or one-time codes, LinkedIn or Indeed automation), is
+// never kept (D-007). Narrow on purpose: "don't ask me about relocation again" and "ask me before weekends" are kept.
+export const STANDING_REFUSED = "Not kept: every application and message still needs your yes on its card.";
+// Waivers of the person's yes: refused however they are worded around.
+const WAIVES: RegExp[] = [
+  // "don't ask me", "stop asking me first", "no need to ask for approval": the clause ends there; "about relocation" does not.
+  /\b(don'?t|do not|never|no need to|stop|quit) (ask|asking|check with|checking with|confirm with|wait for|waiting for)( me)?( (first|before \w+|for (approval|permission|confirmation|a yes|my (ok|okay|yes|approval|permission))))?\s*($|[.,;:!]|\band\b|\bjust\b)/i,
+  /\b(skip|no|without) (the |any |my )?(approval|approvals|card|cards|confirmation|confirmations|sign[- ]?off)\b/i,
+  // "just send it", "just submit them": the clause ends there.
+  /\bjust (send|submit|apply)( it| them| those| these| everything| all)?\s*($|[,:]|\band\b)/i,
+];
+// Acts Trainee never does on a standing word, kept only when the person says never to ("never auto-apply", "don't share
+// my resume with agencies", "never ask me for my password"). "without asking" is one: "never apply without asking me" is kept.
+const ACTS: RegExp[] = [
+  /\bauto[\s-]?(pilot|apply|applying|applies|submit|submitting|submits|send|sending|sends)\b/i,
+  /\bwithout (asking|checking|confirming|approval|permission|confirmation|review|my (approval|ok|okay|yes|permission|review|sign[- ]?off|say[- ]?so))\b/i,
+  /\b(apply|applying|submit|submitting|send|sending|email|emailing|message|messaging)\b[^.;]{0,40}\b(automatically|on (my|your) own)\b/i,
+  /\b(share|send|give|forward) my (resume|cv)\b[^.;]{0,60}\bwith\b/i,
+  /\b(password|passcode|one[- ]time (code|password|passcode)|otp|verification code|2fa|two[- ]factor|login code|security code|sms code)\b/i,
+  // LinkedIn or Indeed with an act on it ("easy apply on LinkedIn", "message recruiters on LinkedIn"); "no LinkedIn postings" is a preference.
+  /\b(apply|applying|easy apply|message|messaging|dm|connect|connecting|submit|auto\w*|log ?in|sign ?in|scrape|scraping)\b[^.;]{0,60}\b(linkedin|indeed)\b|\b(linkedin|indeed)\b[^.;]{0,60}\b(apply|applying|easy apply|message|messaging|dm|connect|connecting|submit|auto\w*|log ?in|sign ?in|scrape|scraping)\b/i,
+];
+// A "never" close before the act, with no comma between ("I don't care, auto-apply" is not a never).
+const NEVER_BEFORE = /\b(never|don'?t|do not|not|no|avoid)\b(\s+[\w']+){0,4}\s*$/i;
+export function standingRefusal(...texts: string[]): string | null {
+  for (const raw of texts) {
+    for (const clause of String(raw ?? "").replace(/[’]/g, "'").split(/[.;!?\n]+/)) {
+      if (!clause.trim()) continue;
+      if (WAIVES.some((re) => re.test(clause))) return STANDING_REFUSED;
+      for (const re of ACTS) {
+        const m = re.exec(clause);
+        if (m && !NEVER_BEFORE.test(clause.slice(0, m.index))) return STANDING_REFUSED;
+      }
+    }
+  }
+  return null;
+}
 export function addStanding(items: Standing[], o: { text: string; said: string; now: number }): { ok: true; item: Standing; items: Standing[] } | { ok: false; error: string } {
   const text = String(o.text ?? "").replace(/\s+/g, " ").trim(), said = String(o.said ?? "").replace(/\s+/g, " ").trim();
+  const refused = standingRefusal(text, said);
+  if (refused) return { ok: false, error: refused };
   if (!text || text.length > STANDING_TEXT) return { ok: false, error: `say the instruction in 1 to ${STANDING_TEXT} characters` };
   if (said.length > STANDING_QUOTE) return { ok: false, error: `quote at most ${STANDING_QUOTE} characters of their message` };
   const same = items.find((x) => plain(x.text) === plain(text));

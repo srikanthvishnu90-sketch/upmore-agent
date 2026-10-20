@@ -30,6 +30,11 @@
       "by": "the architect, WO-055, 2026-10-20, after sealed sample D was scored once by an independent reviewer (who read the persona, each posting's location and the fills)",
       "fields": ["greenhouse-wppmedia question_18820180008 (What are your salary expectations?, text): salary_expectation -> null", "ashby-airwallex 37f9cdbb-c5c4-495e-876e-593908d37fe6 (Salary Expectations, text): salary_expectation -> null"],
       "why": "The persona's 95000 is an annual US salary. WPP Media's posting is in London, United Kingdom, and Airwallex's in HK - Hong Kong SAR: a bare 95000 typed into their pay box reads as pounds or Hong Kong dollars, and a US expectation is not the person's expectation for a job in another country. The review of sample D judged every such fill wrong (Faculty AI, Lovable, loveholidays, think-cell); the key had read these without the posting's location. Neither is a held-out form."
+    },
+    {
+      "by": "the architect, WO-056, 2026-10-20, after sealed sample E was scored once by an independent reviewer (who read the persona, each posting's location and the fills)",
+      "fields": ["greenhouse-spacex question_37413373002[] (Active Security Clearance(s), a list with \"Expired Clearance\" and \"Never held a clearance\"): security_clearance -> null", "greenhouse-andurilindustries question_9753044007 (CONFLICT OF INTEREST, Yes/No): non_compete -> null", "greenhouse-wppmedia question_18820177008 (Have you previously worked at a WPP Agency?): former_employers -> null"],
+      "why": "The persona holds no clearance now; it does not say whether one was ever held, and SpaceX's list tells an expired clearance from never holding one (sample E's reviewer judged K2 Space's identical list not settled). A conflict of interest is not a non-compete: the persona states neither way. \"A WPP agency\" is any company in WPP's group: the person's own employer list does not say whether one of theirs was, as sample D's reviewer judged Aprio's alliance and Inizio's ecosystem. greenhouse-spacex is a held-out form: the change comes from the review of sample E, not from tuning on it."
     }
   ],
   "split": {
@@ -118,7 +123,7 @@
       "question_37413370002": "test_scores",
       "question_37413371002": "test_scores",
       "question_37413372002": "test_scores",
-      "question_37413373002[]": "security_clearance",
+      "question_37413373002[]": null,
       "question_37413374002": { "fact": "former_employers", "expect": "No" },
       "question_37413375002": "essential_functions",
       "question_37413376002": "work_authorization",
@@ -153,7 +158,7 @@
       "question_9753041007": "us_person",
       "question_9753042007": { "fact": "former_employers", "expect": "No" },
       "question_9753043007": { "fact": "former_employers", "expect": "No" },
-      "question_9753044007": "non_compete",
+      "question_9753044007": null,
       "question_12415488007": null,
       "question_9753998007": null,
       "question_9755019007": null,
@@ -177,7 +182,7 @@
       "question_18820174008": "website",
       "question_18820175008": { "fact": "former_employers", "expect": "No" },
       "question_18820176008": null,
-      "question_18820177008": { "fact": "former_employers", "expect": "No" },
+      "question_18820177008": null,
       "question_18820178008": null,
       "question_18820179008": null,
       "question_18820180008": null,

@@ -136,6 +136,11 @@ export function classifyField(label: string, type: string): string {
     // "a visa that does NOT require sponsorship" asks the opposite of the sponsorship fact: ask the person. Only the
     // question itself counts (up to its "?"): a note after it ("you must be authorized without sponsorship") does not.
     if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
+    // WO-056: "Are you currently authorized to work in the United States? We DO assist with visa sponsorship" asks the
+    // authorization: a question that names no sponsorship or visa before its "?" is not the sponsorship question.
+    if (key === "sponsorship" && l.includes("?") && !/sponsor|visa/i.test(l.split("?")[0])) continue;
+    // The name of the employee who referred them is not how they heard about the job.
+    if (key === "how_heard" && /\breferring (employee|person)\b|\bwho referred you\b|\bname of (the )?(person|employee) who referred\b/i.test(l)) continue;
     // "authorized to work WITHOUT sponsorship?" needs both facts at once (authorized now, sponsorship later): ask.
     if (key === "work_authorization" && /sponsor/i.test(l.split("?")[0])) continue;
     return key;
@@ -220,9 +225,13 @@ const BEYOND_FACT: [string[], RegExp][] = [
   [["school"], /\bcurrently (attending|enrolled)\b|\bare you (currently )?(attending|enrolled)\b|\byou are attending\b/i],
   [["school", "major", "education_level", "graduation_date"], /\bsecond[- ](highest|most recent)\b|\b2nd\b|\bother than your highest\b|\badditional (degree|qualification)\b/i],
   [["relocation", "job_relocation"], /\b(need|have|required?) to relocate\b/i], // whether moving is needed, not whether they would
-  [["us_person"], /\bclearance\b/i], // able to obtain a clearance is its own fact
+  // able to obtain or hold a clearance is its own fact; "U.S. person status and/or clearance eligibility" is met by being one
+  [["us_person"], /\b(obtain|maintain|hold|get|qualify for|eligible for)\b[^?]{0,40}\bclearance\b/i],
   // work through a vendor or an agency is not on the person's own list of employers; a contractor's is
-  [["worked_here_before"], /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\bfor an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i],
+  [["worked_here_before"], /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\b(for|at) an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i],
+  // WO-056: a question for those who served ("If you've previously served in the U.S. Armed Forces: ...") is not the
+  // person's "no government employment"; its "Not Applicable" is theirs to pick.
+  [["government_employment"], /\bif you('ve| have)? (previously |ever )?served\b|\bauthori[sz]e the release\b/i],
   [["applied_before"], /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i],
 ];
 // An answer to a question the person's fact does not answer at this posting (above) is this posting's alone: it is stored
@@ -232,9 +241,11 @@ export function factStaysHere(q: { label: string; type: string; options?: { labe
   const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
   return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
 }
-export function beyondFact(fact: string, f: { label: string; type: string }): boolean {
+export function beyondFact(fact: string, f: { label: string; type: string; options?: { label: string }[] }): boolean {
   // A "select all that apply" list about where they live and would move is answered as a whole, by the person.
   if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
+  // WO-056: "no clearance" does not say whether one was held before, where the list tells "Expired" from "Never held".
+  if (fact === "security_clearance" && (f.options ?? []).some((o) => /\b(expired|inactive|previously held|lapsed)\b/i.test(o.label))) return true;
   return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
 }
 
@@ -302,8 +313,11 @@ function payShape(f: FormField, value: string, fact: string, answers: Record<str
 const WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
 // The question a label asks: its last sentence that asks something ("...without sponsorship. Will you require
 // sponsorship?" asks the second; WO-055, sample D). A label cut off before its "?" asks in its last sentence.
+// WO-056: an abbreviation ("U.S.", "e.g.", "i.e.") does not end a sentence ("If you've previously served in the U.S. Armed
+// Forces: ... authorize the release ...?" is one question).
 const askedPart = (label: string) => {
-  const parts = label.split(/(?<=[.?!])\s+/).filter((x) => x.trim());
+  const kept = label.replace(/\b(?:[A-Za-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024"));
+  const parts = kept.split(/(?<=[.?!])\s+/).filter((x) => x.trim()).map((x) => x.replace(/\u2024/g, "."));
   return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? label;
 };
 function authorizedWithoutSponsorship(answers: Record<string, Answer>): Answer | null {

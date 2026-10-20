@@ -1,0 +1,237 @@
+{
+ "note": "WO-056: every fill an independent reviewer (who read only the persona, each posting's location and the fills, never the code) judged wrong or not settled on sealed sample E (captured by CI run 39429820358, 2026-10-20, scored once on trunk f23d3d81, now spent). Each must no longer get the answer it got. Labels are as the reviewer saw them (whitespace collapsed, at most 700 characters); options are the first 60.",
+ "cases": [
+  {
+   "audit_id": "E1-29",
+   "verdict": "wrong",
+   "company": "SharkNinja",
+   "location": "Needham, MA, United States",
+   "type": "multi_value_single_select",
+   "label": "You can choose to receive recruitment marketing communications from us, including updates on job opportunities, career advice, and recruitment events. Select yes if you wish to receive email communications from our recruitment team. You can update your preferences or withdraw consent at any time. To learn more about how we handle your personal data including your rights, and how to opt out of marketing please visit ouhttps://sharkninja.com/candidate-privacy-notice/",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Opts into recruitment marketing email; the applicant declined marketing opt-in."
+  },
+  {
+   "audit_id": "E1-79",
+   "verdict": "wrong",
+   "company": "Momentum",
+   "location": "Dallas, Texas",
+   "type": "multi_value_single_select",
+   "label": "I consent to have my personal data disclosed to other Momentum Group entities to be considered for all open positions that fit my profile.",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Consent to share data with other group entities is an agreement beyond privacy/certify/AI-use; not agreed."
+  },
+  {
+   "audit_id": "E1-105",
+   "verdict": "wrong",
+   "company": "K2 Space",
+   "location": "Seattle, WA",
+   "type": "multi_value_single_select",
+   "label": "We value in-person collaboration, and this role requires in-office presence 3 days per week with periodic travel to K2's headquarters in Torrance, CA. Are you able to support this hybrid expectation?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Requires in-office 3 days/week in Seattle; applicant lives in Chicago and will not relocate."
+  },
+  {
+   "audit_id": "E1-107",
+   "verdict": "not_settled",
+   "company": "K2 Space",
+   "location": "Seattle, WA",
+   "type": "multi_value_single_select",
+   "label": "Active Security Clearance(s)",
+   "options": [
+    "Top Secret SCI with Polygraph",
+    "Top Secret SCI/SAP",
+    "Top Secret",
+    "Secret",
+    "DOE Level Q",
+    "Expired clearance",
+    "Never held a clearance",
+    "Do not wish to disclose"
+   ],
+   "was": "Never held a clearance",
+   "why": "Persona says holds no clearance now, not whether one was ever held (expired vs never)."
+  },
+  {
+   "audit_id": "E1-114",
+   "verdict": "wrong",
+   "company": "iCapital Network",
+   "location": "New York, New York, United States",
+   "type": "input_text",
+   "label": "What is your desired total annual compensation when considering an equity award? Please specify the amount and currency.",
+   "options": [],
+   "was": "USD ($)",
+   "why": "Asks for a total-comp amount; 'USD ($)' gives no amount and no total-comp figure is stated."
+  },
+  {
+   "audit_id": "E1-115",
+   "verdict": "wrong",
+   "company": "iCapital Network",
+   "location": "New York, New York, United States",
+   "type": "input_text",
+   "label": "If \"Employee Referral\" was selected for \"How did you hear about this job?\" please type the full name of the referring employee. If not, please type in \"N/A\".",
+   "options": [],
+   "was": "Company website",
+   "why": "Not referred, so the field should be 'N/A', not 'Company website'."
+  },
+  {
+   "audit_id": "E1-117",
+   "verdict": "wrong",
+   "company": "iCapital Network",
+   "location": "New York, New York, United States",
+   "type": "input_text",
+   "label": "What is your desired bonus expectation? Please specify the amount and currency.",
+   "options": [],
+   "was": "USD ($)",
+   "why": "Asks for a bonus amount; 'USD ($)' is not an answer and no bonus figure is stated."
+  },
+  {
+   "audit_id": "E2-123",
+   "verdict": "not_settled",
+   "company": "Rhombus Power",
+   "location": "Palo Alto, California, United States",
+   "type": "multi_value_single_select",
+   "label": "Are you aware of any information that could be considered a conflict of interest, either actual or perceived, if you were to work for a DoD contractor?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Persona says nothing about conflicts of interest relevant to a DoD contractor."
+  },
+  {
+   "audit_id": "E2-126",
+   "verdict": "wrong",
+   "company": "Rhombus Power",
+   "location": "Palo Alto, California, United States",
+   "type": "multi_value_single_select",
+   "label": "If you've previously served in the U.S. Armed Forces: As part of the application process, are you willing to voluntarily authorize the release of documentation verifying any prior separation from the U.S. Armed Forces, including records related to discharge, retirement, or termination of service?",
+   "options": [
+    "Yes",
+    "No",
+    "Not Applicable"
+   ],
+   "was": "No",
+   "why": "Applicant never served in the U.S. Armed Forces (full employer list, no government employment), so the answer is 'Not Applicable', not 'No'."
+  },
+  {
+   "audit_id": "E2-192",
+   "verdict": "wrong",
+   "company": "Mastery Charter Schools",
+   "location": "Philadelphia, PA",
+   "type": "select",
+   "label": "Which state granted your certification(s)?",
+   "options": [
+    "New Jersey",
+    "Pennsylvania",
+    "Not Applicable",
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
+    "Outside United States"
+   ],
+   "was": "Illinois",
+   "why": "Applicant holds no certifications, so the answer is 'Not Applicable', not 'Illinois'."
+  },
+  {
+   "audit_id": "E2-206",
+   "verdict": "not_settled",
+   "company": "Pogo Technologies, Inc.",
+   "location": "United States/Canada",
+   "type": "checkbox",
+   "label": "Have you worked at a startup or quant firm? (i.e., internship, part-time, etc)",
+   "options": [],
+   "was": "no",
+   "why": "Persona does not say whether Example Analytics or Sample Retail is a startup or quant firm."
+  },
+  {
+   "audit_id": "E2-207",
+   "verdict": "not_settled",
+   "company": "Pogo Technologies, Inc.",
+   "location": "United States/Canada",
+   "type": "checkbox",
+   "label": "Are you open to working fully remote, with occasional travel for team offsites?",
+   "options": [],
+   "was": "yes",
+   "why": "Persona states on-site and travel willingness but nothing about openness to fully remote work."
+  },
+  {
+   "audit_id": "E2-211",
+   "verdict": "wrong",
+   "company": "Retell AI",
+   "location": "San Francisco Bay Area",
+   "type": "checkbox",
+   "label": "Are you currently authorized to work in the United States? Retell AI DOES assist with visa sponsorship, so please feel free to share your current status.",
+   "options": [],
+   "was": "No",
+   "why": "Applicant is authorized to work in the US; 'No' is false."
+  },
+  {
+   "audit_id": "E2-240",
+   "verdict": "wrong",
+   "company": "Niural",
+   "location": "Niural Nepal",
+   "type": "text",
+   "label": "Expected Salary",
+   "options": [],
+   "was": "95000",
+   "why": "Uses the applicant's US pay figure with no currency for a job in Nepal; no expectation for that country is stated."
+  }
+ ]
+}

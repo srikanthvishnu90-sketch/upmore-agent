@@ -101,7 +101,10 @@ Deno.test("WO-020/F6 fill coverage meets the bar and the committed report is tod
   // what a fact says is asked. 22 required fills on A and B were of these: 20 at postings in London, Dublin, Madrid,
   // Munich, Stockholm, Singapore, Sydney, Shanghai, Dubai, Hong Kong, India, Toronto and Latin America, and 2 beyond the
   // fact (a firm in Aprio's alliance; a vendor at Woven by Toyota): A 76.7% -> 75.3% (ready 24 -> 21), B 78.2% -> 77.2%.
-  assert(a.rate >= 0.752 && b.rate >= 0.772, `${a.rate} ${b.rate}`);
+  // WO-056 (sealed sample E, scored once): 4 more on A are asked: a clearance list that tells "Expired" from "Never held"
+  // (SpaceX, CesiumAstro), a conflict of interest that is not a non-compete (Anduril), "a WPP agency" (any company in
+  // WPP's group, not settled by the person's own list): A 75.3% -> 74.9%; B unchanged.
+  assert(a.rate >= 0.748 && b.rate >= 0.772, `${a.rate} ${b.rate}`);
   assert(a.ready >= 21 && b.ready >= 38, `${a.ready} ${b.ready}`);
   assert(REPORT.includes(`| ${a.postings} | ${a.required} | ${a.filled} (`) && REPORT.includes(`| ${b.postings} | ${b.required} | ${b.filled} (`), "docs/apply/fill-coverage.md is stale: regenerate it");
 });

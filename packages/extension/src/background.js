@@ -9,7 +9,18 @@
  *      'queued_local_only' and the endpoint named NOT_WIRED. Nothing is sent
  *      anywhere by this build — a rail that is not live says so, it never
  *      pretends (repo law). DESIGN.md specifies the real report contract.
+ *
+ * Storage access: chrome.storage.session is trusted-contexts-only by
+ * default in MV3, which silently blocks the content script's coverage and
+ * fill-snapshot writes (found by the trunk install proof in real Chromium,
+ * 2026-10-20 — the jsdom fixture check never exercised this path). The
+ * call below, made from this trusted context, widens session storage to
+ * the content script so the flow the popup drives can actually run.
  */
+try {
+  const p = chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });
+  if (p && typeof p.catch === "function") p.catch(() => { /* session stays trusted-only */ });
+} catch (e) { /* older Chrome without setAccessLevel: session stays trusted-only */ }
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (!msg || msg.type !== "trainee:proof" || !msg.proof) return;
   (async () => {

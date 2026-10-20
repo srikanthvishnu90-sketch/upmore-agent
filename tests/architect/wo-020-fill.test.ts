@@ -97,7 +97,11 @@ Deno.test("WO-020/F6 fill coverage meets the bar and the committed report is tod
   // WO-053: each posting's own location (evals/apply/posting-locations.json) settles what depends on where the job is.
   // 26 fills the review judged without it were wrong there (13 work-rights answers for jobs abroad, 13 yeses to an office
   // in another city for a person who will not relocate): A 78.9% -> 76.7%, B 78.5% -> 78.2%.
-  assert(a.rate >= 0.765 && b.rate >= 0.78, `${a.rate} ${b.rate}`);
-  assert(a.ready >= 24 && b.ready >= 38, `${a.ready} ${b.ready}`);
+  // WO-055 (sealed sample D, scored once): at a job abroad, work rights and pay are that country's, and a question beyond
+  // what a fact says is asked. 22 required fills on A and B were of these: 20 at postings in London, Dublin, Madrid,
+  // Munich, Stockholm, Singapore, Sydney, Shanghai, Dubai, Hong Kong, India, Toronto and Latin America, and 2 beyond the
+  // fact (a firm in Aprio's alliance; a vendor at Woven by Toyota): A 76.7% -> 75.3% (ready 24 -> 21), B 78.2% -> 77.2%.
+  assert(a.rate >= 0.752 && b.rate >= 0.772, `${a.rate} ${b.rate}`);
+  assert(a.ready >= 21 && b.ready >= 38, `${a.ready} ${b.ready}`);
   assert(REPORT.includes(`| ${a.postings} | ${a.required} | ${a.filled} (`) && REPORT.includes(`| ${b.postings} | ${b.required} | ${b.filled} (`), "docs/apply/fill-coverage.md is stale: regenerate it");
 });

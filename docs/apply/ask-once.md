@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci.json` (CI run 39230110480 of question-capture.
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 542/1011 (54%) | 5/99 (5%) |
-| + the 10 most common other questions, answered once | 570/1011 (56%) | 6/99 (6%) |
-| + the 20 most common | 584/1011 (58%) | 9/99 (9%) |
-| + the 40 most common | 604/1011 (60%) | 9/99 (9%) |
+| The standard facts only | 541/1011 (54%) | 4/99 (4%) |
+| + the 10 most common other questions, answered once | 569/1011 (56%) | 5/99 (5%) |
+| + the 20 most common | 583/1011 (58%) | 8/99 (8%) |
+| + the 40 most common | 603/1011 (60%) | 8/99 (8%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
 | greenhouse | 40 | 512 | 258 (50%) | 1 | 2 |
-| lever | 30 | 286 | 136 (48%) | 3 | 5 |
+| lever | 30 | 286 | 135 (47%) | 2 | 4 |
 | ashby | 29 | 213 | 148 (69%) | 1 | 2 |
 
-Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 41/99, at most 5 72/99, most 22.
+Questions left to ask per posting with the standard facts: median 3, none 4/99, at most 2 41/99, at most 5 72/99, most 22.
 
 ## The most common questions the standard facts do not answer
 
@@ -65,4 +65,4 @@ You must be at least 18 years of age or older to work for this employer. | 1 |
 | Are you a Singapore citizen? | 1 |
 | Are you a Singapore permanent resident? | 1 |
 
-Unique unanswered wordings: 447; asked on only one posting: 436.
+Unique unanswered wordings: 448; asked on only one posting: 437.

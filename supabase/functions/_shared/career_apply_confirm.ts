@@ -46,7 +46,7 @@ export function planConfirmations(mails: MailIn[], queue: QueueRow[]): ConfirmPl
     if (!Number.isFinite(at)) continue;
     const hits = rows.filter((r) => {
       const sent = Date.parse(r.submitted_at);
-      return OPEN.has(r.state) && !r.confirmation_hash && fromEmployer(c, { company: r.company, url: r.url ?? undefined }) &&
+      return OPEN.has(r.state) && !r.confirmation_hash && fromEmployer(c, { company: r.company, url: r.url ?? undefined }, m.from) &&
         Number.isFinite(sent) && sent <= at && at - sent <= CONFIRM_WINDOW_DAYS * DAY &&
         (!c.role || !r.title || roleOverlap(r.title, c.role) >= 0.5);
     });

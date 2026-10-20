@@ -297,13 +297,54 @@ export function candidates(mail: Classified, apps: TrackedApp[]): TrackedApp[] {
 }
 // WO-032: the message comes from this employer itself, or from the applicant tracking system it applies through naming
 // it; never from a personal address, a job board, an assessment vendor or any other domain ("Stripe <apply@talent-mail.io>"
-// says Stripe in its name and nothing else does). Used where a message decides something, not just tracks it.
-export function fromEmployer(mail: Classified, app: { company: string; url?: string }): boolean {
-  const domain = mail.domain ?? "";
-  if (!domain || endsWithDomain(domain, [...ASSESSMENT_VENDORS, ...JOB_BOARDS, ...FREE_MAIL])) return false;
-  if (endsWithDomain(domain, ATS)) return !!mail.company && sameCompany(app.company, mail.company);
-  const label = registrableLabel(domain);
-  return sameCompany(app.company, DOMAIN_ALIASES[label] ?? label) || urlSlugs(app.url).includes(label);
+// says Stripe in its name and nothing else does). Used where a message decides something, not just tracks it, so it is
+// stricter than candidates() (architect review of WO-032):
+//   - an ATS sender only from the ATS's own registrable domain (greenhouse-mail.io, never greenhouse.xyz or greenhouse.com),
+//     never a scheduling or e-signature vendor, and naming this employer: its display name or words, or a tenant address
+//     ("jpmc@myworkday.com") that spells the employer or the application's own tenant;
+//   - the employer's own domain: the registrable domain of the employer's own site when the application link is on it
+//     ("careers.acme.co.uk" is acme.co.uk, so acme.com is not Acme's); otherwise the name exactly (no "careers"/"jobs"
+//     suffix: stripecareers.com and stripejobs.net are the scam pattern), or a listed alias, on a common corporate TLD
+//     (never "any TLD": stripe.xyz is not Stripe);
+//   - the application link counts only for its ATS path slug or Workday tenant, never the ATS host's own name.
+const NEVER_CONFIRMS = ["docusign.net", "gem.com", "goodtime.io"];
+const CONFIRMING_ATS = ATS.filter((d) => !NEVER_CONFIRMS.includes(d));
+const CORPORATE_TLD = /^(com|org|net|io|co|ai|edu|gov|us|app|dev|tech|uk|de|fr|ca|au|in|nl|ie|sg|jp|ch|se|es|it|(co|com|org|net|ac|gov|edu)\.[a-z]{2})$/;
+function registrable(domain: string): { label: string; tld: string; full: string } {
+  const parts = domain.toLowerCase().split(".").filter(Boolean);
+  const two = parts.slice(-2).join(".");
+  const n = /^(co|com|org|net|ac|gov|edu)\.[a-z]{2}$/.test(two) && parts.length >= 3 ? 3 : 2;
+  const reg = parts.slice(-n);
+  return { label: reg[0] ?? "", tld: reg.slice(1).join("."), full: reg.join(".") };
+}
+// The ATS path slug (boards.greenhouse.io/stripe) or Workday tenant (jpmc.wd5.myworkdayjobs.com) of an application link,
+// and the employer's own site when the link is not on an ATS.
+function linkOf(url?: string): { slug: string | null; site: string | null } {
+  try {
+    const u = new URL(String(url ?? ""));
+    const host = u.hostname.toLowerCase(), first = (u.pathname.split("/").filter(Boolean)[0] ?? "").toLowerCase();
+    if (/(^|\.)myworkdayjobs\.com$/.test(host)) return { slug: host.split(".")[0], site: null };
+    if (/(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|workable\.com)$/.test(host)) return { slug: first || null, site: null };
+    if (endsWithDomain(host, [...ATS, ...JOB_BOARDS])) return { slug: null, site: null };
+    return { slug: null, site: registrable(host).full };
+  } catch { return { slug: null, site: null }; }
+}
+export function fromEmployer(mail: Classified, app: { company: string; url?: string }, from = ""): boolean {
+  const domain = (mail.domain ?? "").toLowerCase();
+  if (!domain || endsWithDomain(domain, [...ASSESSMENT_VENDORS, ...JOB_BOARDS, ...FREE_MAIL, ...NEVER_CONFIRMS])) return false;
+  const link = linkOf(app.url);
+  if (endsWithDomain(domain, CONFIRMING_ATS)) {
+    const named = !!mail.company && sameCompany(app.company, mail.company);
+    // The sender's own address names the employer only in the tenant form "<tenant>@<ats>" (not "no-reply@").
+    const local = parseFrom(from).local;
+    const tenant = !!local && !AUTOMATED_LOCAL.test(local) && (tenantAgrees(local, app.company) || (!!link.slug && local.replace(/[^a-z0-9]/g, "") === link.slug.replace(/[^a-z0-9]/g, "")));
+    return named || tenant;
+  }
+  const r = registrable(domain);
+  if (link.site) return r.full === link.site;
+  if (!CORPORATE_TLD.test(r.tld)) return false;
+  const alias = DOMAIN_ALIASES[r.label];
+  return collapsed(app.company) === r.label || (!!alias && sameCompany(app.company, alias)) || (!!link.slug && link.slug === r.label);
 }
 export { roleOverlap };
 

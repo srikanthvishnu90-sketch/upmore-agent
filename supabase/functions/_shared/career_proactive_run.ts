@@ -195,7 +195,7 @@ export async function runMail(o: {
         if ((await o.confirm.confirm(p.user_id, c)) !== "confirmed") continue;
         stats.confirmations++;
         if (c.mail_kind !== "received") continue;
-        const text = receiptText({ company: c.company, url: c.url, state: "confirmed", email_confirmed_at: c.mail_at });
+        const text = receiptText({ company: c.company, url: c.url, state: "confirmed", email_confirmed_at: c.mail_at, tz: p.tz });
         if (await o.outbox.enqueue(p.user_id, { key: `status:confirmed:${c.id}`, kind: "status", text, at })) stats.statuses++;
       }
     }

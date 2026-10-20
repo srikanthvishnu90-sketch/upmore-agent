@@ -139,22 +139,23 @@ end $$;
 -- Per portal family, the hand submissions (the person's own computer or extension) the employer's confirmation email
 -- confirmed, out of the 3 the gate asks for: counted exactly as WO-039's career_apply_cloud_open counts them (state
 -- confirmed, the mail confirmation set, and that message's 'received' event filed under the application). awaiting_email
--- counts the ones sent and not yet confirmed.
+-- counts the ones sent and not yet confirmed. The family is derived as career_apply_portal derives it (https only, the
+-- host; anything but the four families is 'other', which the cloud never opens).
 create or replace function public.career_apply_gate_status()
 returns table (family text, confirmed integer, needed integer, met boolean, awaiting_email integer)
 language sql stable security definer set search_path = public, pg_temp as $$
  with hand as (
-  select case
-   when url ~* '^https?://([^/]*\.)?greenhouse\.io(/|$)' then 'greenhouse'
-   when url ~* '^https?://([^/]*\.)?lever\.co(/|$)' then 'lever'
-   when url ~* '^https?://([^/]*\.)?ashbyhq\.com(/|$)' then 'ashby'
-   when url ~* '^https?://([^/]*\.)?smartrecruiters\.com(/|$)' then 'smartrecruiters'
-   when url ~* '^https?://([^/]*\.)?(myworkdayjobs|myworkday|workday)\.com(/|$)' then 'workday'
-   else 'other' end as fam, state, email_confirmed_at
+  select coalesce(case
+   when h ~ '(^|\.)greenhouse\.io$' then 'greenhouse'
+   when h ~ '(^|\.)lever\.co$' then 'lever'
+   when h ~ '(^|\.)ashbyhq\.com$' then 'ashby'
+   when h ~ '(^|\.)smartrecruiters\.com$' then 'smartrecruiters'
+   end, 'other') as fam, state, email_confirmed_at
   , exists (select from public.career_mail_events e where e.user_id = j.user_id and e.application_ref = 'job:' || j.id
      and e.kind = 'received' and not e.flagged and e.message_hash = j.confirmation_mail_hash) as by_mail
-  from public.career_apply_jobs j where source in ('own_computer', 'extension')),
- fams as (select f from unnest(array['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workday']) f
+  from public.career_apply_jobs j, lateral (select lower(substring(j.url from '^https://([^/?#:@]+)(?::[0-9]+)?(?:[/?#]|$)')) as h) x
+  where source in ('own_computer', 'extension')),
+ fams as (select f from unnest(array['greenhouse', 'lever', 'ashby', 'smartrecruiters']) f
           union select fam from hand)
  select fams.f,
   (count(*) filter (where h.state = 'confirmed' and h.email_confirmed_at is not null and h.by_mail))::int,
@@ -163,7 +164,7 @@ language sql stable security definer set search_path = public, pg_temp as $$
   (count(*) filter (where h.state in ('submitted_unconfirmed', 'unknown_outcome')))::int
  from fams left join hand h on h.fam = fams.f
  group by fams.f
- order by array_position(array['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'workday', 'other'], fams.f)
+ order by array_position(array['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'other'], fams.f)
 $$;
 
 -- ------------------------------------------------------------------------------------------------ 3. apply by email
@@ -174,10 +175,11 @@ alter table public.career_postings add constraint career_postings_apply_email_ch
 
 -- The yes to the card shown: the exact payload (its hash is the card's), within a day, under the daily limit, one per
 -- posting and one per company per 30 days (the same rules and lock as career_apply_enqueue). The row is the send's lease:
--- a send that never reports back becomes unknown_outcome and is never sent again.
+-- a send that never reports back becomes unknown_outcome and is never sent again; one Gmail refused (not_submitted:
+-- nothing went) is the one row that a fresh yes may send again.
 create or replace function public.career_apply_email_reserve_for(p_user uuid, p_payload jsonb, p_hash text, p_now timestamptz)
 returns public.career_apply_jobs language plpgsql security definer set search_path = public, extensions, pg_temp as $$
-declare j public.career_apply_jobs; card jsonb; co text; counted text[] := array['queued','driving','confirmed','submitted_unconfirmed','needs_user','unknown_outcome'];
+declare j public.career_apply_jobs; prior public.career_apply_jobs; card jsonb; co text; counted text[] := array['queued','driving','confirmed','submitted_unconfirmed','needs_user','unknown_outcome'];
 begin
  if p_user is null or p_now is null or p_payload is null or p_payload->>'kind' is distinct from 'email' or p_payload->>'version' is distinct from '1'
   or p_payload->>'user_id' is distinct from p_user::text or nullif(p_payload->>'job_id', '') is null or nullif(p_payload->>'company', '') is null
@@ -193,16 +195,26 @@ begin
  select value into card from public.career_watch_kv where user_id = p_user and key = 'career:email-card' for update;
  if card is null or card->>'state' is distinct from 'shown' or card->>'payload_hash' is distinct from p_hash
   or (card->>'shown_at')::timestamptz < p_now - interval '24 hours' then raise exception 'changed_since_yes'; end if;
- if exists (select from public.career_apply_jobs where user_id = p_user and job_id = p_payload->>'job_id') then raise exception 'duplicate_job'; end if;
+ -- One application per posting, except an emailed one Gmail refused (nothing went): a fresh yes may try it once more.
+ select * into prior from public.career_apply_jobs where user_id = p_user and job_id = p_payload->>'job_id' for update;
+ if found and not (prior.state = 'not_submitted' and prior.source = 'email') then raise exception 'duplicate_job'; end if;
  co := trim(regexp_replace(regexp_replace(regexp_replace(replace(lower(p_payload->>'company'),'&',' and '),'[^a-z0-9 ]',' ','g'),'\m(inc|llc|ltd|corp|corporation|co|company|the)\M',' ','g'),'\s+',' ','g'));
  if co <> '' and exists (select from public.career_apply_jobs where user_id = p_user and state = any(counted) and created_at > p_now - interval '30 days'
   and trim(regexp_replace(regexp_replace(regexp_replace(replace(lower(company),'&',' and '),'[^a-z0-9 ]',' ','g'),'\m(inc|llc|ltd|corp|corporation|co|company|the)\M',' ','g'),'\s+',' ','g')) = co) then
   raise exception 'company_cooldown'; end if;
  if (select count(*) from public.career_apply_jobs where user_id = p_user and state = any(counted) and created_at > p_now - interval '1 day')
   >= public.career_apply_daily_limit(p_user) then raise exception 'daily_cap'; end if;
- insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, attempts, claimed_at, lease_token, source, created_at, updated_at)
- values (p_user, p_payload->>'job_id', p_payload->>'company', p_payload->>'url', p_payload, p_hash, p_hash, 'driving', 1, p_now, gen_random_uuid(), 'email', p_now, p_now)
- returning * into j;
+ if prior.id is not null then
+  -- The same tracked application, sent again under a new lease; the refused attempt is kept in its evidence.
+  update public.career_apply_jobs set payload = p_payload, payload_hash = p_hash, approval_hash = p_hash, state = 'driving', attempts = 1,
+   claimed_at = p_now, lease_token = gen_random_uuid(), reason = null, confirmation_id = null,
+   evidence = jsonb_build_object('earlier_attempt', prior.evidence), created_at = p_now, updated_at = p_now
+   where id = prior.id returning * into j;
+ else
+  insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, attempts, claimed_at, lease_token, source, created_at, updated_at)
+  values (p_user, p_payload->>'job_id', p_payload->>'company', p_payload->>'url', p_payload, p_hash, p_hash, 'driving', 1, p_now, gen_random_uuid(), 'email', p_now, p_now)
+  returning * into j;
+ end if;
  update public.career_watch_kv set value = card || jsonb_build_object('state', 'sending', 'application', j.id), updated_at = p_now
   where user_id = p_user and key = 'career:email-card';
  return j;
@@ -254,9 +266,23 @@ language sql stable security definer set search_path = public, pg_temp as $$
                from public.agent_messages m where m.thread_id = p_thread and m.role = 'assistant' order by m.id desc limit 1), false)
 $$;
 
+-- Whitespace as JavaScript's \s sees it (the formatter writes each label with /\s+/ collapsed to one space): the no-break
+-- and other Unicode spaces become plain spaces, then runs collapse and the ends are trimmed.
+create or replace function public.career_text_spaces(t text) returns text
+language plpgsql stable set search_path = pg_catalog as $$
+declare sp text := chr(160);
+begin
+ -- The other Unicode spaces exist only in a UTF8 database (production); chr(160) is the no-break space in either.
+ if getdatabaseencoding() = 'UTF8' then
+  sp := sp || chr(5760) || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196) || chr(8197) || chr(8198) || chr(8199) || chr(8200)
+   || chr(8201) || chr(8202) || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288) || chr(65279);
+ end if;
+ return btrim(regexp_replace(translate(coalesce(t, ''), sp, repeat(' ', length(sp))), '\s+', ' ', 'g'));
+end $$;
+
 -- The questions a preparation left open, texted once: only open questions never pushed, at most one such text a day, as
 -- the thread's last word (intent career_apply_questions) with the questions shown recorded where "what do you need from
--- me" records them, and only when the text carries every question's wording.
+-- me" records them, and only when the text carries every question's wording (spaces compared as the formatter writes them).
 create or replace function public.career_apply_questions_push_for(p_user uuid, p_ids uuid[], p_text text, p_now timestamptz)
 returns boolean language plpgsql security definer set search_path = public, pg_temp as $$
 declare thread uuid;
@@ -271,8 +297,9 @@ begin
   or (select count(*) from public.career_apply_questions where user_id = p_user and id = any(p_ids) and state = 'open' and pushed_at is null)
      <> (select count(distinct x) from unnest(p_ids) x) or (select count(distinct x) from unnest(p_ids) x) <> cardinality(p_ids)
  then return false; end if;
- if exists (select from public.career_apply_questions where id = any(p_ids) and position(btrim(regexp_replace(label, '\s+', ' ', 'g')) in p_text) = 0) then
-  raise exception 'questions text does not carry every question'; end if;
+ -- A text that does not carry every question pushes nothing; it never fails the run (the run would fail every 5 minutes).
+ if exists (select from public.career_apply_questions where id = any(p_ids)
+            and position(public.career_text_spaces(label) in public.career_text_spaces(p_text)) = 0) then return false; end if;
  update public.career_apply_questions set pushed_at = p_now, updated_at = p_now where id = any(p_ids);
  insert into public.agent_messages (thread_id, role, content, meta)
  values (thread, 'assistant', p_text, jsonb_build_object('career', true, 'intent', 'career_apply_questions', 'proactive', true));
@@ -334,7 +361,7 @@ language sql security definer set search_path = public, pg_temp as $$ select pub
 revoke all on function public.career_apply_confirm_as(uuid, uuid, text, text, text, timestamptz), public.career_apply_gate_status(),
  public.career_apply_email_reserve_for(uuid, jsonb, text, timestamptz), public.career_apply_email_finish_for(uuid, uuid, uuid, text, jsonb),
  public.career_apply_email_reserve_as(uuid, jsonb, text), public.career_apply_email_finish_as(uuid, uuid, uuid, text, jsonb),
- public.career_thread_busy(uuid, uuid, timestamptz),
+ public.career_thread_busy(uuid, uuid, timestamptz), public.career_text_spaces(text),
  public.career_apply_questions_push_for(uuid, uuid[], text, timestamptz), public.career_apply_questions_push_as(uuid, uuid[], text),
  public.career_apply_confirm_ask_push_for(uuid, text, text, timestamptz), public.career_apply_confirm_answer_for(uuid, text, integer, timestamptz),
  public.career_apply_confirm_ask_push_as(uuid, text, text), public.career_apply_confirm_answer_as(uuid, text, integer)

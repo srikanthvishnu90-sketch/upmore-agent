@@ -33,13 +33,16 @@ export interface EmailPayload {
   attachment: { filename: string; sha256: string; size: number; tailored: boolean };
   resume_sha256: string; resume_tailored: boolean; // WO-028's tag on the tracked application reads these
 }
-export interface EmailCard { payload: EmailPayload; payload_hash: string; state: "shown" | "sending" | "sent" | "failed" | "declined"; shown_at: string; thread: string; application?: string }
+// Each card shown has its own id; the turn that shows it writes that id into the thread's last word (meta.email_card),
+// and a yes counts only for the card that last word names. A change, or a card shown again, is a new id.
+export interface EmailCard { id: string; payload: EmailPayload; payload_hash: string; state: "shown" | "sending" | "sent" | "failed" | "declined"; shown_at: string; thread: string; application?: string }
+export interface EmailTurn { reply: string; status: string; waiting: boolean; card_id?: string }
 export interface Profile { facts?: unknown[]; basics?: { name?: string | null } | null }
 export interface EmailStore {
   postings(company: string): Promise<EmailPosting[]>; // open postings that take an emailed application, at that company
   card(userId: string): Promise<EmailCard | null>;
   setCard(userId: string, c: EmailCard): Promise<void>;
-  lastAssistantIntent(threadId: string): Promise<string | null>;
+  lastAssistant(threadId: string): Promise<{ intent: string | null; meta: Record<string, unknown> } | null>;
   // career_apply_email_reserve_as: throws changed_since_yes, duplicate_job, company_cooldown or daily_cap.
   reserve(userId: string, payload: EmailPayload, hash: string): Promise<{ id: string; lease_token: string }>;
   finish(userId: string, id: string, lease: string, state: "submitted_unconfirmed" | "not_submitted" | "unknown_outcome", evidence: Record<string, unknown>): Promise<void>;
@@ -128,12 +131,25 @@ export async function prepareEmail(o: { userId: string; posting: EmailPosting; p
 }
 
 // The whole email, as it will go. Plain text; nothing on the card that the email does not carry.
+// Whether the address is on the employer's own domain: the registrable domain of the posting's own site (when the link is
+// not an ATS page), or the employer's name as the domain. When it is not, the card says so in one line; the person checks.
+const regOf = (host: string) => host.toLowerCase().split(".").filter(Boolean).slice(-2).join(".");
+const ATS_LINK = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|myworkdayjobs\.com|workable\.com|icims\.com|jobvite\.com|bamboohr\.com)$/;
+export function onEmployerDomain(p: { to: string; company: string; url: string }): boolean {
+  const toReg = regOf(p.to.split("@")[1] ?? "");
+  let site = "";
+  try { const h = new URL(p.url).hostname; site = ATS_LINK.test(h) ? "" : regOf(h); } catch { /* no site */ }
+  const key = String(p.company).toLowerCase().replace(/&/g, " ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t) => t && !/^(inc|llc|ltd|corp|co|the)$/.test(t));
+  const label = toReg.split(".")[0] ?? "";
+  return (!!site && toReg === site) || (!!label && (label === key.join("") || label === key[0]));
+}
 export function emailCardText(p: EmailPayload, changed = false): string {
   return [
     changed
       ? `Changed. Here is the whole email again; nothing is sent until you say yes to this version.`
       : `${clip(p.company, 80)}'s posting asks for applications by email. Here is the whole email; nothing is sent until you say yes.`,
     `To: ${p.to}`,
+    ...(onEmployerDomain(p) ? [] : [`This address is not on ${clip(p.company, 80)}'s domain; check it against the posting.`]),
     `Subject: ${p.subject}`,
     `Attached: ${p.attachment.filename}${p.attachment.tailored ? " (tailored for this job)" : ""}`,
     "",
@@ -150,56 +166,68 @@ const REFUSED: Record<string, string> = {
   duplicate_job: "you already applied to this posting",
   changed_since_yes: "the email changed after you saw it, so your yes was not for this version",
 };
-export async function emailTurn(o: { message: string; userId: string; threadId: string; now: number; deps: EmailDeps }): Promise<{ reply: string; status: string } | null> {
+export async function emailTurn(o: { message: string; userId: string; threadId: string; now: number; deps: EmailDeps }): Promise<EmailTurn | null> {
   const r = parseEmailReply(o.message);
   if (!r) return null;
   const s = o.deps.store;
+  const at = new Date(o.now).toISOString();
+  const show = async (card: Omit<EmailCard, "id" | "state" | "shown_at" | "thread">, lead: string | null): Promise<EmailTurn> => {
+    const c: EmailCard = { ...card, id: crypto.randomUUID(), state: "shown", shown_at: at, thread: o.threadId };
+    await s.setCard(o.userId, c);
+    const text = emailCardText(c.payload, lead === "changed");
+    return { reply: lead && lead !== "changed" ? `${lead}\n\n${text}` : text, status: "shown", waiting: true, card_id: c.id };
+  };
+  const done = (reply: string, status: string): EmailTurn => ({ reply, status, waiting: false });
   if (r.kind === "apply") {
+    // A new request replaces any card still waiting: a later yes is never for an email shown before this request.
+    const old = await s.card(o.userId);
+    if (old && old.state === "shown") await s.setCard(o.userId, { ...old, state: "declined" });
     const found = (await s.postings(r.company)).filter((p) => p.apply_email && sameCompany(p.company, r.company))
       .filter((p) => !r.title || roleOverlap(p.title, r.title) >= 0.5);
-    if (!found.length) return { reply: `I don't see an open posting at ${clip(r.company, 80)} that asks for applications by email.`, status: "none" };
+    if (!found.length) return done(`I don't see an open posting at ${clip(r.company, 80)} that asks for applications by email.`, "none");
     if (found.length > 1) {
       const titles = found.slice(0, 5).map((p, i) => `${i + 1}. ${clip(p.title, 80)}`);
-      return { reply: [`${clip(found[0].company, 80)} has ${found.length} postings that take applications by email:`, ...titles, `Say "apply by email to ${clip(found[0].company, 80)} for" and the title.`].join("\n"), status: "which" };
+      return done([`${clip(found[0].company, 80)} has ${found.length} postings that take applications by email:`, ...titles, `Say "apply by email to ${clip(found[0].company, 80)} for" and the title.`].join("\n"), "which");
     }
     const resume = await o.deps.resume(o.userId, found[0]);
     const prep = await prepareEmail({ userId: o.userId, posting: found[0], profile: o.deps.profile(), resume, draft: o.deps.draft });
-    if (!prep.ok) return { reply: prep.reply, status: prep.status };
-    await s.setCard(o.userId, { payload: prep.payload, payload_hash: prep.hash, state: "shown", shown_at: new Date(o.now).toISOString(), thread: o.threadId });
-    return { reply: emailCardText(prep.payload), status: "shown" };
+    if (!prep.ok) return done(prep.reply, prep.status === "NOT_WIRED" ? "no_resume" : prep.status);
+    return await show({ payload: prep.payload, payload_hash: prep.hash }, null);
   }
-  // A yes, a no or a change counts only while the email card is this thread's last word, and only for a day.
+  // A yes, a no or a change counts only for the card the thread's last word showed (its id), and only for a day.
   let card: EmailCard | null;
   try {
-    if ((await s.lastAssistantIntent(o.threadId)) !== EMAIL_INTENT) return null;
+    const last = await s.lastAssistant(o.threadId);
+    if (!last || last.intent !== EMAIL_INTENT || typeof last.meta?.email_card !== "string") return null;
     card = await s.card(o.userId);
+    if (!card || card.id !== last.meta.email_card) return null;
   } catch (e) {
     console.error("email card: not read", e instanceof Error ? e.message : String(e));
     return null;
   }
-  if (!card || card.state !== "shown" || card.thread !== o.threadId) return null;
-  if (Date.parse(card.shown_at) < o.now - DAY) return { reply: `That email is more than a day old, so nothing was sent. Say "apply by email to ${clip(card.payload.company, 80)}" for a fresh one.`, status: "expired" };
+  if (card.state !== "shown" || card.thread !== o.threadId) return null;
+  const co = clip(card.payload.company, 80);
+  if (Date.parse(card.shown_at) < o.now - DAY) return done(`That email is more than a day old, so nothing was sent. Say "apply by email to ${co}" for a fresh one.`, "expired");
   if (r.kind === "no") {
     await s.setCard(o.userId, { ...card, state: "declined" });
-    return { reply: "Dropped. Nothing was sent.", status: "declined" };
+    return done("Dropped. Nothing was sent.", "declined");
   }
   if (r.kind === "subject" || r.kind === "body") {
     const value = r.kind === "subject" ? clean(r.value, 200).replace(/\n+/g, " ") : clean(r.value, 5000);
-    if (!value) return { reply: `That ${r.kind} is empty, so nothing changed.`, status: "shown" };
+    if (!value) return { reply: `That ${r.kind} is empty, so nothing changed.`, status: "shown", waiting: true, card_id: card.id };
     const payload = { ...card.payload, [r.kind]: value } as EmailPayload;
-    const hash = await hashApplyPayload(payload);
-    await s.setCard(o.userId, { ...card, payload, payload_hash: hash, shown_at: new Date(o.now).toISOString() });
-    return { reply: emailCardText(payload, true), status: "shown" };
+    return await show({ payload, payload_hash: await hashApplyPayload(payload) }, "changed");
   }
   // The yes: exactly the payload on the card, checked by its hash here and again by the database.
   const hash = await hashApplyPayload(card.payload);
-  if (hash !== card.payload_hash) return { reply: `Not sent: ${REFUSED.changed_since_yes}.`, status: "changed" };
+  if (hash !== card.payload_hash) return done(`Not sent: ${REFUSED.changed_since_yes}.`, "changed");
   if (!(await o.deps.canSend(o.userId))) {
-    return { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED" };
+    // The card stays this thread's last word: once Gmail is connected, a yes sends it.
+    return { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED", waiting: true, card_id: card.id };
   }
   const resume = await o.deps.attachment(o.userId, card.payload.attachment.sha256);
   if (!resume || resume.sha256 !== card.payload.attachment.sha256 || (await sha(resume.bytes)) !== resume.sha256) {
-    return { reply: `Not sent: your resume file is not the one on this email. Say "apply by email to ${clip(card.payload.company, 80)}" for a fresh one.`, status: "resume_changed" };
+    return done(`Not sent: your resume file is not the one on this email. Say "apply by email to ${co}" for a fresh one.`, "resume_changed");
   }
   let job: { id: string; lease_token: string };
   try {
@@ -208,24 +236,25 @@ export async function emailTurn(o: { message: string; userId: string; threadId: 
     const msg = e instanceof Error ? e.message : String(e);
     const why = Object.keys(REFUSED).find((k) => msg.includes(k));
     if (!why) throw e;
-    return { reply: `Not sent: ${REFUSED[why]}. Nothing went to ${clip(card.payload.company, 80)}.`, status: why };
+    return done(`Not sent: ${REFUSED[why]}. Nothing went to ${co}.`, why);
   }
   const p = card.payload;
   const res = await o.deps.send(o.userId, { to: p.to, subject: p.subject, body: p.body, attachment: { filename: p.attachment.filename, bytes: resume.bytes, mime: resume.mime } })
     .catch((e) => ({ status: "UNKNOWN" as const, detail: e instanceof Error ? e.message : String(e) }));
-  const at = new Date(o.now).toISOString();
   if (res.status === "sent") {
     await s.finish(o.userId, job.id, job.lease_token, "submitted_unconfirmed", { reason: "emailed from the person's Gmail", sent_at: at, message_hash: res.idHash, to: p.to, subject: p.subject });
-    return { reply: `Sent to ${p.to} from your Gmail. I'm tracking it, and I'll mark it confirmed when ${clip(p.company, 80)} writes back.`, status: "sent" };
+    return done(`Sent to ${p.to} from your Gmail. I'm tracking it, and I'll mark it confirmed when ${co} writes back.`, "sent");
   }
   if (res.status === "NOT_WIRED" || res.status === "REFUSED") {
+    // Nothing went. The same email is shown again as a new card, so a fresh yes may try it once more.
     await s.finish(o.userId, job.id, job.lease_token, "not_submitted", { reason: res.status === "NOT_WIRED" ? "NOT_WIRED" : res.detail, at });
-    return { reply: res.status === "NOT_WIRED"
-      ? "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app, then say yes again."
-      : `Not sent: Gmail refused it (${res.detail}). Nothing went to ${clip(p.company, 80)}.`, status: "not_sent" };
+    const why = res.status === "NOT_WIRED"
+      ? "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app, then say yes to this email again."
+      : `Not sent: Gmail refused it (${res.detail}). Nothing went to ${co}. Here is the same email; say yes to try once more.`;
+    return await show({ payload: p, payload_hash: hash }, why);
   }
   await s.finish(o.userId, job.id, job.lease_token, "unknown_outcome", { reason: res.detail, at });
-  return { reply: `I can't tell whether the email to ${p.to} went, so I won't send it again. If it's in your Gmail's Sent folder, it went.`, status: "unknown" };
+  return done(`I can't tell whether the email to ${p.to} went, so I won't send it again. If it's in your Gmail's Sent folder, it went.`, "unknown");
 }
 
 // ------------------------------------------------------------------------------------------------ Supabase
@@ -242,14 +271,15 @@ export function supabaseEmailStore(admin: any): EmailStore {
     async card(u) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", EMAIL_CARD_KEY).maybeSingle(), "read the email card");
       const v = r?.value;
-      return v && v.payload && typeof v.payload_hash === "string" ? v as EmailCard : null;
+      return v && v.payload && typeof v.payload_hash === "string" && typeof v.id === "string" ? v as EmailCard : null;
     },
     async setCard(u, c) {
       must(await admin.from("career_watch_kv").upsert({ user_id: u, key: EMAIL_CARD_KEY, value: c }, { onConflict: "user_id,key" }), "keep the email card");
     },
-    async lastAssistantIntent(threadId) {
+    async lastAssistant(threadId) {
       const rows = must(await admin.from("agent_messages").select("meta").eq("thread_id", threadId).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
-      return rows?.[0]?.meta?.intent ?? null;
+      const meta = rows?.[0]?.meta ?? null;
+      return meta ? { intent: meta.intent ?? null, meta } : null;
     },
     async reserve(u, payload, hash) {
       const j = must(await admin.rpc("career_apply_email_reserve_as", { p_user: u, p_payload: payload, p_hash: hash }), "reserve the email application");

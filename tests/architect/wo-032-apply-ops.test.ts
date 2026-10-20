@@ -47,9 +47,31 @@ Deno.test("WO-032/C1 the employer's 'we received your application' confirms the 
 });
 
 Deno.test("WO-032/C2 a 'received' from another domain (a scam using the employer's name) confirms nothing", () => {
-  for (const from of ["Stripe Careers <apply@talentpipeline.io>", "Stripe Hiring <stripe.hiring@gmail.com>", "Stripe <jobs-noreply@linkedin.com>", "Stripe <noreply@hackerrank.com>"]) {
+  for (const from of [
+    "Stripe Careers <apply@talentpipeline.io>", "Stripe Hiring <stripe.hiring@gmail.com>", "Stripe <jobs-noreply@linkedin.com>", "Stripe <noreply@hackerrank.com>",
+    // Architect review of 3c3d7560: an ATS's name on another domain, the employer's name plus a careers word, any TLD.
+    "Stripe <jobs@greenhouse.xyz>", "Stripe <jobs@greenhouse.com>", "Stripe Careers <jobs@stripecareers.com>", "Stripe <jobs@stripejobs.net>",
+    "Stripe <jobs@stripe.xyz>", "Stripe <jobs@lever.xyz>", "Stripe <jobs@ashbyhq.net>", "Stripe <jobs@myworkdayjobs.xyz>",
+    // Scheduling and e-signature senders never confirm receipt.
+    "Stripe via DocuSign <dse@docusign.net>", "Stripe <no-reply@gem.com>", "Stripe <scheduling@goodtime.io>",
+  ]) {
     eq(planConfirmations([received(H("c"), NOW, { from })], [row({ id: "J1" })]), [], from);
   }
+  // A Lever application is never confirmed by a stranger on a Lever-looking domain either.
+  eq(planConfirmations([received(H("c"), NOW, { from: "Plaid <jobs@lever.com>" })], [row({ id: "J1", company: "Plaid", url: "https://jobs.lever.co/plaid/1" })]), [], "lever.com");
+});
+
+Deno.test("WO-032/C7 what must still confirm: the real ATS naming the employer, the employer's own domain, a Workday tenant", () => {
+  const ok = (from: string, r: Partial<QueueRow> = {}) => planConfirmations([received(H("d"), NOW, { from })], [row({ id: "J1", ...r })]).map((p) => (p as any).id);
+  eq(ok("Stripe <no-reply@us.greenhouse-mail.io>"), ["J1"], "Greenhouse's mail domain, naming Stripe");
+  eq(ok("Stripe Recruiting <careers@stripe.com>"), ["J1"], "stripe.com");
+  eq(ok("Datadog <no-reply@datadoghq.com>", { company: "Datadog", url: "https://job-boards.greenhouse.io/datadog/jobs/1" }), ["J1"], "a known alias");
+  eq(ok("JPMorgan Chase <jpmc@myworkday.com>", { company: "JPMorgan Chase", url: "https://jpmc.wd5.myworkdayjobs.com/en-US/careers/job/1", title: null }), ["J1"], "a Workday tenant");
+  eq(ok("Acme Recruiting <jobs@acme.co.uk>", { company: "Acme", url: "https://careers.acme.co.uk/jobs/1" }), ["J1"], "the employer's own site");
+  // When the employer's own site is known, only that registrable domain is theirs.
+  eq(ok("Acme Recruiting <jobs@acme.com>", { company: "Acme", url: "https://careers.acme.co.uk/jobs/1" }), [], "acme.com is not acme.co.uk");
+  // An ATS sender must name this employer; Greenhouse naming Plaid is not Stripe's.
+  eq(ok("Plaid <no-reply@us.greenhouse-mail.io>"), [], "the ATS names another employer");
 });
 
 Deno.test("WO-032/C3 the window: sent within the 14 days before the email; before or after that, nothing", () => {
@@ -95,6 +117,8 @@ Deno.test("WO-032/C5 idempotent: the same email read again confirms nothing twic
   eq(texts.length, 1);
   eq(texts[0].text, "Applied to Stripe: confirmed by Stripe's email on Oct 20. https://job-boards.greenhouse.io/stripe/jobs/1");
   eq(receiptText({ company: "Stripe", state: "confirmed", email_confirmed_at: iso(NOW) }), "Applied to Stripe: confirmed by Stripe's email on Oct 20.");
+  // The date is the person's: 03:00 UTC on Oct 20 is Oct 19 in Los Angeles.
+  eq(receiptText({ company: "Stripe", state: "confirmed", email_confirmed_at: "2026-10-20T03:00:00Z", tz: "America/Los_Angeles" }), "Applied to Stripe: confirmed by Stripe's email on Oct 19.");
   // A page's "thank you" is said as what it is, never as confirmation.
   const page = receiptText({ company: "Stripe", state: "submitted_unconfirmed", evidence: { page_confirmation: true } });
   assert(!/confirmed by|confirmed it/.test(page) && /confirmation email is the proof/.test(page), page);
@@ -146,14 +170,17 @@ const TAILORED_BYTES = new TextEncoder().encode("%PDF-1.4 TEST resume tailored t
 const shaOf = async (b: Uint8Array) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", b as Uint8Array<ArrayBuffer>))].map((x) => x.toString(16).padStart(2, "0")).join("");
 const resumeSha = async () => [...new Uint8Array(await crypto.subtle.digest("SHA-256", RESUME_BYTES))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const POSTING: EmailPosting = { job_id: "lever:acme:1", company: "Acme Retail", title: "Data Analyst", url: "https://acme.example/jobs/1", description: "Email your resume to jobs@acme.example.", apply_email: "jobs@acme.example" };
+const BETA: EmailPosting = { job_id: "lever:beta:1", company: "Beta Labs", title: "Data Analyst", url: "https://beta.example/jobs/1", description: "Send your CV to hr@beta.example.", apply_email: "hr@beta.example" };
+const GAMMA: EmailPosting = { job_id: "lever:gamma:1", company: "Gamma Foods", title: "Data Analyst", url: "https://gamma.example/jobs/1", description: "Send your CV to gammahiring@gmail.com.", apply_email: "gammahiring@gmail.com" };
 
 // The database's reserve, in memory: the card's hash, a day, the daily limit, one per posting.
-function emailWorld(o: { limit?: number; sentToday?: number; grant?: boolean; resume?: boolean; editBetween?: boolean; tailored?: boolean; swapFile?: boolean } = {}) {
-  let card: EmailCard | null = null, intent: string | null = null;
+function emailWorld(o: { limit?: number; sentToday?: number; grant?: boolean; resume?: boolean; editBetween?: boolean; tailored?: boolean; swapFile?: boolean;
+  noResumeFor?: string; sendResults?: string[] } = {}) {
+  let card: EmailCard | null = null, last: { intent: string | null; meta: Record<string, unknown> } | null = null;
   const rows: { id: string; job_id: string; state: string; source: string }[] = Array.from({ length: o.sentToday ?? 0 }, (_, i) => ({ id: `R${i}`, job_id: `other:${i}`, state: "submitted_unconfirmed", source: "own_computer" }));
   const sends: { to: string; subject: string; body: string; file?: Uint8Array }[] = [], reserves: string[] = [];
   const store: EmailStore = {
-    async postings() { return [POSTING]; },
+    async postings(company) { return [POSTING, BETA, GAMMA].filter((p) => p.company.toLowerCase().startsWith(company.toLowerCase().split(" ")[0])); },
     async card() {
       const c = card ? JSON.parse(JSON.stringify(card)) : null;
       // A change lands after the turn read the card and before the yes reaches the database.
@@ -161,10 +188,13 @@ function emailWorld(o: { limit?: number; sentToday?: number; grant?: boolean; re
       return c;
     },
     async setCard(_u, c) { card = JSON.parse(JSON.stringify(c)); },
-    async lastAssistantIntent() { return intent; },
+    async lastAssistant() { return last ? JSON.parse(JSON.stringify(last)) : null; },
     async reserve(_u, payload, hash) {
       reserves.push(hash);
       if (!card || card.state !== "shown" || card.payload_hash !== hash || (await hashApplyPayload(payload)) !== hash) throw new Error("changed_since_yes");
+      // As the database: a send Gmail refused (nothing went) may be tried again on a fresh yes.
+      const again = rows.find((r) => r.job_id === payload.job_id && r.state === "not_submitted" && r.source === "email");
+      if (again) { again.state = "driving"; card = { ...card, state: "sending" }; return { id: again.id, lease_token: "L2" }; }
       if (rows.some((r) => r.job_id === payload.job_id)) throw new Error("duplicate_job");
       if (rows.length >= (o.limit ?? 25)) throw new Error("daily_cap");
       rows.push({ id: `E${rows.length}`, job_id: payload.job_id, state: "driving", source: "email" });
@@ -178,7 +208,7 @@ function emailWorld(o: { limit?: number; sentToday?: number; grant?: boolean; re
     const r = await emailTurn({ message, userId: "U1", threadId: "T1", now: NOW, deps: {
       store, profile: () => ({ facts: FACTS, basics: { name: "Test Person" } }), draft: { model: model.model, facts: () => FACTS },
       // WO-028's tailored resume when it can be made, else the person's own file; at the yes, the file on the card by its hash.
-      resume: async (_u, p) => (o.resume === false ? null : o.tailored
+      resume: async (_u, p) => (o.resume === false || o.noResumeFor === p.company ? null : o.tailored
         ? { filename: `resume-${p.job_id.replace(/\W+/g, "-")}.pdf`, bytes: TAILORED_BYTES, sha256: await shaOf(TAILORED_BYTES), tailored: true }
         : { filename: "resume.pdf", bytes: RESUME_BYTES, sha256: await resumeSha(), tailored: false } as Resume),
       attachment: async (_u, sha) => {
@@ -186,13 +216,19 @@ function emailWorld(o: { limit?: number; sentToday?: number; grant?: boolean; re
         return { filename: "resume.pdf", bytes, sha256: sha, tailored: bytes === TAILORED_BYTES };
       },
       canSend: async () => o.grant !== false,
-      send: async (_u, m) => { sends.push({ to: m.to, subject: m.subject, body: m.body, file: m.attachment?.bytes }); return { status: "sent", idHash: H("7") }; },
+      send: async (_u, m) => {
+        const next = (o.sendResults ?? []).shift();
+        if (next === "REFUSED") return { status: "REFUSED", detail: "send: HTTP 400" };
+        sends.push({ to: m.to, subject: m.subject, body: m.body, file: m.attachment?.bytes });
+        return { status: "sent", idHash: H("7") };
+      },
     } });
-    // The handler's rule: a shown card (or one waiting for Gmail) stays the thread's last word.
-    intent = r ? (["shown", "NOT_WIRED"].includes(r.status) ? EMAIL_INTENT : "career_apply_email_answer") : "agent";
+    // The handler's rule: a turn that leaves a card waiting writes the email intent and that card's id as the last word.
+    last = r ? (r.waiting ? { intent: EMAIL_INTENT, meta: { email_card: r.card_id } } : { intent: "career_apply_email_answer", meta: {} }) : { intent: "agent", meta: {} };
     return r;
   };
-  return { say, sends, reserves, rows, get card() { return card; }, setIntent(i: string | null) { intent = i; }, model };
+  return { say, sends, reserves, rows, get card() { return card; }, get last() { return last; },
+    setIntent(i: string | null) { last = { intent: i, meta: { ...(last?.meta ?? {}) } }; }, setLast(l: typeof last) { last = l; }, model };
 }
 
 Deno.test("WO-032/E2 the email is drafted only from confirmed facts through the fact-lock, and shown whole", async () => {
@@ -207,7 +243,7 @@ Deno.test("WO-032/E2 the email is drafted only from confirmed facts through the 
 
   const inv = stub(INVENTED);
   const r2 = await emailTurn({ message: "apply by email to Acme Retail", userId: "U1", threadId: "T1", now: NOW, deps: {
-    store: { postings: async () => [POSTING] } as any, profile: () => ({ facts: FACTS, basics: { name: "Test Person" } }), draft: { model: inv.model, facts: () => FACTS },
+    store: { postings: async () => [POSTING], card: async () => null, setCard: async () => {} } as any, profile: () => ({ facts: FACTS, basics: { name: "Test Person" } }), draft: { model: inv.model, facts: () => FACTS },
     resume: async () => ({ filename: "resume.pdf", bytes: RESUME_BYTES, sha256: await resumeSha(), tailored: false }), attachment: async () => null, canSend: async () => true, send: async () => { throw new Error("must not send"); },
   } });
   eq(r2?.status, "draft_unverified", JSON.stringify(r2));
@@ -221,10 +257,12 @@ Deno.test("WO-032/E3 nothing is sent without the yes, and a yes counts only whil
   eq(await w.say("sounds interesting"), null, "talk is not a yes");
   w.setIntent("agent");
   eq(await w.say("yes"), null, "a yes to something said after the email is not a yes to it");
+  w.setLast({ intent: "agent", meta: { email_card: w.card!.id } });
+  eq(await w.say("yes"), null, "the card's id alone is not enough: the email must be the last word");
   eq(w.sends.length + w.reserves.length, 0);
-  w.setIntent(EMAIL_INTENT);
+  w.setLast({ intent: EMAIL_INTENT, meta: { email_card: w.card!.id } }); // the card is the last word again
   eq((await w.say("no"))?.status, "declined");
-  w.setIntent(EMAIL_INTENT);
+  w.setLast({ intent: EMAIL_INTENT, meta: { email_card: w.card!.id } }); // the card is the last word again
   eq(await w.say("yes"), null, "a dropped email cannot be sent");
   eq(w.sends.length, 0);
   // The yes sends exactly the payload shown, once, to one address, and tracks it as an emailed application.
@@ -276,7 +314,7 @@ Deno.test("WO-032/E6 no Gmail grant that may send, or no resume file: NOT_WIRED 
   eq([w.reserves.length, w.sends.length], [0, 0]);
   const n = emailWorld({ resume: false });
   const s = await n.say("apply by email to Acme Retail");
-  eq(s?.status, "NOT_WIRED");
+  eq(s?.status, "no_resume");
   assert(s!.reply.startsWith("NOT_WIRED") && n.card === null, s!.reply);
 });
 
@@ -387,4 +425,49 @@ Deno.test("WO-032/E8 the resume attached is WO-028's, tailored to the posting, w
   await x.say("apply by email to Acme Retail");
   eq((await x.say("yes"))?.status, "resume_changed");
   eq([x.sends.length, x.reserves.length], [0, 0]);
+});
+
+Deno.test("WO-032/E9 a new 'apply by email' replaces the card shown; a later 'yes' never sends a card that is not the last one shown", async () => {
+  const w = emailWorld({ noResumeFor: "Beta Labs" });
+  eq((await w.say("apply by email to Acme Retail"))?.status, "shown");
+  const beta = await w.say("apply by email to Beta Labs");
+  eq(beta?.status, "no_resume", JSON.stringify(beta));
+  assert(beta!.reply.startsWith("NOT_WIRED") && !beta!.waiting, "a refusal to prepare leaves nothing waiting");
+  eq(w.card?.state, "declined", "the Acme card was replaced by the new request");
+  eq(await w.say("yes"), null, "the yes is not for the Acme email");
+  eq([w.sends.length, w.reserves.length], [0, 0]);
+});
+
+Deno.test("WO-032/E10 the yes is bound to the card the last message showed, by its id", async () => {
+  const w = emailWorld();
+  const first = await w.say("apply by email to Acme Retail");
+  const shownId = first!.card_id;
+  assert(shownId, "a shown card has an id");
+  await w.say("subject: A second version");
+  assert(w.card!.id !== shownId, "a changed email is a new card");
+  // The thread's last word still names the first card (a reply in between was lost, a race): its yes sends nothing.
+  w.setLast({ intent: EMAIL_INTENT, meta: { email_card: shownId } });
+  eq(await w.say("yes"), null);
+  eq(w.sends.length, 0);
+});
+
+Deno.test("WO-032/E11 a send Gmail refused can be tried again: the reply shows the email again for a fresh yes", async () => {
+  const w = emailWorld({ sendResults: ["REFUSED"] });
+  await w.say("apply by email to Acme Retail");
+  const r = await w.say("yes");
+  eq(r?.status, "shown", JSON.stringify(r));
+  assert(r!.waiting && /Gmail refused it/.test(r!.reply) && r!.reply.includes("To: jobs@acme.example") && /say yes/i.test(r!.reply), r!.reply);
+  eq(w.rows.map((x) => x.state), ["not_submitted"]);
+  const again = await w.say("yes");
+  eq(again?.status, "sent", JSON.stringify(again));
+  eq(w.sends.length, 1);
+  eq(w.rows.map((x) => x.state), ["submitted_unconfirmed"], "the same tracked application, tried once more");
+});
+
+Deno.test("WO-032/E12 the card warns when the address is not on the employer's domain", async () => {
+  const w = emailWorld();
+  const ok = await w.say("apply by email to Acme Retail");
+  assert(!/not on Acme Retail's domain/.test(ok!.reply), ok!.reply);
+  const g = await w.say("apply by email to Gamma Foods");
+  assert(g!.reply.includes("This address is not on Gamma Foods's domain; check it against the posting."), g!.reply);
 });

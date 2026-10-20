@@ -340,9 +340,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // A number not on the list leaves the ask waiting; anything else answered it.
         out = { reply: which.reply, intent: which.status === "not_on_list" ? CONFIRM_INTENT : "career_apply_confirm_answer", resultStatus: which.status, contained: false, handler: "confirm" };
       } else if (emailed) {
-        // The email card waits for its yes while it is shown (or changed, or waiting for Gmail to be connected); anything else answered it.
-        const waiting = ["shown", "NOT_WIRED"].includes(emailed.status);
-        out = { reply: emailed.reply, intent: waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
+        // A card waiting for its yes is this thread's last word, by its id (meta.email_card): a yes counts only for the card
+        // this reply showed. Anything else answered it, and leaves no email waiting.
+        out = { reply: emailed.reply, intent: emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
+        if (emailed.waiting && emailed.card_id) agentMeta = { email_card: emailed.card_id };
       } else if (outreachAns) {
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {

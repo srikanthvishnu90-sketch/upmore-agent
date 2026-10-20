@@ -34,14 +34,17 @@ const NEEDS_YOU: Record<string, string> = {
 
 // WO-032: a row is confirmed only by the employer's email matched to it (career_apply_confirm.ts); its receipt says whose
 // email and when. A page's "thank you for applying" is kept as evidence and said as what it is, never as confirmation.
-const emailDay = (iso: unknown) => {
+// The date is the person's own (their alert time zone), UTC when it is not known or not a zone.
+const emailDay = (iso: unknown, tz?: unknown) => {
   const t = Date.parse(String(iso ?? ""));
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "";
+  if (!Number.isFinite(t)) return "";
+  const day = (timeZone: string) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
+  try { return day(typeof tz === "string" && tz ? tz : "UTC"); } catch { return day("UTC"); }
 };
 export function receiptText(
   row: {
     company?: unknown; url?: unknown; state: string; reason?: unknown; confirmation_id?: unknown;
-    email_confirmed_at?: unknown; evidence?: { page_confirmation?: unknown } | null; source?: unknown;
+    email_confirmed_at?: unknown; evidence?: { page_confirmation?: unknown } | null; source?: unknown; tz?: unknown;
   },
 ): string {
   const company = clean(row.company, 80) || "the employer", url = httpsUrl(row.url);
@@ -50,7 +53,7 @@ export function receiptText(
   switch (row.state) {
     case "confirmed": {
       if (row.email_confirmed_at) {
-        const when = emailDay(row.email_confirmed_at);
+        const when = emailDay(row.email_confirmed_at, row.tz);
         return `Applied to ${company}: confirmed by ${company}'s email${when ? ` on ${when}` : ""}.${tail}`;
       }
       const id = clean(row.confirmation_id, 60);

@@ -6,14 +6,16 @@ begin;
 reset role;
 insert into auth.users(id,email) values
  ('00000000-0000-4000-8000-000000000961','ops-a@example.test'),('00000000-0000-4000-8000-000000000962','ops-b@example.test'),
- ('00000000-0000-4000-8000-000000000963','ops-c@example.test');
+ ('00000000-0000-4000-8000-000000000963','ops-c@example.test'),('00000000-0000-4000-8000-000000000964','ops-d@example.test');
 insert into profiles(id) select id from auth.users where email like 'ops-%@example.test';
 insert into agent_threads(id,user_id,title) values
  ('00000000-0000-4000-8000-0000000009c1','00000000-0000-4000-8000-000000000961','Texts'),
- ('00000000-0000-4000-8000-0000000009c3','00000000-0000-4000-8000-000000000963','Texts');
+ ('00000000-0000-4000-8000-0000000009c3','00000000-0000-4000-8000-000000000963','Texts'),
+ ('00000000-0000-4000-8000-0000000009c4','00000000-0000-4000-8000-000000000964','Texts');
 insert into channel_contacts(contact,user_id,thread_id,opted_out) values
  ('+15550009601','00000000-0000-4000-8000-000000000961','00000000-0000-4000-8000-0000000009c1',false),
- ('+15550009603','00000000-0000-4000-8000-000000000963','00000000-0000-4000-8000-0000000009c3',false);
+ ('+15550009603','00000000-0000-4000-8000-000000000963','00000000-0000-4000-8000-0000000009c3',false),
+ ('+15550009604','00000000-0000-4000-8000-000000000964','00000000-0000-4000-8000-0000000009c4',false);
 insert into career_watch_kv(user_id,key,value) select id,'career:account','{"epoch":1,"version":1,"paused":false}' from auth.users where email like 'ops-%@example.test';
 
 -- Three of A's applications queued: one for the cloud, one for A's computer, one for A's extension.
@@ -97,6 +99,20 @@ select t.ok((select value->>'state'='sending' from career_watch_kv where user_id
 select t.must_fail($$select career_apply_email_reserve_as('00000000-0000-4000-8000-000000000963',p,h) from em$$,'changed_since_yes','one yes, one send');
 select t.ok((select state='submitted_unconfirmed' from career_apply_email_finish_as('00000000-0000-4000-8000-000000000963',(select id from res),(select lease_token from res),'submitted_unconfirmed','{"sent":true}')),'the send is recorded; the employer''s reply confirms it');
 select t.ok((select value->>'state'='sent' from career_watch_kv where user_id='00000000-0000-4000-8000-000000000963' and key='career:email-card'),'the card says sent');
+-- A send Gmail refused (nothing went) may be tried again on a fresh yes to the email shown again: the same tracked
+-- application, driving again under a new lease (architect review: it was refused forever as a duplicate).
+create temp table em2 as select p||'{"job_id":"TEST-MAIL-2","company":"Mail Employer Two"}'::jsonb p from em;
+alter table em2 add column h text;
+update em2 set h=encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex');
+update career_watch_kv set value=jsonb_build_object('id','card-2','state','shown','payload_hash',(select h from em2),'shown_at',now(),'payload',(select p from em2))
+ where user_id='00000000-0000-4000-8000-000000000963' and key='career:email-card';
+create temp table res2 as select * from career_apply_email_reserve_as('00000000-0000-4000-8000-000000000963',(select p from em2),(select h from em2));
+select career_apply_email_finish_as('00000000-0000-4000-8000-000000000963',(select id from res2),(select lease_token from res2),'not_submitted','{"reason":"send: HTTP 400"}');
+update career_watch_kv set value=value||'{"id":"card-3","state":"shown"}' where user_id='00000000-0000-4000-8000-000000000963' and key='career:email-card';
+create temp table res3 as select * from career_apply_email_reserve_as('00000000-0000-4000-8000-000000000963',(select p from em2),(select h from em2));
+select t.ok((select r3.id=r2.id and r3.state='driving' and r3.lease_token<>r2.lease_token from res3 r3, res2 r2),'a refused send is tried again on a fresh yes: the same application, a new lease');
+select t.ok((select count(*)=1 from career_apply_jobs where job_id='TEST-MAIL-2'),'still one application per posting');
+select career_apply_email_finish_as('00000000-0000-4000-8000-000000000963',(select id from res3),(select lease_token from res3),'submitted_unconfirmed','{"sent":true}');
 reset role;
 
 -- Questions pushed: once, a day at most, open ones never pushed before, as the thread's last word.
@@ -109,7 +125,7 @@ create temp table qs as select array_agg(id order by key desc) filter (where sta
 grant select on qs to service_role;
 set role service_role;
 select t.ok(not career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select done from qs),'1. Are you open to relocation?'),'an answered question is never pushed');
-select t.must_fail($$select career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select open_ids from qs),'1. Will you require sponsorship?')$$,'does not carry every question','the text carries every question');
+select t.ok(not career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select open_ids from qs),'1. Will you require sponsorship?'),'a text that does not carry every question pushes nothing (and never fails the run)');
 select t.ok(career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select open_ids from qs),E'2 questions\n1. Will you require sponsorship?\n2. When can you start?'),'open questions are pushed');
 reset role;
 select t.ok((select meta->>'intent'='career_apply_questions' from agent_messages where thread_id='00000000-0000-4000-8000-0000000009c1' order by id desc limit 1),'the push is the thread''s last word, with the questions intent');
@@ -120,6 +136,14 @@ update career_apply_questions set pushed_at=null where user_id='00000000-0000-40
 insert into agent_messages(thread_id,role,content,meta) values('00000000-0000-4000-8000-0000000009c1','assistant','Here are three jobs.','{"intent":"agent"}');
 set role service_role;
 select t.ok(not career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select open_ids from qs),E'1. Will you require sponsorship?\n2. When can you start?'),'at most one questions text a day');
+reset role;
+
+-- A label with a no-break space (U+00A0) is matched as the formatter writes it (one plain space), so it is pushed.
+reset role;
+insert into career_apply_questions(user_id,key,kind,label,type) values
+ ('00000000-0000-4000-8000-000000000964','fact:over_18','fact','Are you 18'||chr(160)||'or older?','select');
+set role service_role;
+select t.ok(career_apply_questions_push_as('00000000-0000-4000-8000-000000000964',(select array_agg(id) from career_apply_questions where user_id='00000000-0000-4000-8000-000000000964'),E'One question\n1. Are you 18 or older? (Yes / No)'),'a label with a no-break space is pushed (SQL and the formatter normalize spaces the same way)');
 reset role;
 
 -- An ambiguous email: asked once, answered by number.

@@ -53,16 +53,23 @@ The contract:
 - **Rows confirmed before this migration** (a page alone) are left as they were. The gate never counts them, and the
   matcher may still upgrade one with its email.
 
-**Checked against WO-039's branch.** Its migration and its DB test were applied on top of this one in a throwaway
-database (`5c63c9dc`); the script and log are not committed. With two changes on WO-039's side, its whole
-`career_apply_cloud.test.sql` passes on top of this branch, and so does everything here:
-1. **The outbox lists.** WO-039's later migration redefines `career_outbox_key_check` and `career_outbox_kind_check`
-   without `questions`. It must keep `questions` in both lists (and `tests/outbox-kinds.test.cjs` will say so). As it
-   stands, the questions push fails with `career_outbox_key_check`.
-2. **A page-only confirmation.** `career_apply_record_own(..., 'confirmed')` records a hand submission confirmed by its
-   page alone as state `confirmed`, which this contract forbids. The trigger refuses it with `confirmed_only_by_email`.
-   It should record `submitted_unconfirmed` (with the page's word as evidence) and leave `confirmed` to the email. Its
-   test line 71 (`career_apply_record_own('TEST-P1', ..., 'confirmed')`) passes with `'submitted_unconfirmed'`.
+**Checked against WO-039's branch.** WO-039 has since aligned: `career_apply_record_own` keeps a page-only confirmation
+`submitted_unconfirmed`, and its migration leaves the outbox lists alone. Its migration and DB test at `23de03da` were
+applied on top of this branch in a throwaway database (the script and log are not committed): every DB test passes,
+WO-039's `career_apply_cloud.test.sql` included, with no change on either side. The gate's definitions are identical:
+- the family is `career_apply_portal`'s (https only, the host, the four families);
+- the count is `state = 'confirmed'`, `source in ('own_computer', 'extension')`, `email_confirmed_at` set, and the
+  message's `received` event (not flagged) filed under the application.
+
+**The outbox lists, in file order.** Trunk's `20261021050000_career_brief_digest.sql` (WO-034) comes after this file and
+redefined the kind and key lists without `questions`, so in production it would have dropped them, and
+`tests/outbox-kinds.test.cjs` failed.
+- This migration keeps every kind on trunk: `alert`, `report`, `reply`, `receipt`, `card`, `status`, `followup`, `mock`,
+  `brief`, `digest`, plus its own `questions`.
+- I added `questions` to that later file's two lists, with a one-line comment. That is the only line of another order's
+  migration this branch touches. It is safe while that migration is not yet live; it was not applied anywhere by me.
+- `link` (#57) is not on trunk. Adding it here, in an earlier file, would make the later 050000 file "drop" it, so #57's
+  own migration must keep `questions` and add `link`.
 
 Two existing DB assertions changed for this contract, and only these two:
 - `tests/db/career_apply_jobs.test.sql`, "all six final states persist": a reported `confirmed` now persists as
@@ -76,10 +83,17 @@ No `tests/architect` file was edited.
 - **`planConfirmations(mails, queue)`** reads each new message once with WO-024's own `classifyMail`. A message confirms a
   row only when all of these hold:
   - its kind is `received`, `rejection`, `interview` or `offer` (the last three prove receipt too);
-  - **`fromEmployer`** (new in `career_mail.ts`): it comes from the employer's own domain (the `sameCompany`
-    normalization career_mail uses, its domain aliases, or the board slug in the application's link), or from an ATS
-    domain naming that employer. A personal address, a job board, an assessment vendor or any other domain never
-    confirms, whatever the display name says;
+  - **`fromEmployer`** (new in `career_mail.ts`, tightened after the architect's review of `3c3d7560`) checks the sender:
+    - **An ATS sender** counts only from the ATS's own registrable domain: `greenhouse-mail.io`, never `greenhouse.xyz`
+      or `greenhouse.com`. It must name this employer, by its display name or words, or by a tenant address
+      ("jpmc@myworkday.com").
+    - **Never a scheduling or e-signature sender:** DocuSign, Gem and GoodTime are out of the confirming set.
+    - **The employer's own domain.** When the application link is on the employer's own site, the sender's registrable
+      domain must equal it (`acme.co.uk`, so `acme.com` is not Acme's). Otherwise the label must be the name exactly or
+      a listed alias, on a common corporate TLD. There is no "careers"/"jobs" suffix rule (`stripecareers.com` and
+      `stripejobs.net` are the scam pattern), and no other TLD (`stripe.xyz`).
+    - **The application link** counts only for its ATS path slug or Workday tenant, never the ATS host's own name.
+    - A personal address, a job board or an assessment vendor never confirms, whatever the display name says;
   - the posting title, where both the message and the row have one, shares words (`roleOverlap >= 0.5`);
   - the row was submitted (`claimed_at`, else `created_at`) within the 14 days before the email;
   - the row is `submitted_unconfirmed`, `unknown_outcome`, or a pre-WO-032 `confirmed` without email evidence.
@@ -97,7 +111,7 @@ No `tests/architect` file was edited.
   - `confirmWhichTurn` (wired in `handler-career.ts`) takes "2" or "neither" only while that ask is the last word.
 
 ### 2. The gate (`career_apply_gate_status()`)
-- Service role only. Families: greenhouse, lever, ashby, smartrecruiters, workday, other. It counts as WO-039's
+- Service role only. Families: greenhouse, lever, ashby, smartrecruiters, other (as `career_apply_portal`). It counts as WO-039's
   `career_apply_cloud_open` does (see the contract).
 - Columns: `confirmed`, `needed` (3), `met` and `awaiting_email`.
 - Owner doc: `docs/apply/owner-first-trials.md`, "How close is the gate". Runs of `scripts/apply.ts` alone are not in
@@ -129,6 +143,17 @@ No `tests/architect` file was edited.
      (`unknown_outcome`, never resent).
 - **Edits.** "subject: ..." or "body: ..." shows the whole email again with a new hash, and needs a new yes. An edit
   that lands after the yes makes the database refuse (`changed_since_yes`).
+- **Which card a yes is for** (architect review):
+  - Each card shown has an id. The reply that shows it writes that id into the thread's last word (`meta.email_card`
+    with intent `career_apply_email`). A yes counts only when the last word names the card waiting on the account.
+  - A new "apply by email to ..." first declines any card still waiting.
+  - A preparation that cannot attach a resume answers `no_resume`, starting "NOT_WIRED:". It leaves nothing waiting
+    and writes no email intent.
+- **A send Gmail refused** (nothing went) is recorded `not_submitted`. The same email is shown again as a new card, and
+  a fresh yes sends it under the same tracked application: the reserve reuses that one row, keeps the refused attempt in
+  its evidence, and it still counts in the daily limit. An unknown outcome is never sent again.
+- **The card warns in one line** when the address is not on the employer's domain ("This address is not on X's domain;
+  check it against the posting.").
 - **One recipient, no Cc, no Bcc.** Both the MIME builder and the reserve enforce it.
 - **The attachment.** PR #49 (WO-028) merged during this order, so the resume is WO-028's, tailored to the posting:
   - `tailorForPosting` builds it from confirmed facts, checks it (truth audit and ATS parse) and stores it privately at
@@ -151,18 +176,26 @@ No `tests/architect` file was edited.
     in the last 24 hours);
   - every question still open and never pushed;
   - the text carrying every question's wording.
+- A label is compared with the text after `career_text_spaces`: the no-break and other Unicode spaces become plain
+  spaces, as JavaScript's `\s` does in the formatter. A text that does not carry every question returns false; it
+  never raises, which would fail the run every 5 minutes.
 - It writes the assistant message with intent `career_apply_questions` and the same `career:questions-shown` record that
   "what do you need from me" writes, so "1 no 2 next month" goes to `questionsTurn`. That is the card push's method.
 - The outbox kind list keeps every earlier kind (`alert`, `report`, `reply`, `receipt`, `card`, `status`, `followup`,
   and PR #52's `mock`) and adds `questions`.
 
 ## Tests
-- `tests/architect/wo-032-apply-ops.test.ts`, 18 tests:
+- `tests/architect/wo-032-apply-ops.test.ts`, 23 tests:
   - C1: a match;
-  - C2: a scam "received" from another domain;
+  - C2: a scam "received" from another domain, including every lookalike from the review: `greenhouse.xyz`,
+    `greenhouse.com`, `stripecareers.com`, `stripejobs.net`, `stripe.xyz`, `lever.xyz`, `ashbyhq.net`,
+    `myworkdayjobs.xyz`, `lever.com`, DocuSign, Gem, GoodTime;
+  - C7: what must still confirm: Greenhouse's mail domain naming the employer, stripe.com, an alias, a Workday tenant,
+    the employer's own site. `acme.com` is refused when the site is `acme.co.uk`, and an ATS sender naming another
+    employer is refused;
   - C3: window misses and a title mismatch;
   - C4: ambiguity: asked once, answered by number;
-  - C5: idempotence, plus the receipt text;
+  - C5: idempotence, plus the receipt text, dated in the person's time zone;
   - C6: a rejection confirms;
   - E1: detection;
   - E2: the fact-lock;
@@ -172,17 +205,24 @@ No `tests/architect` file was edited.
   - E6: NOT_WIRED;
   - E7: one recipient, no Bcc, the Gmail request;
   - E8: the tailored resume is attached, and only a file byte for byte the one on the card goes;
+  - E9: a new apply request replaces the card, and a prepare-time NOT_WIRED leaves nothing waiting;
+  - E10: the yes is bound to the card id;
+  - E11: a refused send is shown again and sent on a fresh yes;
+  - E12: the off-domain warning;
   - Q1: once a day, 5 a text, the rest counted;
   - Q2: nothing answered re-asked;
   - Q3: the intent is set, and the numbered answer routes;
   - Q4: quiet hours.
-- `tests/db/career_apply_ops.test.sql`, 44 checks. The migration is applied twice in `tests/db/run.sh`. It covers:
+- `tests/db/career_apply_ops.test.sql`, 47 checks. The migration is applied twice in `tests/db/run.sh`. It covers:
   - sources and the trigger;
   - the window and idempotence;
   - the evidence filed in `career_mail_events`;
   - the gate;
   - the reserve: the hash, no BCC, one recipient, an edit, the daily cap, one send;
   - questions pushed once a day as the last word;
+  - a refused send tried again on the same row;
+  - a no-break-space label pushed;
+  - a text missing a question returning false;
   - the ask.
 
 ## Planted defects (each one line, each reverted)
@@ -201,6 +241,22 @@ No `tests/architect` file was edited.
 | D11 | SQL: a page's "thank you" confirms the row (`st := p_state`) | career_apply_jobs.test.sql (the trigger refuses it) |
 | D12 | SQL: questions pushed more than once a day | career_apply_ops.test.sql "at most one questions text a day" (fails on the outbox's once-only key) |
 | D13 | SQL: the gate counts the cloud's submissions | career_apply_ops.test.sql "Greenhouse: 0 of 3 (the cloud's does not count)" |
+| D14 | the ATS host's own name counts as the employer's (`urlSlugs` in `fromEmployer`) | WO-032/C2 |
+| D15 | the careers/jobs suffix counts (`sameCompany` on the domain label) | WO-032/C2 |
+| D16 | any TLD counts (no `CORPORATE_TLD` check) | WO-032/C2 |
+| D17 | DocuSign, Gem and GoodTime confirm | WO-032/C2 |
+| D18 | a new apply request leaves the old card waiting | WO-032/E9 |
+| D19 | the yes is not bound to the card id | WO-032/E10 |
+| D20 | a prepare-time NOT_WIRED stays waiting | WO-032/E6, E9 |
+| D21 | a refused send is not shown again for a fresh yes | WO-032/E11 |
+| D22 | SQL: a refused send stays a duplicate forever | career_apply_ops.test.sql (`duplicate_job` on the retry) |
+| D23 | SQL: labels compared without the no-break space normalized | career_apply_ops.test.sql "a label with a no-break space is pushed" |
+| D24 | SQL: a text missing a question raises | career_apply_ops.test.sql (raises instead of returning false) |
+| D25 | the confirmation date ignores the person's time zone | WO-032/C5 |
+| D26 | no warning when the address is off the employer's domain | WO-032/E12 |
+
+All of D1 to D26 were re-run against the final code; each fails its test. D4 needed one more assertion in E3: a last
+word that names the card but is not the email's own intent sends nothing.
 
 ## Measured
 `deno run --allow-read evals/apply/email-apply-coverage.ts` (VERIFIED, offline, 2026-10-20):

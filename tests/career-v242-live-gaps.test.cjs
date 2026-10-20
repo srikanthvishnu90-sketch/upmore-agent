@@ -277,6 +277,16 @@ const WHO = "Who is my recruiter contact at Northwind Ledger?";
 // ask re-serves the same sha. Green before and after the fix (the
 // healthy path is the regression control).
 // =====================================================================
+// Like v241's guard: the staged-handler suites need node's VM modules, so a run without the flag (the gate's) respawns
+// this file with it rather than failing (WO-070, porting the lane's fix onto trunk).
+if (!vm.SourceTextModule) {
+  test("v242 live-gaps staged-handler suites (respawned with VM modules)", () => {
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const run = spawnSync(process.execPath, ["--experimental-vm-modules", "--test", __filename], { encoding: "utf8", env });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+  });
+} else {
 test("probe j chain (live-shaped): confirm runs the standing tailor target; the artifact row's sha is its bytes'; delivery re-serves it", async () => {
   const account = liveShapedAccount();
   const db = freshDb(account);
@@ -372,3 +382,4 @@ test("control: confirm with no tailor target — the plain Confirmed reply (the 
     assert.equal(prof.facts.filter((f) => f && f.source === "resume-ingest" && !f.needs_confirmation).length, 15, "15 facts confirmed");
   } finally { app.close(); }
 });
+}

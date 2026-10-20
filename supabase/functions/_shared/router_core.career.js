@@ -14023,17 +14023,6 @@ const CareerRouter = (() => {
     if (target) {
       const askText = target.askText || "tailor my resume";
       let chained = null;
-      // V242 LIVE-FIX (probe j, third failure mode): the confirmation
-      // above has already COMMITTED — the flips and the marker
-      // consumption are this turn's state. The tailor leg is
-      // best-effort on top of it: a leg that returns no artifact
-      // already falls through to the plain Confirmed reply below,
-      // but a leg that THREW escaped the handler, contained the
-      // whole turn, and the contained copy ("nothing changed on
-      // your side") falsely denied the commit (live thread
-      // f0a12430: 15 facts confirmed in SQL, contained reply).
-      // Hold the leg to its own contract: a throw degrades exactly
-      // like an artifact-less result — the confirmation ships.
       try {
         const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
         if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));

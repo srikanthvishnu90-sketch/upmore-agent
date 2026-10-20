@@ -150,6 +150,28 @@ export function questionsForTrainee(o: { jobId: string; company: string; needs: 
   return questionsToStore({ posting: o.jobId, company: o.company, questions: o.needs }, { facts: o.answers, answered: o.answered });
 }
 
+// Ask once, from the form (WO-042, session run 4: every repeat of a question cost the person the same seconds, since
+// only answers given by text were kept). A question this posting could not answer, which the person then answered on the
+// form themselves and approved on the card, is kept under the same key the text path uses (answerKey: a fact for every
+// employer, a wording, or this posting only), so it travels exactly as far as a texted answer would. Never a masked or
+// identity value, never a file, never anything the page or Trainee filled.
+export function formAnswersToKeep(o: {
+  jobId: string; company: string; needs: { label: string; type: string; options: string[] }[];
+  fields: { name: string; label: string; value: string; source: string }[]; answers: Record<string, unknown>; answered: Set<string>;
+}) {
+  const q = questionsForTrainee(o);
+  const norm = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim();
+  const out: { key: string; kind: string; label: string; type: string; options: string[]; company: string | null; answer: string }[] = [];
+  for (const row of q.questions as any[]) {
+    if (/file/.test(String(row.type))) continue;
+    const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm(x.label) === row.label);
+    const answer = norm(f?.value ?? "");
+    if (!f || !answer || answer === MASKED || answer.length > 2000) continue;
+    out.push({ key: row.key, kind: row.kind, label: row.label, type: row.type, options: row.options, company: row.company, answer });
+  }
+  return { posting: q.posting, answers: out };
+}
+
 // ------------------------------------------------------------------------------------------------ the reviewed payload
 // Every answer the form will send, read back from the page, with where it came from:
 //   trainee  filled by the extension from a confirmed fact (its fact id), unchanged since

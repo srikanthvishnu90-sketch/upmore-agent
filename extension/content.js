@@ -257,7 +257,9 @@
     if (!s.ok) return stop(changedMsg(s.changed));
     steps.screenshot = Date.now();
     const planned = [...filled.keys()];
-    const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, screenshot: { sha256: shot.sha256, dataUrl: shot.dataUrl } });
+    // The person's own answers to this posting's open questions, kept for later forms once this one is sent (ask once).
+    const formAnswers = C.formAnswersToKeep({ jobId, company, needs: plan?.needs || [], fields: reviewed.payload.fields, answers: ctx.answers, answered: new Set(ctx.answered || []) });
+    const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, formAnswers, screenshot: { sha256: shot.sha256, dataUrl: shot.dataUrl } });
     if (!begun?.ok) {
       submitting = false;
       return;

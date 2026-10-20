@@ -274,6 +274,13 @@ async function finish(tabId, observation, extra = {}) {
     ...evidence, id: p.id, state: outcome.state, proved, job_id: p.payload.job_id, company: p.payload.company, url: p.payload.url,
     approved_answers: p.payload.fields, screenshot: p.screenshot || null, screenshot_after: shotAfter?.dataUrl || null, recorded,
   });
+  // Ask once, from the form: the person's own answers on the card they approved are kept for later forms, only once the
+  // application went (never for a stop before the click). A failure here never touches the application's outcome.
+  if (observation && p.form_answers) {
+    try {
+      await rpc("career_apply_questions_answer_from_form_own", { p_job_id: p.form_answers.posting, p_answers: p.form_answers.answers });
+    } catch { /* kept for the next text instead: the question stays open */ }
+  }
   const stats = await get(L, "timing", []);
   if (proved) await put(L, "timing", [...stats, evidence.ms_card_to_done].slice(-500));
   await setPending(tabId, null);
@@ -411,6 +418,7 @@ async function handle(m, sender) {
         const row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
         await setPending(tabId, {
           id: row.id, lease: row.lease, hash: m.hash, payload: m.payload, url_before: m.urlBefore, planned_names: m.plannedNames,
+          form_answers: m.formAnswers?.answers?.length ? m.formAnswers : null,
           card_shown_at: card.shown_at, approved_at: card.approved_at, screenshot_sha256: m.screenshot?.sha256 || null, screenshot: m.screenshot?.dataUrl || null,
         });
         await setCard(tabId, { begun: true });

@@ -2,8 +2,9 @@
 // against the captured forms is tests/career-extension-browser.test.cjs; the record is tests/db/career_apply_extension.test.sql.
 // Contract: docs/architect/work-orders/WO-031-extension.md.
 import {
-  applyUrl, approvalHash, blockers, cardLines, changedFields, detectPortal, evidenceRecord, isIdentityField, MASKED, planForm,
-  postingKey, postingLinks, reviewPayload, scrubIdentity, type SnapField, WORKDAY_NOTICE,
+  applyUrl, approvalHash, BEFORE_CLICK, blockers, cardLines, cardOutcome, changedFields, detectPortal, evidenceRecord, isIdentityField,
+  looksLikeIdNumber, MASKED, outcomeAfterClick, payloadText, planForm, postingKey, postingLinks, reviewPayload, scrubIdentity, type SnapField,
+  WORKDAY_NOTICE,
 } from "../../extension/src/apply_core.ts";
 import { planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { bindFields } from "../../scripts/career/form-bind.ts";
@@ -138,16 +139,20 @@ const payloadOf = (fields: SnapField[]) => reviewPayload({
 Deno.test("WO-031/8 the approval is the hash of the exact payload, the database's own hash; identity numbers never in it", async () => {
   const fields = [
     snap({ name: "_systemfield_name", label: "Legal First and Last Name✱", value: "Test Person", factId: "text-answer:1" }),
-    snap({ name: "x", label: "Yes, I’m based in this location — “quotes” \\ back\nline", value: "No, I do not require sponsorship", source: "you", factId: null }),
+    snap({ name: "x", label: "Yes, I’m based in this location — “quotes” \\ back\nline", value: "No, I do not require sponsorship", source: "you", factId: null, detail: "checked=No" }),
     snap({ name: "ssn", label: "Social Security Number", value: "123-45-6789", source: "you", factId: null, masked: true }),
   ];
   const p = payloadOf(fields);
   assert(!JSON.stringify(p).includes("123-45-6789"), "the payload never carries an identity number");
   eq(p.fields[2].value, MASKED);
   // tests/db/career_apply_extension.test.sql checks the database computes this same hash for this same payload.
-  eq(await approvalHash(p), "636632ae3d8a999446b3ab276b722d49aa798054b259d5997f8239496a0bbcd6");
+  eq(await approvalHash(p), "135758525121be33e9b3157064d35c75e1f2986056a436d7f3d593a1eaf1b21b");
   const changed = await approvalHash(payloadOf(fields.map((f) => (f.name === "x" ? { ...f, value: "Yes, I will require sponsorship" } : f))));
   assert(changed !== (await approvalHash(p)), "any change to any answer is another approval");
+  // What is sent, not only what is shown: the same text with another option value or other file bytes is another approval.
+  const sent = await approvalHash(payloadOf(fields.map((f) => (f.name === "x" ? { ...f, detail: "checked=Yes" } : f))));
+  assert(sent !== (await approvalHash(p)), "the option value / checked state / file bytes are bound to the approval");
+  eq(payloadText(p), JSON.stringify(p), "the payload as text, for the check next to the click");
 });
 
 Deno.test("WO-031/9 after the tap: any change, any new answer, any answer the page set, a verification, or an open question stops it", () => {
@@ -157,6 +162,7 @@ Deno.test("WO-031/9 after the tap: any change, any new answer, any answer the pa
   eq(changedFields(reviewed, [reviewed[0], { ...reviewed[1], source: "page" }]), ["Phone"], "the same value set by a script is not the reviewed one");
   eq(changedFields(reviewed, [...reviewed, snap({ name: "c", label: "Twitter", source: "page" })]), ["Twitter"]);
   eq(changedFields(reviewed, [reviewed[0]]), ["Phone"]);
+  eq(changedFields(reviewed, [reviewed[0], { ...reviewed[1], detail: "sha:other-bytes" }]), ["Phone"], "same text, other bytes or value: changed");
   eq(blockers({ fields: reviewed, openRequired: [], challenge: false, family: "lever" }), []);
   assert(blockers({ fields: reviewed, openRequired: [], challenge: true, family: "lever" })[0].includes("Finish it yourself"), "a verification is handed to the person");
   assert(/set by the page/.test(blockers({ fields: [snap({ name: "c", label: "Twitter", source: "page" })], openRequired: [], challenge: false, family: "lever" })[0]));
@@ -177,30 +183,67 @@ Deno.test("WO-031/10 the card is plain text: every answer as sent, the resume, w
   for (const l of lines) assert(l.length <= 1500 && !/\*\*|^#|`|\[[^\]]*\]\(/.test(l), "plain text: " + l);
 });
 
-Deno.test("WO-031/11 evidence: answers, confirmation text and times, no identity number, no screenshot bytes in the record", () => {
+Deno.test("WO-031/11 evidence: a fixed shape, both screenshots' hashes, no identity number, no picture, always under 64 KB", async () => {
   const p = payloadOf([snap({ name: "ssn", label: "SSN", value: "123-45-6789", source: "you", masked: true })]);
-  const ev = evidenceRecord({ payload: p, hash: "h", outcome: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-1" },
-    pageText: "Thank you for applying. Ref 123-45-6789 and 123456789.", urlAfter: "https://x", screenshotSha256: "a".repeat(64),
+  const ev = await evidenceRecord({ payload: p, hash: "h", outcome: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-1" },
+    pageText: "Thank you for applying. Ref 123-45-6789 and 123456789.", urlAfter: "https://x", screenshotSha256: "a".repeat(64), screenshotAfterSha256: "b".repeat(64),
     times: { card: 1000, approved: 2000, clicked: 2100, done: 3500 } });
   assert(!JSON.stringify(ev).includes("123-45-6789") && !JSON.stringify(ev).includes("123456789"));
   eq(scrubIdentity("SSN 123 45 6789"), "SSN [number removed]");
   eq(ev.ms_card_to_done, 2500);
-  assert(JSON.stringify(ev).length < 65536 && !("screenshot" in ev), "the record holds the screenshot's hash; the picture stays on the computer");
+  // The shape WO-042 counts on.
+  for (const k of ["times", "screenshot_sha256", "screenshot_after_sha256", "confirmation_text", "confirmation_id", "url_after"]) assert(k in ev, k);
+  eq(Object.keys(ev.times), ["card_shown_at", "approved_at", "clicked_at", "finished_at"]);
+  eq(ev.screenshot_after_sha256, "b".repeat(64));
+  assert(!("screenshot" in ev) && !("screenshot_after" in ev), "the record holds the pictures' hashes; the pictures stay on the computer");
+  // A long answer cannot make the record too big to keep (WO-031 review: finish_own failed every retry over 64 KB).
+  const huge = payloadOf([snap({ name: "essay", label: "Tell us about yourself", value: "x".repeat(120_000), source: "you" }),
+    ...Array.from({ length: 300 }, (_, i) => snap({ name: "f" + i, label: "Question " + i + " " + "q".repeat(250), value: "v".repeat(400), source: "you" }))]);
+  const big = await evidenceRecord({ payload: huge, hash: "h", outcome: { state: "confirmed", reason: "r", confirmation_id: null }, pageText: "t".repeat(9000),
+    urlAfter: "https://x", screenshotSha256: null, screenshotAfterSha256: null, times: { card: 1, approved: 2, clicked: 3, done: 4 } });
+  assert(JSON.stringify(big).length < 65536, "under the 64 KB limit: " + JSON.stringify(big).length);
+  assert((big.answers as any[]).every((a) => typeof a.value_sha256 === "string" || String(a.value ?? "").length <= 500), "long answers kept by hash");
 });
 
-Deno.test("WO-031/12 the extension's own rules in its code: MV3, session-only token, the person's own tap, nothing on LinkedIn or Indeed", () => {
+Deno.test("WO-031/15 identity numbers of many countries are never filled or kept; a long digit string the person typed is masked", () => {
+  for (const label of ["SIN", "SIN (Social Insurance Number)", "National Identification Number", "Passport #", "Driver's License #", "Tax File Number",
+    "Aadhaar number", "Government-issued ID number", "Personnummer", "NI number", "CPF", "Social Security Number", "ID card number"]) {
+    assert(isIdentityField({ label }), label);
+  }
+  for (const label of ["Phone", "Email", "LinkedIn profile", "Years of experience", "Sincerely, your name", "Business card title"]) assert(!isIdentityField({ label }), label);
+  assert(looksLikeIdNumber("123 456 789 01") && looksLikeIdNumber("12345678") && !looksLikeIdNumber("1234567") && !looksLikeIdNumber("Test Person"));
+});
+
+Deno.test("WO-031/16 two fields under one label: neither is answered, both are the person's", () => {
+  const schema = [field("phone", "Phone"), field("ref_phone", "Phone"), field("email", "Email")];
+  const p = planForm({ ...BASE, family: "lever", schema, answers: { phone: fact("+1 555 010 0000"), email: fact("t@example.test") } });
+  eq(p.fill.map((f) => f.name), ["email"]);
+  eq(p.ambiguous.map((f) => f.name), ["phone", "ref_phone"]);
+});
+
+Deno.test("WO-031/17 after the click: never 'not sent'; an old notice is not the employer's answer; confirmed only with the picture after", () => {
+  const base = { url_before: "https://a", url_after: "https://a", form_present_after: true, required_empty_after: 0, validation_errors: ["We use cookies"], captcha: false, email_code_prompt: false, page_text: "" };
+  eq(outcomeAfterClick(base, ["We use cookies"], true).state, "unknown_outcome", "no answer in time: counted as applied");
+  eq(outcomeAfterClick(base, ["We use cookies"], false).state, "unknown_outcome", "the form still there, nothing new: never 'not submitted'");
+  eq(outcomeAfterClick({ ...base, validation_errors: ["We use cookies", "Email is required"] }, ["We use cookies"]).state, "failed", "a new error is the employer's");
+  eq(outcomeAfterClick({ ...base, form_present_after: false, page_text: "Thank you for applying!" }, ["We use cookies"]).state, "confirmed");
+  eq(BEFORE_CLICK, "stopped before the click");
+  const ok = { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-1" };
+  eq(cardOutcome(ok, true).message, "Sent and confirmed by the employer (TEST-1).");
+  eq(cardOutcome(ok, false).message, "Sent; the employer's answer could not be captured. Check your email for their confirmation.");
+  assert(!/confirmed by/.test(cardOutcome({ state: "unknown_outcome", reason: "r", confirmation_id: null }, true).message));
+});
+
+// What can be checked only in the code (the rest is behavioural, in tests/career-extension-browser.test.cjs: the session
+// only in session storage, the person's own tap, panel-only requests, the pinned server).
+Deno.test("WO-031/12 manifest and code: MV3, forms only, no remote code, no password field, never a verification token", () => {
   const m = MANIFEST as any;
   eq(m.manifest_version, 3);
   const matches: string[] = m.content_scripts.flatMap((c: any) => c.matches);
   assert(matches.every((x) => /greenhouse\.io|lever\.co|ashbyhq\.com|myworkday(jobs|site)?\.com/.test(x)), "content scripts run only on application forms");
   assert(!matches.some((x) => /linkedin|indeed|<all_urls>/.test(x)));
   eq(m.content_security_policy.extension_pages, "script-src 'self'; object-src 'self'", "no remote code");
-  assert(/put\(S, "auth"/.test(BACKGROUND) && !/put\(L, "auth"/.test(BACKGROUND) && !/localStorage\.setItem/.test(BACKGROUND), "the session lives in chrome.storage.session only");
   assert(!/type=["']?password/i.test(PANEL_HTML), "the extension never asks for a password");
-  assert(/if \(!e\.isTrusted\) return;/.test(PANEL), "only the person's own click approves");
-  assert(/card\.hash !== m\.hash \|\| card\.status !== "ready"/.test(BACKGROUND), "the tap approves the card on screen, only when it is ready");
-  assert(/card\.approved_hash !== m\.hash/.test(BACKGROUND), "the record starts only for the approved hash");
-  assert(/sender\.id !== chrome\.runtime\.id/.test(BACKGROUND) && /sender\.id !== chrome\.runtime\.id/.test(CONTENT), "no web page can send it a message");
   assert(!/g-recaptcha-response|h-captcha-response|cf-turnstile-response/.test(CONTENT + BACKGROUND), "it never touches a verification's token");
   assert(/Not in the Chrome Web Store/i.test(README) || /not in the Chrome Web Store/i.test(README));
 });

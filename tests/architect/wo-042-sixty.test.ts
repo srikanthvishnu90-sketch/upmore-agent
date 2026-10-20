@@ -206,6 +206,9 @@ Deno.test("WO-042/12 a searched long list (a school) reads the filtered list or 
   // this select only.
   // Live run 17: on Greenhouse the menu is not under the control's parent; it is found through the input's own listbox.
   assert(/getAttribute\("aria-controls"\)/.test(widget) && /\(__\|-\)menu\$/.test(widget) && /own\?\.querySelector\("\[class\*='menu-notice--no-options'\]"\)/.test(widget), "this select's own notice only, through its listbox");
+  // Live run 18: Discipline shows "no options" for its own list before its remote matches arrive; the notice counts only
+  // from a second after the typing.
+  assert(/menu-notice--no-options'\]"\) && Date\.now\(\) - typedAt > 1000\) return \[\]/.test(widget), "a no-options notice counts only after 1 s");
   // The offline stand-in's lists never filter: an unchanged list with no loading notice is final after 600 ms, not 2.4 s.
   assert(/Date\.now\(\) - typedAt > 600 && !own\?\.querySelector\("\[class\*='menu-notice--loading'\]"\)/.test(widget), "an unchanged list is final after 600 ms");
 });

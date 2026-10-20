@@ -2821,7 +2821,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       opts2 = await until(() => {
         const now = optionEls();
         if (now.length && now.map(optionText).join("\n") !== before) return now;
-        if (own?.querySelector("[class*='menu-notice--no-options']")) return [];
+        if (own?.querySelector("[class*='menu-notice--no-options']") && Date.now() - typedAt > 1e3) return [];
         return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
       }, 2400);
       label = opts2?.length ? pick(opts2.map(optionText)) : null;

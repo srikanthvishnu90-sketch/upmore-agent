@@ -157,7 +157,9 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
     opts = await until(() => {
       const now = optionEls();
       if (now.length && now.map(optionText).join("\n") !== before) return now;
-      if (own?.querySelector("[class*='menu-notice--no-options']")) return [];
+      // "No options" counts only from a second after the typing: a list that searches remotely first shows "no options"
+      // for what it already had, then its matches (live run 18: Discipline was missed when the first notice ended the wait).
+      if (own?.querySelector("[class*='menu-notice--no-options']") && Date.now() - typedAt > 1000) return [];
       return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
     }, 2400);
     label = opts?.length ? pick(opts.map(optionText)) : null;

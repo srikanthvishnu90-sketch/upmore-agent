@@ -409,6 +409,17 @@ What changed:
   in `__menu` or `-menu`), with the control's parent kept as a fallback. Live run 18 checks both at once: School fast
   and Discipline filled.
 
+### Live run 18 (VERIFIED-LIVE, CI run of 7a03de7b, never sent)
+
+- **Precision 100% (194/194), coverage 95.6%, widgets 36/42.**
+- **School is fast with the listbox lookup:** not over 300 ms on any form. Fill to card dropped on EOS (4.60 s to
+  2.05 s) and SpaceX (6.04 s to 3.74 s).
+- **Discipline was missed again**, as in run 16. The cause is not a stale notice from School. Discipline's own menu shows
+  "no options" for the list it already had, and its remote matches arrive after that. Run 17 found no notice, waited for
+  the list to change, and got Discipline right.
+- **A no-options notice now counts only from 1 s after the typing.** That keeps about 1.5 s of School's 2.5 s and gives
+  remote matches their time. Live run 19 checks both.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a

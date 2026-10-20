@@ -134,6 +134,8 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020050000_career_apply_daily_limit.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020060000_career_apply_questions.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020060000_career_apply_questions.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020070000_career_apply_questions_ai_policy.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020070000_career_apply_questions_ai_policy.sql"
 # After the card push migration, as in production order: mail tracking widens the outbox kinds it set.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020100000_career_mail_tracking.sql"
 # Idempotent: the mail tracking migration must apply cleanly a second time.
@@ -148,7 +150,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -176,6 +178,8 @@ echo "== career_apply_daily_limit.test.sql (25 a day by default, the person's ow
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_daily_limit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_questions.test.sql (asked once by text, answered once, read back by the person's computer)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_questions.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_questions_ai_policy.test.sql (the employer's own words about AI help travel with its written questions)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_questions_ai_policy.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_connector.test.sql (double opt-in introductions: every refusal, nothing identifying before both yes)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_events.test.sql (the account timeline: own reads, recall, prepared on insert, wiped by an erase)"

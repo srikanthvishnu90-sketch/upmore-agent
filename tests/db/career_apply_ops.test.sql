@@ -158,4 +158,12 @@ select t.ok((select career_apply_confirm_answer_as('00000000-0000-4000-8000-0000
 select t.must_fail($$select career_apply_confirm_answer_as('00000000-0000-4000-8000-000000000963',repeat('9',64),1)$$,'no_open_ask','answered once');
 reset role;
 select t.ok((select meta->>'intent'='career_apply_confirm_which' from agent_messages where thread_id='00000000-0000-4000-8000-0000000009c3' order by id desc limit 1),'the ask is the thread''s last word');
+-- One contact per channel (WO-038): a STOP on any of the person's channels stops every push.
+insert into channel_contacts(contact,user_id,thread_id,opted_out) values ('tg:96401','00000000-0000-4000-8000-000000000964','00000000-0000-4000-8000-0000000009c4',true);
+insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-000000000964','career:confirm-ask:'||repeat('8',64),
+ jsonb_build_object('state','pending','ids','[]'::jsonb,'kind','received','evidence','received','mail_at',now(),'company','X'));
+insert into agent_messages(thread_id,role,content,meta) values('00000000-0000-4000-8000-0000000009c4','assistant','ok','{"intent":"agent"}');
+set role service_role;
+select t.ok(not career_apply_confirm_ask_push_as('00000000-0000-4000-8000-000000000964',repeat('8',64),'Which one?'),'a STOP on another channel stops the push');
+reset role;
 rollback;

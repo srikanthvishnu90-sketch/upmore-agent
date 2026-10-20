@@ -61,15 +61,21 @@ WO-039's `career_apply_cloud.test.sql` included, with no change on either side. 
 - the count is `state = 'confirmed'`, `source in ('own_computer', 'extension')`, `email_confirmed_at` set, and the
   message's `received` event (not flagged) filed under the application.
 
-**The outbox lists, in file order.** Trunk's `20261021050000_career_brief_digest.sql` (WO-034) comes after this file and
-redefined the kind and key lists without `questions`, so in production it would have dropped them, and
-`tests/outbox-kinds.test.cjs` failed.
+**The outbox lists, in file order.** Two trunk migrations come after this file and redefined the kind and key lists
+without `questions`: `20261021050000_career_brief_digest.sql` (WO-034) and `20261021070000_channel_parity.sql` (WO-038,
+#57). In production they would have dropped `questions`, and `tests/outbox-kinds.test.cjs` failed.
 - This migration keeps every kind on trunk: `alert`, `report`, `reply`, `receipt`, `card`, `status`, `followup`, `mock`,
   `brief`, `digest`, plus its own `questions`.
-- I added `questions` to that later file's two lists, with a one-line comment. That is the only line of another order's
-  migration this branch touches. It is safe while that migration is not yet live; it was not applied anywhere by me.
-- `link` (#57) is not on trunk. Adding it here, in an earlier file, would make the later 050000 file "drop" it, so #57's
-  own migration must keep `questions` and add `link`.
+- I added `questions` to both later files' two lists, each with a one-line comment. Those are the only lines of
+  another order's migrations this branch touches. It is safe while those migrations are not yet live; I applied nothing
+  anywhere.
+- `link` (#57) is added by the 070000 file itself. Adding it here, in an earlier file, would make the 050000 file "drop"
+  it.
+- **One contact per channel (WO-038).** The questions push and the ask push now:
+  - stop on a STOP on any of the person's channels;
+  - take the thread of the most recent channel.
+
+  This reads `last_inbound_at` through `to_jsonb`, so it also runs on the one-contact schema.
 
 Two existing DB assertions changed for this contract, and only these two:
 - `tests/db/career_apply_jobs.test.sql`, "all six final states persist": a reported `confirmed` now persists as
@@ -213,7 +219,7 @@ No `tests/architect` file was edited.
   - Q2: nothing answered re-asked;
   - Q3: the intent is set, and the numbered answer routes;
   - Q4: quiet hours.
-- `tests/db/career_apply_ops.test.sql`, 47 checks. The migration is applied twice in `tests/db/run.sh`. It covers:
+- `tests/db/career_apply_ops.test.sql`, 48 checks. The migration is applied twice in `tests/db/run.sh`. It covers:
   - sources and the trigger;
   - the window and idempotence;
   - the evidence filed in `career_mail_events`;
@@ -223,6 +229,7 @@ No `tests/architect` file was edited.
   - a refused send tried again on the same row;
   - a no-break-space label pushed;
   - a text missing a question returning false;
+  - a STOP on another channel stopping a push;
   - the ask.
 
 ## Planted defects (each one line, each reverted)
@@ -254,8 +261,9 @@ No `tests/architect` file was edited.
 | D24 | SQL: a text missing a question raises | career_apply_ops.test.sql (raises instead of returning false) |
 | D25 | the confirmation date ignores the person's time zone | WO-032/C5 |
 | D26 | no warning when the address is off the employer's domain | WO-032/E12 |
+| D27 | SQL: a STOP on another channel is ignored by the pushes | career_apply_ops.test.sql "a STOP on another channel stops the push" |
 
-All of D1 to D26 were re-run against the final code; each fails its test. D4 needed one more assertion in E3: a last
+All of D1 to D27 were re-run against the final code; each fails its test. D4 needed one more assertion in E3: a last
 word that names the card but is not the email's own intent sends nothing.
 
 ## Measured

@@ -366,6 +366,28 @@ export function engineRunner(o: { root: string; extra?: string[]; deno?: string 
   };
 }
 
+// WO-039: what a hand submission's evidence says was sent, for career_apply_record_own: the posting, the employer and the
+// page it was sent from (the engine's own observation, never typed by hand), and its outcome. Only a run that sent the
+// application is recorded, and the page's family must be the posting's.
+export function handRecord(ev: any): { job_id: string; company: string; url: string; state: string } {
+  const state = ev?.result?.state, posting = String(ev?.payload?.posting ?? ""), url = String(ev?.observation?.url_before ?? "");
+  if (!["submitted_unconfirmed", "confirmed", "unknown_outcome"].includes(state) || !posting) {
+    throw Error(`That run did not send an application (${state ?? "no result"})`);
+  }
+  let host = "";
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" || u.username || u.password) throw Error();
+    host = u.hostname.toLowerCase();
+  } catch {
+    throw Error("The evidence has no https page the application was sent from");
+  }
+  const fam = /(^|\.)greenhouse\.io$/.test(host) ? "greenhouse" : /(^|\.)lever\.co$/.test(host) ? "lever"
+    : /(^|\.)ashbyhq\.com$/.test(host) ? "ashby" : /(^|\.)smartrecruiters\.com$/.test(host) ? "smartrecruiters" : null;
+  if (!fam || !posting.startsWith(fam + ":")) throw Error("The page and the posting in the evidence do not match");
+  return { job_id: posting, company: String(ev.payload.company ?? ""), url, state };
+}
+
 // The person signs this computer in themselves, in a browser window on the Upmore app, the same way they sign in
 // anywhere (their own password or Google, their own 2FA). The session is read only from the app's own origin, after
 // they are signed in, from where the app keeps it (supabase-js: localStorage "sb-<project>-auth-token"); it stays in
@@ -640,21 +662,23 @@ if (import.meta.main) {
     }
   } else if (cmd === "record") {
     // WO-039: a hand submission (scripts/apply.ts --headed --person-submits --submit, the owner's first trials) recorded
-    // as this person's own computer's, so the employer's confirmation email can count it toward the cloud's gate.
-    const [url, evidenceDir] = rest;
-    if (!url || !evidenceDir) {
-      console.error("usage: approve-first.ts record <posting url> <evidence folder printed by apply.ts>");
+    // as this person's own computer's, so the employer's confirmation email can count it toward the cloud's gate. Every
+    // value comes from the engine's own evidence, never from the command line.
+    const [evidenceDir] = rest;
+    if (!evidenceDir) {
+      console.error("usage: approve-first.ts record <evidence folder printed by apply.ts>");
       Deno.exit(2);
     }
-    const ev = JSON.parse(await Deno.readTextFile(`${evidenceDir}/evidence.json`));
-    const state = ev?.result?.state;
-    if (!["submitted_unconfirmed", "confirmed", "unknown_outcome"].includes(state) || !ev?.payload?.posting) {
-      console.error(`That run did not send an application (${state ?? "no result"}); nothing was recorded.`);
+    let rec;
+    try {
+      rec = handRecord(JSON.parse(await Deno.readTextFile(`${evidenceDir}/evidence.json`)));
+    } catch (e: any) {
+      console.error(`${e?.message ?? e}; nothing was recorded.`);
       Deno.exit(2);
     }
     const client = await signedInClient("record");
-    const r = await client.rpc("career_apply_record_own", { p_job_id: ev.payload.posting, p_company: ev.payload.company, p_url: url, p_state: state });
-    console.log(r.error ? `NOT RECORDED (${r.error.message})` : `RECORDED ${ev.payload.posting}: it counts once the employer's email confirms it.`);
+    const r = await client.rpc("career_apply_record_own", { p_job_id: rec.job_id, p_company: rec.company, p_url: rec.url, p_state: rec.state });
+    console.log(r.error ? `NOT RECORDED (${r.error.message})` : `RECORDED ${rec.job_id}: it counts once the employer's email confirms it.`);
   } else if (cmd === "cloud-resume") {
     // WO-039: the resume the cloud may send, by its hash, kept until the person turns the cloud off or erases.
     const [resume] = rest;

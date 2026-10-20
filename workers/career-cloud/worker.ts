@@ -32,7 +32,9 @@ export interface CloudQueue {
   finish(job: CloudJob, state: string, evidence: Record<string, unknown>, outcome: Outcome, errorKind: string | null): Promise<unknown>;
   gatePresent(): Promise<boolean>;
 }
-export type Outcome = "submitted" | "bot_check" | "error" | "not_sent";
+// "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
+// unknown and never re-driven, but a deliberate shutdown is not a failure the employer saw, so the throttle skips it.
+export type Outcome = "submitted" | "bot_check" | "error" | "not_sent" | "interrupted";
 
 const OUTCOMES = new Set(["confirmed", "submitted_unconfirmed", "needs_user", "failed", "not_submitted", "unknown_outcome"]);
 // Stopped before anything left the browser, by design (a changed application, a question the person never answered, a
@@ -60,7 +62,7 @@ export function settle(result: { state?: string; reason?: string } | null): { st
 }
 
 const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((n) => n.toString(16).padStart(2, "0")).join("");
-const sha256 = async (b: Uint8Array) => hex(await crypto.subtle.digest("SHA-256", b));
+const sha256 = async (b: Uint8Array) => hex(await crypto.subtle.digest("SHA-256", b as BufferSource));
 const b64bytes = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const clip = (v: unknown, n: number) => String(v ?? "").slice(0, n);
 
@@ -106,6 +108,7 @@ export async function runCloudJob(job: CloudJob, d: {
   tmpRoot?: string;
   now?: () => number;
   log?: (line: string) => void;
+  stopping?: () => boolean;
 }) {
   const now = d.now ?? Date.now, log = d.log ?? ((l: string) => console.log(l)), started = now();
   let s: ReturnType<typeof settle> = { state: "not_submitted", reason: "DRIVER_ERROR", outcome: "error", errorKind: "DRIVER_ERROR" };
@@ -120,17 +123,21 @@ export async function runCloudJob(job: CloudJob, d: {
     const bytes = b64bytes(r.b64);
     if ((await sha256(bytes)) !== p.resume_sha256 || r.sha256 !== p.resume_sha256) throw Object.assign(Error("RESUME_CHANGED"), { code: "RESUME_CHANGED" });
     const name = /^[^/\\.][^/\\]{0,199}$/.test(r.filename) ? r.filename : "resume.pdf";
-    const resumePath = `${dir}/${name}`, factsPath = `${dir}/facts.json`;
+    // The resume in its own folder, so no file name it may have (facts.json) can stand in for the facts.
+    await Deno.mkdir(`${dir}/resume`, { mode: 0o700 });
+    const resumePath = `${dir}/resume/${name}`, factsPath = `${dir}/facts.json`;
     await Deno.writeFile(resumePath, bytes, { mode: 0o600 });
     await Deno.writeTextFile(factsPath, JSON.stringify(factsFromPayload(p)), { mode: 0o600 });
     began = true;
     run = await d.runEngine(["--url", job.url, "--facts", factsPath, "--resume", resumePath, "--submit", "--approved", p.engine_approval]);
     s = settle(run?.result ?? null);
+    if (s.state === "unknown_outcome" && d.stopping?.()) s = { ...s, outcome: "interrupted", errorKind: "WORKER_STOPPED" };
   } catch (e: any) {
     // Before the engine started nothing could have been sent; after it started, nothing is known.
     const code = String(e?.code || e?.message || e).split(":")[0].slice(0, 80);
     s = began
-      ? { state: "unknown_outcome", reason: "the run stopped after the engine started; not retried", outcome: "error", errorKind: code }
+      ? { state: "unknown_outcome", reason: "the run stopped after the engine started; not retried",
+        outcome: d.stopping?.() ? "interrupted" : "error", errorKind: d.stopping?.() ? "WORKER_STOPPED" : code }
       : settle({ state: "not_submitted", reason: code });
   } finally {
     await Deno.remove(dir, { recursive: true }).catch(() => {});
@@ -178,7 +185,7 @@ export async function cloudLoop(o: {
       }
     }
     for (const job of jobs.slice(0, free)) {
-      const p: Promise<unknown> = runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log })
+      const p: Promise<unknown> = runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop })
         .then((r) => { done.push(r); })
         .finally(() => inFlight.delete(p));
       inFlight.add(p);
@@ -192,6 +199,18 @@ export async function cloudLoop(o: {
   return done;
 }
 
+// What the engine's process may see of the worker's environment: where its tools are, nothing else. The service key and
+// every other secret stay in the worker (clearEnv), so neither the engine nor Chromium nor a page can read them.
+export const ENGINE_ENV_KEYS = ["PATH", "HOME", "TMPDIR", "DENO_DIR", "PLAYWRIGHT_BROWSERS_PATH", "UPMORE_PLAYWRIGHT_PATH", "UPMORE_CHROMIUM_PATH"];
+export function engineEnv(from: (k: string) => string | undefined = (k) => Deno.env.get(k)) {
+  const env: Record<string, string> = { UPMORE_MASK_SCREENSHOTS: "1", UPMORE_BROWSER_HEADED: "0" };
+  for (const k of ENGINE_ENV_KEYS) {
+    const v = from(k);
+    if (v) env[k] = v;
+  }
+  return env;
+}
+
 // The engine for the cloud: scripts/apply.ts as its own headless process (its own browser and fresh context), stdin
 // closed (there is no person at a server), screenshots masked, a private evidence folder per job, killed after a
 // time limit (then no result, so unknown and never retried).
@@ -203,7 +222,8 @@ export function cloudEngineRunner(o: { root: string; evidenceRoot: string; deno?
       stdin: "null",
       stdout: "piped",
       stderr: "piped",
-      env: { UPMORE_MASK_SCREENSHOTS: "1", UPMORE_BROWSER_HEADED: "0" },
+      clearEnv: true,
+      env: engineEnv(),
     }).spawn();
     const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* gone */ } }, o.timeoutMs ?? 600_000);
     const [out] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.status]);
@@ -263,7 +283,7 @@ export async function preflight(o: { queue: CloudQueue; key: string; envFile?: s
       return null;
     }
   })();
-  if (role && role !== "service_role") return { ok: false as const, why: "NOT_THE_SERVICE_KEY: the cloud worker runs only with the service key" };
+  if (role !== "service_role") return { ok: false as const, why: "NOT_THE_SERVICE_KEY: the cloud worker runs only with the service role key (a JWT whose role is service_role)" };
   if (o.envFile) {
     const st = await Deno.stat(o.envFile);
     if ((st.mode ?? 0) & 0o077) return { ok: false as const, why: `ENV_FILE_NOT_PRIVATE: chmod 600 ${o.envFile}` };
@@ -297,7 +317,7 @@ if (import.meta.main) {
   for (const sig of ["SIGINT", "SIGTERM"] as const) {
     Deno.addSignalListener(sig, () => {
       stopping = true;
-      console.log("Stopping: no new claims; the applications in flight finish and are recorded.");
+      console.log("Stopping: no new claims; the applications in flight finish and are recorded (systemd: KillMode=mixed).");
     });
   }
   const contexts = Number(env("CLOUD_CONTEXTS") || 3);

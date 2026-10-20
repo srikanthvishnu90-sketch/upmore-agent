@@ -2,7 +2,7 @@ begin;
 reset role;
 insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000901','apply-test@example.test'),('00000000-0000-4000-8000-000000000902','other@example.test');
 insert into profiles(id) values('00000000-0000-4000-8000-000000000901'),('00000000-0000-4000-8000-000000000902');
-set role service_role;
+-- WO-039: the 009b-1 pool claim (career_apply_claim) is granted to no one, so this test drives it as the database owner.
 insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-000000000901','career:account','{"epoch":1,"version":1,"paused":false}');
 create temp table apply_input as select jsonb_build_object('version',1,'user_id','00000000-0000-4000-8000-000000000901','job_id','TEST-1','company','Test Employer','url','https://jobs.lever.co/test/TEST-1','fields','[]'::jsonb,'privacy_epoch',1,'account_version',1,'expires_at',now()+interval '1 hour') p;
 create temp table apply_claim as select * from career_apply_claim(now(),1);

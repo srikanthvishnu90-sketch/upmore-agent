@@ -8,11 +8,13 @@
 -- What this file adds:
 --  - career_apply_jobs.source: who sent it ('own_computer' | 'extension' | 'cloud' | 'email'), set once by whoever claims
 --    the row and never changed after. Contract for WO-031 (the extension claims with 'extension') and WO-032.
---  - career_apply_jobs.email_confirmed_at / confirmation_mail_hash: the employer's confirmation email, set only by
---    career_apply_confirm_by_mail from a 'received' mail event matched to this application (contract for WO-032).
+--  - career_apply_jobs.email_confirmed_at / confirmation_mail_hash: the employer's confirmation email, set only through
+--    WO-032's confirmation path (career_apply_confirm_as), which checks the sender is the ATS or the employer's own domain.
 --  - career_apply_record_own: a hand submission (the owner's terminal runs of scripts/apply.ts) recorded by the person.
---  - career_cloud_settings: CAREER_CLOUD_APPLY (the kill switch; anything but 'on' is off) and owner_user_id (who is told).
---  - career_apply_cloud_optin: the person's own yes in chat, with the terms they were shown; one text turns it off.
+--  - career_cloud_settings: CAREER_CLOUD_APPLY (the kill switch; anything but 'on' is off), owner_user_id (who is told)
+--    and gate_user_ids (the owner's gate testers: only their hand submissions count; none listed, the gate is closed).
+--  - career_apply_cloud_optin: the person's own yes in chat, with the terms they were shown; one text turns it off, and
+--    an erase deletes it with the kept resume (a trigger on the account's epoch, whether or not the cloud is on).
 --  - career_apply_cloud_resumes: the approved resume the cloud uploads, by its hash, fetched per claimed job only.
 --  - career_apply_cloud_events / career_apply_cloud_pauses: every outcome, per portal family and per person, and the
 --    auto-throttle (a portal pauses 6 hours at 2% user-facing failures or 2 bot checks in its last 20 attempts; a person
@@ -36,11 +38,14 @@ alter table public.career_apply_jobs add constraint career_apply_jobs_mail_confi
   check ((email_confirmed_at is null) = (confirmation_mail_hash is null)
     and (confirmation_mail_hash is null or confirmation_mail_hash ~ '^[a-f0-9]{64}$'));
 
--- The source is set once and the email confirmation once: a cloud submission can never be relabelled as a hand one.
+-- The source is set once, by the claim, and the email confirmation once: a cloud submission can never be relabelled as a
+-- hand one, and a row that already went cannot be given a source afterwards.
 create or replace function public.career_apply_jobs_fixed() returns trigger
 language plpgsql set search_path = public, pg_temp as $$
 begin
  if old.source is not null and new.source is distinct from old.source then raise exception 'source_fixed'; end if;
+ -- A source is given by the claim that starts a drive, from queued, and by nothing else.
+ if old.source is null and new.source is not null and old.state <> 'queued' then raise exception 'source_fixed'; end if;
  if old.email_confirmed_at is not null and (new.email_confirmed_at is distinct from old.email_confirmed_at
    or new.confirmation_mail_hash is distinct from old.confirmation_mail_hash) then raise exception 'mail_confirmation_fixed'; end if;
  return new;
@@ -69,7 +74,8 @@ language sql immutable set search_path = pg_catalog as $$
 $$;
 
 -- The person's own claim records who sends it: their computer (own_computer) or their browser extension (extension).
--- Identical to WO-032's definition (20261021040000), so the order the two apply in changes nothing.
+-- As WO-032 defines it (20261021040000), with one difference: its sweep leaves cloud rows to the cloud claim, which
+-- records each in the telemetry.
 create or replace function public.career_apply_claim_own(p_limit integer, p_source text) returns setof public.career_apply_jobs
 language plpgsql security definer set search_path=public,pg_temp as $$
 declare u uuid:=auth.uid(); n timestamptz:=clock_timestamp();
@@ -80,7 +86,7 @@ begin
  update public.career_apply_jobs set state='unknown_outcome',
   reason='application outcome unknown: the drive stopped before recording it; not retried',
   evidence=evidence||jsonb_build_object('swept_at',n),updated_at=n
-  where user_id=u and state='driving' and claimed_at<n-interval '15 minutes';
+  where user_id=u and state='driving' and claimed_at<n-interval '15 minutes' and source is distinct from 'cloud';
  return query
  with picked as (select id from public.career_apply_jobs where user_id=u and state='queued' and source is null
   and public.career_apply_current(user_id,payload) and approval_hash=payload_hash and attempts=0
@@ -94,7 +100,7 @@ begin
  return query select * from public.career_apply_claim_own(p_limit, 'own_computer');
 end $$;
 
--- The 009b-1 pool claim has no caller and no gate. Anything it claims is the cloud's, so it can never open the gate.
+-- The 009b-1 pool claim has no caller and no gate: it is granted to no one (below). Anything it claims is the cloud's.
 create or replace function public.career_apply_claim(p_now timestamptz,p_limit integer) returns setof public.career_apply_jobs
 language sql set search_path=public,pg_temp as $$
  with picked as (select id from public.career_apply_jobs where state='queued' and source is null and public.career_apply_current(user_id,payload)
@@ -104,39 +110,51 @@ language sql set search_path=public,pg_temp as $$
  from picked where j.id=picked.id returning j.*;
 $$;
 
+-- ---------------------------------------------------------------------------------------------- settings
+create table if not exists public.career_cloud_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.career_cloud_settings drop constraint if exists career_cloud_settings_key_check;
+alter table public.career_cloud_settings add constraint career_cloud_settings_key_check
+  check (key in ('CAREER_CLOUD_APPLY', 'owner_user_id', 'gate_user_ids'));
+alter table public.career_cloud_settings drop constraint if exists career_cloud_settings_value_check;
+alter table public.career_cloud_settings add constraint career_cloud_settings_value_check check (length(value) <= 2000);
+-- The kill switch: off until the owner sets CAREER_CLOUD_APPLY to 'on'; any other value is off.
+create or replace function public.career_apply_cloud_enabled() returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce((select value = 'on' from public.career_cloud_settings where key = 'CAREER_CLOUD_APPLY'), false)
+$$;
+-- The gate testers the owner names (gate_user_ids, a Postgres array of user ids: '{<uuid>,<uuid>}'). Anything unreadable
+-- is nobody, and nobody keeps the gate closed.
+create or replace function public.career_apply_gate_users() returns uuid[]
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+ return coalesce((select value::uuid[] from public.career_cloud_settings where key = 'gate_user_ids'), '{}');
+exception when others then return '{}';
+end $$;
+
 -- ---------------------------------------------------------------------------------------------- the gate
--- True only when at least 3 applications on this family were sent by a person's own computer or extension and each was
--- confirmed by the employer's own email: the application is 'confirmed', its mail confirmation is set, and the 'received'
--- mail event it names is still there for that person and application. A cloud submission never counts.
+-- True only when at least 3 applications on this family were sent by one of the owner's gate testers (gate_user_ids) from
+-- their own computer or extension, and each was confirmed by the employer's own email: the application is 'confirmed',
+-- its mail confirmation is set (only WO-032's confirmation path sets it), and the 'received' mail event it names is still
+-- there for that person and application. A cloud submission never counts; nor does anyone not on the list.
 create or replace function public.career_apply_cloud_open(p_portal text) returns boolean
 language sql stable security definer set search_path = public, pg_temp as $$
  select coalesce(p_portal in ('greenhouse', 'lever', 'ashby'), false) and (
   select count(*) from public.career_apply_jobs j
   where j.state = 'confirmed' and j.source in ('own_computer', 'extension') and j.email_confirmed_at is not null
+   and j.confirmation_mail_hash is not null and j.user_id = any(public.career_apply_gate_users())
    and public.career_apply_portal(j.url) = p_portal
    and exists (select from public.career_mail_events e where e.user_id = j.user_id and e.application_ref = 'job:' || j.id
     and e.kind = 'received' and not e.flagged and e.message_hash = j.confirmation_mail_hash)
  ) >= 3
 $$;
 
--- The upgrade from the employer's email (contract for WO-032): a 'received' event WO-024 matched to this application
--- (application_ref job:<id>) turns a sent application into 'confirmed' with the mail's time and hash. Only an application
--- that went (sent, unknown, or confirmed on the page) is upgraded; once set, it is never changed.
-create or replace function public.career_apply_confirm_by_mail(p_user uuid, p_job uuid, p_message_hash text)
-returns public.career_apply_jobs language plpgsql security definer set search_path = public, pg_temp as $$
-declare j public.career_apply_jobs; e public.career_mail_events;
-begin
- select * into e from public.career_mail_events where user_id = p_user and message_hash = p_message_hash
-  and application_ref = 'job:' || p_job and kind = 'received' and not flagged;
- if not found then raise exception 'no_confirmation_mail'; end if;
- select * into j from public.career_apply_jobs where id = p_job and user_id = p_user for update;
- if not found then raise exception 'invalid application'; end if;
- if j.email_confirmed_at is not null then return j; end if;
- if j.state not in ('submitted_unconfirmed', 'unknown_outcome', 'confirmed') then raise exception 'not_sent'; end if;
- update public.career_apply_jobs set state = 'confirmed', email_confirmed_at = e.mail_at, confirmation_mail_hash = e.message_hash,
-  updated_at = now() where id = p_job returning * into j;
- return j;
-end $$;
+-- The upgrade from the employer's email is WO-032's alone (career_apply_confirm_as checks the sender). An earlier draft of
+-- this file had its own; it is removed.
+drop function if exists public.career_apply_confirm_by_mail(uuid, uuid, text);
 
 -- A hand submission, recorded by the person who made it (the owner's terminal runs: scripts/apply.ts --person-submits,
 -- then `approve-first.ts record <evidence folder>`). It counts toward the gate only after the employer's email confirms it:
@@ -163,23 +181,13 @@ begin
  return j;
 end $$;
 
--- ---------------------------------------------------------------------------------------------- settings and opt-in
-create table if not exists public.career_cloud_settings (
-  key text primary key check (key in ('CAREER_CLOUD_APPLY', 'owner_user_id')),
-  value text not null check (length(value) <= 200),
-  updated_at timestamptz not null default now()
-);
--- The kill switch: off until the owner sets CAREER_CLOUD_APPLY to 'on'; any other value is off.
-create or replace function public.career_apply_cloud_enabled() returns boolean
-language sql stable security definer set search_path = public, pg_temp as $$
- select coalesce((select value = 'on' from public.career_cloud_settings where key = 'CAREER_CLOUD_APPLY'), false)
-$$;
-
+-- ---------------------------------------------------------------------------------------------- opt-in
 create table if not exists public.career_apply_cloud_optin (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   enabled boolean not null default false,
   -- The words the person said yes to, exactly as shown.
   terms text not null default '' check (length(terms) <= 1500),
+  terms_sha256 text check (terms_sha256 ~ '^[a-f0-9]{64}$'),
   daily integer check (daily between 1 and 50),
   privacy_epoch bigint,
   turned_on_at timestamptz,
@@ -189,6 +197,7 @@ create table if not exists public.career_apply_cloud_optin (
 
 -- On: the terms the person said yes to, at their own daily limit (D-011: 25 by default, 50 at most), for their account as
 -- it is now (an erase makes it lapse). Off: at once; the resume the cloud kept for them is removed with it.
+alter table public.career_apply_cloud_optin add column if not exists terms_sha256 text;
 create or replace function public.career_apply_cloud_optin_as(p_user uuid, p_on boolean, p_terms text) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare a jsonb; d int;
@@ -200,9 +209,9 @@ begin
   if a is null then raise exception 'no_account'; end if;
   if coalesce(a->>'paused', 'false') <> 'false' then raise exception 'account_paused'; end if;
   d := public.career_apply_daily_limit(p_user);
-  insert into public.career_apply_cloud_optin (user_id, enabled, terms, daily, privacy_epoch, turned_on_at, updated_at)
-  values (p_user, true, p_terms, d, coalesce((a->>'epoch')::bigint, 0), now(), now())
-  on conflict (user_id) do update set enabled = true, terms = excluded.terms, daily = excluded.daily,
+  insert into public.career_apply_cloud_optin (user_id, enabled, terms, terms_sha256, daily, privacy_epoch, turned_on_at, updated_at)
+  values (p_user, true, p_terms, encode(sha256(convert_to(p_terms, 'UTF8')), 'hex'), d, coalesce((a->>'epoch')::bigint, 0), now(), now())
+  on conflict (user_id) do update set enabled = true, terms = excluded.terms, terms_sha256 = excluded.terms_sha256, daily = excluded.daily,
    privacy_epoch = excluded.privacy_epoch, turned_on_at = excluded.turned_on_at, updated_at = now();
   return jsonb_build_object('enabled', true, 'daily', d);
  end if;
@@ -212,7 +221,7 @@ begin
 end $$;
 create or replace function public.career_apply_cloud_optin_get(p_user uuid) returns jsonb
 language sql stable security definer set search_path = public, pg_temp as $$
- select coalesce((select jsonb_build_object('enabled', enabled, 'daily', daily, 'terms', terms) from public.career_apply_cloud_optin
+ select coalesce((select jsonb_build_object('enabled', enabled, 'daily', daily, 'terms', terms, 'terms_sha256', terms_sha256) from public.career_apply_cloud_optin
   where user_id = p_user), jsonb_build_object('enabled', false))
 $$;
 
@@ -244,6 +253,22 @@ begin
  return h;
 end $$;
 
+-- An erase ("forget my career profile" raises the account's privacy epoch) deletes the person's opt-in and the resume the
+-- cloud kept, at once, whether or not the cloud is on (the same pattern as career_outreach_on_erase).
+create or replace function public.career_apply_cloud_on_erase() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+ if new.key = 'career:account' and coalesce((new.value->>'epoch')::bigint, 0) >
+    (case when tg_op = 'UPDATE' then coalesce((old.value->>'epoch')::bigint, 0) else 0 end) then
+  delete from public.career_apply_cloud_optin where user_id = new.user_id;
+  delete from public.career_apply_cloud_resumes where user_id = new.user_id;
+ end if;
+ return new;
+end $$;
+drop trigger if exists career_apply_cloud_on_erase on public.career_watch_kv;
+create trigger career_apply_cloud_on_erase after insert or update on public.career_watch_kv
+ for each row when (new.key = 'career:account') execute function public.career_apply_cloud_on_erase();
+
 -- ---------------------------------------------------------------------------------------------- telemetry and throttle
 create table if not exists public.career_apply_cloud_events (
   id bigserial primary key,
@@ -251,10 +276,15 @@ create table if not exists public.career_apply_cloud_events (
   user_id uuid not null references public.profiles(id) on delete cascade,
   portal text not null check (portal in ('greenhouse', 'lever', 'ashby', 'smartrecruiters')),
   source text not null default 'cloud' check (source in ('own_computer', 'extension', 'cloud')),
-  outcome text not null check (outcome in ('submitted', 'confirmed', 'bot_check', 'error', 'not_sent')),
+  outcome text not null,
   error_kind text check (error_kind is null or (length(error_kind) <= 80 and error_kind ~ '^[A-Za-z0-9_:. -]*$')),
   at timestamptz not null default now()
 );
+-- 'interrupted': the worker was stopped on purpose mid-run; the application is unknown, but it is not a failure the
+-- employer saw, so the throttle does not count it.
+alter table public.career_apply_cloud_events drop constraint if exists career_apply_cloud_events_outcome_check;
+alter table public.career_apply_cloud_events add constraint career_apply_cloud_events_outcome_check
+  check (outcome in ('submitted', 'confirmed', 'bot_check', 'error', 'not_sent', 'interrupted'));
 -- One attempt per application, and its email confirmation once.
 create unique index if not exists career_apply_cloud_events_attempt on public.career_apply_cloud_events (job_id) where outcome <> 'confirmed';
 create unique index if not exists career_apply_cloud_events_confirmed on public.career_apply_cloud_events (job_id) where outcome = 'confirmed';
@@ -343,7 +373,7 @@ begin
  perform public.career_apply_cloud_throttle(fam, j.user_id, p_now);
 end $$;
 
--- A cloud application's employer email, whichever function set it (career_apply_confirm_by_mail here, WO-032's
+-- A cloud application's employer email, whichever function set it (WO-032's
 -- career_apply_confirm_as), is counted once as 'confirmed' in the telemetry.
 create or replace function public.career_apply_cloud_confirmed() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -392,26 +422,38 @@ end $$;
 
 create or replace function public.career_apply_cloud_claim_at(p_limit integer, p_now timestamptz) returns setof public.career_apply_jobs
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare c record; j public.career_apply_jobs; got int := 0; lim int := greatest(0, least(6, coalesce(p_limit, 0)));
+declare c uuid; u uuid; ids uuid[] := '{}'; dead uuid[]; users uuid[]; fams text[]; j public.career_apply_jobs; got int := 0;
+ lim int := greatest(0, least(6, coalesce(p_limit, 0)));
 begin
  if p_now is null or not public.career_apply_cloud_enabled() then return; end if;
- -- An erase (a new privacy epoch) ends the opt-in and removes the resume the cloud kept.
- update public.career_apply_cloud_optin o set enabled = false, turned_off_at = p_now, updated_at = p_now from public.career_watch_kv a
-  where o.enabled and a.user_id = o.user_id and a.key = 'career:account' and coalesce((a.value->>'epoch')::bigint, 0) <> o.privacy_epoch;
- delete from public.career_apply_cloud_resumes r using public.career_watch_kv a
-  where a.user_id = r.user_id and a.key = 'career:account' and coalesce((a.value->>'epoch')::bigint, 0) <> r.privacy_epoch;
+ -- Cloud drives that stopped without a result, and the candidates: queued, approved, of a person who turned the cloud on,
+ -- on a family whose gate is open and which is not paused; one person's oldest first, then the next person's (so no one
+ -- fills every context). Nothing is locked yet.
+ dead := array(select id from public.career_apply_jobs where source = 'cloud' and state = 'driving' and claimed_at < p_now - interval '15 minutes');
+ fams := array(select f from unnest(array['greenhouse', 'lever', 'ashby']) f where public.career_apply_cloud_open(f)
+  and not exists (select from public.career_apply_cloud_pauses where scope = 'portal' and portal = f and until > p_now));
+ if lim > 0 and cardinality(fams) > 0 then
+  ids := array(select x.id from (select q.id, q.created_at, row_number() over (partition by q.user_id order by q.created_at, q.id) rn
+        from public.career_apply_jobs q join public.career_apply_cloud_optin o on o.user_id = q.user_id and o.enabled
+        where q.state = 'queued' and q.attempts = 0 and q.source is null and q.approval_hash = q.payload_hash
+         and public.career_apply_portal(q.url) = any(fams)) x order by x.rn, x.created_at, x.id limit lim * 4);
+ end if;
+ -- Each person's lock first, in user id order, the same order every time (the finish, the enqueue and the own claim also
+ -- take the person's lock before any row), so two of them can never wait on each other in a circle.
+ users := array(select distinct user_id from public.career_apply_jobs where id = any(dead || ids) order by user_id);
+ foreach u in array users loop
+  perform pg_advisory_xact_lock(hashtextextended(u::text, 0));
+ end loop;
  -- A cloud drive that stopped without a result is unknown, an error in the telemetry, and never re-driven.
  for j in update public.career_apply_jobs set state = 'unknown_outcome',
    reason = 'application outcome unknown: the drive stopped before recording it; not retried',
    evidence = evidence || jsonb_build_object('swept_at', p_now), updated_at = p_now
-   where source = 'cloud' and state = 'driving' and claimed_at < p_now - interval '15 minutes' returning * loop
+   where id = any(dead) and source = 'cloud' and state = 'driving' and claimed_at < p_now - interval '15 minutes' returning * loop
   perform public.career_apply_cloud_record(j, 'error', 'unknown_outcome', p_now);
  end loop;
- for c in select id, user_id from public.career_apply_jobs where state = 'queued' and attempts = 0 and source is null
-   and approval_hash = payload_hash order by created_at, id loop
+ foreach c in array ids loop
   exit when got >= lim;
-  perform pg_advisory_xact_lock(hashtextextended(c.user_id::text, 0));
-  select * into j from public.career_apply_jobs where id = c.id and state = 'queued' for update skip locked;
+  select * into j from public.career_apply_jobs where id = c and state = 'queued' for update skip locked;
   continue when not found;
   continue when public.career_apply_cloud_refusal(j, p_now) is not null;
   update public.career_apply_jobs set state = 'driving', attempts = 1, claimed_at = p_now, lease_token = gen_random_uuid(),
@@ -448,8 +490,9 @@ begin
   raise exception 'invalid apply evidence'; end if;
  if not exists (select from public.career_apply_jobs where id = p_id and lease_token = p_lease and source = 'cloud') then
   raise exception 'invalid apply claim'; end if;
- if p_outcome is null or p_outcome not in ('submitted', 'bot_check', 'error', 'not_sent') or (p_outcome = 'submitted') <> sent
-  or (p_outcome = 'bot_check' and p_state not in ('needs_user', 'not_submitted')) then raise exception 'invalid cloud outcome'; end if;
+ if p_outcome is null or p_outcome not in ('submitted', 'bot_check', 'error', 'not_sent', 'interrupted') or (p_outcome = 'submitted') <> sent
+  or (p_outcome = 'bot_check' and p_state not in ('needs_user', 'not_submitted'))
+  or (p_outcome = 'interrupted' and p_state <> 'unknown_outcome') then raise exception 'invalid cloud outcome'; end if;
  -- A page's "confirmed" is evidence; the row waits, submitted_unconfirmed, for the employer's email (as WO-032's finish).
  j := public.career_apply_finish(p_id, p_lease, case when p_state = 'confirmed' then 'submitted_unconfirmed' else p_state end,
   case when p_state = 'confirmed' then p_evidence || '{"page_confirmation":true}'::jsonb else p_evidence end);
@@ -504,7 +547,7 @@ grant usage, select on sequence public.career_apply_cloud_events_id_seq, public.
 
 revoke all on function public.career_apply_jobs_fixed(), public.career_apply_cloud_confirmed(), public.career_apply_claim_own(integer),
  public.career_apply_claim_own(integer, text), public.career_apply_claim(timestamptz, integer),
- public.career_apply_cloud_open(text), public.career_apply_confirm_by_mail(uuid, uuid, text),
+ public.career_apply_cloud_open(text), public.career_apply_gate_users(), public.career_apply_cloud_on_erase(),
  public.career_apply_record_own(text, text, text, text), public.career_apply_cloud_enabled(), public.career_apply_cloud_optin_as(uuid, boolean, text),
  public.career_apply_cloud_optin_get(uuid), public.career_apply_cloud_resume_put_own(text, text),
  public.career_apply_cloud_tell(uuid, text, text, timestamptz), public.career_apply_cloud_throttle(text, uuid, timestamptz),
@@ -515,7 +558,7 @@ revoke all on function public.career_apply_jobs_fixed(), public.career_apply_clo
 grant execute on function public.career_apply_portal(text), public.career_apply_company_key(text) to service_role;
 grant execute on function public.career_apply_claim_own(integer), public.career_apply_claim_own(integer, text), public.career_apply_record_own(text, text, text, text),
  public.career_apply_cloud_resume_put_own(text, text) to authenticated;
-grant execute on function public.career_apply_claim(timestamptz, integer), public.career_apply_cloud_open(text),
- public.career_apply_confirm_by_mail(uuid, uuid, text), public.career_apply_cloud_enabled(), public.career_apply_cloud_optin_as(uuid, boolean, text),
+-- career_apply_claim(timestamptz, integer) is granted to no one: it has no caller and no gate.
+grant execute on function public.career_apply_cloud_open(text), public.career_apply_cloud_enabled(), public.career_apply_cloud_optin_as(uuid, boolean, text),
  public.career_apply_cloud_optin_get(uuid), public.career_apply_cloud_claim(integer), public.career_apply_cloud_resume(uuid, uuid),
  public.career_apply_cloud_finish(uuid, uuid, text, jsonb, text, text), public.career_apply_cloud_report(integer) to service_role;

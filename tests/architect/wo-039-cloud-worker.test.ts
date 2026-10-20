@@ -10,7 +10,7 @@ import {
   runCloudJob,
   settle,
 } from "../../workers/career-cloud/worker.ts";
-import { factsFromPayload } from "../../workers/career-browser/approve-first.ts";
+import { factsFromPayload, handRecord } from "../../workers/career-browser/approve-first.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { CLOUD_INTENT, cloudTurn, type CloudOptinStore, parseCloudCommand, termsText } from "../../supabase/functions/_shared/career_cloud_optin.ts";
 import { receiptText } from "../../supabase/functions/_shared/career_apply_receipts.ts";
@@ -201,20 +201,26 @@ Deno.test("WO-039/6 the worker refuses to start without the gate function, with 
 });
 
 function optStore(daily = 25) {
-  const st = { enabled: false, terms: null as string | null, last: { intent: null as string | null, content: null as string | null }, daily };
+  const st = {
+    enabled: false, terms: null as string | null, daily, outbox: [] as number[],
+    last: { intent: null as string | null, content: null as string | null, at: null as number | null },
+  };
   const s: CloudOptinStore = {
     dailyLimit: async () => st.daily,
     get: async () => ({ enabled: st.enabled, daily: st.daily }),
     set: async (_u, on, terms) => { st.enabled = on; st.terms = terms; return { enabled: on, daily: st.daily }; },
     lastAssistant: async () => st.last,
+    outboxSince: async (_u, at) => st.outbox.filter((t) => t > at).length,
   };
   return { s, st };
 }
+const T0 = Date.parse("2026-10-21T12:00:00Z");
 Deno.test("WO-039/7 opt-in in chat: the exact terms, a yes only to those terms, and one text turns it off", async () => {
   const { s, st } = optStore(25);
+  let now = T0;
   const say = async (message: string) => {
-    const r = await cloudTurn({ message, userId: "A", threadId: "T", store: s });
-    if (r) st.last = { intent: r.intent, content: r.reply };
+    const r = await cloudTurn({ message, userId: "A", threadId: "T", now, store: s });
+    if (r) st.last = { intent: r.intent, content: r.reply, at: now };
     return r;
   };
   eq(await say("yes"), null, "a yes with no terms shown is not a yes to the cloud");
@@ -225,12 +231,9 @@ Deno.test("WO-039/7 opt-in in chat: the exact terms, a yes only to those terms, 
   }
   assert(shown!.reply.length <= 1500 && !/[*_`#]|\]\(/.test(shown!.reply), "plain text, one message");
   eq(st.enabled, false, "showing the terms turns nothing on");
-  st.daily = 40;
-  const changed = await say("yes");
-  assert(changed && changed.status === "changed" && !st.enabled, "terms that changed since they were shown are shown again, still off");
-  const on = await say("yes");
-  assert(on && on.status === "on" && st.enabled && st.terms === termsText(40), "on, with the exact words they said yes to");
-  st.last = { intent: "agent", content: "something else" };
+  const on = await say("Yes, turn it on.");
+  assert(on && on.status === "on" && st.enabled && st.terms === termsText(25), "on, with the exact words they said yes to");
+  st.last = { intent: "agent", content: "something else", at: now };
   eq(await say("yes"), null, "a yes to anything said after the terms is not a yes to them");
   const off = await say("cloud off");
   assert(off && off.status === "off" && !st.enabled, "one text turns it off");
@@ -238,4 +241,92 @@ Deno.test("WO-039/7 opt-in in chat: the exact terms, a yes only to those terms, 
   for (const t of ["turn on the cloud", "send my applications from the cloud", "apply for me in the cloud please"]) eq(parseCloudCommand(t), { kind: "ask" }, t);
   eq(parseCloudCommand("stop"), null, "STOP stays the carrier's word, never the cloud's");
   eq(parseCloudCommand("what is the cloud"), null);
+});
+
+Deno.test("WO-039/8 a stray yes never turns the cloud on: only an explicit yes, within 30 minutes, nothing texted since, the same terms", async () => {
+  const { s, st } = optStore(25);
+  let now = T0;
+  const show = async () => {
+    now += 1000;
+    const r = await cloudTurn({ message: "apply for me in the cloud", userId: "A", threadId: "T", now, store: s });
+    st.last = { intent: r!.intent, content: r!.reply, at: now };
+  };
+  const yes = (message = "yes", at = now) => cloudTurn({ message, userId: "A", threadId: "T", now: at, store: s });
+  // "Ok." to a receipt that went out after the terms: not a yes, and nothing turns on.
+  await show();
+  for (const m of ["Ok.", "okay", "sure", "y", "yep", "yes please", "turn it on"]) {
+    const r = await yes(m);
+    assert(r === null && !st.enabled, `"${m}" is not an explicit yes`);
+  }
+  // Shown more than 30 minutes ago.
+  const late = await yes("yes", now + 31 * 60_000);
+  assert(late && late.status === "expired" && !st.enabled && late.intent !== CLOUD_INTENT, "terms older than 30 minutes");
+  // A receipt, alert or status text queued after the terms (never written to the thread).
+  await show();
+  st.outbox.push(now + 5);
+  const inter = await yes("yes", now + 10);
+  assert(inter && inter.status === "interleaved" && !st.enabled, "something was texted to them after the terms");
+  st.outbox = [];
+  // The terms' hash: their limit changed since the terms were shown.
+  await show();
+  st.daily = 40;
+  const changed = await yes("yes");
+  assert(changed && changed.status === "changed" && !st.enabled, "terms that would read differently now");
+  // Terms edited in the thread (a different message under the same intent): refused.
+  await show();
+  st.last = { ...st.last, content: st.last.content!.replace("up to 40 a day", "up to 50 a day") };
+  const edited = await yes("yes");
+  assert(edited && edited.status === "changed" && !st.enabled, "the terms shown must hash to the terms");
+  // All held: on.
+  await show();
+  const on = await yes("yes");
+  assert(on && on.status === "on" && st.enabled, "an explicit yes to fresh, unchanged terms, nothing between");
+});
+
+Deno.test("WO-039/9 the engine never sees the service key; a resume named facts.json cannot stand in for the facts", async () => {
+  const dir = await Deno.makeTempDir(), fake = `${dir}/fake-deno.sh`;
+  await Deno.writeTextFile(fake, '#!/bin/sh\necho "RESULT {\\"state\\":\\"not_submitted\\",\\"reason\\":\\"dry_run\\",\\"env\\":\\"$(env | cut -d= -f1 | tr \'\\n\' \' \')\\"}"\n');
+  await Deno.chmod(fake, 0o755);
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "TEST-SECRET-KEY");
+  Deno.env.set("SUPABASE_URL", "https://example.test");
+  Deno.env.set("OPENAI_API_KEY", "TEST-OPENAI");
+  try {
+    const r = await cloudEngineRunner({ root: "/repo", evidenceRoot: dir, deno: fake })(["--url", "u"]);
+    const names = String(r!.result.env).trim().split(/\s+/);
+    assert(!names.some((n) => /SUPABASE|OPENAI|KEY|SECRET|TOKEN/.test(n)), names.join(" "));
+    assert(names.includes("UPMORE_MASK_SCREENSHOTS") && names.includes("PATH"), names.join(" "));
+  } finally {
+    Deno.env.delete("SUPABASE_SERVICE_ROLE_KEY");
+    Deno.env.delete("OPENAI_API_KEY");
+  }
+  const j = await job("A", 12), { q, finished } = memQueue([j], { resume: () => ({ filename: "facts.json", sha256: RESUME_SHA, b64 }) }), seen: any[] = [];
+  await runCloudJob(j, { queue: q, log: () => {}, runEngine: fakeEngine(() => sent, seen) });
+  assert(arg(seen[0].args, "--facts") !== arg(seen[0].args, "--resume"), "two different files");
+  eq(seen[0].facts.user_id, "A", "the facts file holds the facts");
+  eq(Array.from(seen[0].resume), Array.from(RESUME));
+  eq(finished[0].state, "submitted_unconfirmed");
+});
+
+Deno.test("WO-039/10 a deliberate stop is interrupted, not a failure; a hand record takes its page from the evidence", async () => {
+  const j = await job("A", 13), { q, finished } = memQueue([j]);
+  let stopping = false;
+  await runCloudJob(j, { queue: q, log: () => {}, stopping: () => stopping, runEngine: fakeEngine(() => { stopping = true; return null; }) });
+  eq([finished[0].state, finished[0].outcome], ["unknown_outcome", "interrupted"], "unknown, and the throttle skips it");
+  const k = await job("A", 14), m = memQueue([k]);
+  await runCloudJob(k, { queue: m.q, log: () => {}, stopping: () => false, runEngine: fakeEngine(() => null) });
+  eq([m.finished[0].state, m.finished[0].outcome], ["unknown_outcome", "error"], "without a stop, no result is an error");
+  const ev = { result: { state: "submitted_unconfirmed" }, payload: { posting: "lever:acme:1", company: "jobs.lever.co/acme" },
+    observation: { url_before: "https://jobs.lever.co/acme/1" } };
+  eq(handRecord(ev), { job_id: "lever:acme:1", company: "jobs.lever.co/acme", url: "https://jobs.lever.co/acme/1", state: "submitted_unconfirmed" });
+  for (const bad of [
+    { ...ev, observation: { url_before: "https://jobs.ashbyhq.com/acme/1" } },
+    { ...ev, observation: {} },
+    { ...ev, result: { state: "not_submitted" } },
+  ]) {
+    let threw = false;
+    try { handRecord(bad); } catch { threw = true; }
+    assert(threw, JSON.stringify(bad));
+  }
+  const nonJwt = await preflight({ queue: memQueue([]).q, key: "sb_secret_TESTONLY" });
+  assert(!nonJwt.ok && /NOT_THE_SERVICE_KEY/.test((nonJwt as any).why), "a key that is not a service-role JWT is refused");
 });

@@ -4,9 +4,20 @@ The cloud worker sends approved applications for people who turned it on in chat
 CPX32-class, 4 vCPU / 8 GB), which holds only this worker and its service key. It is off until you turn it on, and on
 each portal family (Greenhouse, Lever, Ashby) it sends nothing until the database's gate opens.
 
-The gate opens for a portal family only after 3 applications there were sent by hand (your own computer or the
-extension) and each was confirmed by the employer's own email. `career_apply_cloud_open('lever')` says whether it is
-open. Cloud submissions never count toward it.
+The gate opens for a portal family only after 3 applications there meet all of these:
+- they were sent by hand (your own computer or the extension);
+- they were sent by someone you list as a gate tester (`gate_user_ids`, section 5);
+- each was confirmed by the employer's own email, through WO-032's confirmation path.
+
+`career_apply_cloud_open('lever')` says whether it is open. Cloud submissions never count toward it, and nobody
+outside your list ever does. With no list, the gate is closed.
+
+What it can do today, plainly:
+- **Lever only.** Greenhouse's and Ashby's forms submit from page script, so they need the person to press Submit, and
+  the cloud never claims them.
+- **At most 50 a day per person** (D-011: 25 by default). 100 to 150 a day needs your written amendment of D-011.
+- **The bot-check rate is not measured** (NOT_RUN). Every captured form loads a check scored at Submit, and only real
+  submissions show how often it challenges a server. The throttle pauses a portal at the first failures.
 
 What the worker never does:
 - send anything the person did not approve on a card (the engine checks the approval hash before the click);
@@ -79,7 +90,10 @@ WorkingDirectory=/home/trainee/upmore-agent
 ExecStart=/home/trainee/.deno/bin/deno run -A workers/career-cloud/worker.ts
 Restart=on-failure
 RestartSec=30
-# A stop lets the applications in flight finish and be recorded (each is at most 10 minutes).
+# A stop signals the worker only (KillMode=mixed). It stops claiming, and the engine runs in flight finish and are
+# recorded (each is at most 10 minutes). Only after TimeoutStopSec is anything killed. A run killed by a stop is
+# recorded "interrupted", which the throttle never counts as a failure.
+KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=660
 NoNewPrivileges=true
@@ -95,7 +109,7 @@ WantedBy=multi-user.target
 ```
 systemctl daemon-reload
 systemctl enable --now trainee-cloud     # start, and start again after a reboot
-systemctl stop trainee-cloud             # stop: no new claims; the ones in flight finish and are recorded
+systemctl stop trainee-cloud             # stop: no new claims; the ones in flight finish and are recorded (up to 11 min)
 systemctl status trainee-cloud
 journalctl -u trainee-cloud -f           # one line per application: its id, state, outcome; never an answer
 ```
@@ -118,6 +132,10 @@ update career_cloud_settings set value = 'off', updated_at = now() where key = '
 -- Who is told when a portal or a person is paused (your own Upmore user id):
 insert into career_cloud_settings(key, value) values ('owner_user_id', '<your user id>')
   on conflict (key) do update set value = excluded.value, updated_at = now();
+-- The gate testers: the only people whose hand submissions count toward the gate (a Postgres array of user ids).
+-- Empty, missing or unreadable: the gate stays closed for everyone.
+insert into career_cloud_settings(key, value) values ('gate_user_ids', '{<your user id>}')
+  on conflict (key) do update set value = excluded.value, updated_at = now();
 ```
 
 The other stop is `systemctl stop trainee-cloud` on the VM. Either one alone stops new submissions.
@@ -128,18 +146,23 @@ Each of your first real applications per site is sent from your own computer (`d
 Record each one so its confirmation email can count:
 
 ```
-deno run -A workers/career-browser/approve-first.ts record <posting URL> <evidence folder apply.ts printed>
+deno run -A workers/career-browser/approve-first.ts record <evidence folder apply.ts printed>
 ```
 
-When the employer's "we received your application" email arrives, the mail tracking run (WO-024) records it, and
-WO-032's matcher (`career_apply_confirm_as`) marks the application confirmed. A page's "thank you" alone never does. Check
+Everything recorded comes from the engine's own evidence: the posting, the employer, and the page it was sent from.
+Nothing is typed on the command line.
+
+When the employer's "we received your application" email arrives, the mail tracking run (WO-024) records it. WO-032's
+matcher (`career_apply_confirm_as`) then marks the application confirmed; it checks the sender is the ATS or the
+employer's own domain. That path is the only way a row is confirmed. A page's "thank you" alone never confirms one. Check
 the gate:
 
 ```
 select career_apply_cloud_open('greenhouse'), career_apply_cloud_open('lever'), career_apply_cloud_open('ashby');
 ```
 
-Each person who turns the cloud on uploads the resume it may send, from their own computer:
+Each person who turns the cloud on uploads the resume it may send, from their own computer. An erase ("forget my career
+profile") deletes it and the opt-in at once, whether or not the cloud is on:
 
 ```
 deno run -A workers/career-browser/approve-first.ts cloud-resume <resume.pdf>
@@ -156,7 +179,8 @@ For each portal family it gives:
 - `window_attempts`, `window_failures` and `window_failure_rate`: the last 50 attempts since the last pause, with their
   counts;
 - `bot_checks_last_20`;
-- `counts`: submitted, confirmed (by the employer's email), bot_check, error, not_sent, over the last 7 days;
+- `counts`: submitted, confirmed (by the employer's email), bot_check, error, not_sent, interrupted (a deliberate stop, never a
+  failure), over the last 7 days;
 - `errors`: each error by its code.
 
 `people` gives the same counts per person, and their pause. `kill_switch_on` says whether the switch is on.

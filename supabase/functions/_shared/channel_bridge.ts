@@ -27,7 +27,7 @@ export interface ChannelDeps {
 // failed/uncertain operation, and never retry it inside the bridge.
 export class ChannelRateLimitError extends Error {
   retryAfterSeconds: number | null;
-  constructor(retryAfter: string | null) {
+  constructor(retryAfter: string | null = null) {
     super("agent-chat rate limited");
     this.name = "ChannelRateLimitError";
     const seconds = retryAfter && /^\d{1,5}$/.test(retryAfter) ? Number(retryAfter) : NaN;
@@ -101,6 +101,10 @@ export interface RichTurnOutcome {
   replyText: string; // cleaned reply text ("" when the core answered empty)
   chat: any; // the full agent-chat response (batch/task/meta/artifacts ride it)
 }
+
+// Preserve the upstream name as the same constructor, so ordinary turns and
+// approval callbacks recognize the same quota refusal and Retry-After data.
+export { ChannelRateLimitError as TurnLimitError };
 
 // One agent-chat call, the bridge's exact wire shape: service-role bearer
 // + as_user_id, Authorization header ONLY (the gateway rejects conflicting

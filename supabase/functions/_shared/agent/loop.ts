@@ -5,13 +5,16 @@
 //   external   touches the world (send, submit, message); NEVER runs here. It becomes a pending approval the
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
+import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, untracedFacts } from "./reply_guards.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
 // the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
 // `show` (WO-033): a tool whose output the person must read exactly (a batch of outreach drafts, each in full) sets it;
 // the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it. `parts`
 // (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string; parts?: string[] } } }
+// `before` (WO-091b): the previous turn's reply as the person saw it ("" on a first turn), so a tool can check that "the
+// first one" is a posting that reply showed. Undefined only for a caller that runs a tool without the loop's history.
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -19,12 +22,13 @@ export interface ToolSpec {
   effect: Effect;
   run(input: any, ctx: ToolCtx): Promise<unknown>;
 }
-export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number }) =>
+export type ModelFn = (payload: { system: string; messages: any[]; tools: { name: string; description: string; input_schema: unknown }[]; max_tokens: number; tool_choice?: { type: "none" } }) =>
   Promise<{ content: any[]; stop_reason: string; usage?: unknown }>;
 export interface TurnResult {
   reply: string;
   steps: number;
-  tool_calls: { name: string; ok: boolean; effect: Effect | null }[];
+  // WO-080: a failed call carries `error`, its reason cleaned by scrubError; a call that ran carries none.
+  tool_calls: { name: string; ok: boolean; effect: Effect | null; error?: string }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error";
   show?: { intent: string; text: string; parts?: string[] };
@@ -36,34 +40,107 @@ export const MODEL_ERROR_REPLY = "I can't answer right now because the AI servic
 export const MAX_STEPS_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't finish the rest in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do next.";
 export const MODEL_ERROR_AFTER_SAVE_REPLY = "I saved what you told me, but the AI service stopped responding before I could finish. Nothing was sent or submitted. Try again in a minute.";
 // WO-077: a reply never claims a change that did not happen this turn (battery run 39485101366, T12: "Kept for good" after
-// only a read). Each kind of claim names the tools that make it true; a sentence that negates, offers or asks is not a
-// claim. An unbacked claim is put to the model once (do it, or say it plainly); if it stands, the reply is this one.
-export const CLAIM_UNBACKED_REPLY = "I haven't actually done that yet: nothing was saved, set up or queued this time. Tell me again and I'll do it.";
+// only a read). Each kind of claim names the tools that make it true. WO-091a (audit chat-brain F5; battery run
+// 39500971945, BR-062/036/042): a claim is first-person past or present-perfect action language ("I've set…", "I saved…",
+// "Saved:", "Done — alerts…", "I queued/sent…"); advice and imperatives ("keep job alerts on", "set an alert for…", "as I
+// noted") are not; a negation anywhere in the sentence clears it, and so does a condition before it or in its own clause.
+// An unbacked claim is put to the model once (do it, or say it plainly); if it stands, only its sentences go. With
+// nothing left, the reply is this line: it promises nothing, because code cannot know a tool could do it.
+export const CLAIM_UNBACKED_REPLY = "I didn't change anything this time.";
+const ALERT_NOUN = "(?:(?:an?|your|the|new|these|those|\\d+) )?(?:(?:job|daily|instant|new) )?(?:alerts?|job watch(?:es)?)\\b";
+const I_HAVE = "\\bi(?:'ve| have)? (?:just |now |also )?";
 const CLAIMS: { kind: string; said: RegExp; by: string[] | "any_write" }[] = [
-  { kind: "an alert set", said: /\b(?:i(?:'ve| have)? (?:set|created|turned on|switched on)(?: up)? (?:an?|your|the) (?:job )?alerts?|alerts? (?:is |are )?(?:now )?(?:set|on|live|active)\b)/i, by: ["set_job_alerts"] },
-  { kind: "postings queued", said: /\b(?:(?:were|was|have been|has been|i(?:'ve| have)?|are now) queued\b|queued (?:\d+|them|it|all|these|those)\b|added (?:\d+|them|it|these|those) to your (?:apply )?queue)/i, by: ["queue_applications"] },
-  { kind: "an application tracked", said: /\b(?:i(?:'m| am) (?:now )?tracking|now tracking|added (?:it|this|that|them) to your (?:tracker|applications)|(?:is|are) now (?:on|in) your tracker)/i, by: ["track_application"] },
-  { kind: "something saved", said: /\b(?:kept for good|saved(?: as\b|:| it\b| that\b| this\b| your\b| for good)|i(?:'ve| have)? (?:saved|kept|noted|remembered|stored|recorded)\b|i(?:'ll| will) (?:keep|remember) (?:that|this|it)\b|(?:saved|kept) as a standing)/i, by: "any_write" },
+  { kind: "an alert set", by: ["set_job_alerts"], said: new RegExp(`${I_HAVE}(?:set|created|turned on|switched on|enabled|added)(?: up)? ${ALERT_NOUN}|\\balerts? (?:is|are) now (?:set|on|live|active)\\b|\\balerts? (?:has|have) been (?:set|turned on|switched on|created|enabled)\\b|^(?:done|all set)\\b.{0,40}\\balerts?\\b`, "i") },
+  { kind: "postings queued", by: ["queue_applications"], said: new RegExp(`\\b(?:were|was|have been|has been|are now|is now) queued\\b|${I_HAVE}queued\\b|^queued\\b|(?:^|${I_HAVE})added (?:\\d+|them|it|these|those|all)\\b[^.]{0,30}\\bto your (?:apply )?queue`, "i") },
+  { kind: "an application tracked", by: ["track_application"], said: new RegExp(`\\bi(?:'m| am) (?:now )?tracking\\b|\\bnow tracking\\b|(?:^|${I_HAVE})added (?:it|this|that|them)\\b[^.]{0,20}\\bto your (?:tracker|applications)|\\b(?:is|are) now (?:on|in) your tracker|${I_HAVE}(?:tracked|logged)\\b|^tracked\\b`, "i") },
+  { kind: "something saved", by: "any_write", said: new RegExp(`\\bkept for good\\b|\\b(?:saved|kept)(?::| as (?:an?|your)\\b| for good\\b| it\\b| that\\b| this\\b| your\\b)|${I_HAVE}(?:saved|kept|stored|recorded|remembered|added|updated) (?:it|that|this|them|these|those|your|to your|the (?:fact|instruction|preference|rule|note|setting)s?\\b|as (?:an?|your)\\b|for (?:good|you|later)\\b)|\\bi(?:'ll| will) (?:keep|remember) (?:that|this|it)\\b|^(?:done|all set)\\b.{0,60}\\b(?:saved|kept|remembered|standing instruction|your profile|your preferences?)\\b`, "i") },
+  // Nothing external runs inside the turn (it waits for the person's yes on its card), so a reply never sent anything.
+  { kind: "something sent or applied for", by: [], said: new RegExp(`${I_HAVE}(?:sent|submitted|emailed|messaged|shared|forwarded) (?:it|this|that|them|your (?:application|email|message|note|resume|cover letter)s?|the (?:application|email|message|note|resume|cover letter)s?|\\d+ (?:applications?|emails?|messages?|notes?))\\b|${I_HAVE}applied (?:you |for you )?(?:to|for) (?:it|this|that|them|these|those|all|\\d+)\\b|${I_HAVE}applied you\\b|\\b(?:has|have) been (?:sent|submitted)\\b|^(?:sent|submitted)\\b`, "i") },
 ];
-// Only what comes before the claim can negate or condition it ("Nothing was sent, saved…", "If you say yes, I'll queue");
-// the instruction quoted after it ("Saved: you never want agencies") cannot. A question is never a claim.
-const NEGATED = /\b(?:nothing|not|never|no longer|haven't|hasn't|didn't|couldn't|can't|cannot|won't|unable|if|want me|should i|shall i|do you want|would you like|i can|i could|will|going to|tell you|once|when|after|until)\b|n't\b|'ll\b/i;
+// A negation in the claim's own clause, before it or directly on it ("Nothing was queued", "I queued none of them"); a
+// condition or offer before the claim ("If you say yes, I'll queue") or in its own clause ("live only once you
+// approve"). What a "Saved:" label saves ("Saved: you never want agencies") and anything quoted are the person's words,
+// not the sentence's, so they negate nothing. (PR #123 review: a negation in another clause — "I've saved your
+// preference, but nothing was sent" — does not clear the claim.)
+const NEGATION = /\b(?:nothing|not|never|none|no|neither|nor|unable|cannot)\b|n't\b/i;
+const CLAUSE_BREAK = /,\s*|;\s*|\s*[—–]\s*|\s+(?:and|but|or|so|yet|although|though|while|whereas)\s+/gi;
+const NEGATES_NEXT = /^\s*(?:none|nothing|no|not|zero)\b/i;
+const CONDITION = /\b(?:if|unless|want me|should i|shall i|do you want|would you like|i can|i could|will|going to|tell you|once|when|after|until|as soon as)\b|'ll\b/i;
 // What follows a claim can undo it too: "Saved: none.", "I'll keep it in this conversation" (kept nowhere else).
 const UNDONE = /^\s*:?\s*(?:none|nothing)\b|^[^.!?]{0,40}\b(?:in this (?:conversation|chat)|for (?:this|the rest of this) (?:conversation|chat)|for now)\b/i;
-export function unbackedClaim(reply: string, calls: { name: string; ok: boolean; effect: Effect | null }[]): string | null {
-  const sentences = String(reply || "").split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
-  const claims = (re: RegExp) => sentences.some((x) => {
-    if (/\?\s*$/.test(x)) return false;
-    const m = re.exec(x);
-    return !!m && !NEGATED.test(x.slice(0, m.index)) && !UNDONE.test(x.slice(m.index + m[0].length));
-  });
+// Every kind of claim one sentence makes ("Alerts are now on and I saved your preference" makes two).
+function claimsIn(sentence: string): string[] {
+  const x = plainQuotes(sentence).trim().replace(/^(?:[-*•]|\d+[.)])\s+/, "");
+  const kinds: string[] = [];
+  if (!x || /\?["')\]]*\s*$/.test(x)) return kinds;
   for (const c of CLAIMS) {
-    if (!claims(c.said)) continue;
-    const backed = calls.some((t) => t.ok && (c.by === "any_write" ? t.effect === "write_own" : c.by.includes(t.name)));
-    if (!backed) return c.kind;
+    const m = c.said.exec(x);
+    if (!m) continue;
+    const end = m.index + m[0].length, after = x.slice(end);
+    if (UNDONE.test(after)) continue;
+    // A negation counts only in the claim's own clause: before the claim ("Nothing was queued") or directly on it ("I
+    // queued none"). One in another clause ("I've saved your preference, but nothing was sent") leaves it standing.
+    const unquoted = x.replace(/"[^"]*"/g, (q) => " ".repeat(q.length));
+    const lead = unquoted.slice(0, m.index);
+    const opens = [...lead.matchAll(CLAUSE_BREAK)].map((b) => (b.index ?? 0) + b[0].length);
+    if (NEGATION.test(lead.slice(opens.length ? opens[opens.length - 1] : 0))) continue;
+    if (!/^\s*:/.test(after) && NEGATES_NEXT.test(after)) continue;
+    if (CONDITION.test(x.slice(0, m.index)) || CONDITION.test(after.split(/[,;—–]|\b(?:and|but|so)\b/)[0])) continue;
+    kinds.push(c.kind);
   }
-  return null;
+  return kinds;
 }
+type Call = { name: string; ok: boolean; effect: Effect | null };
+const backedBy = (kind: string, calls: Call[]) => {
+  const c = CLAIMS.find((x) => x.kind === kind)!;
+  return calls.some((t) => t.ok && (c.by === "any_write" ? t.effect === "write_own" : c.by.includes(t.name)));
+};
+// The sentences of a reply that claim a change no tool made this turn, with the kind of each claim.
+export function unbackedClaims(reply: string, calls: Call[]): { index: number; kind: string }[] {
+  const out: { index: number; kind: string }[] = [];
+  pieces(reply).forEach((p, index) => { const kind = claimsIn(p.text).find((k) => !backedBy(k, calls)); if (kind) out.push({ index, kind }); });
+  return out;
+}
+export function unbackedClaim(reply: string, calls: Call[]): string | null {
+  return unbackedClaims(reply, calls)[0]?.kind ?? null;
+}
+// WO-080: a failed tool call's record carries its reason, so a diagnosis starts from the record, not from the code. The
+// reason is cleaned first: tokens, keys, long secrets, database URLs, secret-carrying query values, emails and phone
+// numbers become [bracketed] placeholders; the words that say what went wrong, and record ids (UUIDs), stay. Pure; at
+// most 300 characters.
+// (What the model is told about the failure is unchanged.)
+export const ERROR_CHARS = 300;
+const SCRUB: [RegExp, string][] = [
+  [/\bpostgres(?:ql)?:\/\/[^\s"'<>]+/gi, "[db-url]"],
+  [/\b(authorization["']?\s*[:=]\s*)(?:(?:Bearer|Basic|Token|Digest)\s+)?[^\s,;)}\]]+/gi, "$1[redacted]"],
+  [/\b(Bearer|Basic)\s+(?=[A-Za-z0-9._~+\/=-]*\d)[A-Za-z0-9._~+\/=-]{8,}/gi, "$1 [token]"],
+  [/\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+/g, "[jwt]"],
+  [/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{12,}/g, "[key]"],
+  [/\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, "[key]"],
+  [/([?&#][^=&\s#"']*(?:secret|token|key|password|passwd|sig|signature|auth|code)[^=&\s#"']*=)[^&\s#"']*/gi, "$1[redacted]"],
+  [/\b((?:api[_-]?key|apikey|password|passwd|pwd|secret|token|access[_-]?token|refresh[_-]?token|authorization|client[_-]?secret)["']?\s*[:=]\s*)(?!\[)(?:"[^"]*"|'[^']*'|[^\s,;)}\]]+)/gi, "$1[redacted]"],
+  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g, "[email]"],
+  [/(?<![\w.\/-])\+\d{1,3}[\s.-]?(?:\(\d{1,4}\)|\d{1,4})(?:[\s.-]?\d{2,4}){2,4}(?![\w-])/g, "[phone]"],
+  [/(?<![\w.\/-])(?:\([2-9]\d{2}\)|[2-9]\d{2})[\s.-]?\d{3}[\s.-]?\d{4}(?![\w-])/g, "[phone]"],
+  [/\b[A-Fa-f0-9]{24,}\b/g, "[secret]"],
+  [/(?<![A-Za-z0-9+\/_-])(?![0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?![A-Za-z0-9+\/_-]))(?=[A-Za-z0-9+\/_-]*\d)(?=[A-Za-z0-9+\/_-]*[A-Za-z])[A-Za-z0-9+\/_-]{24,}={0,2}/g, "[secret]"],
+];
+function errorText(e: unknown): string {
+  if (e instanceof Error) return e.message || e.name;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && typeof (e as { message?: unknown }).message === "string") return (e as { message: string }).message;
+  try { return JSON.stringify(e) ?? String(e); } catch { return String(e); }
+}
+export function scrubError(text: string): string {
+  let s = errorText(text);
+  for (const [re, to] of SCRUB) s = s.replace(re, to);
+  s = s.replace(/\s+/g, " ").trim();
+  return s.length > ERROR_CHARS ? `${s.slice(0, ERROR_CHARS - 1)}…` : s;
+}
+// WO-085: a refusal that means "the next move is the person's" (a resume waiting on their yes). The model reads its
+// message like any refusal; the loop then forbids tools on the next call, so the model writes the question and the turn
+// ends on its words, never on max steps.
+export class AskPerson extends Error {}
 const MAX_TOKENS = 1200;
 const RESULT_CHARS = 12000; // a tool result larger than this is cut, and the cut is said
 
@@ -79,13 +156,21 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
-  o.ctx.turn = { message: o.message, added: [] };
+  const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
+  const before = !last ? "" : typeof last.content === "string" ? last.content
+    : Array.isArray(last.content) ? last.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : "";
+  o.ctx.turn = { message: o.message, added: [], before };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
-  let steps = 0, checked = false;
+  // WO-091a: what this turn's tools returned is a source for what the reply may say about the person, and names the
+  // postings a raw job id stands for.
+  const seen: string[] = [];
+  const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
+  const toolNames = o.tools.map((t) => t.name);
+  let steps = 0, checked = false, ask = false;
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS }); }
+    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -97,20 +182,37 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
-      const claim = unbackedClaim(reply, tool_calls);
-      if (claim && !checked && steps < max) {
+      // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
+      // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
+      // stands after that, code fixes.
+      const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
+      const leak = { tools: toolNames, typed, postings: postingsOf(seen) };
+      const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
+      if ((claims.length || leaks.length || facts.length) && !checked && steps < max) {
         checked = true;
+        const told = [
+          claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
+          leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
+          facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
+        ].filter(Boolean).join(" ");
         messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
-        messages.push({ role: "user", content: [{ type: "text", text: `[check, not from the person] Your reply says ${claim}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` }] });
+        messages.push({ role: "user", content: [{ type: "text", text: `[check, not from the person] ${told}` }] });
         continue;
       }
-      return { reply: claim ? CLAIM_UNBACKED_REPLY : reply, steps, tool_calls, pending_approvals, stopped: "final" };
+      let out = reply;
+      if (claims.length) {
+        out = rebuild(pieces(reply), new Set(claims.map((c) => c.index)));
+        if (!/[A-Za-z0-9]/.test(out)) return { reply: CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+      }
+      if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
+      if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
+      return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
     }
     messages.push({ role: "assistant", content });
     const results: any[] = [];
     for (const u of uses) {
       const t = byName.get(u.name);
-      const fail = (effect: Effect | null, msg: string) => { tool_calls.push({ name: u.name, ok: false, effect }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
+      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => { tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
       if (!t) { fail(null, `unknown tool: ${u.name}`); continue; }
       const input = u.input && typeof u.input === "object" ? u.input : {};
       const missing = (t.input_schema.required || []).filter((k) => input[k] === undefined || input[k] === null || input[k] === "");
@@ -125,7 +227,8 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         const out = await t.run(input, o.ctx);
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
-      } catch (e) { fail(t.effect, e instanceof Error ? e.message : String(e)); }
+        seen.push(resultText(out));
+      } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
   }

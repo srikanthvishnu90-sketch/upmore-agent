@@ -59,6 +59,8 @@ shared_tests=(
   tests/career-bundle-data.test.cjs
   tests/correction-authority-privacy.test.cjs
   tests/live-career-release.test.cjs
+  tests/depth-CAREER-WRITING.test.cjs
+  tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -112,6 +114,7 @@ edge_tests=(
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
   tests/edge/career-ask-once.test.ts
+  tests/edge/control-state.test.ts
 )
 
 portable_test_paths() {
@@ -134,6 +137,7 @@ PY
 
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
+step live-release-typecheck deno check supabase/releases/career-case2-isolation-v1/agent-chat/src/index.ts supabase/releases/career-case2-isolation-v1/telegram-inbound/telegram-inbound/index.ts
 # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
 step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
 step apply-cli-typecheck deno check scripts/apply.ts
@@ -142,7 +146,7 @@ step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
 step live-release node scripts/career/check-live-release.cjs
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/releases/career-case2-isolation-v1/agent-chat/src/index.ts supabase/releases/career-case2-isolation-v1/telegram-inbound/telegram-inbound/index.ts
+step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.
 printf 'SUMMARY %s\n' "${results[@]}"

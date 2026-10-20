@@ -2,7 +2,7 @@
 // presence, document sends, and — the load-bearing case — an approval
 // button tap resolving into the SAME structured, hash-bound approval the
 // app client sends (exact message + career_batch approve request).
-import { handleTelegramWebhook } from "../../supabase/functions/_shared/telegram_bridge.ts";
+import { handleTelegramWebhook, withTelegramTyping } from "../../supabase/functions/_shared/telegram_bridge.ts";
 import {
   FakeAdminApprovals, assert, assertEq, envOf, fakeFetchRich, TEST_USER, SUPABASE_URL, SERVICE_KEY,
 } from "./lib/channel_fixture.ts";
@@ -107,6 +107,32 @@ Deno.test("typing presence fires before the agent is called", async () => {
   assertEq(action.chat_id, CHAT_ID);
 });
 
+Deno.test("typing refreshes while a turn runs long, and stops when it settles", async () => {
+  const { d, calls } = deps(() => ({ reply: "ok" }), { seedRun: false });
+  let release: () => void = () => {};
+  const gate = new Promise<void>((r) => { release = r; });
+  const p = withTelegramTyping(d, "fixture-bot-token", String(CHAT_ID), async () => { await gate; return 7; }, 20);
+  await new Promise((r) => setTimeout(r, 90));
+  release();
+  assertEq(await p, 7, "the wrapped work's value passes through");
+  const n = tgCalls(calls, "sendChatAction").length;
+  assert(n >= 3, `typing fired at intake and refreshed while waiting (saw ${n})`);
+  await new Promise((r) => setTimeout(r, 60));
+  assertEq(tgCalls(calls, "sendChatAction").length, n, "typing stops when the turn settles — no leaked interval");
+});
+
+Deno.test("a structured reply goes out as one HTML part: bullets and a bare URL intact", async () => {
+  const { d, calls } = deps(() => ({
+    reply: "**Plan**\n\n- One\n- Two\n\nApply here: https://jobs.example.com/posting/1",
+  }), { seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("plan please")), d);
+  assertEq(res.status, 200);
+  const bodies = sendBodies(calls).filter((b) => b.parse_mode === "HTML");
+  assertEq(bodies.length, 1, "one HTML part");
+  assert(String(bodies[0].text).includes("• One") && String(bodies[0].text).includes("• Two"), "bullets survive: " + bodies[0].text);
+  assert(String(bodies[0].text).includes("https://jobs.example.com/posting/1"), "the bare URL survives unmangled: " + bodies[0].text);
+});
+
 Deno.test("button tap == exact-message approval: identical structured effect, single use", async () => {
   const { d, calls, admin } = deps(cardThenApprove);
   await handleTelegramWebhook(tgReq(textUpdate("batch status")), d);
@@ -175,6 +201,16 @@ Deno.test("telegram HTML parse failure falls back to a plain send of the same co
   assert(String(plain[0].text).includes("3"), "content preserved in the fallback");
 });
 
+Deno.test("telegram HTML parse failure keeps the link destination in the plain fallback", async () => {
+  const { d, calls } = deps(() => ({ reply: "Details: [the card](https://example.com/card?a=1&b=2) inside." }), { parseFailOnce: true, seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("details please")), d);
+  assertEq(res.status, 200);
+  const bodies = sendBodies(calls);
+  const plain = bodies.filter((b) => !b.parse_mode);
+  assertEq(plain.length, 1, "the part was resent without parse_mode");
+  assert(String(plain[0].text).includes("the card (https://example.com/card?a=1&b=2)"), "label AND destination survive the fallback: " + plain[0].text);
+});
+
 Deno.test("document artifacts are sent as files; the current contract sends none", async () => {
   {
     const { d, calls } = deps(() => ({
@@ -200,4 +236,18 @@ Deno.test("an agent failure is spoken in product voice, once", async () => {
   const errSends = sendBodies(calls).filter((b) => String(b.text).includes("Something went wrong on my side"));
   assertEq(errSends.length, 1, "the user hears one plain error with a next step");
   assert(String(errSends[0].text).includes("nothing was changed"), "the error names the state honestly");
+});
+
+// Codex's live /start, 2026-10-20 4:59 PM: agent-chat answered 429 (the person's hourly turn limit) and the bridge
+// threw "agent-chat HTTP 429", so the person heard "Something went wrong on my side" and Telegram was told 500.
+// A limit is not a failure: the person hears that the message was not read and when to send it again.
+Deno.test("an hourly-limit 429 is spoken as the limit, not as a failure", async () => {
+  const { d, calls } = deps(() => ({ __status: 429, body: { error: "rate_limited", message: "Slow down a little — try again in a bit." } }), { seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("/start")), d);
+  assertEq(res.status, 200, "a limit is handled; Telegram must not retry it as a failure");
+  const texts = sendBodies(calls).map((b) => String(b.text));
+  assertEq(texts.filter((t) => t.includes("Something went wrong")).length, 0, "no false 'went wrong'");
+  const limit = texts.filter((t) => t.includes("didn't read that message"));
+  assertEq(limit.length, 1, "one limit message");
+  assert(limit[0].includes("60 messages an hour") && limit[0].includes("send it again"), "names the limit and the next step");
 });

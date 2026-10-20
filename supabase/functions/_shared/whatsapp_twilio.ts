@@ -46,6 +46,7 @@ import {
   runChannelTurnRich,
   sendParts,
   timingSafeEqual,
+  TurnLimitError,
 } from "./channel_bridge.ts";
 import {
   VOICE,
@@ -233,6 +234,10 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
             turnKey: `wacb-${row.token}`,
           });
         } catch (e) {
+          if (e instanceof TurnLimitError) {
+            if (send) { try { await send(parsed.from, VOICE.rateLimited); } catch { /* best effort */ } }
+            return json({ ok: true, limited: true });
+          }
           console.error("whatsapp-inbound approval:", e);
           if (send) { try { await send(parsed.from, VOICE.error); } catch { /* surfaced below */ } }
           return json({ ok: false, error: "internal" }, 500);
@@ -256,11 +261,11 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
         messageId: parsed.messageId || null,
       });
     } catch (e) {
-      console.error("whatsapp-inbound turn:", e);
       if (e instanceof ChannelRateLimitError) {
-        if (send && !dryRun) await send(parsed.from, VOICE.rateLimited);
-        return json({ ok: false, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });
+        if (send && !dryRun) { try { await send(parsed.from, VOICE.rateLimited); } catch { /* best effort */ } }
+        return json({ ok: false, limited: true, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });
       }
+      console.error("whatsapp-inbound turn:", e);
       if (send && !dryRun) { try { await send(parsed.from, VOICE.error); } catch { /* response below still 500 */ } }
       return json({ ok: false, error: "internal" }, 500);
     }

@@ -119,21 +119,21 @@ const scaled = (s: string) => {
   return out;
 };
 const percents = (s: string) => [...String(s).toLowerCase().matchAll(/(\d[\d,]*(?:\.\d+)?)\s?(?:%|percent\b)/g)].map((m) => `${m[1].replace(/,/g, "")}%`);
-const TOOLS = [
+export const TOOLS = [
   "python", "java", "javascript", "typescript", "sql", "nosql", "excel", "tableau", "looker", "power bi", "salesforce", "hubspot", "kubernetes",
   "docker", "terraform", "aws", "gcp", "azure", "react", "angular", "vue", "node", "django", "flask", "rails", "ruby", "golang", "rust", "kotlin",
   "swift", "scala", "matlab", "pytorch", "tensorflow", "pandas", "numpy", "spark", "hadoop", "airflow", "dbt", "snowflake", "bigquery",
   "redshift", "postgres", "postgresql", "mysql", "mongodb", "redis", "kafka", "graphql", "figma", "jira", "netsuite", "quickbooks", "sap",
   "oracle", "workday", "stripe", "shopify", "zendesk", "marketo", "segment", "amplitude", "mixpanel", "linux", "c++", "c#", "php", "perl",
 ];
-const TITLES = [
+export const TITLES = [
   "engineer", "engineering manager", "manager", "director", "analyst", "scientist", "designer", "founder", "cofounder", "co founder", "intern",
   "vice president", "vp", "president", "ceo", "cto", "cfo", "coo", "chief", "principal", "staff", "senior", "junior", "consultant", "controller",
   "accountant", "architect", "recruiter", "researcher", "professor", "developer", "head of", "team lead", "tech lead", "associate", "partner",
   "specialist", "coordinator", "administrator", "officer", "fellow",
 ];
-const DEGREES = ["bachelor", "bachelors", "master", "masters", "mba", "phd", "doctorate", "bsc", "msc", "degree", "diploma", "valedictorian", "summa cum laude", "magna cum laude", "cum laude", "dean s list", "deans list"];
-const SCALE = ["doubled", "tripled", "quadrupled", "halved", "tenfold", "twofold", "threefold", "dozens", "hundreds", "thousands", "millions", "billions"];
+export const DEGREES = ["bachelor", "bachelors", "master", "masters", "mba", "phd", "doctorate", "bsc", "msc", "degree", "diploma", "valedictorian", "summa cum laude", "magna cum laude", "cum laude", "dean s list", "deans list"];
+export const SCALE = ["doubled", "tripled", "quadrupled", "halved", "tenfold", "twofold", "threefold", "dozens", "hundreds", "thousands", "millions", "billions"];
 // Ordinary words that open a sentence and so are capitalized there; 154 keeps its own list, these are the ones an
 // application answer adds. A name is never one of them.
 const STARTERS = new Set("leading managing owning shipping designing running teaching selling scaling launching across through during outside beyond together ultimately early lately later most much both since before after over three four five".split(" "));

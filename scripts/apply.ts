@@ -645,10 +645,12 @@ export async function runApply(args: string[]) {
       if (current.schema.some((f: any) => /verification code|one[- ]time|email.*code|passcode/i.test(f.label))) {
         return write({ state: "needs_user", reason: "email_code" });
       }
+      // WO-053: where the job is, as its page shows it (the extension reads it the same way); WO-055: it goes with the
+      // questions too, so an answer about a job abroad is kept as that posting's.
+      const location = String(await page.evaluate(fnPostingLocation).catch(() => ""));
       const p = planBatch({
         userId: facts.user_id,
-        // WO-053: where the job is, as its page shows it (the extension reads it the same way).
-        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema, location: String(await page.evaluate(fnPostingLocation).catch(() => "")) }],
+        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema, location }],
         answers,
         saved,
         log: [],
@@ -667,7 +669,7 @@ export async function runApply(args: string[]) {
         // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
         // them before it ever drafts a written answer for this posting.
         const ai_policy = aiPolicyStatements(current.schema.map((f: any) => f.label));
-        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, fields: p.needs.map((n: any) => n.label), questions, ...(ai_policy.length ? { ai_policy } : {}) });
+        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, location, fields: p.needs.map((n: any) => n.label), questions, ...(ai_policy.length ? { ai_policy } : {}) });
       }
       const fields = p.ready[0].fields, before = await hashApplyPayload(current.schema);
       for (const f of fields) {

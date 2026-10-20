@@ -3,8 +3,9 @@
 // question that names a fact's topic but asks more than the fact says (a second degree, a visa type, whether moving is
 // needed, a vendor's history). Each is asked; the person's own facts keep answering what they do say. Synthetic persona
 // (Chicago, IL; US authorized, no sponsorship; expects 95000, earns 85000); real employers' questions and locations.
-import { beyondFact, otherCountry, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
-import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+import { beyondFact, factStaysHere, otherCountry, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { answerKey, mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { PERSONA } from "../../evals/apply/fill-coverage.ts";
 import AUDIT from "../fixtures/apply/wo-055-sample-d-audit.json" with { type: "json" };
 
@@ -101,4 +102,31 @@ Deno.test("WO-055/5 a y/n box takes a yes or a no; the map no longer reads three
   // "Expected salary (with currency)" is the expectation, not the currency.
   eq(fact("What are your salary expectations? Please include currency") === "salary_currency", false);
   eq(fact("Preferred currency"), "salary_currency");
+});
+
+Deno.test("WO-055/6 an answer the person's fact does not give here is kept as this posting's alone, never as their fact", () => {
+  const yn = ["Yes", "No"];
+  const sponsor = "Will you now, or in the future, require sponsorship?";
+  const ask = (posting: string, location: string | undefined, label: string, facts: Record<string, unknown> = {}) =>
+    questionsToStore({ posting, company: "Example Co", location, questions: [{ label, type: "multi_value_single_select", options: yn }] }, { facts, answered: new Set() }).questions[0]?.key as string;
+  // Stored: a London posting's sponsorship answer under that posting; a US posting's as the person's fact (as before).
+  eq(ask("gh:neo4j:1", "London", sponsor).startsWith("job:"), true, "Neo4j London: the person's UK need is not their sponsorship fact");
+  eq(ask("gh:acme:2", "Austin, TX", sponsor), "fact:sponsorship");
+  eq(ask("gh:acme:2", undefined, sponsor), "fact:sponsorship", "no location: as before WO-055");
+  eq(ask("lv:quest:3", "Overland Park, KS", "Have you ever worked for a health insurance company?").startsWith("job:"), true,
+    "a kind of company is not \"worked here before\" for every employer");
+  eq(ask("gh:lib:4", "Nottingham, United Kingdom", "What is your desired salary?").startsWith("job:"), true);
+  // Read back: the person's "Yes" for London answers London only; a US "No" saved as their fact never answers London.
+  const yesLondon = { [answerKey({ label: sponsor, type: "multi_value_single_select", options: yn.map((label) => ({ label })) } as any, "gh:neo4j:1", { here: true })]: { value: "Yes", factId: "TEXT" } };
+  const noFact = { "fact:sponsorship": { value: "No", factId: "TEXT" } };
+  const plan = (job: string, location: string, saved: Record<string, { value: string; factId: string }>) => {
+    const { sponsorship: _, ...answers } = PERSONA as Record<string, { value: string; factId: string }>;
+    return planBatch({ userId: "TEST", answers, saved, log: [], now: 0, postings: [{ job_id: job, company: "Example Co", title: "", location,
+      fields: [{ name: "q", label: sponsor, required: true, type: "multi_value_single_select", options: yn.map((label) => ({ label, value: label })) }] }] }).ready[0]?.fields[0]?.value ?? "ASKED";
+  };
+  eq(plan("gh:neo4j:1", "London", yesLondon), "Yes", "the person's own answer for that posting");
+  eq(plan("gh:acme:2", "Austin, TX", yesLondon), "ASKED", "the London yes is not the person's US answer");
+  eq(plan("gh:neo4j:1", "London", noFact), "ASKED", "a US no saved as the fact never answers a job abroad");
+  eq(plan("gh:acme:2", "Austin, TX", noFact), "No");
+  eq(factStaysHere({ label: "Are you legally authorized to work in the United States?", type: "radio" }, "London"), false, "a question naming the US stays the person's");
 });

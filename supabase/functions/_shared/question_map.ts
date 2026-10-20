@@ -300,11 +300,14 @@ export const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_pers
 // WO-053: work rights "in the country where this job is located" (or "...in which you are applying") are the person's US
 // ones only when the posting's own location is in the US; abroad or unsettled, asked.
 export const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
-export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean } = {}): string {
+export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean; here?: boolean } = {}): string {
   const m = mapQuestion(q);
   const words = norm(q.label);
   const job = `job:${h16(`${jobId}\n${words}`)}`, wording = `label:${h16(words)}`;
   if (m.kind === "fact") {
+    // WO-055: where the planner would not use the person's fact here (a job abroad, a question beyond what the fact says;
+    // career_apply.ts factStaysHere), the answer is this posting's, never the person's fact or a wording that travels.
+    if (o.here) return job;
     if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
     if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
     if (o.haveFact) return job;

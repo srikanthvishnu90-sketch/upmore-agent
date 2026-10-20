@@ -479,7 +479,7 @@ async function handle(m, sender) {
       const once = m.step ? `${m.jobId}\n${String(m.step).slice(0, 200)}` : m.jobId;
       if (done[once]) return { ok: true, stored: 0 };
       const f = await facts((await session())?.user_id);
-      const q = C.questionsForTrainee({ jobId: m.jobId, company: m.company, needs: m.needs, answers: f.answers, answered: new Set(f.answered) });
+      const q = C.questionsForTrainee({ jobId: m.jobId, company: m.company, location: typeof m.location === "string" ? m.location.slice(0, 300) : undefined, needs: m.needs, answers: f.answers, answered: new Set(f.answered) });
       if (!q.questions.length) return { ok: true, stored: 0 };
       try {
         const n = await rpc("career_apply_questions_put_own", { p_job_id: q.posting, p_questions: q.questions });

@@ -199,8 +199,10 @@ const VARIABLE_PAY = /\b(including|inclusive of|incl\b\.?)[^.?\[]*\b(bonus|commi
 // Work rights where the person lives ("in your country of residence", "remain in your current location", "your current
 // work authorization status") are the person's own wherever the job is: their facts answer for a home in the US.
 const HOME_PLACE = /\b(country|location|place) (where |in which )?you (currently )?(reside|live|are (currently )?(based|located|living))\b|\bcountry of residence\b|\byour current (location|country|work authori[sz]ation)\b/i;
-const homeInUs = (answers: Record<string, Answer>) =>
-  NAMES_US.test(String(answers.country?.value ?? "")) || postingCountry(postingPlaces(String(answers.location?.value ?? ""))) === "us";
+const homeInUs = (answers: Record<string, unknown> = {}) => {
+  const v = (k: string) => String((answers[k] as { value?: unknown } | undefined)?.value ?? "");
+  return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
+};
 export function otherCountry(fact: string, label: string, location?: string, homeUs = false): boolean {
   if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
   const abroad = postingCountry(postingPlaces(location ?? "")) === "abroad";
@@ -223,6 +225,13 @@ const BEYOND_FACT: [string[], RegExp][] = [
   [["worked_here_before"], /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\bfor an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i],
   [["applied_before"], /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i],
 ];
+// An answer to a question the person's fact does not answer at this posting (above) is this posting's alone: it is stored
+// and read back under a job key (answerKey `here`), so a "Yes" to a London posting's "Will you require sponsorship?" never
+// becomes the person's US sponsorship fact, and a US "No" saved as the fact never answers London's question.
+export function factStaysHere(q: { label: string; type: string; options?: { label: string }[] }, location?: string, answers?: Record<string, unknown>): boolean {
+  const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
+  return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
+}
 export function beyondFact(fact: string, f: { label: string; type: string }): boolean {
   // A "select all that apply" list about where they live and would move is answered as a whole, by the person.
   if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
@@ -675,8 +684,9 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).
-      const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
-      const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
+      const here = factStaysHere(f, p.location, o.answers);
+      const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ?? o.saved[normLabel(f.label)];
+      const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ??
         (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;

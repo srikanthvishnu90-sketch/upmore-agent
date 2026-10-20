@@ -73,6 +73,27 @@ Two causes, both missed by the A/B/C reviews, whose reviewers were never told wh
 - `tests/fixtures/extension/answer-key.json`: two corrections, with reasons. WPP Media (London) and Airwallex (Hong Kong)
   pay boxes went from salary_expectation to null; neither is a held-out form.
 
+## Also here: an answer about a job abroad is never kept as the person's own
+Found while reviewing WO-054 (answer once before the session). Saved answers are stored and read back by `answerKey`,
+and the key knew nothing of where the job is. Two failures followed:
+- **London's answer became the person's fact.** A person who answers "Yes" to London's "Will you now, or in the future,
+  require sponsorship?" (they need UK sponsorship) had it stored as `fact:sponsorship`. Every US form would then say
+  they need sponsorship.
+- **A US answer filled London's question.** A "No" saved as that fact filled London's question through the saved-answer
+  path, which skipped the checks above.
+
+Now:
+- `factStaysHere` (`career_apply.ts`) holds an answer to this posting alone wherever the planner would not use the
+  person's fact there (`otherCountry`, `beyondFact`). `answerKey`'s `here` option then gives it a job key.
+- The store (`questionsToStore`) and the planner both use it, from the posting's own location:
+  - the extension sends `location` with its questions and its form answers;
+  - the cloud worker writes it into its needs-answers result.
+- The same fix stops "Have you ever worked for a health insurance company?" from becoming the person's "worked here
+  before" for every employer.
+
+Test WO-055/6 covers this end to end, from storage to the read-back at a London and a US posting. Each half was planted
+as a defect and caught.
+
 ## Tests
 - `tests/architect/wo-055-abroad.test.ts`:
   1. Every one of the 36 fills the review judged wrong or not settled no longer gets that answer
@@ -130,7 +151,8 @@ are abroad (8 and 12 show no location). A US-only person would mostly skip those
 guesses.
 
 ## Gates
-- Architect tests: 561 passed, 0 failed.
+- Architect tests: 562 passed, 0 failed.
+- Cloud-worker suites (approve-first, cloud worker, owned worker): the same 7 environment-only failures as trunk, by name.
 - Browser, Workday, schema, location and picker suites: 85 passed, 0 failed.
 - Bundle `--check`: fresh.
 - `deno check scripts/apply.ts`: clean.

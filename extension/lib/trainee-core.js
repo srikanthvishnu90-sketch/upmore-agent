@@ -1538,6 +1538,7 @@
     const job = `job:${h16(`${jobId}
 ${words}`)}`, wording = `label:${h16(words)}`;
     if (m.kind === "fact") {
+      if (o.here) return job;
       if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
       if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
       if (o.haveFact) return job;
@@ -2658,7 +2659,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var OTHER_CURRENCY = /\b(gbp|eur|jpy|inr|cad|aud|sgd|chf|sek|nok|dkk|pln|brl|mxn|cny|rmb|hkd|nzd|zar|aed|sar|krw|ils)\b|[£€¥₹]|\blakhs?\b|\bcrores?\b/i;
   var VARIABLE_PAY = /\b(including|inclusive of|incl\b\.?)[^.?\[]*\b(bonus|commission|equity|incentive)|\b(plus|\+|and) (bonus|commission|equity)\b|^variable\b|\bvariable (pay|salary|compensation)\b|\bote\b|\bon-target\b/i;
   var HOME_PLACE = /\b(country|location|place) (where |in which )?you (currently )?(reside|live|are (currently )?(based|located|living))\b|\bcountry of residence\b|\byour current (location|country|work authori[sz]ation)\b/i;
-  var homeInUs = (answers) => NAMES_US.test(String(answers.country?.value ?? "")) || postingCountry(postingPlaces(String(answers.location?.value ?? ""))) === "us";
+  var homeInUs = (answers = {}) => {
+    const v = (k) => String(answers[k]?.value ?? "");
+    return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
+  };
   function otherCountry(fact, label, location2, homeUs = false) {
     if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
     const abroad = postingCountry(postingPlaces(location2 ?? "")) === "abroad";
@@ -2719,6 +2723,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       /\banother\b|\baffiliat|\bsubsidiar|\bsister compan|\bgroup compan|\bany of (our|its)\b/i
     ]
   ];
+  function factStaysHere(q, location2, answers) {
+    const m = mapQuestion({
+      label: q.label,
+      type: q.type,
+      options: q.options ?? []
+    });
+    return m.kind === "fact" && (otherCountry(m.fact, q.label, location2, homeInUs(answers)) || beyondFact(m.fact, q));
+  }
   function beyondFact(fact, f) {
     if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
     return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
@@ -3228,12 +3240,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         }
         const key = classifyField(f.label, f.type);
         const followUp = FOLLOW_UP.test(f.label);
+        const here = factStaysHere(f, p.location, o.answers);
         const own = o.saved[answerKey(f, p.job_id, {
-          haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
+          haveFact: true,
+          here
+        })] ?? o.saved[answerKey(f, p.job_id, {
+          here
+        })] ?? o.saved[normLabel(f.label)];
         const direct = o.saved[answerKey(f, p.job_id, {
-          haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
+          haveFact: true,
+          here
+        })] ?? o.saved[answerKey(f, p.job_id, {
+          here
+        })] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -3442,8 +3461,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         }))
       };
       const m = mapQuestion(shape);
+      const here = factStaysHere(shape, result?.location ? String(result.location) : void 0, o.facts);
       const key = answerKey(shape, posting, {
-        haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact)
+        haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact),
+        here
       });
       if (out.has(key)) continue;
       out.set(key, {
@@ -3790,6 +3811,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return questionsToStore({
       posting: o.jobId,
       company: o.company,
+      location: o.location,
       questions: o.needs
     }, {
       facts: o.answers,

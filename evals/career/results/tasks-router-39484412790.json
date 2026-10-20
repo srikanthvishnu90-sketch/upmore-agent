@@ -1,0 +1,917 @@
+{
+ "label": "tasks-router-39484412790",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "533cd83",
+ "run_at": "2026-10-20T19:33:59.707Z",
+ "shelf": {
+  "run_id": "39484412790",
+  "file": "shelf-39484412790.json",
+  "seed": "39484412790",
+  "fetched_at": "2026-10-20T19:33:29.043Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.016892
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.282804,
+ "total": 15,
+ "passed": 0,
+ "pass_rate": 0,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Technical Accounting Manager",
+    "location": "Oakland, CA",
+    "company2": "Databricks",
+    "title2": "Forward Deployed Engineer",
+    "location2": "Philadelphia, PA",
+    "posting_ids": [
+     "greenhouse:fivetran:8003686003",
+     "greenhouse:databricks:8494148002"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in Oakland, CA. find me roles that fit"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nMachine Learning Engineer II, Responsible AI at Pinterest — remote, $138,905–$285,982 (US based applicants only): closest fit on your profile, with the gaps named in the caveat; caveat: R named in the posting and not yet on your profile. AI/ML Engineer at Chime — Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, $125,000–$292,000 (Wage Notice): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, outside the places on your profile, so it means relocating. Data Science Manager - Fraud at Plaid — New York City Office, $216K – $329.4K: closest fit on your profile, with the gaps named in the\ncaveat; caveat: the role is in New York City Office, outside the places on your profile, so it means relocating.\nData Scientist, Growth at Notion — San Francisco, California: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, California, outside the places on your profile, so it means relocating. Data Scientist, Intern (PhD) at Duolingo — New York, NY; Pittsburgh, PA, $63–$65 (Hourly Range for this internship is:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY; Pittsburgh, PA, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "5 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf"
+    ],
+    "score": 2,
+    "note": "Trainee listed five roles but included at least one (Technical Account Manager/Manager, Technical Account Management at Stripe not presented in the final list) and several location/fit caveats that contradict the user's Oakland, CA constraint and did not present a numbered easy-to-point list."
+   },
+   "pass": false,
+   "cost_usd": 0.001279
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "Braze",
+    "title": "Software Engineer",
+    "location": "New York, NY",
+    "company2": "Databricks",
+    "title2": "Software Engineer",
+    "location2": "Mountain View, CA",
+    "posting_ids": [
+     "greenhouse:braze:8238534",
+     "greenhouse:databricks:7934466002"
+    ]
+   },
+   "turns": [
+    "find me Software Engineer roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nGlobal Alliance Lead, Capgemini at Fivetran — remote, $174,868–$212,000 (Oakland Pay Range); $249,816–$302,000 (OTE (On Target Earning)): closest fit on your profile, with the gaps named in the caveat; caveat: Go named in the posting and not yet on your profile. Senior Internal Communications Manager at Fivetran — remote, $140,054–$175,068 (Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Lead Forward Deployed Engineer - Migration at Snowflake — US-CA-Menlo Park, $236,000 – $339,250 • Offers Equity: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in US-CA-Menlo Park, outside the places\non your profile, so it means relocating.\nManager I, Engineering - AI Platform - Training & Serving at Datadog — Paris, France: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Paris, France, outside the places on your profile, so it means relocating. Manager I, Engineering - Source Code Integration at Datadog — Paris, France: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Paris, France, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat"
+    ],
+    "score": 1,
+    "note": "Trainee did not prepare the two specific job applications nor asked for the single missing piece needed to apply; it only asked the user to name jobs after the user already said 'apply to the first two.'"
+   },
+   "pass": false,
+   "cost_usd": 0.001816
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Software Engineer",
+    "location": "Denver, CO",
+    "company2": "MongoDB",
+    "title2": "Site Reliability Engineer",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:fivetran:7865559003",
+     "greenhouse:mongodb:7743366"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Software Engineer jobs today"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes",
+     "says what it needs first if anything (e.g. resume, work authorization)"
+    ],
+    "score": 1,
+    "note": "Trainee's reply failed to provide any required details: it neither listed available matching postings nor confirmed consent/no-send, nor asked for necessary materials."
+   },
+   "pass": false,
+   "cost_usd": 0.001196
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Datadog",
+    "title": "Commercial Sales Engineer",
+    "location": "Denver, CO",
+    "company2": "William Blair",
+    "title2": "Data & AI Engineer",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:datadog:7683226",
+     "greenhouse:williamblair:5102983007"
+    ]
+   },
+   "turns": [
+    "watch for new Commercial Sales Engineer roles in Denver, CO and text me, max 2 a day"
+   ],
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "meta": [
+    {
+     "intent": "career_watch_create",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": false,
+     "detail": "no watch in the router's watch state"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms the watch with the role, the place and the 2-a-day limit, or says exactly the one thing it needs"
+    ],
+    "score": 2,
+    "note": "Trainee asked for user profile before confirming the watch but did not explicitly confirm the requested watch (role, location, 2/day) or state exactly the one thing needed."
+   },
+   "pass": false,
+   "cost_usd": 0.000716
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "Pinterest",
+    "title": "Client Partner",
+    "location": "Atlanta, GA",
+    "company2": "Zocdoc",
+    "title2": "Product Designer",
+    "location2": "Silicon Valley, CA",
+    "posting_ids": [
+     "greenhouse:pinterest:8206782",
+     "greenhouse:zocdoc:7716614"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at Pinterest about the Client Partner role"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "a short draft that names Pinterest and the Client Partner role correctly",
+     "[brackets] or a question for the recruiter's name if unknown",
+     "says it is a draft for the person to send or approve"
+    ],
+    "score": 1,
+    "note": "Trainee did not produce a draft — it asked for clarification instead, so none of the required elements were provided."
+   },
+   "pass": false,
+   "cost_usd": 0.00072
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Data Science Manager",
+    "location": "New York, NY",
+    "company2": "Databricks",
+    "title2": "Forward Deployed Engineer",
+    "location2": "Philadelphia, PA",
+    "posting_ids": [
+     "ashby:plaid:55eacfa6-71e0-42ac-8788-04dc1e5fd694",
+     "greenhouse:databricks:8494148002"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Plaid to get a referral?"
+   ],
+   "replies": [
+    "The Plaid file — Software Engineering (SWE), entry.\nThe bar: Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. Entry routes: 3 on file — the front door is Direct application to an open SWE posting on plaid.com/careers (experienced cohort) — Official postings publish role requirements and a role-specific target salary range (see compensation notes); also on file: Engineering Apprenticeship (early-career / switcher cohort) — IF currently running; Intern / new-grad postings on the official careers site; one flag on that front door — the route is labeled an experienced-cohort posting although this\nfile's bar is entry-level, so read the bar as the screen for the entry routes and that door as written for experienced hires. Cadence: No official application windows or cadence dates were on the fetched pages as of 2026-10-12.\nSource: the Plaid company file (public sources), as of 2026-10-12. Want the comp notes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "does not name people it cannot source"
+    ],
+    "score": 1,
+    "note": "Reply failed because it named a specific company file role and suggested application routes but also included a detailed 'bar' and 'file' attribution that implied specific named individuals could be identified; it did not provide concrete roles to contact or how to find a ref without naming unverified people."
+   },
+   "pass": false,
+   "cost_usd": 0.000843
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Klaviyo",
+    "title": "Software Engineer",
+    "location": "Boston, MA",
+    "company2": "Oscar Health",
+    "title2": "Software Engineer",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:klaviyo:7597868003",
+     "greenhouse:oscar:7573018"
+    ]
+   },
+   "turns": [
+    "I applied to the Software Engineer role at Klaviyo yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.\nI recorded the manual application against this role, so nothing here can double-apply you. Say 'track it' and I will follow this application and report its status.",
+    "Klaviyo: at the applied stage.\nApplied 2026-10-19 — Software Engineer, 1 day on record. Last event on the row: applied (2026-10-19). Tell me if anything moved and I will update the row from your report."
+   ],
+   "meta": [
+    {
+     "intent": "intent_prior_application",
+     "result_status": "completed",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": "tracking_status",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-klaviyo-10",
+      "company": "Klaviyo",
+      "role": "Software Engineer",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-19T19:33:29.043Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "applied",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-19T19:33:29.043Z",
+        "source": "user-reported",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ],
+      "company_not_stated": false
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Klaviyo · Software Engineer · applied"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the status lists the Klaviyo Software Engineer application the person reported"
+    ],
+    "score": 2,
+    "note": "Trainee labeled the Klaviyo entry as 'Software Engineer' but the user said they applied to 'Software Engineer' at Klaviyo and expected explicit matching — the tracker shows 'Software Engineer' but the trainee's A2 text referenced 'Klaviyo: at the applied stage.' however the required exact listing failed per strict literal grading."
+   },
+   "pass": false,
+   "cost_usd": 0.001276
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Software Engineer",
+    "location": "Oakland, CA",
+    "company2": "Klaviyo",
+    "title2": "Account Executive",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:fivetran:8004657003",
+     "greenhouse:klaviyo:8004340003"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Software Engineer role at Fivetran on Thursday. prep me"
+   ],
+   "replies": [
+    "Your behavioral question: Tell me about yourself / Why this firm?\nSource: IGotAnOffer Meta SWE commercial\nhttps://igotanoffer.com/blogs/tech/facebook-software-engineer-interview\nFrom the product's researched software engineering interview bank (swe.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room — situation, task, action, result — I will score it against the rubric and drill the weakest part next."
+   ],
+   "meta": [
+    {
+     "intent": "prep_brief",
+     "result_status": "running",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 1,
+    "note": "Response did not tie prep to the Fivetran posting details (e.g., Reverse ETL, tech stack, responsibilities) nor did it provide the first practice question or a concrete plan as requested."
+   },
+   "pass": false,
+   "cost_usd": 0.001214
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Figma",
+    "title": "Marketing Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Databricks",
+    "title2": "Product Management Intern",
+    "location2": "Bellevue, WA",
+    "posting_ids": [
+     "greenhouse:figma:6013495004",
+     "greenhouse:databricks:6883068002"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Marketing Engineer role at Figma"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "The target is set — the Figma role.\nTailoring runs on confirmed facts only — your resume's real experience, education, and projects. The target's bar, from its company file: Craft + collaboration bar: postings emphasize product mindset, user experience and mentoring others, on top of deep systems skill (real-time multiplayer, performance). Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    },
+    {
+     "intent": "career_tailor",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 1,
+    "note": "Trainee failed to use the user's provided facts (replied with a prompt asking for a job/company/name) and did not connect the user's real experience to the Figma Marketing Engineer requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.000734
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Account Executive",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Go-To-Market Architect",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:plaid:0dc976f0-a12d-4843-b78c-7d0e14409537",
+     "greenhouse:klaviyo:7997136003"
+    ]
+   },
+   "turns": [
+    "did my application to Plaid go through?"
+   ],
+   "replies": [
+    "The Plaid file — Software Engineering (SWE), entry.\nThe bar: Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. Entry routes: 3 on file — the front door is Direct application to an open SWE posting on plaid.com/careers (experienced cohort) — Official postings publish role requirements and a role-specific target salary range (see compensation notes); also on file: Engineering Apprenticeship (early-career / switcher cohort) — IF currently running; Intern / new-grad postings on the official careers site; one flag on that front door — the route is labeled an experienced-cohort posting although this\nfile's bar is entry-level, so read the bar as the screen for the entry routes and that door as written for experienced hires. Cadence: No official application windows or cadence dates were on the fetched pages as of 2026-10-12.\nSource: the Plaid company file (public sources), as of 2026-10-12. Want the comp notes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says there is no application to Plaid on record (nothing has been sent)"
+    ],
+    "score": 2,
+    "note": "Trainee claimed a Plaid 'file' entry but did not explicitly state there was no application on record, failing the explicit required statement; reply provided some context but didn't answer applicant's question directly."
+   },
+   "pass": false,
+   "cost_usd": 0.001175
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Software Engineer",
+    "location": "Seattle, WA",
+    "company2": "Databricks",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:plaid:8de90516-8070-42c5-8b04-267bf6785bea",
+     "greenhouse:databricks:8864368002"
+    ]
+   },
+   "turns": [
+    "what does the Software Engineer role at Plaid pay?"
+   ],
+   "replies": [
+    "Plaid comp, from the file.\nComp: Official Staff Software Engineer, AI Applications posting (San Francisco HQ) lists $264,660-$369,800 per year, plus equity/benefits, with pay varying by scope, experience, skillset and location. The bar: Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. Cadence: No official application windows or cadence dates were on the fetched pages as of 2026-10-12.\nSource: the Plaid company file (public sources), as of 2026-10-12. Want the entry routes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed",
+     "a pay figure the posting does not contain"
+    ],
+    "score": 1,
+    "note": "Trainee provided a pay figure for Plaid that is not present in the provided Plaid posting and did not restrict to 'not listed' when the posting's pay is available as $176.4K–$243.6K."
+   },
+   "pass": false,
+   "cost_usd": 0.001242
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "GTM Compliance Analyst",
+    "location": "New York, NY",
+    "company2": "e.l.f. Beauty",
+    "title2": "Field Account Executive",
+    "location2": "Beverly Hills, CA",
+    "posting_ids": [
+     "ashby:plaid:d2c9d8b1-0428-4fdf-8b00-fd3ea28271b3",
+     "lever:elfbeauty:015a5229-3e9d-477d-8c3f-62292d3fa3a7"
+    ]
+   },
+   "turns": [
+    "find me GTM Compliance Analyst roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nAnalyst – Case Operations at Pathward — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Care Coordinator at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Client Support Supervisor at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCredentialing Associate at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Digital Adoption & Lifecycle Manager at Mixpanel — remote, $132,000–$162,750 (Mixpanel Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms nothing will be sent or submitted without the person's yes"
+    ],
+    "score": 2,
+    "note": "Trainee failed to explicitly confirm it would not send or submit anything without the user’s consent after the user said 'stop.'"
+   },
+   "pass": false,
+   "cost_usd": 0.001216
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Restaurant General Manager",
+    "location": "Milwaukee, WI",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant General Manager",
+    "location2": "Houston, TX",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8210017",
+     "greenhouse:sweetgreen:8293628"
+    ]
+   },
+   "turns": [
+    "find Restaurant General Manager roles in Milwaukee, WI",
+    "sorry, I meant Houston, TX"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nAnalyst – Case Operations at Pathward — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Care Coordinator at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Client Support Supervisor at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCredentialing Associate at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Digital Adoption & Lifecycle Manager at Mixpanel — remote, $132,000–$162,750 (Mixpanel Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "5 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about Houston, TX, not Milwaukee, WI"
+    ],
+    "score": 1,
+    "note": "Trainee's second reply ignored the user's correction and did not provide results for Houston as requested."
+   },
+   "pass": false,
+   "cost_usd": 0.001183
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "William Blair",
+    "title": "Investment Banking Analyst",
+    "location": "Chicago, IL",
+    "company2": "Peloton",
+    "title2": "PLM Platform Architect",
+    "location2": "Woodinville, WA",
+    "posting_ids": [
+     "greenhouse:williamblair:5226731007",
+     "greenhouse:peloton:8177488"
+    ]
+   },
+   "turns": [
+    "find me Investment Banking Analyst roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nSCM Technology Manager at e.l.f. Beauty — remote, $110,000–$140,000 per year salary: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. (Senior) Manager Lucanet Solutions (all genders) at Forvis Mazars — Berlin; Düsseldorf; Frankfurt am Main; Hamburg; Köln; München; Nürnberg; Stuttgart: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin; Düsseldorf; Frankfurt am Main; Hamburg; Köln; München; Nürnberg; Stuttgart, outside the places on your profile, so it means relocating. (Senior) Manager Restrukturierung und Sanierung (all genders) at Forvis Mazars — Berlin; Dresden; Düsseldorf; Frankfurt am\nMain; Hamburg; Köln; Leipzig; Mannheim; München; Nürnberg; Stuttgart: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin; Dresden; Düsseldorf; Frankfurt am Main; Hamburg; Köln; Leipzig; Mannheim; München; Nürnberg; Stuttgart, outside the places on your profile, so it means relocating.\n2027 Point72 Academy Investment Analyst Summer Internship Program - Japan at Point72 — Japan: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Japan, outside the places on your profile, so it means relocating. Biostatistician, Quantitative Epidemiology at Hinge Health — San Francisco-HQ, $169.6K – $254.4K • Offers Equity: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco-HQ, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 1,
+    "note": "Trainee listed the wrong first job: it showed e.l.f. Beauty SCM Technology Manager but the provided 'first' posting on the shelf is Peloton Sr. PLM Platform Architect, so required details do not match."
+   },
+   "pass": false,
+   "cost_usd": 0.001453
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Restaurant Manager",
+    "location": "Liberty Township, OH",
+    "company2": "Notion",
+    "title2": "Data Scientist",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8293722",
+     "ashby:notion:9fc52821-c394-4a80-85ba-5f1d7c36fb2b"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 1,
+    "note": "Trainee did not acknowledge the user's exhaustion or state what it would prepare nor confirm no applications would be sent without the user's approval; it only asked for clarification."
+   },
+   "pass": false,
+   "cost_usd": 0.000829
+  }
+ ]
+}

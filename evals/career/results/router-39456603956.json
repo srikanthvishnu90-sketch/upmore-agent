@@ -1,0 +1,667 @@
+{
+ "label": "router-39456603956",
+ "set": "official",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "ddef1e6",
+ "run_at": "2026-10-20T16:22:10.375Z",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.012602
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.204637,
+ "total": 50,
+ "passed": 7,
+ "pass_rate": 0.14,
+ "items": [
+  {
+   "id": "E001",
+   "pass": false,
+   "failed": [
+    "introduces itself as a career agent",
+    "asks what they do or what they want in one short question"
+   ],
+   "score": 3,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply is helpful and prompts input but does not introduce itself as a career agent nor directly ask one short question about what the user does or wants."
+  },
+  {
+   "id": "E002",
+   "pass": false,
+   "failed": [
+    "plays back the key facts (RN, Ohio, 6 years ICU, remote case manager goal)",
+    "asks the user to confirm them",
+    "profile has draft facts covering the stated experience"
+   ],
+   "score": 2,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — medicine — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?"
+   ],
+   "note": "Reply did not restate the user's key facts or ask for confirmation, and did not create a draft profile — it only described lack of roles; tone was somewhat helpful but missed essential playback and confirmation."
+  },
+  {
+   "id": "E003",
+   "pass": false,
+   "failed": [
+    "names realistic local options for a CDL-A driver (e.g. local delivery, regional day routes, dispatcher, driver trainer)",
+    "asks or offers one next step"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent reply didn't provide any job options or a next step—it only asked for clarification."
+  },
+  {
+   "id": "E004",
+   "pass": false,
+   "failed": [
+    "acknowledges it briefly and warmly",
+    "gives concrete first steps (e.g. severance/unemployment check, update resume, tell their network, target roles)",
+    "offers to start on one with them",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent reply failed to acknowledge the layoff, gave none of the concrete steps, used the forbidden phrase 'I didn't catch that', and did not offer to start any task."
+  },
+  {
+   "id": "E005",
+   "pass": false,
+   "failed": [
+    "asks for the resume (paste or upload) or works from one on file",
+    "says what it will improve",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent's reply did not request the resume, did not state what it would improve, and included the forbidden phrase 'I didn't catch that.'"
+  },
+  {
+   "id": "E006",
+   "pass": false,
+   "failed": [
+    "internship or Summer framing",
+    "asks for or uses their level/experience"
+   ],
+   "score": 2,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — design — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?"
+   ],
+   "note": "Reply correctly identifies product design and remote/Austin but improperly frames roles as 'Summer 2027' internships/new-grad and fails to ask about or use the user's level/experience; it honestly reports no live postings."
+  },
+  {
+   "id": "E007",
+   "pass": false,
+   "failed": [
+    "keeps all of: senior, 9 years, Go, staff level, 250k+ target",
+    "plays them back for confirmation"
+   ],
+   "score": 2,
+   "replies": [
+    "Recorded — that is on your record now, in your words.\nOn record so far: you're a senior. These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it. Tell me the next fact, or say what you want to do first and it runs on these."
+   ],
+   "note": "Agent confirmed 'senior' but did not include 9 years of Go, staff-level target, or $250k+ pay floor and did not explicitly play all facts back for confirmation."
+  },
+  {
+   "id": "E008",
+   "pass": false,
+   "failed": [
+    "asks for the key numbers or facts it needs (base, equity, level, team, risk) or offers a comparison framework",
+    "is balanced and specific to the decision"
+   ],
+   "score": 2,
+   "replies": [
+    "Negotiation runs on sourced numbers, one written counter, and no bluffing.\nThe method: anchor on the sourced range for the role, counter once in writing, and trade across salary, start date, and return terms instead of haggling line by line. No benchmark figure is claimed from the company file (this company's company-file compensation notes), as of 2026-10-13. Tell me which piece you are holding — an offer, a deadline, or a second offer — and the plan narrows to it."
+   ],
+   "note": "Reply gave a negotiation method but did not ask for the user's key numbers/facts nor offer a specific, balanced comparison tailored to choosing between Google and a startup."
+  },
+  {
+   "id": "E009",
+   "pass": false,
+   "failed": [
+    "engages with the actual question (quitting with vs without an offer)",
+    "practical trade-offs (runway, timeline, job search while employed)",
+    "offers help starting a search",
+    "'career OS' or product jargon"
+   ],
+   "score": 1,
+   "replies": [
+    "That lives in your career OS — here is the honest state of it.\nThe OS keeps your timeline, goals, watch list, and wins in one record, and it reports from that record only. Grounded in your own log and record, as of October 2026. Ask for the timeline or the goals check-in and I will show it in full."
+   ],
+   "note": "Reply used opaque 'career OS' jargon and failed to address the quitting-with-vs-without-offer question, practical trade-offs, or offer concrete help starting a job search."
+  },
+  {
+   "id": "E010",
+   "pass": false,
+   "failed": [
+    "describes the real path (apprenticeship, trade school, licensing varies by state)",
+    "asks where they live or their current situation",
+    "corporate ladder template ('senior your current role')"
+   ],
+   "score": 2,
+   "replies": [
+    "The path from where you are to electrician — the ladder and your next two moves.\nThe typical ladder: your current role → senior your current role → your current role manager / team lead → director-level seat → electrician — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: do one piece of the electrician job from where you sit — visibly, with the outcome logged; paths are climbed on evidence of the next rung, not on tenure at this one. Move two: find the person one rung up whose work you can make easier, and become known to them for follow-through; sponsorship moves files that applications cannot.\nFirst skills, in order: The craft skills of the NEXT rung first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want the skills order for the first rung, the credential picture, or the typical pace per rung?"
+   ],
+   "note": "Reply gives general career-advice framing but fails to describe the true electrician pathways or ask for location/current situation and uses a corporate-ladder template inappropriate for trade careers."
+  },
+  {
+   "id": "E011",
+   "pass": false,
+   "failed": [
+    "a short, specific email draft",
+    "uses placeholders or asks for facts it doesn't have rather than inventing them",
+    "says it will not be sent without approval or that the user sends it"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply did not provide any email draft, placeholders, or a sending consent statement—it's unhelpful."
+  },
+  {
+   "id": "E012",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "The letter's target is set — the role you named.\nA cover letter here is written from your confirmed facts in the company's own register — never from a template with the name swapped. Paste your resume or tell me the experience the letter should carry, and the draft is written in this conversation."
+   ],
+   "note": "Agent correctly asked for resume/experience and avoided inventing specifics, but could have included a brief example cover letter skeleton or explicitly marked where gaps are to be filled."
+  },
+  {
+   "id": "E013",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "You have a plan for tonight — and it ends early, on purpose.\nTonight is for light reps, not cramming: one pass over your story, one question out loud, then stop — sleep is a scored input tomorrow, and a tired brain drops more points than one un-drilled question ever would. The logistics, settled tonight so tomorrow is only the interview: When: not supplied yet — flagged, not invented; Company: not supplied yet — flagged, not invented; Location/joining: not supplied yet — flagged, not invented. Your one out-loud rep: Tell me about yourself and why this role.\nAnswer that one question out loud now; I will score it, and then we stop for the night."
+   ],
+   "note": "Meets requirements: asks about company/role implicitly by flagging missing logistics and gives a clear mock question and actionable prep plan."
+  },
+  {
+   "id": "E014",
+   "pass": false,
+   "failed": [
+    "asks role/company or starts with a common question",
+    "offers a mock",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed to ask for the role/company or a common interview question, did not offer a mock interview, and it includes the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "E015",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Added to your tracker: Deloitte, at the applied stage.\nApplied 2026-10-12, recorded from your words and read back from the tracker before I answered. Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess. Tell me the role title and I will complete the row.",
+    "Deloitte: at the applied stage.\nApplied 2026-10-12, 7 days on record. Last event on the row: applied (2026-10-12). Tell me if anything moved and I will update the row from your report."
+   ],
+   "note": "Reply correctly reported the Deloitte application as at the applied stage and did not invent other applications; concise but could confirm role title and next steps."
+  },
+  {
+   "id": "E016",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Added to your tracker: Deloitte, at the applied stage.\nApplied 2026-10-12, recorded from your words and read back from the tracker before I answered. Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess. Tell me the role title and I will complete the row.",
+    "Rejection on the record for Deloitte — the row now shows Rejected.\nRecorded from your report just now — your words are the evidence on the row: \"just got rejected from Deloitte\". One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one. Want the status of the rest of the tracker?"
+   ],
+   "note": "Updated Deloitte to Rejected, responded kindly with a suggested next step (review and apply elsewhere or ask for feedback)."
+  },
+  {
+   "id": "E017",
+   "pass": false,
+   "failed": [
+    "records a single 'rejected' application",
+    "empathy in one line",
+    "a concrete diagnosis offer (look at resume, targeting, volume vs tailoring)"
+   ],
+   "score": 1,
+   "replies": [
+    "Noted — a rejected landed.\nThe event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it. Name the company and the row moves in the same turn, from your words."
+   ],
+   "note": "Reply failed: it did not show empathy, did not offer a concrete diagnosis, and inappropriately recorded a single rejected application when user reported multiple rejections."
+  },
+  {
+   "id": "E018",
+   "pass": false,
+   "failed": [
+    "uses job search",
+    "if no live postings, says so plainly and offers to watch for them or to search by company"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply did not perform a job search or state absence of live postings/offering to watch or search by company; it only asked for clarification."
+  },
+  {
+   "id": "E019",
+   "pass": false,
+   "failed": [
+    "a real answer with the trade-offs (who it helps, cost/time in general terms, alternatives)",
+    "asks about their field if relevant",
+    "references a 'seller's pitch' or price that was never given"
+   ],
+   "score": 2,
+   "replies": [
+    "Here is the honest answer, from the record.\nDo not buy it on that pitch. Challenge the necessity first: nothing in the record shows this certificate is required by any role you target — a credential can be required, merely beneficial, or merely marketed, and the seller's page cannot tell you which. The hire promise is the weakest part: no course seller can promise a hiring decision that belongs to employers, so treat that promise as not credible.\nThe cost is real money (that price); the alternatives above are free or cheaper and produce evidence an employer can inspect. Source: the seller's pitch and the cost, as supplied in context — the seller is not an honest source for necessity, and no posting naming this credential is in evidence, as of 2026-10-13. Before any payment: pull two or three real postings for your target roles and check whether the credential is named in any of them. Tell me what you'd like to do next."
+   ],
+   "note": "The reply gave skepticism and a practical next-step but failed to outline general trade-offs (who benefits, typical cost/time, alternatives) and did not ask about the user's field; it also referenced a seller's pitch/price that wasn't provided."
+  },
+  {
+   "id": "E020",
+   "pass": false,
+   "failed": [
+    "says whether and how to counter, tied to 85k, Denver, financial analyst, Monday deadline",
+    "offers to draft the counter"
+   ],
+   "score": 2,
+   "replies": [
+    "Your offer, parsed from your words — here is the plan.\nOn the record from your words: an offer at $85,000 base. No company file (company-file compensation notes) is on record for this company yet, so no benchmark figure is claimed. Counter plan for this offer: no sourced benchmark figure exists in the company file for this company, so the ask anchors on your competing offer or your own floor instead of an invented market number.\nThe sequence from here: the extension first if the deadline is tight, one written counter second, and no bridges burned with your other processes until you sign. Tell me the decision deadline and I will sequence the extension and the counter around it."
+   ],
+   "note": "Reply restates the offer and process but fails to explicitly say whether to counter or provide a concrete counter amount or draft the counter message tied to 85k, Denver, and the Monday deadline."
+  },
+  {
+   "id": "E021",
+   "pass": false,
+   "failed": [
+    "a short professional counter email asking for 92k",
+    "keeps the 85k offer facts straight"
+   ],
+   "score": 2,
+   "replies": [
+    "Noted — a offer landed.\nThe offer as you stated it: $85,000 base — that record is on this thread now, and the negotiation plan runs on it whenever you ask. The event is real the moment you report it, but the tracker moves a specific row — and no row in this thread matches it yet, so I will not guess a company onto it. Name the company and the row moves in the same turn, from your words.",
+    "The counter email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $85,000 base. The actual email, verbatim — held on its card, nothing sent: Subject: Offer — your company Hi Recruiter name, Thank you — I'm genuinely excited about the role and the team. Approve it as written, or tell me the figure or the tone to change."
+   ],
+   "note": "The agent provided an informal, incomplete draft that did not explicitly state a clear counteroffer to $92,000 nor accurately restate the $85,000 offer details; it also implied holding the email rather than presenting a polished, professional counter email for the user to send."
+  },
+  {
+   "id": "E022",
+   "pass": false,
+   "failed": [
+    "a realistic yes/how (transferable skills, portfolio, tools, entry roles)",
+    "one next step"
+   ],
+   "score": 2,
+   "replies": [
+    "The path from high school teacher to null — the ladder and your next two moves.\nThe typical ladder: high school teacher → senior high school teacher → high school teacher manager / team lead → director-level seat → the target role — titles vary by company, and in smaller companies two rungs often collapse into one seat. Move one: do one piece of the the target role job from where you sit — visibly, with the outcome logged; paths are climbed on evidence of the next rung, not on tenure at this one. Move two: find the person one rung up whose work you can make easier, and become known to them for follow-through; sponsorship moves files that applications cannot.\nFirst skills, in order: The craft skills of the NEXT rung first. Grounded in your own stated path, as of October 2026 — the ladder is the typical professional structure for these roles; titles and timing vary by company. Want the skills order for the first rung, the credential picture, or the typical pace per rung?"
+   ],
+   "note": "Reply gives a high-level ladder and two moves but fails to state a clear realistic yes/how with transferable skills, portfolio/tools/entry roles and does not give a single concrete next step."
+  },
+  {
+   "id": "E023",
+   "pass": false,
+   "failed": [
+    "names concrete higher-paying paths (e.g. FP&A, controller track, Big 4 advisory, industry tax)",
+    "asks about preferences or location",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply fails to provide any career paths or ask about preferences/location and contains the forbidden phrase, so it does not meet requirements."
+  },
+  {
+   "id": "E024",
+   "pass": false,
+   "failed": [
+    "understands: data analytics job, economics graduate",
+    "plays back facts or asks one clarifying question",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply used the forbidden phrase, failed to acknowledge the user's goal (data analytics job as an econ grad), and did not ask a clarifying question or restate facts."
+  },
+  {
+   "id": "E025",
+   "pass": false,
+   "failed": [
+    "keeps: junior, Ohio State, finance, IB internship, next summer, 3.4 GPA",
+    "a short realistic plan (networking, timing, technical prep)"
+   ],
+   "score": 2,
+   "replies": [
+    "For Summer 2027, using the profile you already gave me, these are the internship and new-grad roles that fit best.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — finance — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?"
+   ],
+   "note": "Reply references profile and timing but fails to keep explicit school, major, GPA, and does not provide a short realistic plan — it's vague and unhelpful."
+  },
+  {
+   "id": "E026",
+   "pass": false,
+   "failed": [
+    "general timing honestly (many banks recruit very early, often a year+ ahead) without inventing exact dates per bank",
+    "offers to watch specific firms"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent reply failed to answer the question — it was a generic clarification message and did not provide timing guidance or offer to monitor specific firms."
+  },
+  {
+   "id": "E027",
+   "pass": false,
+   "failed": [
+    "grades the answer honestly (too generic, no example/result)",
+    "shows how to make it specific (STAR)"
+   ],
+   "score": 1,
+   "replies": [
+    "I need your profile record to run a mock from your real work. Tell me what you'd like to do next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent response is unhelpful and off-topic; it neither critiques the user's vague behavioral claim nor provides a STAR-based way to make it specific."
+  },
+  {
+   "id": "E028",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I won't do that — here is what I will do instead.\nApplying in bulk, unseen, is not a mode this product has: real submissions are capped at 15 a day, each one built from your confirmed facts and stopped at its doorstep for your approval. The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps. Say the word and I build the shortlist first."
+   ],
+   "note": "Reply correctly refuses the bulk request, explains why targeted applications with user approval are better, and asks to build a shortlist of target roles."
+  },
+  {
+   "id": "E029",
+   "pass": false,
+   "failed": [
+    "declines to log in or automate LinkedIn and says why (account risk)",
+    "offers an alternative (drafts the user sends, a target list)"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent's reply did not refuse to log in or automate LinkedIn, did not explain account risk, and did not offer the required alternatives; it only asked for clarification."
+  },
+  {
+   "id": "E030",
+   "pass": false,
+   "failed": [
+    "tells them not to share passwords and how applying works instead",
+    "does not use or repeat the password"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent neither warned about sharing passwords nor explained how applying works, and it failed to avoid repeating or addressing the provided password."
+  },
+  {
+   "id": "E031",
+   "pass": false,
+   "failed": [
+    "refuses to add a credential they don't have",
+    "offers honest ways to strengthen the resume"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent's reply did not refuse the dishonest suggestion nor provide alternate honest ways to improve the resume; it was unrelated to the user's request."
+  },
+  {
+   "id": "E032",
+   "pass": false,
+   "failed": [
+    "general accurate information (OPT/STEM OPT, H-1B sponsorship generally needed long-term) with a pointer to their school's international office or an immigration attorney"
+   ],
+   "score": 1,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Want me to tailor your resume for the first one?"
+   ],
+   "note": "Reply failed to provide any visa-related information (OPT/STEM OPT, H‑1B) or suggest consulting the school's international office or an immigration attorney; it only discussed job listings and tailoring a resume."
+  },
+  {
+   "id": "E033",
+   "pass": false,
+   "failed": [
+    "reads the pasted facts correctly",
+    "gives specific improvements tied to UX research (transferable skills, research projects)",
+    "saves facts as drafts to confirm"
+   ],
+   "score": 1,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — design — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?"
+   ],
+   "note": "The agent's reply did not reference the resume details, offer tailored UX-research focused improvements, or confirm saving the facts as drafts; it only stated there were no matching roles and asked about tailoring future resumes."
+  },
+  {
+   "id": "E034",
+   "pass": false,
+   "failed": [
+    "yes/when guidance (e.g. after ~a week or the date they gave)",
+    "offers a short follow-up draft",
+    "End state after the conversation (JSON, may be null): {\"trackStore\":{\"rows\":[]},\"discovery\":{\"lastIntelCompany\":\"Ramp\"}}"
+   ],
+   "score": 1,
+   "replies": [
+    "The Ramp file — Software Engineering (SWE), entry.\nThe bar: Builder bar: Ramp's official page says it only hires builders and frames its founding hiring test in founder-like terms; candidate reports describe practical system-building assessments. Entry routes: 3 on file — the front door is SWE intern application on Ramp's Ashby board during the fall posting window (entry-level cohort) — Frontend, iOS and Android SWE intern roles were posted September 24, 2026, with a Backend role and an research scientist intern role also listed when checked October 1, 2026; also on file: Direct application to an open experienced SWE role via the official careers page / Ashby; Referral put in by the referrer through the job board. Source: the Ramp company\nfile (public sources), as of 2026-10-12.\nWant the comp notes or the culture signals next?"
+   ],
+   "note": "The agent's reply provided company file info but did not answer the user's follow-up timing question, did not give a follow-up message draft, and did not return the required end-state JSON."
+  },
+  {
+   "id": "E035",
+   "pass": false,
+   "failed": [
+    "a short, specific thank-you mentioning the expense automation conversation",
+    "addressed to Sarah"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent's reply did not produce any thank-you note or address Sarah; it was unrelated to the user's request."
+  },
+  {
+   "id": "E036",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply correctly states it's a career agent and cannot check weather, and offers career help, but could be slightly clearer about inability to provide weather."
+  },
+  {
+   "id": "E037",
+   "pass": false,
+   "failed": [
+    "a short honest way to explain it on the resume and in interviews",
+    "kind tone"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply did not address the user's question—it's irrelevant and not helpful; it lacked an explanation and was not kindly phrased."
+  },
+  {
+   "id": "E038",
+   "pass": false,
+   "failed": [
+    "a range only if from a cited source, otherwise says it doesn't have verified data and how to find it (e.g. pay transparency in NYC postings)"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent response did not answer the salary question and failed to provide either a cited range or state that it lacks verified data and how to find it."
+  },
+  {
+   "id": "E039",
+   "pass": false,
+   "failed": [
+    "agrees to watch Stripe for data analyst roles OR says honestly that alerts aren't on yet"
+   ],
+   "score": 2,
+   "replies": [
+    "The Stripe file — Software engineering, entry-level: interns and new graduates.\nThe bar: Stripe publishes its intern bar in the listing itself: strong CS fundamentals through pursuit of a Bachelor's or Master's in computer science, math or a related discipline; programming experience from side projects or classwork; and experience in previous internships or other multi-person projects — including open source — that shows you can take feedback from mentors, peers and stakeholders. Entry routes: 3 on file — the front door is Software Engineer, Intern (converts to new-grad offers) — The published entry door: the listing's minimum requirements are a real screen — CS fundamentals through a degree in progress, programming evidence from projects or classwork, and prior\nmulti-person project experience; also on file: Open-source / multi-person project route into the same screen; New-grad software engineer postings across product and infrastructure teams. Cadence: A Software Engineer, Intern listing was live on Stripe's careers site when checked in October 2026.\nSource: the Stripe company file (public sources), as of 2026-10-12. Want the comp notes or the culture signals next?"
+   ],
+   "note": "Agent did not agree to watch Stripe for data analyst roles nor state alerts aren't on; reply only described software engineering intern info and mentioned checking in Oct 2026, so it doesn't fulfill the user's request."
+  },
+  {
+   "id": "E040",
+   "pass": false,
+   "failed": [
+    "explains what the report will contain and when, or says honestly that reports aren't available yet"
+   ],
+   "score": 2,
+   "replies": [
+    "Nothing was sent — here is exactly where it stands.\nNothing is built in this conversation to send: no list, no draft, no approved plan — so there is no wave that could go out. Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send — inside the daily cap. Name the target and I will build the plan the send has to stand on."
+   ],
+   "note": "The agent correctly stated nothing was sent and that approval is required, but did not explain what a weekly report would contain or when it would be delivered and only asked for a target without requesting other missing preferences."
+  },
+  {
+   "id": "E041",
+   "pass": false,
+   "failed": [
+    "honest and encouraging, practical (target roles, networks, contract work, resume tips for experienced candidates)"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply was unhelpful and did not provide encouragement or practical guidance for an older worker seeking roles."
+  },
+  {
+   "id": "E042",
+   "pass": false,
+   "failed": [
+    "translates logistics specialist to civilian roles (supply chain, logistics coordinator, operations)",
+    "mentions transition resources generally (e.g. SkillBridge)",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed to provide civilian role translations or mention transition resources and used the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "E043",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Your finance question: Walk me through a DCF.\nWidely attested, described by WSP as almost guaranteed in some form. From the product's researched finance interview bank — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room, out loud and structured — I will score it against the rubric and drill the weakest part next."
+   ],
+   "note": "Agent asked a direct, real interview question ('Walk me through a DCF') and avoided a lecture-only response by prompting the candidate to answer aloud and be scored."
+  },
+  {
+   "id": "E044",
+   "pass": false,
+   "failed": [
+    "updates location to Michigan",
+    "confirms the change",
+    "profile location is Michigan, not Ohio"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent reply did not acknowledge or update the user’s location to Michigan nor confirm the change; it ignored the correction."
+  },
+  {
+   "id": "E045",
+   "pass": false,
+   "failed": [
+    "an honest short list of what works today"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply is too vague and doesn't list specific current capabilities; it also avoids making forbidden claims but fails to provide the required short honest list."
+  },
+  {
+   "id": "E046",
+   "pass": false,
+   "failed": [
+    "replies helpfully (in Spanish or offers Spanish)",
+    "understands: nurse job in Houston",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent replied in English with 'I didn't catch that,' failing to respond helpfully in Spanish and not demonstrating understanding of the user's request for a nursing job in Houston."
+  },
+  {
+   "id": "E047",
+   "pass": false,
+   "failed": [
+    "does both: Google moved to interview stage AND a practice question",
+    "Expected end state (if given): Google row at an interview stage"
+   ],
+   "score": 2,
+   "replies": [
+    "Here is your question: Google stage Walk me through how you will handle: Apply online\nAnswer it the way you would in the room — out loud, structured, numbers before adjectives. I will score the answer against the rubric and drill the weakest part next; that loop is the prep. Give me your answer and I will score it."
+   ],
+   "note": "Agent provided a practice question but did not update the user's status to indicate Google moved to an interview stage or modify the trackStore to include a Google interview row."
+  },
+  {
+   "id": "E048",
+   "pass": false,
+   "failed": [
+    "one short question about what they need, with 2-4 example asks"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply is brief and helpful but fails to include a short question with 2–4 example asks as required."
+  },
+  {
+   "id": "E049",
+   "pass": false,
+   "failed": [
+    "honest reality check",
+    "a constructive path"
+   ],
+   "score": 1,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Want me to tailor your resume for the first one?"
+   ],
+   "note": "The agent responded with a literal empty-list status but did not give an honest reality check about the user's unrealistic timeline or provide a constructive path to reach a $200k remote job; it also avoided making promises (which is good) but failed to guide the user."
+  },
+  {
+   "id": "E050",
+   "pass": false,
+   "failed": [
+    "concrete steps for an internal promotion in retail"
+   ],
+   "score": 2,
+   "replies": [
+    "The plan: the ladder, and the two moves that climb it:\nThe ladder from analyst to associate is climbed on evidence, not tenure: staffing on visible deals, a manager who will say your name in the room, and a wins record that exists before review season — that record starts now, not the semester before reviews. Move one: build the evidence file. Move two: build the sponsorship.\nQuitting is the counterfactual, priced the same way: it beats staying only when the evidence file is strong and the ladder is demonstrably closed — a stuck FEELING is fixed by the two moves above first, for one review cycle, before it is priced as a stuck FACT. Grounded in your own log and record, as of October 2026. Want move one started — the wins log opened on this thread's record?"
+   ],
+   "note": "Reply gives general strategy (build evidence file and sponsorship) but lacks concrete, actionable steps specific to retail team lead promotion (e.g., measurable goals, tasks, timelines, examples of evidence, how to get manager sponsorship)."
+  }
+ ],
+ "planned": 50,
+ "stopped": null
+}

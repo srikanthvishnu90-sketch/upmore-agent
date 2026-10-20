@@ -123,5 +123,5 @@ The exact-name employer match changes no fill on A–H.
 - **The production line is not trunk** (the owner ruled 2026-10-20: trunk is the only line). The port of the deployed
   line's real pieces is the next order.
 - **Wrong is not converging on fresh samples** (D at least 3.9%, then 1.6, 1.2, 1.9, 4.9). Rules learned from samples
-  generalize slowly. The next step for the answer bank is the same as for chat: a model proposes the reading and these rules
+  generalize slowly. The next step for the saved answers is the same as for chat: a model proposes the reading and these rules
   veto. It is measured on a sealed sample, like these.

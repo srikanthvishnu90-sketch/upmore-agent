@@ -84,6 +84,7 @@ if (import.meta.main) {
   const { CareerHost } = await import("../../supabase/functions/_shared/career_host.js");
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
+  const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
   const meter = newMeter(), judgeMeter = newMeter();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -91,13 +92,16 @@ if (import.meta.main) {
   const T0 = Date.UTC(2026, 9, 19, 15);
   const brain: Brain = async (turns) => {
     const store = memoryStore();
+    // WO-061: the agent gets an alert store, as agent-chat gives it in production; without one every alert request
+    // failed with "job alerts are not configured here", a harness artifact the router (its own state) never paid.
+    const alerts = memoryAlertStore();
     let now = T0;
     const replies: string[] = [];
     const turnFn = async (a: any) => {
       const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: a.userId, now, snapshot: a.stores.snapshot ?? null });
       let reply: string;
       if (brainName === "agent") {
-        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
+        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {

@@ -8,6 +8,7 @@ import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { ReadResult } from "../_shared/career_mail_gmail.ts";
+import type { MailModelWiring } from "../_shared/career_mail_model.ts";
 import type { EventStore } from "../_shared/agent/timeline.ts";
 import type { DigestStore, InterviewStore } from "../_shared/career_brief_store.ts";
 
@@ -24,7 +25,8 @@ export interface ProactiveDeps {
   pushCard?: (userId: string, ids: string[], text: string) => Promise<string | null>;
   // Mail tracking (WO-024): where events, drafts and cursors live, and the read of one person's new mail. Absent: no mail
   // is read this run. Nothing here sends mail.
-  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
+  // model (WO-040): the second pass on ambiguous mail, only with CAREER_MAIL_MODEL=on. Absent: the rules alone.
+  mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult>; model?: () => MailModelWiring };
   // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
   events?: () => EventStore;
   // WO-034: interviews (an invite read by mail tracking is briefed in the same run; a dated interview gets its thank-you
@@ -51,7 +53,8 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
     const interviews = d.briefs ? d.briefs.interviews() : null;
     if (d.mail) {
-      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, briefs: interviews });
+      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, briefs: interviews, model: d.mail.model ? d.mail.model() : null });
+      if (m.model) Object.assign(stats, { mail_model: m.model, mail_model_calls: m.model_calls ?? 0, mail_model_decided: m.model_decided ?? 0 }, m.model_ask ? { mail_model_ask: m.model_ask } : {});
       stats.statuses = m.statuses;
       stats.followups = m.followups;
       stats.briefs = m.briefs;

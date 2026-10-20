@@ -17,6 +17,15 @@ shows it fits the emails it was tuned on). The live number on real inboxes is **
 plumbing works end to end on fakes (VERIFIED): it reads mail, records each message once, sends one text per real change,
 drafts follow-ups, never sends email, and answers "where do I stand". The gap is classification recall.
 
+## WO-040 update (2026-10-20)
+
+WO-040 (`docs/architect/work-orders/WO-040-mail-accuracy.md`) took the holdout to **precision 100.0% (40/40), recall
+97.6% (40/41)** (VERIFIED, synthetic: `deno run --allow-read evals/career/mail-eval.ts --only holdout`). Two caveats:
+the holdout's misses were analysed for their causes, so the number is optimistic, and on 41 emails the lower bounds are
+about 91% / 87%. It also added 131 synthetic dev emails and planner guards: an offer, or anything the model decided,
+moves an application only from that employer's own mail. An optional model second pass is off by default
+(`CAREER_MAIL_MODEL=on`, OpenAI only). The numbers below are WO-024's, kept as they were measured.
+
 ## What was built
 
 | Piece | File | Status |
@@ -115,4 +124,5 @@ recall.
 
 Apply `20261020100000_career_mail_tracking.sql`, deploy `career-proactive` and `agent-chat`, set
 `CAREER_MAIL_TRACKING=on`. Needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, already used by `gmail-oauth`.
-All NOT_RUN here.
+Optional (WO-040): `CAREER_MAIL_MODEL=on` on career-proactive, with `OPENAI_API_KEY` set, turns on the second pass. Without
+the key the run reports `mail_model: NOT_WIRED` and the rules alone decide. All NOT_RUN here.

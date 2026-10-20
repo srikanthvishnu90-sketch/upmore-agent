@@ -20,7 +20,8 @@ create temp table st_v as select name, q as p, encode(sha256(convert_to(career_a
   'fields',jsonb_build_array(jsonb_build_object('name','name','label','Full name','value','TEST Person','source','trainee','factId','text-answer:1')),
   'resume_name','test.pdf','resume_sha256',repeat('a',64),'privacy_epoch',0,'account_version',1,'expires_at',(now()+interval '2 hours')::text) as q
  from (values ('lost','lostco'),('closed','closedco'),('clicked','clickedco'),('refused','refusedco'),('captcha','captchaco'),
-  ('captcha2','captchaco'),('rejected','rejectco'),('late','lateco'),('cap1','capco1'),('cap2','capco2'),('cap3','capco3'),('cap4','capco4')) v(name,co)) x;
+  ('captcha2','captchaco'),('rejected','rejectco'),('late','lateco'),('cap1','capco1'),('cap2','capco2'),('cap3','capco3'),('cap4','capco4'),
+  ('rv_clicked','rvco'),('rv_clicked2','rvco'),('rv_noclick','rvnco'),('rv_noclick2','rvnco'),('rv_cloud','rvcloudco'),('rv_cloud2','rvcloudco')) v(name,co)) x;
 -- The same posting, approved again from a fresh card (a new expiry: another hash).
 insert into st_v select 'lost_again', p||jsonb_build_object('expires_at',(now()+interval '3 hours')::text), null from st_v where name='lost';
 update st_v set h=encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex') where h is null;
@@ -149,4 +150,39 @@ insert into st_r select 'cap4', career_apply_extension_begin_own(p, h) from st_v
 select t.ok((select r->>'id' is not null from st_r where name='cap4'),'one live drive, one needs_user, one swept: under a limit of 3');
 select t.ok((select state='interrupted' from career_apply_jobs where job_id='lever:capco3:cap3'),'the stale drive was swept by the begin itself');
 reset role;
+
+-- Review of #128: age alone never frees a drive that may have reached the employer. A drive counts toward the limit and
+-- the company rule until a sweep ends it; every path that checks them sweeps the person's drives first, under the same lock.
+delete from career_apply_jobs where user_id='00000000-0000-4000-8000-000000091d01';
+update career_watch_kv set value=value||'{"daily_limit":"50"}' where user_id='00000000-0000-4000-8000-000000091d01' and key='career:account';
+select t.as_user('00000000-0000-4000-8000-000000091d01');set role authenticated;
+insert into st_r select 'rv_clicked', career_apply_extension_begin_own(p, h) from st_v where name='rv_clicked';
+select career_apply_clicked_own((r->>'id')::uuid,(r->>'lease')::uuid) from st_r where name='rv_clicked';
+insert into st_r select 'rv_noclick', career_apply_extension_begin_own(p, h) from st_v where name='rv_noclick';
+reset role;
+update career_apply_jobs set claimed_at=now()-interval '31 minutes' where job_id in ('lever:rvco:rv_clicked','lever:rvnco:rv_noclick');
+-- The extension clicked and the browser died; 31 minutes later the person says yes in chat to the same company.
+select t.must_fail($$select career_apply_enqueue(p,h,h,25) from st_v where name='rv_clicked2'$$,'company_cooldown',
+ 'a clicked drive past its lease still holds the company: the employer never gets it twice');
+-- (The refused yes rolls back with its own sweep: the clicked drive is still held, never freed.)
+select t.ok((select state in ('driving','unknown_outcome') from career_apply_jobs where job_id='lever:rvco:rv_clicked'),'the clicked drive is still held, never interrupted');
+-- No click: the yes sweeps it to interrupted and goes.
+select t.ok((select state='queued' from career_apply_enqueue((select p from st_v where name='rv_noclick2'),(select h from st_v where name='rv_noclick2'),
+ (select h from st_v where name='rv_noclick2'),25)),'a drive that never clicked is freed by the next yes');
+select t.ok((select state='interrupted' from career_apply_jobs where job_id='lever:rvnco:rv_noclick'),'swept to interrupted under the same lock');
+-- A cloud worker's drive longer than 30 minutes still counts; the scheduled service sweep ends it as unknown (a worker
+-- reports no click, so it may have sent), and it still counts.
+insert into career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash,state,attempts,claimed_at,lease_token,source)
+ select '00000000-0000-4000-8000-000000091d01',p->>'job_id',p->>'company',p->>'url',p,h,h,'driving',1,now()-interval '45 minutes',gen_random_uuid(),'cloud'
+ from st_v where name='rv_cloud';
+select t.must_fail($$select career_apply_enqueue(p,h,h,25) from st_v where name='rv_cloud2'$$,'company_cooldown','a long cloud drive still holds the company');
+select t.ok((select state='driving' from career_apply_jobs where job_id='lever:rvcloudco:rv_cloud'),'the person''s own sweep leaves a worker''s drive to the scheduled one');
+set role authenticated;
+select t.must_fail($$select career_apply_sweep_drives()$$,'permission denied','only the service runs the scheduled sweep');
+reset role;
+set role service_role;
+select t.ok(career_apply_sweep_drives()>=1,'the scheduled sweep ends every stale drive, every source');
+reset role;
+select t.ok((select state='unknown_outcome' and evidence ? 'swept_at' from career_apply_jobs where job_id='lever:rvcloudco:rv_cloud'),'the cloud drive is unknown, never retried');
+select t.must_fail($$select career_apply_enqueue(p,h,h,25) from st_v where name='rv_cloud2'$$,'company_cooldown','and it still holds the company');
 rollback;

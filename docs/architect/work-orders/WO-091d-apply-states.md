@@ -71,17 +71,44 @@ the other way: states that said "Sent" when nothing was sent, and states that ne
   - `career_apply_release_own`: `failed` → released, then retriable once.
   - The panel shows "I finished it myself" and "Try again", only where each applies, and only on the person's own tap.
     "Try again" re-arms the page; it sends nothing.
-  - `career_apply_counts`: `needs_user`, `interrupted`, `failed`, `not_submitted` and a stale drive never count
-    toward the daily limit or the 30-day company rule. A drive inside its lease still counts, so two tabs cannot both
-    pass.
+  - `career_apply_counts`: `needs_user`, `interrupted`, `failed` and `not_submitted` never count toward the daily
+    limit or the 30-day company rule. A drive counts at any age (see the review fix below).
 - **F7** (`supabase/functions/_shared/posting_key.ts`).
   - `workdayTenant(href)` is the path tenant on `myworkdaysite.com` and `myworkday.com`, and the host label on
     `myworkdayjobs.com`.
   - `postingKey` is `workday:<host>:<tenant>:<slug>` on shared hosts. The key on `myworkdayjobs.com` is unchanged.
   - `workdayEmployer` and the content script's company use the tenant.
 
+## Review fix (PR #128): age alone never frees a drive
+- **The problem.** The first version stopped counting a `driving` row 30 minutes after its claim, but nothing swept the
+  row until the person's extension began again. Two paths then sent a second application to the same employer: an
+  extension that clicked and then died, followed 31 minutes later by a chat "yes" to the same company; and a cloud run
+  longer than 30 minutes.
+- **The fix.**
+  - `career_apply_counts(state)` counts a drive at any age.
+  - `career_apply_enqueue`, which the chat yes, the begin and every queue path go through, first sweeps the person's
+    own stale extension drives under the same lock. One that never clicked becomes `interrupted` and is freed; one that
+    clicked becomes `unknown_outcome` and is still counted. A refused yes rolls back with its sweep, so the drive stays
+    held.
+  - A new service-only `career_apply_sweep_drives()`, scheduled every 15 minutes in
+    `scripts/launch/schedule-career-proactive.sql` next to WO-092's `career_apply_sweep_stale`, covers every person
+    and every source:
+    - an extension drive, by its reported click (as above);
+    - any worker's drive (own computer, cloud, email) becomes `unknown_outcome`, still counted and never retried. A
+      worker reports no click, so a stale worker drive may have sent; the cloud's is recorded in its telemetry, as the
+      cloud claim does.
+- **One change from the review's wording.** The review suggested a worker row with no click becomes `interrupted`.
+  Workers never report a click, so that would have freed every stale worker drive, including ones that sent. They
+  become `unknown_outcome` instead.
+- **Tests, written first in `tests/db/career_apply_states.test.sql` (10 assertions).** The first one failed on the PR's
+  first version ("statement succeeded but had to fail"):
+  - a clicked extension drive 31 minutes old, unswept: a yes for the same company is refused with `company_cooldown`;
+  - the same drive without a click: the yes sweeps it to `interrupted` and goes;
+  - a cloud drive 45 minutes old: it still holds the company, the person's own sweep leaves it alone, the scheduled
+    sweep (service only) makes it `unknown_outcome`, and it still holds the company.
+
 ## Files
-`supabase/migrations/20261023091400_career_apply_states.sql` (new), `scripts/launch/trainee-go-live.sh`
+`supabase/migrations/20261023091400_career_apply_states.sql` (new), `scripts/launch/schedule-career-proactive.sql`, `scripts/launch/trainee-go-live.sh`
 (MIGRATIONS + mark `career_apply_resolve_own`), `tests/db/run.sh`, `tests/db/career_apply_states.test.sql` (new),
 `extension/{background.js,content.js,panel.js,panel.html,src/apply_core.ts,src/dom.ts,lib/trainee-core.js}`,
 `supabase/functions/_shared/posting_key.ts`, `tests/architect/wo-091d-apply-states.test.ts` (new),
@@ -89,7 +116,7 @@ the other way: states that said "Sent" when nothing was sent, and states that ne
 
 ## Tests, written first (each failed on trunk)
 - `tests/architect/wo-091d-apply-states.test.ts`: 5 tests, 0 of 5 on trunk (the exports did not exist), 5 of 5 after.
-- `tests/db/career_apply_states.test.sql`: 36 assertions. On trunk's schema, run without stopping at the first
+- `tests/db/career_apply_states.test.sql`: 36 assertions (46 with the review fix). On trunk's schema, run without stopping at the first
   failure, 2 of 36 passed, both incidental: "one row" and "never under another lease". After the migration, 36 of 36.
 - `tests/career-extension-browser.test.cjs`, the 7 "091d" tests run against trunk's extension: 0 of 7. Trunk's words:
   - F1: "Sent; the employer's answer could not be captured…".
@@ -108,7 +135,7 @@ the other way: states that said "Sent" when nothing was sent, and states that ne
   - the world mirrors the new SQL rules.
 
 ## Evidence (this branch)
-- Architect suite: 637 passed, 0 failed (trunk: 632 plus the 5 new tests).
+- Architect suite (merged with trunk, after the review fix): 663 passed, 0 failed.
 - Browser suite: 61 passed, 0 failed (trunk: 54 passing, plus the 7 new tests). The one existing test the first
   draft broke (ask once, from the form) came from the dropped pre-check and is green without it.
 - DB suite (`tests/db/run.sh`, local Postgres only): all green. The existing extension and form-answers SQL tests are

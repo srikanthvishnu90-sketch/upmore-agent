@@ -374,7 +374,8 @@ async function startWorld(o = {}) {
   const retriable = (j) => j.state === "interrupted" ||
     (j.state === "not_submitted" && /^(stopped before the click$|interrupted before the click|the browser refused the submit)/.test(j.evidence?.reason || "")) ||
     (j.state === "failed" && !!j.evidence?.released_at);
-  const counts = (j) => ["queued", "confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(j.state) || (j.state === "driving" && Date.now() - j.at < LEASE_MS);
+  // A drive counts at any age; only a sweep frees one (to interrupted, when no click was reported).
+  const counts = (j) => ["queued", "driving", "confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(j.state);
   const sweep = () => {
     let n = 0;
     for (const j of state.jobs) {

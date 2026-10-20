@@ -8,8 +8,8 @@
 -- What this file adds or redefines (additive, idempotent; no existing migration is edited):
 --  - state 'interrupted': a drive that stopped before Trainee recorded a click. Nothing is known to have been sent.
 --  - career_apply_sweep_own(): the person's own drives from the extension past their 30-minute lease end. With a click
---    reported (career_apply_clicked_own) they are unknown_outcome, never retried; without one, interrupted. The begin runs
---    the same sweep first. Cloud and desktop drives keep their own sweeps (career_apply_claim_own, career_apply_sweep).
+--    reported (career_apply_clicked_own) they are unknown_outcome, never retried; without one, interrupted. The begin and
+--    the enqueue run the same sweep first; career_apply_sweep_drives (below) runs it for everyone, every source.
 --  - career_apply_clicked_own(id, lease): the extension says the site's Submit was clicked, after the click.
 --  - career_apply_finish_own: as 20261020010000, and a finish the extension kept on the computer (offline, a closed
 --    browser) lands after the sweep under the drive's own lease, once: what the page showed replaces the sweep's guess.
@@ -18,11 +18,18 @@
 --    on the person's own tap; never by itself.
 --  - career_apply_retriable(state, evidence): what a new approval of the same posting may replace: interrupted, a stop
 --    before the click, a submit the browser itself refused, a released failure. Nothing else: the employer may have it.
---  - career_apply_counts(state, claimed_at, now): what holds a place under the daily limit and the company rule: queued,
---    sent (confirmed, submitted_unconfirmed), unknown, and a drive inside its lease. Never needs_user, interrupted, a
---    stale drive, failed or not_submitted.
---  - career_apply_enqueue: as 20261020050000, counting with career_apply_counts; duplicate_job names the row's state and id
---    ("duplicate_job: failed <id>"), so the extension says what happened and offers the person's own edge.
+--  - career_apply_counts(state): what holds a place under the daily limit and the company rule: queued, a drive (of any
+--    age: age alone never frees a drive that may have reached the employer), sent (confirmed, submitted_unconfirmed) and
+--    unknown. Never needs_user, interrupted, failed or not_submitted. A stale drive stops counting only when a sweep ends
+--    it as interrupted (no click reported); swept as unknown it still counts.
+--  - career_apply_enqueue: as 20261020050000, counting with career_apply_counts after sweeping the person's own stale
+--    extension drives under the same lock (so a crashed attempt that never clicked is freed by the next yes, never by
+--    age); duplicate_job names the row's state and id ("duplicate_job: failed <id>"), so the extension says what happened
+--    and offers the person's own edge.
+--  - career_apply_sweep_drives(): the scheduled service sweep (scripts/launch/schedule-career-proactive.sql, every 15
+--    minutes), every person, every source: an extension drive as above; a worker's drive (own computer, cloud, email),
+--    which reports no click, is unknown_outcome (it may have sent), the cloud's recorded in its telemetry as the cloud
+--    claim does. Service only.
 --  - career_apply_extension_begin_own: as 20261021120000, plus the sweep first, and career_apply_retriable for what may be
 --    replaced. The same posting while its drive is live is still duplicate_job (WO-031).
 --  - career_apply_extension_resume_own(payload, approval): the begin's answer was lost (offline, a restarted worker) and
@@ -41,10 +48,9 @@ language sql immutable set search_path = pg_catalog as $$
   or (p_state = 'failed' and p_evidence ? 'released_at'), false)
 $$;
 
-create or replace function public.career_apply_counts(p_state text, p_claimed_at timestamptz, p_now timestamptz) returns boolean
+create or replace function public.career_apply_counts(p_state text) returns boolean
 language sql immutable set search_path = pg_catalog as $$
- select coalesce(p_state in ('queued', 'confirmed', 'submitted_unconfirmed', 'unknown_outcome')
-  or (p_state = 'driving' and p_claimed_at > p_now - interval '30 minutes'), false)
+ select coalesce(p_state in ('queued', 'driving', 'confirmed', 'submitted_unconfirmed', 'unknown_outcome'), false)
 $$;
 
 create or replace function public.career_apply_sweep_ext(p_user uuid, p_now timestamptz) returns integer
@@ -60,6 +66,26 @@ begin
   where user_id = p_user and state = 'driving' and source = 'extension' and claimed_at < p_now - interval '30 minutes';
  get diagnostics n = row_count;
  return n;
+end $$;
+
+-- The scheduled sweep: every person's stale drives, every source, each person under their own lock (taken in user id
+-- order, as the cloud claim does). A worker reports no click, so its stale drive may have sent: unknown, never retried.
+create or replace function public.career_apply_sweep_drives() returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare n timestamptz := clock_timestamp(); u uuid; total integer := 0; j public.career_apply_jobs;
+begin
+ for u in select distinct user_id from public.career_apply_jobs where state = 'driving' and claimed_at < n - interval '30 minutes' order by user_id loop
+  perform pg_advisory_xact_lock(hashtextextended(u::text, 0));
+  total := total + public.career_apply_sweep_ext(u, n);
+  for j in update public.career_apply_jobs set state = 'unknown_outcome',
+    reason = 'application outcome unknown: the drive stopped before recording it; not retried',
+    evidence = evidence || jsonb_build_object('swept_at', n), updated_at = n
+    where user_id = u and state = 'driving' and source is distinct from 'extension' and claimed_at < n - interval '30 minutes' returning * loop
+   if j.source = 'cloud' then perform public.career_apply_cloud_record(j, 'error', 'unknown_outcome', n); end if;
+   total := total + 1;
+  end loop;
+ end loop;
+ return total;
 end $$;
 
 create or replace function public.career_apply_sweep_own() returns integer
@@ -135,12 +161,15 @@ begin
  or coalesce(p_payload->>'url','') !~ '^https?://' or jsonb_typeof(p_payload->'fields') is distinct from 'array' or p_daily is null or p_daily not between 1 and 50
  or p_approval is distinct from p_hash or p_hash is distinct from encode(sha256(convert_to(public.career_apply_canonical(p_payload),'UTF8')),'hex')
  or public.career_apply_current(u,p_payload) is distinct from true then raise exception 'invalid or stale application approval'; end if;
+ -- WO-091d (review of #128): the person's own stale extension drives end first, under this lock: one that never clicked is
+ -- freed (interrupted), one that clicked stays counted (unknown). Age alone frees nothing.
+ perform public.career_apply_sweep_ext(u, clock_timestamp());
  select * into prior from public.career_apply_jobs where user_id=u and job_id=p_payload->>'job_id';
  if found then raise exception 'duplicate_job: % %', prior.state, prior.id; end if;
  co:=public.career_apply_company_key(p_payload->>'company');
- if co<>'' and exists(select from public.career_apply_jobs where user_id=u and public.career_apply_counts(state,claimed_at,n) and created_at>n-interval '30 days'
+ if co<>'' and exists(select from public.career_apply_jobs where user_id=u and public.career_apply_counts(state) and created_at>n-interval '30 days'
  and public.career_apply_company_key(company)=co) then raise exception 'company_cooldown'; end if;
- if (select count(*) from public.career_apply_jobs where user_id=u and public.career_apply_counts(state,claimed_at,n) and created_at>n-interval '1 day')>=p_daily then raise exception 'daily_cap'; end if;
+ if (select count(*) from public.career_apply_jobs where user_id=u and public.career_apply_counts(state) and created_at>n-interval '1 day')>=p_daily then raise exception 'daily_cap'; end if;
  insert into public.career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash)
  values(u,p_payload->>'job_id',p_payload->>'company',p_payload->>'url',p_payload,p_hash,p_approval) returning * into j; return j;
 end $$;
@@ -178,10 +207,12 @@ begin
  return jsonb_build_object('id', j.id, 'lease', j.lease_token, 'payload_hash', j.payload_hash, 'again', true);
 end $$;
 
-revoke all on function public.career_apply_retriable(text, jsonb), public.career_apply_counts(text, timestamptz, timestamptz),
+revoke all on function public.career_apply_retriable(text, jsonb), public.career_apply_counts(text),
  public.career_apply_sweep_ext(uuid, timestamptz) from public, anon, authenticated;
-grant execute on function public.career_apply_retriable(text, jsonb), public.career_apply_counts(text, timestamptz, timestamptz),
+grant execute on function public.career_apply_retriable(text, jsonb), public.career_apply_counts(text),
  public.career_apply_sweep_ext(uuid, timestamptz) to service_role;
+revoke all on function public.career_apply_sweep_drives() from public, anon, authenticated;
+grant execute on function public.career_apply_sweep_drives() to service_role;
 revoke all on function public.career_apply_enqueue(jsonb, text, text, integer) from public, anon, authenticated;
 grant execute on function public.career_apply_enqueue(jsonb, text, text, integer) to service_role;
 revoke all on function public.career_apply_sweep_own(), public.career_apply_clicked_own(uuid, uuid), public.career_apply_resolve_own(uuid),

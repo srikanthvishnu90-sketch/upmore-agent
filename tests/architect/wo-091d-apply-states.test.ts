@@ -9,6 +9,8 @@ import CONTENT from "../../extension/content.js" with { type: "text" };
 import PANEL from "../../extension/panel.js" with { type: "text" };
 import RUN_SH from "../db/run.sh" with { type: "text" };
 import GO_LIVE from "../../scripts/launch/trainee-go-live.sh" with { type: "text" };
+import SCHEDULE from "../../scripts/launch/schedule-career-proactive.sql" with { type: "text" };
+import MIGRATION from "../../supabase/migrations/20261023091400_career_apply_states.sql" with { type: "text" };
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -85,4 +87,8 @@ Deno.test("WO-091d wiring: the extension recovers what it was doing; the new mig
   assert(/finished-myself/.test(PANEL) && /try-again/.test(PANEL), "the card offers the person's two edges");
   assert(RUN_SH.includes("20261023091400_career_apply_states.sql") && RUN_SH.includes("career_apply_states.test.sql"), "tests/db/run.sh applies and tests it");
   assert(GO_LIVE.includes("20261023091400_career_apply_states.sql") && GO_LIVE.includes("career_apply_resolve_own"), "go-live applies it with its mark");
+  // Review of #128: every source's stale drive is swept on a schedule, by the service only; age alone never frees a drive.
+  assert(/cron\.schedule\('trainee-apply-sweep-drives', '\*\/15 \* \* \* \*', 'select public\.career_apply_sweep_drives\(\)'\)/.test(SCHEDULE), "scheduled every 15 minutes");
+  assert(/grant execute on function public\.career_apply_sweep_drives\(\) to service_role/.test(MIGRATION), "service only");
+  assert(/'queued', 'driving', 'confirmed', 'submitted_unconfirmed', 'unknown_outcome'/.test(MIGRATION), "a drive counts at any age");
 });

@@ -26,4 +26,9 @@ $job$, :'url'));
 -- so it stops counting toward the daily cap and the 30-day company rule. Pure SQL, no secret; every 15 minutes.
 select cron.unschedule('trainee-apply-sweep') where exists (select 1 from cron.job where jobname = 'trainee-apply-sweep');
 select cron.schedule('trainee-apply-sweep', '*/15 * * * *', 'select public.career_apply_sweep_stale()');
-select jobname, schedule from cron.job where jobname in ('trainee-career-proactive', 'trainee-apply-sweep');
+-- WO-091d: a drive that stopped without recording its end (a closed browser, a crashed worker) ends after its 30-minute
+-- lease: an extension drive with no click reported becomes interrupted (it stops counting and may be approved again); one
+-- that clicked, or any worker's, becomes unknown_outcome (still counted, never retried). Pure SQL, no secret; every 15 minutes.
+select cron.unschedule('trainee-apply-sweep-drives') where exists (select 1 from cron.job where jobname = 'trainee-apply-sweep-drives');
+select cron.schedule('trainee-apply-sweep-drives', '*/15 * * * *', 'select public.career_apply_sweep_drives()');
+select jobname, schedule from cron.job where jobname in ('trainee-career-proactive', 'trainee-apply-sweep', 'trainee-apply-sweep-drives');

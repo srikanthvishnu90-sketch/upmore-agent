@@ -68,10 +68,10 @@ Deno.test("WO-050/E2 dev7 (read for misses) holds the target, with no rejection 
 });
 
 Deno.test("WO-050/E3 blind240 (spent: WO-050 read its misses) holds WO-050's score, English included", () => {
-  // Branch point (WO-046): 99.4% (171/172) / 89.1% (171/192). WO-050: 99.5% (189/190) / 97.9% (188/192). A tuned number now,
+  // Branch point (WO-046): 99.4% (171/172) / 89.1% (171/192). WO-050: 99.5% (189/190) / 98.4% (189/192). A tuned number now,
   // not a blind one. WO-046/E9 keeps the blind floor.
   const r = evaluate(blind240.mails as any);
-  assert(r.status.precision >= 0.994 && r.status.recall >= 0.979, `blind240 ${JSON.stringify(r.status)}`);
+  assert(r.status.precision >= 0.994 && r.status.recall >= 0.984, `blind240 ${JSON.stringify(r.status)}`);
   eq(r.confusions.rejection_as_interview, 0, "blind240: a rejection read as an interview");
 });
 

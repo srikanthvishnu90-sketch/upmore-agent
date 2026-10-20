@@ -8088,7 +8088,7 @@ const CareerOnboarding = (() => {
     if (key === "goals") prefs.goals = raw;
     else if (key === "roles") prefs.roles = splitList(raw);
     else if (key === "locations") { prefs.locations = splitList(raw); if (/\bremote\b/i.test(raw)) prefs.remote = true; }
-    else if (key === "visa") { cons.workAuthorization = raw; cons.needsSponsorship = /require sponsorship|need sponsorship|will need sponsorship|f-1|h-1b/i.test(raw) && !/no sponsorship|never need/i.test(raw); }
+    else if (key === "visa") { cons.workAuthorization = raw; cons.needsSponsorship = /require sponsorship|need sponsorship|will need sponsorship|f-1|h-1b/i.test(raw) && !/no sponsorship|never need|(?:don'?t|do not|no longer|won'?t|will not|never|not)\s+(?:going to\s+)?(?:need|require)/i.test(raw); }
     else if (key === "comp_floor") prefs.compFloor = /^(none|no)$/i.test(raw) ? "none stated" : raw;
     else if (key === "deal_breakers") { prefs.dealBreakers = splitList(raw); profile._onboarding_deal_breakers_answered = true; }
     else if (key === "timeline") prefs.timeline = raw;
@@ -13692,7 +13692,15 @@ const CareerRouter = (() => {
       const facts = statedFactsOf(ctx);
       const firmF = facts.find((f) => f.kind === "target_firm");
       const askedUniverse = (q.firms_named && q.firms.length) || q.firms_source === "set" || (q.proposed_default && q.proposed_default.kind === "category");
-      if (firmF && !askedUniverse) {
+      const prior = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
+      const pointsBack = !!prior && /\b(?:there|that firm|same firm|same place)\b/i.test(s(text));
+      let anchored = false;
+      if (pointsBack && !askedUniverse && prior.firms_named && Array.isArray(prior.firms) && prior.firms.length === 1) {
+        q.firms = [prior.firms[0]]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
+        anchored = true;
+      }
+      if (pointsBack && !q.geography && prior.target && prior.target.geography) q.geography = prior.target.geography;
+      if (firmF && !askedUniverse && !anchored) {
         q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
       }
       const geoF = facts.find((f) => f.kind === "geography");
@@ -13702,10 +13710,6 @@ const CareerRouter = (() => {
         if (/analyst/i.test(lvlF.value)) q.seniority_band = "analyst";
         else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
         if (!q.role_phrase) q.role_phrase = lvlF.value;
-      }
-      if (!interrogativeTurn(text)) {
-        if (q.firms_named && q.firms.length === 1) recordThreadFact(ctx, "target_firm", q.firms[0], text);
-        if (q.geography) recordThreadFact(ctx, "geography", q.geography, text);
       }
     }
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
@@ -17997,11 +18001,11 @@ const CareerRouter = (() => {
     const t = lc(text);
     if (!/sponsorship|work authorization|work authorisation/.test(t)) return null;
     const statementText = s(text).split(/(?<=[.?!])\s+/).filter((sent) => !/\?\s*$/.test(sent) && !/^\s*(will|would|do|does|did|is|are|can|could|should|what|how|when)\b/i.test(sent)).join(" ");
-    const clauseM = statementText.match(/\b(i will need sponsorship[^,;.]*|i need sponsorship[^,;.]*|need sponsorship in the future[^,;.]*|i no longer need sponsorship[^,;.]*|no longer need sponsorship[^,;.]*|i (?:don'?t|do not) need sponsorship[^,;.]*)/i);
+    const clauseM = statementText.match(/\b(i (?:don'?t|do not|no longer|won'?t|will not|never) (?:need|require) (?:any |visa |work )*sponsorship[^,;.]*|i'?m not (?:going to )?(?:need|require|needing|requiring) (?:any |visa |work )*sponsorship[^,;.]*|no longer (?:need|require) sponsorship[^,;.]*|i will (?:need|require) sponsorship[^,;.]*|i (?:need|require) sponsorship[^,;.]*|(?:need|require) sponsorship in the future[^,;.]*)/i);
     const clause = clauseM ? clauseM[1].trim() : null;
     if (!clause && interrogativeTurn(text)) return null;
     const st = lc(statementText);
-    const noNeed = /no longer need|don'?t need sponsorship|do not need sponsorship|never need sponsorship|no sponsorship (needed|required)|without sponsorship/.test(st);
+    const noNeed = /no longer (?:need|require)|(?:don'?t|do not|won'?t|will not|never) (?:need|require) (?:any |visa |work )*sponsorship|i'?m not (?:going to )?(?:need|require|needing|requiring) (?:any |visa |work )*sponsorship|no sponsorship (needed|required)|without sponsorship/.test(st);
     if (noNeed) return { kind: "no_longer_needed", needsSponsorship: false, clause: clause || "No longer needs sponsorship" };
     const futureNeed = /will need sponsorship|need sponsorship|require sponsorship|needs sponsorship/.test(st);
     if (futureNeed) return { kind: "future_need", needsSponsorship: true, clause: clause || "Will need sponsorship in the future" };
@@ -19018,7 +19022,7 @@ const CareerRouter = (() => {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;
     }
-    if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
+    if (/\b(find|get|email|reach|build|list|draft|source|gather|network|line up)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
@@ -19471,7 +19475,7 @@ const CareerRouter = (() => {
   }
 
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role"]);
+  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship"]);
   function recordKeyedFact(ctx, kind, key, value, evidence) {
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
@@ -19514,11 +19518,50 @@ const CareerRouter = (() => {
   function factClausesOf(text) {
     return unquotedText(text).split(/(?<=[.!?])\s+|[,;]\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean);
   }
-  function clauseIsAssertion(cl) {
+  function clauseIsNotQuestion(cl) {
     const l = lc(cl);
     if (/\?\s*$/.test(cl)) return false;
     if (/^(what|why|how|when|who|whom|which|should|would|could|can|will|do|does|did|is|are|am|was|were|if|suppose|let's say|say i|imagine)\b/.test(l)) return false;
     return true;
+  }
+  const REQUEST_VERBS = "find|show|get|give|help|build|email|e-?mail|draft|apply|list|search|send|network|tailor|write|pull|look|line up|reach out|connect|introduce|message|dm|text|contact|ping|compile|gather|source|scrape|locate|identify|map|prep|prepare|track|watch|queue|schedule|book|create|generate|research|scout|recommend|suggest|rank|compare|sort|filter|start|plan|grab|fetch|bring|run|check|review|rewrite|edit|polish|fix|tell|explain|teach|walk|outline|summari[sz]e|set up|sign|submit|fill|reply|respond|follow up|cold email|target|focus|hunt|pick|choose|narrow|expand|add|save|remind|keep|go|do|try|use|make me|turn";
+  const REQUEST_LEAD_RE = new RegExp(`^(?:${REQUEST_VERBS})\\b`, "i");
+  const GOAL_VERB = "(?:network\\s+into|break\\s+into|get\\s+into|work\\s+at)\\b";
+  const ASK_FRAME_RE = new RegExp(`^(?:(?:i|we)\\s+(?:want|need|would like|'?d like|wanna)\\s+(?:you\\s+to|to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS}))\\b|i'?d\\s+like\\s+(?:you\\s+to|to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS}))\\b|(?:let'?s|lets|lemme|let me)\\b|(?:please|pls|plz|kindly)\\b|(?:i|we)\\s+(?:want|need)\\s+\\d+\\b|(?:i'?m|i am|im)\\s+(?:looking|trying|hoping)\\s+to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS})\\b)`, "i");
+  const FILLER_RE = /^(?:(?:ok(?:ay)?|so|and|also|then|now|hey|hi|hello|yo|great|cool|nice|thanks|thank you|thx|alright|all right|right|well|ah|oh|um|uh|btw|fyi|quick note|one more thing|next|first|next up|for the record|just so you know|heads up|note|noted)\b[\s,:;!.\-—–]*)+/i;
+  const MEMORY_WRAP_RE = /^(?:(?:please|pls|plz|kindly)\s+)?(?:remember|note|save|record|add|keep in mind|log|store|let me tell you(?:\s+(?:a\s+bit\s+)?about\s+(?:me|myself))?|for context|(?:a\s+bit\s+|some\s+)?about me)(?:\s+(?:that|this))?\s*(?::|—|–|-)?\s*(?=(?:i|i'm|i'?ve|im|my|we|we're)\b)/i;
+  function stripLead(cl) {
+    let x = s(cl).trim();
+    for (let i = 0; i < 4; i++) {
+      const y = x.replace(FILLER_RE, "").replace(MEMORY_WRAP_RE, "").trim();
+      if (y === x) break;
+      x = y;
+    }
+    return x;
+  }
+  function clauseIsRequest(cl) {
+    const x = stripLead(cl);
+    if (!x) return false;
+    return REQUEST_LEAD_RE.test(x) || ASK_FRAME_RE.test(x);
+  }
+  const firstPersonLead = (cl) => /^(?:(?:and|but|also|plus)\s+)?(?:i|i'm|i'?ve|i'?ll|im|my|me)\b/i.test(stripLead(cl));
+  function clauseIsAssertion(cl) {
+    if (!clauseIsNotQuestion(cl)) return false;
+    if (!clauseIsNotQuestion(stripLead(cl))) return false;
+    if (clauseIsRequest(cl)) return false;
+    return true;
+  }
+  function gatedFactClausesOf(text) {
+    const out = [];
+    for (const sent of unquotedText(text).split(/(?<=[.!?])\s+|;\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean)) {
+      const parts = sent.split(/,\s*/).map((x) => x.trim()).filter(Boolean);
+      const requestSentence = parts.length && clauseIsRequest(parts[0]);
+      for (let i = 0; i < parts.length; i++) {
+        if (requestSentence && i > 0 && !firstPersonLead(parts[i])) continue;
+        out.push(parts[i]);
+      }
+    }
+    return out;
   }
   const _cleanFactVal = (v) => s(v).replace(/\b(btw|though|now|mostly|please|thx|thanks)\b.*$/i, "").replace(/[\s,;.]+$/, "").trim();
   const _spanIsFragment = (v) => {
@@ -19584,6 +19627,85 @@ const CareerRouter = (() => {
         }
       }
     }
+    if (!ctx._geoCorrectionThisTurn && !ctx._firmCorrectionThisTurn) {
+      const u = unquotedText(raw);
+      const prevTurn = ctx.statedFacts && ctx.statedFacts.lastTurn && typeof ctx.statedFacts.lastTurn === "object" ? ctx.statedFacts.lastTurn : null;
+      const isCity = (v) => FACT_CITIES.find((ct) => lc(ct) === lc(s(v).trim())) || null;
+      const STOP = /^(?:i|it|its|it's|that|this|the|a|an|but|and|or|me|my|you|to|so|just|not|no|yes|yeah|ok|okay|sorry|actually|instead)$/i;
+      const sentenceAt = (idx) => {
+        const before = u.slice(0, idx);
+        const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf(";")) + 1;
+        const endM = u.slice(idx).match(/[.!?;]/);
+        return u.slice(start, endM ? idx + endM.index + 1 : u.length).trim();
+      };
+      const correctionSpeech = (idx) => {
+        const sent = sentenceAt(idx);
+        if (!clauseIsNotQuestion(sent) || !clauseIsNotQuestion(stripLead(sent))) return false;
+        const x = stripLead(sent).replace(/^(?:please|pls|plz|kindly)\s+/i, "");
+        return /^(?:change|update|switch|set|correct)\s+my\b/i.test(x) || !clauseIsRequest(sent);
+      };
+      const valueFor = (kind, v0) => {
+        const v = s(v0).replace(/\b(?:now|instead|then|please|thanks|thx|btw)\b.*$/i, "").replace(/[\s,;.!?]+$/, "").trim();
+        if (!v || STOP.test(v) || v.length > 60) return null;
+        if (kind === "geography") return isCity(v) || (/^[A-Z][A-Za-z.]+(?:\s[A-Z][A-Za-z.]+){0,2}$/.test(v) ? v : null);
+        if (kind === "target_firm" || kind === "school") return /^[A-Z][A-Za-z0-9&.]*(?:\s+[A-Z(][A-Za-z0-9&.)]*){0,4}$/.test(v) && !isCity(v) ? v : null;
+        if (kind === "majors") return /^[a-z][a-z &]{1,40}$/i.test(v) && !_spanIsFragment(v) && !isCity(v) ? lc(v) : null;
+        if (kind === "year") { const y = lc(v).match(/^(?:a\s+)?(freshman|sophomore|junior|senior|grad student|graduate student)$/); return y ? y[1] : null; }
+        if (kind === "target_role") return /^[A-Za-z][A-Za-z /&-]{2,40}$/.test(v) ? v : null;
+        return null;
+      };
+      const KIND_WORDS = [
+        [/^(?:target\s+(?:firm|company|bank|shop|employer)|top\s+target|target|firm)$/i, "target_firm"],
+        [/^(?:city|location|geography|home\s+city|home\s+base|base|home)$/i, "geography"],
+        [/^(?:majors?|field(?:\s+of\s+study)?|concentration)$/i, "majors"],
+        [/^(?:school|university|college)$/i, "school"],
+        [/^(?:year|class\s+year|class)$/i, "year"],
+        [/^(?:target\s+role|dream\s+role|role)$/i, "target_role"],
+      ];
+      const kindOfWord = (w) => { const hit = KIND_WORDS.find(([re]) => re.test(s(w).trim())); return hit ? hit[1] : null; };
+      const current = (kind) => statedFactsOf(ctx).find((f) => f.kind === kind) || null;
+      const applyCorrection = (kind, to, ev) => {
+        const cur = current(kind);
+        if (!to || (cur && lc(cur.value) === lc(to))) return false;
+        const from = cur ? cur.value : null;
+        push(kind, to, ev);
+        if (kind === "geography" && from) ctx._geoCorrectionThisTurn = { from, to };
+        if (kind === "target_firm" && from) ctx._firmCorrectionThisTurn = { from, to };
+        return true;
+      };
+      let done = false;
+      const named = u.match(/\b(?:change|update|switch|set|correct)\s+my\s+([a-z][a-z ]{1,24}?)\s+to\s+([^.!?;,]{2,60})/i)
+        || u.match(/\bmy\s+([a-z][a-z ]{1,24}?)\s+is\s+actually\s+([^.!?;,]{2,60})/i)
+        || u.match(/\bactually,?\s+my\s+([a-z][a-z ]{1,24}?)\s+is\s+([^.!?;,]{2,60})/i);
+      if (named && correctionSpeech(named.index)) {
+        const kind = kindOfWord(named[1]);
+        const to = kind ? valueFor(kind, named[2]) : null;
+        if (to) done = applyCorrection(kind, to, named[0]);
+      }
+      if (!done) {
+        for (const f of statedFactsOf(ctx)) {
+          if (!FACT_SINGLE_KINDS.has(f.kind) || f.key) continue;
+          const esc = s(f.value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const NEW = f.kind === "majors" ? "([a-z][a-z &]{1,40}?)" : "([A-Za-z][A-Za-z0-9&.]*(?:\\s+[A-Z][A-Za-z0-9&.]*){0,2})";
+          const a = u.match(new RegExp(`\\bnot\\s+${esc}\\s*(?:,|;|—|–|-)\\s*(?:but\\s+|i\\s+meant\\s+|i\\s+mean\\s+|it'?s\\s+|rather\\s+)?${NEW}(?=\\s*(?:[.!?;,—–]|$|\\s+(?:instead|now)\\b))`, "i"));
+          const b = a ? null : u.match(new RegExp(`${NEW}\\s*,?\\s+not\\s+${esc}\\b`, "i"));
+          const mm = a || b;
+          if (!mm || !correctionSpeech(mm.index)) continue;
+          let cand = mm[1];
+          if (b) cand = cand.replace(/^(?:(?:actually|sorry|no|oops|wait|i meant|i mean|it'?s|make it|meant|correction)\b[\s,:]*)+/i, "").replace(/^(?:i\s+(?:study|live in|go to)|(?:i'?m|i am|im)\s+(?:studying|majoring in|based in|in|at|a)|studying|majoring in|my\s+[a-z ]+?\s+(?:is|are))\s+/i, "");
+          const to = valueFor(f.kind, cand);
+          if (to && applyCorrection(f.kind, to, mm[0])) { done = true; break; }
+        }
+      }
+      if (!done && prevTurn && Array.isArray(prevTurn.kinds) && prevTurn.kinds.length) {
+        const mm = u.match(/\bi\s+mean[t]?\s+(?:to\s+say\s+)?([^.!?;,—–]{2,60})/i);
+        if (mm && !/^to\s+(?!say\b)/i.test(mm[1]) && correctionSpeech(mm.index)) {
+          const v = mm[1].replace(/\s+not\s+.*$/i, "");
+          const fits = prevTurn.kinds.filter((k) => FACT_SINGLE_KINDS.has(k) && current(k) && valueFor(k, v));
+          if (fits.length === 1) done = applyCorrection(fits[0], valueFor(fits[0], v), mm[0]);
+        }
+      }
+    }
     {
       const u = unquotedText(raw);
       const pushKeyed = (kind, key, value, clause) => {
@@ -19597,7 +19719,16 @@ const CareerRouter = (() => {
         const end = endM ? idx + endM.index : u.length;
         return u.slice(start, end).trim();
       };
-      const asserted = (idx) => clauseIsAssertion(segOf(idx));
+      const asserted = (idx) => {
+        const seg = segOf(idx);
+        if (clauseIsAssertion(seg)) return true;
+        if (!clauseIsNotQuestion(seg) || !clauseIsRequest(seg)) return false;
+        const before = u.slice(0, idx);
+        const start = Math.max(before.lastIndexOf(","), before.lastIndexOf(";"), before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf("—"), before.lastIndexOf("–")) + 1;
+        const endM = u.slice(idx).match(/[,;.!?—–]/);
+        const sub = u.slice(start, endM ? idx + endM.index : u.length).trim();
+        return firstPersonLead(sub) && clauseIsAssertion(sub);
+      };
       const CO = "([A-Z][A-Za-z0-9&.]+(?:\\s+[A-Z][A-Za-z0-9&.]+){0,2})";
       const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})";
       const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
@@ -19652,7 +19783,7 @@ const CareerRouter = (() => {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
       }
     }
-    for (const cl of factClausesOf(raw)) {
+    for (const cl of gatedFactClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
       if (/^\s*(?:my|the|his|her|their)\s+(roommate|friend|friends|brother|sister|classmate|coworker|co-worker|colleague|cousin|partner|boyfriend|girlfriend|wife|husband|mom|dad|mother|father|teammate|mentor|professor|boss|manager|uncle|aunt|nephew|niece|son|daughter)\b/i.test(cl)) continue;
       if (/^\s*(?:he|she|they)\s+(?:is|was|are|were|studies|studied|works|worked|goes|went|interned|majors|majored)\b/i.test(cl)) continue;
@@ -19681,11 +19812,18 @@ const CareerRouter = (() => {
           if (ownLocation) push("geography", cm[1], cm[0]);
         }
       }
-      if ((m = cl.match(/\btargeting\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
+      const goal = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?[Ii]\s*(?:'m|'d|\s+am|\s+would|\s+really)?\s*(?:want|wanna|like|need|hope|plan|aim|trying|hoping|planning|aiming)\s+to\s+(?:network\s+into|break\s+into|get\s+into|work\s+at)\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+in\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?))?/);
+      if (goal) {
+        const firm = goal[1].trim();
+        if (!FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, goal[0]);
+        const city = goal[2] && FACT_CITIES.find((ct) => lc(ct) === lc(goal[2]));
+        if (city) push("geography", city, goal[0]);
+      }
+      else if ((m = cl.match(/\btargeting\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
       else if ((m = cl.match(/\bnetwork into\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
       else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/)) && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("target_firm", m[1], m[0]);
-      else if ((m = cl.match(/\bmy\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
-      else if ((m = cl.match(/\bmy\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/\b(analysts|associates|interns|bankers)\s+only\b/i))) push("level", m[1].toLowerCase(), m[0]);
@@ -19697,6 +19835,12 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/\bi\s+(?:interned|worked)\s+at\s+(.+?)(?:\s+last\s+(?:summer|year)\b|\s+doing\s+(.+?)|[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
       else if ((m = cl.match(/\bi\s+worked\s+(?:a|an|the)\s+([a-z][a-z ]{1,36}?\b(?:job|role|gig|position|shift)\b)/i))) push("experience", m[1].trim(), m[0]);
       if ((m = cl.match(/\bmake the tone\s+(casual|formal|warmer)\b/i)) || (m = cl.match(/\btone\s+(casual|formal|warmer)\s+from here\b/i))) push("tone", m[1].toLowerCase(), m[0]);
+      if ((m = cl.match(/\b(?:i|we)\s+(?:do\s+not|don'?t|dont|no\s+longer|won'?t|will\s+not|never|shouldn'?t|should\s+not)\s+(?:(?:ever|actually|really)\s+)?(?:need|require)\s+(?:any\s+|visa\s+|work\s+|employer\s+)*sponsorship\b/i))
+        || (m = cl.match(/\b(?:i'?m|i am|im)\s+not\s+(?:going\s+to\s+)?(?:need|require|needing|requiring)\s+(?:any\s+|visa\s+|work\s+)*sponsorship\b/i))
+        || (m = cl.match(/\bno\s+(?:visa\s+)?sponsorship\s+(?:is\s+)?(?:needed|required)\b|\b(?:i|we)\s+(?:do\s+not|don'?t)\s+need\s+(?:a\s+)?visa\b/i))) push("sponsorship", "does not need sponsorship", m[0]);
+      else if ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i))) push("sponsorship", "needs sponsorship", m[0]);
+      if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:not|no\s+longer)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "not a US citizen", m[0]);
+      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
     }
     {
       const rec = {};
@@ -19713,7 +19857,7 @@ const CareerRouter = (() => {
       if (rawEmph !== s(raw)) for (const cl2 of factClausesOf(rawEmph)) if (!offerClauses.includes(cl2)) offerClauses.push(cl2);
       let sawOfferEvent = false;
       for (const cl of offerClauses) {
-        if (!clauseIsAssertion(cl)) continue;
+        if (!clauseIsNotQuestion(cl)) continue;
         if (/\bgot an offer\b|\bgot the offer\b|\boffered me\b|\boffer came\b|\boffer'?s here\b|\bi have an offer\b|\breceived an offer\b/i.test(cl)) sawOfferEvent = true;
         let m;
         const cln = typoNorm(cl);
@@ -19776,6 +19920,7 @@ const CareerRouter = (() => {
         }
       }
     }
+    if (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ctx.statedFacts.lastTurn = { at: new Date(nowOf(ctx)).toISOString(), kinds: [...new Set(added.map((a) => a.kind))] };
     if (added.length) ctx._factsAddedThisTurn = added;
     else delete ctx._factsAddedThisTurn;
     if (restated.length) ctx._factsRestatedThisTurn = restated;
@@ -19784,18 +19929,19 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen" }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);
     if (!facts.length) return null;
     const geo = facts.find((f) => f.kind === "geography");
     const firm = facts.find((f) => f.kind === "target_firm");
+    const spons = facts.find((f) => f.kind === "sponsorship");
     return {
       _fromStatedFacts: true,
       basics: { name: null, email: null, phone: null, location: geo ? geo.value : null, links: {} },
       preferences: { roles: [], industries: [], locations: geo ? [geo.value] : [], remote: null, companySize: null, compFloor: null, dealBreakers: [], targetCompanies: firm ? [firm.value] : [], excludedCompanies: [] },
-      constraints: { graduationDate: null, startDate: null, workAuthorization: null, needsSponsorship: null, relocation: null, securityClearance: null },
+      constraints: { graduationDate: null, startDate: null, workAuthorization: spons ? spons.evidence || null : null, needsSponsorship: spons ? spons.value === "needs sponsorship" : null, relocation: null, securityClearance: null },
       defaults: {},
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],

@@ -15,7 +15,8 @@
 // State lives in .simulator/state.json (gitignored) so a session resumes; --fresh starts over.
 import { handleInbound, memoryStore, type Brain, type Attachment, type MemoryState } from "../supabase/functions/_shared/conversation.ts";
 import { memoryChannel } from "../supabase/functions/_shared/channel.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../supabase/functions/_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerJobs } from "../supabase/functions/_shared/router_core.career.js";
+import { CareerPool } from "../supabase/functions/_shared/career_pool.js";
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
 import { callModel, modelConfig, newMeter } from "../supabase/functions/_shared/model_gateway.ts";
@@ -59,14 +60,44 @@ if (postingsFile) {
 }
 
 const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
-function turnCtx(userId: string, stores: Record<string, unknown>) {
-  return host.createTurnCtx({ userId, threadId: userId, now, snapshot: (stores.snapshot as any) ?? null });
+// The router's discovery pool, loaded per turn the way agent-chat loads it (handler-career.ts: CareerPool's KB loader,
+// then the named-company supplement), but over the simulator's postings, each given the KB row shape the loader maps.
+// Without it the router's searches always answered "the current list is empty", whatever /post or --postings held.
+const kbRow = (p: Posting) => ({ posting_key: p.job_id, title: p.title, company: p.company, location: p.location ?? "", url: p.url ?? "",
+  text_excerpt: String(p.description ?? "").slice(0, 4000), source: p.provider, posted_at: p.posted_at ?? p.first_seen_at, board: p.board,
+  fetched_on: String(p.last_seen_at ?? p.first_seen_at ?? "").slice(0, 10) || null, corpus_vintage: null });
+const pool = CareerPool.createKbPoolLoader({
+  readRows: async (spec: any) => {
+    let rows = (await jobs.open()).map(kbRow);
+    for (const f of spec.filters ?? []) {
+      const v = String(f.value).toLowerCase();
+      rows = rows.filter((r: any) => {
+        const x = String(r[f.column] ?? "").toLowerCase();
+        return f.op === "eq" ? x === v : f.op === "ilike" ? x.includes(v.replace(/^%|%$/g, "")) : true;
+      });
+    }
+    return rows.slice(0, spec.limit);
+  },
+  jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
+});
+async function routerPostings(message: string) {
+  let postings: any[] = (await pool.loadPool()).postings;
+  const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
+  if (target && target.company && typeof (pool as any).loadTargeted === "function") {
+    const extra = await (pool as any).loadTargeted(target);
+    const seen = new Set(postings.map((p: any) => p.job_id));
+    postings = postings.concat((extra.postings ?? []).filter((p: any) => !seen.has(p.job_id)));
+  }
+  return postings;
+}
+function turnCtx(userId: string, stores: Record<string, unknown>, postings?: any[]) {
+  return host.createTurnCtx({ userId, threadId: userId, now, snapshot: (stores.snapshot as any) ?? null, ...(postings ? { postings } : {}) });
 }
 function withFiles(message: string, files: { name: string; mime: string; text: string | null }[]) {
   return [message, ...files.map((f) => f.text !== null ? `[Attached file: ${f.name}]\n${f.text}` : `[Attached file: ${f.name} (${f.mime}) — this file type can't be read yet]`)].join("\n\n");
 }
 const routerBrain: Brain = async (a) => {
-  const ctx = turnCtx(a.userId, a.stores);
+  const ctx = turnCtx(a.userId, a.stores, await routerPostings(a.message));
   const out = host.runTurn(withFiles(a.message, a.attachments), ctx);
   return { reply: out.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
 };

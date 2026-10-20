@@ -27,11 +27,15 @@
    resume JSON renders byte-identical files (§10.5 snapshot proof).
    Pure: resume object / buffers in, results out. UMD like the others. */
 const CareerRender = (() => {
-  const zlib = typeof require !== "undefined" ? (() => { try { return require("zlib"); } catch { return null; } })() : null;
-  const crypto = typeof require !== "undefined" ? (() => { try { return require("node:crypto"); } catch { return null; } })() : null;
-  const cp = typeof require !== "undefined" ? (() => { try { return require("node:child_process"); } catch { return null; } })() : null;
-  const fs = typeof require !== "undefined" ? (() => { try { return require("node:fs"); } catch { return null; } })() : null;
-  const os = typeof require !== "undefined" ? (() => { try { return require("node:os"); } catch { return null; } })() : null;
+  // WO-028: the runtime is injectable. Node loads zlib/crypto/Buffer with require; a host without CommonJS require (the
+  // Deno edge bundle) gets none of them, so its default instance refuses to render ("zlib is unavailable in this
+  // runtime"). CareerRender.withRuntime({ zlib, crypto, Buffer }) returns an instance over the host's own node:
+  // built-ins, with the same code path and the same bytes.
+  const nodeReq = (m) => (typeof require !== "undefined" ? (() => { try { return require(m); } catch { return null; } })() : null);
+  const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
+  function make(rt) {
+  const { zlib, crypto, cp, fs, os } = rt;
+  const Buffer = rt.Buffer;
 
   const PDF_CONTENT_TYPE = "application/pdf";
   const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -681,6 +685,9 @@ const CareerRender = (() => {
     return { format, filename: rendered.filename, contentType: rendered.contentType, bytes: rendered.buffer.length, sha256: sha256(rendered.buffer), base64: rendered.buffer.toString("base64") };
   }
 
-  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST };
+  const runtime = { zlib: !!zlib, crypto: !!crypto, Buffer: !!Buffer };
+  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => (Buffer ? Buffer.from(bytes) : null), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
+  }
+  return make(NODE_RUNTIME);
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRender;

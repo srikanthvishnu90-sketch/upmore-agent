@@ -68,6 +68,7 @@ MIGRATIONS=(
   20261020110000_career_connector.sql
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
+  20261020130000_career_resume_tailoring.sql
   20261021050000_career_brief_digest.sql
 )
 MIGRATION_MARK=(
@@ -87,6 +88,7 @@ MIGRATION_MARK=(
   "to_regclass('public.connector_intros') is not null"
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

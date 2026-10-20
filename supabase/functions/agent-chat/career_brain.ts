@@ -1,7 +1,7 @@
 // Which brain answers a career turn (WO-002, D-008): the CareerHost router unless CAREER_BRAIN=agent, and the agent turn
 // itself (model + tools over the person's career state).
 import { runAgentTurn, type ModelFn, type TurnResult } from "../_shared/agent/loop.ts";
-import { careerTools } from "../_shared/agent/career_tools.ts";
+import { careerTools, type TailorTools } from "../_shared/agent/career_tools.ts";
 import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
 import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
 import { styleBlock } from "../_shared/agent/style.ts";
@@ -67,13 +67,15 @@ export function agentTurn(o: {
   // WO-034: a pasted invite is kept here (brief_from_invite), and the weekly digest's settings (set_weekly_digest).
   interviews?: InterviewStore | null;
   digest?: DigestStore | null;
+  // WO-028: the posting by id, personas, the private resume store and the PDF renderer.
+  tailor?: TailorTools | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   return runAgentTurn({
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, tailor: o.tailor ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

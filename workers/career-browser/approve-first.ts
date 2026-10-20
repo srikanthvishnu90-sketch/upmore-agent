@@ -41,6 +41,30 @@ const OUTCOMES = new Set([
   "unknown_outcome",
 ]);
 
+// WO-028: a resume Trainee tailored for this posting (tailor_resume) is said as such on the card, with the persona it
+// used, and tagged on the payload so the queue counts tailored and untailored applications apart. The database keeps the
+// tag only when that exact file is one Trainee stored for this person (career-resumes/<user_id>/<sha256>.pdf).
+export interface ResumeTag {
+  tailored: true;
+  persona: string | null;
+}
+export function resumeCardLine(filename: string, sha256: string, tag?: ResumeTag | null): string {
+  return tag?.tailored
+    ? `Resume: ${tag.persona ?? "your base resume"}, tailored for this role (${sha256.slice(0, 12)})`
+    : `Resume: ${filename} (${sha256.slice(0, 12)})`;
+}
+// "--tailored-resume <persona|base>" on the command line; the rest goes to the engine.
+export function takeResumeTag(args: string[]): { tag: ResumeTag | null; rest: string[] } {
+  const i = args.indexOf("--tailored-resume");
+  if (i < 0) return { tag: null, rest: args };
+  const v = String(args[i + 1] ?? "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9 -]{0,23}$/.test(v)) throw Error("--tailored-resume needs a persona name or 'base'");
+  return {
+    tag: { tailored: true, persona: v === "base" ? null : v },
+    rest: [...args.slice(0, i), ...args.slice(i + 2)],
+  };
+}
+
 export async function prepare(o: {
   url: string;
   factsPath: string;
@@ -49,6 +73,7 @@ export async function prepare(o: {
   now: number;
   ttlHours?: number;
   runEngine: RunEngine;
+  resumeTag?: ResumeTag | null;
 }) {
   const run = await o.runEngine(["--url", o.url, "--facts", o.factsPath, "--resume", o.resumePath]);
   if (!run || run.result.reason !== "dry_run" || !run.evidence?.approval_hash) {
@@ -70,6 +95,9 @@ export async function prepare(o: {
     privacy_epoch: o.account.epoch,
     account_version: o.account.version,
     expires_at: new Date(o.now + (o.ttlHours ?? 24) * 3600_000).toISOString(),
+    ...(o.resumeTag?.tailored
+      ? { resume_tailored: true, ...(o.resumeTag.persona ? { resume_persona: o.resumeTag.persona } : {}) }
+      : {}),
   };
   // What the person reads before the yes: every answer as the form itself shows it (the engine's readback, so a select
   // reads "Yes", never its internal value "1"), the resume once by name, and where it goes. Nothing on the card that the
@@ -81,7 +109,7 @@ export async function prepare(o: {
   const card = [
     payload.company,
     ...fields.filter((f: any) => f.value !== payload.resume_sha256).map((f: any) => `${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${f.label}: ${shown(f)}`),
-    `Resume: ${ev.payload.resume.filename} (${payload.resume_sha256.slice(0, 12)})`,
+    resumeCardLine(ev.payload.resume.filename, payload.resume_sha256, o.resumeTag),
     ...(payload.page_field_names.length
       ? [`Also sent, set by the employer's page, unchanged: ${payload.page_field_names.join(", ")}`]
       : []),
@@ -462,12 +490,14 @@ export function jwtRole(token: string): string | null {
 
 // Command line, for the owner's own machine (the first cohort): prepare one posting, or run one approved payload.
 //   deno run -A workers/career-browser/approve-first.ts prepare <url> <facts.json> <resume.pdf> <epoch> <version>
+//     [--tailored-resume <persona|base>]   (the resume is one tailor_resume made for this posting)
 //   deno run -A workers/career-browser/approve-first.ts run-one <payload.json> <resume.pdf> [engine args...]
 if (import.meta.main) {
   const [cmd, ...rest] = Deno.args;
   const root = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
   if (cmd === "prepare") {
-    const [url, facts, resume, epoch, version, ...extra] = rest;
+    const [url, facts, resume, epoch, version, ...more] = rest;
+    const { tag, rest: extra } = takeResumeTag(more);
     const r = await prepare({
       url,
       factsPath: facts,
@@ -475,6 +505,7 @@ if (import.meta.main) {
       account: { epoch: Number(epoch), version: Number(version) },
       now: Date.now(),
       runEngine: engineRunner({ root, extra }),
+      resumeTag: tag,
     });
     console.log("PREPARED " + JSON.stringify(r));
   } else if (cmd === "run-one") {
@@ -529,9 +560,12 @@ if (import.meta.main) {
     // person. Each ready application is stored for its card (career_apply_prepare_own: the database computes its hash and
     // checks it is theirs, for their current account); a posting with open questions is listed with them. Nothing is
     // sent: the card in their thread and their one text decide.
-    const [urlsFile, facts, resume, ...extra] = rest;
+    const [urlsFile, facts, resume, ...more] = rest;
+    const { tag, rest: extra } = takeResumeTag(more);
     if (!urlsFile || !facts || !resume) {
-      console.error("usage: approve-first.ts prepare-batch <urls.txt> <facts.json> <resume.pdf> [engine args]");
+      console.error(
+        "usage: approve-first.ts prepare-batch <urls.txt> <facts.json> <resume.pdf> [--tailored-resume <persona|base>] [engine args]",
+      );
       Deno.exit(2);
     }
     const urls = [
@@ -573,6 +607,7 @@ if (import.meta.main) {
           account: { epoch: Number(acct.data.epoch), version: Number(acct.data.version) },
           now: Date.now(),
           runEngine: engineRunner({ root, extra }),
+          resumeTag: tag,
         });
         if (!r.ready) {
           const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";

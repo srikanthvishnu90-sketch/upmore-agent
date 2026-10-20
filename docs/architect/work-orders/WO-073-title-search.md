@@ -46,6 +46,15 @@ cluster):
 - it does not return "Lead Technical Recruiter", whose description says "hire product managers";
 - "nurse:A" returns "Nursing Lead".
 
+## What else moved
+- The persona coverage measure (`evals/career/coverage-personas.ts`, WO-017) counts what `search_jobs` offers, so its
+  `open` count changes too:
+  - while any title matches, description-only matches are no longer counted;
+  - `tests/edge/career-coverage-personas.test.ts` now expects 2, where it expected 3;
+  - coverage numbers recorded before WO-073 counted them; those records stay as written.
+- Verification note: the first push failed CI's edge tests. My local edge run had read another worktree, not this
+  branch. The edge suite was re-run here: 129 of 129 pass.
+
 ## Demo (owner)
 In chat: "apply me to 10 product manager jobs". Every queued posting's title names a product manager role. The reply's
 search result carries `title_matches`.

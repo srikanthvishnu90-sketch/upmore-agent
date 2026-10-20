@@ -11,7 +11,9 @@ Deno.test("a persona counts only postings in its place; title matches and the la
   const p = PERSONAS.find((x) => x.id === "P02")!; // data analyst in New York
   const pool = [job("Data Analyst", "New York, NY", 2), job("Senior Data Analyst", "Brooklyn, NY", 30), job("Data Analyst", "Austin, TX", 1),
     job("Engineer", "New York, NY", 1, "work with our data analyst team")];
-  assertEquals(countFor(pool, p, NOW), { open: 3, title_match: 2, new_7d: 1 });
+  // WO-073: open is what search_jobs offers. While titles match, an engineer whose description mentions a data analyst
+  // team is not offered (it was counted, 3, before WO-073).
+  assertEquals(countFor(pool, p, NOW), { open: 2, title_match: 2, new_7d: 1 });
 });
 
 Deno.test("the US persona reads 'City, ST', a country name or remote, and not a foreign country code in lower case", () => {

@@ -751,12 +751,13 @@ export function splitResumeKey(text: string): { lines: string[]; resumeKey: stri
   return { lines: all, resumeKey: null };
 }
 // The archived URLs that can name a board's own page: one path segment on the path providers; the host's root or one
-// segment on the subdomain providers; [locale/]site on Workday. A query string is allowed (tracking parameters).
+// segment on the subdomain providers; [locale/]site on Workday. No query string: in smoke run 39377124463 the variants
+// with one (?gh_jid=, ?lever-source=) filled the pages, about 90 lines per board.
 export function waybackRootPattern(q: { provider: Provider; url: string; matchType: string }): string {
   const host = q.url.replace(/\/$/, "").replace(/\./g, "\\.");
-  if (q.provider === "workday") return `https?://[^/]+\\.${host}(:\\d+)?/([a-zA-Z]{2}-[a-zA-Z]{2}/)?[^/?#]+/?(\\?.*)?`;
-  if (q.matchType === "domain") return `https?://[^/]+\\.${host}(:\\d+)?(/[^/?#]*)?/?(\\?.*)?`;
-  return `https?://${host}(:\\d+)?/[^/?#]+/?(\\?.*)?`;
+  if (q.provider === "workday") return `https?://[^/]+\\.${host}(:\\d+)?/([a-zA-Z]{2}-[a-zA-Z]{2}/)?[^/?#]+/?`;
+  if (q.matchType === "domain") return `https?://[^/]+\\.${host}(:\\d+)?(/[^/?#]*)?/?`;
+  return `https?://${host}(:\\d+)?/[^/?#]+/?`;
 }
 
 // ------------------------------------------------------------------------------------------------ Hacker News

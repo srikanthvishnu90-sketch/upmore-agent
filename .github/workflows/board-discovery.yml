@@ -10,13 +10,13 @@ name: board-discovery
 on:
   workflow_dispatch:
     inputs:
-      gather_minutes: { description: "Budget for gathering candidates (minutes)", default: "90" }
+      gather_minutes: { description: "Budget for gathering candidates (minutes)", default: "150" }
       max_minutes: { description: "Budget per provider's verify job (minutes)", default: "270" }
       cc_crawls: { description: "Known Common Crawl crawls (newer weekly ones are found with a HEAD)", default: "CC-MAIN-2026-39,CC-MAIN-2026-34" }
       crawls: { description: "Latest Common Crawl crawls to read", default: "2" }
       cc_blocks: { description: "Common Crawl index blocks read per provider prefix per crawl", default: "1500" }
       domains_limit: { description: "Top domains turned into slug guesses (0 = none)", default: "3000" }
-      wb_pages: { description: "Wayback Machine CDX pages read per query", default: "60" }
+      wb_pages: { description: "Wayback Machine CDX pages read per query (the gather budget ends it first)", default: "400" }
       hn_pages: { description: "Hacker News search pages (1,000 comments each) per query", default: "40" }
       providers: { description: "Providers to verify (comma list, or all)", default: "all" }
       resume_branch: { description: "A discovery/ branch whose dead verdicts need no new probe (empty = probe all)", default: "" }
@@ -35,15 +35,15 @@ env:
 jobs:
   gather:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 210
     env:
-      GATHER_MINUTES: ${{ inputs.gather_minutes || '20' }}
+      GATHER_MINUTES: ${{ inputs.gather_minutes || '150' }}
       CC_CRAWLS: ${{ inputs.cc_crawls || 'CC-MAIN-2026-39,CC-MAIN-2026-34' }}
-      CRAWLS: ${{ inputs.crawls || '1' }}
-      CC_BLOCKS: ${{ inputs.cc_blocks || '15' }}
-      DOMAINS_LIMIT: ${{ inputs.domains_limit || '40' }}
-      WB_PAGES: ${{ inputs.wb_pages || '2' }}
-      HN_PAGES: ${{ inputs.hn_pages || '2' }}
+      CRAWLS: ${{ inputs.crawls || '2' }}
+      CC_BLOCKS: ${{ inputs.cc_blocks || '1500' }}
+      DOMAINS_LIMIT: ${{ inputs.domains_limit || '3000' }}
+      WB_PAGES: ${{ inputs.wb_pages || '400' }}
+      HN_PAGES: ${{ inputs.hn_pages || '40' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -77,7 +77,7 @@ jobs:
     env:
       PROVIDER: ${{ matrix.provider }}
       PROVIDERS: ${{ inputs.providers || 'all' }}
-      MAX_MINUTES: ${{ inputs.max_minutes || '12' }}
+      MAX_MINUTES: ${{ inputs.max_minutes || '270' }}
       RESUME_BRANCH: ${{ inputs.resume_branch || '' }}
     steps:
       - uses: actions/checkout@v4

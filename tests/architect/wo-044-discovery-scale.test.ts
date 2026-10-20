@@ -315,7 +315,8 @@ Deno.test("WO-044/S14 the Wayback Machine: robots first, a board-page filter, pa
   }
   for (let i = 2; i < calls.length; i++) assert(calls[i].at - calls[i - 1].at >= 2000, "one request per 2 s");
   const lever = new RegExp(`^${waybackRootPattern({ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" })}$`);
-  assert(lever.test("https://jobs.lever.co/acme") && lever.test("http://jobs.lever.co:80/acme/?x=1") && !lever.test("https://jobs.lever.co/acme/123-uuid"), "one path segment");
+  assert(lever.test("https://jobs.lever.co/acme") && lever.test("http://jobs.lever.co:80/acme/") && !lever.test("https://jobs.lever.co/acme/123-uuid"), "one path segment");
+  assert(!lever.test("https://jobs.lever.co/acme?lever-source=x"), "no query-string variants (they filled the pages)");
   const wd = new RegExp(`^${waybackRootPattern({ provider: "workday", url: "myworkdayjobs.com", matchType: "domain" })}$`);
   assert(wd.test("https://acme.wd5.myworkdayjobs.com/en-US/External") && !wd.test("https://acme.wd5.myworkdayjobs.com/External/job/x"));
   eq(splitResumeKey("a\nb\n\nKEY\n"), { lines: ["a", "b"], resumeKey: "KEY" });

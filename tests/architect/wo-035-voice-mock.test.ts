@@ -442,7 +442,7 @@ Deno.test("WO-035/11 wiring: the function is deployed without a JWT, CORS limite
   }
   assert(/'link_expires_at', p_now \+ interval '10 minutes'/.test(MIGRATION), "10 minutes to start");
   assert(/value->>'started_at' is null and value->>'fallback_at' is null/.test(MIGRATION), "single use");
-  assert(/kind in \('alert', 'report', 'reply', 'receipt', 'card', 'mock'\)/.test(MIGRATION), "the outbox takes the debrief");
+  assert(/kind in \('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock'\)/.test(MIGRATION), "the outbox takes the debrief");
   assert(/grant execute on function[\s\S]*to service_role;\s*$/.test(MIGRATION) && /from public, anon, authenticated;/.test(MIGRATION), "service role only");
   assert(PAGE.includes("#t=") || PAGE.includes("location.hash"), "the token is read from the fragment, never sent to the web host");
 });

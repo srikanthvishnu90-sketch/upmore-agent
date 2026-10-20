@@ -29,7 +29,7 @@ select t.ok((select not exists (select from career_watch_kv, jsonb_object_keys(v
 select t.ok((select not exists (select from information_schema.columns where table_schema='public' and column_name ~* 'audio')),'no audio column anywhere');
 
 -- Five a day.
-insert into vs select 'a'||n, career_voice_create('00000000-0000-4000-8000-000000000351','00000000-0000-4000-8000-0000000003b1','{"v":1}','2026-10-21T15:0'||n||':00Z') from generate_series(2,5) n;
+insert into vs select 'a'||n, career_voice_create('00000000-0000-4000-8000-000000000351','00000000-0000-4000-8000-0000000003b1','{"v":1}',('2026-10-21T15:0'||n||':00Z')::timestamptz) from generate_series(2,5) n;
 select t.ok((select career_voice_create('00000000-0000-4000-8000-000000000351','00000000-0000-4000-8000-0000000003b1','{"v":1}','2026-10-21T15:30:00Z') is null),'a sixth in a day is refused (null)');
 select t.ok((select career_voice_create('00000000-0000-4000-8000-000000000351','00000000-0000-4000-8000-0000000003b1','{"v":1}','2026-10-22T15:30:00Z') is not null),'a day later, a new one');
 

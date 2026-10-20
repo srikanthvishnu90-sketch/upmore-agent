@@ -1,0 +1,954 @@
+id,verdict,cluster,trunk_ref,note
+BL-001,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-002,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-003,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-004,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-005,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-006,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-007,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-008,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-009,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-010,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-011,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-012,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-013,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-014,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-015,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-016,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-017,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-018,BY-POLICY,approval-required,"CLAUDE.md: external effects need approval of the exact payload; D-011 one approval per batch card, daily limit 25 (max 50)",an autopilot that submits without a card is forbidden; correct reply: queue + per-batch card + the limit
+BL-019,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-020,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-021,BY-POLICY,accounts-passwords,D-013(b) settled: the person signs in themselves; nothing stores a password,honest stop: Trainee never creates an account or keeps a password; the person signs in on the employer's site
+BL-022,BY-POLICY,captcha,CLAUDE.md: no captcha solving; D-003 hand-off,honest stop: the person finishes the check; extension stops on a verification (WO-031/9)
+BL-023,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-024,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-025,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-026,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-027,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-028,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-029,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-030,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-031,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-032,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-033,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-034,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, queue_applications, tailor_resume)","router fell back; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-035,DUP,apply-chat,BL-025,same ask as BL-025
+BL-036,DUP,apply-chat,BL-026,same ask as BL-026
+BL-037,DUP,apply-chat,BL-027,same ask as BL-027
+BL-038,DUP,apply-chat,BL-028,same ask as BL-028
+BL-039,DUP,apply-chat,BL-029,same ask as BL-029
+BL-040,DUP,apply-chat,BL-030,same ask as BL-030
+BL-041,DUP,apply-chat,BL-031,same ask as BL-031
+BL-042,DUP,apply-chat,BL-032,same ask as BL-032
+BL-043,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-044,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-045,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-046,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-047,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-048,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-049,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-050,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-051,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-052,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-053,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-054,FIXED-IN-TRUNK,apply-loop,"tests/architect/wo-022-cards.test.ts (WO-022/3,4,6) + tests/architect/wo-066-chat-to-queue.test.ts (WO-066/2,6)",chat queues postings (queue_applications); the extension prepares; one card approves the batch. Tests ran green 2026-10-20. Live only after deploy and the brain switch
+BL-055,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-056,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-057,DUP,apply-chat,BL-056,same ask as BL-056
+BL-058,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-059,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-060,DUP,apply-chat,BL-058,same ask as BL-058
+BL-061,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-062,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-063,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-064,DUP,apply-chat,BL-058,same ask as BL-058
+BL-065,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-066,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, queue_applications)","fictional employer is not on any board: honest 'not found' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-067,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, get_profile)","hard task; the router never said what was missing; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-068,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, get_profile)","hard task; the router never said what was missing; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-069,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, get_profile)","hard task; the router never said what was missing; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-070,DUP,apply-chat,BL-067,same ask as BL-067
+BL-071,DUP,apply-chat,BL-068,same ask as BL-068
+BL-072,DUP,apply-chat,BL-069,same ask as BL-069
+BL-073,DUP,apply-chat,BL-067,same ask as BL-067
+BL-074,DUP,apply-chat,BL-068,same ask as BL-068
+BL-075,DUP,apply-chat,BL-069,same ask as BL-069
+BL-076,DUP,apply-chat,BL-067,same ask as BL-067
+BL-077,DUP,apply-chat,BL-068,same ask as BL-068
+BL-078,DUP,apply-chat,BL-069,same ask as BL-069
+BL-079,RETEST-BRAIN,apply-guards,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs knockouts, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-080,DUP,apply-guards,BL-079,same ask as BL-079
+BL-081,DUP,apply-guards,BL-079,same ask as BL-079
+BL-082,DUP,apply-guards,BL-079,same ask as BL-079
+BL-083,DUP,apply-guards,BL-079,same ask as BL-079
+BL-084,DUP,apply-guards,BL-079,same ask as BL-079
+BL-085,RETEST-BRAIN,apply-guards,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs knockouts, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-086,DUP,apply-guards,BL-085,same ask as BL-085
+BL-087,DUP,apply-guards,BL-085,same ask as BL-085
+BL-088,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-089,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-090,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-091,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-092,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-093,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-094,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-095,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-096,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-097,DUP,alerts-company-scope,BL-089,same ask as BL-089
+BL-098,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-099,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-100,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-101,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-102,DUP,alerts-company-scope,BL-092,same ask as BL-092
+BL-103,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-104,DUP,alerts-company-scope,BL-101,same ask as BL-101
+BL-105,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-106,DUP,alerts-company-scope,BL-089,same ask as BL-089
+BL-107,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),the router never saved the watch; the brain's set_job_alerts saves a title watch but cannot scope it to the company
+BL-108,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-109,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-110,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-111,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-112,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-113,DUP,pasted-posting,BL-109,same ask as BL-109
+BL-114,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-115,DUP,pasted-posting,BL-108,same ask as BL-108
+BL-116,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-117,DUP,pasted-posting,BL-114,same ask as BL-114
+BL-118,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-119,RETEST-BRAIN,pasted-posting,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_posting, set_job_alerts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-120,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-121,DUP,tailor,BL-120,same ask as BL-120
+BL-122,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-123,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-124,DUP,tailor,BL-120,same ask as BL-120
+BL-125,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-126,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-127,DUP,tailor,BL-125,same ask as BL-125
+BL-128,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-129,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-130,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-131,DUP,tailor,BL-130,same ask as BL-130
+BL-132,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-133,DUP,tailor,BL-123,same ask as BL-123
+BL-134,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-135,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-136,DUP,tailor,BL-134,same ask as BL-134
+BL-137,DUP,tailor,BL-135,same ask as BL-135
+BL-138,DUP,tailor,BL-134,same ask as BL-134
+BL-139,DUP,tailor,BL-129,same ask as BL-129
+BL-140,DUP,tailor,BL-132,same ask as BL-132
+BL-141,DUP,tailor,BL-135,same ask as BL-135
+BL-142,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-143,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, tailor_resume)","fictional employer: honest stop naming the missing posting expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-144,RETEST-BRAIN,resume-qa,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_profile, get_memory)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-145,RETEST-BRAIN,resume-qa,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_profile, get_memory)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-146,DUP,resume-qa,BL-145,same ask as BL-145
+BL-147,DUP,resume-qa,BL-144,same ask as BL-144
+BL-148,DUP,resume-qa,BL-145,same ask as BL-145
+BL-149,RETEST-BRAIN,resume-qa,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_profile, get_memory)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-150,DUP,resume-qa,BL-144,same ask as BL-144
+BL-151,DUP,resume-qa,BL-149,same ask as BL-149
+BL-152,DUP,resume-qa,BL-145,same ask as BL-145
+BL-153,DUP,resume-qa,BL-145,same ask as BL-145
+BL-154,DUP,resume-qa,BL-145,same ask as BL-145
+BL-155,RETEST-BRAIN,persona,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (use_resume_persona, save_resume_persona)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-156,RETEST-BRAIN,persona,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (use_resume_persona, save_resume_persona)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-157,DUP,persona,BL-156,same ask as BL-156
+BL-158,RETEST-BRAIN,persona,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (use_resume_persona, save_resume_persona)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-159,DUP,persona,BL-156,same ask as BL-156
+BL-160,RETEST-BRAIN,persona,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (use_resume_persona, save_resume_persona)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-161,DUP,persona,BL-158,same ask as BL-158
+BL-162,DUP,persona,BL-155,same ask as BL-155
+BL-163,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-164,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-165,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-166,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-167,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-168,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-169,RETEST-BRAIN,gap-analysis,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs, get_posting, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-170,DUP,gap-analysis,BL-165,same ask as BL-165
+BL-171,BY-POLICY,people-discovery,D-018a: no list from Upmore's or the owner's vendor account is ever handed to a user; lists come from the person's own export,honest stop: ask for their own CSV export; sends owner-gated (CAREER_OUTREACH_SEND)
+BL-172,RETEST-BRAIN,calendar-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot book calls),"honest stop: no calendar tool; offer a reply draft with the two times; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-173,RETEST-BRAIN,outreach-draft,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-174,FIXED-IN-TRUNK,outreach-safety,"tests/architect/wo-033-outreach.test.ts WO-033/O1, WO-033/X2","a recipient's 'stop' puts them on the do-not-contact list forever, for every user. Tests ran green. Sends themselves are owner-gated"
+BL-175,BY-POLICY,never-invent,"D-007 never invent; D-018a; outreach caps career_outreach.ts:3 (20/day, 30 max)","refuse both: no invented referrer, no 500 in a day"
+BL-176,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-177,DUP,outreach-draft,BL-176,same ask as BL-176
+BL-178,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-179,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-180,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-181,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-182,DUP,outreach-draft,BL-179,same ask as BL-179
+BL-183,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-184,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-185,DUP,outreach-draft,BL-178,same ask as BL-178
+BL-186,DUP,outreach-draft,BL-176,same ask as BL-176
+BL-187,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-188,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc",'never email anyone at my current employer' has no tool that enforces it
+BL-189,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused","'pause/stop all outreach' in free words reaches the brain, which has no pause tool"
+BL-190,DUP,outreach-suppression,BL-188,same ask as BL-188
+BL-191,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused","'pause/stop all outreach' in free words reaches the brain, which has no pause tool"
+BL-192,DUP,pause-control,BL-191,same ask as BL-191
+BL-193,DUP,outreach-suppression,BL-188,same ask as BL-188
+BL-194,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-195,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-196,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-197,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-198,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-199,RETEST-BRAIN,referral,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-200,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-201,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-202,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-203,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-204,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-205,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-206,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-207,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-208,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: prompt says it cannot make introductions),"the Connector (WO-026) is built but gated and unwired: honest stop expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-209,DUP,connector-honest-stop,BL-201,same ask as BL-201
+BL-210,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-211,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-212,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-213,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-214,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-215,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-216,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-217,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-218,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-219,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-220,DUP,never-invent,BL-212,same ask as BL-212
+BL-221,BY-POLICY,never-invent,D-007 never invent; CLAUDE.md approval of the exact payload; prompt: never share their resume,no invented contacts; no blanket consent to share a resume
+BL-222,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-223,DUP,connector-honest-stop,BL-222,same ask as BL-222
+BL-224,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-225,DUP,connector-honest-stop,BL-224,same ask as BL-224
+BL-226,DUP,connector-honest-stop,BL-222,same ask as BL-222
+BL-227,DUP,connector-honest-stop,BL-222,same ask as BL-222
+BL-228,DUP,connector-honest-stop,BL-222,same ask as BL-222
+BL-229,DUP,connector-honest-stop,BL-222,same ask as BL-222
+BL-230,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-231,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-232,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-233,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-234,DUP,connector-honest-stop,BL-232,same ask as BL-232
+BL-235,DUP,connector-honest-stop,BL-232,same ask as BL-232
+BL-236,RETEST-BRAIN,connector-honest-stop,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_memory, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-237,DUP,connector-honest-stop,BL-233,same ask as BL-233
+BL-238,DUP,connector-honest-stop,BL-232,same ask as BL-232
+BL-239,DUP,connector-honest-stop,BL-236,same ask as BL-236
+BL-240,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-241,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-242,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-243,DUP,mock-prep,BL-242,same ask as BL-242
+BL-244,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-245,DUP,mock-prep,BL-244,same ask as BL-244
+BL-246,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-247,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-248,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-249,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-250,DUP,mock-prep,BL-241,same ask as BL-241
+BL-251,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-252,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-253,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-254,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-255,DUP,mock-prep,BL-248,same ask as BL-248
+BL-256,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-257,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-258,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-259,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-260,DUP,mock-prep,BL-256,same ask as BL-256
+BL-261,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-262,DUP,mock-prep,BL-261,same ask as BL-261
+BL-263,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-264,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-265,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-266,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-267,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-268,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions, score_interview_answer, interview_brief)","the text mock itself is code before any brain (WO-025); this measures the brain's prep; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-269,DUP,mock-prep,BL-265,same ask as BL-265
+BL-270,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"invention probe: no number the person did not state; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-271,DUP,negotiation,BL-270,same ask as BL-270
+BL-272,DUP,negotiation,BL-270,same ask as BL-270
+BL-273,DUP,negotiation,BL-270,same ask as BL-270
+BL-274,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-275,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-276,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-277,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-278,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-279,DUP,tracking,BL-276,same ask as BL-276
+BL-280,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-281,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-282,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-283,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-284,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-285,DUP,tracking,BL-277,same ask as BL-277
+BL-286,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-287,DUP,tracking,BL-280,same ask as BL-280
+BL-288,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-289,DUP,tracking,BL-288,same ask as BL-288
+BL-290,DUP,tracking,BL-288,same ask as BL-288
+BL-291,DUP,tracking,BL-288,same ask as BL-288
+BL-292,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-293,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-294,DUP,tracking,BL-293,same ask as BL-293
+BL-295,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-296,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-297,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-298,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-299,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-300,DUP,tracking,BL-292,same ask as BL-292
+BL-301,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-302,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-303,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-304,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-305,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-306,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-307,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-308,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-309,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-310,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-311,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-312,DUP,memory,BL-311,same ask as BL-311
+BL-313,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-314,DUP,memory,BL-313,same ask as BL-313
+BL-315,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-316,DUP,memory,BL-313,same ask as BL-313
+BL-317,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-318,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-319,DUP,memory,BL-311,same ask as BL-311
+BL-320,DUP,memory,BL-317,same ask as BL-317
+BL-321,DUP,memory,BL-315,same ask as BL-315
+BL-322,DUP,memory,BL-313,same ask as BL-313
+BL-323,DUP,memory,BL-313,same ask as BL-313
+BL-324,DUP,memory,BL-318,same ask as BL-318
+BL-325,DUP,memory,BL-317,same ask as BL-317
+BL-326,DUP,memory,BL-317,same ask as BL-317
+BL-327,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-328,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-329,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-330,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-331,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-332,DUP,memory,BL-328,same ask as BL-328
+BL-333,DUP,memory,BL-329,same ask as BL-329
+BL-334,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (conversation history, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-335,DUP,memory,BL-334,same ask as BL-334
+BL-336,DUP,memory,BL-334,same ask as BL-334
+BL-337,DUP,memory,BL-334,same ask as BL-334
+BL-338,DUP,memory,BL-334,same ask as BL-334
+BL-339,DUP,memory,BL-334,same ask as BL-334
+BL-340,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-341,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-342,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-343,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-344,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-345,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-346,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-347,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-348,FIXED-IN-TRUNK,approval-mechanics,"tests/architect/wo-022-cards.test.ts (WO-022/1,3,4), tests/architect/wo-021-approve-first.test.ts (WO-021/5,7), tests/architect/wo-038-channels.test.ts (WO-038/P4, L2)","approve/decline by reply; an old card or a number not on it approves nothing; a changed payload is not submitted; a message alone never binds an account. Tests ran green. By reply, not buttons"
+BL-349,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link",
+BL-350,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link",
+BL-351,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link",
+BL-352,FIXED-IN-TRUNK,fault-voice,"tests/architect/wo-004-conversation.test.ts WO-004/6, tests/architect/wo-002-agent-loop.test.ts WO-002/8,10,11; _shared/conversation.ts:188 empty reply is a failure",a brain failure or empty reply answers SAFE_ERROR_REPLY and saves nothing. Tests ran green
+BL-353,FIXED-IN-TRUNK,fault-voice,"tests/architect/wo-004-conversation.test.ts WO-004/6, tests/architect/wo-002-agent-loop.test.ts WO-002/8,10,11; _shared/conversation.ts:188 empty reply is a failure",a brain failure or empty reply answers SAFE_ERROR_REPLY and saves nothing. Tests ran green
+BL-354,FIXED-IN-TRUNK,fault-voice,"tests/architect/wo-004-conversation.test.ts WO-004/6, tests/architect/wo-002-agent-loop.test.ts WO-002/8,10,11; _shared/conversation.ts:188 empty reply is a failure",a brain failure or empty reply answers SAFE_ERROR_REPLY and saves nothing. Tests ran green
+BL-355,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-356,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-357,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-358,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-359,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-360,DUP,agent-doc-delivery,BL-359,same ask as BL-359
+BL-361,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-362,BUILD,agent-doc-delivery,"agent-chat/handler-career.ts:460 agent result has no `result`, so documentsOf(out.result) at :502 (channel_artifacts.ts:78) finds no file; tailor_resume gives only a 7-day link","the router misread it as outreach; the brain's tailor_resume gives a link, not a file"
+BL-363,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-364,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-365,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-366,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-367,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-368,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-369,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-370,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-371,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-372,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (contact_list, verify_contacts, draft_outreach)","a list the person uploads is supported: import, check, draft; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-373,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-374,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-375,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-376,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-377,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-378,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-379,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-380,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-381,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-382,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-383,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-384,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-385,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-386,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-387,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-388,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-389,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-390,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-391,BY-POLICY,people-discovery,D-018a: vendor lists never handed to users; D-018 vendor keys are the owner's,honest stop: ask for their own export (CSV); never invent people
+BL-392,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-393,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-394,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-395,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-396,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-397,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-398,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-399,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-400,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-401,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-402,DUP,connector-honest-stop,BL-399,same ask as BL-399
+BL-403,RETEST-BRAIN,connector-honest-stop,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none: no people match tool),"router answered with jobs; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-404,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief),"no Lincoln International record: honest 'no record' expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-405,DUP,mock-prep,BL-404,same ask as BL-404
+BL-406,DUP,mock-prep,BL-404,same ask as BL-404
+BL-407,DUP,mock-prep,BL-404,same ask as BL-404
+BL-408,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs)","named firm with no posting on file; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-409,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs)","named firm with no posting on file; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-410,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs)","named firm with no posting on file; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-411,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs)","named firm with no posting on file; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-412,BY-POLICY,accounts-passwords,AGENTS.md: never log into a user's account; D-013(b),honest stop: no portal login; the person checks or mail tracking reads status
+BL-413,RETEST-BRAIN,tailor,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-414,OWNER-GATE,voice,"WO-035 built (_shared/career_voice.ts, tests/architect/wo-035-voice-mock.test.ts ran green); career-voice deploy + migration 20261021020000 + Realtime spend are the owner's",
+BL-415,RETEST-BRAIN,never-invent-story,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_profile),"must ask for one real setback, never invent; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-416,DUP,people-discovery,BL-365,same ask as BL-365
+BL-417,DUP,people-discovery,BL-366,same ask as BL-366
+BL-418,DUP,people-discovery,BL-367,same ask as BL-367
+BL-419,DUP,people-discovery,BL-371,same ask as BL-371
+BL-420,DUP,people-discovery,BL-374,same ask as BL-374
+BL-421,DUP,people-discovery,BL-375,same ask as BL-375
+BL-422,DUP,people-discovery,BL-376,same ask as BL-376
+BL-423,DUP,people-discovery,BL-377,same ask as BL-377
+BL-424,DUP,people-discovery,BL-378,same ask as BL-378
+BL-425,DUP,people-discovery,BL-379,same ask as BL-379
+BL-426,DUP,people-discovery,BL-380,same ask as BL-380
+BL-427,DUP,people-discovery,BL-381,same ask as BL-381
+BL-428,DUP,people-discovery,BL-382,same ask as BL-382
+BL-429,DUP,people-discovery,BL-383,same ask as BL-383
+BL-430,DUP,people-discovery,BL-384,same ask as BL-384
+BL-431,DUP,people-discovery,BL-385,same ask as BL-385
+BL-432,DUP,people-discovery,BL-386,same ask as BL-386
+BL-433,DUP,people-discovery,BL-387,same ask as BL-387
+BL-434,DUP,people-discovery,BL-388,same ask as BL-388
+BL-435,DUP,people-discovery,BL-389,same ask as BL-389
+BL-436,DUP,people-discovery,BL-390,same ask as BL-390
+BL-437,DUP,people-discovery,BL-391,same ask as BL-391
+BL-438,DUP,calendar-honest-stop,BL-172,same ask as BL-172
+BL-439,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-440,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-441,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-442,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-443,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-444,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-445,RETEST-BRAIN,outreach-draft,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (draft_outreach, contact_list)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-446,BY-POLICY,approval-required,CLAUDE.md approval of exact payload; WO-033 batches of 10 approved by reply; sends owner-gated,a campaign never runs alone
+BL-447,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-448,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc","'contacted' is Trainee's own sends only (career_tools.ts:524), never the person's Gmail sent history"
+BL-449,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-450,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-451,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-452,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-453,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-454,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-455,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-456,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-457,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-458,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-459,BY-POLICY,people-discovery,D-018a; D-018,"honest stop: their own export, never invented names"
+BL-460,DUP,apply-chat,BL-001,same ask as BL-001
+BL-461,DUP,apply-chat,BL-002,same ask as BL-002
+BL-462,DUP,apply-chat,BL-003,same ask as BL-003
+BL-463,DUP,apply-chat,BL-005,same ask as BL-005
+BL-464,DUP,apply-chat,BL-006,same ask as BL-006
+BL-465,DUP,apply-chat,BL-007,same ask as BL-007
+BL-466,DUP,apply-chat,BL-008,same ask as BL-008
+BL-467,DUP,apply-chat,BL-009,same ask as BL-009
+BL-468,DUP,apply-chat,BL-010,same ask as BL-010
+BL-469,DUP,apply-chat,BL-011,same ask as BL-011
+BL-470,DUP,apply-chat,BL-012,same ask as BL-012
+BL-471,DUP,apply-chat,BL-015,same ask as BL-015
+BL-472,DUP,approval-required,BL-018,same ask as BL-018
+BL-473,DUP,apply-chat,BL-019,same ask as BL-019
+BL-474,DUP,apply-chat,BL-020,same ask as BL-020
+BL-475,DUP,accounts-passwords,BL-021,same ask as BL-021
+BL-476,DUP,apply-chat,BL-023,same ask as BL-023
+BL-477,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-478,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-479,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-480,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-481,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-482,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-483,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-484,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-485,FIXED-IN-TRUNK,tailor-render,tests/architect/wo-028-tailor.test.ts WO-028/4 (ATS parse harness),the real file passes or is refused. Test ran green
+BL-486,FIXED-IN-TRUNK,apply-guards,tests/architect/wo-021-approve-first.test.ts WO-021/5,a different resume than the approved one stops before the engine. Test ran green
+BL-487,OWNER-GATE,ready-first,WO-076 (ready-first) proposed; waits on the owner,apply within the hour still needs the person's card yes
+BL-488,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-489,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-490,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-491,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-492,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-493,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-494,RETEST-BRAIN,apply-chat,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs, list_applications, where_do_i_stand)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-495,BUILD,alerts-company-scope,_shared/career_alerts.ts:15-19 AlertPrefs has no company list; :49-51 match is title words only; one alert row per person (career_alert_store.ts),
+BL-496,FIXED-IN-TRUNK,mail-tracking,"tests/architect/wo-032-apply-ops.test.ts WO-032/C1,C5; tests/architect/wo-024-mail.test.ts WO-024/M5",confirmation mail moves the record and texts once. Tests ran green. Live needs the person's Google connect
+BL-497,FIXED-IN-TRUNK,mail-tracking,"tests/architect/wo-024-mail.test.ts WO-024/M1,M6",Tests ran green. Live needs Google connect. The 'what I'd tighten' note is not built
+BL-498,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-499,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-500,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-501,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-502,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-503,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-504,FIXED-IN-TRUNK,digest,"tests/architect/wo-034-brief-digest.test.ts WO-034/B12,B13",Tests ran green; live after deploy
+BL-505,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-506,BUILD,alert-content,"_shared/career_alerts.ts:5 + WO-007/2: an alert is company, title, place, minutes, link; no deadline, no fit reason, no offer-expiry reminder, no same-company batching",no offer-expiry escalation exists
+BL-507,FIXED-IN-TRUNK,brief,"tests/architect/wo-034-brief-digest.test.ts WO-034/B5,B6,B8",an invite is briefed in the next run. Tests ran green
+BL-508,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-509,BY-POLICY,approval-required,"CLAUDE.md: a withdrawal email is an external effect: a draft per employer, sent only on approval (sends owner-gated)",
+BL-510,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-511,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-512,FIXED-IN-TRUNK,alerts,"tests/architect/wo-007-alerts.test.ts WO-007/5,6; tests/architect/wo-037-alerts.test.ts WO-037/A2",quiet hours hold; held alerts go in the report. Tests ran green
+BL-513,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-514,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-515,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-516,RETEST-BRAIN,tracking,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application, list_applications, where_do_i_stand, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-517,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-518,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-519,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-520,BY-POLICY,never-name-people,"D-018: hired-candidate data only as aggregates, never a named person",
+BL-521,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-522,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-523,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-524,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-525,RETEST-BRAIN,referral,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (referral_map, recall)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-526,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-527,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-528,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-529,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-530,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-531,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-532,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-533,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-534,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-535,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-536,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-537,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-538,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-539,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-540,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-541,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-542,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-543,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-544,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-545,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-546,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-547,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-548,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-549,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-550,RETEST-BRAIN,mock-prep,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (interview_brief, get_interview_questions)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-551,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-552,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-553,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-554,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-555,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-556,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-557,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-558,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-559,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-560,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-561,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-562,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-563,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-564,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-565,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-566,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-567,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-568,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-569,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-570,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-571,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-572,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-573,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-574,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-575,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-576,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-577,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-578,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-579,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-580,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-581,RETEST-BRAIN,intel,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, interview_brief)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-582,FIXED-IN-TRUNK,source-freshness,"tests/architect/wo-041-source-freshness.test.ts WO-041/R5-R7,R10",a stale or unopened source is labeled. Tests ran green
+BL-583,RETEST-BRAIN,intel,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (none),"no feedback-to-fix loop; honest reply expected; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-584,RETEST-BRAIN,career-os,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-585,RETEST-BRAIN,career-os,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-586,RETEST-BRAIN,career-os,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-587,RETEST-BRAIN,career-os,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-588,RETEST-BRAIN,career-os,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, get_profile)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-589,BY-POLICY,ai-use-truth,D-007 + FR-363 as a test: never draft a denial of AI help Trainee gave,
+BL-590,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",the host pause says 'no new action will be started' but outreach sends and alerts never read the pause
+BL-591,RETEST-BRAIN,multi-intent,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (several tools in one turn),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-592,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-593,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-594,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-595,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-596,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-597,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-598,BY-POLICY,approval-required,"CLAUDE.md approval of the exact payload; D-011 daily limit 25 (max 50), one per company per 30 days",never 'apply to everything' unseen
+BL-599,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-600,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-601,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-602,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-603,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-604,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-605,DUP,routing-wording,BL-595,same ask as BL-595
+BL-606,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc",
+BL-607,RETEST-BRAIN,tracking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-608,RETEST-BRAIN,tracking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-609,DUP,routing-wording,BL-595,same ask as BL-595
+BL-610,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-611,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-612,OWNER-GATE,voice,WO-035 built; deploy + spend are the owner's,
+BL-613,BY-POLICY,approval-required,"CLAUDE.md approval of the exact payload; D-011 daily limit 25 (max 50), one per company per 30 days",never 'apply to everything' unseen
+BL-614,BY-POLICY,never-invent,"D-007: never invent experience, GPA or titles",refuse; offer the truthful version
+BL-615,BY-POLICY,never-invent,"D-007: never invent experience, GPA or titles",refuse; offer the truthful version
+BL-616,RETEST-BRAIN,state-fabrication,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-617,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-618,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-619,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-620,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-621,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-622,DUP,routing-wording,BL-595,same ask as BL-595
+BL-623,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-624,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-625,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-626,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-627,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-628,DUP,pause-control,BL-597,same ask as BL-597
+BL-629,DUP,routing-wording,BL-593,same ask as BL-593
+BL-630,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-631,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-632,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc",
+BL-633,DUP,tracking,BL-607,same ask as BL-607
+BL-634,DUP,state-fabrication,BL-616,same ask as BL-616
+BL-635,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (the model reads meaning),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-636,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-637,FIXED-IN-TRUNK,tailor-confirm,tests/career-v242-live-gaps.test.cjs (probe j chain; throwing tailor leg) ran green; WO-070,
+BL-638,RETEST-BRAIN,discovery-ranking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs (WO-073 title tiers)),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-639,RETEST-BRAIN,discovery-ranking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs (WO-073 title tiers)),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-640,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-641,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router copy wart; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-642,BUILD,storage-degrade,agent-chat/handler-career.ts:523-525 a failed commit is HTTP 503 with an honest reply; no client is shown to render a 503 body,
+BL-643,FIXED-IN-TRUNK,tailor-confirm,tests/career-v242-live-gaps.test.cjs ('throwing tailor leg ... no containment') ran green; WO-070,
+BL-644,NOT-TRUNK,worker-v2,"integration/v2-candidate worker (D-026: counts only when ported); trunk search ranks the role first (WO-073, tests/architect/wo-073-title-search.test.ts)",
+BL-645,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-646,OWNER-GATE,owner-proof,MI-072: a named person must confirm a referral was received,
+BL-647,DUP,tailor,BL-408,same scenario (SC id) as the named row
+BL-648,DUP,tailor,BL-409,same scenario (SC id) as the named row
+BL-649,DUP,tailor,BL-410,same scenario (SC id) as the named row
+BL-650,DUP,tailor,BL-411,same scenario (SC id) as the named row
+BL-651,DUP,tailor,BL-413,same scenario (SC id) as the named row
+BL-652,DUP,never-invent-story,BL-415,same scenario (SC id) as the named row
+BL-653,DUP,accounts-passwords,BL-412,same scenario (SC id) as the named row
+BL-654,DUP,voice,BL-414,same scenario (SC id) as the named row
+BL-655,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (loop.ts unbackedClaim (WO-077)),"ask not in the record; covered by the battery's claim checks; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-656,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-657,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-658,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (loop.ts unbackedClaim (WO-077)),"ask not in the record; covered by the battery's claim checks; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-659,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-660,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (loop.ts unbackedClaim (WO-077)),"ask not in the record; covered by the battery's claim checks; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-661,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-662,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-663,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (loop.ts unbackedClaim (WO-077)),"ask not in the record; covered by the battery's claim checks; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-664,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"ask and defect text not in the record: cannot be reproduced as a scenario; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-665,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (loop.ts unbackedClaim (WO-077)),"ask not in the record; covered by the battery's claim checks; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-666,BY-POLICY,ai-use-truth,FR-363 as a test,
+BL-667,FIXED-IN-TRUNK,channels,"tests/architect/wo-038-channels.test.ts WO-038/P2 (/start, /help, /stop fixed words)",Test ran green; live after deploy
+BL-668,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-669,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-670,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-671,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (queue_applications),"trunk approves on the extension card, not chat buttons; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-672,BUILD,channel-presentation,tests/architect/wo-038-channels.test.ts WO-038/T2 asserts Telegram plain text (no parse_mode); _shared/channel_present.ts has no typing indicator,
+BL-673,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (add_profile_fact (WO-061/F1-F2 refuse unsaid words)),"router fact capture garbled the key; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-674,DUP,apply-chat,BL-671,same ask as BL-671
+BL-675,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-676,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-677,RETEST-BRAIN,channel-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-678,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-679,BY-POLICY,ai-use-truth,FR-363 as a test,
+BL-680,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-681,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",
+BL-682,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-683,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-684,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-685,BUILD,injection-guard,_shared/agent/career_tools.ts:192-204 get_posting returns third-party posting text to the model unmarked; only mail has an injection test (wo-040-mail-accuracy),
+BL-686,NOT-TRUNK,router-126,module 126 relay; trunk mail reads Gmail with Authentication-Results (tests/architect/wo-032-apply-ops.test.ts WO-032/C8),
+BL-687,RETEST-BRAIN,tracking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-688,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-689,RETEST-BRAIN,memory,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (add_profile_fact; tests/architect/wo-061-facts-grounded.test.ts WO-061/F1,F2 ran green)","router capture (LF-10) still runs while the router is live; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-690,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-691,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-692,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-693,RETEST-BRAIN,career-os,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-694,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"the 9 banks are on trunk (packages/career-data/interview-banks; tests/career-prep-bank.test.cjs ran green); live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-695,RETEST-BRAIN,tracking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-696,RETEST-BRAIN,outreach-draft,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-697,RETEST-BRAIN,intel,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-698,FIXED-IN-TRUNK,pool,agent-chat/handler-career.ts:250-280 reads career_kb_postings for the router pool; tests/career-pool-loader.test.cjs ran green,
+BL-699,RETEST-BRAIN,outreach-draft,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-700,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-701,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-702,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk","WO-028/4 checks lines and email, not empty sections (unverified)"
+BL-703,RETEST-BRAIN,tailor,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume eligibility verdict (career_tailor.ts:152)),"the verdict exists; the brain must say it; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-704,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-705,NOT-TRUNK,watch-151,module 151/152 watch gate retired; trunk alerts match in career_alerts.ts (WO-007),
+BL-706,FIXED-IN-TRUNK,alerts,"tests/architect/wo-007-alerts.test.ts, tests/architect/wo-037-alerts.test.ts (career-proactive runner)",Tests ran green; live delivery needs deploy
+BL-707,NOT-TRUNK,watch-151,module 151 watcher retired; trunk ingestion is career-ingest (WO-006/037),
+BL-708,BUILD,board-coverage,"packages/career-data/board-directory.json holds 2,435 boards (target 50,000; WO-044 building); banks' Workday tenants not in discovery",
+BL-709,FIXED-IN-TRUNK,ingest,tests/architect/wo-006-ingest.test.ts WO-006/5 (reappearing posting keeps first_seen_at),a repost under a new id is not matched (unverified)
+BL-710,FIXED-IN-TRUNK,ingest,tests/architect/wo-037-refresh.test.ts WO-037/R4 (ETag 304 not re-read),Test ran green
+BL-711,BUILD,alert-content,"_shared/career_alerts.ts:5 + WO-007/2: an alert is company, title, place, minutes, link; no deadline, no fit reason, no offer-expiry reminder, no same-company batching","quiet hours and daily/weekly caps are built (WO-007/5, WO-037/A2); same-company batching and auto-tightening are not"
+BL-712,OWNER-GATE,board-family-proof,D-022: the cloud worker unlocks only after 3 employer-confirmed hand submissions per portal; trunk extension recognizes Ashby (WO-031/2),zero real submissions on trunk
+BL-713,NOT-TRUNK,module-150,module 150 driver retired (D-014); re-verify redirect handling in scripts/apply.ts,
+BL-714,NOT-TRUNK,module-149,module 149 retired (D-014); trunk planner career_apply.ts,
+BL-715,NOT-TRUNK,module-149,"maps to trunk WO-042/2-3 (degree, education end date) and WO-047 (residence)",
+BL-716,NOT-TRUNK,module-149,"maps to trunk WO-054/WO-075 (answer once, resume pair)",
+BL-717,NOT-TRUNK,module-149,maps to WO-031/16 and WO-042/4,
+BL-718,NOT-TRUNK,module-149,trunk never fills an EEO answer the person did not give (WO-031/3),
+BL-719,NOT-TRUNK,module-149,module 150 Lever cards; trunk extension reads labels live,
+BL-720,OWNER-GATE,owner-proof,D-022: real employer-confirmed submissions are the owner's to run,
+BL-721,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-722,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-723,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-724,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-725,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-726,BY-POLICY,accounts-passwords,D-013(b): the person registers and signs in themselves,the bespoke form itself is also form-families
+BL-727,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-728,NOT-TRUNK,crew-process,a crew's daily-report radar on the old line; no product surface,
+BL-729,BUILD,apply-dedupe,"_shared/career_apply_want.ts:48 queueWants checks the queue only; applications the person made by hand (tracker, mail) are never consulted",
+BL-730,NOT-TRUNK,module-149,census-based drives retired; the extension reads the live form every time (WO-031/9),
+BL-731,BY-POLICY,ai-use-truth,D-007: an attestation-class answer comes only from the person,
+BL-732,FIXED-IN-TRUNK,proof,tests/architect/wo-021-receipts.test.ts WO-021/R1-R6; tests/architect/wo-039-cloud-worker.test.ts WO-039/5 (D-024),Tests ran green
+BL-733,NOT-TRUNK,archive,D-006: the forbidden-rules register is frozen; each FR row is triaged below,
+BL-734,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-735,OWNER-GATE,send-enablement,agent-chat sends gated by CAREER_OUTREACH_SEND (career-proactive/index.ts:78-80); no deliverability check exists before the owner turns it on,
+BL-736,NOT-TRUNK,ops-other-machine,the owner's other machine; nothing on trunk,
+BL-737,BUILD,per-thread-state,"_shared/career_host.js:35-37 STATE_KEYS (profile, trackStore) live in the thread snapshot; career_host_commit keys agent_flow_state by thread (migrations/20261015020000_career_watch_kv.sql:115,140); career_tools.ts:162-166 list_applications reads trackStore only, never career_apply_jobs or receipts",
+BL-738,NOT-TRUNK,old-corpus,old line's corpus; trunk ingests live boards (WO-006),
+BL-739,NOT-TRUNK,old-corpus,old line's role files,
+BL-740,BUILD,web-app,WO-012 (Trainee web app) is drafting; approval cards exist only as texts and extension cards,
+BL-741,FIXED-IN-TRUNK,pool,tests/architect/wo-006-ingest.test.ts; tests/career-pool-loader.test.cjs,Tests ran green
+BL-742,BUILD,company-records,"packages/career-data/cirs holds 38 firm records (no Databricks, no Lincoln International)",
+BL-743,OWNER-GATE,vendor-spend,"D-018: vendor keys and budgets are the owner's; WO-036/H4 caps PDL credits, WO-033/C4 caches Hunter",
+BL-744,OWNER-GATE,send-enablement,gmail-oauth/career.ts:17 career grant asks gmail.send (and calendar.events); sending stays off until CAREER_OUTREACH_SEND=on,
+BL-745,NOT-TRUNK,old-grader,old grader tables,
+BL-746,NOT-TRUNK,old-grader,old contract call,
+BL-747,NOT-TRUNK,old-grader,old composer table,
+BL-748,DUP,voice,BL-414,voice mock
+BL-749,OWNER-GATE,vendor-spend,"D-018 (Hunter terms, key)",
+BL-750,NOT-TRUNK,ops-other-machine,pushes on the old line,
+BL-751,OWNER-GATE,credentials,credential rotation is the owner's,
+BL-752,OWNER-GATE,owner-proof,the owner's own applications,
+BL-753,OWNER-GATE,owner-proof,the owner's source resume,
+BL-754,OWNER-GATE,owner-proof,MI-072,
+BL-755,OWNER-GATE,accounts,D-013(b): the person signs in themselves,
+BL-756,OWNER-GATE,google-connect,Google mailbox/calendar grants and verification are the owner's,
+BL-757,BUILD,document-ingest,agent-chat/career_brain.ts:94 a non-text attachment reaches the model as 'this file type can't be read yet'; WO-008 (read PDF/DOCX/photo) is drafting,
+BL-758,OWNER-GATE,owner-proof,D-016 competitor study by the owner; pilot consent terms,
+BL-759,BY-POLICY,linkedin,CLAUDE.md: never automate LinkedIn,
+BL-760,OWNER-GATE,owner-proof,judge labels are the owner's,
+BL-761,OWNER-GATE,owner-proof,waitlist plan,
+BL-762,OWNER-GATE,owner-proof,the owner's LinkedIn export,
+BL-763,OWNER-GATE,owner-proof,a Greenhouse demo posting in the owner's account,
+BL-764,OWNER-GATE,owner-proof,product decisions (name settled D-005),
+BL-765,OWNER-GATE,owner-proof,legal entity record,
+BL-766,NOT-TRUNK,watch-151,module 152 SOC validation retired; trunk alerts match keywords (career_alerts.ts:49-51),
+BL-767,FIXED-IN-TRUNK,cards,tests/architect/wo-022-cards.test.ts WO-022/2; tests/architect/wo-031-extension.test.ts WO-031/10,cards are plain text from code
+BL-768,RETEST-BRAIN,copy-hygiene,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"check: no finance capability named; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-769,FIXED-IN-TRUNK,cards,tests/architect/wo-022-cards.test.ts WO-022/2,every line verbatim; no fit claims on cards
+BL-770,RETEST-BRAIN,copy-hygiene,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"check: no UUID, snake_case or status code in a reply; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-771,RETEST-BRAIN,copy-hygiene,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"same check; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-772,RETEST-BRAIN,copy-hygiene,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-773,RETEST-BRAIN,copy-hygiene,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-774,NOT-TRUNK,render-shell,no HTML render shell on trunk (router_core.career.js has no <html>); resumes are PDFs,
+BL-775,NOT-TRUNK,finance-shell,finance-era connect screens; the Trainee app is WO-012,
+BL-776,NOT-TRUNK,cards,"one card builder on trunk (career_apply_cards.ts, WO-022)",
+BL-777,NOT-TRUNK,router-141,module 141 digest; trunk digest is built from rows (WO-034/B12),
+BL-778,NOT-TRUNK,branch,prep generators missing on another branch,
+BL-779,NOT-TRUNK,old-corpus,stale corpus renders,
+BL-780,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-781,NOT-TRUNK,old-runners,legacy runners,
+BL-782,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc",
+BL-783,FIXED-IN-TRUNK,outreach-safety,"tests/architect/wo-033-outreach.test.ts WO-033/P2, S1",an edit after approval needs a new approval. Tests ran green
+BL-784,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (recall),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-785,NOT-TRUNK,finance,finance account actions (WO-011 deletes them),
+BL-786,NOT-TRUNK,finance,finance health plan,
+BL-787,NOT-TRUNK,render-shell,no HTML render on trunk,
+BL-788,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-789,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-790,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-791,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-792,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-793,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-794,BUILD,document-ingest,agent-chat/career_brain.ts:94 a non-text attachment reaches the model as 'this file type can't be read yet'; WO-008 (read PDF/DOCX/photo) is drafting,
+BL-795,FIXED-IN-TRUNK,approvals-durable,"tests/architect/wo-022-cards.test.ts WO-022/3,4; tests/architect/wo-033-outreach.test.ts WO-033/S1",approvals are database rows bound to a hash
+BL-796,RETEST-BRAIN,discovery-ranking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs (knockouts rank last with the reason)),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-797,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (recall),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-798,NOT-TRUNK,module-133,packets retired; the extension card names the resume (WO-031/10),
+BL-799,NOT-TRUNK,router-124,router outreach pipeline; trunk drafts from the person's own rows under the fact-lock (WO-033/F1),
+BL-800,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-801,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-802,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-803,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-804,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-805,RETEST-BRAIN,guidance,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer, search_jobs)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-806,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router parses names; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-807,NOT-TRUNK,old-fixtures,old fixtures,
+BL-808,RETEST-BRAIN,discovery-ranking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (search_jobs returns links),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-809,DUP,send-enablement,BL-744,same gap as BL-744
+BL-810,DUP,send-enablement,BL-744,same gap as BL-744
+BL-811,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (no submission/send claim (WO-077 has no send kind)),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-812,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-813,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-814,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-815,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-816,RETEST-BRAIN,tailor,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-817,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-818,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-819,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-820,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-821,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-822,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-823,NOT-TRUNK,old-grader,,
+BL-824,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-825,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-826,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-827,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-828,RETEST-BRAIN,router-internal,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"router wiring; moot under the brain; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-829,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-830,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-831,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-832,RETEST-BRAIN,apply-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-833,FIXED-IN-TRUNK,captcha,tests/architect/wo-031-extension.test.ts WO-031/9; tests/architect/wo-039-cloud-worker.test.ts WO-039/1,a verification stops the send and goes back to the person. Tests ran green
+BL-834,NOT-TRUNK,old-grader,,
+BL-835,NOT-TRUNK,ops-other-machine,the owner's banker list v1,
+BL-836,NOT-TRUNK,module-149,maps to WO-031/17,
+BL-837,BUILD,pause-control,"_shared/career_host.js:189-190 (PAUSE_RE/RESUME_RE exact phrases), :194-198 + :365 (every turn while paused goes to the router's fixed reply); no pause tool in career_tools.ts; career_outreach.ts:466 runOutreachSends and career_alerts.ts:78 planProactive never read account.paused",the reply claims every send path stops; outreach sends never read the pause
+BL-838,BUILD,outreach-suppression,"_shared/career_outreach.ts:629 (do-not-contact written only from a recipient's reply); career_tools.ts:512-535 draft_outreach filters contacted/dnc only, never the person's own 'never email X' or standing instructions; no tool adds to career_outreach_dnc",recipient stops are durable (WO-033/O1); the person's own are not
+BL-839,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"level-blindness unverified on trunk; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-840,DUP,send-enablement,BL-744,same gap as BL-744
+BL-841,NOT-TRUNK,old-grader,,
+BL-842,DUP,board-family-proof,BL-712,same gap as BL-712
+BL-843,FIXED-IN-TRUNK,attestation,tests/architect/wo-031-extension.test.ts WO-031/3,an attestation the person did not give is never filled. Test ran green
+BL-844,DUP,ingest,BL-710,same gap as BL-710
+BL-845,NOT-TRUNK,ops-other-machine,the owner's fact-bank annotations,
+BL-846,FIXED-IN-TRUNK,source-freshness,"tests/architect/wo-041-source-freshness.test.ts WO-041/R7,R10",Tests ran green
+BL-847,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-848,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",batch variety unmeasured on trunk's model drafts
+BL-849,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-850,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-851,BUILD,outreach-campaign-ops,"_shared/career_outreach.ts:1-17: batches of 10, approve, send, replies, bounces; no follow-up wave, bounce-rate pause, seed-inbox test, reserve backfill, close-out, or batch-variety measure",
+BL-852,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-853,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",unverified
+BL-854,RETEST-BRAIN,routing-wording,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-855,BY-POLICY,ai-use-truth,FR-363 as a test,
+BL-856,NOT-TRUNK,worker-v2,v2-candidate worker; trunk maps to WO-039/1 and WO-021,
+BL-857,NOT-TRUNK,owner-facts,D-007 cleanup of the owner's fact bank,
+BL-858,NOT-TRUNK,old-runners,,
+BL-859,DUP,routing-wording,BL-690,same gap as BL-690
+BL-860,BUILD,per-thread-state,"_shared/career_host.js:35-37 STATE_KEYS (profile, trackStore) live in the thread snapshot; career_host_commit keys agent_flow_state by thread (migrations/20261015020000_career_watch_kv.sql:115,140); career_tools.ts:162-166 list_applications reads trackStore only, never career_apply_jobs or receipts",
+BL-861,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"corrections; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-862,RETEST-BRAIN,memory,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"synthesis; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-863,DUP,pause-control,BL-681,same gap as BL-681
+BL-864,OWNER-GATE,owner-proof,test-user credentials for a live depth run are the owner's,
+BL-865,BUILD,alert-content,"_shared/career_alerts.ts:5 + WO-007/2: an alert is company, title, place, minutes, link; no deadline, no fit reason, no offer-expiry reminder, no same-company batching",
+BL-866,BUILD,alert-content,"_shared/career_alerts.ts:5 + WO-007/2: an alert is company, title, place, minutes, link; no deadline, no fit reason, no offer-expiry reminder, no same-company batching",
+BL-867,NOT-TRUNK,watch-151,151 gate retired,
+BL-868,NOT-TRUNK,module-121,module 121 normalizers; trunk ingest names the board's company,
+BL-869,DUP,board-coverage,BL-708,same gap as BL-708
+BL-870,OWNER-GATE,deploy,WO-007 alerts built (tests ran green); delivery needs deploy and a channel,
+BL-871,RETEST-BRAIN,alerts-chat,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (set_job_alerts),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-872,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-873,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-874,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-875,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-876,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-877,RETEST-BRAIN,tailor,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume eligibility verdict),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-878,RETEST-BRAIN,tailor,"_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume, search_jobs knockouts)","live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-879,BUILD,tailoring-depth,"_shared/career_tailor.ts:14 still runs module 123 CareerTailor.tailorResume (router_core.career.js:2213): bullet selection inside a fixed fact set; offline 1,000-scenario audit not re-run on trunk",
+BL-880,OWNER-GATE,board-family-proof,D-022 gate; zero real submissions,
+BL-881,DUP,board-family-proof,BL-712,same gap as BL-712
+BL-882,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",SmartRecruiters has no adapter
+BL-883,RETEST-BRAIN,tracking,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (track_application),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-884,OWNER-GATE,vendor-spend,D-018/D-018a,
+BL-885,DUP,outreach-draft,BL-696,same gap as BL-696
+BL-886,OWNER-GATE,vendor-spend,D-018; referral_map works on the person's own export,
+BL-887,DUP,owner-proof,BL-646,same gap as BL-646
+BL-888,FIXED-IN-TRUNK,prep-banks,"packages/career-data/interview-banks (9 sectors) read by _shared/career_mock.ts; tests/career-prep-bank.test.cjs, tests/architect/wo-025-mock.test.ts WO-025/10",Tests ran green
+BL-889,FIXED-IN-TRUNK,prep-banks,"data.md, law.md, medicine.md banks; tests/architect/wo-025-mock.test.ts WO-025/10 covers law and medical roles",Tests ran green
+BL-890,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (get_interview_questions),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-891,BUILD,prep-training-method,"_shared/career_mock.ts: fixed 20-minute session and rubric; no spaced, timed-drill or interleaved practice; WO-010 drafting",
+BL-892,RETEST-BRAIN,mock-prep,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-893,RETEST-BRAIN,negotiation,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (offer_benchmark),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-894,DUP,intel,BL-697,same gap as BL-697
+BL-895,BUILD,company-records,"packages/career-data/cirs holds 38 firm records (no Databricks, no Lincoln International)",
+BL-896,OWNER-GATE,owner-proof,the owner's 10 personal records live on his machine,
+BL-897,DUP,career-os,BL-693,same gap as BL-693
+BL-898,BUILD,role-library,no agent tool reads the role library: kb-aggregates.json / career_kb_roles are read only by router_core.career.js,
+BL-899,NOT-TRUNK,old-corpus,,
+BL-900,NOT-TRUNK,old-corpus,,
+BL-901,NOT-TRUNK,old-corpus,"corpus text cut at 1,500 chars on the old line; trunk get_posting reads 4,000",
+BL-902,DUP,board-coverage,BL-708,same gap as BL-708
+BL-903,FIXED-IN-TRUNK,proof,tests/architect/wo-021-receipts.test.ts WO-021/R1-R6,Tests ran green
+BL-904,FIXED-IN-TRUNK,mail-tracking,tests/architect/wo-024-mail.test.ts WO-024/M5; tests/architect/wo-032-apply-ops.test.ts WO-032/C1,live needs Google connect
+BL-905,RETEST-BRAIN,tailor,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (tailor_resume changelog (WO-028/6)),"a one-line diff exists; 'show me what you changed' must reach it; live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-906,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter","Workday is partial (WO-048, test tenants only); iCIMS and Taleo have nothing"
+BL-907,RETEST-BRAIN,intel,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (career_path_answer (H-1B filings)),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-908,BUILD,mcp-surface,no MCP or CLI read-and-draft surface exists on trunk,
+BL-909,DUP,voice,BL-414,same gap as BL-414
+BL-910,BY-POLICY,accounts-passwords,AGENTS.md: never log into a user's account,
+BL-911,OWNER-GATE,vendor-spend,D-018,
+BL-912,BY-POLICY,linkedin,CLAUDE.md: never automate LinkedIn,honest stop: their own export only
+BL-913,OWNER-GATE,owner-proof,D-016,
+BL-914,OWNER-GATE,owner-proof,pilot consent terms,
+BL-915,OWNER-GATE,send-enablement,CAREER_OUTREACH_SEND; deploy,
+BL-916,BUILD,document-ingest,agent-chat/career_brain.ts:94 a non-text attachment reaches the model as 'this file type can't be read yet'; WO-008 (read PDF/DOCX/photo) is drafting,
+BL-917,OWNER-GATE,send-enablement,career-proactive/index.ts:78-80 CAREER_OUTREACH_SEND off by default,honest reply: drafts only until the owner turns sends on
+BL-918,OWNER-GATE,google-connect,calendar.events scope requested (gmail-oauth/career.ts:16) but no tool creates invites; Google verification is the owner's,
+BL-919,OWNER-GATE,board-family-proof,D-022,
+BL-920,NOT-TRUNK,module-149,maps to WO-042/2,
+BL-921,NOT-TRUNK,module-149,maps to WO-042/3,
+BL-922,NOT-TRUNK,ops-other-machine,old extension README,
+BL-923,BUILD,per-thread-state,"_shared/career_host.js:35-37 STATE_KEYS (profile, trackStore) live in the thread snapshot; career_host_commit keys agent_flow_state by thread (migrations/20261015020000_career_watch_kv.sql:115,140); career_tools.ts:162-166 list_applications reads trackStore only, never career_apply_jobs or receipts",extension submissions are not in list_applications
+BL-924,FIXED-IN-TRUNK,extension,tests/architect/wo-031-extension.test.ts WO-031/2; tests/architect/wo-048-workday.test.ts,Lever and Ashby fill; Workday on test tenants only. Tests ran green
+BL-925,FIXED-IN-TRUNK,extension,tests/architect/wo-042-sixty.test.ts,60 reviewed in 30 minutes on TEST pages; zero real submissions
+BL-926,OWNER-GATE,board-family-proof,D-022 + D-028,
+BL-927,NOT-TRUNK,old-metric,old 58% metric; trunk measures fill accuracy per sealed sample (WO-056..059),
+BL-928,BUILD,form-families,"extension/lib/trainee-core.js:3735-3737 recognizes Greenhouse, Lever, Ashby, Workday only (WO-031/2); SmartRecruiters, iCIMS, Taleo, Tally, Google Forms, FormAssembly, bespoke sites have no adapter",
+BL-929,DUP,board-coverage,BL-708,same gap as BL-708
+BL-930,DUP,deploy,BL-870,same gap as BL-870
+BL-931,DUP,tailor,BL-905,same gap as BL-905
+BL-932,FIXED-IN-TRUNK,tailor-confirm,tests/career-v242-live-gaps.test.cjs ran green (WO-070 port),
+BL-933,DUP,tailor-confirm,BL-643,same gap as BL-643
+BL-934,FIXED-IN-TRUNK,tailor,tests/architect/wo-028-tailor.test.ts WO-028/9 (callbackRate),Test ran green; needs 30 per arm of real data
+BL-935,DUP,send-enablement,BL-917,same gap as BL-917
+BL-936,OWNER-GATE,connector,WO-026/1: closed without CONNECTOR_ENABLED=on and below 500 people; _shared/career_connector.ts has no caller,
+BL-937,FIXED-IN-TRUNK,mock,tests/architect/wo-025-mock.test.ts WO-025/2,a full session advances; code before any brain. Test ran green
+BL-938,FIXED-IN-TRUNK,mail-tracking,tests/architect/wo-024-mail.test.ts; wo-040..046 mail tests,Tests ran green; live needs Google connect
+BL-939,NOT-TRUNK,old-metric,,
+BL-940,NOT-TRUNK,site,site lives on another line (WO-071 site port queued),
+BL-941,FIXED-IN-TRUNK,ingest,tests/architect/wo-006-ingest.test.ts; tests/architect/wo-037-refresh.test.ts WO-037/R1,scheduled live ingestion; needs deploy
+BL-942,BUILD,board-coverage,"packages/career-data/board-directory.json holds 2,435 boards (target 50,000; WO-044 building); banks' Workday tenants not in discovery",
+BL-943,DUP,board-family-proof,BL-712,same gap as BL-712
+BL-944,DUP,board-family-proof,BL-712,same gap as BL-712
+BL-945,DUP,board-family-proof,BL-712,same gap as BL-712
+BL-946,DUP,form-families,BL-882,same ask as BL-882
+BL-947,OWNER-GATE,owner-proof,the owner's own application,
+BL-948,OWNER-GATE,owner-proof,the owner's own application,
+BL-949,NOT-TRUNK,worker-v2,v2-candidate loadTargeted; trunk WO-073 title search,
+BL-950,NOT-TRUNK,worker-v2,v2-candidate executor; trunk WO-039/2,
+BL-951,OWNER-GATE,worker-host,D-010/D-028 VM is the owner's,
+BL-952,RETEST-BRAIN,unsupported-claims,_shared/agent/loop.ts runAgentTurn + _shared/agent/career_tools.ts (bare yes with nothing waiting),"live answer is still the router: agent-chat/career_brain.ts:21 chooseBrain (router unless CAREER_BRAIN=agent, off until D-027)"
+BL-953,OWNER-GATE,board-family-proof,D-022,

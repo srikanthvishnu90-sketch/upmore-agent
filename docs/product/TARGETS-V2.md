@@ -22,6 +22,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 | Target | Status | What is true | Next |
 |---|---|---|---|
 | Extension-assisted apply: 50 per 30 min, 90%+ fields (Greenhouse, Lever, Ashby), 70%+ Workday, zero wrong submits, under 10 s each | BUILDING (WO-031) | MV3 extension over the same planner, answer keys and ask-once store. One-tap review card, bound to a hash of the exact payload. Bot checks are handed to the person. | Review, PR, merge; Muse runs a 20-posting session (plan 3.6) |
+| 60 reviewed applications in 30 min, 90%+ fields, zero wrong-answer submissions (owner, 2026-10-20) | BUILDING (WO-042, PR #62) | Benchmark and 30.0 s budget in `docs/architect/work-orders/WO-042-sixty-in-thirty.md`. VERIFIED offline: field precision 100% on all 17 captured forms (was 94-97%); Lever + Ashby session 60/60 sent, 0 wrong-answer submissions, coverage 92.3%, machine critical path 2.75 s each. VERIFIED-LIVE (CI, real pages, never sent): precision 100% (144/144), coverage Lever 88.2%, Ashby 88.2%, Greenhouse 37.6% (dropdown driver rebuilt from the live probe; re-measuring). Person's reading and typing time: ASSUMED model; real session NOT_RUN. **60 in one day is not allowed by D-011 (50 max).** | Owner: D-011 amendment for 60/day; a real person runs one session |
 | Cloud autonomous 100-150/day | BUILDING (WO-039), locked in code; **the target is not reachable as specified** | The worker, the database gate and the opt-in are built. It unlocks per portal only at 3 hand submissions confirmed by the employer's email (D-022). Three limits, stated plainly: (1) D-011 caps a person at 50 a day, so 100-150 needs the owner to amend D-011 in writing; (2) a server can only submit forms that post to their own page: Lever, 6 of the 17 captured forms (VERIFIED, fixture count). Greenhouse and Ashby submit from page script, so the person presses Submit; (3) all 17 captured forms load an invisible bot check; how often a server browser is challenged is NOT_RUN. Compute is not the limit: about 28 people at 150 a day per VM (ASSUMED 60 s each). | Owner: D-011 decision. Plan 3.5: the hand submissions. The first Lever cloud week decides the bot-check rate |
 | Answer bank 58% to 85%+ of required questions | BUILT offline | Planner fills 85.4% (A) / 83.8% (B) of required questions with a complete synthetic persona (#38, #40). VERIFIED offline. A real person's rate is NOT_RUN. | Live rate from plan 3.1 |
 | Every unknown asked once over text, never again | BUILT; push BUILDING (WO-032) | Ask-once (#45). WO-032 texts open questions without being asked: once a day at most, outside quiet hours, never after they are answered. | Merge WO-032 |
@@ -72,7 +73,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 |---|---|---|---|
 | Real hired-candidate backgrounds | IN PR (#58); funded (D-018) | People Data Labs Person Search, shown as aggregates only (schools, prior employers, degrees; nothing under n=5), never a named person. Without `PDL_API_KEY`, Trainee says it has no data and never invents any. | Owner reads PDL's terms, then sets the key |
 | "How do I get into X": real data, honest probability, 3 moves | IN PR (#58) | Firm programs, timelines and requirements with URLs and checked dates. A probability only with a cited base rate (Goldman and JPMorgan today). Every move cites a requirement and a fact or gap. | Firm-guide re-check on a schedule |
-| Offer to benchmark and negotiation script, under 30 min | IN PR (#58) | Public filed wages (DOL LCA) and survey wages (BLS OEWS) with n and year; never n<5 as a benchmark; never an invented competing offer. The datasets are imported by CI (the build sandbox can't reach dol.gov or bls.gov); until that commit lands they say `awaiting_import`. | Import run on #58 |
+| Offer to benchmark and negotiation script, under 30 min | BUILT (#58) | Public filed wages (DOL LCA, FY2025 Q4, 977 cells) and survey wages (BLS OEWS May 2025, 90 metro cells) with n and year, imported by CI; never n<5 as a benchmark; never an invented competing offer. Real-model turn NOT_RUN. | Run on a live offer |
 
 ## Tracking and follow-up
 | Target | Status | What is true | Next |
@@ -85,7 +86,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 | Target | Status | What is true | Next |
 |---|---|---|---|
 | Never repeat yourself; everything retrievable | BUILT (#37, #41, #55) | Standing instructions, facts, alerts and pipeline go into every turn. The timeline answers recall by kind, subject and time, including outreach ("which bankers did I email in October?"). | |
-| "Forget everything" forgets everything | BUILT; mail tables IN PR (#59) | An erase clears the timeline, interviews, outreach drafts and tailored resumes. #59 adds mail tracking's events and drafts, which were left behind. | Merge #59 |
+| "Forget everything" forgets everything | BUILT (#59) | An erase clears the timeline, interviews, outreach drafts, tailored resumes, and mail tracking's events and drafts (DB-tested). | |
 | Degrade with a one-line ask | BUILT (#41) | | |
 
 ## Channels

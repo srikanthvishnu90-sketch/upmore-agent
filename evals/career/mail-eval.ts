@@ -6,6 +6,7 @@ import { classifyMail, type MailKind, sameCompany, STATUS_KINDS } from "../../su
 import set from "./mail-labels.json" with { type: "json" };
 import blind from "./mail-blind.json" with { type: "json" };
 import dev4set from "./mail-dev4.json" with { type: "json" };
+import blind160 from "./mail-blind160.json" with { type: "json" };
 
 export const TARGET = { precision: 0.97, recall: 0.95 };
 const KINDS: MailKind[] = [...STATUS_KINDS, "other"];
@@ -58,7 +59,10 @@ export function evaluate(mails: typeof set.mails) {
 // prints everything as JSON.
 // WO-043: "dev4" (mail-dev4.json, 260 SYNTHETIC emails written and labeled before WO-043's classifier change) is tuned on;
 // "dev4check" (88, a fixed-seed quarter of the same batch) is printed only when named, like blind40, and was scored once.
-export const SEALED = ["blind40", "dev4check"];
+// "blind160" (WO-043 review, mail-blind160.json): 160 SYNTHETIC emails written by the architect without reading the
+// classifier or any labeled mail, held outside the repo (sha256 fae488d3...) and scored once on WO-043's classifier. It is
+// spent as a blind check now; a floor, printed only when named.
+export const SEALED = ["blind40", "dev4check", "blind160"];
 export function dev4Splits() {
   const mails = dev4set.mails as typeof set.mails;
   return { dev4: mails.filter((m) => m.split === "dev4"), dev4check: mails.filter((m) => m.split === "dev4check") };
@@ -68,7 +72,7 @@ export function splitsOf(mails: typeof set.mails) {
   return { all: mails, dev: of("tune", "tune2", "dev3"), tune: of("tune"), tune2: of("tune2"), dev3: of("dev3"), devcheck: of("devcheck"), holdout: of("holdout") };
 }
 if (import.meta.main) {
-  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits() };
+  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits(), blind160: blind160.mails as typeof set.mails };
   const at = Deno.args.indexOf("--only"), only = at >= 0 ? String(Deno.args[at + 1] ?? "").split(",") : null;
   const results = Object.fromEntries(Object.entries(splits).filter(([k]) => (only ? only.includes(k) : !SEALED.includes(k))).map(([k, v]) => [k, evaluate(v)]));
   if (Deno.args.includes("--json")) console.log(JSON.stringify(results, null, 2));

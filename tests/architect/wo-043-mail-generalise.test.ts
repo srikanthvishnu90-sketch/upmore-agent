@@ -10,6 +10,7 @@ import { dev4Splits, evaluate, SEALED, splitsOf } from "../../evals/career/mail-
 import { fit, TUNING_SPLITS, tuningMails } from "../../evals/career/mail-fit.ts";
 import labels from "../../evals/career/mail-labels.json" with { type: "json" };
 import dev4 from "../../evals/career/mail-dev4.json" with { type: "json" };
+import blind160 from "../../evals/career/mail-blind160.json" with { type: "json" };
 import SRC from "../../supabase/functions/_shared/career_mail.ts" with { type: "text" };
 
 function eq(a: unknown, b: unknown, m = "") {
@@ -53,6 +54,17 @@ Deno.test("WO-043/E3 dev4check is a floor at its one-time score (VERIFIED at ffe
   const r = evaluate(dev4Splits().dev4check);
   assert(r.status.precision >= 0.985 && r.status.recall >= 0.93, `dev4check ${JSON.stringify(r.status)}`);
   eq(r.confusions.rejection_as_interview, 0, "dev4check: a rejection read as an interview");
+});
+
+Deno.test("WO-043/E4 blind160, written outside the repo and scored once by the architect, is a floor at that score", () => {
+  // Architect review, 2026-10-20: 160 SYNTHETIC emails (120 status) written without reading the classifier or any labeled
+  // mail, sealed (sha256 fae488d3...) and scored once on 2640e546. Trunk 288a25de: 91.3% / 87.5%. This branch: 94.9%
+  // (112/118) precision, 93.3% (112/120) recall, no rejection read as an interview. Below the 97% / 95% target.
+  assert(SEALED.includes("blind160"), "blind160 prints only when named");
+  const r = evaluate(blind160.mails as any);
+  assert(r.status.precision >= 0.949 && r.status.recall >= 0.933, `blind160 ${JSON.stringify(r.status)}`);
+  eq(r.confusions.rejection_as_interview, 0, "blind160: a rejection read as an interview");
+  assert(!tuningMails().some((m) => (blind160.mails as any[]).some((b) => b.id === m.id)), "blind160 is never tuned on");
 });
 
 // ------------------------------------------------------------------------------------------------ the weights

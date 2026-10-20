@@ -18,6 +18,35 @@ an interview on any split, before or after. The older tuned splits did not regre
 data tuned on, so it is an optimistic check; an independently written set (fresh20, held outside the repo) and real
 inboxes are NOT_RUN.
 
+**Architect's blind check (review, 2026-10-20).** The architect wrote 160 SYNTHETIC emails (120 status) without reading
+the classifier or any labeled mail. They were sealed outside the repo (sha256 fae488d3…) and scored once, on 2640e546.
+The set is now `evals/career/mail-blind160.json`, a floor that prints only when named (WO-043/E4).
+
+| Classifier | Precision | Recall | Rejection read as interview |
+|---|---|---|---|
+| trunk 288a25de | 91.3% (105/115) | 87.5% (105/120) | 0 |
+| **this branch** | **94.9% (112/118)** | **93.3% (112/120)** | **0** |
+
+VERIFIED, SYNTHETIC. This is the first number on wording written by someone other than the builder. It clears neither
+part of the 97% / 95% target. By kind on this branch:
+- interview recall is lowest at 84% (21/25). The misses are calendar-invite subjects ("Invitation: Interview: …",
+  "Updated: … interview — new time"), a vendor scheduling link ("Schedule your Karat interview for Roblox"), and "coffee?"
+  read as a recruiter reply;
+- recruiter reply is 80% / 80%;
+- received recall is 96%;
+- rejection is 96.8% / 100%;
+- assessment is 93.8% / 100%;
+- offer is 100% / 100%.
+
+False status from look-alikes:
+- an adoption application read as received;
+- "How was your interview experience at Lyft?" (a survey) read as rejection;
+- "Your weekly coding challenge is here" read as assessment;
+- "Re: quick question" and "An update on your application" (other) read as recruiter replies.
+
+Company names: 93.8%. The misses are "Recruitment Wipro", "TCS" for Tata Consultancy Services, "Sophie at Loom",
+"lmco", "bswhealth", and none for "Application received: Linear". Real inboxes remain NOT_RUN.
+
 ## 2. Why the rules did not generalise, and the approach
 
 Each WO-024/040 rule is a fixed phrase ("decided not to move forward"). A new phrasing of the same decision ("we won't be

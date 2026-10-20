@@ -338,7 +338,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         : null;
       // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
-      // and "yes" while it is the last word sends exactly that email once from the person's Gmail. Code's, like the card.
+      // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
+      // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
       const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
       const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
       const sendToken = careerTokenFor({
@@ -365,6 +366,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
           canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+          // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
+          sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
         } })
         : null;
       if (draftMeter.calls) {

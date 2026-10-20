@@ -8,13 +8,19 @@ import { addressOf, type Channel, channelOf, type DeliveryAdapter, type SendResu
 
 export type ChannelCommand = "stop" | "start" | "help";
 const COMMANDS: Record<string, ChannelCommand> = {
-  stop: "stop", stopall: "stop", unsubscribe: "stop", cancel: "stop", end: "stop", quit: "stop",
+  stop: "stop", stopall: "stop", unsubscribe: "stop",
   start: "start", unstop: "start", help: "help", info: "help",
 };
+// CANCEL, END and QUIT are opt-out words only on SMS: they are in the carrier keyword list (CTIA's opt-out keywords for
+// SMS programs) that WO-013 wrote for a texting number. iMessage (LoopMessage), WhatsApp and Telegram are not SMS, and on
+// them these are ordinary words a person says to an agent that asks yes/no and cancel questions ("Say cancel and I will
+// stop them", "end mock"), so they go to the brain (WO-091c). STOP, STOPALL and UNSUBSCRIBE stay commands everywhere.
+const SMS_ONLY: Record<string, ChannelCommand> = { cancel: "stop", end: "stop", quit: "stop" };
 // The whole message is the command (any case, end punctuation ignored); "stop sending me sales jobs" is a message.
-export function channelCommand(text: string): ChannelCommand | null {
+// `channel`: where the text came in. No channel named (the WO-013a simulator, a bare number) keeps the full SMS list.
+export function channelCommand(text: string, channel?: Channel | "sms"): ChannelCommand | null {
   const t = String(text ?? "").trim().toLowerCase().replace(/[.!?\s]+$/g, "");
-  return COMMANDS[t] ?? null;
+  return COMMANDS[t] ?? (channel === undefined || channel === "sms" ? SMS_ONLY[t] ?? null : null);
 }
 export const CHANNEL_REPLIES: Record<ChannelCommand, string> = {
   // After STOP nothing goes out on Trainee's own (alerts, reports, nudges); a message the person starts is still answered.
@@ -32,6 +38,8 @@ export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" 
 export interface ChannelStore {
   due(now: number, limit: number): Promise<OutboxRow[]>; // undelivered, deliver_at <= now, oldest first
   optedOut(contact: string): Promise<boolean>;
+  // WO-091c: the person's account is paused, opted out or erased (career_user_quiet). Absent: only STOP holds a row.
+  quiet?(userId: string): Promise<boolean>;
   setOptOut(contact: string, out: boolean, at: number): Promise<void>;
   contactsSentOn(day: string, channel?: Channel): Promise<number>; // distinct contacts sent to on a UTC day (on one channel, if named)
   sentTo(contact: string, day: string): Promise<boolean>;
@@ -49,6 +57,7 @@ export const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [60000, 5 * 60000, 30 * 60000]; // after attempt 1, 2, 3
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
+export const PAUSED_NOTE = "not sent: the person paused Trainee (or stopped or erased it) after this was queued";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
@@ -84,6 +93,12 @@ export async function deliverDue(o: {
   // Answers keep their order: once one of a person's replies (or one part of a reply in parts) did not go out in this run,
   // their later replies wait for the next run instead of overtaking it.
   const stalled = new Set<string>();
+  const quiet = new Map<string, boolean | null>(); // per person, once per run; null: it could not be read
+  const isQuiet = async (userId: string) => {
+    if (!o.store.quiet) return false;
+    if (!quiet.has(userId)) quiet.set(userId, await o.store.quiet(userId).catch((e) => { console.error("deliver: the pause could not be read:", e instanceof Error ? e.message : String(e)); return null; }));
+    return quiet.get(userId)!;
+  };
   for (const m of await o.store.due(o.now, o.limit ?? 100)) {
     if (o.clock && o.budgetMs !== undefined && o.clock() - o.now >= o.budgetMs) { r.deferred++; continue; }
     if (isReply(m.key) && stalled.has(m.userId)) { r.deferred++; continue; }
@@ -92,6 +107,13 @@ export async function deliverDue(o: {
     // STOP holds what Trainee starts (alerts, reports, cards, receipts); the answer to a message the person sent after STOP
     // still goes out, as the STOP reply promises.
     if (!isReply(m.key) && await o.store.optedOut(m.contact)) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
+    // WO-091c: the same for a pause or an erase that came after the row was queued, checked now, at delivery. A pause that
+    // cannot be read leaves the row claimed and untouched (the run's release puts it back), never sent on a guess.
+    if (!isReply(m.key)) {
+      const q = await isQuiet(m.userId);
+      if (q === null) { r.deferred++; continue; }
+      if (q) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: PAUSED_NOTE }); r.skipped_opt_out++; continue; }
+    }
     const window = adapter.limits.windowMs ?? null;
     const stall = () => { if (isReply(m.key)) stalled.add(m.userId); };
     if (window !== null && (m.lastInboundAt == null || o.now - m.lastInboundAt >= window)) { stall(); await hold(m, adapter, HELD_NOTE); continue; }

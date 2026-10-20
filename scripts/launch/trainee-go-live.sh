@@ -96,6 +96,7 @@ MIGRATIONS=(
   20261021130000_career_mail_model_calls.sql
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
+  20261022120000_career_control_state.sql
   20261022150000_career_apply_authority.sql
 )
 MIGRATION_MARK=(
@@ -135,6 +136,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_mail_model_claim')"
   "to_regclass('public.career_apply_wanted') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
+  "exists (select 1 from pg_proc where proname = 'career_quiet_users')"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

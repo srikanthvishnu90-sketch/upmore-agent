@@ -26,6 +26,12 @@ import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 
 export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number }
+// WO-091c: a rail that failed for some people still reports what it did for the rest. The error carries that result as
+// `partial`, so the scheduled run records true counts beside the failure, and the message is unchanged.
+export function partialError<T>(message: string, partial: T): Error & { partial: T } {
+  return Object.assign(new Error(message), { partial });
+}
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -49,33 +55,43 @@ export async function runAlerts(o: {
     sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
   const byId = new Map(postings.map((p) => [p.job_id, p]));
   const plan = planProactive({ users, postings, now: o.now });
+  // WO-091c: one person's failure (a queue or save error) is recorded and never stops the next person's alerts.
+  const failed: string[] = [];
   for (const u of users) {
-    const mine = plan.filter((p) => p.userId === u.id);
-    let sent = 0;
-    const held = new Set(u.held || []);
-    let reported = false;
-    for (const p of mine) {
-      if (p.kind === "held") { held.add(p.job_id); stats.held++; continue; }
-      let firstSeen: string | undefined;
-      if (p.kind === "alert") {
-        const posting = byId.get(p.job_id);
-        if (!posting || !freshWhenSeen(posting) || !matchPosting(posting, u.prefs)) { stats.below_threshold = (stats.below_threshold ?? 0) + 1; continue; }
-        const seen = Date.parse(String(posting.first_seen_at ?? ""));
-        if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
+    try {
+      const mine = plan.filter((p) => p.userId === u.id);
+      let sent = 0;
+      const held = new Set(u.held || []);
+      let reported = false;
+      for (const p of mine) {
+        if (p.kind === "held") { held.add(p.job_id); stats.held++; continue; }
+        let firstSeen: string | undefined;
+        if (p.kind === "alert") {
+          const posting = byId.get(p.job_id);
+          if (!posting || !freshWhenSeen(posting) || !matchPosting(posting, u.prefs)) { stats.below_threshold = (stats.below_threshold ?? 0) + 1; continue; }
+          const seen = Date.parse(String(posting.first_seen_at ?? ""));
+          if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
+        }
+        const fresh = await o.outbox.enqueue(u.id, { key: p.key, kind: p.kind, text: p.text, at: p.at, ...(firstSeen ? { first_seen_at: firstSeen } : {}) });
+        if (!fresh) { stats.duplicates++; continue; }
+        if (p.kind === "alert") { sent++; stats.alerts++; } else { reported = true; stats.reports++; }
       }
-      const fresh = await o.outbox.enqueue(u.id, { key: p.key, kind: p.kind, text: p.text, at: p.at, ...(firstSeen ? { first_seen_at: firstSeen } : {}) });
-      if (!fresh) { stats.duplicates++; continue; }
-      if (p.kind === "alert") { sent++; stats.alerts++; } else { reported = true; stats.reports++; }
+      const today = localDate(o.now, u.tz);
+      const counters = {
+        last_checked_at: new Date(o.now).toISOString(),
+        instant_sent_today: u.instant_sent_today + sent, sent_on: today,
+        held: reported ? [] : [...held], // a report lists what was held; after it, nothing is held
+        last_report_on: reported ? today : u.last_report_on,
+      };
+      // WO-091c: only the run's own counters are written, never the settings read at the start of the run, so a "stop my
+      // alerts" that lands while the run is going stays stopped. A store without saveCounters writes the whole row.
+      if (o.store.saveCounters) await o.store.saveCounters(u.id, counters);
+      else { const { sent_this_week: _week, ...row } = u; await o.store.save({ ...row, ...counters }); }
+    } catch (e) {
+      failed.push(errText(e));
     }
-    const today = localDate(o.now, u.tz);
-    const { sent_this_week: _week, ...row } = u;
-    await o.store.save({
-      ...row, last_checked_at: new Date(o.now).toISOString(),
-      instant_sent_today: u.instant_sent_today + sent, sent_on: today,
-      held: reported ? [] : [...held], // a report lists what was held; after it, nothing is held
-      last_report_on: reported ? today : u.last_report_on,
-    });
   }
+  if (failed.length) throw partialError(`alerts failed for ${failed.length} people (${stats.alerts} alerts queued): ${failed[0]}`, stats);
   return stats;
 }
 
@@ -87,16 +103,22 @@ export async function runReceipts(o: { outbox: Outbox; now: number; finished: (s
   const rows = await o.finished(new Date(o.now - 26 * 3600000).toISOString());
   const byId = new Map(rows.map((r) => [`receipt:${r.id}`, r]));
   let n = 0;
+  const failed: string[] = [];
   for (const r of planReceipts(rows, o.now)) {
-    if (!(await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at }))) continue;
-    n++;
-    const row = byId.get(r.key);
-    await recordEvent(o.events, {
-      user_id: r.userId, at: o.now, kind: "application_finished", subject: row?.company ?? "",
-      detail: { application: row?.id ?? null, state: row?.state ?? null, url: row?.url ?? null, reason: row?.reason ?? null, confirmation_id: row?.confirmation_id ?? null },
-      source: "receipt",
-    });
+    try {
+      if (!(await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at }))) continue;
+      n++;
+      const row = byId.get(r.key);
+      await recordEvent(o.events, {
+        user_id: r.userId, at: o.now, kind: "application_finished", subject: row?.company ?? "",
+        detail: { application: row?.id ?? null, state: row?.state ?? null, url: row?.url ?? null, reason: row?.reason ?? null, confirmation_id: row?.confirmation_id ?? null },
+        source: "receipt",
+      });
+    } catch (e) {
+      failed.push(errText(e));
+    }
   }
+  if (failed.length) throw partialError(`receipts failed for ${failed.length} applications (${n} queued): ${failed[0]}`, n);
   return n;
 }
 
@@ -129,7 +151,7 @@ export async function runCards(o: {
       failed.push(e instanceof Error ? e.message : String(e));
     }
   }
-  if (failed.length) throw new Error(`card push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`);
+  if (failed.length) throw partialError(`card push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`, pushed);
   return pushed;
 }
 
@@ -254,7 +276,7 @@ export async function runMail(o: {
   for (let i = 0; i < people.length; i += size) {
     await Promise.all(people.slice(i, i + size).map((p) => one(p).catch((e) => { failed.push(e instanceof Error ? e.message : String(e)); })));
   }
-  if (failed.length) throw new Error(`mail tracking failed for ${failed.length} people (${stats.statuses} status texts queued): ${failed[0]}`);
+  if (failed.length) throw partialError(`mail tracking failed for ${failed.length} people (${stats.statuses} status texts queued): ${failed[0]}`, stats);
   return stats;
 }
 
@@ -279,7 +301,7 @@ export async function runInterviewDrafts(o: {
       failed.push(e instanceof Error ? e.message : String(e));
     }
   }
-  if (failed.length) throw new Error(`interview drafts failed for ${failed.length} people (${n} queued): ${failed[0]}`);
+  if (failed.length) throw partialError(`interview drafts failed for ${failed.length} people (${n} queued): ${failed[0]}`, n);
   return n;
 }
 
@@ -302,7 +324,7 @@ export async function runDigest(o: { outbox: Outbox; now: number; store: DigestS
       failed.push(e instanceof Error ? e.message : String(e));
     }
   }
-  if (failed.length) throw new Error(`digest failed for ${failed.length} people (${n} queued): ${failed[0]}`);
+  if (failed.length) throw partialError(`digest failed for ${failed.length} people (${n} queued): ${failed[0]}`, n);
   return n;
 }
 
@@ -339,7 +361,7 @@ export async function runQuestions(o: {
       failed.push(e instanceof Error ? e.message : String(e));
     }
   }
-  if (failed.length) throw new Error(`questions push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`);
+  if (failed.length) throw partialError(`questions push failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`, pushed);
   return pushed;
 }
 
@@ -348,12 +370,18 @@ export async function runQuestions(o: {
 export async function runAsks(o: { now: number; store: Pick<AskStore, "pending" | "push"> }): Promise<number> {
   const seen = new Set<string>();
   let pushed = 0;
+  const failed: string[] = [];
   for (const a of await o.store.pending()) {
     if (seen.has(a.user_id) || !a.text) continue;
     const quiet = { quiet_start: a.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: a.quiet_end ?? DEFAULT_PREFS.quiet_end };
     if (quietAt(o.now, a.tz || "America/New_York", quiet)) continue;
     seen.add(a.user_id);
-    if (await o.store.push(a.user_id, a.hash, a.text)) pushed++;
+    try {
+      if (await o.store.push(a.user_id, a.hash, a.text)) pushed++;
+    } catch (e) {
+      failed.push(errText(e));
+    }
   }
+  if (failed.length) throw partialError(`asks failed for ${failed.length} people (${pushed} pushed): ${failed[0]}`, pushed);
   return pushed;
 }

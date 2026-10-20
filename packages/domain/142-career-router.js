@@ -7689,13 +7689,20 @@ const CareerRouter = (() => {
 
   function dispatchChat(text, ctx) {
     const c = ctx || {};
+    const rawText = text;
     text = detypo(text); // routing copy only — records keep the original
     const t = lc(text);
     if (!t) return null;
     const profile = c.profile || null;
     syncThreadIn(c);
     capturePastedPosting(text, c);
-    captureStatedFacts(text, c);
+    // LANE A v2: the stated-facts capture is a RECORD, so it reads the
+    // user's original words — detypo's routing copy rewrites any word
+    // within one edit of the route vocabulary ("Networks" is one edit
+    // from "network"), which silently re-named a stated company on
+    // the record (battery CB-0441: "Bluepeak Networks" was recorded
+    // as "Bluepeak Network" and could never be recalled as stated).
+    captureStatedFacts(rawText, c);
     // DEPTH LANE A (MI-013): bridge the stated facts into a thin
     // profile (see profileFromStatedFacts) so fact-stating users are
     // served by the profile-reading routes in THIS turn already.
@@ -8647,6 +8654,8 @@ const CareerRouter = (() => {
       // search, a role direction from the experience fact, a review
       // plan for a standing interview, and the standing plan's
       // first move. Each stands down without its record.
+      const cr = handleConversationRecall(text, c);
+      if (cr) return cr;
       const rr = handleRecordRecall(text, c);
       if (rr) return rr;
       const sr = handleStatedFactReadback(text, c);
@@ -8665,6 +8674,8 @@ const CareerRouter = (() => {
       if (thc) return thc;
       const sf = handleStatedFactsReply(text, c);
       if (sf) return sf;
+      const ba = handleBareAcknowledgment(text, c);
+      if (ba) return ba;
       const cq = handleClarifying(text, c);
       if (cq) return cq;
     }
@@ -8750,7 +8761,35 @@ const CareerRouter = (() => {
   // by a later statement or an explicit correction ("make it Chicago
   // not New York"), never accumulated into a contradiction.
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors"]);
+  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role"]);
+  // LANE A (conversation depth, battery memory class 0/60 on v238):
+  // KEYED conversation facts — a fact ABOUT one company (the recruiter
+  // contact there, the hiring manager, the interview day, a role
+  // preference) is stored with its company key on the SAME stated-facts
+  // record (no parallel store: the record rides the thread snapshot
+  // and the account stated_facts merge like every other fact).
+  // A later statement with the same kind+key REPLACES the value — a
+  // correction ("actually it's Friday") never duplicates. Key "" is
+  // the unscoped ("default") slot.
+  function recordKeyedFact(ctx, kind, key, value, evidence) {
+    if (!value) return false;
+    const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
+    if (!clean) return false;
+    if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) ctx.statedFacts = { facts: [] };
+    const facts = ctx.statedFacts.facts;
+    const k = s(key || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").trim();
+    const ev = s(evidence || "").slice(0, 200);
+    const ex = facts.find((f) => f.kind === kind && s(f.key || "").toLowerCase() === k);
+    if (ex) {
+      if (lc(ex.value) === lc(clean)) return false;
+      ex.value = clean; ex.evidence = ev; ex.at = new Date(nowOf(ctx)).toISOString();
+      ctx.statedFacts.updatedAt = ex.at;
+      return true;
+    }
+    facts.push({ kind, key: k || undefined, value: clean, evidence: ev, at: new Date(nowOf(ctx)).toISOString() });
+    ctx.statedFacts.updatedAt = new Date(nowOf(ctx)).toISOString();
+    return true;
+  }
   function recordThreadFact(ctx, kind, value, evidence) {
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
@@ -8862,6 +8901,90 @@ const CareerRouter = (() => {
         }
       }
     }
+    // (0c) LANE A (conversation depth): facts ABOUT a company or an
+    // interview — the recruiter contact, the hiring manager, the
+    // interview day, a dream role, a per-company role preference.
+    // The battery's memory class scored 0/60 on v238 because none of
+    // these had a capture frame: they were answered (or fell back)
+    // and forgotten. The frames run on the whole unquoted turn (the
+    // company and the person routinely sit in different clauses),
+    // each match gated on its own segment being the user's assertion
+    // — a question or a quote records nothing (BUG-169 discipline).
+    {
+      const u = unquotedText(raw);
+      const pushKeyed = (kind, key, value, clause) => {
+        if (recordKeyedFact(ctx, kind, key, value, clause)) added.push({ kind, value: s(value).trim() });
+      };
+      const segOf = (idx) => {
+        const before = u.slice(0, idx);
+        const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf("—"), before.lastIndexOf("–")) + 1;
+        const rest = u.slice(idx);
+        const endM = rest.match(/[.!?—–]/);
+        const end = endM ? idx + endM.index : u.length;
+        return u.slice(start, end).trim();
+      };
+      const asserted = (idx) => clauseIsAssertion(segOf(idx));
+      const CO = "([A-Z][A-Za-z0-9&.]+(?:\\s+[A-Z][A-Za-z0-9&.]+){0,2})";
+      const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){1,2})";
+      const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
+      const cleanCo = (v) => s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+      const turnCompany = () => {
+        const pats = [
+          new RegExp(`\\btarget\\s+(?:company|firm|bank|shop|employer)\\s+is\\s+${CO}`, "i"),
+          new RegExp(`\\binterview\\s+at\\s+${CO}`, "i"),
+          new RegExp(`\\bdream\\s+role\\s+is\\s+.+?\\s+at\\s+${CO}`, "i"),
+          new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\b`, "i"),
+          new RegExp(`\\brecruiter\\s+(?:contact\\s+)?at\\s+${CO}`, "i"),
+        ];
+        for (const p of pats) { const mm = u.match(p); if (mm) return cleanCo(mm[1]); }
+        const tf = statedFactsOf(ctx).find((f) => f.kind === "target_firm");
+        return tf ? tf.value : "";
+      };
+      let m;
+      // Interview-day correction FIRST (it must win over the plain
+      // day frame): "actually, correction: it's Friday, not
+      // Thursday" REPLACES the standing day — the corrected-from day
+      // never survives anywhere on the record.
+      const corrDay = u.match(new RegExp(`\\b(?:it'?s|that'?s)\\s+${DAY}\\s*,?\\s+not\\s+${DAY}\\b`, "i"));
+      if (corrDay && asserted(corrDay.index)) {
+        const newDay = corrDay[1].charAt(0).toUpperCase() + corrDay[1].slice(1).toLowerCase();
+        const oldDay = lc(corrDay[2]);
+        const days = statedFactsOf(ctx).filter((f) => f.kind === "interview_day");
+        const hit = days.find((f) => lc(f.value) === oldDay) || (days.length === 1 ? days[0] : null);
+        pushKeyed("interview_day", hit ? (hit.key || "") : turnCompany(), newDay, corrDay[0]);
+      }
+      // Interview day: "my interview at <Co> is on <Day>" /
+      // "my interview is on <Day>".
+      if ((m = u.match(new RegExp(`\\binterview\\s+at\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?is\\s+on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
+        pushKeyed("interview_day", cleanCo(m[1]), m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase(), m[0]);
+      } else if ((m = u.match(new RegExp(`\\bmy\\s+interview\\s+is\\s+on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
+        pushKeyed("interview_day", turnCompany(), m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), m[0]);
+      }
+      // Recruiter contact: "my recruiter contact there is <Name>",
+      // "my recruiter at <Co> is <Name>", "my recruiter is <Name>".
+      if ((m = u.match(new RegExp(`\\brecruiter\\s+(?:contact\\s+)?at\\s+${CO}\\s+is\\s+${PERSON}`))) && asserted(m.index)) {
+        pushKeyed("recruiter_contact", cleanCo(m[1]), m[2], m[0]);
+      } else if ((m = u.match(new RegExp(`\\brecruiter\\s+(?:contact\\s+)?(?:there\\s+)?is\\s+${PERSON}`))) && asserted(m.index)) {
+        pushKeyed("recruiter_contact", turnCompany(), m[1], m[0]);
+      } else if ((m = u.match(new RegExp(`\\bmy\\s+recruiter\\s+is\\s+${PERSON}`))) && asserted(m.index)) {
+        pushKeyed("recruiter_contact", turnCompany(), m[1], m[0]);
+      }
+      // Hiring manager: "the hiring manager is <Name>".
+      if ((m = u.match(new RegExp(`\\bhiring\\s+manager\\s+is\\s+${PERSON}`))) && asserted(m.index)) {
+        pushKeyed("hiring_manager", turnCompany(), m[1], m[0]);
+      }
+      // Dream role: "my dream role is <Role> at <Co>" — the company
+      // is the target firm; the role is its own single-value fact.
+      if ((m = u.match(new RegExp(`\\bmy\\s+dream\\s+role\\s+is\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+at\\s+${CO}`, "i"))) && asserted(m.index)) {
+        push("target_role", m[1].trim(), m[0]);
+        push("target_firm", cleanCo(m[2]), m[0]);
+      }
+      // Per-company preference: "for <Co> I only want <Role> roles
+      // in <City>".
+      if ((m = u.match(new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+roles?\\s+in\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)`, "i"))) && asserted(m.index)) {
+        pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
+      }
+    }
     // (1) Per-clause declarative capture.
     for (const cl of factClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
@@ -8939,7 +9062,9 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/\bmy\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
       // DEPTH LANE A: the plain frame — "my target firm is X" — is the
       // most natural way to state it and had no pattern at all.
-      else if ((m = cl.match(/\bmy\s+target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      // LANE A v2: "my TOP target company is X" (the battery's plant
+      // shape) missed every frame — the qualifier belongs in the frame.
+      else if ((m = cl.match(/\bmy\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       // DEPTH LANE A: exclusivity and too-senior frames ("analysts
@@ -9130,7 +9255,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -9187,6 +9312,85 @@ const CareerRouter = (() => {
     const all = statedFactsOf(ctx);
     const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+  }
+  // LANE A (conversation depth): RECALL of the conversation record.
+  // The battery's memory class scored 0/60 on v238: facts could be
+  // written but "what do you remember about my <Co> plans?", "which
+  // day is my interview?" and "what was the first thing I told you
+  // today?" all fell to the generic fallback. This handler answers
+  // exactly those asks from the stated-facts record — the current
+  // value only (a corrected day is stated as the day it now is,
+  // never as a history), the honest absence when nothing is on
+  // record, and never a guess.
+  function handleConversationRecall(text, ctx) {
+    const t = lc(text);
+    const all = statedFactsOf(ctx);
+    const coKey = (v) => s(v || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").trim();
+    // (a) First thing told today: the earliest fact on the record.
+    if (/\bfirst thing\b/.test(t) && /\b(told|said|mentioned|gave|shared)\b/.test(t)) {
+      if (!all.length) {
+        const reply = compose({ headline: "Nothing is on your record yet in this conversation.", facts: ["The record holds only what you state — tell me a fact (a target company, an interview day, a contact) and it is recorded in this turn."], nextStep: "State the first fact you want on record." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const first = all.slice().sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")))[0];
+      const spoken = first.evidence ? `you said: "${first.evidence}"` : `${factLine(first)}`;
+      const reply = compose({ headline: "The first thing you told me today is on your record.", facts: [`First on record: ${spoken}.`], nextStep: "Ask me anything else on the record, or tell me the next thing to run on it." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (b) Interview day: "which day is my interview?" / "when is my
+    // interview?" — the CURRENT day per company, stated plainly.
+    if ((/\b(which|what)\s+day\b/.test(t) && /\binterview\b/.test(t)) || /\bwhen\s+is\s+my\s+interview\b/.test(t)) {
+      const days = all.filter((f) => f.kind === "interview_day");
+      if (!days.length) {
+        const reply = compose({ headline: "No interview day is on your record yet.", facts: ["You have not stated an interview day in this conversation — the record holds only what you state, and no day is assumed."], nextStep: "Tell me the day (\"my interview is on Friday\") and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const lines = days.map((f) => f.key ? `Your interview at ${f.key} is on ${f.value}.` : `Your interview is on ${f.value}.`);
+      const reply = compose({ headline: "From your record — the day as it now stands.", facts: lines, nextStep: "Correct it the same way you stated it (\"actually it's Friday\") and the record replaces it — it never keeps both." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (c) Company-scoped recall: "what do you remember about my
+    // <Co> plans?" — every fact keyed to, valued with, or evidenced
+    // by that company, plus the target-firm fact when it matches.
+    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b/.test(t)) {
+      const named = all.filter((f) => f.value && t.includes(coKey(f.value)) && coKey(f.value).length > 2)
+        .map((f) => coKey(f.value));
+      const keyed = all.map((f) => f.key).filter(Boolean);
+      const company = named[0] || keyed.find((k) => t.includes(k)) || null;
+      const pool = company
+        ? all.filter((f) => coKey(f.key) === company || coKey(f.value) === company || (f.evidence && lc(f.evidence).includes(company)))
+        : all;
+      if (!pool.length) {
+        const reply = compose({ headline: company ? `Nothing is on your record about ${company} yet.` : "Nothing is on your record yet.", facts: ["The record holds only what you state in chat — a target company, a recruiter contact, an interview day, a preference — and nothing is assumed to fill it."], nextStep: "State the fact in your own words and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const lines = pool.map((f) => `${factLine(f)}.`);
+      const reply = compose({ headline: company ? `Here is what I have on record about your ${company} plans — your words, as stated.` : "Here is what I have on record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    return null;
+  }
+  // LANE A (conversation depth): a BARE ACKNOWLEDGMENT ("ok thanks")
+  // mid-conversation fell to the generic fallback on v238 — in the
+  // battery it was the single largest fallback source in otherwise
+  // working conversations (the memory class plants all carry one).
+  // A whole-turn ack over a thread WITH a record gets a plain
+  // acknowledgment that names what stands; a cold thread keeps the
+  // existing routes (onboarding owns early turns upstream anyway).
+  function handleBareAcknowledgment(text, ctx) {
+    const raw = s(text).trim();
+    if (!/^(?:ok|okay|thanks|thank you|thx|got it|perfect|great|nice|cool|sounds good|alright|right)[\s,.!]*(?:thanks|thank you|thx)?[\s,.!]*$/i.test(raw)) return null;
+    const all = statedFactsOf(ctx);
+    const rows = (() => { const ts = ctx.trackStore || {}; return Array.isArray(ts) ? ts : (ts.rows || []); })();
+    const thread = (ctx.trackStore && ctx.trackStore._careerThread) || {};
+    const hasRecord = all.length > 0 || rows.length > 0 || !!ctx.plan || !!ctx.posting || !!ctx.batchApplyState
+      || !!(ctx.discovery && (ctx.discovery.lastParams || ctx.discovery.lastIntelCompany))
+      || ["prep", "path", "negotiation", "drafts"].some((k) => thread[k] && typeof thread[k] === "object" && Object.keys(thread[k]).length > 0)
+      || !!(ctx.alertWatchState && Object.keys(ctx.alertWatchState).length > 0);
+    if (!hasRecord) return null;
+    const facts = all.length ? [`On record: ${all.slice(0, 4).map(factLine).join("; ")}.`] : ["Everything from this conversation so far stands as it is."];
+    const reply = compose({ headline: "Got it.", facts, nextStep: "Say the word when you want the next step, or ask me anything on the record." });
+    return { intent: "conversation_ack", reply, resultStatus: "completed", sends: 0 };
   }
   // INTEGRATION (2026-10-16): a direct read-back question for one
   // stated fact ("so what's my target firm?") was claimed by NOTHING

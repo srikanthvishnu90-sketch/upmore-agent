@@ -53,6 +53,7 @@ shared_tests=(
   tests/no-secrets.test.cjs
   tests/export-coverage.test.cjs
   tests/trainee-go-live.test.cjs
+  tests/career-bundle-data.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -96,7 +97,7 @@ edge_tests=(
   tests/edge/career-alerts.test.ts
   tests/edge/career-proactive.test.ts
   tests/edge/channel.test.ts
-  tests/edge/channel-delivery.test.ts
+  tests/edge/channel-delivery.test.ts tests/edge/channel-integrity.test.ts
   tests/edge/channel-inbound.test.ts
   tests/edge/capability-journey.test.ts
   tests/edge/eval-judge.test.ts

@@ -1,5 +1,5 @@
-// The texting channel's rules (WO-013a), before any provider: STOP means nothing more is ever sent to that contact until
-// START; every queued message goes out at most once, is retried on a provider's temporary failure, and is never dropped
+// The texting channel's rules (WO-013a), before any provider: STOP means Trainee sends nothing on its own to that contact
+// until START (an answer to a message the person sends is still delivered); every queued message goes out at most once, is retried on a provider's temporary failure, and is never dropped
 // silently; a provider's daily contact cap holds (LoopMessage plans: 300 or 1,000 contacts a day). The provider is a
 // `Send` function (LoopMessage in WO-013b); the store is memory here and Supabase in 013b.
 import { toBubbles } from "./conversation.ts";
@@ -33,16 +33,23 @@ export interface ChannelStore {
 }
 export type Send = (contact: string, bubbles: string[]) => Promise<{ ok: true; id: string | null } | { ok: false; error: string; retryable: boolean }>;
 
+// The answer to a message the person sent (trainee-inbound queues it as reply:<provider message id>).
+export const isReply = (key: string) => String(key ?? "").startsWith("reply:");
 export const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [60000, 5 * 60000, 30 * 60000]; // after attempt 1, 2, 3
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 
-export async function deliverDue(o: { store: ChannelStore; send: Send; now: number; limit?: number; dailyContactCap?: number }) {
-  const r = { delivered: 0, failed: 0, retried: 0, skipped_opt_out: 0, capped: 0 };
+// budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
+// provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
+export async function deliverDue(o: { store: ChannelStore; send: Send; now: number; limit?: number; dailyContactCap?: number; clock?: () => number; budgetMs?: number }) {
+  const r = { delivered: 0, failed: 0, retried: 0, skipped_opt_out: 0, capped: 0, deferred: 0 };
   const day = utcDay(o.now), cap = o.dailyContactCap ?? Infinity;
   let contacts = await o.store.contactsSentOn(day);
   for (const m of await o.store.due(o.now, o.limit ?? 100)) {
-    if (await o.store.optedOut(m.contact)) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
+    if (o.clock && o.budgetMs !== undefined && o.clock() - o.now >= o.budgetMs) { r.deferred++; continue; }
+    // STOP holds what Trainee starts (alerts, reports, cards, receipts); the answer to a message the person sent after STOP
+    // still goes out, as the STOP reply promises.
+    if (!isReply(m.key) && await o.store.optedOut(m.contact)) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
     const known = await o.store.sentTo(m.contact, day);
     if (!known && contacts >= cap) { r.capped++; continue; } // stays queued for tomorrow's allowance
     let res: Awaited<ReturnType<Send>>;

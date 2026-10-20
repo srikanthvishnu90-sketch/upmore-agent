@@ -1128,6 +1128,7 @@ test("queue: after a posting that stops (already applied), Skip moves on and eve
   try {
     await panel.fill("#links", ids.map((id) => world.urlOf(id)).join("\n"));
     await panel.click("#q-add");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 }); // WO-072: the same race
     await panel.click("#q-start");
     for (const id of ids) {
       const url = world.urlOf(id);
@@ -1399,6 +1400,9 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
   try {
     await panel.fill("#links", urls.join("\n"));
     await panel.click("#q-add");
+    // WO-072: as in the queue test (WO-059), the click resolves before the background has stored the queue; Prepare
+    // pressed in that moment read a short queue on a loaded CI runner. Wait for the panel's own "N postings added."
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
     const tabsBefore = await tabCount();
     const trailBefore = (await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length;
     await panel.click("#q-prepare");

@@ -1502,6 +1502,71 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// WO-082 (cross-user): one browser, two people. Sign-out used to clear only the session token and imported facts; the
+// first person's resume file, application proofs, Workday drafts, cards, queue and drafts stayed, and the next person to
+// sign in sent the first person's resume with their own applications. Each person's things are now that person's only:
+// set aside on sign-out (or when another person signs in) and given back when they sign in again.
+test("cross-user: after a sign-out another person sees none of the first person's resume, proofs or cards; the first gets theirs back", async (t) => {
+  if (skip(t)) return;
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const jwt = (claims) => `${b64({ alg: "none", typ: "JWT" })}.${b64(claims)}.VEVTVC1zaWduYXR1cmU`;
+  const first = { access: world.state.access, refresh: world.state.refresh, email: world.state.email };
+  const otherId = "00000000-0000-4000-8000-0000000000bb";
+  const panel = await openPanel(null);
+  const app = await ctx.newPage();
+  const ask = (m) => panel.evaluate((x) => chrome.runtime.sendMessage(x), m);
+  try {
+    // The first person's things: their resume (set in before()), a proof and a card of theirs.
+    await sw.evaluate(async () => {
+      const ev = (await chrome.storage.local.get("evidence")).evidence || [];
+      await chrome.storage.local.set({ evidence: [{ id: "TEST-first-person-proof", employer: "Acme (TEST)" }, ...ev] });
+      await chrome.storage.session.set({ cards: { 999: { status: "ready", jobId: "greenhouse:acme:1", lines: ["TEST first person's card"] } } });
+    });
+    const before = await ask({ type: "status" });
+    assert.ok(before.resume && before.resume.name.endsWith(".pdf"), "the first person has a resume");
+    assert.ok((await ask({ type: "proof", id: "TEST-first-person-proof" })).proof, "and a proof");
+
+    assert.equal((await ask({ type: "signout" })).ok, true);
+    const out = await ask({ type: "status" });
+    assert.equal(out.signedIn, false);
+    assert.equal(out.resume, null, "signed out: no resume shown");
+
+    // Another person signs in on the same browser, from their own Upmore tab.
+    world.state.access = jwt({ role: "authenticated", sub: otherId, email: "other.person@example.test", exp: Math.floor(Date.now() / 1000) + 3600, test: true });
+    world.state.refresh = "TEST-refresh-other";
+    world.state.email = "other.person@example.test";
+    await app.goto("https://upmore-topaz.vercel.app/?other=1");
+    assert.equal((await ask({ type: "signin-app" })).ok, true);
+    const other = await ask({ type: "status" });
+    assert.equal(other.signedIn, true);
+    assert.equal(other.email, "other.person@example.test");
+    assert.equal(other.resume, null, "the other person never gets the first person's resume");
+    assert.equal((await ask({ type: "proof", id: "TEST-first-person-proof" })).proof, null, "nor their proofs");
+    const kept = await sw.evaluate(async () => ({ local: await chrome.storage.local.get(["resume", "evidence", "workday_drafts"]), session: await chrome.storage.session.get(["cards", "queue", "essay_drafts", "answer_once", "imported_facts"]) }));
+    assert.ok(!JSON.stringify(kept).includes("TEST first person's card"), "nor their cards");
+    assert.ok(!JSON.stringify(kept).includes(".pdf"), "no resume of anyone's in the active keys");
+
+    // The first person signs back in and has their own things again.
+    assert.equal((await ask({ type: "signout" })).ok, true);
+    Object.assign(world.state, first);
+    await app.goto("https://upmore-topaz.vercel.app/?person=1");
+    assert.equal((await ask({ type: "signin-app" })).ok, true);
+    const back = await ask({ type: "status" });
+    assert.equal(back.email, first.email);
+    assert.ok(back.resume && back.resume.name.endsWith(".pdf"), "the first person's resume is back");
+    assert.ok((await ask({ type: "proof", id: "TEST-first-person-proof" })).proof, "and their proof");
+  } finally {
+    Object.assign(world.state, first);
+    await sw.evaluate(async () => {
+      const ev = (await chrome.storage.local.get("evidence")).evidence || [];
+      await chrome.storage.local.set({ evidence: ev.filter((e) => e.id !== "TEST-first-person-proof") });
+      await chrome.storage.session.remove("cards");
+    });
+    await app.close();
+    await panel.close();
+  }
+});
+
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

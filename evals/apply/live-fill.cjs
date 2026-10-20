@@ -152,6 +152,71 @@ async function main() {
   await setup.waitForFunction(() => document.getElementById("resume-name").textContent.includes(".pdf"));
   await setup.close();
 
+  // One way of typing a city into Lever's location input, as a function the page's main world and the extension's
+  // isolated world both run (passed whole to each). Returns what the field lists 2.5 s later; clears the text after.
+  const TYPE_WAYS = (way, text) => new Promise((done) => {
+    const inp = document.querySelector("input.location-input");
+    if (!inp) return done({ found: false });
+    const field = inp.closest(".application-field") || inp.parentElement;
+    const set = (v) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(inp, v);
+    const key = (t, k) => inp.dispatchEvent(new KeyboardEvent(t, { key: k, code: "Key" + k.toUpperCase(), keyCode: k.toUpperCase().charCodeAt(0), which: k.toUpperCase().charCodeAt(0), bubbles: true, cancelable: true }));
+    inp.focus();
+    // focus() fires no focus event while another window has the focus (the panel's, in this bench).
+    if (way === "focus_events") { inp.dispatchEvent(new FocusEvent("focus")); inp.dispatchEvent(new FocusEvent("focusin", { bubbles: true })); }
+    if (way === "clear_first") { set(""); inp.dispatchEvent(new Event("input", { bubbles: true })); }
+    if (way === "per_key") {
+      for (const ch of text) {
+        key("keydown", ch); key("keypress", ch);
+        set(inp.value + ch);
+        inp.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: ch }));
+        key("keyup", ch);
+      }
+    } else {
+      set(text);
+      inp.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: text }));
+      inp.dispatchEvent(new KeyboardEvent("keyup", { key: text.slice(-1), bubbles: true }));
+    }
+    if (way === "change_too") inp.dispatchEvent(new Event("change", { bubbles: true }));
+    setTimeout(() => {
+      const listed = Array.from(field.querySelectorAll(".dropdown-results > *")).filter((x) => x.getClientRects().length > 0).map((x) => x.textContent.replace(/\s+/g, " ").trim());
+      const res = { found: true, active: document.activeElement === inp, has_focus: document.hasFocus(), listed: listed.length, first: listed[0] || null };
+      set(""); inp.dispatchEvent(new Event("input", { bubbles: true })); inp.blur();
+      setTimeout(() => done(res), 600);
+    }, 2500);
+  });
+  let leverScriptPrinted = false;
+  async function leverTyping(page, tabId, lookups) {
+    const out = { handler_lines: null, ways: [] };
+    const scripts = await page.evaluate(async () => {
+      const res = {};
+      for (const src of Array.from(document.scripts).map((x) => x.src).filter((x) => /retrieveLocations|debounce|application\.js/i.test(x))) {
+        res[new URL(src).pathname] = await fetch(src).then((x) => x.text()).catch((e) => "ERR " + e);
+      }
+      return res;
+    }).catch((e) => ({ error: String(e.message || e) }));
+    out.handler_lines = Object.fromEntries(Object.entries(scripts).map(([k, v]) => [k, String(v).split(/\n|;(?=\S)/)
+      .filter((l) => /addEventListener|\.on\(|keyCode|which|isTrusted|searchLocations|debounce|focus|blur|input|keyup|keydown/i.test(l))
+      .slice(0, 40).map((l) => l.trim().slice(0, 200))]));
+    if (!leverScriptPrinted) {
+      leverScriptPrinted = true;
+      for (const [k, v] of Object.entries(scripts)) if (!/application\.js/.test(k)) console.log(`--- LEVER SCRIPT ${k} (${String(v).length} chars)\n${String(v).slice(0, 15000)}\n--- END ${k}`);
+    }
+    const cities = ["Chicago", "Boston", "Denver", "Austin", "Seattle", "Dallas", "Miami", "Phoenix", "Portland", "Atlanta"];
+    let i = 0;
+    for (const way of ["as_driver", "focus_events", "clear_first", "per_key", "change_too"]) {
+      for (const world of ["isolated", "main"]) {
+        const text = cities[i++ % cities.length], before = lookups.length;
+        // Both run as text through DevTools (a page's CSP may forbid eval); the isolated world gets the function itself.
+        const call = JSON.stringify([way, text]).slice(1, -1);
+        const res = world === "main" ? await page.evaluate(`(${TYPE_WAYS})(${call})`).catch((e) => ({ error: String(e.message || e).slice(0, 160) }))
+          : await sw.evaluate(`chrome.scripting.executeScript({ target: { tabId: ${tabId} }, func: ${TYPE_WAYS}, args: [${call}] }).then((r) => r[0].result)`)
+            .catch((e) => ({ error: String(e.message || e).slice(0, 160) }));
+        out.ways.push({ way, world, text, ...res, lookups: lookups.slice(before).filter((l) => (l.path || "").includes("text=" + text)).length });
+      }
+    }
+    return out;
+  }
+
   const rows = [];
   for (const f of MANIFEST.forms.filter((x) => x.status === "application" && KEY.forms[x.id])) {
     const r = { form: f.id, family: f.family, url: f.final_url || f.source_url };
@@ -278,11 +343,16 @@ async function main() {
           }
         }
       }
+      // Lever's place search (live runs 8 and 9): its searchLocations lookups came only from this probe, never from the
+      // extension's own typing. So: Lever's own location script, read with a GET (printed to the log once, its handler
+      // lines kept), then each way of typing in each world, the extension's isolated one and the page's main one, with the
+      // lookups each one caused. Nothing is chosen; each typing is cleared before the next.
+      if (f.family === "lever" && r.fields) r.lever_typing = await leverTyping(page, tabId, lookups);
       // Lever's and Ashby's place search, after the card (nothing is sent; the page closes after): what a page script's
       // typing lists, whether typed text alone is kept after blur, and one trusted typing as the control. Nothing chosen.
       if ((f.family === "lever" || f.family === "ashby") && r.fields) {
         const sel = f.family === "lever" ? "input.location-input" : "[data-field-path='_systemfield_location'] input";
-        r.place_probe = await page.evaluate(async (s) => {
+        if (f.family === "ashby") r.place_probe = await page.evaluate(async (s) => {
           const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
           const inp = document.querySelector(s);
           if (!inp) return { found: false };

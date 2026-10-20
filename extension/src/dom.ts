@@ -155,9 +155,9 @@ async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<bo
   const field = el.closest(".application-field, [class*='fieldEntry'], [class*='inputContainer']") || el.parentElement;
   const hidden = field?.querySelector("input[type='hidden'][name='selectedLocation']") ?? null;
   const listed = () => {
-    // Lever's results live inside the field itself. Live run 8: its lookup answered 200 in about 100 ms, yet the list
-    // never counted as visible, since Lever keeps it at visibility: hidden until its own page has focus (in the bench the
-    // panel window has it). Laid out is enough here; the chooser still names the one place it may click.
+    // Lever's results live inside the field itself, and Lever may keep them at visibility: hidden while another window
+    // (the panel) has the focus. Laid out is enough here; the chooser still names the one place it may click. (Live run
+    // 9: the lookup itself never starts on this typing; live-fill.cjs's lever_typing measures which typing Lever answers.)
     const lever = (Array.from(field?.querySelectorAll(".dropdown-results > *") ?? []) as any[]).filter((x) => x.getClientRects().length > 0);
     if (lever.length) return lever;
     const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");

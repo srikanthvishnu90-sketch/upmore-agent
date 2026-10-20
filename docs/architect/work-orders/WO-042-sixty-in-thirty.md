@@ -274,6 +274,25 @@ What changed:
   The TEST stand-in now keeps Lever's list at `visibility: hidden` as the live page does. Offline: Lever's location is
   filled, 46/46.
 
+### Live run 9 (VERIFIED-LIVE, CI run of 92aecbcf, never sent): run 8's diagnosis was wrong
+
+- **Precision 100% (187/187), coverage 92.1%, Lever's location still 0/6.** Counting the hidden list did not help,
+  because there was no list to count.
+- **Correction to runs 7 and 8 (architect's error).** The `searchLocations?text=Chicago` lookups I credited to the
+  extension came 417–700 ms after the fill ended (`timing.fill`), on all 6 forms. That is the bench's own probe, which
+  starts after the card. The second lookup, about 16.8 s later, is the trusted control typing. The extension's typing
+  caused **no lookup at all**: each fill waited its full 8 s (fill took 8.2–8.4 s) with no request made. So it was
+  never the network, the Cloudflare beacon or the list's visibility. Lever's page does not react to the driver's
+  typing. It did react to the probe's first typing, which cleared the field with an `input` event before typing, ran in
+  the page's main world, and came 8 s later. The probe's second typing ("Evanston") made no lookup either.
+- **Planner checked:** offered Lever's real list (`Chicago, IL, USA`, `Chicago, BLZ`, …), the chooser picks
+  `Chicago, IL, USA` for "Chicago, IL". The gap is only the typing.
+- **For run 10:** no more guessing. The bench reads Lever's own location script with a GET and prints it to the run
+  log, keeping its handler lines in `lever_typing.handler_lines`. Then it types 5 ways (the driver's exact events,
+  synthetic focus events first, clear first, key by key, plus `change`), each in both worlds (the extension's isolated
+  one and the page's main one). It records the lookups each one causes and what Lever lists. Nothing is chosen, and
+  each typing is cleared. The mechanism was checked locally against a stand-in page: all 10 ways look up there.
+
 ### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
 
 WO-031's fix round brings:
@@ -350,7 +369,8 @@ content.js `steps.begun`.
 2. Greenhouse widgets: the open mechanism and the real option texts are read live (CI probe). The driver then picks an
    option with the same `chooseOption` the planner uses for ordinary selects. The phone-country default is resolved
    from the person's own country. **Done** for toggled lists (live run 4: 32/42). Lever's and Ashby's place searches:
-   **done offline** (Run 2), live in run 5.
+   **done offline** (Run 2); Ashby live in run 5 (5/5). Lever live: **0/6, open** (live run 9: Lever's page makes no lookup for the
+   driver's typing; run 10 measures which typing it answers).
 3. A pipelined queue: the next two postings are opened, read, planned and filled in background tabs while the person
    reads the current card. The person's tap switches to a prepared card at once. The employer's answer and its proof
    arrive in the background and show in the queue. No `setTimeout` sleeps in the fill path, because Chrome runs timers

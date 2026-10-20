@@ -253,6 +253,24 @@ const WORKDAY_PAGE = `<!doctype html><html><head><title>Analyst - Acme (TEST Wor
 <select id="wd-spons" name="sponsorship" required><option value="">Select One</option><option value="1">Yes</option><option value="0">No</option></select>
 <button type="submit">Submit</button></form></body></html>`;
 
+// WO-048: TEST Workday-shaped tenants (tests/fixtures/workday/<tenant>: one file per step, key.json) served as a signed-in
+// Workday application, every step under one posting: https://<tenant host>/en-US/External/job/<place>/<job>/apply/<step>.
+// Pages are served as written, plus TEST variants by ?trainee_test= (none touches what the page asks):
+//   parsed   the step's first work row arrives filled the way a resume parse leaves it (Workday's own values)
+function workdayVariant(html, names) {
+  const add = [];
+  for (const n of String(names || "").split(",")) {
+    if (n === "parsed") {
+      add.push(`window.WD_CFG && (window.WD_CFG.initialRows = [{ section: "workExperience", values: { "--jobTitle": "Data Analyst II", "--companyName": "Example Analytics" } }]);`);
+    }
+  }
+  if (!add.length) return html;
+  const at = html.indexOf("window.WD_CFG");
+  const end = at >= 0 ? html.indexOf("</script>", at) : -1;
+  if (end < 0) return html;
+  return html.slice(0, end + 9) + `<script>/* TEST variant: ${names} */ ${add.join("\n")}</script>` + html.slice(end + 9);
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     const chunks = [];
@@ -309,6 +327,8 @@ async function startWorld(o = {}) {
   }
 
   const json = (res, code, body) => res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*" }).end(JSON.stringify(body));
+  // WO-048: host -> { dir, base, files, served }
+  const workdayTenants = new Map();
 
   async function supabase(req, res, u) {
     if (req.method === "OPTIONS") {
@@ -427,6 +447,16 @@ async function startWorld(o = {}) {
         return res.writeHead(200, { "content-type": "text/html" }).end(`<!doctype html><title>Upmore (TEST)</title><h1>Upmore TEST app</h1>
 <script>localStorage.setItem("sb-mrwngntwmnaqrqhupvlt-auth-token", ${JSON.stringify(JSON.stringify(session))});</script>`);
       }
+      const tenant = workdayTenants.get(host);
+      if (tenant) {
+        if (!u.pathname.startsWith(tenant.base) || req.method !== "GET") return res.writeHead(404, { "content-type": "text/plain" }).end("TEST world: not found");
+        const file = decodeURIComponent(u.pathname.slice(tenant.base.length));
+        const src = tenant.files[file] || (/^[\w.-]+\.html$/.test(file) ? path.join(tenant.dir, file) : null);
+        if (!src || !fs.existsSync(src)) return res.writeHead(404, { "content-type": "text/plain" }).end("TEST world: no such step");
+        tenant.served.push(file);
+        const page = workdayVariant(fs.readFileSync(src, "utf8"), u.searchParams.get("trainee_test"));
+        return res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }).end(page);
+      }
       if (host === WORKDAY_HOST) {
         if (req.method === "POST") {
           state.submits.push({ form: "workday-test", fields: {} });
@@ -469,10 +499,20 @@ async function startWorld(o = {}) {
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
-  const hostRules = HOSTS.map((h) => `MAP ${h} 127.0.0.1:${port}`).join(", ") + ", MAP * ~NOTFOUND";
+  // Every Workday tenant host comes here too (WO-048: a TEST tenant on its own host); nothing reaches a real one.
+  const hostRules = HOSTS.map((h) => `MAP ${h} 127.0.0.1:${port}`).join(", ") + `, MAP *.myworkdayjobs.com 127.0.0.1:${port}, MAP * ~NOTFOUND`;
   return {
     port, hostRules, state, forms, userId,
     cloneUrl,
+    // WO-048: serve a TEST Workday-shaped tenant directory; returns the URL of a step file. `files` adds steps from
+    // elsewhere (a TEST sign-in page) by file name.
+    workdayTenant(o) {
+      const host = o.host, base = o.base || "/en-US/External/job/Chicago-IL/Data-Analyst_R-10001/apply/";
+      if (!/\.myworkdayjobs\.com$/.test(host)) throw Error("a TEST tenant lives under myworkdayjobs.com");
+      const t = { dir: o.dir, base, files: o.files || {}, served: [] };
+      workdayTenants.set(host, t);
+      return { url: (file, variant) => `https://${host}${base}${file}${variant ? "?trainee_test=" + variant : ""}`, served: t.served };
+    },
     urlOf: (id, v) => {
       const f = forms.find((x) => x.id === id);
       return f.source_url + (v ? "?trainee_test=" + v : "");

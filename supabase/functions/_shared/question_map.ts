@@ -69,9 +69,14 @@ const RULES: Rule[] = [
   ["full_name", /^(full )?name\b|^your name\b|^nom complet\b/, (q, t) => !/referr|company|school|university|employer/.test(t)],
   ["signature", /^signature\b|\bsign(ature)? (here|below)\b|\btype your (full )?name\b/],
   ["email", /^e-?mail( address)?$|^email address\b|^電子メール$|^adresse e-?mail\b|^your e-?mail\b/],
+  // WO-048 (Workday's My Information): the phone's device type is its own fact, and an extension is never the number.
+  ["phone_type", /^(phone )?device type\b|^phone (number )?type\b|^type of phone\b/],
+  ["unknown", /^(phone )?ext(ension)?\b|^phone (number )?extension\b/],
   ["phone", /^(mobile |cell )?phone( number)?\b|^telephone\b|^telefoon\b|^téléphone\b|^電話$|^contact number\b/],
 
   // Address and location.
+  // A second address line is never the full address (WO-048, Workday's "Address Line 2").
+  ["unknown", /^address line (2|3|two|three)\b|^address 2\b|^(apt|apartment|suite|unit)\b/],
   ["street_address", /\bstreet address\b|^address line 1\b|^street\b/, (q, t) => !/\bcity\b.*\bstate\b|\bzip\b|full street address/.test(t)],
   ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address/.test(t)],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
@@ -151,7 +156,10 @@ const RULES: Rule[] = [
   ["work_authorization", /\b(legally )?(authori[sz]ed|eligible|entitled) (to work|for employment)\b|\bright to work\b|\bunrestricted right\b|\bproof of authorization\b|\beligibility to work\b|\bpermiso de trabajo\b|\bwork authori[sz]ation\b|\blegal right to work\b|\bverify (your|both your) identity and|\bauthori[sz]ation to work\b/],
   ["over_18", /\b(at least |over (the age of )?|)18( years)?( of age| or older| jaar)\b|\b18 jaar\b|\bunder 18\b|\bover the age of 18\b|\bat least 18\b/],
 
-  ["eeo", /\btransitioning service member\b|\bveteran\b|\bdisability\b|\bgender\b|\bethnicity\b|\brace\b|^tu es\b/],
+  // A generic label over a disclosure's own list ("Please select one of the options below:" above veteran classes) is that
+  // disclosure (WO-048, Workday's Voluntary Disclosures).
+  ["eeo", /^please (select|check|choose) (one|any|all) of the (options|boxes|following)\b/, (q) => /veteran|disabilit|gender|hispanic|latino|\brace\b|ethnicit/.test(opts(q))],
+  ["eeo", /\btransitioning service member\b|\bveteran\b|\bdisability\b|\bgender\b|\bethnicity\b|\brace\b|\bhispanic\b|\blatin[oax]\b|\bsexual orientation\b|\bgender identity\b|\btransgender\b|^tu es\b/],
 
   // Legal attestations.
   ["criminal_history", /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\billegally or unlawfully\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/],
@@ -170,7 +178,7 @@ const RULES: Rule[] = [
   ["referral", /\breferr(ed|al|ing)\b/],
   ["relative_here", /\b(relatives?|family members?|spouses?|related to|personal relationships?|close relationships?|in-laws|anyone you live with)\b/],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
-  ["worked_here_before", /\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of/.test(t)],
+  ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of/.test(t)],
   ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/],
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/],
 
@@ -178,6 +186,8 @@ const RULES: Rule[] = [
   // Before the other screens: a question that names an essential function but asks about commuting is about commuting.
   // Whether the person lives within commuting distance of this job's office depends on where that office is, which their
   // stated yes to working on site does not say: asked (WO-042, Snowflake).
+  // WO-048: "Are you local to Chicago, IL or willing to relocate?" asks two things at once; neither fact alone answers it.
+  ["unknown", /\b(are|do) you (currently )?(local to|live in|living in|based in|reside in|near) (?!or\b)[a-z].*\bor\b.*\brelocat|\brelocat\w*\b.*\bor\b.*\b(local to|live in|living in|based in|reside in) (?!or\b)[a-z]/],
   ["job_commute", /\bcommut\w*\b.*\b(distance|range)\b|\breside within\b|\bwithin \d+ (miles|km|kilometers)\b|\b(live|reside|located|based) (near|close to|nearby)\b|\bwithin (a )?commut/, (q, t) => !/\bif you (do not|don'?t) (currently )?(live|reside)\b/.test(t)],
   ["essential_functions", /\bessential functions?\b|\bwith or without (a )?reasonable accommodation/],
   ["meets_qualifications", /\bmeet (each of |all )?(the )?(basic |essential |required )?qualifications\b|\bread the required qualifications\b/],

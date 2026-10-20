@@ -31,6 +31,11 @@ before(async () => {
     tenants.a = world.workdayTenant({ host: "northwind.wd5.myworkdayjobs.com", dir: path.join(FIX, "dev-a") });
     tenants.b = world.workdayTenant({ host: "contoso.wd1.myworkdayjobs.com", dir: path.join(FIX, "dev-b") });
     tenants.s = world.workdayTenant({ host: "fabrikam.wd3.myworkdayjobs.com", dir: path.join(FIX, "dev-a"), files: { "0-sign-in.html": path.join(FIX, "signin/0-sign-in.html") } });
+    // Round 2: an email-first sign-in (builder's TEST page), the spent s4 tenant's nested how-heard prompt, and a fresh
+    // posting of dev-a for the ask-once questions (each tenant host is its own posting).
+    tenants.e = world.workdayTenant({ host: "tailspin.wd5.myworkdayjobs.com", dir: path.join(FIX, "dev-a"), files: { "0-sign-in.html": path.join(FIX, "signin/0-sign-in-email-first.html") } });
+    tenants.p = world.workdayTenant({ host: "litware.wd5.myworkdayjobs.com", dir: path.join(FIX, "spent-s4") });
+    tenants.q = world.workdayTenant({ host: "woodgrove.wd1.myworkdayjobs.com", dir: path.join(FIX, "dev-a") });
     for (const [k, v] of Object.entries(PERSONA)) world.answer("fact:" + k, "fact", String(v));
     browser = await W.launch(world);
     ({ ctx, sw } = browser);
@@ -187,6 +192,114 @@ test("a sign-in page is never read, filled or clicked; the password never reache
   }
 });
 
+test("an email-first sign-in (only the email and Next) is never read, filled or clicked; the person's own two steps lead to the first step", async (t) => {
+  if (skip(t)) return;
+  const f = await open(tenants.e.url("0-sign-in.html"));
+  try {
+    const card = await fill(f);
+    assert.equal(card.status, "stopped");
+    assert.equal(card.message, "Sign in to tailspin's Workday yourself; I'll fill the application after.");
+    assert.equal(card.payload, undefined, "nothing on the page was read into a card");
+    let seen = await f.page.evaluate(() => ({ clicks: window.__clicks.slice(), focus: { ...window.__focus }, email: document.getElementById("ef-email").value }));
+    assert.deepEqual(seen, { clicks: [], focus: { email: 0, password: 0 }, email: "" }, "Next never clicked, the email box never touched or filled");
+    // The person types their email and presses Next (a real pointer on Workday's overlay); the password view shows.
+    await f.page.locator("#ef-email").click();
+    await f.page.keyboard.type("test.person@example.test");
+    const box = await f.page.locator("#ef-next").boundingBox();
+    await f.page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await f.page.locator("#ef-password").waitFor({ state: "visible", timeout: 5000 });
+    // Fill pressed again on the password view: still the person's; nothing read, filled or clicked.
+    const again = await fill(f);
+    assert.equal(again.status, "stopped");
+    assert.match(again.message, /Sign in to tailspin's Workday yourself/);
+    seen = await f.page.evaluate(() => ({ clicks: window.__clicks.slice(), pw: document.getElementById("ef-password").value }));
+    assert.ok(seen.clicks.every((c) => c.trusted), "every click on the sign-in was the person's: " + JSON.stringify(seen.clicks));
+    assert.equal(seen.pw, "");
+    // The person finishes signing in; the first step of the application then fills itself.
+    await W.personSignsIn(f.page);
+    await f.page.waitForURL(/1-my-information\.html$/, { timeout: 15000 });
+    const next = await cardFor(f, (c) => c.step === "My Information", 60000);
+    assert.ok(next && traineeOf(next).length > 5, "filled after the person signed in");
+    assert.ok(!(await session()).includes("TEST-password-typed-by-the-person"), "the password is nowhere the extension keeps anything");
+  } finally {
+    await f.close();
+  }
+});
+
+test("how the person heard, on Workday's nested search prompt: the one leaf the planner chose; no sure match is left and asked", async (t) => {
+  if (skip(t)) return;
+  const f = await open(tenants.p.url("1-my-information.html"));
+  try {
+    const card = await fill(f);
+    assert.equal(card.status, "ready", JSON.stringify(card.blockers));
+    const hh = card.payload.fields.find((x) => x.label === "How Did You Hear About Us?");
+    assert.equal(hh?.source, "trainee");
+    assert.equal(hh.value, "Litware Careers Website", "the careers website under its category, never 'Other Website'");
+    assert.deepEqual(await f.page.evaluate(() => Array.from(document.querySelectorAll('[data-automation-id="formField-source"] [data-automation-id="promptSelectionLabel"]')).map((p) => p.textContent)),
+      ["Litware Careers Website"]);
+  } finally {
+    await f.close();
+  }
+  // No sure match: the prompt is left, the card asks for it, and the person's own pick makes the card ready.
+  const how = factRow("how_heard");
+  world.state.answers = world.state.answers.filter((a) => a !== how);
+  world.answer("fact:how_heard", "fact", "a friend told me");
+  try {
+    const g = await open(tenants.p.url("1-my-information.html"));
+    try {
+      const card = await fill(g);
+      assert.equal(card.status, "blocked");
+      assert.ok((card.blockers || []).some((b) => /How Did You Hear About Us\?/.test(b)), JSON.stringify(card.blockers));
+      assert.equal(await g.page.evaluate(() => document.querySelectorAll('[data-automation-id="formField-source"] [data-automation-id="promptSelectionLabel"]').length), 0, "never guessed");
+      await W.personAnswers(g.page, () => {});
+      const ready = await cardFor(g, (c) => c.status === "ready", 15000);
+      assert.ok(ready, "the person's own pick is on the card");
+      assert.equal(ready.payload.fields.find((x) => x.label === "How Did You Hear About Us?")?.source, "you");
+    } finally {
+      await g.close();
+    }
+  } finally {
+    world.state.answers = world.state.answers.filter((a) => a.key !== "fact:how_heard");
+    world.state.answers.push(how);
+  }
+});
+
+test("Workday's open questions go to ask-once, once per step: never a repeating row's part, never the disability form", async (t) => {
+  if (skip(t)) return;
+  const calls = () => world.state.putCalls.filter((c) => /woodgrove/.test(String(c.p_job_id))).map((c) => (c.p_questions || []).map((q) => q.label));
+  const f = await open(tenants.q.url("2-my-experience.html"));
+  try {
+    await fill(f);
+    await sleep(800);
+    const step2 = calls();
+    assert.equal(step2.length, 1, "the step's open questions were sent once: " + JSON.stringify(step2));
+    assert.ok(!step2.flat().some((l) => /^(Work Experience|Education|Languages|Websites) \d+:/.test(l)), "no row part: " + JSON.stringify(step2));
+    await fill(f);
+    await sleep(800);
+    assert.equal(calls().length, 1, "the same step is not asked twice");
+  } finally {
+    await f.close();
+  }
+  const g = await open(tenants.q.url("3-questions.html"));
+  try {
+    await fill(g);
+    await sleep(800);
+    const all = calls();
+    assert.equal(all.length, 2, "the next step asks its own questions");
+    assert.ok(all[1].includes("Why do you want to work at Northwind Test Traders?"), JSON.stringify(all[1]));
+  } finally {
+    await g.close();
+  }
+  const d = await open(tenants.q.url("5-self-identify.html"));
+  try {
+    await fill(d);
+    await sleep(800);
+    assert.equal(calls().length, 2, "the disability form is never asked by text");
+  } finally {
+    await d.close();
+  }
+});
+
 test("voluntary disclosures: never a default; a decline only where the form offers one; the disability form is the person's", async (t) => {
   if (skip(t)) return;
   const eeo = factRow("eeo");
@@ -279,7 +392,11 @@ test("the Submit on the review step is its own tap, bound to the review page's r
   }
 });
 
-for (const tenant of ["dev-a", "dev-b"]) {
+// Round 2: the spent tenants s1-s4 too (scored once blind by the architect; now development fixtures, NOT blind). Each
+// row a tenant is known to miss is named: any other miss fails (s2's "local to Chicago or willing to relocate" is two
+// questions in one, asked).
+const KNOWN_MISSES = { "dev-a": [], "dev-b": [], "spent-s1": [], "spent-s2": ["Are you local to Chicago, IL or willing to relocate?"], "spent-s3": [], "spent-s4": [] };
+for (const tenant of Object.keys(KNOWN_MISSES)) {
   test(`zero wrong on ${tenant}: every step filled, approved page by page, stopped at the review (evals/apply/workday-fill.cjs)`, async (t) => {
     if (skip(t)) return;
     const r = await W.runTenant({ tenant: path.join(FIX, tenant), log: () => {} });
@@ -290,5 +407,7 @@ for (const tenant of ["dev-a", "dev-b"]) {
     assert.equal(r.submitted, false, "the key says ask: never submitted");
     assert.equal(r.records, 0);
     assert.ok(r.coverage >= 0.7, `coverage ${r.coverage}`);
+    assert.deepEqual(r.rows.filter((x) => x.verdict === "missed").map((x) => x.label), KNOWN_MISSES[tenant], "every row filled but the known misses");
+    assert.ok(r.served.includes("6-review.html"), "reached the review step");
   });
 }

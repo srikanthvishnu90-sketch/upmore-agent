@@ -752,6 +752,30 @@
 
   // supabase/functions/_shared/question_map.ts
   var FACTS = fact_schema_default.facts;
+  var LANGUAGE_NAMES = [
+    "english",
+    "spanish",
+    "french",
+    "german",
+    "mandarin",
+    "chinese",
+    "cantonese",
+    "japanese",
+    "korean",
+    "portuguese",
+    "italian",
+    "dutch",
+    "arabic",
+    "hindi",
+    "russian",
+    "polish",
+    "turkish",
+    "vietnamese",
+    "tagalog",
+    "swedish",
+    "hebrew",
+    "greek"
+  ];
   var kindOf = (fact) => FACTS[fact]?.kind ?? "unknown";
   function norm(s) {
     return String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/^\s*(\(?\d+[a-z]?[.)]|[a-z]\))\s*/, "").replace(/\s+/g, " ").trim();
@@ -1106,6 +1130,12 @@
       "languages_other",
       /\b(other|additional|another|second|foreign)\b.{0,30}\blanguages?\b|\blanguages?\b.{0,30}\b(other than|besides|apart from|in addition to)\b/
     ],
+    // WO-048 round 2: "How would you rate your English proficiency?" names the language and asks its level.
+    [
+      "languages",
+      new RegExp(`\\b(${LANGUAGE_NAMES.join("|")})\\b.{0,20}\\b(proficiency|fluency)\\b|\\b(proficiency|fluency)\\b.{0,30}\\b(${LANGUAGE_NAMES.join("|")})\\b`),
+      (q) => !!q.options?.length
+    ],
     [
       "languages",
       /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/
@@ -1278,7 +1308,7 @@
     ],
     [
       "worked_here_before",
-      /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/,
+      /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/,
       (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)
     ],
     [
@@ -1546,13 +1576,18 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     ];
     m = /(\d+(?:\.\d+)?)\s*(?:\+|or more|and above|plus)|more than (\d+(?:\.\d+)?)/.exec(t);
     if (m) return [
-      Number(m[1] ?? m[2]) * k,
+      Number(m[1] ?? m[2]) * k + (m[2] ? 1e-6 : 0),
       Infinity
     ];
     m = /(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)/.exec(t);
     if (m) return [
       Number(m[1]) * k,
       Number(m[2]) * k
+    ];
+    m = /^(?:within|up to|in)\s+(?:the next\s+)?(\d+(?:\.\d+)?)\b/.exec(t);
+    if (m) return [
+      0,
+      Number(m[1]) * k
     ];
     m = /^(\d+(?:\.\d+)?)\b/.exec(t);
     if (m) return [
@@ -1578,6 +1613,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     })).filter((x) => x.s);
     const inside = spans.filter((x) => v >= x.s[0] - 1e-9 && v <= x.s[1] + 1e-9);
     if (inside.length <= 1) return inside[0]?.o.value ?? null;
+    if (inside.every((x) => x.s[0] === 0 && x.s[1] !== Infinity)) {
+      inside.sort((a, b) => a.s[1] - b.s[1]);
+      return inside[0].s[1] === inside[1].s[1] ? null : inside[0].o.value;
+    }
     if (!inside.every((x) => x.s[1] === Infinity)) return null;
     inside.sort((a, b) => b.s[0] - a.s[0]);
     return inside[0].s[0] === inside[1].s[0] ? null : inside[0].o.value;
@@ -1829,7 +1868,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var HOW_HEARD = [
     [
       /career|company (web)?site|website|direct/,
-      /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^website$|^career page$|^careers? site$|direct to careers|web ?site/
+      /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^career page$|^careers? site$|direct to careers/,
+      /^website$|web ?site/
     ],
     [
       /linkedin/,
@@ -1876,6 +1916,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return null;
   }
+  function levelOption(level, options) {
+    const lv = low(level);
+    const not = (l) => /\bnot\b|\bnon-?(native|fluent)\b/.test(l);
+    if (/^(native|bilingual|mother tongue|first language)$/.test(lv)) {
+      const nat = options.filter((o) => /\bnative\b|\bbilingual\b|\bmother tongue\b|\bfirst language\b/.test(low(o.label)) && !not(low(o.label)));
+      if (nat.length) return only(nat);
+    }
+    if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
+    return null;
+  }
   function chooseOption(fact, value, options, question = "") {
     if (!options.length) return null;
     const v = low(value);
@@ -1891,12 +1941,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       case "how_heard": {
         const rule = HOW_HEARD.find(([v2]) => v2.test(v));
         if (!rule) return null;
-        const hits = options.filter((o) => rule[1].test(low(o.label)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
-        return only(hits) ?? only(hits.filter((o) => /career/.test(low(o.label))));
+        const hit = (re) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop())) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+        const named = hit(rule[1]);
+        if (named.length || !rule[2]) return only(named);
+        return only(hit(rule[2]).filter((o) => !/\bother\b/.test(low(o.label))));
       }
       case "languages": {
-        if (derived !== "no") return null;
-        return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+        if (options.every((o) => yesNoOf(o.label))) break;
+        if (derived === "no") return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+        const named = LANGUAGE_NAMES.filter((l) => new RegExp(`\\b${l}\\b`).test(low(question)));
+        if (!named.length) break;
+        if (named.length !== 1) return null;
+        const level = String(value).split(/\s*[;,\n]\s*/).map((x) => /^([^()]+?)\s*(?:\(([^)]*)\))?$/.exec(x.trim())).find((m) => m && low(m[1]) === named[0])?.[2];
+        return levelOption(level ?? "", options);
       }
       case "graduation_date": {
         const y = /\b(19|20)\d{2}\b/.exec(v)?.[0];
@@ -2331,6 +2388,34 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     return null;
   }
+  var AFFILIATES = /\bsubsidiar|\baffiliat|\bparent compan|\bsister compan|\brelated (compan|entit)|\bgroup compan|\bfamily of compan|\bpredecessor/i;
+  var GENERIC_NAME = /* @__PURE__ */ new Set([
+    "and",
+    "the",
+    "of",
+    "group",
+    "holdings",
+    "holding",
+    "global",
+    "international",
+    "services",
+    "service",
+    "solutions",
+    "systems",
+    "technologies",
+    "technology",
+    "tech",
+    "partners",
+    "industries",
+    "enterprises",
+    "usa",
+    "america",
+    "americas",
+    "national",
+    "united",
+    "worldwide"
+  ]);
+  var nameWords = (n) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
   var SPLIT = /\s*[;,\n]\s*/;
   function byMeaning(f, company, answers, places = []) {
     const m = mapQuestion({
@@ -2352,9 +2437,20 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         ...f.options.map((o) => o.label)
       ].join(" "));
       if (!here && listed.some((x) => new RegExp(`(^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(named))) return null;
+      if (!here && AFFILIATES.test(f.label)) {
+        if (workEntries(answers).some((e) => !listed.includes(normCompany(e.employer)))) return null;
+        const theirs = new Set(nameWords(co));
+        if (!theirs.size || listed.some((x) => nameWords(x).some((w) => theirs.has(w)))) return null;
+      }
       a = {
         value: here ? "Yes" : "No",
         factId: answers.former_employers.factId
+      };
+    } else if (m.fact === "start_date" && !answers.start_date && answers.notice_period && f.options.length) {
+      const choice2 = chooseOption("notice_period", String(answers.notice_period.value), f.options);
+      return choice2 === null ? null : {
+        value: choice2,
+        factId: answers.notice_period.factId
       };
     } else if (m.kind === "screen") {
       const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
@@ -2482,7 +2578,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       } : null;
     }).filter((x) => !!x && !!x.language);
   }
-  var anchorOf = (kind, answers) => kind === "work" ? workEntries(answers).map((e) => e.employer) : kind === "education" ? educationEntries(answers).map((e) => e.school) : kind === "language" ? languageEntries(answers).map((e) => e.language) : [];
+  var LINK_FACTS = [
+    "linkedin",
+    "github",
+    "website",
+    "portfolio"
+  ];
+  function linkEntries(answers, fields = []) {
+    const links = LINK_FACTS.filter((k) => answers[k] && /^https?:\/\/\S+$/i.test(str(answers[k].value))).map((k) => ({
+      kind: k,
+      url: str(answers[k].value)
+    }));
+    if (links.length !== 1) return [];
+    const own = fields.some((f) => !f.section && !f.personal && (classifyField(f.label, f.type) === links[0].kind || mapQuestion(f).fact === links[0].kind));
+    return own ? [] : links;
+  }
+  var anchorOf = (kind, answers, fields) => kind === "work" ? workEntries(answers).map((e) => e.employer) : kind === "education" ? educationEntries(answers).map((e) => e.school) : kind === "language" ? languageEntries(answers).map((e) => e.language) : kind === "website" && fields ? linkEntries(answers, fields).map((e) => e.url) : [];
   var sameAnchor = (a, b) => normCompany(a) !== "" && normCompany(a) === normCompany(b);
   function nearAnchor(a, b) {
     const x = normCompany(a), y = normCompany(b);
@@ -2499,8 +2610,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
     return d[x.length][y.length] <= 2;
   }
-  function assignRows(kind, rows, answers) {
-    const entries = anchorOf(kind, answers), out = /* @__PURE__ */ new Map(), taken = /* @__PURE__ */ new Set();
+  function assignRows(kind, rows, answers, fields) {
+    const entries = anchorOf(kind, answers, fields), out = /* @__PURE__ */ new Map(), taken = /* @__PURE__ */ new Set();
     for (const r of rows) {
       const i = r.anchor ? entries.findIndex((e, j) => !taken.has(j) && sameAnchor(e, r.anchor)) : -1;
       if (i >= 0) {
@@ -2521,8 +2632,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return out;
   }
-  function rowsToAdd(kind, anchors, answers) {
-    const entries = anchorOf(kind, answers);
+  function rowsToAdd(kind, anchors, answers, fields) {
+    const entries = anchorOf(kind, answers, fields);
     const held = /* @__PURE__ */ new Set();
     for (const a of anchors) {
       const i = a ? entries.findIndex((e, j) => !held.has(j) && sameAnchor(e, a)) : -1;
@@ -2572,7 +2683,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var pick = (_fact, value, f) => f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
   var FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
-  function sectionAnswer(f, entry, answers) {
+  function sectionAnswer(f, entry, answers, fields) {
     const s = f.section;
     if (entry === void 0) return null;
     const out = (value, factId) => value && factId ? {
@@ -2621,6 +2732,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       return null;
     }
+    if (s.kind === "website") {
+      const e = linkEntries(answers, fields)[entry];
+      return s.part === "url" && e && !f.options.length ? out(e.url, answers[e.kind]?.factId) : null;
+    }
     if (s.kind === "language") {
       const e = languageEntries(answers)[entry], id = answers.languages?.factId;
       if (!e) return null;
@@ -2630,11 +2745,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           return out(pick("languages", e.language, f), id);
         case "fluent":
           return out(fluent ? "Yes" : null, id);
-        case "proficiency": {
-          if (!fluent) return null;
-          const hits = f.options.filter((o) => /\b(fluent|native|bilingual|mother tongue)\b/i.test(o.label));
-          return out(hits.length === 1 ? hits[0].value : null, id);
-        }
+        case "proficiency":
+          return fluent ? out(levelOption(e.level, f.options), id) : null;
       }
     }
     return null;
@@ -2678,14 +2790,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         ].map(([row, anchor]) => ({
           row,
           anchor
-        })), o.answers));
+        })), o.answers, p.fields));
       }
       const places = formPlaces(p.fields, p.company);
       for (const f of p.fields) {
         if (fileAlternative(f, p.fields)) continue;
         if (f.personal) continue;
         if (f.section) {
-          const s = sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers);
+          const s = sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields);
           if (s) {
             filled.push({
               name: f.name,
@@ -3648,11 +3760,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var norm2 = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']+/g, " ").replace(/\s+/g, " ").trim();
   var visible = (el) => !!el && el.getClientRects().length > 0 && W.getComputedStyle(el).visibility !== "hidden";
   function readForm() {
-    if (isWorkdayFlow()) return workdayAccountPage() ? {
+    if (workdayAccountPage()) return {
       raw: [],
       bindings: {},
       schema: []
-    } : readWorkday();
+    };
+    if (isWorkdayFlow()) return readWorkday();
     const raw = fnDiscoverFields(false);
     const all = Array.from(doc().querySelectorAll("input,select,textarea"));
     for (const f of raw) {
@@ -4064,6 +4177,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var wdOwned = /* @__PURE__ */ new WeakSet();
   var wdOptions = /* @__PURE__ */ new Map();
   var wdPaths = /* @__PURE__ */ new Map();
+  var PATH_SEP = " > ";
+  var leafOf = (label) => label.split(PATH_SEP).pop();
   var wdText = (t) => String(t ?? "").replace(/[*✱]/g, "").replace(/\s+/g, " ").trim();
   var aidOf = (el) => String(el?.getAttribute?.("data-automation-id") ?? "");
   var onWorkday = () => {
@@ -4095,11 +4210,44 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const d = doc();
     if (Array.from(d.querySelectorAll("input[type=password]")).some(shown)) return true;
     if (ACCOUNT_IDS.some((id) => Array.from(d.querySelectorAll(`[data-automation-id="${id}"]`)).some(shown))) return true;
+    if (emailFirstSignIn()) return true;
     const step = d.querySelector('[data-automation-id="applyFlowPage"], [data-automation-id="applyFlowReviewPage"]');
     if (step) return false;
     const buttons = Array.from(d.querySelectorAll("button, [role=button], [data-automation-id=click_filter]")).filter(shown);
     if (buttons.some((b) => /^(sign in|create account|verify|verify password|send code|resend code)$/i.test(wdText(b.getAttribute("aria-label") || b.textContent)))) return true;
     return /\b(verification|one[- ]time|security) code\b/i.test(String(d.body?.innerText || ""));
+  }
+  var ROBOT = /\brobots?\b|\bhoneypot\b|do not enter if you'?re human/i;
+  function emailFirstSignIn() {
+    const d = doc();
+    const boxes = Array.from(d.querySelectorAll("input:not([type=hidden]), textarea, select, button[aria-haspopup=listbox], [role=combobox], [role=spinbutton]")).filter((el) => shown(el) && ![
+      "submit",
+      "button",
+      "reset",
+      "image"
+    ].includes(String(el.type || "").toLowerCase()) && aidOf(el) !== "beecatcher" && !(el.tabIndex === -1 && ROBOT.test(wdText(el.closest("div, p, label")?.textContent))));
+    if (boxes.length !== 1) return false;
+    const box = boxes[0];
+    if (box.tagName !== "INPUT" || ![
+      "text",
+      "email",
+      ""
+    ].includes(String(box.getAttribute("type") || "").toLowerCase())) return false;
+    const lab = box.id ? d.querySelector(`label[for="${cssEsc(box.id)}"]`) : box.closest("label");
+    const about = [
+      box.type,
+      aidOf(box),
+      box.getAttribute("autocomplete"),
+      box.name,
+      box.id,
+      box.getAttribute("aria-label"),
+      box.placeholder,
+      lab?.textContent
+    ].join(" ");
+    if (box.type !== "email" && !/e-?mail|user ?name|\blogin\b|sign[- ]?in/i.test(about)) return false;
+    const buttons = Array.from(d.querySelectorAll("button, [role=button], input[type=submit]")).filter(shown);
+    if (!buttons.some((b) => /^(next|continue|sign in|log in|sign in with email|continue with email)$/i.test(wdText(b.getAttribute("aria-label") || b.value || b.textContent)))) return false;
+    return /\b(sign[- ]?in|log[- ]?in|account)\b/i.test(String(d.body?.innerText || d.body?.textContent || ""));
   }
   function workdayNextButton() {
     const els = Array.from(doc().querySelectorAll('[data-automation-id="pageFooterNextButton"], [data-automation-id="bottom-navigation-next-button"]')).filter(shown);
@@ -4140,7 +4288,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const h = ref && doc().getElementById(ref) || g.querySelector("h3, h4, h5");
     return wdText(h?.textContent);
   };
-  var sectionKind = (title) => /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language" : "other";
+  var sectionKind = (title) => /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language" : /^(websites?|links?|web addresses|online profiles?)$/i.test(title) ? "website" : "other";
   var isRow = (g) => /-panel$/.test(String(g?.getAttribute?.("aria-labelledby") || ""));
   function sectionOfRow(rowEl) {
     let g = rowEl.parentElement?.closest('[role="group"]');
@@ -4165,7 +4313,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     firstYearAttended: "start",
     lastYearAttended: "end",
     language: "language",
-    native: "fluent"
+    native: "fluent",
+    url: "url"
   };
   function partOf(kind, id, label, list) {
     const m = /--([A-Za-z0-9]+)$/.exec(String(id || "").replace(/-dateSection\w+-input$/, ""));
@@ -4225,6 +4374,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         "description"
       ]
     ];
+    if (kind === "website" && /^(url|website|link|web address)$/.test(l)) return "url";
     for (const [re, p] of byLabel) if (re.test(l)) return p;
     if (kind === "language" && list) return "proficiency";
     return "unknown";
@@ -4242,7 +4392,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return Array.from(promptBox(input).querySelectorAll('[data-automation-id="promptSelectionLabel"]')).map((p) => wdText(p.textContent)).filter(Boolean);
   }
   function anchorOf2(kind, rowEl) {
-    const part = kind === "work" ? "employer" : kind === "education" ? "school" : kind === "language" ? "language" : "";
+    const part = kind === "work" ? "employer" : kind === "education" ? "school" : kind === "language" ? "language" : kind === "website" ? "url" : "";
     if (!part) return "";
     for (const w of Array.from(rowEl.querySelectorAll('[data-automation-id^="formField-"]'))) {
       const c = w.querySelector('button[aria-haspopup="listbox"], [data-automation-id="searchBox"], input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea');
@@ -4515,9 +4665,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
             ...path,
             t
           ]);
-        } else if (!paths.has(t)) {
-          paths.set(t, path);
-          leaves.push(t);
+        } else {
+          const label = [
+            ...path,
+            t
+          ].join(PATH_SEP);
+          if (!paths.has(label)) {
+            paths.set(label, path);
+            leaves.push(label);
+          }
         }
       }
     }
@@ -4557,8 +4713,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     await wdClose(btn);
     return !!ok;
   }
-  async function wdChoosePrompt(input, wanted, name) {
+  async function wdChoosePrompt(input, label, name) {
+    const wanted = leafOf(label);
     if (wdPills(input).includes(wanted)) return true;
+    const twins = [
+      ...wdPaths.get(name)?.keys() ?? []
+    ].filter((l) => leafOf(l) === wanted).length;
     await wdClose(input);
     input.focus?.();
     setNative(input, wanted);
@@ -4574,21 +4734,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       bubbles: true,
       cancelable: true
     }));
-    let hit = await until(() => listboxes().flatMap(optionsIn).find((o) => !isCategory(o) && optText(o) === wanted) ?? null, 1500);
+    const results = () => listboxes().flatMap(optionsIn).filter((o) => !isCategory(o) && optText(o) === wanted);
+    let hit = twins > 1 ? null : await until(() => results().length ? results() : null, 3e3).then((r) => r && r.length === 1 ? r[0] : null);
     if (!hit) {
+      await wdClose(input);
       setNative(input, "");
       input.dispatchEvent(new W.InputEvent("input", {
         bubbles: true,
         inputType: "deleteContentBackward"
       }));
-      const path = wdPaths.get(name)?.get(wanted);
+      const path = wdPaths.get(name)?.get(label);
       if (path) {
         let lb = await wdOpen(input);
         for (const step of path) {
           const o = lb && optionsIn(lb).find((x) => optText(x) === step);
-          if (!o) break;
-          press(o);
-          lb = await wdNext(lb);
+          lb = o ? (press(o), await wdNext(lb)) : null;
+          if (!lb) break;
         }
         hit = lb ? optionsIn(lb).find((o) => !isCategory(o) && optText(o) === wanted) ?? null : null;
       }

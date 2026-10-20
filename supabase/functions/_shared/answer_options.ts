@@ -3,6 +3,7 @@
 // finds "4 – 7 years" or, of "1+ years ... 5+ years", the highest it reaches; "decline" finds "Prefer not to say". It only
 // chooses among the options the form offers, and returns null when none fits or more than one fits equally: an unmatched
 // answer is asked, never forced. Nothing here invents a value; the value is the person's own.
+import { LANGUAGE_NAMES } from "./question_map.ts";
 export interface Opt { label: string; value: string }
 
 const low = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
@@ -65,9 +66,13 @@ function span(label: string, unit: "weeks" | "years"): [number, number] | null {
   let m = /less than (\d+(?:\.\d+)?)/.exec(t);
   if (m) return [0, Number(m[1]) * k - 1e-9];
   m = /(\d+(?:\.\d+)?)\s*(?:\+|or more|and above|plus)|more than (\d+(?:\.\d+)?)/.exec(t);
-  if (m) return [Number(m[1] ?? m[2]) * k, Infinity];
+  // "More than 1 month" does not hold 1 month itself (round 2: a notice of exactly a month is "Within 1 month").
+  if (m) return [Number(m[1] ?? m[2]) * k + (m[2] ? 1e-6 : 0), Infinity];
   m = /(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)/.exec(t);
   if (m) return [Number(m[1]) * k, Number(m[2]) * k];
+  // "Within 2 weeks", "Up to 1 month": from now to that far (WO-048 round 2). A range ("Within 1-2 weeks") is read above.
+  m = /^(?:within|up to|in)\s+(?:the next\s+)?(\d+(?:\.\d+)?)\b/.exec(t);
+  if (m) return [0, Number(m[1]) * k];
   m = /^(\d+(?:\.\d+)?)\b/.exec(t);
   if (m) return [Number(m[1]) * k, Number(m[1]) * k];
   return null;
@@ -86,6 +91,11 @@ function bySpan(value: string, options: Opt[], unit: "weeks" | "years"): string 
   const spans = options.map((o) => ({ o, s: span(o.label, unit) })).filter((x) => x.s);
   const inside = spans.filter((x) => v >= x.s![0] - 1e-9 && v <= x.s![1] + 1e-9);
   if (inside.length <= 1) return inside[0]?.o.value ?? null;
+  // "Within 2 weeks", "Within 1 month": spans from now, one inside the next; the tightest that holds it is the true one.
+  if (inside.every((x) => x.s![0] === 0 && x.s![1] !== Infinity)) {
+    inside.sort((a, b) => a.s![1] - b.s![1]);
+    return inside[0].s![1] === inside[1].s![1] ? null : inside[0].o.value;
+  }
   // "1+ years ... 5+ years": several open spans contain it; the one with the highest floor is the true one. Two closed
   // spans sharing an edge ("1-3 years", "3-5 years" for 3) is a guess either way: asked.
   if (!inside.every((x) => x.s![1] === Infinity)) return null;
@@ -177,8 +187,10 @@ function locationNo(question: string, value: string): "no" | null {
 }
 
 // How the person heard, as their usual answer onto the employer's list: the careers page has many names.
-const HOW_HEARD: [RegExp, RegExp][] = [
-  [/career|company (web)?site|website|direct/, /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^website$|^career page$|^careers? site$|direct to careers|web ?site/],
+// WO-048 round 2: the careers page by its own name first ("Litware Careers Website"); a plain website option only when none
+// names it, and never "Other Website".
+const HOW_HEARD: [RegExp, RegExp, RegExp?][] = [
+  [/career|company (web)?site|website|direct/, /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^career page$|^careers? site$|direct to careers/, /^website$|web ?site/],
   [/linkedin/, /^linked ?in( jobs)?$|^linkedin$/],
   [/indeed/, /^indeed$/],
   [/glassdoor/, /^glassdoor$/],
@@ -214,6 +226,20 @@ export function yesNoFromFact(fact: string, value: string, question: string): "y
   return null;
 }
 
+// A language level the person stated, onto a list of levels (WO-048 round 2): native (or bilingual, mother tongue, first
+// language) onto the one option that says native, else the one that says fluent; fluent onto the one that says fluent.
+// Any other level, or no level, or two options that could be it: null (asked).
+export function levelOption(level: string, options: Opt[]): string | null {
+  const lv = low(level);
+  const not = (l: string) => /\bnot\b|\bnon-?(native|fluent)\b/.test(l);
+  if (/^(native|bilingual|mother tongue|first language)$/.test(lv)) {
+    const nat = options.filter((o) => /\bnative\b|\bbilingual\b|\bmother tongue\b|\bfirst language\b/.test(low(o.label)) && !not(low(o.label)));
+    if (nat.length) return only(nat);
+  }
+  if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
+  return null;
+}
+
 export function chooseOption(fact: string, value: string, options: Opt[], question = ""): string | null {
   if (!options.length) return null;
   const v = low(value);
@@ -232,16 +258,27 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     case "how_heard": {
       const rule = HOW_HEARD.find(([v2]) => v2.test(v));
       if (!rule) return null;
-      // WO-052: "Ad on Website" is an advertisement, not the careers site (Accenture); of "Careers Page" and another
-      // website ("Join Our Pride Website"), the careers page.
-      const hits = options.filter((o) => rule[1].test(low(o.label)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
-      return only(hits) ?? only(hits.filter((o) => /career/.test(low(o.label))));
+      // A nested list's option reads "Category > Leaf" (Workday's prompt): it matches by its leaf or by its whole path.
+      // WO-052: "Ad on Website" is an advertisement, not the careers site (Accenture).
+      const hit = (re: RegExp) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop()!)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+      const named = hit(rule[1]);
+      if (named.length || !rule[2]) return only(named);
+      return only(hit(rule[2]).filter((o) => !/\bother\b/.test(low(o.label))));
     }
     case "languages": {
-      // A level list ("Native Level", "Business Fluent", "Limited / No Japanese language ability"): only the no-ability
-      // option, for a language the person does not speak; a level for one they speak is theirs (WO-052, Woven).
-      if (derived !== "no") return null;
-      return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+      if (options.every((o) => yesNoOf(o.label))) break;
+      // WO-052: a level list for a language the person does not speak (their list is complete): only the no-ability
+      // option ("Limited / No Japanese language ability"), never a level (Woven).
+      if (derived === "no") return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+      // WO-048 round 2: one language's level on a list ("How would you rate your English proficiency?"): only a level the
+      // person stated as native or fluent for the one language the question names, onto the one option that says so. A
+      // yes/no list is read as before; no level, another language, or two options that could be it: asked.
+      const named = LANGUAGE_NAMES.filter((l) => new RegExp(`\\b${l}\\b`).test(low(question)));
+      if (!named.length) break;
+      if (named.length !== 1) return null;
+      const level = String(value).split(/\s*[;,\n]\s*/).map((x) => /^([^()]+?)\s*(?:\(([^)]*)\))?$/.exec(x.trim()))
+        .find((m) => m && low(m[1]) === named[0])?.[2];
+      return levelOption(level ?? "", options);
     }
     case "graduation_date": {
       // WO-052: a list of years ("2040 ... 2001") takes the year of the stated date (Theodo).

@@ -4,7 +4,8 @@
 //
 //   node evals/apply/workday-fill.cjs --tenant <dir> [--out file] [--persona file]
 //
-// <dir> holds one HTML file per step and key.json (the shape of tests/fixtures/workday/dev-a: pages, fields, actions). The
+// <dir> holds one HTML file per step and key.json (the shape of tests/fixtures/workday/dev-a: pages, fields, actions; or the
+// second key schema {company, pages, rows, actions, notes}, normalized into that shape by normalizeKey below). The
 // steps are served locally at a Workday tenant's URL by the TEST world (tests/fixtures/extension/world.cjs; Chromium
 // resolves only the world's hosts, so nothing reaches a real Workday, Upmore or Supabase). The real extension runs in
 // Chromium, signed in to the TEST world as the TEST persona (tests/fixtures/workday/persona.json, the persona of
@@ -92,6 +93,101 @@ async function waitCard(sw, id, pred, ms = 30000) {
 }
 const settled = (url) => (c) => c.url === url && ["ready", "blocked", "stopped"].includes(c.status) && (c.payload || c.status === "stopped");
 
+// ------------------------------------------------------------------------------------------------ the key's two schemas
+// Schema 1 (tests/fixtures/workday/dev-a): {tenant, company, job, jobLocation, pages, persona, conventions, fields, actions}
+// with page names without ".html" and actions {action: "sign-in"|"create-account"|"add-row"|"submit", section,
+// rowsNeeded}. It is used exactly as written (normalizeKey returns the same object).
+// Schema 2 (an independently written key): {company, pages, rows, actions, notes}. normalizeKey turns it into schema 1:
+//   - tenant = the key's tenant, else the directory's name; job / jobLocation absent keep the harness defaults;
+//   - rows -> fields: page without ".html", automationId = automationId or formField, section id -> the section's name
+//     (kept as sectionId); `match`, `entity`, `path` carried as they are (`path` is not used in grading);
+//   - actions {kind, page, should, nth, target} -> {action, page, should, section, ...}: sign_in -> sign-in,
+//     create_account -> create-account, submit -> submit (graded as schema 1's are: sign-in is the person's step, submit
+//     "ask" stops at review), add_row -> per section one add-row {rowsNeeded = the highest nth with should "fill"}; when
+//     any nth says "never", one more add-row {should "never", rowsMax = rowsNeeded}: rows beyond rowsNeeded must not be
+//     added (graded per step by gradeAddRow); "ask" nths are recorded, not graded;
+//   - match: how a row's page value compares to expected (matchBy); absent -> the harness's own comparison;
+//   - entity: a repeating-section slot is graded against whichever row of its section holds that entity, when the row
+//     selectors name the slot ([aria-labelledby="<Section>-<n>-panel"] ...) and the slot has a row whose expected is the
+//     entity; otherwise the label rule (Company / School / Language) as for schema 1; otherwise by slot.
+// Anything the harness cannot read faithfully is listed in key_warnings (in the report) instead of being guessed.
+const SECTION_NAMES = { workExperienceSection: "Work Experience", educationSection: "Education", languageSection: "Languages", languagesSection: "Languages", websiteSection: "Websites", websitesSection: "Websites" };
+const ACTION_KINDS = { sign_in: "sign-in", create_account: "create-account", add_row: "add-row", submit: "submit" };
+const MATCH_KINDS = ["exact", "casefold", "contains-casefold", "digits", "url", "empty", "empty-or-na", "set"];
+const pageName = (p) => String(p ?? "").replace(/\.html$/, "");
+function normalizeKey(key, dir) {
+  if (!key || Array.isArray(key.fields) || !Array.isArray(key.rows)) return key; // schema 1 (or no rows at all): as written
+  const warnings = [];
+  const fields = key.rows.map((r, i) => {
+    const f = { ...r, page: pageName(r.page), expected: r.expected === undefined ? null : r.expected };
+    if (f.automationId === undefined && r.formField !== undefined) f.automationId = r.formField;
+    if (r.section !== undefined) {
+      f.sectionId = r.section;
+      f.section = SECTION_NAMES[r.section] || r.section;
+      if (!SECTION_NAMES[r.section]) warnings.push(`row ${i} (${r.label}): section "${r.section}" is not a known section id`);
+    }
+    if (r.match !== undefined && r.match !== null && !MATCH_KINDS.includes(r.match)) {
+      warnings.push(`row ${i} (${r.label}): match "${r.match}" is unknown; graded by the harness's own comparison`);
+      delete f.match;
+    }
+    if (!r.selector) warnings.push(`row ${i} (${r.label}): no selector; the harness cannot find it on the page`);
+    return f;
+  });
+  const actions = [];
+  const addRows = new Map();
+  for (const a of key.actions || []) {
+    const action = ACTION_KINDS[a.kind];
+    if (!action) {
+      warnings.push(`action kind "${a.kind}" is unknown; kept but not graded`);
+      actions.push({ ...a, action: String(a.kind), page: pageName(a.page) });
+      continue;
+    }
+    if (action !== "add-row") {
+      actions.push({ action, page: pageName(a.page), should: a.should, ...(a.target !== undefined ? { target: a.target } : {}) });
+      continue;
+    }
+    if (!SECTION_NAMES[a.target]) warnings.push(`add_row target "${a.target}" is not a known section id`);
+    if (!addRows.has(a.target)) addRows.set(a.target, []);
+    addRows.get(a.target).push(a);
+  }
+  for (const [target, list] of addRows) {
+    const section = SECTION_NAMES[target] || target;
+    const page = pageName(list[0].page);
+    const nths = (should) => list.filter((a) => a.should === should).map((a) => Number(a.nth)).filter(Number.isFinite);
+    const fills = nths("fill"), nevers = nths("never"), asks = nths("ask");
+    const rowsNeeded = fills.length ? Math.max(...fills) : 0;
+    if (list.some((a) => !Number.isFinite(Number(a.nth)))) warnings.push(`add_row ${target}: an action without a numeric nth`);
+    if (fills.length) actions.push({ action: "add-row", page, section, target, rowsNeeded, should: "fill" });
+    // Any "never" nth: rows beyond rowsNeeded must not be added (one graded check per section).
+    if (nevers.length) actions.push({ action: "add-row", page, section, target, rowsMax: rowsNeeded, nths: nevers.sort((x, y) => x - y), should: "never" });
+    // An "ask" nth (the person decides whether to add it) is recorded, not graded.
+    if (asks.length) actions.push({ action: "add-row", page, section, target, nths: asks.sort((x, y) => x - y), should: "ask" });
+  }
+  const out = { tenant: key.tenant || (dir ? path.basename(path.resolve(dir)) : undefined), company: key.company, pages: key.pages || [], fields, actions, schema: 2 };
+  if (key.job !== undefined) out.job = key.job;
+  if (key.jobLocation !== undefined) out.jobLocation = key.jobLocation;
+  if (key.notes !== undefined) out.notes = key.notes;
+  out.key_warnings = warnings;
+  return out;
+}
+// How many rows a repeating section holds now (rows the extension must not add are graded by this).
+function countSectionRows(list) {
+  const re = /-\d+-panel$/;
+  return list.map(({ target, section }) => {
+    const box = target ? document.querySelector(`[data-automation-id="${CSS.escape(target)}"]`) : null;
+    const groups = Array.from((box || document).querySelectorAll('[role="group"][aria-labelledby$="-panel"]')).filter((g) => re.test(g.getAttribute("aria-labelledby")));
+    const prefix = String(section || "").trim().replace(/\s+/g, "-") + "-";
+    return box ? groups.length : groups.filter((g) => g.getAttribute("aria-labelledby").startsWith(prefix)).length;
+  });
+}
+// A schema-2 section with a "never" add_row: once the step is filled it must hold at most rowsMax (= rowsNeeded) rows.
+// The harness cannot tell who added a row; rows already present when Workday served the page would count too.
+function gradeAddRow(a, count) {
+  const base = { page: a.page, label: `${a.section}: no rows beyond ${a.rowsMax} (add_row never: ${a.nths.join(", ")})`, type: "add-row", should: "never",
+    expected: `at most ${a.rowsMax} rows`, got: count, source: null, selector: null };
+  return count > a.rowsMax ? { ...base, verdict: "never-violation", why: `the section holds ${count} rows; at most ${a.rowsMax} may be added` } : { ...base, verdict: "never-ok" };
+}
+
 // ------------------------------------------------------------------------------------------------ reading the key rows
 // Each row's control as the key names it, read in the page: its value by the key's type, whether it is hidden, and the
 // names the extension may know it by (the control's id or name, its date group, its wrapper).
@@ -110,7 +206,7 @@ function readRows(rows) {
     if (!els.length) return { found: false, hidden: true, value: "", names: [] };
     const el = els[0];
     const wrap = el.closest('[data-automation-id^="formField-"], [data-automation-id="attachments-FileUpload"]');
-    let value;
+    let value, list; // list: the chosen labels one by one, for a schema-2 "set" comparison (not used by schema 1)
     const spins = () => {
       const ps = Array.from(el.querySelectorAll('[role="spinbutton"]'));
       const v = ps.map((p) => p.value);
@@ -121,10 +217,11 @@ function readRows(rows) {
       case "dropdown": { const t = clean(el.textContent); value = /^select one$/i.test(t) ? "" : t; break; }
       case "prompt": case "multiPrompt": {
         const c = el.closest('[data-automation-id="multiSelectContainer"]') || wrap || document;
-        value = Array.from(c.querySelectorAll('[data-automation-id="promptSelectionLabel"]')).map((p) => clean(p.textContent)).join(", ");
+        list = Array.from(c.querySelectorAll('[data-automation-id="promptSelectionLabel"]')).map((p) => clean(p.textContent));
+        value = list.join(", ");
         break;
       }
-      case "radio": value = els.filter((x) => x.checked).map(labelFor).join(", "); break;
+      case "radio": list = els.filter((x) => x.checked).map(labelFor); value = list.join(", "); break;
       case "checkbox": value = !!el.checked; break;
       case "checkboxGroup": value = els.filter((x) => x.checked).map(labelFor); break;
       case "monthYear": case "year": case "date": value = el.matches('[role="spinbutton"]') ? String(el.value || "") : spins(); break;
@@ -134,7 +231,7 @@ function readRows(rows) {
     }
     const names = [el.id, el.getAttribute("name"), el.closest('[data-automation-id="dateInputWrapper"]')?.id, wrap?.getAttribute("data-automation-id"),
       wrap?.querySelector('[data-automation-id="select-files"]')?.id].filter(Boolean);
-    return { found: true, hidden: hidden(el), value, names };
+    return { found: true, hidden: hidden(el), value, names, ...(list ? { list } : {}) };
   });
 }
 // Rows of a repeating section match by their company, school or language, not by their order (the key's convention).
@@ -174,7 +271,12 @@ function rowGroups(rows) {
   }
   const out = [];
   for (const g of groups.values()) {
-    const a = g.rows.find((x) => x.r.should === "fill" && /^(company|company name|employer|school|school or university|university|school name|language)$/i.test(String(x.r.label).trim()) && x.r.expected);
+    // Schema 2: a slot's rows name their entity (the employer, school, language or site the slot is about). The anchor is
+    // the slot's row whose expected value is that entity; with none, the label rule below; with neither, by slot.
+    const ent = g.rows.map((x) => x.r.entity).find((e) => typeof e === "string" && e.trim());
+    const same = (x) => ent && x.r.expected != null && !Array.isArray(x.r.expected) && norm(x.r.expected) === norm(ent);
+    const byEntity = ent ? g.rows.find((x) => same(x) && x.r.should === "fill") || g.rows.find(same) : null;
+    const a = byEntity || g.rows.find((x) => x.r.should === "fill" && /^(company|company name|employer|school|school or university|university|school name|language)$/i.test(String(x.r.label).trim()) && x.r.expected);
     if (a) out.push({ panel: g.panel, n: g.n, anchorSub: a.sub, expected: String(a.r.expected) });
   }
   return out;
@@ -191,8 +293,40 @@ const norm = (v) => String(v ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 const digits = (v) => String(v ?? "").replace(/\D/g, "");
 const emptyExpected = (e) => e === "" || e === false || (Array.isArray(e) && !e.length);
 const isEmpty = (v) => v === "" || v === false || v === null || v === undefined || (Array.isArray(v) && !v.length);
-function matches(row, value) {
+// Schema 2's `match`: how the page's value compares to `expected`.
+const isBlank = (v) => isEmpty(v) || (typeof v === "string" && !v.trim());
+const urlKey = (v) => {
+  const s = String(v ?? "").trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, "").replace(/\/+$/, "");
+  const cut = s.search(/[/?#]/);
+  const host = (cut < 0 ? s : s.slice(0, cut)).toLowerCase().replace(/^www\./, ""); // hosts are case-insensitive; paths are not
+  return host + (cut < 0 ? "" : s.slice(cut));
+};
+function matchBy(kind, e, value, list) {
+  switch (kind) {
+    case "exact": return String(value ?? "").trim() === String(e ?? "").trim();
+    case "casefold": return norm(value) === norm(e);
+    case "contains-casefold": return norm(value).includes(norm(e));
+    case "digits": return digits(value) === digits(e);
+    case "url": return urlKey(value) === urlKey(e);
+    case "empty": return isBlank(value);
+    case "empty-or-na": return isBlank(value) || /^(n\/a|not applicable)$/.test(norm(value));
+    case "set": {
+      const got = Array.isArray(list) ? list : Array.isArray(value) ? value : isBlank(value) ? [] : String(value).split(",");
+      const a = [...new Set((Array.isArray(e) ? e : e == null ? [] : [e]).map(norm).filter(Boolean))].sort();
+      const b = [...new Set(got.map(norm).filter(Boolean))].sort();
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+  }
+  return null; // unknown: the harness's own comparison decides
+}
+// The correct final state is empty: schema 1 says so with an empty expected, schema 2 also with match "empty"/"empty-or-na".
+const wantsEmpty = (row) => emptyExpected(row.expected) || row.match === "empty" || row.match === "empty-or-na";
+function matches(row, value, list) {
   const e = row.expected;
+  if (row.match) {
+    const r = matchBy(row.match, e, value, list);
+    if (r !== null) return r;
+  }
   if (row.type === "checkbox") return !!value === !!e;
   if (Array.isArray(e) || Array.isArray(value)) {
     const a = (Array.isArray(e) ? e : [e]).map(norm).sort(), b = (Array.isArray(value) ? value : [value]).filter((x) => x !== "").map(norm).sort();
@@ -210,12 +344,13 @@ function cardField(fields, names) {
 function grade(row, read, fields) {
   const f = read.found ? cardField(fields, read.names) : null;
   const src = f?.source ?? null, trainee = src === "trainee";
-  const base = { page: row.page, label: row.label, type: row.type, should: row.should, expected: row.expected ?? null, got: read.value, source: src, selector: row.selector };
+  const base = { page: row.page, label: row.label, type: row.type, should: row.should, expected: row.expected ?? null, got: read.value, source: src, selector: row.selector,
+    ...(row.match ? { match: row.match } : {}), ...(row.entity ? { entity: row.entity } : {}) };
   if (row.should === "fill") {
     if (!read.found) return { ...base, verdict: "missed", why: "the control is not on the page (a row not added?)" };
-    if (matches(row, read.value)) {
+    if (matches(row, read.value, read.list)) {
       if (trainee) return { ...base, verdict: "fill-correct" };
-      if (emptyExpected(row.expected)) return { ...base, verdict: "fill-correct", by_leaving: true };
+      if (wantsEmpty(row)) return { ...base, verdict: "fill-correct", by_leaving: true };
       if (src === "workday") return { ...base, verdict: "page-set", why: "set by Workday before Trainee read the page: shown as Workday's, not Trainee's" };
       return { ...base, verdict: "page-set", why: "a value nobody on the card claims" };
     }
@@ -277,6 +412,7 @@ async function personDropsFile(page, wrapper) {
   for (const type of ["dragEnter", "dragOver", "drop"]) await cdp.send("Input.dispatchDragEvent", { type, x, y, data });
   await cdp.detach().catch(() => {});
 }
+const POPUP = '[role="listbox"]:not([data-automation-id="selectedItemList"])';
 async function personAnswers(page, log) {
   const done = [];
   for (let round = 0; round < 4; round++) {
@@ -294,16 +430,19 @@ async function personAnswers(page, log) {
           await page.keyboard.type(t.parts === 1 ? "2020" : t.parts === 2 ? "012020" : "01012020", { delay: 15 });
         } else if (t.kind === "list") {
           await w.locator('button[aria-haspopup="listbox"]').first().click();
-          const opt = page.locator('[role="listbox"] [role="option"]:not([aria-disabled="true"])').filter({ hasNotText: /^\s*Select One\s*$/i }).first();
+          const opt = page.locator(`${POPUP} [role="option"]:not([aria-disabled="true"])`).filter({ hasNotText: /^\s*Select One\s*$/i }).first();
           await opt.click({ timeout: 3000 });
         } else if (t.kind === "prompt") {
+          // The open list's options (never a chosen pill of another prompt, which is an option of its own list); a category
+          // opens the next level, which replaces the list.
           await w.locator('[data-automation-id="searchBox"]').first().click();
-          for (let k = 0; k < 3; k++) {
-            const opt = page.locator('[role="listbox"] [role="option"]').first();
+          for (let k = 0; k < 4; k++) {
+            const opt = page.locator(`${POPUP} [role="option"]`).first();
             await opt.waitFor({ timeout: 3000 });
-            const cat = (await opt.getAttribute("aria-haspopup")) === "true";
+            const cat = (await opt.getAttribute("aria-haspopup")) === "true" || (await opt.locator('[data-automation-id="promptOptionMore"], .wd-icon-chevron-right-small').count()) > 0;
             await opt.click();
             if (!cat) break;
+            await sleep(150);
           }
           await page.keyboard.press("Escape").catch(() => {});
         }
@@ -318,24 +457,58 @@ async function personAnswers(page, log) {
   await page.evaluate(() => document.querySelectorAll("[data-eval-person]").forEach((e) => e.removeAttribute("data-eval-person")));
   return done;
 }
-// The person signs in on Workday's own sign-in step, themselves (TEST credentials, typed by the test person).
+// The person signs in on Workday's own sign-in step, themselves (TEST credentials, typed by the test person, with real
+// keys and a real pointer). Round 2: Workday lays a click_filter over its own Sign In button, so the person's click lands
+// on whatever is on top at the button's centre (as a real click does), never on a hidden control; an email-first sign-in
+// (only the email and Next, the password on the next view) takes two rounds. Nothing here is the extension's.
 async function personSignsIn(page) {
-  return await page.evaluate(() => {
-    const vis = (el) => !!el && el.getClientRects().length > 0;
-    const view = Array.from(document.querySelectorAll('[data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).find(vis) || document.body;
-    Array.from(view.querySelectorAll("input")).filter(vis).forEach((i, n) => i.setAttribute("data-eval-signin", String(n)));
-    return Array.from(view.querySelectorAll("[data-eval-signin]")).map((i) => ({ n: i.getAttribute("data-eval-signin"), type: i.type, aid: i.getAttribute("data-automation-id") }));
-  }).then(async (inputs) => {
-    for (const i of inputs) {
-      if (i.aid === "beecatcher") continue;
-      const v = i.type === "password" ? "TEST-password-typed-by-the-person" : i.type === "checkbox" ? null : "test.person@example.test";
+  const before = page.url();
+  for (let round = 0; round < 3; round++) {
+    const inputs = await page.evaluate(() => {
+      const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const view = Array.from(document.querySelectorAll('[data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).find(vis) || document.body;
+      document.querySelectorAll("[data-eval-signin]").forEach((e) => e.removeAttribute("data-eval-signin"));
+      return Array.from(view.querySelectorAll("input")).filter((i) => vis(i) && i.type !== "hidden" && i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1)
+        .map((i, n) => (i.setAttribute("data-eval-signin", String(n)), { n: String(n), type: i.type, empty: i.type === "checkbox" ? !i.checked : !i.value }));
+    });
+    for (const i of inputs.filter((x) => x.empty)) {
       const loc = page.locator(`[data-eval-signin="${i.n}"]`);
-      if (v === null) await loc.check().catch(() => {});
-      else await loc.fill(v).catch(() => {});
+      if (i.type === "checkbox") await loc.check().catch(() => {});
+      else {
+        await loc.click().catch(() => {});
+        await page.keyboard.type(i.type === "password" ? "TEST-password-typed-by-the-person" : "test.person@example.test", { delay: 5 });
+      }
     }
-    const btn = page.locator('[data-automation-id="click_filter"][aria-label="Sign In"], [data-automation-id="signInSubmitButton"], [data-automation-id="click_filter"][aria-label="Create Account"], [data-automation-id="createAccountSubmitButton"]').first();
-    await btn.click({ timeout: 5000 });
-  });
+    // The button the person presses: the view's own submit (Sign In, Create Account, Next, Continue), by its centre.
+    const box = await page.evaluate(() => {
+      const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const label = (b) => String(b.getAttribute("aria-label") || b.value || b.textContent || "").replace(/\s+/g, " ").trim();
+      const b = Array.from(document.querySelectorAll('[data-automation-id="click_filter"], button, [role="button"], input[type="submit"]'))
+        .find((x) => vis(x) && /^(sign in|create account|next|continue|log in)$/i.test(label(x)));
+      if (!b) return null;
+      b.scrollIntoView({ block: "center" });
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    if (!box) throw Error("the test person found no Sign In, Next or Continue button");
+    await page.mouse.click(box.x, box.y);
+    // Moved on (signed in), or the next view of the same sign-in (the password after the email).
+    const end = Date.now() + 8000;
+    let more = false;
+    while (Date.now() < end) {
+      if (page.url() !== before) return;
+      more = await page.evaluate(() => Array.from(document.querySelectorAll("input")).some((i) => i.getClientRects().length > 0 && i.type !== "hidden" &&
+        i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1 && (i.type === "checkbox" ? false : !i.value))).catch(() => false);
+      if (more) break;
+      await sleep(150);
+    }
+    if (!more) {
+      // Workday answered nothing to the click: the person presses Enter in the last box, as people do.
+      await page.keyboard.press("Enter").catch(() => {});
+      await sleep(1500);
+      if (page.url() !== before) return;
+    }
+  }
 }
 
 // ------------------------------------------------------------------------------------------------ one tenant
@@ -345,7 +518,7 @@ function slug(s) {
 async function runTenant(o) {
   const log = o.log || ((m) => console.error(m));
   const dir = path.resolve(o.tenant);
-  const key = JSON.parse(fs.readFileSync(path.join(dir, "key.json"), "utf8"));
+  const key = normalizeKey(JSON.parse(fs.readFileSync(path.join(dir, "key.json"), "utf8")), dir);
   const persona = JSON.parse(fs.readFileSync(o.persona || PERSONA, "utf8")).facts;
   const pages = key.pages || [];
   const submitAction = (key.actions || []).find((a) => a.action === "submit");
@@ -353,6 +526,11 @@ async function runTenant(o) {
     measured_at: new Date().toISOString(), tenant: key.tenant || path.basename(dir), company: key.company, evidence: "VERIFIED-S on TEST Workday-shaped pages; real Workday NOT_RUN",
     pages: [], rows: [], actions: [], submitted: false, records: 0, errors: [],
   };
+  if (key.schema === 2) {
+    report.key_schema = 2;
+    report.key_warnings = key.key_warnings || [];
+    for (const w of report.key_warnings) log(`${report.tenant}: key warning: ${w}`);
+  }
   const world = await startWorld();
   const host = `${slug(key.company)}.wd5.myworkdayjobs.com`;
   const base = `/en-US/External/job/${slug(key.jobLocation || "Remote")}/${slug(key.job || "Job")}_R-10001/apply/`;
@@ -393,6 +571,12 @@ async function runTenant(o) {
       const read = await page.evaluate(readRows, rows.map((r) => ({ ...r, selector: remapSelector(r.selector, map) })));
       const fields = card.payload?.fields || [];
       const graded = rows.map((r, i) => grade(r, read[i], fields));
+      // Schema 2: rows the key says must not be added (add_row, should "never").
+      const neverRows = (key.actions || []).filter((a) => a.action === "add-row" && a.page === name && a.should === "never" && Number.isFinite(a.rowsMax));
+      if (neverRows.length) {
+        const counts = await page.evaluate(countSectionRows, neverRows.map((a) => ({ target: a.target, section: a.section })));
+        neverRows.forEach((a, i) => graded.push(gradeAddRow(a, counts[i])));
+      }
       report.rows.push(...graded);
       const traineeNames = new Set(fields.filter((f) => f.source === "trainee").map((f) => f.name));
       const keyed = new Set(read.flatMap((x) => x.names));
@@ -440,6 +624,8 @@ async function runTenant(o) {
     }
     report.submitted = await page.evaluate(() => window.__submitted === true).catch(() => false);
     report.records = world.state.begins.length;
+    // Ask once (round 2): what the extension sent Trainee to ask by text, step by step (labels only).
+    report.questions_stored = world.state.putCalls.map((c) => (c.p_questions || []).map((q) => q.label));
     report.served = tenant.served.slice();
     report.drafts_kept = (await sw.evaluate(async () => (await chrome.storage.local.get("workday_drafts")).workday_drafts || [])).length;
   } catch (e) {
@@ -457,8 +643,8 @@ function summarize(report) {
   const correct = n("fill-correct");
   const traineeCorrect = rows.filter((r) => r.verdict === "fill-correct" && !r.by_leaving).length;
   const traineeFilled = rows.filter((r) => r.source === "trainee").length;
-  const nonEmptyShould = rows.filter((r) => r.should === "fill" && !emptyExpected(r.expected)).length;
-  const traineeCorrectNonEmpty = rows.filter((r) => r.verdict === "fill-correct" && !r.by_leaving && !emptyExpected(r.expected)).length;
+  const nonEmptyShould = rows.filter((r) => r.should === "fill" && !wantsEmpty(r)).length;
+  const traineeCorrectNonEmpty = rows.filter((r) => r.verdict === "fill-correct" && !r.by_leaving && !wantsEmpty(r)).length;
   report.counts = {
     should_fill: should, fill_correct: correct, fill_correct_by_leaving_empty: rows.filter((r) => r.by_leaving).length, fill_wrong: n("fill-wrong"), missed: n("missed"),
     page_set: n("page-set"), page_set_wrong: n("page-set-wrong"), asked_correctly: n("asked-correctly"), wrongly_filled_ask: n("wrongly-filled-ask"),
@@ -496,5 +682,6 @@ async function main() {
   console.log(report.summary);
   process.exit(report.errors.length ? 1 : 0);
 }
-module.exports = { runTenant, launch, openPanel, signIn, waitCard, cardOf, tabIdOf, matches, grade, summarize, slug };
+module.exports = { runTenant, launch, openPanel, signIn, waitCard, cardOf, tabIdOf, matches, matchBy, grade, gradeAddRow, summarize, slug, personSignsIn, personAnswers,
+  normalizeKey, rowGroups, wantsEmpty };
 if (require.main === module) main();

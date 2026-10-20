@@ -158,3 +158,116 @@ relocate" (asked; the key says Yes), an English proficiency list, a LinkedIn lin
 start" ("Within 2 weeks"), and the how-heard search widget that stopped s4. Coverage against the 70% target is met on the
 two tenants that ran end to end (counting only Trainee's fills: 68.2% and 90.2%; on the form: 93.2% and 95.1%), not shown
 on s1 and s4. The sealed set is now spent: its misses were read for the next round.
+
+## Round 2 (builder, 2026-10-20, branch `wo/048b-workday-r2`)
+Evidence: **VERIFIED-S on TEST Workday-shaped pages**; real Workday **NOT_RUN**. The spent tenants are copied into the repo
+as `tests/fixtures/workday/spent-s1`..`spent-s4` and were developed against: their numbers are **not blind**. No other
+sealed set was opened.
+
+### What changed
+- **Eval harness, the test person's sign-in** (`evals/apply/workday-fill.cjs`): the person types with real keys and clicks
+  at the Sign In button's centre with a real pointer, so the click lands on Workday's `click_filter` overlay as a person's
+  does (s1's timeout was a click aimed at the covered button); if nothing answers the click they press Enter. An
+  email-first sign-in takes two rounds (email + Next, then the password). The person's list and prompt picks no longer
+  take a chosen pill of another prompt for an option (s4's stall was also this). The report lists the questions sent to
+  ask-once. The extension still never touches a sign-in page.
+- **Email-first sign-in in the extension** (`dom.ts`): a Workday page whose only box is an email or user name box, with a
+  Next / Continue / Sign In button and sign-in or account wording, is an account page even with none of Workday's
+  markers: never read, filled or clicked; the card says to sign in yourself. `readForm` returns nothing on any account
+  page, flow markers or not. TEST page: `tests/fixtures/workday/signin/0-sign-in-email-first.html` (builder's own).
+- **How-heard on a search prompt with categories** (`dom.ts`, `answer_options.ts`): a leaf under categories is offered to
+  the planner as "Category > Leaf"; the fill types the leaf, waits up to 3 s for results and takes it only when exactly
+  one result is that leaf (a twin leaf under another category goes by its category path, or is left). The careers site by
+  its own name wins ("Litware Careers Website" over "Other Website"); a plain website option only when none names it,
+  never "Other Website". No sure match: left and asked; the person's own pick makes the card ready.
+- **Planner (shared, zero wrong)**: "previous employee of X or any of its affiliates/subsidiaries" is `worked_here_before`;
+  No only when every job in `work_history` is in the confirmed `former_employers`, none is named in the question, and no
+  listed employer shares a name word with X (else asked). A language's level on a list ("How would you rate your English
+  proficiency?", and a language row's level list) only from a level the person stated: native onto the one native
+  option, else the one fluent option; no level, another language, or two candidates: asked. A Websites row's URL takes
+  the person's one link (exactly one of LinkedIn/GitHub/website/portfolio, a URL as stated) only when the form has no
+  field of its own for that link; one row is added for it. "When could you start?" over spans ("Within 2 weeks") from
+  `notice_period` by `bySpan` when no `start_date` is stated: the tightest "within" span that holds it; never a yes/no,
+  never a free-text date. "More than N" no longer holds N itself.
+- **Ask-once on Workday** (`content.js`, `background.js`): each step's open questions go to `questionsToStore` as on
+  every other form, once per step; never a repeating row's part, never the disability form, never a field the page
+  already shows a value for.
+- `docs/apply/fill-coverage.md` regenerated: A 855 filled (unchanged; one wrong fill removed: Woven's "Limited / No English
+  language ability" for a person who gave English without a level, now asked; one gained: Daniels Health "Careers Page"),
+  at most 2 left 76 -> 77; B unchanged. The 52-test browser suite passes and its accuracy report (17 forms) is identical
+  to trunk's, compared row by row (the suite has one test that fails intermittently on trunk and here alike).
+- No existing test was edited. Added: architect WO-048/10..14; browser: email-first sign-in, nested how-heard prompt
+  (filled, and left-then-answered by the person), ask-once per step, and zero-wrong runs of spent-s1..s4 that also name
+  each tenant's known misses.
+
+### Numbers (`node evals/apply/workday-fill.cjs --tenant tests/fixtures/workday/<t>`; VERIFIED-S on TEST pages; real Workday NOT_RUN)
+| Tenant | Coverage (correct / should fill) | On the form incl. Workday's own | Strict | Precision | Wrong | Never-violations | Reached | Submitted |
+|---|---|---|---|---|---|---|---|---|
+| dev-a | 95.7% (44/46) | 46/46 | 95.2% | 100% (41/41) | 0 | 0 | review | no |
+| dev-b | 100% (44/44) | 44/44 | 100% | 100% (42/42) | 0 | 0 | review | no |
+| spent-s1 (not blind; was 0/0, stopped at sign-in) | 94.6% (35/37) | 37/37 | 94.1% | 100% (33/33) | 0 | 0 | review | no |
+| spent-s2 (not blind; was 68.2%) | 72.7% (32/44) | 43/44 | 70.0% | 100% (29/29) | 0 | 0 | review | no |
+| spent-s3 (not blind; was 90.2%) | 95.1% (39/41) | 41/41 | 94.6% | 100% (36/36) | 0 | 0 | review | no |
+| spent-s4 (not blind; was 15/16, stopped on page 1) | 100% (44/44) | 44/44 | 100% | 100% (41/41) | 0 | 0 | review | no |
+
+The one row still missed on the spent set: s2's "Are you local to Chicago, IL or willing to relocate?" (two questions in
+one; asked, as round 1 decided). s2's other 11 non-Trainee rows are Workday's own resume parse, shown as Workday's.
+
+### Planted defects (one at a time, reverted)
+| # | Defect (one line) | Caught by |
+|---|---|---|
+| P1 | `dom.ts` `emailFirstSignIn`: `return false` | browser "an email-first sign-in ... is never read, filled or clicked" |
+| P2 | harness `POPUP`: any `[role=listbox]` (a chosen pill counts as an option) | browser "how the person heard ... nested search prompt"; "zero wrong on spent-s1", "spent-s4" |
+| P3 | `answer_options.ts`: `web ?site` back in the careers-site pattern | architect WO-048/14; browser "how the person heard ..."; "zero wrong on spent-s4" |
+| P4 | `career_apply.ts`: affiliates guard without the complete-list check | architect WO-048/10 |
+| P5 | `answer_options.ts` `levelOption`: the native option no longer preferred | architect WO-048/11; browser "zero wrong on spent-s2", "spent-s4" |
+| P6 | `career_apply.ts` `linkEntries`: the form's own LinkedIn field ignored | architect WO-048/12 |
+| P7 | `answer_options.ts` `bySpan`: tightest "within" span removed | architect WO-048/13; browser "zero wrong on spent-s3" |
+| P8 | `content.js`: repeating-row parts sent to ask-once | browser "Workday's open questions go to ask-once ..." |
+| P9 | `background.js`: ask-once kept once per posting, not per step | browser "Workday's open questions go to ask-once ..." |
+| P10 | `dom.ts` `sectionKind`: Websites no longer a section | browser "zero wrong on spent-s1", "spent-s3" |
+
+### Still not handled (blunt)
+- Real Workday NOT_RUN; everything above is on TEST pages, and the spent numbers are not blind. The email-first page is the
+  builder's own guess at that shape; a real tenant's may differ (SSO redirects, a code step).
+- "Local to <place> or willing to relocate" is still asked. A start question over dates (not spans) is asked. A person with
+  two or more links gets no Websites row. The affiliate rule asks whenever a listed employer shares a name word with the
+  tenant (by design: more asks, no guesses).
+- The prompt fill still sets the search box's value and fires synthetic events; real Workday may need typed keys.
+
+## Architect review: round 2 on 4 new sealed tenants, scored once (2026-10-20)
+A second writer, who never read the extension or the planner, wrote 4 new Workday-shaped TEST tenants (sealed-wd2, sha256
+of `tar --sort=name --mtime=@0 --owner=0 --group=0 -cf - t1 t2 t3 t4` = `dbb34180cbc5c4a5...`, checked before the run).
+Their key uses a second schema; the first run on round 2's head graded nothing (the harness read no rows), so it measured
+nothing and spent nothing. A separate agent then taught the harness the second schema (`wo/048c-harness-schema`,
+83c96d0e) from a written description only, never the sealed files; dev-a and dev-b score row for row as before. The
+product was not changed between the two runs. Then the 4 tenants were run once. They are now spent.
+
+| Tenant | Pages reached | Coverage (graded rows) | Trainee's precision | Wrong | Never-violations | Why it stopped |
+|---|---|---|---|---|---|---|
+| t1 | sign-in only | none graded | - | 0 | 0 | the harness timed out waiting for the page after the test person's sign-in |
+| t2 | 1 of 6 | 75.0% (12/16) | 9/9 | 0 | 0 | "How Did You Hear About Us?" was asked and the harness did not answer it as the person |
+| t3 | 3 of 6 | 47.4% (18/38) | 14/14 | 0 | 1 (harness, see below) | a travel answer the page set itself blocks approval, by design (rule 3); the harness does not clear it as the person |
+| t4 | 3 of 6 | 45.7% (16/35) | 12/14 | 2 | 0 | Resume/CV required; the harness did not upload as the person |
+
+What is true, read row by row:
+- **One wrong fill is the product's**: on t4 a past job's **Location** took the person's home "Chicago, IL". The key says
+  that part is the person's to state (rule 4: a part they never stated is asked). The field's id
+  (`workExperience-31--location`) was not read as part of the work-experience section, so the keyword reader filled it
+  as the person's own location. Round 3 must make a field inside a repeating section never take a person-level fact.
+- **One wrong is unresolved**: t4's how-heard multiselect is graded "Lucerne Careers Website" expected, empty found,
+  with Trainee as the source: either the pick did not stick or the new "set" reader misread the pills.
+- **The never-violation is the harness's**: the key allows one Websites row (nth 2 is "never"); the adapter computed
+  "at most 0" because no nth was marked "fill". Not a product defect.
+- **Most "missed" rows are on unreached or unmatched sections**: the key names sections `workExperience`, `education`,
+  `languages`, `websites` (no "Section" suffix), which the adapter does not map, and the runs stopped before the person
+  could finish each page. These misses are not a measured product coverage; they are unmeasured.
+- Product misses that are real: t2's "Have you ever been employed by Proseware Test Inc or one of its subsidiaries?"
+  (asked; the person's complete employer list settles it), t3's salary range ($80,000-$99,999 from 95000) and English
+  "Native or Bilingual" (the persona gives no level: asked is right by WO-052's rule, the key disagrees).
+
+**Verdict: the 70% Workday target is not shown on independent tenants.** Round 2's numbers stand on dev and spent tenants
+only. Round 3: (1) a field inside a repeating section never takes a person-level fact; (2) the harness completes a tenant
+as the person (answers what Trainee asks, clears a page-set value, uploads the resume, waits out sign-in) and maps the
+section ids above; (3) a new sealed set (sealed-wd3) from a third writer, scored once. Real Workday stays NOT_RUN until a
+person is signed in to a real tenant.

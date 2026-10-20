@@ -253,3 +253,101 @@ Deno.test("WO-048/8 a page's card: its answers exactly as sent, Workday's own va
   const old = cardLines({ company: "northwind", family: "workday", payload: p, openRequired: [], identity: [], blockers: [], verification: [] });
   assert(old.some((l) => l.startsWith("Approve sends it with the site's own Submit")));
 });
+
+// ------------------------------------------------------------------------------------------------ round 2 (spent s1-s4)
+const YN_RADIO = [{ label: "Yes", value: "true" }, { label: "No", value: "false" }];
+
+Deno.test("WO-048/10 'a previous employee of X or any of its affiliates': No only from a complete list that names nothing like X", () => {
+  const q = "Were you a previous employee of Tailspin Test Air or any of its affiliates?";
+  eq(mapQuestion({ label: q, type: "radio", options: YN_RADIO }).fact, "worked_here_before");
+  const ask = (answers = PERSONA as Record<string, { value: string; factId: string }>) =>
+    valueOf(plan([field("pw", q, { type: "radio", options: YN_RADIO })], answers, "tailspin-test-air"), "pw");
+  eq(ask(), "false", "every stated job is in the confirmed list, and none is Tailspin's: No");
+  eq(ask({ ...PERSONA, former_employers: fact("Example Analytics; Sample Retail; Tailspin Test Air") }), "true", "listed: Yes");
+  eq(ask({ ...PERSONA, former_employers: fact("Example Analytics; Sample Retail; Tailspin Cargo") }), null, "a listed company that may be an affiliate: asked");
+  eq(ask({ ...PERSONA, former_employers: fact("Example Analytics") }), null, "a job the person stated is missing from the list: not complete, asked");
+  const none = { ...PERSONA } as Record<string, { value: string; factId: string }>;
+  delete none.former_employers;
+  eq(ask(none), null, "no confirmed list: asked");
+  // The same wording naming one of the person's employers among others is theirs to answer (the existing guard).
+  eq(valueOf(plan([field("pw", "Were you a previous employee of Tailspin Test Air, Sample Retail or any of their affiliates?", { type: "radio", options: YN_RADIO })],
+    PERSONA, "tailspin-test-air"), "pw"), null);
+});
+
+Deno.test("WO-048/11 a language's level on a list: native or fluent only when the person said so, onto the one option that says it", () => {
+  const levels = opts("Elementary", "Limited working", "Professional working", "Full professional", "Native or bilingual");
+  const q = (label: string, answers = PERSONA as Record<string, { value: string; factId: string }>, o = levels) =>
+    valueOf(plan([field("lp", label, { type: "select", options: o })], answers), "lp");
+  eq(mapQuestion({ label: "How would you rate your English proficiency?", options: levels }).fact, "languages");
+  eq(q("How would you rate your English proficiency?"), "Native or bilingual");
+  eq(q("How would you rate your English proficiency?", { ...PERSONA, languages: fact("English") }), null, "no level stated: asked");
+  eq(q("How would you rate your English proficiency?", { ...PERSONA, languages: fact("English (fluent)") }), null, "fluent is not 'Native or bilingual', and no option says fluent");
+  eq(q("How would you rate your English proficiency?", { ...PERSONA, languages: fact("English (fluent)") }, opts("Basic", "Conversational", "Fluent")), "Fluent");
+  eq(q("How would you rate your English proficiency?", { ...PERSONA, languages: fact("Spanish (native)") }), null, "another language's level is not English's");
+  eq(q("How would you rate your Spanish proficiency?"), null, "a language the person never named");
+  eq(q("Rate your English and Spanish proficiency", { ...PERSONA, languages: fact("English (native); Spanish (native)") }), null, "two languages in one question");
+  eq(q("Are you fluent in English?", PERSONA, YN), null, "a yes/no about English is read as before");
+  eq(q("How would you rate your English proficiency?", PERSONA, opts("Native", "Native-like", "Fluent")), null, "two options that say native: asked");
+  // Never typed into a box: a score or a free-text level is the person's.
+  eq(valueOf(plan([field("ts", "English proficiency test score (TOEFL)")]), "ts"), null);
+  // The same rule on a language row's level list: native onto Native beside Fluent.
+  const row5 = opts("Beginner", "Intermediate", "Advanced", "Fluent", "Native");
+  const rows = [row("language", 1, "language", "Language", { type: "select", options: opts("English", "French") }),
+    row("language", 1, "proficiency", "Overall", { type: "select", options: row5 })];
+  eq(valueOf(plan(rows), "language-1--proficiency"), "Native");
+  eq(valueOf(plan(rows, { ...PERSONA, languages: fact("English (fluent)") }), "language-1--proficiency"), "Fluent");
+});
+
+Deno.test("WO-048/12 a Websites row takes the person's one link, only when the form has no field of its own for it", () => {
+  const LI = "https://www.linkedin.com/in/test-person";
+  const P = { ...PERSONA, linkedin: fact(LI, "TEST-li") };
+  const url = [row("website", 1, "url", "URL")];
+  const got = plan(url, P);
+  eq(valueOf(got, "website-1--url"), LI);
+  eq(got[0].factId, "TEST-li", "cites the LinkedIn fact");
+  eq(rowsToAdd("website", [], P, url), 1, "one row added for the one link");
+  eq(rowsToAdd("website", [LI], P, url), 0, "a row already holding it (Workday's parse): none added");
+  eq(rowsToAdd("website", [], P), 0, "without the form's fields, nothing is added");
+  const own = [...url, field("li", "LinkedIn")];
+  eq(valueOf(plan(own, P), "website-1--url"), null, "the form asks for LinkedIn on its own: the generic URL is left");
+  eq(rowsToAdd("website", [], P, own), 0);
+  const two = { ...P, github: fact("https://github.com/test-person") };
+  eq(valueOf(plan(url, two), "website-1--url"), null, "two links: which one is the person's call");
+  eq(rowsToAdd("website", [], two, url), 0);
+  eq(valueOf(plan(url, { ...PERSONA, linkedin: fact("test-person on LinkedIn") }), "website-1--url"), null, "not a URL as stated: left");
+  eq(valueOf(plan([row("website", 1, "url", "URL", { type: "select", options: opts(LI) })], P), "website-1--url"), null, "never onto a list");
+});
+
+Deno.test("WO-048/13 'when could you start' over spans of time: from the notice period, the tightest span that holds it", () => {
+  const starts = opts("Immediately", "Within 2 weeks", "Within 1 month", "More than 1 month");
+  const q = (answers: Record<string, { value: string; factId: string }>, o = starts, label = "If offered this position, when could you start?") =>
+    valueOf(plan([field("st", label, { type: "select", options: o })], answers), "st");
+  eq(q(PERSONA), "Within 2 weeks");
+  eq(q({ ...PERSONA, notice_period: fact("1 month") }), "Within 1 month");
+  eq(q({ ...PERSONA, notice_period: fact("6 weeks") }), "More than 1 month");
+  eq(q({ ...PERSONA, notice_period: fact("immediately") }), "Immediately");
+  eq(q({ ...PERSONA, notice_period: fact("whenever suits") }), null, "not a span: asked");
+  eq(q(PERSONA, opts("Within 1-2 weeks", "Within 3-4 weeks", "1 month+")), "Within 1-2 weeks", "a range is read as a range");
+  eq(q(PERSONA, opts("Within 2 weeks", "Within 2 weeks or less")), null, "two spans that say the same: asked");
+  eq(q(PERSONA, YN, "Can you start within 2 weeks?"), null, "a yes or no is never derived from the notice period here");
+  eq(valueOf(plan([field("sd", "When could you start?")]), "sd"), null, "a free-text start date is never the notice period");
+  const none = { ...PERSONA } as Record<string, { value: string; factId: string }>;
+  delete none.notice_period;
+  eq(q(none), null, "no notice period: asked");
+  eq(chooseOption("notice_period", "2 weeks", opts("1-2 weeks", "2-4 weeks")), null, "two closed spans sharing the edge: still asked");
+});
+
+Deno.test("WO-048/14 how the person heard, on a nested list: the careers site by its own name, never 'Other Website', a twin leaf asked", () => {
+  const ask = (o: string[], answers = PERSONA as Record<string, { value: string; factId: string }>) =>
+    valueOf(plan([field("hh", "How Did You Hear About Us?", { type: "select", options: opts(...o) })], answers), "hh");
+  eq(ask(["Website > Litware Careers Website", "Website > Other Website", "Job Board > Indeed", "Other"]), "Website > Litware Careers Website");
+  eq(ask(["Litware Careers Website", "Other Website", "Indeed"]), "Litware Careers Website");
+  eq(ask(["Company Website > Careers Site", "Job Board > Indeed"]), "Company Website > Careers Site");
+  eq(ask(["Corporate Website", "Indeed"]), "Corporate Website", "a plain website option when none names the careers page");
+  eq(ask(["Other Website", "LinkedIn"]), null, "another website is not the company's");
+  eq(ask(["Careers Page", "Join Our Pride Website"]), "Careers Page");
+  const li = { ...PERSONA, how_heard: fact("LinkedIn") };
+  eq(ask(["Job Board > LinkedIn Jobs", "Social Media > LinkedIn"], li), null, "two LinkedIn leaves under two categories: asked");
+  eq(ask(["Job Board > Indeed", "Social Media > LinkedIn"], li), "Social Media > LinkedIn");
+  eq(ask(["Website", "Job Board"], { ...PERSONA, how_heard: fact("a friend told me") }), null, "no sure match: asked, never guessed");
+});

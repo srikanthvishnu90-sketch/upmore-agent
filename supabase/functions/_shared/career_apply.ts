@@ -7,7 +7,7 @@
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
 import { answerKey, mapQuestion, norm as normQuestion } from "./question_map.ts";
-import { chooseOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
+import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
 export interface Observation {
@@ -258,6 +258,11 @@ function authorizedWithoutSponsorship(answers: Record<string, Answer>): Answer |
   if (a === "no" || n === "yes") return { value: "No", factId: n === "yes" ? sp.factId : w.factId };
   return null;
 }
+const AFFILIATES = /\bsubsidiar|\baffiliat|\bparent compan|\bsister compan|\brelated (compan|entit)|\bgroup compan|\bfamily of compan|\bpredecessor/i;
+// The words of a company's name that could tie two companies together (not "group", "services", "inc").
+const GENERIC_NAME = new Set(["and", "the", "of", "group", "holdings", "holding", "global", "international", "services", "service", "solutions", "systems",
+  "technologies", "technology", "tech", "partners", "industries", "enterprises", "usa", "america", "americas", "national", "united", "worldwide"]);
+const nameWords = (n: string) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
 const SPLIT = /\s*[;,\n]\s*/;
 function byMeaning(f: FormField, company: string, answers: Record<string, Answer>, places: string[] = []): Answer | null {
   const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
@@ -279,7 +284,20 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     // there, the answer is theirs to give.
     const named = normCompany([f.label, ...f.options.map((o) => o.label)].join(" "));
     if (!here && listed.some((x) => new RegExp(`(^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(named))) return null;
+    // WO-048 round 2: "X or any of its subsidiaries or affiliates" also names companies nobody listed. No only from a list
+    // that is complete (every job the person stated is in it) and where no listed employer shares a name word with X (an
+    // affiliate is often named after its parent: "Tailspin Cargo" of "Tailspin Air"); otherwise the person answers.
+    if (!here && AFFILIATES.test(f.label)) {
+      if (workEntries(answers).some((e) => !listed.includes(normCompany(e.employer)))) return null;
+      const theirs = new Set(nameWords(co));
+      if (!theirs.size || listed.some((x) => nameWords(x).some((w) => theirs.has(w)))) return null;
+    }
     a = { value: here ? "Yes" : "No", factId: answers.former_employers.factId };
+  } else if (m.fact === "start_date" && !answers.start_date && answers.notice_period && f.options.length) {
+    // WO-048 round 2: "When could you start?" over spans of time ("Within 2 weeks", "Within 1 month") from the stated notice
+    // period, by its span alone (bySpan): the one span it falls in, else asked. Never a date, never a yes or no.
+    const choice = chooseOption("notice_period", String(answers.notice_period.value), f.options);
+    return choice === null ? null : { value: choice, factId: answers.notice_period.factId };
   } else if (m.kind === "screen") {
     const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
     // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
@@ -400,9 +418,18 @@ export function languageEntries(answers: Record<string, Answer>): { language: st
     return m ? { language: m[1].trim(), level: (m[2] || "").trim().toLowerCase() } : null;
   }).filter((x): x is { language: string; level: string } => !!x && !!x.language);
 }
-const anchorOf = (kind: string, answers: Record<string, Answer>): string[] =>
+// WO-048 round 2: a Websites (links) section takes the person's one link: only when they stated exactly one (a LinkedIn, a
+// GitHub, a site; a URL as stated) and the form has no field of its own for that kind of link. Two links, or none: left.
+const LINK_FACTS = ["linkedin", "github", "website", "portfolio"];
+export function linkEntries(answers: Record<string, Answer>, fields: FormField[] = []): { kind: string; url: string }[] {
+  const links = LINK_FACTS.filter((k) => answers[k] && /^https?:\/\/\S+$/i.test(str(answers[k].value))).map((k) => ({ kind: k, url: str(answers[k].value) }));
+  if (links.length !== 1) return [];
+  const own = fields.some((f) => !f.section && !f.personal && (classifyField(f.label, f.type) === links[0].kind || mapQuestion(f).fact === links[0].kind));
+  return own ? [] : links;
+}
+const anchorOf = (kind: string, answers: Record<string, Answer>, fields?: FormField[]): string[] =>
   kind === "work" ? workEntries(answers).map((e) => e.employer) : kind === "education" ? educationEntries(answers).map((e) => e.school)
-    : kind === "language" ? languageEntries(answers).map((e) => e.language) : [];
+    : kind === "language" ? languageEntries(answers).map((e) => e.language) : kind === "website" && fields ? linkEntries(answers, fields).map((e) => e.url) : [];
 const sameAnchor = (a: string, b: string) => normCompany(a) !== "" && normCompany(a) === normCompany(b);
 // A row Workday filled with nearly an entry's name ("Example Analytic" for "Example Analytics", "Sample Retail Inc"): it
 // may be that entry, or not. Trainee neither fills it nor adds a second row for the entry (no duplicate job): the person
@@ -420,8 +447,8 @@ function nearAnchor(a: string, b: string): boolean {
 // Which of the person's entries each row holds: a row whose anchor (its company, school or language, as the page shows
 // it) names an entry is that entry's; an empty row takes the next entry no row names or nearly names; a row naming
 // something else is nobody's (Trainee leaves it).
-function assignRows(kind: string, rows: { row: number; anchor: string }[], answers: Record<string, Answer>): Map<number, number> {
-  const entries = anchorOf(kind, answers), out = new Map<number, number>(), taken = new Set<number>();
+function assignRows(kind: string, rows: { row: number; anchor: string }[], answers: Record<string, Answer>, fields: FormField[]): Map<number, number> {
+  const entries = anchorOf(kind, answers, fields), out = new Map<number, number>(), taken = new Set<number>();
   for (const r of rows) {
     const i = r.anchor ? entries.findIndex((e, j) => !taken.has(j) && sameAnchor(e, r.anchor)) : -1;
     if (i >= 0) {
@@ -442,9 +469,10 @@ function assignRows(kind: string, rows: { row: number; anchor: string }[], answe
   }
   return out;
 }
-// How many rows a section needs added: one per stated entry no row holds yet, less the empty rows already there.
-export function rowsToAdd(kind: string, anchors: string[], answers: Record<string, Answer>): number {
-  const entries = anchorOf(kind, answers);
+// How many rows a section needs added: one per stated entry no row holds yet, less the empty rows already there. A links
+// section needs the form's fields (a link the form asks for on its own is not added again); without them, none.
+export function rowsToAdd(kind: string, anchors: string[], answers: Record<string, Answer>, fields?: FormField[]): number {
+  const entries = anchorOf(kind, answers, fields);
   const held = new Set<number>();
   for (const a of anchors) {
     const i = a ? entries.findIndex((e, j) => !held.has(j) && sameAnchor(e, a)) : -1;
@@ -485,7 +513,7 @@ function statedDate(value: string, format = "MM/YYYY"): string | null {
 const pick = (_fact: string, value: string, f: FormField) =>
   f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
 const FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
-function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<string, Answer>): Answer | null {
+function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<string, Answer>, fields: FormField[]): Answer | null {
   const s = f.section!;
   if (entry === undefined) return null;
   const out = (value: string | null, factId: string | undefined) => (value && factId ? { value, factId } : null);
@@ -521,6 +549,10 @@ function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<
     }
     return null;
   }
+  if (s.kind === "website") {
+    const e = linkEntries(answers, fields)[entry];
+    return s.part === "url" && e && !f.options.length ? out(e.url, answers[e.kind]?.factId) : null;
+  }
   if (s.kind === "language") {
     const e = languageEntries(answers)[entry], id = answers.languages?.factId;
     if (!e) return null;
@@ -528,11 +560,9 @@ function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<
     switch (s.part) {
       case "language": return out(pick("languages", e.language, f), id);
       case "fluent": return out(fluent ? "Yes" : null, id);
-      case "proficiency": {
-        if (!fluent) return null;
-        const hits = f.options.filter((o) => /\b(fluent|native|bilingual|mother tongue)\b/i.test(o.label));
-        return out(hits.length === 1 ? hits[0].value : null, id);
-      }
+      case "proficiency":
+        // Native onto "Native" beside "Fluent" (round 2), fluent onto "Fluent"; nothing for a level never stated.
+        return fluent ? out(levelOption(e.level, f.options), id) : null;
     }
   }
   return null;
@@ -564,14 +594,14 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     for (const kind of new Set(p.fields.filter((f) => f.section).map((f) => f.section!.kind))) {
       const rows = new Map<number, string>();
       for (const f of p.fields) if (f.section?.kind === kind && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
-      rowsOf.set(kind, assignRows(kind, [...rows].map(([row, anchor]) => ({ row, anchor })), o.answers));
+      rowsOf.set(kind, assignRows(kind, [...rows].map(([row, anchor]) => ({ row, anchor })), o.answers, p.fields));
     }
     const places = formPlaces(p.fields, p.company);
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       if (f.personal) continue; // the person's own form: never planned (WO-048)
       if (f.section) {
-        const s = sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers);
+        const s = sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields);
         if (s) { filled.push({ name: f.name, label: f.label, value: s.value, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;

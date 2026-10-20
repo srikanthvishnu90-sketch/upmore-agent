@@ -11,6 +11,9 @@ export interface MappedQuestion { fact: string; kind: Kind; why: string }
 export interface Question { label: string; type?: string; options?: { label: string }[] }
 
 const FACTS = (schema as any).facts as Record<string, { kind: Kind }>;
+// Languages named in a question about one language's level (WO-048 round 2).
+export const LANGUAGE_NAMES = ["english", "spanish", "french", "german", "mandarin", "chinese", "cantonese", "japanese", "korean", "portuguese", "italian",
+  "dutch", "arabic", "hindi", "russian", "polish", "turkish", "vietnamese", "tagalog", "swedish", "hebrew", "greek"];
 export const kindOf = (fact: string): Kind => (FACTS[fact]?.kind ?? "unknown") as Kind;
 
 // The text a rule reads: lowercase, accents kept (French), numbering and markdown stripped, spaces collapsed.
@@ -149,6 +152,8 @@ const RULES: Rule[] = [
   // "What other languages do you speak?" asks for languages besides the one a person always has: their language fact
   // alone does not answer it (WO-042, Welo Global).
   ["languages_other", /\b(other|additional|another|second|foreign)\b.{0,30}\blanguages?\b|\blanguages?\b.{0,30}\b(other than|besides|apart from|in addition to)\b/],
+  // WO-048 round 2: "How would you rate your English proficiency?" names the language and asks its level.
+  ["languages", new RegExp(`\\b(${LANGUAGE_NAMES.join("|")})\\b.{0,20}\\b(proficiency|fluency)\\b|\\b(proficiency|fluency)\\b.{0,30}\\b(${LANGUAGE_NAMES.join("|")})\\b`), (q) => !!q.options?.length],
   ["languages", /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/],
   ["drivers_license", /\bdriver'?s'? licen[cs]e\b/],
   // A license or ID number is never held (no identity digits); it is asked.
@@ -209,7 +214,7 @@ const RULES: Rule[] = [
   // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
   // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.
   ["worked_here_before", /\b(currently|now) or have you ever been (a |an )?[^?]{1,60}\bemployee\b|\bare you (a |an )?current [^?]{1,60}\bemployee\b/, (q, t) => !/temporar|\btemp\b|agency|vendor|contract|consult|intern|government|relative|family/.test(t)],
-  ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)],
+  ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)],
   ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/],
   // "Available on request" answers only a question about references, never a request to list them (WO-052).
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/, (q, t) => !/\b(list|enter|provide|names?|emails?|phone|contact|rationale|evidence|make reference|reference check)\b/.test(t)],

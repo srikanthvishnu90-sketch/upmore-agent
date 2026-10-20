@@ -1,7 +1,7 @@
 'use strict';
 // =====================================================================
 // FIX LANE T3 — stated-facts extraction quality (FACT-KEY-GARBLE-DUP).
-// Evidence: ~/workspace/your_files/channel-tests/2026-10-20-telegram.md
+// Evidence: the 2026-10-20 Telegram channel battery; see docs/gauntlet/t3-stated-facts-extraction-2026-10-20.md.
 // turns 2–3 + cross-check §4 (store read, live, tier 1).
 //
 // DEFECT 1 — the battery's turn-3 sentence, verbatim:

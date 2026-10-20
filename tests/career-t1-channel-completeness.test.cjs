@@ -2,7 +2,7 @@
 // =====================================================================
 // FIX LANE T1 — channel conversation completeness (agent-chat).
 // Evidence: the first LIVE Telegram battery, graded —
-// ~/workspace/your_files/channel-tests/2026-10-20-telegram.md
+// The 2026-10-20 Telegram channel battery (graded record kept outside the repo; summary in docs/gauntlet/).
 // (PASS 0 · PARTIAL 4 · FAIL 5; defects TG-START-FALLBACK,
 // TG-LONGPLAN-FALLBACK, TG-RECALL-ABSENT, TG-GUSTO-LINK-NOT-SERVED).
 //

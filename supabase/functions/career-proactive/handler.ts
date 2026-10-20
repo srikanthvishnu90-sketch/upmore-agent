@@ -60,7 +60,7 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const interviews = d.briefs ? d.briefs.interviews() : null;
     if (d.mail) {
       const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, briefs: interviews, confirm: d.mail.confirm ? d.mail.confirm() : null, model: d.mail.model ? d.mail.model() : null });
-      if (m.model) Object.assign(stats, { mail_model: m.model, mail_model_calls: m.model_calls ?? 0, mail_model_decided: m.model_decided ?? 0 }, m.model_ask ? { mail_model_ask: m.model_ask } : {});
+      if (m.model) Object.assign(stats, { mail_model: m.model, mail_model_calls: m.model_calls ?? 0, mail_model_decided: m.model_decided ?? 0, mail_model_capped: m.model_capped ?? 0 }, m.model_ask ? { mail_model_ask: m.model_ask } : {});
       stats.statuses = m.statuses;
       stats.followups = m.followups;
       stats.briefs = m.briefs;

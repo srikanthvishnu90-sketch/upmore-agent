@@ -7,6 +7,7 @@
 import { fileAlternative, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { employerGate } from "../../supabase/functions/_shared/essay_draft.ts";
+import LOCATIONS from "./posting-locations.json" with { type: "json" };
 
 const fact = (value: string) => ({ value, factId: "TEST-persona" });
 export const PERSONA: Record<string, { value: string; factId: string }> = Object.fromEntries(Object.entries({
@@ -26,13 +27,19 @@ export const PERSONA: Record<string, { value: string; factId: string }> = Object
   essential_functions: "Yes", references: "Available on request", signature: "Test Person", resume: "TEST-resume-sha256",
 }).map(([k, v]) => [k, fact(v)]));
 
+// WO-053: the posting's own location text: captured with it (sample D on), else fetched after capture from its ATS's
+// public API (evals/apply/posting-locations.json, CI). A posting with neither has none: what depends on it is asked.
+export function postingLocation(p: { id: string; location?: string | null }): string | undefined {
+  return p.location ?? (LOCATIONS as any).by_id[p.id]?.location ?? undefined;
+}
+
 export function fillCoverage(set: { postings: any[] }, persona = PERSONA) {
   let required = 0, filled = 0, drafted = 0, essayPolicy = 0;
   const left: number[] = [], askedKinds: Record<string, number> = {}, filledKinds: Record<string, number> = {};
   for (const p of set.postings.filter((x: any) => !x.reason)) {
     const fields = p.fields.map((f: any) => ({ name: f.name, label: f.label, required: !!f.required, type: f.type,
       options: (f.options || []).map((o: any) => ({ label: String(o.label), value: String(o.value ?? o.label) })) }));
-    const plan = planBatch({ userId: "TEST", postings: [{ job_id: p.id, company: p.company, title: "", fields }], answers: persona, saved: {}, log: [], now: Date.UTC(2026, 9, 19) });
+    const plan = planBatch({ userId: "TEST", postings: [{ job_id: p.id, company: p.company, title: "", fields, location: postingLocation(p) }], answers: persona, saved: {}, log: [], now: Date.UTC(2026, 9, 19) });
     const asked = new Set(plan.needs.map((n: any) => n.label));
     let unanswered = 0;
     for (const f of fields) {

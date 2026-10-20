@@ -31,9 +31,18 @@ const US_CITIES = new Set(["new york", "new york city", "nyc", "manhattan", "bro
 const ABROAD = /\b(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|hong kong( sar)?|taiwan|japan|south korea|korea|singapore|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa|london|toronto|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|dublin|tel aviv|bangalore|bengaluru|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai|tokyo|seoul|sydney|melbourne|riyadh|dubai|abu dhabi|são paulo|sao paulo|mexico city|bogotá|bogota|buenos aires|warsaw|krakow|kraków|zurich|zürich|stockholm|copenhagen|oslo|helsinki|prague|vienna|manila|jakarta|shanghai|beijing|shenzhen|taipei)\b/i;
 const COUNTRY_ONLY = /^(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|taiwan|japan|south korea|korea|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa)$/i;
 const NAMES_US =/^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/i;
-const WAY_OF_WORK = /^(remote|hybrid|on-?site|in-?office|in office|office|anywhere|flexible|distributed|virtual|wfh|work from home|field|travel|multiple locations|various( locations)?)$/i;
+const WAY_OF_WORK = /^(remote|hybrid|on[- ]?site|in[- ]?office|office|anywhere|flexible|distributed|virtual|wfh|work from home|field|travel|multiple locations|various( locations)?|world ?wide|global|home based)$/i;
 
 export interface PlacePart { city: string; state: string; country: "us" | "abroad" | ""; remote: boolean }
+
+// US state codes that are also countries' codes (DE Germany, IL Israel, CA Canada, IN India...): beside a city abroad
+// ("Tel Aviv, IL", "Berlin, DE") the code is the country's; beside any other city it is the state ("Melbourne, FL").
+const AMBIGUOUS_CODE = new Set(["al", "ar", "az", "ca", "co", "de", "ga", "id", "il", "in", "ky", "la", "ma", "md", "me", "mn", "mo", "ms", "mt", "nc", "ne", "pa", "sc", "sd", "tn", "va"]);
+// Country codes postings use beside a city ("GB-London", "HK - Hong Kong SAR", "Valencia (ES)", "Toronto, ON").
+const ABROAD_CODE = /^(GB|UK|HK|SG|ES|IE|NL|BE|CH|AT|SE|NO|DK|FI|PL|CZ|PT|IT|FR|CN|TW|JP|KR|AU|NZ|MX|BR|CL|PE|PH|MY|VN|TH|AE|SA|QA|ZA|NG|KE|EG|TR|BC|ON|QC|AB|NS|MB|SK|NB|NL)$/;
+// What a city's name carries that is not the city ("San Francisco HQ", "Greater Boston Area", "Los Angeles County").
+const cityName = (t: string) => t.toLowerCase().replace(/^greater\s+/, "").replace(/\s+(hq|headquarters|office|offices|campus|county|bay area|metro(politan)?( area)?|area)$/, "").replace(/\s+(hq|office)$/, "").trim();
+const knownCity = (t: string) => US_CITIES.has(cityName(t)) || (ABROAD.test(t) && !COUNTRY_ONLY.test(t));
 
 // The employer's location text as parts, one per place it names.
 export function postingPlaces(text: string): PlacePart[] {
@@ -42,23 +51,43 @@ export function postingPlaces(text: string): PlacePart[] {
     // "Mesa, AZ: Power Rd / Elliot Rd": what follows a colon is the street, not another place.
     const head = chunk.replace(/:.*$/, "");
     for (const seg of head.split(/\s+\/\s*|\s*\/\s+|\s+or\s+|\s+&\s+/i)) {
-      const tokens = seg.split(/\s*(?:,|\(|\)|\s-\s|^([A-Z]{2})-)\s*/).filter((t) => t && t.trim()).map((t) => t.trim());
+      let tokens = seg.split(/\s*(?:,|\(|\)|\s-\s|^([A-Z]{2})-|-(?=[A-Z][a-z]))\s*/).filter((t) => t && t.trim()).map((t) => t.replace(/\s+/g, " ").trim());
+      // "Olathe KS", "Marinette, WI 54143", "Cambridge, MA USA": a state code, zip or country after the name, without a comma.
+      tokens = tokens.flatMap((t) => {
+        const x = t.replace(/\s+\d{5}(-\d{4})?$/, "");
+        const m = /^(.*?\S)\s+([A-Z]{2}|USA|US)$/.exec(x);
+        return m && (STATE_NAMES[m[2].toLowerCase()] || NAMES_US.test(m[2])) && !/^(remote|anywhere)$/i.test(m[1]) ? [m[1], m[2]] : [x];
+      });
+      const places = tokens.filter((t) => !WAY_OF_WORK.test(t) && !/^(remote|anywhere)$/i.test(t));
+      // "Seattle, San Francisco, New York City": a list of cities, each its own place.
+      if (places.length >= 2 && places.every(knownCity)) {
+        for (const t of places) {
+          const abroad = !US_CITIES.has(cityName(t));
+          out.push({ city: cityName(t), state: cityName(t) === "new york" ? "ny" : "", country: abroad ? "abroad" : "us", remote: false });
+        }
+        continue;
+      }
       if (!tokens.length) continue;
       const p: PlacePart = { city: "", state: "", country: "", remote: false };
+      let abroadCity = false, ambiguousState = "";
       const isState = (t: string) => (/^[A-Z]{2}$/.test(t) && !!STATE_NAMES[t.toLowerCase()]) || !!STATE_BY_NAME[t.toLowerCase()];
-      tokens.forEach((raw, i) => {
-        const t = raw.replace(/\s+/g, " ").trim(), low = t.toLowerCase();
+      tokens.forEach((t, i) => {
+        const low = t.toLowerCase();
         if (/^(remote|anywhere)\b/i.test(t)) {
           p.remote = true;
           const rest = t.replace(/^(remote|anywhere)\b[\s:-]*(in\s+(the\s+)?)?/i, "");
-          if (rest && NAMES_US.test(rest)) p.country = "us";
+          if (rest && NAMES_US.test(rest)) p.country ||= "us";
+          else if (rest && (ABROAD.test(rest) || ABROAD_CODE.test(rest))) p.country = "abroad";
           return;
         }
         if (WAY_OF_WORK.test(t)) return;
         if (NAMES_US.test(t)) { p.country ||= "us"; return; }
         if (t === "SF") { p.city ||= "san francisco"; p.country ||= "us"; return; }
         if (/^[A-Z]{2}$/.test(t)) {
-          if (STATE_NAMES[low]) { p.state ||= low; p.country ||= "us"; } else p.country = "abroad";
+          if (STATE_NAMES[low]) {
+            p.state ||= low;
+            if (AMBIGUOUS_CODE.has(low)) ambiguousState = low; else p.country ||= "us";
+          } else if (ABROAD_CODE.test(t)) p.country = "abroad";
           return;
         }
         // A state's name is the state, except first in line before another state ("New York, NY", "Washington, DC":
@@ -69,12 +98,17 @@ export function postingPlaces(text: string): PlacePart[] {
           if (!p.state) { p.state = STATE_BY_NAME[low]; p.country ||= "us"; return; }
         }
         if (ABROAD.test(t)) {
-          p.country = "abroad";
-          if (!p.city && !COUNTRY_ONLY.test(t)) p.city = low;
+          if (COUNTRY_ONLY.test(t)) { p.country = "abroad"; return; }
+          abroadCity = true;
+          if (!p.city) p.city = cityName(t);
           return;
         }
-        if (!p.city && /^[A-Za-zÀ-ÿ .'’-]{2,40}$/.test(t)) p.city = low.replace(/\s+(metro(politan)?\s+)?area$/, "").trim();
+        if (!p.city && /^[A-Za-zÀ-ÿ .'’-]{2,40}$/.test(t)) p.city = cityName(t);
       });
+      // A city abroad with a US state's code: the state wins unless the code is also a country's ("Melbourne, FL" is in
+      // Florida; "Tel Aviv, IL" is in Israel). A state given by name always wins ("Paris, Texas").
+      if (abroadCity && p.country !== "us") p.country = "abroad";
+      if (ambiguousState && p.country !== "abroad") p.country = abroadCity ? "abroad" : "us";
       if (p.city && !p.country && US_CITIES.has(p.city)) p.country = "us";
       if (p.city === "nyc") p.city = "new york";
       if (p.city === "sf") p.city = "san francisco";

@@ -212,4 +212,50 @@ function fnDiscoverFields(includeHidden) {
   });
   return out;
 }
-module.exports = { fnDetectChallenge, fnCaptchaTech, fnDiscoverFields };
+// WO-053: the posting's own location text, as its page shows it: Greenhouse's job header (.job__location), Lever's posting
+// categories (its apply page carries them too), Ashby's "Location" section, Workday's job locations, else a schema.org
+// JobPosting's jobLocation, else the location part of a Workday job URL (/job/Chicago-IL/Title_R123). Read, never
+// guessed: "" when the page shows none, and the planner then asks what depends on it.
+function fnPostingLocation() {
+  const clean = (s) => String(s || "").replace(/\s+/g, " ").trim();
+  const text = (el) => (el ? clean(el.textContent) : "");
+  let t = text(document.querySelector(".job__location")) || text(document.querySelector("#header .location, .app-title + .location"));
+  if (!t) t = text(document.querySelector(".posting-categories .location, .posting-category.location"));
+  if (!t) {
+    for (const h of document.querySelectorAll(".ashby-job-posting-left-pane h2")) {
+      if (/^location$/i.test(clean(h.textContent))) { t = text(h.nextElementSibling); break; }
+    }
+  }
+  if (!t) t = text(document.querySelector("[data-automation-id='locations'] dd")) || text(document.querySelector("[data-automation-id='locations']")).replace(/^locations?\s*/i, "");
+  if (!t) {
+    const places = [];
+    for (const s of document.querySelectorAll("script[type='application/ld+json']")) {
+      let j;
+      try { j = JSON.parse(s.textContent || ""); } catch { continue; }
+      for (const item of [].concat(j && j["@graph"] ? j["@graph"] : j)) {
+        if (!item || !/JobPosting/.test(String(item["@type"]))) continue;
+        for (const l of [].concat(item.jobLocation || [])) {
+          const a = (l && l.address) || {};
+          const country = typeof a.addressCountry === "object" ? a.addressCountry && a.addressCountry.name : a.addressCountry;
+          const one = [a.addressLocality, a.addressRegion, country].map(clean).filter(Boolean).join(", ");
+          if (one) places.push(one);
+        }
+        if (!places.length && /TELECOMMUTE/i.test(String(item.jobLocationType || ""))) places.push("Remote");
+      }
+    }
+    t = [...new Set(places)].join("; ");
+  }
+  if (!t) {
+    const m = /\/job\/([^/]+)\/[^/]+_[A-Za-z0-9-]+/.exec(location.pathname);
+    if (m) {
+      const words = decodeURIComponent(m[1]).split("-").filter(Boolean);
+      const states = words.filter((w) => /^[A-Z]{2}$/.test(w) && w !== "US");
+      const us = words.filter((w) => /^(US|USA)$/.test(w));
+      const city = words.filter((w) => !states.includes(w) && !us.includes(w)).join(" ");
+      t = [city, ...states, ...us].filter(Boolean).join(", ");
+    }
+  }
+  // Lever ends its location with the separator before the commitment ("Atlanta, GA /").
+  return t.replace(/\s*\/\s*$/, "").slice(0, 300);
+}
+module.exports = { fnDetectChallenge, fnCaptchaTech, fnDiscoverFields, fnPostingLocation };

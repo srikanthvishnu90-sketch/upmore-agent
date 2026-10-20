@@ -111,7 +111,7 @@ export interface PlannedField { name: string; label: string; value: string; fact
 // left, asked once by text). Identity numbers never reach the planner.
 export function planForm(o: {
   userId: string; jobId: string; company: string; family: Family; schema: FormField[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; workdayFlow?: boolean;
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; workdayFlow?: boolean; location?: string;
 }) {
   const identity = o.schema.filter((f) => isIdentityField(f));
   // Two fields under one label: the label belongs to at most one of them, so neither is answered from it (WO-031
@@ -121,7 +121,8 @@ export function planForm(o: {
   const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
   // WO-048: a form only the person fills (the disability self-identification) is neither planned nor asked by text.
   const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
-  const posting = (fs: FormField[]) => [{ job_id: o.jobId, company: o.company, title: "", fields: fs }];
+  // WO-053: the posting's own location as its page shows it, for the questions that depend on where the job is.
+  const posting = (fs: FormField[]) => [{ job_id: o.jobId, company: o.company, title: "", fields: fs, location: o.location }];
   const all = planBatch({ userId: o.userId, postings: posting(fields.map((f) => ({ ...f, required: false }))), answers: o.answers, saved: o.saved, log: [], now: o.now });
   let fill: PlannedField[] = all.ready[0]?.fields ?? [];
   const basicOnly = o.family === "workday" && !o.workdayFlow;
@@ -154,7 +155,7 @@ export function planForm(o: {
 // is ever picked: no answer, or one that is not on the list, leaves the widget for the person.
 export function chooseWidgetOption(o: {
   userId: string; jobId: string; company: string; family: Family; field: FormField; labels: string[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[];
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[]; location?: string;
 }): string | null {
   const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
   if (!labels.length) return null;
@@ -162,7 +163,7 @@ export function chooseWidgetOption(o: {
   const options = labels.map((l) => ({ label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l, value: l }));
   // The rest of the form rides along without options, for the rules that read a field beside its neighbours.
   const rest = (o.form ?? []).filter((f) => f.name !== o.field.name).map((f) => ({ ...f, options: [] }));
-  const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }, ...rest], answers: o.answers, saved: o.saved, now: o.now });
+  const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }, ...rest], answers: o.answers, saved: o.saved, now: o.now, location: o.location });
   const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
   return v !== null && labels.includes(v) ? v : null;
 }

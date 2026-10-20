@@ -211,10 +211,69 @@
         });
         return out;
       }
+      function fnPostingLocation2() {
+        const clean = (s) => String(s || "").replace(/\s+/g, " ").trim();
+        const text = (el) => el ? clean(el.textContent) : "";
+        let t = text(document.querySelector(".job__location")) || text(document.querySelector("#header .location, .app-title + .location"));
+        if (!t) t = text(document.querySelector(".posting-categories .location, .posting-category.location"));
+        if (!t) {
+          for (const h of document.querySelectorAll(".ashby-job-posting-left-pane h2")) {
+            if (/^location$/i.test(clean(h.textContent))) {
+              t = text(h.nextElementSibling);
+              break;
+            }
+          }
+        }
+        if (!t) t = text(document.querySelector("[data-automation-id='locations'] dd")) || text(document.querySelector("[data-automation-id='locations']")).replace(/^locations?\s*/i, "");
+        if (!t) {
+          const places = [];
+          for (const s of document.querySelectorAll("script[type='application/ld+json']")) {
+            let j;
+            try {
+              j = JSON.parse(s.textContent || "");
+            } catch {
+              continue;
+            }
+            for (const item of [].concat(j && j["@graph"] ? j["@graph"] : j)) {
+              if (!item || !/JobPosting/.test(String(item["@type"]))) continue;
+              for (const l of [].concat(item.jobLocation || [])) {
+                const a = l && l.address || {};
+                const country = typeof a.addressCountry === "object" ? a.addressCountry && a.addressCountry.name : a.addressCountry;
+                const one = [
+                  a.addressLocality,
+                  a.addressRegion,
+                  country
+                ].map(clean).filter(Boolean).join(", ");
+                if (one) places.push(one);
+              }
+              if (!places.length && /TELECOMMUTE/i.test(String(item.jobLocationType || ""))) places.push("Remote");
+            }
+          }
+          t = [
+            ...new Set(places)
+          ].join("; ");
+        }
+        if (!t) {
+          const m = /\/job\/([^/]+)\/[^/]+_[A-Za-z0-9-]+/.exec(location.pathname);
+          if (m) {
+            const words = decodeURIComponent(m[1]).split("-").filter(Boolean);
+            const states = words.filter((w) => /^[A-Z]{2}$/.test(w) && w !== "US");
+            const us = words.filter((w) => /^(US|USA)$/.test(w));
+            const city = words.filter((w) => !states.includes(w) && !us.includes(w)).join(" ");
+            t = [
+              city,
+              ...states,
+              ...us
+            ].filter(Boolean).join(", ");
+          }
+        }
+        return t.replace(/\s*\/\s*$/, "").slice(0, 300);
+      }
       module.exports = {
         fnDetectChallenge: fnDetectChallenge2,
         fnCaptchaTech: fnCaptchaTech2,
-        fnDiscoverFields: fnDiscoverFields2
+        fnDiscoverFields: fnDiscoverFields2,
+        fnPostingLocation: fnPostingLocation2
       };
     }
   });
@@ -2029,6 +2088,312 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return only(options.filter((o) => low(o.label).includes(v) && v.length >= 3));
   }
 
+  // supabase/functions/_shared/posting_place.ts
+  var STATE_NAMES = {
+    al: "alabama",
+    ak: "alaska",
+    az: "arizona",
+    ar: "arkansas",
+    ca: "california",
+    co: "colorado",
+    ct: "connecticut",
+    de: "delaware",
+    dc: "district of columbia",
+    fl: "florida",
+    ga: "georgia",
+    hi: "hawaii",
+    id: "idaho",
+    il: "illinois",
+    in: "indiana",
+    ia: "iowa",
+    ks: "kansas",
+    ky: "kentucky",
+    la: "louisiana",
+    me: "maine",
+    md: "maryland",
+    ma: "massachusetts",
+    mi: "michigan",
+    mn: "minnesota",
+    ms: "mississippi",
+    mo: "missouri",
+    mt: "montana",
+    ne: "nebraska",
+    nv: "nevada",
+    nh: "new hampshire",
+    nj: "new jersey",
+    nm: "new mexico",
+    ny: "new york",
+    nc: "north carolina",
+    nd: "north dakota",
+    oh: "ohio",
+    ok: "oklahoma",
+    or: "oregon",
+    pa: "pennsylvania",
+    ri: "rhode island",
+    sc: "south carolina",
+    sd: "south dakota",
+    tn: "tennessee",
+    tx: "texas",
+    ut: "utah",
+    vt: "vermont",
+    va: "virginia",
+    wa: "washington",
+    wv: "west virginia",
+    wi: "wisconsin",
+    wy: "wyoming"
+  };
+  var STATE_BY_NAME = Object.fromEntries(Object.entries(STATE_NAMES).map(([c, n]) => [
+    n,
+    c
+  ]));
+  var US_CITIES = /* @__PURE__ */ new Set([
+    "new york",
+    "new york city",
+    "nyc",
+    "manhattan",
+    "brooklyn",
+    "san francisco",
+    "sf",
+    "los angeles",
+    "seattle",
+    "austin",
+    "boston",
+    "chicago",
+    "denver",
+    "atlanta",
+    "miami",
+    "dallas",
+    "houston",
+    "philadelphia",
+    "phoenix",
+    "san diego",
+    "palo alto",
+    "mountain view",
+    "menlo park",
+    "sunnyvale",
+    "redwood city",
+    "santa clara",
+    "san mateo",
+    "south san francisco",
+    "oakland",
+    "berkeley",
+    "pittsburgh",
+    "detroit",
+    "minneapolis",
+    "salt lake city",
+    "nashville",
+    "raleigh",
+    "durham nc",
+    "charlotte",
+    "baltimore",
+    "st. louis",
+    "st louis",
+    "kansas city",
+    "indianapolis",
+    "cincinnati",
+    "cleveland",
+    "las vegas",
+    "orlando",
+    "tampa",
+    "sacramento",
+    "irvine",
+    "boulder",
+    "ann arbor",
+    "jersey city",
+    "hoboken",
+    "redmond",
+    "bellevue",
+    "kirkland",
+    "arlington va",
+    "reston",
+    "mclean",
+    "herndon",
+    "bethesda",
+    "washington dc",
+    "washington d.c.",
+    "silicon valley",
+    "bay area",
+    "san francisco bay area",
+    "lehi",
+    "provo",
+    "scottsdale",
+    "tempe",
+    "plano",
+    "irving",
+    "fort worth",
+    "san antonio",
+    "columbus",
+    "milwaukee",
+    "madison",
+    "omaha",
+    "boise",
+    "portland or",
+    "honolulu",
+    "anchorage",
+    "new orleans",
+    "louisville",
+    "memphis",
+    "jacksonville",
+    "fort lauderdale",
+    "hawthorne",
+    "el segundo",
+    "santa monica",
+    "culver city",
+    "costa mesa",
+    "fort collins",
+    "cupertino",
+    "san bruno",
+    "foster city",
+    "burlingame",
+    "emeryville"
+  ]);
+  var ABROAD = /\b(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|hong kong( sar)?|taiwan|japan|south korea|korea|singapore|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa|london|toronto|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|dublin|tel aviv|bangalore|bengaluru|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai|tokyo|seoul|sydney|melbourne|riyadh|dubai|abu dhabi|são paulo|sao paulo|mexico city|bogotá|bogota|buenos aires|warsaw|krakow|kraków|zurich|zürich|stockholm|copenhagen|oslo|helsinki|prague|vienna|manila|jakarta|shanghai|beijing|shenzhen|taipei)\b/i;
+  var COUNTRY_ONLY = /^(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|taiwan|japan|south korea|korea|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa)$/i;
+  var NAMES_US = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/i;
+  var WAY_OF_WORK = /^(remote|hybrid|on[- ]?site|in[- ]?office|office|anywhere|flexible|distributed|virtual|wfh|work from home|field|travel|multiple locations|various( locations)?|world ?wide|global|home based)$/i;
+  var AMBIGUOUS_CODE = /* @__PURE__ */ new Set([
+    "al",
+    "ar",
+    "az",
+    "ca",
+    "co",
+    "de",
+    "ga",
+    "id",
+    "il",
+    "in",
+    "ky",
+    "la",
+    "ma",
+    "md",
+    "me",
+    "mn",
+    "mo",
+    "ms",
+    "mt",
+    "nc",
+    "ne",
+    "pa",
+    "sc",
+    "sd",
+    "tn",
+    "va"
+  ]);
+  var ABROAD_CODE = /^(GB|UK|HK|SG|ES|IE|NL|BE|CH|AT|SE|NO|DK|FI|PL|CZ|PT|IT|FR|CN|TW|JP|KR|AU|NZ|MX|BR|CL|PE|PH|MY|VN|TH|AE|SA|QA|ZA|NG|KE|EG|TR|BC|ON|QC|AB|NS|MB|SK|NB|NL)$/;
+  var cityName = (t) => t.toLowerCase().replace(/^greater\s+/, "").replace(/\s+(hq|headquarters|office|offices|campus|county|bay area|metro(politan)?( area)?|area)$/, "").replace(/\s+(hq|office)$/, "").trim();
+  var knownCity = (t) => US_CITIES.has(cityName(t)) || ABROAD.test(t) && !COUNTRY_ONLY.test(t);
+  function postingPlaces(text) {
+    const out = [];
+    for (const chunk of String(text ?? "").split(/\s*(?:;|\||•|·|\n)\s*/)) {
+      const head = chunk.replace(/:.*$/, "");
+      for (const seg of head.split(/\s+\/\s*|\s*\/\s+|\s+or\s+|\s+&\s+/i)) {
+        let tokens = seg.split(/\s*(?:,|\(|\)|\s-\s|^([A-Z]{2})-|-(?=[A-Z][a-z]))\s*/).filter((t) => t && t.trim()).map((t) => t.replace(/\s+/g, " ").trim());
+        tokens = tokens.flatMap((t) => {
+          const x = t.replace(/\s+\d{5}(-\d{4})?$/, "");
+          const m = /^(.*?\S)\s+([A-Z]{2}|USA|US)$/.exec(x);
+          return m && (STATE_NAMES[m[2].toLowerCase()] || NAMES_US.test(m[2])) && !/^(remote|anywhere)$/i.test(m[1]) ? [
+            m[1],
+            m[2]
+          ] : [
+            x
+          ];
+        });
+        const places = tokens.filter((t) => !WAY_OF_WORK.test(t) && !/^(remote|anywhere)$/i.test(t));
+        if (places.length >= 2 && places.every(knownCity)) {
+          for (const t of places) {
+            const abroad = !US_CITIES.has(cityName(t));
+            out.push({
+              city: cityName(t),
+              state: cityName(t) === "new york" ? "ny" : "",
+              country: abroad ? "abroad" : "us",
+              remote: false
+            });
+          }
+          continue;
+        }
+        if (!tokens.length) continue;
+        const p = {
+          city: "",
+          state: "",
+          country: "",
+          remote: false
+        };
+        let abroadCity = false, ambiguousState = "";
+        const isState = (t) => /^[A-Z]{2}$/.test(t) && !!STATE_NAMES[t.toLowerCase()] || !!STATE_BY_NAME[t.toLowerCase()];
+        tokens.forEach((t, i) => {
+          const low2 = t.toLowerCase();
+          if (/^(remote|anywhere)\b/i.test(t)) {
+            p.remote = true;
+            const rest = t.replace(/^(remote|anywhere)\b[\s:-]*(in\s+(the\s+)?)?/i, "");
+            if (rest && NAMES_US.test(rest)) p.country ||= "us";
+            else if (rest && (ABROAD.test(rest) || ABROAD_CODE.test(rest))) p.country = "abroad";
+            return;
+          }
+          if (WAY_OF_WORK.test(t)) return;
+          if (NAMES_US.test(t)) {
+            p.country ||= "us";
+            return;
+          }
+          if (t === "SF") {
+            p.city ||= "san francisco";
+            p.country ||= "us";
+            return;
+          }
+          if (/^[A-Z]{2}$/.test(t)) {
+            if (STATE_NAMES[low2]) {
+              p.state ||= low2;
+              if (AMBIGUOUS_CODE.has(low2)) ambiguousState = low2;
+              else p.country ||= "us";
+            } else if (ABROAD_CODE.test(t)) p.country = "abroad";
+            return;
+          }
+          if (STATE_BY_NAME[low2]) {
+            const city = i === 0 && (tokens.slice(1).some(isState) || low2 === "new york" && tokens.length === 1);
+            if (city) {
+              p.city ||= low2;
+              if (low2 === "new york") p.state ||= "ny";
+              p.country ||= "us";
+              return;
+            }
+            if (!p.state) {
+              p.state = STATE_BY_NAME[low2];
+              p.country ||= "us";
+              return;
+            }
+          }
+          if (ABROAD.test(t)) {
+            if (COUNTRY_ONLY.test(t)) {
+              p.country = "abroad";
+              return;
+            }
+            abroadCity = true;
+            if (!p.city) p.city = cityName(t);
+            return;
+          }
+          if (!p.city && /^[A-Za-zÀ-ÿ .'’-]{2,40}$/.test(t)) p.city = cityName(t);
+        });
+        if (abroadCity && p.country !== "us") p.country = "abroad";
+        if (ambiguousState && p.country !== "abroad") p.country = abroadCity ? "abroad" : "us";
+        if (p.city && !p.country && US_CITIES.has(p.city)) p.country = "us";
+        if (p.city === "nyc") p.city = "new york";
+        if (p.city === "sf") p.city = "san francisco";
+        if (p.city || p.state || p.country || p.remote) out.push(p);
+      }
+    }
+    return out;
+  }
+  function postingAtHome(parts, home) {
+    const city = home.city.trim().toLowerCase(), st = home.state.trim().toLowerCase();
+    if (!city) return false;
+    const same = (x) => x === city || x.startsWith(city + " ") || city.startsWith(x + " ");
+    return parts.some((p) => p.country !== "abroad" && !!p.city && same(p.city) && (!p.state || !st || p.state === st || STATE_NAMES[p.state] === st));
+  }
+  function postingCountry(parts) {
+    if (!parts.length) return "";
+    if (parts.some((p) => p.country === "abroad")) return "abroad";
+    return parts.every((p) => p.country === "us") ? "us" : "";
+  }
+
   // supabase/functions/_shared/career_apply.ts
   var SUCCESS = /(application (?:has been |was )?(?:submitted|received)|thank you for (?:applying|your application)|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i;
   var ID = /(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]?|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i;
@@ -2274,15 +2639,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     job_travel: "travel_ok"
   };
   var FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
-  var NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
+  var NAMES_US2 = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
   var AUTH_FACTS = /* @__PURE__ */ new Set([
     "work_authorization",
     "sponsorship",
     "us_person"
   ]);
-  function otherCountry(fact, label) {
+  var RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
+  function otherCountry(fact, label, location2) {
+    if (AUTH_FACTS.has(fact) && RELATIVE_PLACE.test(label)) return postingCountry(postingPlaces(location2 ?? "")) !== "us";
     if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
-    return fact === "sponsorship" || !NAMES_US.test(label);
+    return fact === "sponsorship" || !NAMES_US2.test(label);
   }
   var STATE_CODE = /,\s*([A-Z]{2})\b/g;
   var PLACE_WORDS = /\b(?:in|at|from|to|near|around|within|of)\s+(?:our\s+|the\s+)?((?:[A-Z][\w.'’-]+)(?:\s+[A-Z][\w.'’-]+){0,3})/g;
@@ -2303,59 +2670,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const m of label.matchAll(/\b([A-Z][\w.'’-]+(?:\s+[A-Z][\w.'’-]+)?)\s+(?:hybrid|office|offices|onsite|on-site|in-office|hq|headquarters|campus)\b/g)) add(m[1]);
     return out;
   }
-  var STATE_NAMES = {
-    al: "alabama",
-    ak: "alaska",
-    az: "arizona",
-    ar: "arkansas",
-    ca: "california",
-    co: "colorado",
-    ct: "connecticut",
-    de: "delaware",
-    dc: "district of columbia",
-    fl: "florida",
-    ga: "georgia",
-    hi: "hawaii",
-    id: "idaho",
-    il: "illinois",
-    in: "indiana",
-    ia: "iowa",
-    ks: "kansas",
-    ky: "kentucky",
-    la: "louisiana",
-    me: "maine",
-    md: "maryland",
-    ma: "massachusetts",
-    mi: "michigan",
-    mn: "minnesota",
-    ms: "mississippi",
-    mo: "missouri",
-    mt: "montana",
-    ne: "nebraska",
-    nv: "nevada",
-    nh: "new hampshire",
-    nj: "new jersey",
-    nm: "new mexico",
-    ny: "new york",
-    nc: "north carolina",
-    nd: "north dakota",
-    oh: "ohio",
-    ok: "oklahoma",
-    or: "oregon",
-    pa: "pennsylvania",
-    ri: "rhode island",
-    sc: "south carolina",
-    sd: "south dakota",
-    tn: "tennessee",
-    tx: "texas",
-    ut: "utah",
-    vt: "vermont",
-    va: "virginia",
-    wa: "washington",
-    wv: "west virginia",
-    wi: "wisconsin",
-    wy: "wyoming"
-  };
   function isHome(place, answers) {
     const p = place.toLowerCase();
     const city = String(answers.city?.value ?? String(answers.location?.value ?? "").split(",")[0]).trim().toLowerCase();
@@ -2371,11 +2685,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function formPlaces(fields, company) {
     return fields.filter((f) => SITE_TEXT.test(f.label) && f.label.length <= 300).flatMap((f) => placesNamed(f.label, company));
   }
-  function awayFromHome(f, places, answers) {
+  function awayFromHome(f, places, answers, posting) {
     const own = placesNamed(f.label);
     const named = own.length ? own : places;
-    return named.length > 0 && !named.some((x) => isHome(x, answers));
+    if (named.length) return !named.some((x) => isHome(x, answers));
+    return !postingAtHome(posting, homeOf(answers));
   }
+  var homeOf = (answers) => ({
+    city: String(answers.city?.value ?? String(answers.location?.value ?? "").split(",")[0]).trim(),
+    state: String(answers.state?.value ?? String(answers.location?.value ?? "").split(",")[1] ?? "").trim()
+  });
   function payShape(f, value, fact, answers) {
     if (fact !== "salary_expectation" && fact !== "current_compensation" || !/\bcurrency\b|\bctc\b/i.test(f.label)) return value;
     const code = /\b[A-Z]{3}\b/.exec(String(answers.salary_currency?.value ?? ""))?.[0];
@@ -2425,15 +2744,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var nameWords = (n) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
   var SPLIT = /\s*[;,\n]\s*/;
-  function byMeaning(f, company, answers, places = []) {
+  function byMeaning(f, company, answers, places = [], posting = [], location2) {
     const m = mapQuestion({
       label: f.label,
       type: f.type,
       options: f.options
     });
     if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
-    if (m.fact === "former_employers" || otherCountry(m.fact, f.label)) return null;
-    if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers)) return null;
+    if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location2)) return null;
+    if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
     if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
     let a;
     if (m.fact === "worked_here_before" && answers.former_employers) {
@@ -2800,7 +3119,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           anchor
         })), o.answers, p.fields));
       }
-      const places = formPlaces(p.fields, p.company);
+      const places = formPlaces(p.fields, p.company), where = postingPlaces(p.location ?? "");
       for (const f of p.fields) {
         if (fileAlternative(f, p.fields)) continue;
         if (f.personal) continue;
@@ -2835,7 +3154,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
         const direct = o.saved[answerKey(f, p.job_id, {
           haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
+        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -2847,7 +3166,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           }
         }
         if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
-          const m = byMeaning(f, p.company, o.answers, places);
+          const m = byMeaning(f, p.company, o.answers, places, where, p.location);
           if (m) {
             a = m;
             value = m.value;
@@ -3295,7 +3614,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         job_id: o.jobId,
         company: o.company,
         title: "",
-        fields: fs
+        fields: fs,
+        location: o.location
       }
     ];
     const all = planBatch({
@@ -3381,7 +3701,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ],
       answers: o.answers,
       saved: o.saved,
-      now: o.now
+      now: o.now,
+      location: o.location
     });
     const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
     return v !== null && labels.includes(v) ? v : null;
@@ -3745,6 +4066,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     findSubmit: () => findSubmit,
     fnCaptchaTech: () => fnCaptchaTech,
     fnDetectChallenge: () => fnDetectChallenge,
+    fnPostingLocation: () => fnPostingLocation,
     hashFiles: () => hashFiles,
     isPlaceSearch: () => isPlaceSearch,
     isWorkdayFlow: () => isWorkdayFlow,
@@ -3767,7 +4089,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdayStep: () => workdayStep
   });
   var import_page_functions = __toESM(require_page_functions());
-  var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech } = import_page_functions.default;
+  var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech, fnPostingLocation } = import_page_functions.default;
   var W = globalThis;
   var doc = () => W.document;
   var sleep = (ms) => new Promise((r) => setTimeout(r, ms));

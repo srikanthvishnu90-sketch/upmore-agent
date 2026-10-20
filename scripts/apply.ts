@@ -21,6 +21,7 @@ const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
 const { readOnly } = require("./career/render-form.cjs");
+const { fnPostingLocation } = require("./career/page-functions.cjs");
 const sha = (b: any) => crypto.createHash("sha256").update(b).digest("hex");
 // A confirmed answer for a single checkbox: "Yes" checks it as surely as "true" does.
 const yesish = (v: unknown) => /^(true|yes|y|on|checked)$/i.test(String(v ?? "").trim());
@@ -646,7 +647,8 @@ export async function runApply(args: string[]) {
       }
       const p = planBatch({
         userId: facts.user_id,
-        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema }],
+        // WO-053: where the job is, as its page shows it (the extension reads it the same way).
+        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema, location: String(await page.evaluate(fnPostingLocation).catch(() => "")) }],
         answers,
         saved,
         log: [],

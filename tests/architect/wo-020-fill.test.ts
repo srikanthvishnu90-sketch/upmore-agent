@@ -94,7 +94,10 @@ Deno.test("WO-020/F6 fill coverage meets the bar and the committed report is tod
   // WO-052: the floors are now fills an independent review judged right (1,458 on A and B: none judged wrong; 3 years-of-
   // experience fills judged unsure are kept, since fact_schema defines years_experience as relevant years),
   // not what was filled: the 84.6% / 84.1% before counted 73 wrong fills and 35 the persona did not settle.
-  assert(a.rate >= 0.78 && b.rate >= 0.78, `${a.rate} ${b.rate}`);
-  assert(a.ready >= 30 && b.ready >= 38, `${a.ready} ${b.ready}`);
+  // WO-053: each posting's own location (evals/apply/posting-locations.json) settles what depends on where the job is.
+  // 26 fills the review judged without it were wrong there (13 work-rights answers for jobs abroad, 13 yeses to an office
+  // in another city for a person who will not relocate): A 78.9% -> 76.7%, B 78.5% -> 78.2%.
+  assert(a.rate >= 0.765 && b.rate >= 0.78, `${a.rate} ${b.rate}`);
+  assert(a.ready >= 24 && b.ready >= 38, `${a.ready} ${b.ready}`);
   assert(REPORT.includes(`| ${a.postings} | ${a.required} | ${a.filled} (`) && REPORT.includes(`| ${b.postings} | ${b.required} | ${b.filled} (`), "docs/apply/fill-coverage.md is stale: regenerate it");
 });

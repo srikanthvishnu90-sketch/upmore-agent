@@ -26,7 +26,10 @@ function expectedValue(spec, field, isWidget, persona, resumeName) {
   if (isWidget) return yn(v) === "yes" ? "Yes" : yn(v) === "no" ? "No" : v;
   return v;
 }
+// A phone number is the same number however the page formats it ("+1 555-010-0000" for "+1 555 010 0000").
+const PHONE = /^\+?[\d\s().-]{7,}$/;
 const same = (got, want) => {
+  if (PHONE.test(String(want ?? "").trim()) && PHONE.test(String(got ?? "").trim())) return String(got).replace(/\D/g, "") === String(want).replace(/\D/g, "");
   const g = norm(got).replace(/^no \(left unchecked\)$/, "no"), w = norm(want);
   return g === w || (w === "yes (checked)" && g === "yes") || (w === "no" && g === "no");
 };

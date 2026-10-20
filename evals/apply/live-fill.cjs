@@ -64,9 +64,25 @@ async function main() {
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, `--host-resolver-rules=${rules}`, "--ignore-certificate-errors", ...(off ? ["--no-sandbox"] : [])],
   });
   const aborted = [];
+  // Ashby's job board reads its own form through GraphQL over POST. A read (a GraphQL query) is let through; a mutation
+  // (submitting, uploading) never is, nor any other POST anywhere.
+  const graphqlRead = (req, u) => {
+    if (u.hostname !== "jobs.ashbyhq.com" || !/^\/api\/non-user-graphql$/.test(u.pathname) || req.method() !== "POST") return false;
+    try {
+      const body = JSON.parse(req.postData() || "{}");
+      return [].concat(body).every((b) => typeof b.query === "string" && /^\s*query\b/.test(b.query) && !/\bmutation\b/.test(b.query));
+    } catch {
+      return false;
+    }
+  };
+  const allowed = [];
   await ctx.route("**/*", (route) => {
     const req = route.request(), u = new URL(req.url());
     const local = u.hostname === APP_HOST || u.hostname === SUPABASE_HOST;
+    if (graphqlRead(req, u)) {
+      allowed.push({ host: u.hostname, op: u.searchParams.get("op") || "" });
+      return route.continue();
+    }
     if (NEVER.test(u.hostname) || (!local && !["GET", "HEAD", "OPTIONS"].includes(req.method()))) {
       aborted.push({ method: req.method(), host: u.hostname, path: u.pathname.slice(0, 80) });
       return route.abort("blockedbyclient");
@@ -148,6 +164,46 @@ async function main() {
         r.verdicts = r.fields.reduce((a, g) => ((a[g.verdict] = (a[g.verdict] || 0) + 1), a), {});
         r.changed_since_capture = { new_fields: r.fields.filter((x) => x.want === "unkeyed").map((x) => x.label), gone_fields: Object.keys(key).filter((n) => !fieldsNow.some((x) => x.name === n)) };
       }
+      // A react-select menu, opened the ways a page script can (untrusted events, as the extension's own): which way
+      // opens it, and the employer's own option texts. Read only; Escape closes it again.
+      if (f.family === "greenhouse" && r.fields) {
+        const targets = r.fields.filter((x) => x.widget).slice(0, 4).map((x) => x.name);
+        r.widget_probe = await page.evaluate(async (names) => {
+          const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+          const vis = (el) => !!el && el.getClientRects().length > 0;
+          const options = () => Array.from(document.querySelectorAll("[class*='select__option'], [role='option']")).filter(vis).map((o) => o.textContent.replace(/\s+/g, " ").trim());
+          const close = async (inp) => {
+            inp?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+            inp?.blur?.();
+            await sleep(150);
+          };
+          const setNative = (el, v) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, v);
+          const out = [];
+          for (const name of names) {
+            const inp = document.getElementById(name) || document.querySelector(`[name="${CSS.escape(name)}"]`);
+            if (!inp) { out.push({ name, found: false }); continue; }
+            const control = inp.closest("[class*='select__control']") || inp.closest("[class*='-control']");
+            const shown = (inp.closest("[class*='select__container'], [class*='select-shell']") || control)?.querySelector("[class*='single-value'], [class*='singleValue']")?.textContent?.trim() || null;
+            const res = { name, found: true, has_control: !!control, shown_before: shown, ways: {} };
+            const ways = {
+              type_value: async () => { inp.focus(); setNative(inp, "a"); inp.dispatchEvent(new Event("input", { bubbles: true })); },
+              mousedown_control: async () => { control?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); },
+              focus_arrowdown: async () => { inp.focus(); inp.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", keyCode: 40, bubbles: true, cancelable: true })); },
+              toggle_button: async () => { const b = control?.querySelector("button, [class*='indicator']"); b?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); b?.click?.(); },
+            };
+            for (const [k, fn] of Object.entries(ways)) {
+              await fn();
+              await sleep(400);
+              const o = options();
+              res.ways[k] = { options: o.length, first: o.slice(0, 6), menu: !!document.querySelector("[class*='select__menu']") };
+              if (k === "type_value") { setNative(inp, ""); inp.dispatchEvent(new Event("input", { bubbles: true })); }
+              await close(inp);
+            }
+            out.push(res);
+          }
+          return out;
+        }, targets).catch((e) => ({ error: String(e.message || e).slice(0, 200) }));
+      }
       await panel.close();
     } catch (e) {
       r.status = "error";
@@ -172,6 +228,7 @@ async function main() {
     forms: rows.length, reachable: rows.filter((r) => r.http_status === 200).length, carded: rows.filter((r) => ["ready", "blocked"].includes(r.status)).length,
     all: agg(by()), greenhouse: agg(by("greenhouse")), lever: agg(by("lever")), ashby: agg(by("ashby")),
     aborted_requests: aborted.length, aborted_hosts: [...new Set(aborted.map((a) => a.host))],
+    allowed_graphql_reads: [...new Set(allowed.map((a) => a.op))],
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ report, rows, aborted: aborted.slice(0, 200) }, null, 1) + "\n");

@@ -35,6 +35,7 @@ import {
   detectBatchCard,
   extractArtifacts,
   offerApproval,
+  plainFromTelegramHtml,
   presentReply,
   takeApproval,
 } from "./channel_present.ts";
@@ -117,27 +118,67 @@ export function createTelegramSend(deps: ChannelDeps, token: string) {
   };
 }
 
-const stripHtml = (s: string) =>
-  s.replace(/<[^>]+>/g, "")
-    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-
 // Send one rendered (HTML) part. If Telegram rejects the markup, the SAME
 // content goes out again as plain text — a rendering failure must never
-// swallow the product's answer.
-async function sendTelegramRendered(deps: ChannelDeps, token: string, chatId: string, html: string): Promise<void> {
+// swallow the product's answer, and the plain shape keeps link
+// destinations (plainFromTelegramHtml: a labelled link degrades to
+// "label (url)", never to the label alone). A reply_markup (the approval
+// keyboard) rides BOTH attempts: losing the buttons to a parse fallback
+// would lose the control, not just the styling.
+async function sendTelegramRendered(
+  deps: ChannelDeps,
+  token: string,
+  chatId: string,
+  html: string,
+  replyMarkup?: Record<string, unknown>,
+): Promise<void> {
+  const markup = replyMarkup ? { reply_markup: replyMarkup } : {};
   try {
-    await botApi(deps, token, "sendMessage", { chat_id: chatIdValue(chatId), text: html, parse_mode: "HTML" });
+    await botApi(deps, token, "sendMessage", { chat_id: chatIdValue(chatId), text: html, parse_mode: "HTML", ...markup });
   } catch (e) {
     if (!/parse|entit/i.test(String((e as Error)?.message ?? e))) throw e;
-    await botApi(deps, token, "sendMessage", { chat_id: chatIdValue(chatId), text: stripHtml(html) });
+    await botApi(deps, token, "sendMessage", { chat_id: chatIdValue(chatId), text: plainFromTelegramHtml(html), ...markup });
   }
+}
+
+// The presented send for a whole reply text: presentReply + the rendered
+// part sender. EVERY user-visible reply text in this bridge goes out
+// through here (or through sendParts over presentReply parts, the same
+// thing) — there is no plain-send bypass for reply content, so a fix to
+// the presenter reaches errors, dismissals and notices too, not only
+// the happy path.
+async function sendTelegramPresented(deps: ChannelDeps, token: string, chatId: string, text: string): Promise<void> {
+  const parts = presentReply("telegram", text || VOICE.empty, TELEGRAM_LIMIT);
+  await sendParts(deps, parts, (part) => sendTelegramRendered(deps, token, chatId, part));
 }
 
 async function sendTelegramTyping(deps: ChannelDeps, token: string, chatId: string): Promise<void> {
   try {
     await botApi(deps, token, "sendChatAction", { chat_id: chatIdValue(chatId), action: "typing" });
   } catch { /* presence is cosmetic; never fail a turn over it */ }
+}
+
+// Typing presence for the whole span of work, not one ping: Telegram
+// shows a chat action for only a few seconds, so a single sendChatAction
+// at intake expires while the agent is still working (the 2026-10-20
+// live battery saw replies at 3–6s and no indicator at all). The first
+// ping is awaited — it orders typing before the agent call — then the
+// action refreshes on an interval until the work settles, and always
+// stops with it (finally), settled or thrown.
+export async function withTelegramTyping<T>(
+  deps: ChannelDeps,
+  token: string,
+  chatId: string,
+  work: () => Promise<T>,
+  intervalMs = 4000,
+): Promise<T> {
+  await sendTelegramTyping(deps, token, chatId);
+  const timer = setInterval(() => { void sendTelegramTyping(deps, token, chatId); }, Math.max(1, intervalMs));
+  try {
+    return await work();
+  } finally {
+    clearInterval(timer);
+  }
 }
 
 async function answerTelegramCallback(deps: ChannelDeps, token: string, callbackId: string, text: string): Promise<void> {
@@ -172,23 +213,24 @@ async function handleTelegramCallback(
   const row = taken.row;
   if (m[1] === "apprx") {
     await answerTelegramCallback(deps, token, cb.callbackId, VOICE.approvalDeclined);
-    if (send) await send(cb.chatId, VOICE.dismiss);
+    if (send) await sendTelegramPresented(deps, token, cb.chatId, VOICE.dismiss);
     return json({ ok: true, approval: "declined", run_id: row.run_id });
   }
   await answerTelegramCallback(deps, token, cb.callbackId, VOICE.approvalAck);
   let outcome;
   try {
-    outcome = await runChannelApproval(deps, {
-      userId: row.user_id,
-      threadId: row.thread_id,
-      runId: row.run_id,
-      cardSha256: row.card_sha256,
-      eventId: `tgcb-${row.token}`,
-      turnKey: `tgcb-${row.token}`,
-    });
+    outcome = await withTelegramTyping(deps, token, cb.chatId, () =>
+      runChannelApproval(deps, {
+        userId: row.user_id,
+        threadId: row.thread_id,
+        runId: row.run_id,
+        cardSha256: row.card_sha256,
+        eventId: `tgcb-${row.token}`,
+        turnKey: `tgcb-${row.token}`,
+      }));
   } catch (e) {
     console.error("telegram-inbound approval:", e);
-    if (send) { try { await send(cb.chatId, VOICE.error); } catch { /* surfaced below */ } }
+    if (send) { try { await sendTelegramPresented(deps, token, cb.chatId, VOICE.error); } catch { /* surfaced below */ } }
     return json({ ok: false, error: "internal" }, 500);
   }
   // The user sees the CORE's answer to the approval (recorded, or the
@@ -227,26 +269,28 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
       // default posture (as imessage-inbound); a polite not-authorized reply
       // is sent only when CHANNEL_UNKNOWN_REPLY=1 is configured.
       if (deps.env("CHANNEL_UNKNOWN_REPLY") === "1" && send) {
-        await send(parsed.chatId, NOT_AUTHORIZED_TEXT);
+        await sendTelegramPresented(deps, token, parsed.chatId, NOT_AUTHORIZED_TEXT);
         return json({ ok: true, ignored: "unknown sender", notified: true });
       }
       return json({ ok: true, ignored: "unknown sender" });
     }
 
-    if (token && !dryRun) await sendTelegramTyping(deps, token, parsed.chatId);
-
     let outcome;
     try {
-      outcome = await runChannelTurnRich(deps, {
-        channel: "telegram",
-        senderKey: parsed.chatId,
-        userId,
-        text: parsed.text,
-        messageId: parsed.messageId || null,
-      });
+      const runTurn = () =>
+        runChannelTurnRich(deps, {
+          channel: "telegram",
+          senderKey: parsed.chatId,
+          userId,
+          text: parsed.text,
+          messageId: parsed.messageId || null,
+        });
+      outcome = token && !dryRun
+        ? await withTelegramTyping(deps, token, parsed.chatId, runTurn)
+        : await runTurn();
     } catch (e) {
       console.error("telegram-inbound turn:", e);
-      if (send && !dryRun) { try { await send(parsed.chatId, VOICE.error); } catch { /* response below still 500 */ } }
+      if (send && !dryRun) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.error); } catch { /* response below still 500 */ } }
       return json({ ok: false, error: "internal" }, 500);
     }
     if (outcome.kind === "duplicate") return json({ ok: true, ignored: "duplicate webhook" });
@@ -276,7 +320,7 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
           const got = await fetchArtifactBytes(deps.createAdmin(), {
             userId, threadId: outcome.threadId, ref: art.ref,
           });
-          if (!got) { try { await send(parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ } continue; }
+          if (!got) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ } continue; }
           const form = new FormData();
           form.append("chat_id", String(chatIdValue(parsed.chatId)));
           form.append("document", new Blob([got.bytes], { type: got.mime }), got.filename);
@@ -286,7 +330,7 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
         }
       } catch (e) {
         console.warn("telegram-inbound sendDocument failed:", String((e as Error)?.message ?? e).slice(0, 160));
-        try { await send(parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ }
+        try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ }
       }
     }
 
@@ -299,15 +343,11 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
         channel: "telegram", senderKey: parsed.chatId, userId, threadId: outcome.threadId, runId: card.runId,
       });
       if (offer) {
-        await botApi(deps, token, "sendMessage", {
-          chat_id: chatIdValue(parsed.chatId),
-          text: VOICE.approvalPrompt(card.runId),
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: VOICE.approveButton, callback_data: `appr:${offer.token}` }],
-              [{ text: VOICE.declineButton, callback_data: `apprx:${offer.token}` }],
-            ],
-          },
+        await sendTelegramRendered(deps, token, parsed.chatId, VOICE.approvalPrompt(card.runId), {
+          inline_keyboard: [
+            [{ text: VOICE.approveButton, callback_data: `appr:${offer.token}` }],
+            [{ text: VOICE.declineButton, callback_data: `apprx:${offer.token}` }],
+          ],
         });
         approvalOffered = true;
       }

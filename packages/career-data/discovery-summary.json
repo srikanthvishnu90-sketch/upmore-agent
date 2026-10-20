@@ -1,0 +1,97 @@
+{
+ "at": "2026-10-20T05:09:40.564Z",
+ "seconds": 18133,
+ "sources": {
+  "directory": 2179,
+  "wo017-candidates": 2018,
+  "domains": 19068
+ },
+ "unique_candidates": 20031,
+ "probed": 17435,
+ "unprobed_at_deadline": 2596,
+ "calibration": {
+  "smartrecruiters": {
+   "http": 0,
+   "verdict": "blocked_by_robots"
+  },
+  "lever": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "greenhouse": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "ashby": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "workable": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "recruitee": {
+   "http": 404,
+   "verdict": "dead"
+  }
+ },
+ "commoncrawl": {
+  "pages": 0,
+  "errors": 0,
+  "crawls": [
+   "CC-MAIN-2026-39",
+   "CC-MAIN-2026-34"
+  ]
+ },
+ "by": {
+  "smartrecruiters:blocked_by_robots": 3261,
+  "workable:dead": 240,
+  "ashby:live": 756,
+  "greenhouse:live": 1009,
+  "workable:live": 122,
+  "recruitee:live": 26,
+  "recruitee:dead": 2924,
+  "lever:live": 375,
+  "recruitee:error": 17,
+  "workable:error": 9,
+  "lever:error": 4,
+  "greenhouse:dead": 2840,
+  "ashby:dead": 2911,
+  "lever:dead": 2941
+ },
+ "verified_boards": 2288,
+ "verified_supported": 2140,
+ "verified_with_postings": 2020,
+ "conditional": {
+  "greenhouse": {
+   "live": 1009,
+   "etag": 1009,
+   "last_modified": 0
+  },
+  "lever": {
+   "live": 375,
+   "etag": 375,
+   "last_modified": 0
+  },
+  "ashby": {
+   "live": 756,
+   "etag": 756,
+   "last_modified": 0
+  },
+  "smartrecruiters": {
+   "live": 0,
+   "etag": 0,
+   "last_modified": 0
+  },
+  "workable": {
+   "live": 122,
+   "etag": 0,
+   "last_modified": 0
+  },
+  "recruitee": {
+   "live": 26,
+   "etag": 0,
+   "last_modified": 0
+  }
+ }
+}

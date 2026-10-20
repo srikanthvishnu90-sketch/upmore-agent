@@ -77,4 +77,66 @@ select t.ok((select count(*) from public.career_apply_jobs where user_id='000000
 select t.as_user('00000000-0000-4000-8000-000000000921');set role authenticated;
 select t.must_fail($$select public.career_apply_sweep_stale()$$,'permission denied','only the service runs the sweep');
 reset role;
+
+-- Batches (finding A4): "apply to 10 analyst roles", then "thanks!" cancelled the batch before the worker claimed it (the
+-- live probe: 16 cancelled, 0 queued). A batch is minted through the real career_batch_turn_commit_v1, which runs the
+-- real career_host_commit and stamps the version that commit creates.
+create or replace function pg_temp.batch_turn(p_key text, p_rev bigint, p_av bigint, p_run text) returns text language plpgsql as $$
+declare u text:='00000000-0000-4000-8000-000000000921'; th text:='00000000-0000-4000-8000-0000000009a1'; i jsonb;
+begin
+ i:=jsonb_build_object('version','career_batch_intent/v1','intent_id',encode(sha256(convert_to(p_run,'UTF8')),'hex'),'user_id',u,
+  'thread_id',th,'turn_key',p_key,'request_hash',repeat('a',64),'action','prepare','event_id','prepare-'||p_run,'run_id',p_run,
+  'family_text','TEST analyst','run',jsonb_build_object('id',p_run,'userId',u,'status','queued_prepare','familyText','TEST analyst'),
+  'authority_account_version',p_av+1,'privacy_epoch',0);
+ return public.career_batch_turn_commit_v1(jsonb_build_object('p_user',u,'p_thread',th,'p_key',p_key,'p_hash',repeat('a',64),
+  'p_revision',p_rev,'p_account_version',p_av,'p_snapshot',jsonb_build_object('scope',jsonb_build_object('userId',u)),'p_patch','{}'::jsonb,
+  'p_input','TEST batch '||p_key,'p_response',jsonb_build_object('reply','TEST reply','thread_id',th,
+   'batch',jsonb_build_object('intent_id',i->>'intent_id','userId',u,'id',p_run,'bindings',i))),i)->>'error';
+end $$;
+create or replace function pg_temp.bstate(text) returns text language sql as $$
+ select state from public.career_batch_intents_v1 where user_id='00000000-0000-4000-8000-000000000921' and run_id=$1 $$;
+create or replace function pg_temp.bid(text) returns text language sql as $$ select encode(sha256(convert_to($1,'UTF8')),'hex') $$;
+create or replace function pg_temp.bpending(text) returns boolean language sql as $$
+ select exists(select 1 from jsonb_array_elements(public.career_batch_pending_v1()->'intents') x where x->>'intentId'=pg_temp.bid($1)) $$;
+
+select t.ok(pg_temp.batch_turn('k7',6,6,'batch-TEST-fence-a') is null and pg_temp.bstate('batch-TEST-fence-a')='queued',
+ 'a batch the person asked for is queued');
+select t.ok(pg_temp.turn('k8',7,7,'{}') is null,'an ordinary turn after the batch ("thanks!")');
+select t.ok(pg_temp.bstate('batch-TEST-fence-a')='queued','the batch is still queued after an ordinary turn');
+select t.ok(pg_temp.bpending('batch-TEST-fence-a'),'the worker still sees it pending');
+create temp table bclaim as select public.career_batch_claim_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('batch-TEST-fence-a')) c;
+select t.ok((select c->'claimed'='true'::jsonb from bclaim),'the worker still claims it');
+select t.ok(pg_temp.turn('k9',8,8,'{}') is null and pg_temp.bstate('batch-TEST-fence-a')='claimed',
+ 'a running batch stays claimed through another ordinary turn');
+select t.ok((public.career_batch_finish_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('batch-TEST-fence-a'),
+ (select (c->>'leaseToken')::uuid from bclaim),'completed','{}'::jsonb))->>'state'='completed','and finishes completed');
+
+-- What a batch depends on still fences it: a stated-facts change cancels a queued batch and marks a running one uncertain.
+select t.ok(pg_temp.batch_turn('k10',9,9,'batch-TEST-fence-b') is null and pg_temp.batch_turn('k11',10,10,'batch-TEST-fence-c') is null,
+ 'two more batches');
+select t.ok((public.career_batch_claim_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('batch-TEST-fence-c'))->>'claimed')='true',
+ 'the second is claimed');
+select t.ok(pg_temp.turn('k12',11,11,jsonb_build_object('stated_facts',jsonb_build_object('v',1,'facts',jsonb_build_array(
+ jsonb_build_object('kind','school','value','TEST College','said','I go to TEST College','at',now()))))) is null,'a turn that changes a stated fact');
+select t.ok(pg_temp.bstate('batch-TEST-fence-b')='cancelled' and pg_temp.bstate('batch-TEST-fence-c')='uncertain',
+ 'the stated-facts change cancels the queued batch and marks the running one uncertain');
+-- The claim path applies the same rule on its own: a queued intent stamped before the last authority change is refused.
+insert into public.career_batch_intents_v1(user_id,intent_id,thread_id,turn_key,request_hash,event_hash,binding,authority_account_version,privacy_epoch,run_id)
+values('00000000-0000-4000-8000-000000000921',pg_temp.bid('batch-TEST-fence-old'),'00000000-0000-4000-8000-0000000009a1','k-old',repeat('a',64),
+ repeat('b',64),'{}'::jsonb,11,0,'batch-TEST-fence-old');
+select t.ok(not pg_temp.bpending('batch-TEST-fence-old'),'an intent stamped before the facts changed is not pending');
+select t.must_fail($$select public.career_batch_claim_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('batch-TEST-fence-old'))$$,
+ 'batch authority revoked','and is not claimed');
+delete from public.career_batch_intents_v1 where run_id='batch-TEST-fence-old';
+
+-- A pause cancels a queued batch.
+select t.ok(pg_temp.batch_turn('k13',12,12,'batch-TEST-fence-d') is null and pg_temp.bstate('batch-TEST-fence-d')='queued','a batch before a pause');
+select t.ok(pg_temp.turn('k14',13,13,'{"paused":true}') is null and pg_temp.bstate('batch-TEST-fence-d')='cancelled','a pause cancels it');
+select t.ok(pg_temp.turn('k15',14,14,'{"paused":false}') is null and pg_temp.bstate('batch-TEST-fence-d')='cancelled','lifting the pause does not revive it');
+
+-- An erase cancels a queued batch and drops what it carried.
+select t.ok(pg_temp.batch_turn('k16',15,15,'batch-TEST-fence-e') is null and pg_temp.bstate('batch-TEST-fence-e')='queued','a batch before an erase');
+select t.ok(pg_temp.turn('k17',16,16,'{"erase":true}') is null,'an erase');
+select t.ok((select state='cancelled' and private_input is null from public.career_batch_intents_v1 where run_id='batch-TEST-fence-e'),
+ 'the erase cancels it and drops its request');
 rollback;

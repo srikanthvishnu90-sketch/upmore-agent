@@ -331,7 +331,7 @@ footer.site nav a:hover{color:var(--white)}
 .ims-nm{font-size:11.5px;color:#000;display:flex;align-items:center;gap:1px}
 .ims-nm .ic{font-size:9px;color:#8E8E93}
 .ims-ft{color:#007AFF;font-size:30px;display:flex;justify-content:flex-end;margin-top:16px;padding-right:10px}
-.ims-th{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:0 16px 0 18px}
+.ims-th{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:0 16px 0 18px;pointer-events:none}
 .ims-th::-webkit-scrollbar{display:none}
 .ims-in{display:flex;flex-direction:column;justify-content:flex-start;padding:6px 0 10px}
 .ims-ts{align-self:center;text-align:center;color:#8E8E93;font-size:11px;line-height:14px;margin:10px 0 8px;display:flex;flex-direction:column;font-weight:500}
@@ -1513,20 +1513,44 @@ var PAGES = [
       play(k);
     }
     function pinTop() { return parseFloat(getComputedStyle(el.querySelector('.tour-pin')).top) || 0; }
-    var lockUntil = 0;
-    function onScroll() {
-      if (Date.now() < lockUntil || el.offsetParent === null) return;   // don't flip through steps during a click-to-step scroll
+    var lockUntil = 0, lockTarget = null, closedSlice = -1;
+    function sliceNow() {
       var r = el.getBoundingClientRect();
       var span = el.offsetHeight - el.querySelector('.tour-pin').offsetHeight;
       var p = span > 0 ? (pinTop() - r.top) / span : 0;
-      setActive(Math.min(n - 1, Math.max(0, Math.floor(p * n))));
+      return Math.min(n - 1, Math.max(0, Math.floor(p * n)));
+    }
+    function closeAll() {
+      active = -1;
+      steps.forEach(function (s) {
+        s.classList.remove('on');
+        s.querySelector('.t-head').setAttribute('aria-expanded', 'false');
+      });
+      closedSlice = sliceNow();   // stay closed while the reader sits in this slice; scrolling to another slice re-opens
+    }
+    function onScroll() {
+      if (el.offsetParent === null) return;
+      if (Date.now() < lockUntil) {   // don't flip through steps during a click-to-step scroll
+        if (lockTarget === null || Math.abs(scrollY - lockTarget) > 2) return;
+        lockUntil = 0; lockTarget = null;   // arrived at the clicked step: sync from here
+      }
+      var k = sliceNow();
+      if (active < 0) { if (k === closedSlice) return; closedSlice = -1; }
+      setActive(k);
     }
     el.addEventListener('click', function (e) {
-      var h = e.target.closest('.t-head'); if (!h) return;
-      var k = +h.parentElement.dataset.i;
+      if (e.target.closest('a')) return;   // links inside a panel still navigate
+      var st = e.target.closest('.t-step'); if (!st) return;
+      var k = +st.dataset.i;
+      if (k === active) {   // whole-row toggle: clicking the open step closes it (wide layouts, where every row stays visible)
+        if (!matchMedia('(max-width:860px)').matches) closeAll();
+        return;
+      }
+      closedSlice = -1;
       var span = el.offsetHeight - el.querySelector('.tour-pin').offsetHeight;
       var top = el.getBoundingClientRect().top + scrollY - pinTop() + span * (k + 0.5) / n;
-      lockUntil = Date.now() + (reduce ? 0 : 900);
+      lockUntil = Date.now() + (reduce ? 0 : 2500);
+      lockTarget = reduce ? null : top;
       window.scrollTo({ top: top, behavior: reduce ? 'auto' : 'smooth' });
       setActive(k);
     });

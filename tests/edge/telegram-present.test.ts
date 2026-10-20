@@ -2,7 +2,7 @@
 // presence, document sends, and — the load-bearing case — an approval
 // button tap resolving into the SAME structured, hash-bound approval the
 // app client sends (exact message + career_batch approve request).
-import { handleTelegramWebhook } from "../../supabase/functions/_shared/telegram.ts";
+import { handleTelegramWebhook, withTelegramTyping } from "../../supabase/functions/_shared/telegram.ts";
 import {
   FakeAdminApprovals, assert, assertEq, envOf, fakeFetchRich, TEST_USER, SUPABASE_URL, SERVICE_KEY,
 } from "./lib/channel_fixture.ts";
@@ -107,6 +107,32 @@ Deno.test("typing presence fires before the agent is called", async () => {
   assertEq(action.chat_id, CHAT_ID);
 });
 
+Deno.test("typing refreshes while a turn runs long, and stops when it settles", async () => {
+  const { d, calls } = deps(() => ({ reply: "ok" }), { seedRun: false });
+  let release: () => void = () => {};
+  const gate = new Promise<void>((r) => { release = r; });
+  const p = withTelegramTyping(d, "fixture-bot-token", String(CHAT_ID), async () => { await gate; return 7; }, 20);
+  await new Promise((r) => setTimeout(r, 90));
+  release();
+  assertEq(await p, 7, "the wrapped work's value passes through");
+  const n = tgCalls(calls, "sendChatAction").length;
+  assert(n >= 3, `typing fired at intake and refreshed while waiting (saw ${n})`);
+  await new Promise((r) => setTimeout(r, 60));
+  assertEq(tgCalls(calls, "sendChatAction").length, n, "typing stops when the turn settles — no leaked interval");
+});
+
+Deno.test("a structured reply goes out as one HTML part: bullets and a bare URL intact", async () => {
+  const { d, calls } = deps(() => ({
+    reply: "**Plan**\n\n- One\n- Two\n\nApply here: https://jobs.example.com/posting/1",
+  }), { seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("plan please")), d);
+  assertEq(res.status, 200);
+  const bodies = sendBodies(calls).filter((b) => b.parse_mode === "HTML");
+  assertEq(bodies.length, 1, "one HTML part");
+  assert(String(bodies[0].text).includes("• One") && String(bodies[0].text).includes("• Two"), "bullets survive: " + bodies[0].text);
+  assert(String(bodies[0].text).includes("https://jobs.example.com/posting/1"), "the bare URL survives unmangled: " + bodies[0].text);
+});
+
 Deno.test("button tap == exact-message approval: identical structured effect, single use", async () => {
   const { d, calls, admin } = deps(cardThenApprove);
   await handleTelegramWebhook(tgReq(textUpdate("batch status")), d);
@@ -173,6 +199,16 @@ Deno.test("telegram HTML parse failure falls back to a plain send of the same co
   assertEq(plain.length, 1, "the same part was resent without parse_mode");
   assert(!String(plain[0].text).includes("<b>"), "fallback text carries no raw tags");
   assert(String(plain[0].text).includes("3"), "content preserved in the fallback");
+});
+
+Deno.test("telegram HTML parse failure keeps the link destination in the plain fallback", async () => {
+  const { d, calls } = deps(() => ({ reply: "Details: [the card](https://example.com/card?a=1&b=2) inside." }), { parseFailOnce: true, seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("details please")), d);
+  assertEq(res.status, 200);
+  const bodies = sendBodies(calls);
+  const plain = bodies.filter((b) => !b.parse_mode);
+  assertEq(plain.length, 1, "the part was resent without parse_mode");
+  assert(String(plain[0].text).includes("the card (https://example.com/card?a=1&b=2)"), "label AND destination survive the fallback: " + plain[0].text);
 });
 
 Deno.test("document artifacts are sent as files; the current contract sends none", async () => {

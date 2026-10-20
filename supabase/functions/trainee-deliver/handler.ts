@@ -6,9 +6,10 @@ import { equalSecret } from "../_shared/message_service.ts";
 import { deliverDue, type Send } from "../_shared/channel.ts";
 import type { DeliveryStore } from "../_shared/channel_store.ts";
 
-export const ROWS_PER_RUN = 20; // 20 rows x up to 4 bubbles x ~0.6 s stays well inside a function's wall clock
+export const ROWS_PER_RUN = 20; // most rows are one or two bubbles; a run that nears its time budget stops (channel.ts deliverDue)
+export const RUN_BUDGET_MS = 100_000; // under the Edge wall clock (150 s on the smallest plan), with room to record the run
 export const DEFAULT_DAILY_CONTACTS = 300; // LoopMessage's smaller plan; set LOOPMESSAGE_DAILY_CONTACTS for the larger one
-export type DeliveryRun = { delivered: number; failed: number; retried: number; skipped_opt_out: number; capped: number; swept: number; ms: number; error: string | null; at: string };
+export type DeliveryRun = { delivered: number; failed: number; retried: number; skipped_opt_out: number; capped: number; deferred?: number; swept: number; ms: number; error: string | null; at: string };
 export interface DeliverDeps {
   env: { get(k: string): string | undefined };
   store: () => DeliveryStore;
@@ -33,7 +34,7 @@ export async function handleDeliver(req: Request, d: DeliverDeps): Promise<Respo
   let swept = 0;
   try {
     swept = await store.sweep(started);
-    const r = await deliverDue({ store, send: d.send(apiKey), now: started, limit: ROWS_PER_RUN, dailyContactCap: cap });
+    const r = await deliverDue({ store, send: d.send(apiKey), now: started, limit: ROWS_PER_RUN, dailyContactCap: cap, clock: d.now, budgetMs: RUN_BUDGET_MS });
     // Only a run that finished puts back what it claimed and did not send (capped rows). After a failure mid-run a claimed
     // row may already be with the provider, so it stays "sending" and the next sweep fails it instead of resending it.
     await store.release();

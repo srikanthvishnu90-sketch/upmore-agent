@@ -57,7 +57,7 @@ Policy + Terms & Conditions + Whistleblowers Policy" agreement and a "$00.00 For
 standing consent or the stated amount. Lever's floor moved 0.96 -> 0.95 for that reason alone (73/76 -> 71/74, the same
 three misses).
 
-**The 85% answer-bank target is further away than it looked: 78.5% with zero judged wrong.** Every number above is on a
+**The 85% saved-answers target is further away than it looked: 78.5% with zero judged wrong.** Every number above is on a
 complete synthetic persona; a real person's rate is NOT_RUN.
 
 ## Sample C, sealed, scored once (2026-10-20)

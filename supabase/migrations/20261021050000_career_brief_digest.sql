@@ -65,12 +65,11 @@ alter table public.career_mail_drafts drop constraint if exists career_mail_draf
 alter table public.career_mail_drafts add constraint career_mail_drafts_application_ref_check
   check (application_ref ~ '^(job|track|mail|invite):.+$' and length(application_ref) <= 200);
 
--- WO-032's 'questions' (20261021040000_career_apply_ops.sql, an earlier file) stays: outbox kinds only grow.
 alter table public.career_outbox drop constraint if exists career_outbox_key_check;
 alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|questions|brief|digest):.+$' and length(key) <= 310);
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|brief|digest):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
-alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'questions', 'brief', 'digest'));
+alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'brief', 'digest'));
 alter table public.career_proactive_runs add column if not exists briefs int not null default 0 check (briefs >= 0);
 alter table public.career_proactive_runs add column if not exists brief_ms_max bigint check (brief_ms_max >= 0);
 alter table public.career_proactive_runs add column if not exists digests int not null default 0 check (digests >= 0);

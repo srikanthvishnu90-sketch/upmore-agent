@@ -1,0 +1,30 @@
+{
+  "dataset_id": "pay-maps",
+  "title": "How an offer's words map to public pay data: metros and occupations (WO-036)",
+  "note": "A lookup table, not data about pay. Metro keys join the person's city to BLS OEWS metropolitan areas (by CBSA code, or by the area title's first city when the code differs in a vintage) and to DOL LCA worksite cities. Occupation keys join a job title to a 2018 SOC code. A title with no confident SOC is left unmapped: then no occupation benchmark is shown, never a guessed one. 'analyst' alone maps by the employer's sector, and only for finance, trading and consulting.",
+  "metros": [
+    { "key": "new-york", "label": "New York metro", "oews_area": "35620", "oews_first_city": "New York", "words": ["nyc", "new york", "manhattan", "brooklyn", "queens", "bronx", "jersey city", "hoboken", "newark"], "lca_cities": [["NEW YORK", "NY"], ["BROOKLYN", "NY"], ["LONG ISLAND CITY", "NY"], ["QUEENS", "NY"], ["BRONX", "NY"], ["JERSEY CITY", "NJ"], ["HOBOKEN", "NJ"], ["NEWARK", "NJ"]] },
+    { "key": "san-francisco", "label": "San Francisco Bay Area (San Francisco-Oakland)", "oews_area": "41860", "oews_first_city": "San Francisco", "words": ["sf", "san francisco", "oakland", "bay area"], "lca_cities": [["SAN FRANCISCO", "CA"], ["OAKLAND", "CA"]] },
+    { "key": "san-jose", "label": "San Jose metro (Silicon Valley)", "oews_area": "41940", "oews_first_city": "San Jose", "words": ["san jose", "silicon valley", "palo alto", "mountain view", "sunnyvale", "menlo park", "santa clara", "cupertino"], "lca_cities": [["SAN JOSE", "CA"], ["PALO ALTO", "CA"], ["MOUNTAIN VIEW", "CA"], ["SUNNYVALE", "CA"], ["MENLO PARK", "CA"], ["SANTA CLARA", "CA"], ["CUPERTINO", "CA"]] },
+    { "key": "seattle", "label": "Seattle metro", "oews_area": "42660", "oews_first_city": "Seattle", "words": ["seattle", "bellevue", "redmond"], "lca_cities": [["SEATTLE", "WA"], ["BELLEVUE", "WA"], ["REDMOND", "WA"]] },
+    { "key": "chicago", "label": "Chicago metro", "oews_area": "16980", "oews_first_city": "Chicago", "words": ["chicago"], "lca_cities": [["CHICAGO", "IL"]] },
+    { "key": "boston", "label": "Boston metro", "oews_area": "14460", "oews_first_city": "Boston", "words": ["boston", "cambridge ma", "cambridge, ma"], "lca_cities": [["BOSTON", "MA"], ["CAMBRIDGE", "MA"]] },
+    { "key": "los-angeles", "label": "Los Angeles metro", "oews_area": "31080", "oews_first_city": "Los Angeles", "words": ["los angeles", "santa monica"], "lca_cities": [["LOS ANGELES", "CA"], ["SANTA MONICA", "CA"]] },
+    { "key": "washington-dc", "label": "Washington DC metro", "oews_area": "47900", "oews_first_city": "Washington", "words": ["dc", "washington dc", "washington, dc", "d.c.", "arlington", "mclean", "reston"], "lca_cities": [["WASHINGTON", "DC"], ["ARLINGTON", "VA"], ["MCLEAN", "VA"], ["RESTON", "VA"]] },
+    { "key": "austin", "label": "Austin metro", "oews_area": "12420", "oews_first_city": "Austin", "words": ["austin"], "lca_cities": [["AUSTIN", "TX"]] },
+    { "key": "miami", "label": "Miami metro", "oews_area": "33100", "oews_first_city": "Miami", "words": ["miami"], "lca_cities": [["MIAMI", "FL"]] },
+    { "key": "dallas", "label": "Dallas-Fort Worth metro", "oews_area": "19100", "oews_first_city": "Dallas", "words": ["dallas", "fort worth", "plano", "irving"], "lca_cities": [["DALLAS", "TX"], ["PLANO", "TX"], ["IRVING", "TX"], ["FORT WORTH", "TX"]] },
+    { "key": "houston", "label": "Houston metro", "oews_area": "26420", "oews_first_city": "Houston", "words": ["houston"], "lca_cities": [["HOUSTON", "TX"]] },
+    { "key": "denver", "label": "Denver metro", "oews_area": "19740", "oews_first_city": "Denver", "words": ["denver"], "lca_cities": [["DENVER", "CO"]] },
+    { "key": "atlanta", "label": "Atlanta metro", "oews_area": "12060", "oews_first_city": "Atlanta", "words": ["atlanta"], "lca_cities": [["ATLANTA", "GA"]] },
+    { "key": "philadelphia", "label": "Philadelphia metro", "oews_area": "37980", "oews_first_city": "Philadelphia", "words": ["philadelphia", "philly"], "lca_cities": [["PHILADELPHIA", "PA"]] }
+  ],
+  "occupations": [
+    { "key": "software-developer", "soc": "15-1252", "soc_title": "Software Developers", "bls_national": "Software developers", "words": ["software engineer", "software developer", "swe", "sde", "software development engineer", "backend engineer", "frontend engineer", "full stack engineer", "developer"] },
+    { "key": "data-scientist", "soc": "15-2051", "soc_title": "Data Scientists", "bls_national": null, "words": ["data scientist"] },
+    { "key": "financial-analyst", "soc": "13-2051", "soc_title": "Financial and Investment Analysts", "bls_national": "Financial analysts", "words": ["financial analyst", "investment banking analyst", "ib analyst", "investment analyst", "equity research analyst", "research analyst"], "analyst_sectors": ["finance", "trading"] },
+    { "key": "management-analyst", "soc": "13-1111", "soc_title": "Management Analysts", "bls_national": "Management analysts", "words": ["management analyst", "business analyst", "management consultant", "consultant", "associate consultant"], "analyst_sectors": ["consulting"] },
+    { "key": "operations-research-analyst", "soc": "15-2031", "soc_title": "Operations Research Analysts", "bls_national": null, "words": ["operations research analyst"] },
+    { "key": "accountant", "soc": "13-2011", "soc_title": "Accountants and Auditors", "bls_national": null, "words": ["accountant", "auditor", "audit associate", "tax associate"] }
+  ]
+}

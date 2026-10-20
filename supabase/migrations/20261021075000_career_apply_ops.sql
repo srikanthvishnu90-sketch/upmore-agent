@@ -21,8 +21,12 @@
 --    "questions" and keeps every kind and key prefix any earlier migration allows.
 -- 5. An ambiguous employer email (two applications at that company in the window) is asked about once
 --    (career:confirm-ask:<message hash> on the account) and answered by number.
--- Additive and idempotent: new columns, constraints, a trigger and functions; career_apply_finish, career_apply_claim and
--- career_apply_claim_own(integer) are redefined with their signatures and grants unchanged.
+-- 6. A card pushed by the scheduled run never lands while the thread waits on something else (career_thread_busy): its
+--    yes would otherwise approve the card when it was meant for the email or questions shown before it.
+-- Additive and idempotent: new columns, constraints, a trigger and functions; career_apply_finish, career_apply_claim,
+-- career_apply_claim_own(integer) and career_apply_card_push_for are redefined with their signatures and grants unchanged.
+-- This file comes after 20261021070000_channel_parity.sql on purpose: a migration already applied is never edited, so the
+-- outbox lists here are the latest (070000's and 'questions'), and the card push is 070000's with the busy check.
 
 -- ------------------------------------------------------------------------------------------------ 1. source, confirmation
 alter table public.career_apply_jobs add column if not exists source text;
@@ -244,12 +248,11 @@ language sql security definer set search_path = public, pg_temp as $$ select pub
 alter table public.career_apply_questions add column if not exists pushed_at timestamptz;
 alter table public.career_outbox drop constraint if exists career_outbox_key_check;
 alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|brief|digest|questions):.+$' and length(key) <= 310);
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|brief|digest|link|questions):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
--- Every kind on trunk stays (mail's status and followup; the voice mock's mock; WO-034's brief and digest, whose file
--- 20261021050000 comes later and keeps ours), plus ours.
+-- The latest list before this file (20261021070000_channel_parity.sql: every earlier kind, and link), plus ours.
 alter table public.career_outbox add constraint career_outbox_kind_check
-  check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'brief', 'digest', 'questions'));
+  check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'brief', 'digest', 'link', 'questions'));
 alter table public.career_proactive_runs add column if not exists questions int not null default 0 check (questions >= 0);
 alter table public.career_proactive_runs add column if not exists confirmations int not null default 0 check (confirmations >= 0);
 alter table public.career_proactive_runs add column if not exists asks int not null default 0 check (asks >= 0);
@@ -266,17 +269,18 @@ language sql stable security definer set search_path = public, pg_temp as $$
                from public.agent_messages m where m.thread_id = p_thread and m.role = 'assistant' order by m.id desc limit 1), false)
 $$;
 
--- Whitespace as JavaScript's \s sees it (the formatter writes each label with /\s+/ collapsed to one space): the no-break
--- and other Unicode spaces become plain spaces, then runs collapse and the ends are trimmed.
+-- Whitespace as JavaScript's \s sees it (the formatter writes each label with /\s+/ collapsed to one space): in a UTF8
+-- database (production) the no-break and other Unicode spaces become plain spaces, then runs collapse and the ends are
+-- trimmed. In any other encoding the text is not Unicode code points (a UTF-8 no-break space is the bytes C2 A0), so no
+-- translation is attempted there and only ASCII whitespace collapses; tests/db/run.sh checks the UTF8 case in a UTF8
+-- database of its own.
 create or replace function public.career_text_spaces(t text) returns text
 language plpgsql stable set search_path = pg_catalog as $$
-declare sp text := chr(160);
+declare sp text;
 begin
- -- The other Unicode spaces exist only in a UTF8 database (production); chr(160) is the no-break space in either.
- if getdatabaseencoding() = 'UTF8' then
-  sp := sp || chr(5760) || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196) || chr(8197) || chr(8198) || chr(8199) || chr(8200)
-   || chr(8201) || chr(8202) || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288) || chr(65279);
- end if;
+ if getdatabaseencoding() <> 'UTF8' then return btrim(regexp_replace(coalesce(t, ''), '\s+', ' ', 'g')); end if;
+ sp := chr(160) || chr(5760) || chr(8192) || chr(8193) || chr(8194) || chr(8195) || chr(8196) || chr(8197) || chr(8198) || chr(8199)
+  || chr(8200) || chr(8201) || chr(8202) || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288) || chr(65279);
  return btrim(regexp_replace(translate(coalesce(t, ''), sp, repeat(' ', length(sp))), '\s+', ' ', 'g'));
 end $$;
 
@@ -291,10 +295,10 @@ begin
   or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid questions push'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
  -- A STOP on any channel stops it; the thread is the person's most recent channel's (one contact per channel since
- -- 20261021070000_channel_parity.sql; read through to_jsonb so this also runs on the one-contact schema before it).
+ -- 20261021070000_channel_parity.sql), chosen as the card push chooses it.
  if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
- select c.thread_id into thread from public.channel_contacts c where c.user_id = p_user and c.thread_id is not null
-  order by (to_jsonb(c)->>'last_inbound_at')::timestamptz desc nulls last, c.created_at limit 1;
+ select thread_id into thread from public.channel_contacts where user_id = p_user and thread_id is not null
+  order by last_inbound_at desc nulls last, created_at limit 1;
  if thread is null then return false; end if;
  if exists (select from public.career_outbox where user_id = p_user and kind = 'questions' and created_at >= p_now - interval '24 hours')
   or public.career_thread_busy(p_user, thread, p_now)
@@ -329,10 +333,10 @@ begin
  select value into a from public.career_watch_kv where user_id = p_user and key = k for update;
  if a is null or a->>'state' is distinct from 'pending' then return false; end if;
  -- A STOP on any channel stops it; the thread is the person's most recent channel's (one contact per channel since
- -- 20261021070000_channel_parity.sql; read through to_jsonb so this also runs on the one-contact schema before it).
+ -- 20261021070000_channel_parity.sql), chosen as the card push chooses it.
  if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
- select c.thread_id into thread from public.channel_contacts c where c.user_id = p_user and c.thread_id is not null
-  order by (to_jsonb(c)->>'last_inbound_at')::timestamptz desc nulls last, c.created_at limit 1;
+ select thread_id into thread from public.channel_contacts where user_id = p_user and thread_id is not null
+  order by last_inbound_at desc nulls last, created_at limit 1;
  if thread is null or public.career_thread_busy(p_user, thread, p_now) then return false; end if;
  update public.career_watch_kv set value = a || jsonb_build_object('state', 'asked', 'asked_at', p_now, 'thread', thread), updated_at = p_now
   where user_id = p_user and key = k;
@@ -364,6 +368,40 @@ create or replace function public.career_apply_confirm_ask_push_as(p_user uuid, 
 language sql security definer set search_path = public, pg_temp as $$ select public.career_apply_confirm_ask_push_for(p_user, p_hash, p_text, clock_timestamp()) $$;
 create or replace function public.career_apply_confirm_answer_as(p_user uuid, p_hash text, p_n integer) returns jsonb
 language sql security definer set search_path = public, pg_temp as $$ select public.career_apply_confirm_answer_for(p_user, p_hash, p_n, clock_timestamp()) $$;
+
+-- ------------------------------------------------------------------------------------------------ 6. the card push
+-- As 20261021070000_channel_parity.sql, with one addition: nothing is pushed while career_thread_busy says the thread is
+-- waiting on something else (an email card, questions or an ask shown as its last word in the last 24 hours). A "yes"
+-- meant for that would otherwise approve this card.
+create or replace function public.career_apply_card_push_for(p_user uuid, p_ids uuid[], p_text text, p_now timestamptz)
+returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
+declare thread uuid; c public.career_apply_cards; home_contact text; seen timestamptz;
+begin
+ if p_user is null or p_ids is null or cardinality(p_ids) not between 1 and 8 or p_now is null
+  or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid card push'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
+ if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return null; end if;
+ select thread_id into thread from public.channel_contacts where user_id = p_user and thread_id is not null order by last_inbound_at desc nulls last, created_at limit 1;
+ if thread is null then return null; end if;
+ home_contact := public.channel_target(p_user, null);
+ if home_contact like 'wa:%' then
+  select last_inbound_at into seen from public.channel_contacts where contact = home_contact;
+  if seen is null or seen < p_now - interval '23 hours' then return null; end if;
+ end if;
+ if exists (select from public.career_apply_cards where user_id = p_user and state = 'open' and shown_at >= p_now - interval '24 hours')
+  or exists (select from public.career_outbox where user_id = p_user and kind = 'reply' and created_at >= p_now - interval '30 minutes')
+  or public.career_thread_busy(p_user, thread, p_now)
+  or (select count(*) from public.career_apply_prepared where user_id = p_user and state = 'ready' and id = any(p_ids)) <> cardinality(p_ids)
+ then return null; end if;
+ if exists (select from public.career_apply_prepared p, unnest(p.card_lines) l
+            where p.id = any(p_ids) and position(btrim(regexp_replace(l, '\s+', ' ', 'g')) in p_text) = 0) then
+  raise exception 'card text does not carry every line'; end if;
+ c := public.career_apply_card_open_for(p_user, p_ids, p_now);
+ insert into public.agent_messages (thread_id, role, content, meta)
+ values (thread, 'assistant', p_text, jsonb_build_object('career', true, 'intent', 'career_apply_card', 'card_id', c.id, 'proactive', true));
+ insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, 'card:' || c.id, 'card', p_text, p_now);
+ return c.id;
+end $$;
 
 -- ------------------------------------------------------------------------------------------------ grants
 revoke all on function public.career_apply_confirm_as(uuid, uuid, text, text, text, timestamptz), public.career_apply_gate_status(),

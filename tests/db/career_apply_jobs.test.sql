@@ -39,7 +39,7 @@ do $$declare s text;p jsonb;j career_apply_jobs;h text;begin
   perform career_apply_enqueue(p,h,h,15);select * into j from career_apply_claim(now(),1);perform career_apply_finish(j.id,j.lease_token,s,jsonb_build_object('reason','TEST outcome'));
  end loop;
 end $$;
--- WO-032 (20261021040000): a page's "confirmed" is evidence; the row waits, submitted_unconfirmed, for the employer's email.
+-- WO-032 (20261021075000): a page's "confirmed" is evidence; the row waits, submitted_unconfirmed, for the employer's email.
 select t.ok((select count(distinct state)=5 and bool_and(state<>'confirmed') from career_apply_jobs where job_id<>'TEST-1'),'all final states persist; none is confirmed by a page');
 select t.ok((select state='submitted_unconfirmed' and evidence->>'page_confirmation'='true' from career_apply_jobs where job_id='TEST-confirmed'),'the page''s confirmation is kept as evidence');
 reset role;

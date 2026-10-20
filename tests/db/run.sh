@@ -151,16 +151,19 @@ done
 # WO-028: the private resume bucket and the tailored tag; idempotent, so it applies cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
-# WO-032 apply operations: source, email confirmation, the gate, apply by email, questions pushed. After every career
-# migration it redefines or widens (the queue, the outbox kinds, the questions, the postings); applied twice.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021040000_career_apply_ops.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021040000_career_apply_ops.sql"
-
 # WO-038: WhatsApp and Telegram beside iMessage (contacts per channel, held rows, link tokens); idempotent, so it applies
 # cleanly a second time. Its test runs after the career ledger below (the card push it redefines needs that schema), which
 # also replays it on top of every earlier migration.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
+# WO-036: hired-candidate background aggregates and the PDL credit log. Idempotent: applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
+# WO-032 apply operations (source, email confirmation, the gate, apply by email, questions pushed, the card push's busy
+# check). After every migration it redefines or widens, the channel parity's card push and outbox lists included;
+# applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" ]]; then continue; fi
@@ -223,6 +226,9 @@ echo "== career_brief_digest.test.sql (interviews and the weekly digest: own rea
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 echo "== channel_parity.test.sql (WhatsApp and Telegram beside iMessage: per channel, held, linked only on a yes or a one-time link)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_parity.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The latest migration re-applied last, as production ends (the channel parity re-run above set the outbox lists without
+# 'questions').
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
 echo "== career_apply_ops.test.sql (who drove it, confirmed only by email, the gate, apply by email, questions pushed)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_ops.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

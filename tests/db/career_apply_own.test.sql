@@ -46,7 +46,7 @@ reset role;
 
 -- A finishes A's drive.
 select t.as_user('00000000-0000-4000-8000-000000000911');set role authenticated;
--- WO-032 (20261021040000): the page's confirmation is recorded as evidence; only the employer's email confirms the row.
+-- WO-032 (20261021075000): the page's confirmation is recorded as evidence; only the employer's email confirms the row.
 select t.ok((select state='submitted_unconfirmed' and confirmation_id='TEST-C1' and evidence->>'page_confirmation'='true' and source='own_computer' from career_apply_finish_own((select id from a_lease),(select lease_token from a_lease),'confirmed','{"reason":"employer confirmation on the page","confirmation_id":"TEST-C1"}')),'A records the employer''s answer');
 select t.must_fail($$select career_apply_finish_own(id,lease_token,'failed','{}') from a_lease$$,'invalid apply transition','a finished drive cannot be rewritten');
 reset role;

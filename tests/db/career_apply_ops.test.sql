@@ -1,4 +1,4 @@
--- WO-032 (20261021040000_career_apply_ops.sql): every row says who drove it; only the employer's email confirms one; the
+-- WO-032 (20261021075000_career_apply_ops.sql): every row says who drove it; only the employer's email confirms one; the
 -- PR #16 gate counts email-confirmed hand submissions per portal family; an emailed application goes only for the exact
 -- payload shown, under the daily limit; open questions are pushed once, a day at most, as the thread's last word; an
 -- ambiguous employer email is asked about once and answered by number.

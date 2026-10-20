@@ -39,6 +39,7 @@ import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } fro
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
+import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
@@ -74,6 +75,8 @@ type CareerTurnResult = {
   intent: string; reply: string; handler?: string | null; resultStatus?: string;
   contained?: boolean; capabilities?: unknown; action?: unknown;
   result?: Record<string, unknown>; task?: unknown; batch?: unknown;
+  // WO-038: the reply as separate messages (an outreach batch), each delivered whole; `reply` stays the joined text.
+  parts?: string[];
 };
 
 export async function handleChat(req: Request): Promise<Response> {
@@ -345,7 +348,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: emailed.reply, intent: emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
         if (emailed.waiting && emailed.card_id) agentMeta = { email_card: emailed.card_id };
       } else if (outreachAns) {
-        out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach" };
+        out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -370,7 +373,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
-          events, tz, summary,
+          events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin),
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
@@ -385,7 +388,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           out = host.runTurn(message, ctx);
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
-          out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent" };
+          out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
           agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
       } else {
@@ -420,8 +423,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
-      const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const reminderLines = reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "").filter(Boolean);
+      const visibleReply = [reply, ...reminderLines].join("\n");
+      // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
+      const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...reminderLines] : null;
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.

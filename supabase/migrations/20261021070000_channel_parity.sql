@@ -74,12 +74,11 @@ alter table public.career_outbox add constraint career_outbox_status check (
   and (status <> 'delivered' or delivered_at is not null)
   and (provider_id is null or length(provider_id) <= 200)
   and (error is null or length(error) <= 500));
--- WO-032's 'questions' (20261021040000_career_apply_ops.sql, an earlier file) stays: outbox kinds only grow.
 alter table public.career_outbox drop constraint if exists career_outbox_key_check;
 alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|questions|brief|digest|link):.+$' and length(key) <= 310);
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|brief|digest|link):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
-alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'questions', 'brief', 'digest', 'link'));
+alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'brief', 'digest', 'link'));
 create index if not exists career_outbox_held on public.career_outbox (user_id) where status = 'held';
 create index if not exists career_outbox_provider_ids on public.career_outbox using gin (provider_ids) where provider_ids is not null;
 create index if not exists career_outbox_provider_id on public.career_outbox (provider_id) where provider_id is not null;

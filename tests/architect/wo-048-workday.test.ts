@@ -351,3 +351,56 @@ Deno.test("WO-048/14 how the person heard, on a nested list: the careers site by
   eq(ask(["Job Board > Indeed", "Social Media > LinkedIn"], li), "Social Media > LinkedIn");
   eq(ask(["Website", "Job Board"], { ...PERSONA, how_heard: fact("a friend told me") }), null, "no sure match: asked, never guessed");
 });
+
+// Round 3.
+import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
+
+Deno.test("WO-048/15 a field of a repeating section's row never takes a person-level fact, even when no row was recognised", () => {
+  // sealed-wd2 t4: a past job's Location (id `workExperience-31--location`) was not read as part of its section and took
+  // the person's home "Chicago, IL". A field the form names as a row's part (Workday's `<section>-<n>--<part>` id) that
+  // the reader did not tie to a row, or that the reader marks as in a section but with no row (row 0), is left: asked when
+  // required, never filled from the person's location, city, phone, email, name, current employer or title.
+  const P = { ...PERSONA, location: fact("Chicago, IL"), current_employer: fact("Example Analytics"), current_title: fact("Data Analyst"),
+    linkedin: fact("https://www.linkedin.com/in/test-person") };
+  const loose = [
+    field("workExperience-31--location", "Location"), field("workExperience-31--jobTitle", "Job Title"),
+    field("workExperience-31--companyName", "Company"), field("workExperience-44--email", "Supervisor Email"),
+    field("workExperience-44--phone", "Employer Phone Number"), field("education-7--city", "City"), field("education-7--schoolName", "School or University"),
+    field("languages-3--language", "Language"), field("websites-12--url", "Website"), field("webAddress-2--url", "LinkedIn"),
+    field("workExperienceSection-5--fullName", "Name"), field("education-9--address", "Address"),
+  ];
+  eq(plan(loose, P), [], "no row part takes a person-level fact");
+  // The same labels outside any section are the person's own questions and are still answered (the control).
+  const own = plan(loose.map((f) => ({ ...f, name: "q-" + f.name.replace(/^.*--/, "") })), P);
+  eq(valueOf(own, "q-location"), "Chicago, IL");
+  eq(valueOf(own, "q-city"), "Chicago");
+  eq(valueOf(own, "q-phone"), "+1 555 010 0000");
+  eq(valueOf(own, "q-address"), "1 Example St, Chicago, IL 60601");
+  // Required: asked (the person states it), never guessed.
+  const req = planBatch({ userId: "u", postings: [{ job_id: "j", company: "northwind", title: "", fields: [{ ...loose[0], required: true }] }], answers: P, saved: {}, log: [], now: 0 });
+  eq(req.ready.length, 0, "the required row part blocks");
+  eq(req.needs.map((n) => n.label), ["Location"]);
+  // A saved answer under the same wording is not a row's answer either.
+  const saved = planBatch({ userId: "u", postings: [{ job_id: "j", company: "northwind", title: "", fields: [loose[0]] }], answers: P,
+    saved: { [normLabel("Location")]: fact("Chicago, IL") }, log: [], now: 0 });
+  eq(saved.ready[0].fields, [], "an ask-once answer by wording never fills a row part");
+  // The reader saw the section but no row (row 0): left, and it takes no entry from the real empty rows.
+  const fields = [
+    row("work", 0, "unknown", "Location"), row("work", 0, "unknown", "Job Title"),
+    row("work", 1, "employer", "Company"), row("work", 1, "title", "Job Title"), row("work", 2, "employer", "Company"),
+  ];
+  const got = plan(fields, P);
+  eq(valueOf(got, "work-0--unknown"), null);
+  eq(valueOf(got, "work-1--employer"), "Example Analytics", "row 1 still takes the first job");
+  eq(valueOf(got, "work-2--employer"), "Sample Retail", "row 2 still takes the second job");
+  // A recognised row still fills from the person's own list, under the same names Workday uses.
+  const wd = [
+    field("workExperience-30--companyName", "Work Experience 1: Company", { section: { kind: "work", row: 1, part: "employer", anchor: "" } } as any),
+    field("workExperience-31--companyName", "Work Experience 2: Company", { section: { kind: "work", row: 2, part: "employer", anchor: "" } } as any),
+    field("workExperience-31--location", "Work Experience 2: Location", { section: { kind: "work", row: 2, part: "location", anchor: "" } } as any),
+  ];
+  const r = plan(wd, P);
+  eq(valueOf(r, "workExperience-30--companyName"), "Example Analytics");
+  eq(valueOf(r, "workExperience-31--companyName"), "Sample Retail");
+  eq(valueOf(r, "workExperience-31--location"), null, "a job's location never stated: left");
+});

@@ -570,6 +570,11 @@ function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<
   }
   return null;
 }
+// WO-048 round 3 (sealed-wd2 t4: a past job's Location, id `workExperience-31--location`, took the person's home city): a
+// field whose name is Workday's id for a part of a repeating section's row ("<section>-<n>--<part>": work experience,
+// education, languages, websites) is a row's part even when no reader said so.
+const ROW_PART_NAME = /^(workExperience|education|languages?|websites?|webAddress(?:es)?)(?:Section)?-\d+--/i;
+export const rowPartName = (f: FormField) => ROW_PART_NAME.test(String(f.name ?? ""));
 // WO-048: a phone number beside the form's own country code field is the national number. The code the form shows must
 // be the person's own ("+1" for "+1 555 010 0000"); another code, or none chosen yet, leaves the number to the person.
 function nationalNumber(value: string, dial: string): string | null {
@@ -596,15 +601,19 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     const rowsOf = new Map<string, Map<number, number>>();
     for (const kind of new Set(p.fields.filter((f) => f.section).map((f) => f.section!.kind))) {
       const rows = new Map<number, string>();
-      for (const f of p.fields) if (f.section?.kind === kind && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
+      // A row 0 is a section's field the reader could tie to no row (round 3): it takes none of the person's entries.
+      for (const f of p.fields) if (f.section?.kind === kind && f.section.row >= 1 && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
       rowsOf.set(kind, assignRows(kind, [...rows].map(([row, anchor]) => ({ row, anchor })), o.answers, p.fields));
     }
     const places = formPlaces(p.fields, p.company);
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       if (f.personal) continue; // the person's own form: never planned (WO-048)
-      if (f.section) {
-        const s = sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields);
+      if (f.section || rowPartName(f)) {
+        // WO-048 round 3: a field the form names as one part of a repeating section's row is answered only from the person's
+        // own list, by the row the reader tied it to; with no row it is left (asked when required). Never a fact about the
+        // person as a whole (their city, phone, email, name, current employer), never an answer saved under its wording.
+        const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
         if (s) { filled.push({ name: f.name, label: f.label, value: s.value, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;

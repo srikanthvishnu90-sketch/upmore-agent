@@ -1,0 +1,90 @@
+{
+ "company": "Adventure Works Test (fictional, TEST)",
+ "pages": [
+  "0-sign-in.html",
+  "1-questions.html",
+  "6-review.html"
+ ],
+ "notes": [
+  "WO-048 round 3: the builder's own TEST tenant for the harness's test person (not a sealed tenant)."
+ ],
+ "rows": [
+  {
+   "page": "0-sign-in.html",
+   "automationId": "email",
+   "selector": "#input-4",
+   "label": "Email Address",
+   "type": "text",
+   "required": true,
+   "should": "ask",
+   "expected": null
+  },
+  {
+   "page": "0-sign-in.html",
+   "automationId": "password",
+   "selector": "#input-5",
+   "label": "Password",
+   "type": "password",
+   "required": true,
+   "should": "never",
+   "expected": null
+  },
+  {
+   "page": "1-questions.html",
+   "formField": "formField-a1f0c2d3e4b5a6978877665544332211",
+   "selector": "#primaryQuestionnaire--a1f0c2d3e4b5a6978877665544332211",
+   "label": "Are you legally authorized to work in the United States?",
+   "type": "dropdown",
+   "required": true,
+   "should": "fill",
+   "expected": "Yes",
+   "match": "casefold"
+  },
+  {
+   "page": "1-questions.html",
+   "formField": "formField-source",
+   "selector": "#source--source",
+   "label": "How Did You Hear About Us?",
+   "type": "prompt",
+   "required": true,
+   "should": "ask",
+   "expected": [
+    "Career Fair"
+   ],
+   "match": "set"
+  },
+  {
+   "page": "1-questions.html",
+   "formField": "formField-b2e1d3c4f5a6b7988776655443322110",
+   "selector": "#primaryQuestionnaire--b2e1d3c4f5a6b7988776655443322110",
+   "label": "What percentage of the time are you willing to travel?",
+   "type": "dropdown",
+   "required": true,
+   "should": "ask",
+   "expected": "Up to 25%",
+   "match": "casefold"
+  },
+  {
+   "page": "1-questions.html",
+   "formField": "attachments-FileUpload",
+   "selector": "#resumeAttachments--attachments",
+   "label": "Resume/CV",
+   "type": "file",
+   "required": true,
+   "should": "ask",
+   "expected": null
+  }
+ ],
+ "actions": [
+  {
+   "kind": "sign_in",
+   "page": "0-sign-in.html",
+   "should": "ask"
+  },
+  {
+   "kind": "submit",
+   "page": "6-review.html",
+   "should": "ask"
+  }
+ ]
+}

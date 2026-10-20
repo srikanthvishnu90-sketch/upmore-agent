@@ -271,3 +271,133 @@ only. Round 3: (1) a field inside a repeating section never takes a person-level
 as the person (answers what Trainee asks, clears a page-set value, uploads the resume, waits out sign-in) and maps the
 section ids above; (3) a new sealed set (sealed-wd3) from a third writer, scored once. Real Workday stays NOT_RUN until a
 person is signed in to a real tenant.
+
+## Round 3 (builder, 2026-10-20, branch `wo/048d-workday-r3`)
+Evidence: **VERIFIED-S on TEST Workday-shaped pages**; real Workday **NOT_RUN**. No sealed tenant was opened (sealed-wd2's
+pages are not in the repo and were not looked for): its failures were reproduced from the review's description above, on
+the builder's own TEST pages (`tests/fixtures/workday/sections`, `tests/fixtures/workday/person-r3`, written on dev-a's
+page shell). Whether these fixes are what sealed-wd2 needed is unmeasured until a new sealed set (sealed-wd3) is scored.
+
+### What changed
+- **Product, zero wrong (`dom.ts`, `career_apply.ts`)**: a repeating section is known by any of its marks: a row is any
+  element labelled by a `<Section>-<n>-panel` id (among other ids, with or without `role="group"`); its box is the nearest
+  group, region, fieldset, section or Workday `...Section` box; the kind comes from the box's title, else the panel name,
+  else Workday's ids (`workExperience-31--location`, `education-7--x`, `educationSection`), else a box above whose own
+  title or legend names a section ("Previous Work Experience"). A field in a section but in no row is read as row 0, part
+  unknown. The planner (shared): a row-0 field, or any field whose name is Workday's `<section>-<n>--<part>` id with no
+  section from the reader, is answered only from the person's own list by its row; with no row it is left (asked when
+  required); never the person's city, location, phone, email, name, address, current employer or title, never an answer
+  saved under its wording; a row 0 takes none of the person's entries from the real rows. Rows and Add buttons use the
+  same detection, so a row without `role="group"` is counted (no duplicate added).
+- **Product, a page-set value stays the page's (`content.js`)**: on Workday a press outside an open list no longer counts
+  as the person picking the list that still has focus (Workday focuses a list after any pick, the page's own too). Before,
+  the person's first click anywhere silently turned a value the page set into "typed by you"; found while building the
+  person's page-set step below.
+- **Harness (`evals/apply/workday-fill.cjs`)**: schema-2 section ids without "Section" (`workExperience`, `education`,
+  `languages`, `websites`) are mapped. The never-add-row limit is (lowest never nth - 1) when no nth says fill (round 2
+  said "at most 0" where one Websites row was allowed); with a fill nth it is unchanged. The test person, after the step
+  is graded (the order is unchanged), answers from the key where it has the answer (`personAnswerFor`: the expected
+  value, a clear where the right state is empty, the TEST resume for a file; otherwise a generic answer as before), with
+  real input: a list option by its text, a search prompt by typing the leaf and picking the one result, radios, boxes,
+  dates. A field is the person's to answer when its required mark is a "*" in an abbr, Workday's `abbr[title=required]`
+  with the star drawn by CSS, an aria-required control, or the key's `required`. While the card still blocks, the person
+  answers what it names: a required question still open (by label), a value the page set (changed to the key's answer,
+  cleared, or kept as theirs when the key has none). A file goes by a trusted drop, else by "Select files" and the
+  browser's chooser. A save Workday refuses gets one retry (the person answers, presses Fill, approves the new card).
+  Sign-in: a password with a number and a symbol (`TEST-password-typed-by-the-person-2026!`), custom "I agree" boxes,
+  never typing into the application once the click signed them in (a race that typed the email into spent-s1's first
+  step during development), and a wait of up to 45 s for a new page or the application shown in place; a sign-in that
+  does not let them in is reported with the page's own message. The report lists, per step, how each answer was given
+  (`person_gave`: key, generic, TEST resume, cleared, kept).
+
+### Numbers (`node evals/apply/workday-fill.cjs --tenant tests/fixtures/workday/<t>`; VERIFIED-S on TEST pages; real Workday NOT_RUN)
+Before = this branch's base (bab13b46), after = this branch; both run here on the same machine.
+
+| Tenant | Coverage before -> after | Strict | Precision | Wrong | Never-violations | Reached | Graded rows identical before/after |
+|---|---|---|---|---|---|---|---|
+| dev-a | 95.7% (44/46) -> 95.7% (44/46) | 95.2% | 100% (41/41) | 0 | 0 | review | yes (64/64) |
+| dev-b | 100% (44/44) -> 100% (44/44) | 100% | 100% (42/42) | 0 | 0 | review | yes (63/63) |
+| spent-s1 (not blind) | 94.6% (35/37) -> 94.6% | 94.1% | 100% (33/33) | 0 | 0 | review | yes (68/68) |
+| spent-s2 (not blind) | 72.7% (32/44) -> 72.7% | 70.0% | 100% (29/29) | 0 | 0 | review | yes (65/65) |
+| spent-s3 (not blind) | 95.1% (39/41) -> 95.1% | 94.6% | 100% (36/36) | 0 | 0 | review | yes (61/61) |
+| spent-s4 (not blind) | 100% (44/44) -> 100% | 100% | 100% (41/41) | 0 | 0 | review | yes (72/72) |
+| person-r3 (builder's) | stopped at sign-in (timeout) -> 100% (1/1) | 100% | 100% (1/1) | 0 | 0 | review | n/a |
+
+No dev or spent number moved (the spent tenants never had a section shape or a stop of the kinds above). person-r3 is the
+harness's own test: before, the run timed out after sign-in (sealed-wd2 t1's error, word for word); after, the person
+signs in, picks "Career Fair" on the how-heard prompt Trainee asks, changes the page's "Up to 75%" travel answer to the
+key's "Up to 25%", drops the TEST resume the page requires, and the run reaches the review with every row graded before
+any of that. On `tests/fixtures/workday/sections` (browser test) the t4 shape is reproduced first (before: a past job's
+"Location" took "Chicago, IL", its "Job Title" took the current "Data Analyst", an education "City" took "Chicago", an
+"Employer Phone Number" in a "Previous Work Experience" fieldset took the person's phone); after: each row takes its own
+job or school from the person's list, every person-level value is gone from the rows, the past job's required location
+is asked. `docs/apply/fill-coverage.md` regenerated: unchanged (no field on samples A or B carries Workday's row ids).
+
+Gates: architect 534/534 (`deno test -A --no-check --ignore=tests/architect/pending tests/architect/`); browser
+`tests/career-extension-browser.test.cjs` + `tests/workday-key-schema.test.cjs` 62/62, `tests/career-extension-workday.test.cjs`
+17/17; `deno run -A extension/build.ts --check` fresh; `python3 scripts/build-router-core.py --career-only --check` verified.
+Added (no existing test edited): architect WO-048/15; browser: "a field inside a repeating section never takes a
+person-level fact, whatever shape the section has", "the harness's test person completes a tenant ..."; key schema: the
+suffix-less section ids and the never limit, `personAnswerFor`.
+
+### Planted defects (one at a time, reverted)
+| # | Defect (one line) | Caught by |
+|---|---|---|
+| R1 | `career_apply.ts`: the row-part name guard removed (`if (f.section)` only) | architect WO-048/15 |
+| R2 | `dom.ts`: a row is again only `[role=group][aria-labelledby$="-panel"]` | browser "a field inside a repeating section ..." |
+| R3 | `dom.ts`: a field in a section but in no row is no longer marked (the reader-side guard removed) | browser "a field inside a repeating section ..." (Employer Phone Number took the phone) |
+| R4 | `career_apply.ts`: a row 0 takes one of the person's entries | architect WO-048/15 |
+| R5 | harness: never limit back to rows needed (0 with no fill nth) | key schema "section ids without the Section suffix" |
+| R6 | harness: suffix-less section ids unmapped | key schema "section ids without the Section suffix" |
+| R7 | harness: the card's page-set values not given to the person | browser "the harness's test person completes a tenant" (card never ready) |
+| R8 | harness: the old password without a number | browser "... completes a tenant" (the sign-in's "must contain at least one number", reported) |
+| R9 | `content.js`: any press counts as picking the focused list | browser "... completes a tenant" (the page's travel value silently became the person's) |
+| R10 | harness: the key's `required` ignored (resume star only on the heading) | browser "... completes a tenant" (Save and Continue refused, also after the retry) |
+| R11 | harness: the person ignores the key's answers | key schema `personAnswerFor`; browser "... completes a tenant" |
+
+R1 alone is not caught in the browser: the reader marks the same fields (two layers, each tested on its own).
+
+### Still not handled (blunt)
+- Real Workday NOT_RUN; sealed-wd2's own pages were not seen, so the causes fixed are the review's description, rebuilt on
+  the builder's pages. t4's unresolved how-heard row (expected "Lucerne Careers Website", found empty, source Trainee) is
+  not investigated: nothing here could reproduce it without the sealed page.
+- The extension does not read a required mark that is only on a section's heading ("Resume/CV *"): the card is ready
+  without the resume and Workday refuses the save (the card says so). The harness's person uploads by the key.
+- The in-place sign-in path (the application shown at the same URL) and the one retry after a refused save are coded but
+  no green fixture exercises them (R10 exercised the retry, failing).
+- Where the key has no answer the person still answers generically (the first option, a TEST text), as in round 2.
+- A field that only an ancestor names as a section (a "Previous Work Experience" fieldset) is left even when it is not a
+  row part; more asks, no guesses.
+
+## Architect review: round 3 on 4 new sealed tenants, scored once (2026-10-20)
+A third writer, told not to read the extension, the planner, the workers or the harness, wrote 4 more Workday-shaped TEST
+tenants (sealed-wd3: an email-first sign-in, a tenant with no sign-in, varied section ids and question wording). sha256 of
+`tar --sort=name --mtime=@0 --owner=0 --group=0 -cf - t1 t2 t3 t4` = `8d61702b35506a71...`, checked before the run.
+Round 3's head (9e168aa6) was run once on each with `evals/apply/workday-fill.cjs`; nothing was changed between seeing
+the result and recording it. The tenants are now spent.
+
+| Tenant | Pages reached | Coverage | Strict | Trainee's precision | Wrong | Never-violations |
+|---|---|---|---|---|---|---|
+| t1 (email-first sign-in, 7 steps) | all, to review | 92.7% (38/41) | 92.1% (35/38) | 36/36 | 0 | 0 |
+| t2 | all, to review | 91.9% (34/37) | 91.2% (31/34) | 32/32 | 0 | 0 |
+| t3 | all, to review | 92.3% (36/39) | 91.7% (33/36) | 34/34 | 0 | 0 |
+| t4 | all, to review | 92.1% (35/38) | 91.4% (32/35) | 33/33 | 0 | 0 |
+
+Coverage counts the country and phone-code values Workday set itself as filled where the key wants them (2 per tenant,
+"page-set"); strict leaves them out. Nothing was submitted; the review step asks, as it must.
+
+What Trainee left empty that the key says the persona settles (5 of 155):
+- t1 "What is your notice period with your current employer?" (a list; the persona's "2 weeks" did not match an option).
+- t2 education "Field of Study" (a prompt list; "Statistics" was not chosen).
+- t3 "How Did You Hear About Us?" expected "Corporate Website" (the persona's "Company website" did not match it).
+- t4 "In which U.S. state do you currently reside?" (Illinois) and "Are you currently employed?" (Yes, from a current job).
+Each is a miss, not a wrong answer: the person is asked.
+
+**Verdict: the 70% Workday target is now shown on independent tenants: 91.9-92.7% filled, 0 wrong, 0 never-violations,
+every tenant completed to review.** Label: VERIFIED-S (TEST Workday-shaped pages written blind to the product). Real
+Workday remains NOT_RUN until a person signs in to a real tenant and runs it; that is the only number that settles the
+target for the owner.
+
+One interaction to watch: WO-053 (the posting's location) asks "authorized to work in the country for which you are
+applying" when the posting's country is not shown. On t1 that question was answered "Yes" here; under WO-053 a Workday
+page whose location is in neither its job header nor its URL asks it instead.

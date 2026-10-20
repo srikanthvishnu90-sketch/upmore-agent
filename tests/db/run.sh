@@ -204,6 +204,9 @@ echo "== career_voice_mock.test.sql (one start per link in 10 minutes, one debri
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021010000_career_outreach.sql"
 echo "== career_outreach.test.sql (approval is the exact message; 10 a day the first week, 20 by default, 30 at most; 90 seconds apart; stop is forever)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Re-applied after the earlier migrations' re-runs above: each one redefines the outbox lists, and production ends on the
+# latest file's (outbox kinds only grow, tests/outbox-kinds.test.cjs), so the last re-run here must be the latest too.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
 echo "== career_brief_digest.test.sql (interviews and the weekly digest: own reads, stated starts only, once per key, wiped by an erase)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_brief_digest.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

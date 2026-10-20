@@ -237,3 +237,17 @@ Deno.test("an agent failure is spoken in product voice, once", async () => {
   assertEq(errSends.length, 1, "the user hears one plain error with a next step");
   assert(String(errSends[0].text).includes("nothing was changed"), "the error names the state honestly");
 });
+
+// Codex's live /start, 2026-10-20 4:59 PM: agent-chat answered 429 (the person's hourly turn limit) and the bridge
+// threw "agent-chat HTTP 429", so the person heard "Something went wrong on my side" and Telegram was told 500.
+// A limit is not a failure: the person hears that the message was not read and when to send it again.
+Deno.test("an hourly-limit 429 is spoken as the limit, not as a failure", async () => {
+  const { d, calls } = deps(() => ({ __status: 429, body: { error: "rate_limited", message: "Slow down a little — try again in a bit." } }), { seedRun: false });
+  const res = await handleTelegramWebhook(tgReq(textUpdate("/start")), d);
+  assertEq(res.status, 200, "a limit is handled; Telegram must not retry it as a failure");
+  const texts = sendBodies(calls).map((b) => String(b.text));
+  assertEq(texts.filter((t) => t.includes("Something went wrong")).length, 0, "no false 'went wrong'");
+  const limit = texts.filter((t) => t.includes("didn't read that message"));
+  assertEq(limit.length, 1, "one limit message");
+  assert(limit[0].includes("60 messages an hour") && limit[0].includes("send it again"), "names the limit and the next step");
+});

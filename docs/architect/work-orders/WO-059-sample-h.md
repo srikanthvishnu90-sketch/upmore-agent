@@ -102,8 +102,11 @@ The exact-name employer match changes no fill on A–H.
 ## Gates
 - **Architect tests:** 585 passed, 0 failed.
 - **Browser, Workday, schema, location and picker suites:** 86 passed, 0 failed.
-  - One earlier combined run failed the queue-timing test ("card to confirmed is measured"), as in WO-057.
-  - It passed alone, and in the next combined run.
+  - The queue-timing test ("card to confirmed is measured") failed once locally, once in WO-057 and once in this PR's CI.
+  - Root cause: the test read the queue right after clicking "Add links". A click resolves when it is dispatched, before
+    the panel's handler has the background store the queue, so a slow runner read nothing.
+  - Fixed in the test: it now waits for the panel's own "N postings added." first. That ran 3 times alone and once with
+    the whole file (53/53). The product was never wrong here.
 - **Bundle `--check`:** fresh.
 - **`deno check`:** clean on `scripts/apply.ts` and `evals/career/run.ts`.
 

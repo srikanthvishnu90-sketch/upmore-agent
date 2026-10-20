@@ -167,42 +167,73 @@ async function main() {
       // A react-select menu, opened the ways a page script can (untrusted events, as the extension's own): which way
       // opens it, and the employer's own option texts. Read only; Escape closes it again.
       if (f.family === "greenhouse" && r.fields) {
-        const targets = r.fields.filter((x) => x.widget).slice(0, 4).map((x) => x.name);
+        const targets = r.fields.filter((x) => x.widget).slice(0, 3).map((x) => x.name);
+        // Untrusted ways first (what an extension's own events can do), then React's own props read from the page (what
+        // a script in the page's main world could call), then one trusted click as the control experiment. Read only:
+        // nothing is chosen, Escape closes every menu.
         r.widget_probe = await page.evaluate(async (names) => {
           const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
           const vis = (el) => !!el && el.getClientRects().length > 0;
-          const options = () => Array.from(document.querySelectorAll("[class*='select__option'], [role='option']")).filter(vis).map((o) => o.textContent.replace(/\s+/g, " ").trim());
+          const menuNow = () => {
+            const o = Array.from(document.querySelectorAll("[class*='select__option'], [class*='-option'], [role='option']")).filter(vis).map((x) => x.textContent.replace(/\s+/g, " ").trim());
+            return { options: o.length, first: o.slice(0, 6), menu: !!document.querySelector("[class*='select__menu'], [class*='-menu']") };
+          };
           const close = async (inp) => {
-            inp?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+            inp?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
             inp?.blur?.();
-            await sleep(150);
+            await sleep(200);
           };
           const setNative = (el, v) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, v);
-          const out = [];
+          const reactKey = (el, pre) => el && Object.keys(el).find((k) => k.startsWith(pre));
+          const out = { has_focus: document.hasFocus(), visibility: document.visibilityState, fields: [] };
           for (const name of names) {
             const inp = document.getElementById(name) || document.querySelector(`[name="${CSS.escape(name)}"]`);
-            if (!inp) { out.push({ name, found: false }); continue; }
+            if (!inp) { out.fields.push({ name, found: false }); continue; }
             const control = inp.closest("[class*='select__control']") || inp.closest("[class*='-control']");
-            const shown = (inp.closest("[class*='select__container'], [class*='select-shell']") || control)?.querySelector("[class*='single-value'], [class*='singleValue']")?.textContent?.trim() || null;
-            const res = { name, found: true, has_control: !!control, shown_before: shown, ways: {} };
+            const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i], button");
+            const res = { name, hydrated: !!reactKey(inp, "__reactFiber$") || !!reactKey(inp, "__reactProps$"), toggle_found: !!toggle, ways: {} };
+            // React-select's own props, by walking up the fiber from the input: options and whether onChange exists.
+            try {
+              let fib = inp[reactKey(inp, "__reactFiber$")], hops = 0, found = null;
+              while (fib && hops < 40 && !found) {
+                const pr = fib.memoizedProps;
+                if (pr && Array.isArray(pr.options) && typeof pr.onChange === "function") found = pr;
+                fib = fib.return; hops++;
+              }
+              res.props = found ? { options: found.options.length, first: found.options.slice(0, 6).map((o) => o && (o.label ?? o.value ?? JSON.stringify(o).slice(0, 60))), isMulti: !!found.isMulti, hops } : null;
+            } catch (e) { res.props = { error: String(e.message || e).slice(0, 120) }; }
             const ways = {
-              type_value: async () => { inp.focus(); setNative(inp, "a"); inp.dispatchEvent(new Event("input", { bubbles: true })); },
-              mousedown_control: async () => { control?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); },
-              focus_arrowdown: async () => { inp.focus(); inp.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", keyCode: 40, bubbles: true, cancelable: true })); },
-              toggle_button: async () => { const b = control?.querySelector("button, [class*='indicator']"); b?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); b?.click?.(); },
+              focus_then_type: async () => { inp.focus(); res.active_after_focus = document.activeElement === inp; setNative(inp, "a"); inp.dispatchEvent(new Event("input", { bubbles: true })); },
+              mousedown_control: async () => { control?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, view: window })); },
+              mousedown_toggle: async () => { toggle?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, view: window })); toggle?.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, button: 0, view: window })); toggle?.click(); },
+              arrowdown_on_input: async () => { inp.focus(); inp.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", keyCode: 40, which: 40, bubbles: true, cancelable: true })); },
             };
             for (const [k, fn] of Object.entries(ways)) {
               await fn();
-              await sleep(400);
-              const o = options();
-              res.ways[k] = { options: o.length, first: o.slice(0, 6), menu: !!document.querySelector("[class*='select__menu']") };
-              if (k === "type_value") { setNative(inp, ""); inp.dispatchEvent(new Event("input", { bubbles: true })); }
+              await sleep(1200);
+              res.ways[k] = menuNow();
+              if (k === "focus_then_type") { setNative(inp, ""); inp.dispatchEvent(new Event("input", { bubbles: true })); }
               await close(inp);
             }
-            out.push(res);
+            out.fields.push(res);
           }
           return out;
         }, targets).catch((e) => ({ error: String(e.message || e).slice(0, 200) }));
+        // The control experiment: one trusted click (Playwright's input, as a person's), menu read, then Escape.
+        if (targets[0]) {
+          try {
+            const ctl = page.locator(`#${targets[0].replace(/([^a-zA-Z0-9_-])/g, "\\$1")}`).locator("xpath=ancestor::*[contains(@class,'select__control')][1]");
+            await ctl.click({ timeout: 5000 });
+            await page.waitForTimeout(1200);
+            r.widget_probe_trusted = await page.evaluate(() => {
+              const o = Array.from(document.querySelectorAll("[class*='select__option'], [class*='-option'], [role='option']")).filter((el) => el.getClientRects().length).map((x) => x.textContent.replace(/\s+/g, " ").trim());
+              return { options: o.length, first: o.slice(0, 6) };
+            });
+            await page.keyboard.press("Escape");
+          } catch (e) {
+            r.widget_probe_trusted = { error: String(e.message || e).slice(0, 200) };
+          }
+        }
       }
       await panel.close();
     } catch (e) {

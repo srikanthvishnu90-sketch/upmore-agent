@@ -51,13 +51,15 @@ Deno.test("WO-052/3 a consent is the person's only when a standing consent cover
 });
 
 Deno.test("WO-052/4 a form that names its office elsewhere: the person's yes to the office is not for that city", () => {
-  const plan = (fields: { name: string; label: string; options: string[] }[]) => planBatch({
+  // WO-053: with nothing on the form naming the office, the posting's own location settles it.
+  const plan = (fields: { name: string; label: string; options: string[] }[], location = "Chicago, IL") => planBatch({
     userId: "TEST", answers: PERSONA, saved: {}, log: [], now: Date.UTC(2026, 9, 19),
-    postings: [{ job_id: "TEST-1", company: "Anthropic", title: "", fields: fields.map((f) => ({ ...f, required: false, type: "multi_value_single_select", options: f.options.map((x) => ({ label: x, value: x })) })) }],
+    postings: [{ job_id: "TEST-1", company: "Anthropic", title: "", location, fields: fields.map((f) => ({ ...f, required: false, type: "multi_value_single_select", options: f.options.map((x) => ({ label: x, value: x })) })) }],
   }).ready[0].fields.map((x) => x.name);
   const office = { name: "office", label: "Our Account Executive team is in office 4 days/week. Are you open to working in our office 4 days/week?", options: ["Yes", "No"] };
   eq(plan([{ name: "where", label: "Are you currently located in SF/NYC or open to relocation, if not?", options: ["Yes", "No"] }, office]).includes("office"), false, "SF/NYC is not Chicago: asked");
-  eq(plan([office]), ["office"], "no office named anywhere: the person's own yes");
+  eq(plan([office]), ["office"], "no office named on the form, a posting in their city: the person's own yes");
+  eq(plan([office], "San Francisco, CA"), [], "no office named on the form, a posting elsewhere: asked (WO-053)");
   eq(plan([{ name: "where", label: "Are you currently located in Chicago, IL?", options: ["Yes", "No"] }, office]).includes("office"), true, "their own city");
 });
 
@@ -65,7 +67,7 @@ Deno.test("WO-052/5 a dropdown whose options load on open is answered on its own
   // Live run (CI, 2026-10-20): Greenhouse's react-select questions reach the planner with no options; the typed-box shape
   // rules left 13 of them empty ("U.S. WORK AUTHORIZATION*", "...certification up to date? *").
   const plan = (label: string) => planBatch({ userId: "TEST", answers: PERSONA, saved: {}, log: [], now: Date.UTC(2026, 9, 19),
-    postings: [{ job_id: "TEST-1", company: "Anduril", title: "", fields: [{ name: "q", label, required: true, type: "text", options: [], widget: "react-select" }] }] }).ready[0]?.fields[0]?.value ?? "ASKED";
+    postings: [{ job_id: "TEST-1", company: "Anduril", title: "", location: "Costa Mesa, California, United States; Fort Collins, Colorado, United States", fields: [{ name: "q", label, required: true, type: "text", options: [], widget: "react-select" }] }] }).ready[0]?.fields[0]?.value ?? "ASKED";
   eq(plan("U.S. WORK AUTHORIZATION*"), "Yes");
   eq(plan("Are you lawfully authorized to work in the country where this job is located?*"), "Yes");
   eq(plan("If hired, can you show proof you are at least 18 years old? *"), "Yes");

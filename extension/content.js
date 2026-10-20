@@ -14,7 +14,7 @@
   const HANDOFF = "A verification check is showing on the page. Finish it yourself there, then press Approve again. Trainee never answers one.";
   const NO_UNCHECKED = "No (left unchecked)";
 
-  let form = null, ctx = null, plan = null, jobId = null, company = "", expiresAt = null, shownAt = 0;
+  let form = null, ctx = null, plan = null, jobId = null, company = "", where = "", expiresAt = null, shownAt = 0;
   let reviewed = null, busy = false, submitting = false, sent = false, personAbort = false, refreshTimer = null;
   // WO-042: when each step of this application happened (epoch ms), for the 60-in-30 benchmark and the panel's own
   // "where the time went". Never part of the payload or its hash.
@@ -228,8 +228,9 @@
       }
       jobId = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
       company = C.tenantOf(jobId) || location.hostname;
+      where = D.fnPostingLocation(); // WO-053: where the job is, as its page shows it
       expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
-      plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now() });
+      plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where });
       timing.plan = Date.now();
       timing.fields = form.schema.length;
       timing.widgets = Object.values(form.bindings).filter((b) => b.widget).length;
@@ -244,7 +245,7 @@
         // them, with the whole form beside it (an education end date is one only beside its school).
         const s = form.schema.find((x) => x.name === p.name);
         const listed = b.widget || D.isPlaceSearch(D.element(b.selector));
-        const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now() }) : undefined;
+        const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }) : undefined;
         const t0 = Date.now();
         const ok = await D.fill(b, p.value, resume, choose);
         await sleep(20);
@@ -312,6 +313,7 @@
     wd = { step, conflicts: [], personal: false };
     jobId = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     company = C.workdayEmployer(location.href);
+    where = D.fnPostingLocation();
     expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
     if (D.fnDetectChallenge()) {
       await send({ type: "card", card: { status: "stopped", message: HANDOFF, lines: [] } });
@@ -342,7 +344,7 @@
       form = D.readForm();
       await D.loadWorkdayOptions(form);
       form = D.readForm();
-      plan = C.planForm({ userId: ctx.userId, jobId, company, family: "workday", workdayFlow: true, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now() });
+      plan = C.planForm({ userId: ctx.userId, jobId, company, family: "workday", workdayFlow: true, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where });
       let did = 0;
       for (const p of plan.fill) {
         if (filled.has(p.name) || edited.has(p.name) || pageSet.has(p.name) || tried.has(p.name)) continue;

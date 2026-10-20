@@ -77,6 +77,9 @@ questions), never read while building. Scored once on the WO-052 head (63f5c270)
   sample D.
 - Still open, honestly: the posting's location (to settle in-office and "location you are applying for" questions),
   and the currency of a non-US employer's salary box.
+- **Corrected by WO-053 (posting locations fetched after scoring):** the reviewers were not told where each job was.
+  With it, C has **9 wrong of 607 (1.5%)**, not 4, and A and B had 26 wrong fills judged right (13 work-rights answers
+  for jobs abroad, 13 office yeses in other cities). All are asked since WO-053.
 
 ## What is next
 - A sealed sample C (100 new postings, no employer from A or B, captured by CI), scored once: coverage and an

@@ -20,6 +20,11 @@
       "by": "the architect, WO-052, 2026-10-20, from an independent review of every fill on samples A and B (the reviewer read only the persona and the fills)",
       "fields": ["ashby-openai I acknowledge that I have opened, read, and understood the Arbitration Agreement... (checkbox): privacy_ack -> null", "lever-tsmg cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0] (Privacy Policy, Terms & Conditions and Whistleblowers Policy, select): privacy_ack -> null", "lever-cgsfederal cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3] (Ideal Annual Compensation In $00.00 Formatting, text): salary_expectation -> null"],
       "why": "A standing consent covers what it names: a privacy notice, a certification that the answers are true, the employer's AI-use policy. An agreement to arbitrate gives up the right to sue, and terms and conditions and a whistleblower policy are more than a privacy notice: each is the person's own to accept, asked once. A box that sets its own format ($00.00) is not the stated amount typed as is. lever-tsmg is a held-out form: the change comes from the review of samples A and B, not from tuning on it."
+    },
+    {
+      "by": "the architect, WO-053, 2026-10-20, once each page's own location was read (tests/career-posting-location.test.cjs)",
+      "fields": ["greenhouse-wppmedia question_18820178008 (Are you lawfully authorized to work in the country where this job is located?, select): work_authorization -> null", "greenhouse-wppmedia question_18820179008 (Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located?, select): sponsorship -> null", "ashby-snowflake a3cc08ef-4552-444a-b493-c608c65670df (... could you confirm you are currently authorized to work in the country to which you are applying?, radio): work_authorization -> null", "ashby-openai d33e2a8f-3742-4e5e-b91c-b7607d3cdf63 (Are you able to work from our US office three days per week?, radio): onsite_ok -> null"],
+      "why": "The persona is authorized to work in the US and lives in Chicago, IL, and will not relocate. WPP Media's posting is in London, United Kingdom, and Snowflake's in GB-London: the person's work rights there are not stated, and their US answers are wrong there. OpenAI's posting is in San Francisco: three office days a week there is not a Chicago person's yes to working on site where they live. The key had read each question without the posting's location, which every page shows beside the job title. None of the three is a held-out form."
     }
   ],
   "split": {
@@ -168,8 +173,8 @@
       "question_18820175008": { "fact": "former_employers", "expect": "No" },
       "question_18820176008": null,
       "question_18820177008": { "fact": "former_employers", "expect": "No" },
-      "question_18820178008": "work_authorization",
-      "question_18820179008": "sponsorship",
+      "question_18820178008": null,
+      "question_18820179008": null,
       "question_18820180008": "salary_expectation",
       "question_18820181008": "notice_period",
       "4017729008": null,
@@ -337,7 +342,7 @@
       "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4": "start_date",
       "bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d": "work_authorization",
       "bda78810-f000-4f1c-99c5-f783e161f2f7": "sponsorship",
-      "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63": "onsite_ok",
+      "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63": null,
       "f189fed2-624b-41a1-a76f-0c67a2611d1a": null,
       "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.": null,
       "I confirm I have read the above.": null,
@@ -387,7 +392,7 @@
       "b1890667-a914-4163-b3c1-c5b694fd412c": null,
       "c779ac6e-f4fe-4dfe-9dfa-acd7e2823ba7": "current_employer",
       "962f2552-c3ca-4d6c-a7d8-b7b1340558ae": { "fact": "former_employers", "expect": "No" },
-      "a3cc08ef-4552-444a-b493-c608c65670df": "work_authorization",
+      "a3cc08ef-4552-444a-b493-c608c65670df": null,
       "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a": { "fact": "us_person", "expect": "I am a U.S. person" },
       "192bb6de-7d9a-4817-a202-8c321cc1e63a_5c859149-0940-42e7-8962-ec82679d8074": { "fact": "former_employers", "expect": "No - I have never been employed by PwC" },
       "a7d1a4bb-e59b-4149-a733-f46f352b0cb5": "government_employment",

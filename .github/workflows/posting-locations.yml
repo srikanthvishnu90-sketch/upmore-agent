@@ -1,0 +1,30 @@
+# WO-053 (architect): each captured posting's own location text (samples A, B and C), from its ATS's public API, where the
+# internet is. On a push to ci/posting-locations: one GET per Greenhouse and Lever posting and one per Ashby board, 2 s
+# apart, read-only. Commits evals/apply/posting-locations.json to ci/posting-locations only. A posting the API no longer
+# lists keeps no location (the planner then asks what depends on it).
+name: posting-locations
+on:
+  push:
+    branches: [ci/posting-locations]
+    paths:
+      - .github/workflows/posting-locations.yml
+      - scripts/career/posting-location.cjs
+permissions:
+  contents: write
+jobs:
+  locations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - name: Each posting's location (public APIs, GETs only)
+        run: node scripts/career/posting-location.cjs evals/apply/questions-ci.json evals/apply/questions-ci-b.json evals/apply/questions-ci-c.json evals/apply/posting-locations.json
+      - name: Commit to ci/posting-locations
+        run: |
+          git config user.name "posting-locations[ci]"
+          git config user.email "posting-locations@users.noreply.github.com"
+          git add evals/apply/posting-locations.json
+          git commit -m "WO-053 data: each captured posting's own location (samples A, B, C)" || exit 0
+          git push origin HEAD:ci/posting-locations

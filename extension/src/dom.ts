@@ -7,8 +7,8 @@ import pageFunctions from "../../scripts/career/page-functions.cjs";
 import { bindFields } from "../../scripts/career/form-bind.ts";
 import { placeQuery } from "../../supabase/functions/_shared/answer_options.ts";
 
-const { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech } = pageFunctions as any;
-export { fnCaptchaTech, fnDetectChallenge };
+const { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech, fnPostingLocation } = pageFunctions as any;
+export { fnCaptchaTech, fnDetectChallenge, fnPostingLocation };
 
 const W = globalThis as any; // the page's window: DOM types are not in the Deno lib this file is checked with
 const doc = () => W.document;

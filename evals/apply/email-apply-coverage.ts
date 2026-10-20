@@ -11,7 +11,7 @@
 //   deno run --allow-read evals/apply/email-apply-coverage.ts
 import { fileAlternative, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { applyEmailOf } from "../../supabase/functions/_shared/apply_email.ts";
-import { PERSONA } from "./fill-coverage.ts";
+import { PERSONA, postingLocation } from "./fill-coverage.ts";
 
 const root = new URL("../../", import.meta.url);
 const readJson = async (p: string) => JSON.parse(await Deno.readTextFile(new URL(p, root)));
@@ -27,7 +27,7 @@ const strings = (v: unknown, out: string[] = []): string[] => {
 function readyByForm(p: any): boolean {
   const fields = p.fields.map((f: any) => ({ name: f.name, label: f.label, required: !!f.required, type: f.type,
     options: (f.options || []).map((o: any) => ({ label: String(o.label), value: String(o.value ?? o.label) })) }));
-  const plan = planBatch({ userId: "TEST", postings: [{ job_id: p.id, company: p.company, title: "", fields }], answers: PERSONA, saved: {}, log: [], now: Date.UTC(2026, 9, 19) });
+  const plan = planBatch({ userId: "TEST", postings: [{ job_id: p.id, company: p.company, title: "", fields, location: postingLocation(p) }], answers: PERSONA, saved: {}, log: [], now: Date.UTC(2026, 9, 19) });
   const asked = new Set(plan.needs.map((n: any) => n.label));
   return !fields.some((f: any) => f.required && !fileAlternative(f, fields) && asked.has(f.label));
 }

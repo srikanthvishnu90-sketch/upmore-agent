@@ -63,7 +63,16 @@ export function admitApplication(log: LogRow[], a: { user_id: string; job_id: st
 }
 
 // ------------------------------------------------------------------------------------------------ preparing
-export interface FormField { name: string; label: string; required: boolean; type: string; options: { label: string; value: string }[] }
+// WO-048: three optional facts a form reader may add about a field; none changes a field that does not carry it.
+//   section   the field is one part of a repeating section's row (Workday's work experience, education, languages): the
+//             reader names the part; the answer comes only from the person's own list (sectionAnswer below)
+//   dial      the form has its own country phone code field, showing this code ("" when none is chosen yet)
+//   personal  a form only the person fills (the disability self-identification, CC-305): never planned, never asked by text
+export interface FormSection { kind: string; row: number; part: string; anchor?: string; format?: string }
+export interface FormField {
+  name: string; label: string; required: boolean; type: string; options: { label: string; value: string }[];
+  section?: FormSection; dial?: string; personal?: boolean;
+}
 export function greenhouseQuestions(job: any): FormField[] {
   const out: FormField[] = [];
   for (const q of (job && Array.isArray(job.questions) ? job.questions : [])) {
@@ -88,6 +97,8 @@ const KEYS: [RegExp, string][] = [
   [/linkedin/i, "linkedin"],
   [/github/i, "github"],
   [/(personal\s*)?(website|portfolio)/i, "website"],
+  // "City" alone asks for the city, not "City, ST" (WO-048, Workday's address block).
+  [/^city\s*[*:]?\s*$/i, "city"],
   [/(require|need).*(sponsor)|sponsorship|visa\s*status/i, "sponsorship"],
   [/(legally\s*)?authori[sz]ed\s*to\s*work|work\s*authori[sz]ation|eligible\s*to\s*work/i, "work_authorization"],
   [/^(current\s*)?(location|city)|where are you (located|based)/i, "location"],
@@ -99,7 +110,7 @@ const KEYS: [RegExp, string][] = [
 // box (never a checkbox, radio or select, where "Do you own a smartphone?" or "Email me about other openings" would take
 // the person's number or address), and never into a question about someone else (a reference, a manager, an emergency
 // contact). tests/architect/wo-009-classify-precision.test.ts holds the real labels that were mapped wrongly before.
-const CONTACT = new Set(["first_name", "last_name", "full_name", "email", "phone", "linkedin", "github", "website", "location", "start_date", "salary_expectation"]);
+const CONTACT = new Set(["first_name", "last_name", "full_name", "email", "phone", "linkedin", "github", "website", "location", "city", "start_date", "salary_expectation"]);
 const FREE_TEXT = /^(input_text|text|email|tel|url|textarea|input|search|number|date)$/;
 const SOMEONE_ELSE = /\breferr|\breferen|\bteam member|\breferee|\bemergency|\bmanager|\bsupervisor|\brecruiter|\bspouse|\bparent|\bguardian|\bemployee who/i;
 export function classifyField(label: string, type: string): string {
@@ -111,6 +122,8 @@ export function classifyField(label: string, type: string): string {
   for (const [re, key] of KEYS) {
     if (!re.test(l)) continue;
     if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
+    // A phone's extension is not the phone number (WO-048, Workday's "Phone Extension").
+    if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
     // The resume answer is the approved file itself: it goes into an upload, never typed into a box as text.
     if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
     // "a visa that does NOT require sponsorship" asks the opposite of the sponsorship fact: ask the person. Only the
@@ -240,6 +253,190 @@ function educationEnd(f: FormField, fields: FormField[], answers: Record<string,
 }
 
 const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
+
+// ------------------------------------------------------------------------------------------------ repeating sections
+// WO-048: a repeating section's rows (Workday's work experience, education, languages) are filled only from the person's
+// own list, as they stated it: each job (employer, title, the dates they gave) from the work_history fact, the education
+// they stated (school, degree, field, GPA, graduation date), each language with its level ("English (native)"). A part
+// they never stated (a job's location, a start year, a role description) is left and asked; a date is never completed
+// (a year never becomes a month). The reader names each field's row and part; nothing here reads a page.
+export interface WorkEntry { employer: string; title: string; start: string; end: string; location: string; description: string }
+const str = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "");
+export function workEntries(answers: Record<string, Answer>): WorkEntry[] {
+  const a = answers.work_history;
+  if (!a) return [];
+  let list: unknown;
+  try {
+    list = JSON.parse(String(a.value));
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(list)) return [];
+  return list.filter((x) => x && typeof x === "object").map((x: any) => ({
+    employer: str(x.employer ?? x.company), title: str(x.title), start: str(x.start), end: str(x.end), location: str(x.location), description: str(x.description),
+  })).filter((x) => x.employer);
+}
+const PRESENT = /^(present|current|now|today|ongoing)$/i;
+export function educationEntries(answers: Record<string, Answer>) {
+  return answers.school ? [{ school: str(answers.school.value) }] : [];
+}
+export function languageEntries(answers: Record<string, Answer>): { language: string; level: string }[] {
+  const a = answers.languages;
+  if (!a) return [];
+  return String(a.value).split(/\s*[;,\n]\s*/).map((x) => {
+    const m = /^([^()]+?)\s*(?:\(([^)]*)\))?$/.exec(x.trim());
+    return m ? { language: m[1].trim(), level: (m[2] || "").trim().toLowerCase() } : null;
+  }).filter((x): x is { language: string; level: string } => !!x && !!x.language);
+}
+const anchorOf = (kind: string, answers: Record<string, Answer>): string[] =>
+  kind === "work" ? workEntries(answers).map((e) => e.employer) : kind === "education" ? educationEntries(answers).map((e) => e.school)
+    : kind === "language" ? languageEntries(answers).map((e) => e.language) : [];
+const sameAnchor = (a: string, b: string) => normCompany(a) !== "" && normCompany(a) === normCompany(b);
+// A row Workday filled with nearly an entry's name ("Example Analytic" for "Example Analytics", "Sample Retail Inc"): it
+// may be that entry, or not. Trainee neither fills it nor adds a second row for the entry (no duplicate job): the person
+// checks it.
+function nearAnchor(a: string, b: string): boolean {
+  const x = normCompany(a), y = normCompany(b);
+  if (!x || !y || x === y) return false;
+  if (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x))) return true;
+  if (Math.min(x.length, y.length) < 6 || Math.abs(x.length - y.length) > 2) return false;
+  const d: number[][] = Array.from({ length: x.length + 1 }, (_, i) => [i, ...Array(y.length).fill(0)]);
+  for (let j = 1; j <= y.length; j++) d[0][j] = j;
+  for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+  return d[x.length][y.length] <= 2;
+}
+// Which of the person's entries each row holds: a row whose anchor (its company, school or language, as the page shows
+// it) names an entry is that entry's; an empty row takes the next entry no row names or nearly names; a row naming
+// something else is nobody's (Trainee leaves it).
+function assignRows(kind: string, rows: { row: number; anchor: string }[], answers: Record<string, Answer>): Map<number, number> {
+  const entries = anchorOf(kind, answers), out = new Map<number, number>(), taken = new Set<number>();
+  for (const r of rows) {
+    const i = r.anchor ? entries.findIndex((e, j) => !taken.has(j) && sameAnchor(e, r.anchor)) : -1;
+    if (i >= 0) {
+      out.set(r.row, i);
+      taken.add(i);
+    }
+  }
+  for (const r of rows) {
+    const i = r.anchor && !out.has(r.row) ? entries.findIndex((e, j) => !taken.has(j) && nearAnchor(e, r.anchor)) : -1;
+    if (i >= 0) taken.add(i); // nearly this entry: nobody fills the row, and no other row takes the entry
+  }
+  for (const r of rows) {
+    if (r.anchor || out.has(r.row)) continue;
+    const i = entries.findIndex((_, j) => !taken.has(j));
+    if (i < 0) break;
+    out.set(r.row, i);
+    taken.add(i);
+  }
+  return out;
+}
+// How many rows a section needs added: one per stated entry no row holds yet, less the empty rows already there.
+export function rowsToAdd(kind: string, anchors: string[], answers: Record<string, Answer>): number {
+  const entries = anchorOf(kind, answers);
+  const held = new Set<number>();
+  for (const a of anchors) {
+    const i = a ? entries.findIndex((e, j) => !held.has(j) && sameAnchor(e, a)) : -1;
+    if (i >= 0) held.add(i);
+  }
+  for (const a of anchors) {
+    const i = a && !entries.some((e) => sameAnchor(e, a)) ? entries.findIndex((e, j) => !held.has(j) && nearAnchor(e, a)) : -1;
+    if (i >= 0) held.add(i);
+  }
+  return Math.max(0, entries.length - held.size - anchors.filter((a) => !a).length);
+}
+// A stated date in the field's own format, never completed: "06/2022" or "2022-06" or "June 2022" fills MM/YYYY and YYYY;
+// a bare year fills only YYYY; MM/DD/YYYY needs a stated day.
+function statedDate(value: string, format = "MM/YYYY"): string | null {
+  const v = value.trim();
+  let y: string | null = null, m: string | null = null, d: string | null = null;
+  let x: RegExpExecArray | null;
+  if ((x = /^(\d{1,2})[\/.-](\d{1,2})[\/.-]((?:19|20)\d{2})$/.exec(v))) [m, d, y] = [x[1], x[2], x[3]];
+  else if ((x = /^(\d{1,2})[\/.-]((?:19|20)\d{2})$/.exec(v))) [m, y] = [x[1], x[2]];
+  else if ((x = /^((?:19|20)\d{2})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(v))) [y, m, d] = [x[1], x[2], x[3] ?? null];
+  else if ((x = /^((?:19|20)\d{2})$/.exec(v))) y = x[1];
+  else {
+    const i = MONTHS.findIndex((n) => new RegExp(`^${n.slice(0, 3)}[a-z]*\\.?\\s+((?:19|20)\\d{2})$`, "i").test(v));
+    if (i >= 0) [m, y] = [String(i + 1), /\d{4}/.exec(v)![0]];
+  }
+  if (m !== null && (Number(m) < 1 || Number(m) > 12)) return null;
+  if (d !== null && (Number(d) < 1 || Number(d) > 31)) return null;
+  const mm = m && m.padStart(2, "0"), dd = d && d.padStart(2, "0");
+  const f = format.toUpperCase();
+  if (f === "YYYY") return y;
+  if (f === "MM/YYYY") return y && mm ? `${mm}/${y}` : null;
+  if (f === "MM/DD/YYYY") return y && mm && dd ? `${mm}/${dd}/${y}` : null;
+  if (f === "DD/MM/YYYY") return y && mm && dd ? `${dd}/${mm}/${y}` : null;
+  return null;
+}
+// A row field with options takes only the option that is the stated value itself (a field of study or a language is never
+// the nearest-sounding option).
+const pick = (_fact: string, value: string, f: FormField) =>
+  f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
+const FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
+function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<string, Answer>): Answer | null {
+  const s = f.section!;
+  if (entry === undefined) return null;
+  const out = (value: string | null, factId: string | undefined) => (value && factId ? { value, factId } : null);
+  if (s.kind === "work") {
+    const e = workEntries(answers)[entry], id = answers.work_history?.factId;
+    if (!e) return null;
+    const current = PRESENT.test(e.end);
+    switch (s.part) {
+      case "title": return out(e.title, id);
+      case "employer": return out(e.employer, id);
+      case "location": return out(e.location, id);
+      case "description": return out(e.description, id);
+      case "start": return out(e.start ? statedDate(e.start, s.format) : null, id);
+      case "end": return out(e.end && !current ? statedDate(e.end, s.format) : null, id);
+      case "current": return out(current ? "Yes" : e.end ? "No" : null, id);
+    }
+    return null;
+  }
+  if (s.kind === "education") {
+    if (entry !== 0) return null;
+    const a = (k: string) => answers[k];
+    switch (s.part) {
+      case "school": {
+        // A school list is answered only by the school exactly as stated (never "Example State University Online").
+        const s = str(a("school")?.value);
+        const v = f.options.length ? f.options.find((o) => o.label.trim().toLowerCase() === s.toLowerCase())?.value ?? null : s;
+        return a("school") ? out(v, a("school")!.factId) : null;
+      }
+      case "degree": return a("education_level") && f.options.length ? out(chooseOption("education_level", String(a("education_level")!.value), f.options), a("education_level")!.factId) : null;
+      case "major": return a("major") ? out(pick("major", str(a("major")!.value), f), a("major")!.factId) : null;
+      case "gpa": return a("gpa") && !f.options.length ? out(str(a("gpa")!.value), a("gpa")!.factId) : null;
+      case "end": return a("graduation_date") ? out(statedDate(String(a("graduation_date")!.value), s.format), a("graduation_date")!.factId) : null;
+    }
+    return null;
+  }
+  if (s.kind === "language") {
+    const e = languageEntries(answers)[entry], id = answers.languages?.factId;
+    if (!e) return null;
+    const fluent = FLUENT.test(e.level);
+    switch (s.part) {
+      case "language": return out(pick("languages", e.language, f), id);
+      case "fluent": return out(fluent ? "Yes" : null, id);
+      case "proficiency": {
+        if (!fluent) return null;
+        const hits = f.options.filter((o) => /\b(fluent|native|bilingual|mother tongue)\b/i.test(o.label));
+        return out(hits.length === 1 ? hits[0].value : null, id);
+      }
+    }
+  }
+  return null;
+}
+// WO-048: a phone number beside the form's own country code field is the national number. The code the form shows must
+// be the person's own ("+1" for "+1 555 010 0000"); another code, or none chosen yet, leaves the number to the person.
+function nationalNumber(value: string, dial: string): string | null {
+  const v = value.trim();
+  if (!v.startsWith("+")) return v;
+  const code = dial.replace(/[^\d]/g, "");
+  if (!code) return null;
+  const digits = v.slice(1).replace(/^[\s(]*/, "");
+  if (!digits.startsWith(code)) return null;
+  const rest = digits.slice(code.length).replace(/^[\s)\-.]+/, "").trim();
+  return /\d{4,}/.test(rest.replace(/[^\d]/g, "")) ? rest : null;
+}
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
   const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[] }>();
@@ -250,8 +447,27 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     if (!admit.ok) { skipped.push({ job_id: p.job_id, reason: admit.reason! }); continue; }
     const filled: PlannedField[] = [];
     let blocked = false;
+    // WO-048: each repeating section's rows, matched to the person's own entries (only when the reader named sections).
+    const rowsOf = new Map<string, Map<number, number>>();
+    for (const kind of new Set(p.fields.filter((f) => f.section).map((f) => f.section!.kind))) {
+      const rows = new Map<number, string>();
+      for (const f of p.fields) if (f.section?.kind === kind && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
+      rowsOf.set(kind, assignRows(kind, [...rows].map(([row, anchor]) => ({ row, anchor })), o.answers));
+    }
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
+      if (f.personal) continue; // the person's own form: never planned (WO-048)
+      if (f.section) {
+        const s = sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers);
+        if (s) { filled.push({ name: f.name, label: f.label, value: s.value, factId: s.factId }); continue; }
+        if (!f.required) continue;
+        blocked = true;
+        const k = normLabel(f.label);
+        const n = needs.get(k) ?? { label: f.label, key: "unknown", required: true, job_ids: [] };
+        if (!n.job_ids.includes(p.job_id)) n.job_ids.push(p.job_id);
+        needs.set(k, n);
+        continue;
+      }
       const key = classifyField(f.label, f.type);
       const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
@@ -271,6 +487,15 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
         const m = byMeaning(f, p.company, o.answers);
         if (m) { a = m; value = m.value; }
+      }
+      if (value !== null && f.dial !== undefined && a !== own && (key === "phone" || mapQuestion(f).fact === "phone")) value = nationalNumber(value, f.dial);
+      // WO-048: a phone's country code list ("United States of America (+1)") answered from the country is right only when
+      // the person's own phone carries that code.
+      if (value !== null && a !== own && f.options.length && /\b(phone|dial(l?ing)?) code\b|\bcountry (phone |calling )?code\b/i.test(f.label)) {
+        const shown = f.options.find((x) => x.value === value)?.label ?? value;
+        const code = /\(\s*\+\s*(\d{1,4})\s*\)/.exec(shown)?.[1];
+        const phone = String(o.answers.phone?.value ?? "").trim();
+        if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
       }
       if (value !== null && value !== "" && (a === own || fitsField(f, value))) { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed

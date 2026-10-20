@@ -69,6 +69,12 @@ export const FACT_SCHEMA = {
    "type": "text",
    "group": "contact"
   },
+  "phone_type": {
+   "kind": "fact",
+   "type": "enum",
+   "group": "contact",
+   "note": "the phone's device type as the person stated it (mobile, landline); WO-048"
+  },
   "street_address": {
    "kind": "fact",
    "type": "text",
@@ -228,6 +234,12 @@ export const FACT_SCHEMA = {
    "type": "yesno",
    "group": "pay",
    "note": "the posted range meets their floor: derived from salary_expectation against the posting's range, else asked"
+  },
+  "work_history": {
+   "kind": "fact",
+   "type": "list",
+   "group": "work",
+   "note": "WO-048: the jobs the person stated, as a JSON list of {employer, title, start, end, location?, description?}; dates as stated (MM/YYYY, or a year), end 'present' for the current job. Repeating work-experience rows are filled only from this; a part never stated is asked"
   },
   "education_level": {
    "kind": "fact",

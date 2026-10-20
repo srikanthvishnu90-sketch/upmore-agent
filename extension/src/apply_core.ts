@@ -51,7 +51,10 @@ export function postingKey(href: string): string | null {
   if (p.family === "lever" || p.family === "ashby") {
     return seg[0] && seg[1] && /^[0-9a-f-]{8,}$/i.test(seg[1]) ? `${p.family}:${seg[0]}:${seg[1].toLowerCase()}` : null;
   }
-  const last = seg.filter((s) => !/^(apply|applyManually|autofillWithResume)$/i.test(s)).at(-1);
+  // WO-048: every step of one application is one posting. The posting is the segment before "apply" (a step's own path
+  // under it, such as ".../apply/applyManually" or a step page, is not another posting).
+  const at = seg.findIndex((s) => /^apply$/i.test(s));
+  const last = at > 0 ? seg[at - 1] : seg.filter((s) => !/^(apply|applyManually|autofillWithResume)$/i.test(s)).at(-1);
   return last ? `workday:${u.hostname.toLowerCase()}:${last}` : null;
 }
 
@@ -80,10 +83,25 @@ export const isIdentityField = (f: { label: string; name?: string }) => {
 // an identity number whatever its label says: it is masked in the payload, the record, the evidence and the screenshot.
 export const looksLikeIdNumber = (v: string) => /\d{8,}/.test(String(v || "").replace(/[\s.\-\/()+]/g, ""));
 
-// On Workday only the basic contact fields are filled; every other answer is the person's on the employer's site.
+// On a Workday page that is not the application flow the extension reads (WO-048: no formField-* wrappers, an unknown
+// layout), only the basic contact fields are filled (WO-031); in the flow, every field goes to the planner.
 const WORKDAY_BASIC = new Set(["first_name", "last_name", "full_name", "legal_name", "preferred_name", "email", "phone", "street_address",
   "full_address", "city", "state", "postal_code", "country", "location", "linkedin", "github", "website", "resume"]);
 export const WORKDAY_NOTICE = "Workday needs you signed in on the employer's site; I fill the fields I can.";
+// WO-048: the words the person reads on a Workday card.
+export const WORKDAY_PAGE_SET = "Filled by Workday from your resume: check them";
+export const workdayDraftLine = (employer: string) => `Save and Continue sends this page to ${employer} as a draft; nothing is submitted.`;
+export const workdaySubmitLine = (employer: string) => `Approve submits this application to ${employer} with Workday's own Submit. This is the last step.`;
+export const workdaySignIn = (employer: string) => `Sign in to ${employer}'s Workday yourself; I'll fill the application after.`;
+export const WORKDAY_PERSONAL = "The disability form (Voluntary Self-Identification of Disability) is yours: Trainee never fills it. Answer it yourself on the page.";
+// The employer as its Workday tenant names it: the first label of the tenant's host ("northwind" of northwind.wd5...).
+export function workdayEmployer(href: string): string {
+  try {
+    return new URL(href).hostname.toLowerCase().split(".")[0] || "the employer";
+  } catch {
+    return "the employer";
+  }
+}
 
 export interface Answer { value: string; factId: string }
 export interface PlannedField { name: string; label: string; value: string; factId: string }
@@ -93,19 +111,21 @@ export interface PlannedField { name: string; label: string; value: string; fact
 // left, asked once by text). Identity numbers never reach the planner.
 export function planForm(o: {
   userId: string; jobId: string; company: string; family: Family; schema: FormField[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number;
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; workdayFlow?: boolean;
 }) {
   const identity = o.schema.filter((f) => isIdentityField(f));
   // Two fields under one label: the label belongs to at most one of them, so neither is answered from it (WO-031
   // review: a referrer's phone read as "Phone"). Both are left to the person and listed as still needed.
   const count = new Map<string, number>();
   for (const f of o.schema) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
-  const ambiguous = o.schema.filter((f) => !isIdentityField(f) && (count.get(normLabel(f.label)) ?? 0) > 1);
-  const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f));
+  const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
+  // WO-048: a form only the person fills (the disability self-identification) is neither planned nor asked by text.
+  const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
   const posting = (fs: FormField[]) => [{ job_id: o.jobId, company: o.company, title: "", fields: fs }];
   const all = planBatch({ userId: o.userId, postings: posting(fields.map((f) => ({ ...f, required: false }))), answers: o.answers, saved: o.saved, log: [], now: o.now });
   let fill: PlannedField[] = all.ready[0]?.fields ?? [];
-  if (o.family === "workday") {
+  const basicOnly = o.family === "workday" && !o.workdayFlow;
+  if (basicOnly) {
     fill = fill.filter((p) => {
       const f = fields.find((x) => x.name === p.name)!;
       return WORKDAY_BASIC.has(classifyField(f.label, f.type)) || WORKDAY_BASIC.has(mapQuestion(f).fact);
@@ -113,7 +133,7 @@ export function planForm(o: {
   }
   const strict = planBatch({ userId: o.userId, postings: posting(fields), answers: o.answers, saved: o.saved, log: [], now: o.now });
   const planned = new Set(fill.map((f) => f.name));
-  const needs = o.family === "workday"
+  const needs = basicOnly
     ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({ label: f.label }))
     : strict.needs.map((n) => ({ label: n.label }));
   // Each open question as the form asks it, the engine's shape, so it is asked once by text in the form's own terms.
@@ -206,7 +226,9 @@ export function formAnswersToKeep(o: {
 // `detail` is what the browser actually sends for the field beyond its visible text: a select's option value, the checked
 // state and value of radios and checkboxes, the SHA-256 and size of an attached file's bytes (WO-031 review: the hash
 // covered what was shown, not what was sent).
-export type Source = "trainee" | "you" | "page" | "fixed" | "drafted";
+//   workday  (WO-048) a value Workday itself had set when Trainee first read the page (a tenant's default, a resume parse):
+//            shown under "Filled by Workday from your resume: check them", never counted as Trainee's, never overwritten
+export type Source = "trainee" | "you" | "page" | "fixed" | "drafted" | "workday";
 export interface SnapField { name: string; label: string; value: string; source: Source; factId: string | null; masked: boolean; detail?: string }
 export const MASKED = "[typed by you on the form; never kept by Trainee]";
 
@@ -287,10 +309,17 @@ export const shortLabel = (l: string) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();
   return t.length > 160 ? t.slice(0, 157) + "..." : t;
 };
+// WO-048: what one Workday step's card says. A page step ("draft"): that page's answers exactly as Save and Continue will
+// send them, Workday's own values apart, and that nothing is submitted. The Review step ("submit"): the review page's own
+// reading of every answer, and the one Submit.
+export interface WorkdayCard {
+  action: "draft" | "submit"; step: string; employer: string; conflicts?: { label: string; workday: string; yours: string }[]; personal?: boolean;
+}
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
-  blockers: string[]; verification: string[]; ambiguous?: { label: string }[];
+  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard;
 }) {
+  if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
   if (o.family === "workday") lines.push(WORKDAY_NOTICE);
   lines.push("Every answer exactly as it will be sent:");
@@ -306,6 +335,35 @@ export function cardLines(o: {
   for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
   if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
   lines.push(`Approve sends it with the site's own Submit at ${new URL(o.payload.url).host}.`);
+  for (const b of o.blockers) lines.push(`Before you can approve: ${b}`);
+  return lines.map((l) => l.trim()).filter(Boolean);
+}
+function workdayLines(o: Parameters<typeof cardLines>[0] & { workday: WorkdayCard }) {
+  const w = o.workday;
+  const lines: string[] = [`${o.company}`, WORKDAY_NOTICE];
+  const line = (f: ReviewPayload["fields"][number], from = "") => `${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`;
+  if (w.action === "submit") {
+    lines.push(`${w.step || "Review"}: your application exactly as Workday shows it before Submit:`);
+    // The review's labels carry their step and section ("My Experience: Languages 1 — Writing"); read as they are.
+    for (const f of o.payload.fields) lines.push(`${shortLabel(f.label)}: ${f.value}`);
+  } else {
+    lines.push(`${w.step || "This page"}: every answer on this page exactly as Save and Continue will send it:`);
+    for (const f of o.payload.fields.filter((x) => x.source !== "workday")) {
+      lines.push(line(f, f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "page" ? " (set by the page)" : ""));
+    }
+    const ws = o.payload.fields.filter((x) => x.source === "workday");
+    if (ws.length || w.conflicts?.length) lines.push(WORKDAY_PAGE_SET);
+    for (const f of ws) lines.push(line(f));
+    for (const c of w.conflicts ?? []) {
+      lines.push(`${shortLabel(c.label)}: Workday has "${c.workday}"; your confirmed answer is "${c.yours}". Trainee left Workday's value; change it on the page if yours is right.`);
+    }
+  }
+  if (w.personal) lines.push(WORKDAY_PERSONAL);
+  for (const l of o.openRequired) lines.push(`Still needed: ${l}. Answer it on the page.`);
+  for (const f of o.ambiguous ?? []) lines.push(`Still needed: ${shortLabel(f.label)}. Two fields on this page share that label, so Trainee left both for you.`);
+  for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
+  if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
+  lines.push(w.action === "submit" ? workdaySubmitLine(w.employer) : workdayDraftLine(w.employer));
   for (const b of o.blockers) lines.push(`Before you can approve: ${b}`);
   return lines.map((l) => l.trim()).filter(Boolean);
 }

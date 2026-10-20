@@ -290,7 +290,11 @@ begin
  if p_user is null or p_ids is null or cardinality(p_ids) not between 1 and 5 or p_now is null
   or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid questions push'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
- select thread_id into thread from public.channel_contacts where user_id = p_user and not opted_out and thread_id is not null;
+ -- A STOP on any channel stops it; the thread is the person's most recent channel's (one contact per channel since
+ -- 20261021070000_channel_parity.sql; read through to_jsonb so this also runs on the one-contact schema before it).
+ if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
+ select c.thread_id into thread from public.channel_contacts c where c.user_id = p_user and c.thread_id is not null
+  order by (to_jsonb(c)->>'last_inbound_at')::timestamptz desc nulls last, c.created_at limit 1;
  if thread is null then return false; end if;
  if exists (select from public.career_outbox where user_id = p_user and kind = 'questions' and created_at >= p_now - interval '24 hours')
   or public.career_thread_busy(p_user, thread, p_now)
@@ -324,7 +328,11 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
  select value into a from public.career_watch_kv where user_id = p_user and key = k for update;
  if a is null or a->>'state' is distinct from 'pending' then return false; end if;
- select thread_id into thread from public.channel_contacts where user_id = p_user and not opted_out and thread_id is not null;
+ -- A STOP on any channel stops it; the thread is the person's most recent channel's (one contact per channel since
+ -- 20261021070000_channel_parity.sql; read through to_jsonb so this also runs on the one-contact schema before it).
+ if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
+ select c.thread_id into thread from public.channel_contacts c where c.user_id = p_user and c.thread_id is not null
+  order by (to_jsonb(c)->>'last_inbound_at')::timestamptz desc nulls last, c.created_at limit 1;
  if thread is null or public.career_thread_busy(p_user, thread, p_now) then return false; end if;
  update public.career_watch_kv set value = a || jsonb_build_object('state', 'asked', 'asked_at', p_now, 'thread', thread), updated_at = p_now
   where user_id = p_user and key = k;

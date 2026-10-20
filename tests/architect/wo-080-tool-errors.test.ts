@@ -8,8 +8,10 @@ import { CLAIM_UNBACKED_REPLY, runAgentTurn, scrubError, type ToolSpec } from ".
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
 
-const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInJvbGUiOiJ0ZXN0ZXIifQ.c2lnbmF0dXJlX2hlcmVfMTIzNDU2Nzg5MA";
-const SK = "sk-proj-AbC123dEf456GhI789jKl012MnO345pQr678";
+// Labelled fakes, as tests/no-secrets.test.cjs requires: an anon-role JWT and a key that says FAKE. scrubError removes
+// every JWT and key whatever its role or label, so the fakes test the same paths.
+const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInJvbGUiOiJhbm9uIiwibm90ZSI6ImZha2UifQ.c2lnbmF0dXJlX2hlcmVfMTIzNDU2Nzg5MA";
+const SK = "sk-proj-FAKE0000AbC123dEf456GhI789jKl012MnO345";
 
 const tool = (name: string, effect: ToolSpec["effect"], run: ToolSpec["run"], required: string[] = []): ToolSpec => ({
   name, effect, description: name, input_schema: { type: "object", properties: {}, required }, run,
@@ -68,8 +70,8 @@ Deno.test("WO-080/6 scrubError: JWTs, bearer tokens and API keys are removed", (
   assert(!s.includes("eyJ") && !s.includes(SK) && !s.includes("AbC123"), s);
   const s2 = scrubError("upstream 401: invalid api key sk-AbCdEf0123456789AbCdEf0123456789 provided");
   assert(/upstream 401: invalid api key/.test(s2) && /provided/.test(s2) && !/sk-AbCdEf/.test(s2), s2);
-  const s3 = scrubError("supabase rejected sb_secret_N7x9QqLz2Kp4Vw8Rt1Ys6Ub3 for this project");
-  assert(!/N7x9QqLz2Kp4Vw8Rt1Ys6Ub3/.test(s3) && /supabase rejected/.test(s3), s3);
+  const s3 = scrubError("supabase rejected sb_secret_FAKE0000N7x9QqLz2Kp4Vw8Rt1 for this project");
+  assert(!/FAKE0000N7x9QqLz2Kp4Vw8Rt1/.test(s3) && /supabase rejected/.test(s3), s3);
   const s4 = scrubError("board api: Authorization: Basic dXNlcjpwYXNzd29yZA== was refused (401)");
   assert(!/dXNlcjpw/.test(s4) && /was refused \(401\)/.test(s4), s4);
 });
@@ -90,8 +92,8 @@ Deno.test("WO-080/8 scrubError: emails and phone numbers are removed", () => {
 });
 
 Deno.test("WO-080/9 scrubError: postgres URLs and secret-carrying query strings are removed; the rest of a URL stays", () => {
-  const s = scrubError("connect failed postgres://postgres:hunter2pass@db.abcd.supabase.co:5432/postgres (timeout)");
-  assert(!/hunter2pass/.test(s) && !/db\.abcd\.supabase\.co/.test(s), s);
+  const s = scrubError("connect failed postgres://postgres:fake0000pass@db.abcd.supabase.co:5432/postgres (timeout)");
+  assert(!/fake0000pass/.test(s) && !/db\.abcd\.supabase\.co/.test(s), s);
   assert(/connect failed/.test(s) && /timeout/.test(s), s);
   const s2 = scrubError("GET https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true&token=abc123XYZ&api_key=k9&secret=s3cr3t&page=2 returned 503");
   assert(!/abc123XYZ/.test(s2) && !/k9\b/.test(s2.replace(/\[[^\]]*\]/g, "")) && !/s3cr3t/.test(s2), s2);

@@ -27,7 +27,7 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
-import { queueWants, type WantStore } from "../career_apply_want.ts";
+import { queueWants, resolvePicks, screenPicks, type WantStore } from "../career_apply_want.ts";
 import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
 
@@ -178,14 +178,26 @@ export function careerTools(deps: {
     },
     {
       name: "queue_applications", effect: "write_own",
-      description: "Start applying: put the postings the person chose (links exactly as search_jobs returned them) in their own apply queue, up to their daily limit. Nothing is sent: the Trainee extension prepares each in their browser and shows a card, and each goes only after they approve it. Say how many were queued, what was refused and why.",
+      description: "Start applying: put the postings the person chose (from search_jobs, with job_id) in their own apply queue, up to their daily limit. Code checks each against the posting on file, the employer they named or were shown, the 30-day rule and their current employer. Nothing is sent: each goes only after they approve its card in the Trainee extension. Say what was queued, what was refused and why.",
       input_schema: obj({ postings: { type: "array", description: "The postings to apply to, from search_jobs", items: obj({ url: str("The posting's link as search_jobs returned it"), job_id: str("The posting's job_id as search_jobs returned it (always pass it: an employer's own careers-page link is opened at its board's form)"), company: str("Employer"), title: str("Job title") }, ["url"]) } }, ["postings"]),
       run: async (i, c) => {
         if (!deps.wants) throw new Error("applying from chat is not connected here; say so, and that the person can paste posting links into the Trainee extension's queue");
         const picks = Array.isArray(i.postings) ? i.postings.slice(0, 100) : [];
-        const r = await queueWants(deps.wants, c.userId, picks, c.now, { limits: deps.limits, tz: deps.tz });
-        await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: r.refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
-        return { ...r, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card." };
+        // WO-091b (audit F2): each pick resolved on file (employer and title from the record, never the model's label), then
+        // checked against what the person said and was shown, their applications in every thread and their confirmed facts.
+        const found = await resolvePicks(picks, deps.posting ?? (deps.tailor ? deps.tailor.posting : null));
+        const here = appsFromTracker(trackOf(c).rows);
+        let stored: Awaited<ReturnType<NonNullable<typeof deps.mail>["applications"]>> = [];
+        if (deps.mail) {
+          try { stored = await deps.mail.applications(c.userId); }
+          catch { throw new Error("their applications could not be read, so a duplicate could not be ruled out; nothing was queued. Say so and offer to try again"); }
+        }
+        const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
+        const screened = screenPicks(found.ok, { message: c.turn?.message, before: c.turn?.before, apps, facts: CareerProfile.confirmedFacts(profileOf(c)), now: c.now });
+        const r = await queueWants(deps.wants, c.userId, screened.ok, c.now, { limits: deps.limits, tz: deps.tz });
+        const refused = [...found.refused, ...screened.refused, ...r.refused];
+        await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
+        return { ...r, refused, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
       },
     },
     {

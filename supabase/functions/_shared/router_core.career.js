@@ -17472,6 +17472,94 @@ const CareerRouter = (() => {
     });
     return { intent: "career_document_delivery", reply, resultStatus: "prepared", sends: 0, documents: [doc] };
   }
+  // V240 LIVE-FIX (probe j): the resume PASTE itself. The tailor's
+  // own reply tells the user "Paste your resume … and the tailored
+  // version for this exact target is produced in this conversation"
+  // — but no dispatch claimed a pasted resume, so the gauntlet's
+  // paste fell to company_intel (a skill word read as a company) /
+  // tracking_status and the profile was never built. This claim
+  // takes a long, sectioned paste that module 122's own parser
+  // reads as a resume and ingests it the designed way: facts land
+  // as DRAFTS (122's law — unconfirmed until the user says yes),
+  // on the profile, with a receipt. Posting-shaped pastes stay
+  // with capturePastedPosting (it runs first and marks the turn),
+  // email-shaped pastes stay with the pasted-email routes.
+  function resumePasteDraftsOf(raw) {
+    if (!ProfileMod || !ProfileMod.parseResumeText) return null;
+    let drafts = null;
+    try { drafts = ProfileMod.parseResumeText(raw); } catch { return null; }
+    if (!Array.isArray(drafts) || drafts.length < 3) return null;
+    const kinds = new Set(drafts.map((d) => d && d.kind).filter(Boolean));
+    if (kinds.size < 2 || !(kinds.has("experience") || kinds.has("education"))) return null;
+    return drafts;
+  }
+  function handleResumePasteIngest(text, ctx) {
+    const raw = s(text);
+    if (raw.length < 300 || raw.split(/\r?\n/).length < 6) return null;
+    if (ctx.pastedText) return null; // a posting paste already claimed this turn upstream
+    if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
+    if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
+    if (!ProfileMod || !ProfileMod.classifyResumeIngest || !ProfileMod.ingestResume || !ProfileMod.createProfile) return null;
+    let cls = null;
+    try { cls = ProfileMod.classifyResumeIngest(raw); } catch { return null; }
+    if (!cls || !cls.ok) return null;
+    if (!resumePasteDraftsOf(raw)) return null;
+    const profile = (ctx.profile && typeof ctx.profile === "object") ? ctx.profile : ProfileMod.createProfile({});
+    let res = null;
+    try { res = ProfileMod.ingestResume(profile, raw, { now: nowOf(ctx) }); } catch { return null; }
+    if (!res || !res.ok) return null;
+    ctx.profile = profile;
+    const byKind = {};
+    for (const f of profile.facts || []) if (f && f.source === "resume-ingest" && f.needs_confirmation) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
+    const total = Object.values(byKind).reduce((a, b) => a + b, 0);
+    const counts = Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ");
+    const mir = threadMirrorForWrite(ctx);
+    if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total };
+    const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
+    const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
+    const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
+    return { intent: "career_resume_ingest", reply, resultStatus: "awaiting_user", sends: 0, resume_ingest: { drafts: total, byKind } };
+  }
+  // The confirmation half of the paste journey: the user's yes
+  // confirms the ingest drafts (the same flag flip 130's correction
+  // flow performs), and when a tailor target stands in this thread
+  // (recorded by handleTailorNeedsFacts when it said "the target is
+  // set"), the tailoring the product promised runs in this turn and
+  // its document rides the reply.
+  function handleResumeIngestConfirm(text, ctx) {
+    const mir = threadMirrorOf(ctx);
+    if (!mir || !mir.resumeIngest) return null;
+    const raw = s(text).trim();
+    if (raw.split(/\s+/).length > 8) return null;
+    if (/\b(no|not|wrong|wait|stop|don'?t)\b/i.test(raw)) return null;
+    if (!/^(yes|yeah|yep|confirm|confirmed|correct|that'?s right|that is right|looks right|looks good|all correct|that'?s my resume|it is|do it)\b/i.test(raw)) return null;
+    const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    if (!profile) return null;
+    let confirmed = 0;
+    for (const f of profile.facts || []) {
+      if (f && f.needs_confirmation && f.source === "resume-ingest") { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
+    }
+    const target = mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) delete wmir.resumeIngest;
+    if (!confirmed) return null;
+    if (target) {
+      const askText = target.askText || "tailor my resume";
+      let chained = null;
+      const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
+      if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
+      if (!chained || !chained.artifact) {
+        const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
+        if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
+      }
+      if (chained && chained.artifact) {
+        chained.reply = `Confirmed — ${confirmed} fact${confirmed === 1 ? "" : "s"} from your resume are on your record now.\n\n${chained.reply}`;
+        return chained;
+      }
+    }
+    const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
+    return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
+  }
   function handleSendAttempt(text, ctx) {
     const t = lc(text);
     // CHANNEL-DOC-1: a document asked for delivery to the user in this
@@ -18577,18 +18665,23 @@ const CareerRouter = (() => {
   // own bar), states the one missing input, and asks for it once.
   function tailorTargetOf(text, ctx) {
     const p = ctx.posting || null;
-    if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null };
+    if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null, company: p.company || null };
     let comp = null, cir = null;
     try { cir = cirFor(text, ctx); if (cir && !String(cir.company_id || "").startsWith("archetype")) comp = cirShortName(cir); } catch { cir = null; }
     if (!comp) comp = companyFromText(text, ctx);
     if (comp) {
       const roleM = s(text).match(/\b(software engineering|data|finance|investment banking|product|consulting|marketing|engineering)\s+(internship|intern|role)\b/i);
-      return { label: `the ${comp}${roleM ? ` ${roleM[1].toLowerCase()} ${roleM[2].toLowerCase()}` : " role"}`, cir };
+      return { label: `the ${comp}${roleM ? ` ${roleM[1].toLowerCase()} ${roleM[2].toLowerCase()}` : " role"}`, cir, company: comp };
     }
-    return { label: "the role you named", cir: null };
+    return { label: "the role you named", cir: null, company: null };
   }
   function handleTailorNeedsFacts(text, ctx) {
     const target = tailorTargetOf(text, ctx);
+    // V240 LIVE-FIX (probe j): the reply below says "The target is
+    // set" — record it in the thread mirror so the promise is true
+    // state: when the user pastes the resume this reply asks for
+    // and confirms it, the tailoring runs against THIS target.
+    if (target.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.tailorTarget = { company: target.company, label: target.label, askText: s(text).slice(0, 300) }; }
     const facts = ["Tailoring runs on confirmed facts only — your resume's real experience, education, and projects. There is no resume or profile on file in this conversation yet, so any 'tailored' version produced now would be invented, and invented resumes are the one thing this product never ships."];
     if (target.cir) { const bar = cirFieldText(target.cir.hiring_bar_summary); if (bar) facts.push(`The target's bar, from its company file: ${bar.split(/(?<=[.!?])\s/)[0]} That is what your real material will be cut against.`); }
     const reply = compose({ headline: `The target is set — ${target.label}. One input is missing: your resume.`, facts, nextStep: "Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation." });
@@ -23952,6 +24045,14 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
+    // ahead of the tracker/recommendation/intel matchers that read
+    // its lines as other intents on the deployed product — and its
+    // confirmation continuation runs the standing tailor target.
+    const resumeIngest = handleResumePasteIngest(text, c);
+    if (resumeIngest) return resumeIngest;
+    const resumeConfirm = handleResumeIngestConfirm(text, c);
+    if (resumeConfirm) return resumeConfirm;
     // LANE A v2 (LF-02 routing repair): three claim families run
     // BEFORE the recommendations block, because 154's intentFor reads
     // all three as discovery asks and the state write never landed
@@ -23972,7 +24073,13 @@ const CareerRouter = (() => {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
+    // V240 LIVE-FIX (probe h): the bare imperative — sentence-initial
+    // "watch" + role words ("Watch data analyst roles for me.") — is
+    // admitted alongside the enumerated shapes; the gauntlet's natural
+    // phrasing matched none of them and fell to containment on the
+    // deployed product. "Watch out …" is advice-seeking and stays out
+    // (negative lookahead); the manage claim above still runs first.
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -23996,7 +24103,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -25172,7 +25279,15 @@ const CareerRouter = (() => {
       };
       const asserted = (idx) => clauseIsAssertion(segOf(idx));
       const CO = "([A-Z][A-Za-z0-9&.]+(?:\\s+[A-Z][A-Za-z0-9&.]+){0,2})";
-      const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){1,2})";
+      // V240 LIVE-FIX (probe i): a contact is often stated by first
+      // name only ("My recruiter contact at Northwind Ledger is
+      // Dana.") — the old {1,2} continuation required a surname, so
+      // the single-token name never captured and the statement fell
+      // to containment on the deployed product. These four frames
+      // are the ONLY PERSON users: each is explicit ("recruiter
+      // contact at <Co> is ___") and each is gated by asserted()
+      // (BUG-169), so a one-token value slot is safe here.
+      const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})";
       const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
       const cleanCo = (v) => s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
       const turnCompany = () => {
@@ -25672,6 +25787,41 @@ const CareerRouter = (() => {
       const lines = days.map((f) => f.key ? `Your interview at ${f.key} is on ${f.value}.` : `Your interview is on ${f.value}.`);
       const reply = compose({ headline: "From your record — the day as it now stands.", facts: lines, nextStep: "Correct it the same way you stated it (\"actually it's Friday\") and the record replaces it — it never keeps both." });
       return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (d) V240 LIVE-FIX (probe i): the direct keyed question — "who
+    // is my recruiter contact at <Co>?" / "who is my hiring
+    // manager?" Branches (a)–(c) cover first-thing, interview-day,
+    // and "what do you remember…" shapes only, so the gauntlet's
+    // direct question fell to company_intel and the recorded name
+    // was never read back. The branch claims ONLY when a fact of
+    // the asked kind resolves — keyed to the named company, or the
+    // single keyless fact when the named company is the record's
+    // own target firm; on no resolution it returns null and the
+    // turn keeps its existing owner (CB-0443 discipline: an
+    // unresolved who-ask about a company is an intel ask).
+    const whoM = s(text).match(/\bwho\s+is\s+my\s+(recruiter(?:\s+contact)?|hiring\s+manager)\b(?:\s+at\s+(.+?))?\s*\??\s*$/i);
+    if (whoM) {
+      const kind = /hiring/i.test(whoM[1]) ? "hiring_manager" : "recruiter_contact";
+      const namedCoRaw = whoM[2] ? whoM[2].replace(/[?.!,]+$/, "").trim() : null;
+      const namedCo = namedCoRaw ? coKey(namedCoRaw) : null;
+      let hits = all.filter((f) => f.kind === kind && (!namedCo || coKey(f.key) === namedCo));
+      if (!hits.length && namedCo) {
+        const keyless = all.filter((f) => f.kind === kind && !f.key);
+        const tf = all.find((f) => f.kind === "target_firm");
+        if (keyless.length === 1 && tf && coKey(tf.value) === namedCo) hits = keyless;
+      }
+      if (hits.length) {
+        // The company is spoken as the user just wrote it (fact
+        // keys are stored lowercased for matching; the read-back
+        // keeps the user's own casing).
+        const lines = hits.map((f) => {
+          const co = namedCoRaw || f.key || null;
+          return kind === "hiring_manager" ? `the hiring manager${co ? ` at ${co}` : ""} is ${f.value}.` : `your recruiter contact${co ? ` at ${co}` : ""} is ${f.value}.`;
+        });
+        const reply = compose({ headline: "From your record — your words, as stated.", facts: lines, nextStep: "Correct it the same way you stated it (\"my recruiter contact at that company is …\"), or tell me what to run on it first." });
+        return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+      }
+      return null;
     }
     // (c) Company-scoped recall: "what do you remember about my
     // <Co> plans?" — every fact keyed to, valued with, or evidenced
@@ -26695,7 +26845,12 @@ const CareerRouter = (() => {
     syncThreadOut(c);
     return res;
   }
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
+  // namedRoleTargetOf is exported for the HOST's pool resolution
+  // (V240 LIVE-FIX, probe f2): the edge handler asks the router's
+  // own parser whether a turn names a company/title, so its
+  // targeted KB lookup beyond the recency window can never drift
+  // from the parser that will resolve the named role in-turn.
+  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
 

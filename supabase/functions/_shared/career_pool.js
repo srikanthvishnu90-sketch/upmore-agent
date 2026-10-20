@@ -56,6 +56,10 @@ const CareerPool = (() => {
   // dedupes and scores in memory. 600 rows of <=1.5 KB excerpts is
   // the measured-comfortable per-turn bound for the Edge runtime.
   const DEFAULT_LIMIT = 600;
+  // The targeted named-pair lookup (loadTargeted) is bounded far
+  // tighter: one company's postings, recency-ordered — the router
+  // scores them against the named title in memory.
+  const TARGETED_LIMIT = 50;
 
   const s = (v) => (v == null ? "" : String(v));
   // 121.remoteOf, mirrored (remoteOf is not in 121's export list):
@@ -148,7 +152,42 @@ const CareerPool = (() => {
       }
       return { postings, fetchedOn, error: null };
     }
-    return { loadPool };
+    // V240 LIVE-FIX (probe f2): the recency window is a discovery
+    // slice, not the shelf. When a turn names a specific company,
+    // the named posting can sit anywhere in the KB — 1,736 rows
+    // were newer than the Gusto posting the owner named, so the
+    // named-role ask got the honest "not in the served list" stop
+    // for a role the product's own shelf holds. loadTargeted runs
+    // a second, company-filtered read of the SAME table through
+    // the SAME reader contract (a `filters` spec the composition
+    // roots bind to their query builders), mapped identically
+    // (fetched_on carried; TN-1a intact). Same failure posture as
+    // loadPool: never throws — a failed read yields an empty
+    // supplement and the turn keeps its honest named stop.
+    async function loadTargeted(target) {
+      const company = s(target && target.company).trim();
+      if (!company) return { postings: [], error: null };
+      let rows;
+      try {
+        rows = await d.readRows({
+          table: KB_POSTINGS_TABLE,
+          select: KB_POSTINGS_COLUMNS,
+          order: { column: "posted_at", ascending: false, nullsFirst: false },
+          limit: TARGETED_LIMIT,
+          filters: [{ column: "company", op: "ilike", value: `%${company.replace(/[%_\\]/g, "")}%` }],
+        });
+      } catch {
+        return { postings: [], error: "KB_POOL_READ_FAILED" };
+      }
+      if (!Array.isArray(rows)) return { postings: [], error: "KB_POOL_READ_FAILED" };
+      const postings = [];
+      for (const row of rows) {
+        const p = mapKbPosting(row, jobs);
+        if (p) postings.push(p);
+      }
+      return { postings, error: null };
+    }
+    return { loadPool, loadTargeted };
   }
 
   return { mapKbPosting, createKbPoolLoader, KB_POSTINGS_TABLE, KB_POSTINGS_COLUMNS, DEFAULT_LIMIT };

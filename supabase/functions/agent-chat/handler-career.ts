@@ -226,9 +226,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // the same loader, so the two pools cannot disagree.
     const poolLoader = CareerPool.createKbPoolLoader({
       readRows: async (spec: any) => {
-        const { data, error } = await admin.from(spec.table).select(spec.select)
-          .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst })
-          .limit(spec.limit);
+        let q = admin.from(spec.table).select(spec.select)
+          .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst });
+        for (const f of (spec.filters ?? [])) {
+          if (f.op === "ilike") q = q.ilike(f.column, f.value);
+          else if (f.op === "eq") q = q.eq(f.column, f.value);
+        }
+        const { data, error } = await q.limit(spec.limit);
         if (error) throw new Error(`career_kb_postings read failed: ${error.message}`);
         return data ?? [];
       },
@@ -239,7 +243,27 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       const pool = await poolLoader.loadPool();
       if (pool.error) console.error("career pool load failed:", pool.error);
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: pool.postings });
+      // V240 LIVE-FIX (probe f2): the window is a discovery slice,
+      // not the shelf — when the turn names a specific company/title
+      // (the router's OWN parser decides; no second parser lives
+      // here), supplement the window with the loader's targeted
+      // lookup so a named posting the KB holds beyond the window is
+      // findable in-turn. Merged by posting id; the supplement never
+      // throws (loader contract), and any failure here leaves the
+      // window pool standing on its own — the turn keeps its honest
+      // named stop, never a crash, never an invented role.
+      let postings = pool.postings;
+      try {
+        const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
+        if (target && target.company) {
+          const extra = await poolLoader.loadTargeted(target);
+          if (extra.postings.length) {
+            const seen = new Set(postings.map((p: any) => p.job_id));
+            postings = postings.concat(extra.postings.filter((p: any) => !seen.has(p.job_id)));
+          }
+        }
+      } catch { /* the window pool stands on its own */ }
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings });
       let out = host.runTurn(message, ctx);
       let taskIntent = null;
       let batchIntent = null;

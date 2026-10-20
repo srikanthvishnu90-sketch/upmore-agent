@@ -8,6 +8,8 @@ import { startWatching, validPrefs, validZone, type AlertStore } from "../career
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
 import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
+import { standing } from "../career_mail.ts";
+import { appsFromTracker, type MailStore } from "../career_mail_store.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
 import { missingIntegration } from "./integrations.ts";
 import { brief as interviewBrief, findRecord } from "../career_mock.ts";
@@ -34,9 +36,11 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 export interface TailorTools { posting: (jobId: string) => Promise<any | null>; personas: PersonaStore; resumes: ResumeStore; render: ResumeRenderer }
 // `postings(query)` returns candidate open postings: in production a full-text search of career_postings
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
+// `mail` (WO-024) reads the person's applications across the apply queue and every thread's tracker, and the status
+// events found in their mail; absent, where_do_i_stand answers from this thread's tracker alone.
 // `events` is the account's timeline (WO-027): each tool that changes something records it, and recall reads it back.
 // Recording never fails the tool (recordEvent logs and goes on).
-export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; tz?: string; tailor?: TailorTools | null }): ToolSpec[] {
+export function careerTools(deps: { postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; events?: EventStore | null; mail?: Pick<MailStore, "applications" | "events"> | null; tz?: string; tailor?: TailorTools | null }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
   const record = (c: ToolCtx, kind: string, subject: unknown, detail: Record<string, unknown> = {}) =>
@@ -320,6 +324,19 @@ export function careerTools(deps: { postings: (query: string) => Promise<any[]>;
         if (name && !persona) throw new Error(`no persona named ${name}; saved: ${st.items.map((p) => p.name).join(", ") || "none"}`);
         await t.personas.save(c.userId, { ...st, active: name });
         return { active: name ?? "base", restated: persona ? restatePersona(persona, profileOf(c)) : "your base resume: your confirmed facts in the order each posting needs", saved: st.items.map((p) => p.name) };
+      },
+    },
+    {
+      name: "where_do_i_stand", effect: "read",
+      description: "Where the person stands with one employer (\"where do I stand with JPMorgan?\"): every application to it, its stage, and the last thing that happened with its date, from their applications and the status emails found in their mail. Facts only; say what it returns.",
+      input_schema: obj({ company: str("The employer as the person said it, e.g. 'JPMorgan'") }, ["company"]),
+      run: async (i, c) => {
+        const company = String(i.company ?? "").trim();
+        if (!company) throw new Error("say which employer");
+        const here = appsFromTracker(trackOf(c).rows);
+        const stored = deps.mail ? await deps.mail.applications(c.userId) : [];
+        const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
+        return standing(company, apps, deps.mail ? await deps.mail.events(c.userId) : []);
       },
     },
   ];

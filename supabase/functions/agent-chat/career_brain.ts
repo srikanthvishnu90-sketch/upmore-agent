@@ -6,6 +6,7 @@ import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
 import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
 import { styleBlock } from "../_shared/agent/style.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
+import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { AlertPrefs } from "../_shared/career_alerts.ts";
 import { type CareerEvent, type EventStore, SUMMARY_UNREADABLE, threadSummary } from "../_shared/agent/timeline.ts";
 
@@ -57,6 +58,8 @@ export function agentTurn(o: {
   // and where standing instructions are kept.
   known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null };
   memory?: MemoryStore | null;
+  // WO-024: applications and the status events found in the person's mail, for where_do_i_stand.
+  mail?: Pick<MailStore, "applications" | "events"> | null;
   // WO-027: the account's timeline (written by the tools, read by recall), and the summary of what the window cut.
   events?: EventStore | null;
   summary?: string | null;
@@ -68,7 +71,7 @@ export function agentTurn(o: {
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: o.message,
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, tailor: o.tailor ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, tailor: o.tailor ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

@@ -35,7 +35,7 @@ function session(ps: Posting[], f: Facts, answered: Set<string>, tag: string, pe
   const before = ps.map((p) => ({ p, r: plan(p, f) }));
   const open = before.reduce((n, x) => n + x.r.needs.length, 0);
   const jobOpen = before.reduce((n, x) => n + x.r.needs.filter((q) => keyOf(q, x.p.id, persona).startsWith("job:")).length, 0);
-  const m = answerOnceQuestions({ postings: before.map((x) => ({ jobId: x.p.id, company: x.p.company, needs: x.r.needs })), answers: f.answers, answered });
+  const m = answerOnceQuestions({ postings: before.map((x) => ({ jobId: x.p.id, company: x.p.company, location: x.p.location, needs: x.r.needs })), answers: f.answers, answered });
   const picks = m.questions.map((q) => ({ key: q.key, answer: q.options.length ? q.options[0] : "TEST answer" }));
   const rows = answerOnceRows({ questions: m.questions, picks });
   const stored = rows.groups.flatMap((g) => g.answers).map((a, i) => ({ id: `${tag}-${i}`, key: a.key, kind: a.kind, answer: a.answer }));

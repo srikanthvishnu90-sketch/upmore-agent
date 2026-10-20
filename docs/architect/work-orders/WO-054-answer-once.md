@@ -58,32 +58,34 @@ can answer, ask each once in the panel, and let each answer fill every posting t
 - No migration and no new RPC.
 - `evals/apply/answer-once.ts` writes `docs/apply/answer-once.md`.
 - Tests:
-  - `tests/architect/wo-054-answer-once.test.ts` (8).
+  - `tests/architect/wo-054-answer-once.test.ts` (9; WO-054/9, added by the architect in review: a sponsorship question
+    at a London posting is that posting's own entry, never merged with US postings into the person's fact).
   - A browser test in `tests/career-extension-browser.test.cjs`.
   - A `watch` variant in `tests/fixtures/extension/world.cjs`, which reports any input, change, click or submit on a
     page to the world.
 
 ## Numbers (VERIFIED-S: synthetic persona, synthetic answers; a real person's rate is NOT_RUN)
 `deno run --allow-read --allow-write evals/apply/answer-once.ts --write docs/apply/answer-once.md`, through the
-extension's own `planForm` with each posting's location.
+extension's own `planForm` with each posting's location. Re-measured on WO-055 (jobs abroad asked; an answer about one
+stays that posting's), with each posting's location now also carried into the panel's merge.
 
 With the complete persona (`PERSONA`):
 
 | Sample | Open required questions on cards, no Prepare | Distinct panel questions | Open that are `job:` (cannot merge) | Cards fully ready: before / after every panel answer | Asked again |
 |---|---|---|---|---|---|
-| A (99) | 233 | 189 (95 `job:`) | 128 (54.9%) | 17 / 49 | 3 |
-| B (100) | 178 | 126 (46 `job:`) | 89 (50.0%) | 27 / 44 | 0 |
+| A (99) | 247 | 203 (110 `job:`) | 142 (57.5%) | 15 / 49 | 3 |
+| B (100) | 186 | 134 (57 `job:`) | 97 (52.2%) | 27 / 44 | 0 |
 
 Sessions of 20 give the same totals, because nothing merges.
-- A per session: 54, 44, 50, 23 and 18 panel questions.
-- B per session: 38, 18, 26, 30 and 14.
+- A per session: 57, 48, 53, 25 and 20 panel questions.
+- B per session: 40, 18, 28, 31 and 17.
 
 **With a complete persona, no panel question is asked by more than one posting, on either sample.** What is left is
 two kinds of question:
 - one posting's own (`job:`): offices, work rights abroad, how-heard or a stated fact that did not fit that form's list;
 - wordings no other employer uses (`label:`): experience with a named tool, employer-specific screens.
 
-So the panel saves no questions here. It moves 189 (A) and 126 (B) questions out of the session, and none is asked
+So the panel saves no questions here. It moves 203 (A) and 134 (B) questions out of the session, and none is asked
 twice. Left for the cards:
 - A: 32 essays, 11 agreements and 1 self-identification;
 - B: 41 essays, 6 agreements, 4 files and 1 self-identification.
@@ -92,10 +94,10 @@ With a person who gave only their contact details (a first session):
 
 | Sample | Open on cards, no Prepare | Panel questions | Merged keys (card questions they stand for) | Ready before / after | Asked again |
 |---|---|---|---|---|---|
-| A, one queue | 572 | 299 | 23 (176) | 3 / 26 | 39 |
-| B, one queue | 400 | 209 | 19 (138) | 18 / 39 | 14 |
-| A, sessions of 20 | 430 at each session's start | 280 | | 10 / 35 | 19 |
-| B, sessions of 20 | 294 | 198 | | 26 / 41 | 1 |
+| A, one queue | 572 | 312 | 22 (162) | 3 / 27 | 35 |
+| B, one queue | 400 | 217 | 18 (129) | 18 / 40 | 10 |
+| A, sessions of 20 | 443 at each session's start | 293 | | 9 / 36 | 16 |
+| B, sessions of 20 | 297 | 203 | | 26 / 42 | 0 |
 
 Merging matters only where facts are missing. "Asked again" is partly an artefact: every TEST answer is the first shown
 option, which other lists often lack. It shows that an answer is never forced. It does not measure how often a real

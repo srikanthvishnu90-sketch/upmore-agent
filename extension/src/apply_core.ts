@@ -225,7 +225,7 @@ export function formAnswersToKeep(o: {
 // disability form), a written answer (drafted on the card, WO-049), a file, and an agreement (an agreement is given to one
 // employer: formAnswersToKeep's rule). The panel starts every choice empty; only the person's own pick is ever stored.
 export interface OpenQuestion { label: string; type: string; options: string[]; personal?: boolean }
-export interface PreparedPosting { jobId: string; company: string; url?: string; needs: OpenQuestion[] }
+export interface PreparedPosting { jobId: string; company: string; url?: string; location?: string; needs: OpenQuestion[] }
 export interface AskedAt { jobId: string; company: string; label: string; type: string; options: string[]; misfit: boolean }
 export interface PanelQuestion {
   key: string; kind: string; label: string; type: string; options: string[]; similar: number; postings: AskedAt[]; perPosting: boolean; selected: null;
@@ -252,7 +252,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
       if (why) left.push({ jobId: p.jobId, label: n.label, why });
       else keep.push(n);
     }
-    for (const r of questionsForTrainee({ jobId: p.jobId, company: p.company, needs: keep, answers: o.answers, answered: o.answered }).questions as any[]) {
+    for (const r of questionsForTrainee({ jobId: p.jobId, company: p.company, location: p.location, needs: keep, answers: o.answers, answered: o.answered }).questions as any[]) {
       if (staysWithPosting(r)) {
         left.push({ jobId: p.jobId, label: r.label, why: "agreement" });
         continue;

@@ -469,7 +469,7 @@ async function prepareQueue() {
   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
   const ok = results.filter((r) => r.ok && Array.isArray(r.needs));
   const f = await facts(a.user_id);
-  const merged = C.answerOnceQuestions({ postings: ok.map((r) => ({ jobId: String(r.jobId), company: String(r.company), url: r.url, needs: r.needs })),
+  const merged = C.answerOnceQuestions({ postings: ok.map((r) => ({ jobId: String(r.jobId), company: String(r.company), url: r.url, location: typeof r.location === "string" ? r.location.slice(0, 300) : undefined, needs: r.needs })),
     answers: f.answers, answered: new Set(f.answered) });
   const left = {};
   for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;

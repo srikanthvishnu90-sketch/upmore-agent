@@ -32,7 +32,7 @@ const HERE = "Are you legally authorized to work in the country where this job i
 // What the content script reports for one posting it read in a hidden tab: the extension's own planForm, strict.
 function prepared(jobId: string, company: string, schema: ReturnType<typeof field>[], location?: string, answers: Record<string, any> = ANSWERS, saved = {}): PreparedPosting {
   const p = planForm({ userId: "TEST", jobId, company, family: "lever", schema, answers, saved, now: Date.UTC(2026, 9, 20), location });
-  return { jobId, company, needs: p.needs };
+  return { jobId, company, location, needs: p.needs };
 }
 const merge = (ps: PreparedPosting[], answers: Record<string, unknown> = ANSWERS) => answerOnceQuestions({ postings: ps, answers, answered: new Set() });
 
@@ -200,4 +200,18 @@ Deno.test("WO-054/8 wiring: prepare reads in hidden tabs, never fills or clicks 
   for (const rpc of ["career_apply_questions_put_own", "career_apply_questions_answer_from_form_own", "career_apply_answers_own"]) assert(BACKGROUND.includes(rpc), rpc);
   assert(/id="q-prepare"/.test(PANEL_HTML) && /id="ao-list"/.test(PANEL_HTML) && /id="ao-save"/.test(PANEL_HTML), "the panel's Prepare, list and Save");
   assert(/Workday/.test(prep) && /signed in/.test(prep), "the panel is told why Workday is left out");
+});
+
+Deno.test("WO-054/9 (WO-055) a question about a job abroad is that posting's entry, never merged into the person's fact", () => {
+  const sponsor = "Will you now, or in the future, require sponsorship?";
+  const { sponsorship: _, ...noSponsor } = ANSWERS as Record<string, unknown>;
+  const m = merge([
+    prepared("greenhouse:neo4j:1", "neo4j", [field("s", sponsor, { options: opts("Yes", "No") })], "London", noSponsor as any),
+    prepared("lever:acme:2", "acme", [field("s", sponsor, { options: opts("Yes", "No") })], "Austin, TX", noSponsor as any),
+    prepared("lever:beta:3", "beta", [field("s", sponsor, { options: opts("Yes", "No") })], "Chicago, IL", noSponsor as any),
+  ], noSponsor);
+  const london = m.questions.find((q) => q.postings.some((a) => a.jobId === "greenhouse:neo4j:1"))!;
+  const us = m.questions.find((q) => q.postings.some((a) => a.jobId === "lever:acme:2"))!;
+  eq([london.perPosting, london.postings.length, london.key.startsWith("job:")], [true, 1, true], "London's is its own, shown with its company");
+  eq([us.key, us.postings.map((a) => a.jobId)], ["fact:sponsorship", ["lever:acme:2", "lever:beta:3"]], "the two US postings ask the person's fact once");
 });

@@ -3898,6 +3898,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       for (const r of questionsForTrainee({
         jobId: p.jobId,
         company: p.company,
+        location: p.location,
         needs: keep,
         answers: o.answers,
         answered: o.answered

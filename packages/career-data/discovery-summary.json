@@ -1,0 +1,528 @@
+{
+ "at": "2026-10-20T14:01:43.441Z",
+ "sources": {
+  "directory": 2475,
+  "wo017-candidates": 2018,
+  "hn": {
+   "requests": 14,
+   "errors": 0,
+   "blocked": false,
+   "by_query": {
+    "jobs.lever.co": {
+     "pages": 1,
+     "hits": 307,
+     "slugs": 137
+    },
+    "boards.greenhouse.io": {
+     "pages": 3,
+     "hits": 2955,
+     "slugs": 895
+    },
+    "job-boards.greenhouse.io": {
+     "pages": 1,
+     "hits": 296,
+     "slugs": 0
+    },
+    "jobs.ashbyhq.com": {
+     "pages": 2,
+     "hits": 1261,
+     "slugs": 400
+    },
+    "apply.workable.com": {
+     "pages": 1,
+     "hits": 851,
+     "slugs": 334
+    },
+    "recruitee.com": {
+     "pages": 1,
+     "hits": 301,
+     "slugs": 86
+    },
+    "bamboohr.com": {
+     "pages": 1,
+     "hits": 472,
+     "slugs": 192
+    },
+    "teamtailor.com": {
+     "pages": 1,
+     "hits": 91,
+     "slugs": 28
+    },
+    "breezy.hr": {
+     "pages": 1,
+     "hits": 551,
+     "slugs": 242
+    },
+    "jobs.personio": {
+     "pages": 1,
+     "hits": 265,
+     "slugs": 75
+    },
+    "myworkdayjobs.com": {
+     "pages": 1,
+     "hits": 416,
+     "slugs": 216
+    }
+   },
+   "slugs": 2605
+  },
+  "wayback": {
+   "pages": 37,
+   "errors": 29,
+   "blocked": false,
+   "by_query": {
+    "boards.greenhouse.io/": {
+     "pages": 0,
+     "read": 2,
+     "slugs": 230,
+     "done": false,
+     "errors": 4
+    },
+    "job-boards.greenhouse.io/": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 1485,
+     "done": false,
+     "errors": 2
+    },
+    "jobs.lever.co/": {
+     "pages": 0,
+     "read": 2,
+     "slugs": 297,
+     "done": false,
+     "errors": 4
+    },
+    "jobs.ashbyhq.com/": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 1986,
+     "done": false,
+     "errors": 2
+    },
+    "apply.workable.com/": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 935,
+     "done": false,
+     "errors": 2
+    },
+    "recruitee.com": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 1844,
+     "done": false,
+     "errors": 2
+    },
+    "bamboohr.com": {
+     "pages": 0,
+     "read": 0,
+     "slugs": 0,
+     "done": true,
+     "errors": 4
+    },
+    "teamtailor.com": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 399,
+     "done": false,
+     "errors": 2
+    },
+    "breezy.hr": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 1705,
+     "done": false,
+     "errors": 1
+    },
+    "jobs.personio.de": {
+     "pages": 0,
+     "read": 2,
+     "slugs": 1331,
+     "done": false,
+     "errors": 3
+    },
+    "jobs.personio.com": {
+     "pages": 0,
+     "read": 4,
+     "slugs": 2665,
+     "done": true,
+     "errors": 1
+    },
+    "myworkdayjobs.com": {
+     "pages": 0,
+     "read": 3,
+     "slugs": 466,
+     "done": false,
+     "errors": 2
+    }
+   },
+   "slugs": 13343
+  },
+  "workday-robots": 1161,
+  "domains": 31740,
+  "unique_candidates": 47707,
+  "unique_by_provider": {
+   "smartrecruiters": 3257,
+   "workday": 1593,
+   "lever": 3707,
+   "greenhouse": 6111,
+   "ashby": 5586,
+   "breezy": 4860,
+   "workable": 4205,
+   "recruitee": 4862,
+   "bamboohr": 3154,
+   "teamtailor": 3389,
+   "personio": 6983
+  },
+  "ccdata": {
+   "crawls": [],
+   "blocks_read": 0,
+   "blocks_skipped": 0,
+   "mb": 0,
+   "errors": 0,
+   "blocked": true,
+   "by_prefix": {},
+   "slugs": 0
+  },
+  "sitemaps": {
+   "files": 0,
+   "errors": 0,
+   "by_host": {
+    "boards.greenhouse.io": {
+     "sitemaps": 1,
+     "files": 0,
+     "slugs": 0
+    },
+    "job-boards.greenhouse.io": {
+     "sitemaps": 1,
+     "files": 0,
+     "slugs": 0
+    },
+    "jobs.lever.co": {
+     "sitemaps": 1,
+     "files": 0,
+     "slugs": 0
+    },
+    "jobs.ashbyhq.com": {
+     "sitemaps": 1,
+     "files": 0,
+     "slugs": 0
+    },
+    "apply.workable.com": {
+     "sitemaps": 1,
+     "files": 0,
+     "slugs": 0
+    }
+   },
+   "slugs": 0
+  },
+  "commoncrawl": {
+   "pages": 0,
+   "errors": 0,
+   "crawls": [
+    "CC-MAIN-2026-39",
+    "CC-MAIN-2026-34"
+   ],
+   "blocked": false
+  },
+  "workday_robots": {
+   "tenants": 492,
+   "hosts_read": 492,
+   "errors": 0,
+   "sites": 1161
+  },
+  "gather_seconds": 9403
+ },
+ "shards": [
+  {
+   "providers": [
+    "teamtailor"
+   ],
+   "candidates": 3389,
+   "probed": 3389,
+   "unprobed": 0,
+   "live": 287,
+   "seconds": 1365,
+   "retried": 0
+  },
+  {
+   "providers": [
+    "bamboohr"
+   ],
+   "candidates": 3154,
+   "probed": 3154,
+   "unprobed": 0,
+   "live": 205,
+   "seconds": 1263,
+   "retried": 1
+  },
+  {
+   "providers": [
+    "recruitee"
+   ],
+   "candidates": 4862,
+   "probed": 4862,
+   "unprobed": 0,
+   "live": 903,
+   "seconds": 3960,
+   "retried": 53
+  },
+  {
+   "providers": [
+    "breezy"
+   ],
+   "candidates": 4860,
+   "probed": 4860,
+   "unprobed": 0,
+   "live": 997,
+   "seconds": 1944,
+   "retried": 0
+  },
+  {
+   "providers": [
+    "workable"
+   ],
+   "candidates": 4205,
+   "probed": 1064,
+   "unprobed": 3141,
+   "live": 897,
+   "seconds": 17988,
+   "retried": 0
+  },
+  {
+   "providers": [
+    "workday"
+   ],
+   "candidates": 1593,
+   "probed": 1593,
+   "unprobed": 0,
+   "live": 1229,
+   "seconds": 435,
+   "retried": 10
+  },
+  {
+   "providers": [
+    "smartrecruiters"
+   ],
+   "candidates": 3257,
+   "probed": 3257,
+   "unprobed": 0,
+   "live": 0,
+   "seconds": 0,
+   "retried": 0
+  },
+  {
+   "providers": [
+    "personio"
+   ],
+   "candidates": 6983,
+   "probed": 6983,
+   "unprobed": 0,
+   "live": 2061,
+   "seconds": 2032,
+   "retried": 1
+  },
+  {
+   "providers": [
+    "lever"
+   ],
+   "candidates": 3707,
+   "probed": 3707,
+   "unprobed": 0,
+   "live": 533,
+   "seconds": 3768,
+   "retried": 26
+  },
+  {
+   "providers": [
+    "ashby"
+   ],
+   "candidates": 5586,
+   "probed": 5586,
+   "unprobed": 0,
+   "live": 2064,
+   "seconds": 1118,
+   "retried": 0
+  },
+  {
+   "providers": [
+    "greenhouse"
+   ],
+   "candidates": 6111,
+   "probed": 6111,
+   "unprobed": 0,
+   "live": 1876,
+   "seconds": 1223,
+   "retried": 0
+  }
+ ],
+ "unique_candidates": 47707,
+ "probed": 44566,
+ "unprobed_at_deadline": 3141,
+ "skipped_known_dead": 0,
+ "calibration": {
+  "teamtailor": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "bamboohr": {
+   "http": 302,
+   "verdict": "error"
+  },
+  "recruitee": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "breezy": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "workable": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "workday": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "smartrecruiters": {
+   "http": 0,
+   "verdict": "blocked_by_robots"
+  },
+  "personio": {
+   "http": 0,
+   "verdict": "blocked_by_robots"
+  },
+  "lever": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "ashby": {
+   "http": 404,
+   "verdict": "dead"
+  },
+  "greenhouse": {
+   "http": 404,
+   "verdict": "dead"
+  }
+ },
+ "by": {
+  "teamtailor:live": 287,
+  "teamtailor:dead": 3098,
+  "teamtailor:error": 4,
+  "bamboohr:live": 205,
+  "bamboohr:error": 2949,
+  "recruitee:live": 903,
+  "recruitee:dead": 3856,
+  "recruitee:error": 102,
+  "recruitee:blocked_by_robots": 1,
+  "breezy:live": 997,
+  "breezy:dead": 3857,
+  "breezy:error": 4,
+  "breezy:blocked_by_robots": 2,
+  "workable:live": 897,
+  "workable:dead": 121,
+  "workable:error": 46,
+  "workday:live": 1229,
+  "workday:dead": 217,
+  "workday:error": 147,
+  "smartrecruiters:blocked_by_robots": 3257,
+  "personio:live": 2061,
+  "personio:dead": 964,
+  "personio:blocked_by_robots": 3958,
+  "lever:live": 533,
+  "lever:dead": 3174,
+  "ashby:live": 2064,
+  "ashby:dead": 3522,
+  "greenhouse:live": 1876,
+  "greenhouse:dead": 4235
+ },
+ "verified_boards": 11052,
+ "verified_supported": 11052,
+ "verified_with_postings": 8534,
+ "verified_by_provider": {
+  "teamtailor": 287,
+  "bamboohr": 205,
+  "recruitee": 903,
+  "breezy": 997,
+  "workable": 897,
+  "workday": 1229,
+  "personio": 2061,
+  "lever": 533,
+  "ashby": 2064,
+  "greenhouse": 1876
+ },
+ "verified_by_source": {
+  "hn": 1140,
+  "wayback": 6601,
+  "domains": 430,
+  "directory": 2173,
+  "workday-robots": 651,
+  "wo017-candidates": 57
+ },
+ "probed_by_source": {
+  "hn": 2371,
+  "wayback": 12467,
+  "domains": 26451,
+  "directory": 2475,
+  "workday-robots": 658,
+  "wo017-candidates": 144
+ },
+ "conditional": {
+  "greenhouse": {
+   "live": 1876,
+   "etag": 1876,
+   "last_modified": 0
+  },
+  "lever": {
+   "live": 533,
+   "etag": 533,
+   "last_modified": 0
+  },
+  "ashby": {
+   "live": 2064,
+   "etag": 2064,
+   "last_modified": 0
+  },
+  "smartrecruiters": {
+   "live": 0,
+   "etag": 0,
+   "last_modified": 0
+  },
+  "workable": {
+   "live": 897,
+   "etag": 0,
+   "last_modified": 1
+  },
+  "recruitee": {
+   "live": 903,
+   "etag": 0,
+   "last_modified": 0
+  },
+  "bamboohr": {
+   "live": 205,
+   "etag": 0,
+   "last_modified": 0
+  },
+  "teamtailor": {
+   "live": 287,
+   "etag": 287,
+   "last_modified": 287
+  },
+  "breezy": {
+   "live": 997,
+   "etag": 997,
+   "last_modified": 0
+  },
+  "personio": {
+   "live": 2061,
+   "etag": 2061,
+   "last_modified": 0
+  },
+  "workday": {
+   "live": 1229,
+   "etag": 0,
+   "last_modified": 0
+  }
+ }
+}

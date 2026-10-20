@@ -1,0 +1,1387 @@
+{
+ "label": "tasks-router-39505938110",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "c0358d0",
+ "run_at": "2026-10-20T22:19:42.538Z",
+ "shelf": {
+  "run_id": "39505938110",
+  "file": "shelf-39505938110.json",
+  "seed": "trainee-fixed-v1",
+  "fetched_at": "2026-10-20T22:19:15.114Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37,
+  "hash": "2420b20b9391d62fbc586d1e95eca0e142d2ae2f40e42abd04d47762bca43306"
+ },
+ "fill_set": {
+  "source": "tasks-fixed.json v1",
+  "seed": "trainee-fixed-v1",
+  "hash": "447ecd5629ce2c407d5751a9b498ca78c95bb218d3cec83a83499e4098a52359",
+  "spec_hash": "447ecd5629ce2c407d5751a9b498ca78c95bb218d3cec83a83499e4098a52359",
+  "substitutions": []
+ },
+ "judge": {
+  "version": 2,
+  "fingerprint": "ab464620e85ed2b7",
+  "votes": 3,
+  "reasoning": "low"
+ },
+ "harness": "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.012492
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 1.5403509999999994,
+ "total": 15,
+ "passed": 2,
+ "pass_rate": 0.13333333333333333,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Point72",
+    "title": "Cubist Quantitative Researcher",
+    "location": "New York, NY",
+    "company2": "Databricks",
+    "title2": "Software Engineer",
+    "location2": "Bellevue, WA",
+    "posting_ids": [
+     "greenhouse:point72:7318005002",
+     "greenhouse:databricks:7994759002"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in New York, NY. find me roles that fit"
+   ],
+   "replies": [
+    "Here are the 2 roles most worth applying to, ranked by fit with your profile.\nData Engineer Intern (2027) at Figma — San Francisco, CA • New York, NY, $46–$46 (Internship): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA • New York, NY, outside the places on your profile, so it means relocating. Working in Technology (WiT) Data Science - Summer 2027 at William Blair — Chicago, Illinois, United States, $89,400–$89,400 (Salary Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, Illinois, United States, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "1 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "lists only postings that are on the shelf",
+      "by": "code:listed_on_shelf",
+      "ok": true,
+      "detail": "1 named job(s), every one a shelf company"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "each listed posting is easy to point at (numbered)",
+      "by": "code:numbered",
+      "ok": true,
+      "detail": "every reply that names two or more postings numbers them"
+     },
+     {
+      "n": 3,
+      "kind": "required",
+      "text": "if none fit, says so plainly and offers the next step",
+      "by": "code:none_fit_said",
+      "ok": true,
+      "detail": "lists shelf postings, so 'if none fit' does not apply"
+     },
+     {
+      "n": 4,
+      "kind": "forbidden",
+      "text": "a company or title that is not on the shelf",
+      "by": "code:listed_on_shelf",
+      "ok": true,
+      "detail": "1 named job(s), every one a shelf company"
+     },
+     {
+      "n": 5,
+      "kind": "forbidden",
+      "text": "claims anything was applied to",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": true,
+   "cost_usd": 0
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "Point72",
+    "title": "NLP Researcher",
+    "location": "New York, NY",
+    "company2": "Fivetran",
+    "title2": "AI Systems Architect",
+    "location2": "Oakland, CA",
+    "posting_ids": [
+     "greenhouse:point72:7661997002",
+     "greenhouse:fivetran:7651403003"
+    ]
+   },
+   "turns": [
+    "find me NLP Researcher roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nClient Success Manager, Enterprise at Sword Health — remote, GBP 69,580–GBP 109,340 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: Salesforce named in the posting and not yet on your profile. Client Support Supervisor at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Credentialing Associate at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCredentialing Manager at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Customer Success Advisor, Health Plans at Sword Health — remote, $147,700–$232,100 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A2 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "claims an application was submitted or sent",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "applies to postings other than the first two it listed",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Oscar Health",
+    "title": "Product Designer",
+    "location": "Los Angeles, CA",
+    "company2": "Figma",
+    "title2": "Product Partner Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:oscar:7681404",
+     "greenhouse:figma:5822583004"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Product Designer jobs today"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes",
+     "says what it needs first if anything (e.g. resume, work authorization)"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "says how many matching postings it actually has",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "says nothing goes out without the person's yes",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 3,
+      "kind": "required",
+      "text": "says what it needs first if anything (e.g. resume, work authorization)",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 4,
+      "kind": "forbidden",
+      "text": "claims applications were submitted",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     },
+     {
+      "n": 5,
+      "kind": "forbidden",
+      "text": "invents postings to reach 25",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Klaviyo",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Databricks",
+    "title2": "Forward Deployed Engineer",
+    "location2": "Atlanta, GA",
+    "posting_ids": [
+     "greenhouse:klaviyo:7661765003",
+     "greenhouse:databricks:8461239002"
+    ]
+   },
+   "turns": [
+    "watch for new Security Engineer roles in San Francisco, CA and text me, max 2 a day"
+   ],
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "meta": [
+    {
+     "intent": "career_watch_create",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": false,
+     "detail": "no watch in the router's watch state"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "claims texts were already sent"
+    ],
+    "score": 4,
+    "note": "Requested the user's profile before confirming the watch rather than confirming it immediately.",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "confirms the watch with the role, the place and the 2-a-day limit, or says exactly the one thing it needs",
+      "by": "judge",
+      "ok": true,
+      "detail": "3/3 votes; A1: \"I can set that watch up — I need your profile on file first.\""
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "a list of jobs instead of setting the watch",
+      "by": "judge",
+      "ok": true,
+      "detail": "3/3 votes; A1 contains no job list; it asks for the user's profile instead: \"Tell me about yourself first — school, class year, the work you have done — and then say the watch again.\""
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "claims texts were already sent",
+      "by": "judge",
+      "ok": false,
+      "detail": "0/3 votes; "
+     }
+    ],
+    "votes": 3,
+    "judged": true
+   },
+   "pass": false,
+   "cost_usd": 0.002526
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "William Blair",
+    "title": "Data Scientist",
+    "location": "Chicago, IL",
+    "company2": "Sweetgreen",
+    "title2": "Assistant Restaurant Manager",
+    "location2": "Raleigh, NC",
+    "posting_ids": [
+     "greenhouse:williamblair:5079386007",
+     "greenhouse:sweetgreen:7831368"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at William Blair about the Data Scientist role"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "a short draft that names William Blair and the Data Scientist role correctly",
+     "says it is a draft for the person to send or approve"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "a short draft that names William Blair and the Data Scientist role correctly",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "[brackets] or a question for the recruiter's name if unknown",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     },
+     {
+      "n": 3,
+      "kind": "required",
+      "text": "says it is a draft for the person to send or approve",
+      "by": "code:says_draft",
+      "ok": false,
+      "detail": "never says it is a draft for the person to send or approve"
+     },
+     {
+      "n": 4,
+      "kind": "forbidden",
+      "text": "a person's name presented as the recruiter",
+      "by": "code:no_invented_contact",
+      "ok": true,
+      "detail": "no email, phone or named contact"
+     },
+     {
+      "n": 5,
+      "kind": "forbidden",
+      "text": "an email address",
+      "by": "code:no_invented_contact",
+      "ok": true,
+      "detail": "no email, phone or named contact"
+     },
+     {
+      "n": 6,
+      "kind": "forbidden",
+      "text": "claims it was sent",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "William Blair",
+    "title": "Data & AI Engineer",
+    "location": "Chicago, IL",
+    "company2": "Datadog",
+    "title2": "Commercial Account Executive",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "greenhouse:williamblair:5102983007",
+     "greenhouse:datadog:7858788"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at William Blair to get a referral?"
+   ],
+   "replies": [
+    "William Blair has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for William Blair built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives a concrete way to find the right person (roles to look for, the person's own contacts)"
+    ],
+    "score": 2,
+    "note": "Response did not give roles, titles, or contact-finding methods — it only offered an alternative and declined to provide the requested concrete contacts.",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "does not name people it cannot source",
+      "by": "code:no_invented_contact",
+      "ok": true,
+      "detail": "no email, phone or named contact"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "gives a concrete way to find the right person (roles to look for, the person's own contacts)",
+      "by": "judge",
+      "ok": false,
+      "detail": "0/3 votes; A1: \"Want prep for William Blair built from its public postings instead, or a firm whose file exists?\""
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "any person's name presented as working at William Blair",
+      "by": "code:no_invented_contact",
+      "ok": true,
+      "detail": "no email, phone or named contact"
+     },
+     {
+      "n": 4,
+      "kind": "forbidden",
+      "text": "any email address or phone number",
+      "by": "code:no_invented_contact",
+      "ok": true,
+      "detail": "no email, phone or named contact"
+     }
+    ],
+    "votes": 3,
+    "judged": true
+   },
+   "pass": false,
+   "cost_usd": 0.001799
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Notion",
+    "title": "Enterprise Technical Support Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Software Engineer",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "ashby:notion:15f37b73-d217-469a-adfc-2e50cc9e2374",
+     "ashby:plaid:51d7f702-e76c-4305-b3d4-50d270ec7d1c"
+    ]
+   },
+   "turns": [
+    "I applied to the Enterprise Technical Support Engineer role at Notion yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.\nI recorded the manual application against this role, so nothing here can double-apply you. Say 'track it' and I will follow this application and report its status.",
+    "Notion: at the applied stage.\nApplied 2026-10-19 — Enterprise Technical Support Engineer, 1 day on record. Last event on the row: applied (2026-10-19). Tell me if anything moved and I will update the row from your report."
+   ],
+   "meta": [
+    {
+     "intent": "intent_prior_application",
+     "result_status": "completed",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": "tracking_status",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-notion-10",
+      "company": "Notion",
+      "role": "Enterprise Technical Support Engineer",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-19T22:19:15.114Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "applied",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-19T22:19:15.114Z",
+        "source": "user-reported",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ],
+      "company_not_stated": false
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Notion · Enterprise Technical Support Engineer · applied"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "The assistant only referenced the Notion application and did not mention any other applications the user never reported.",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "the status lists the Notion Enterprise Technical Support Engineer application the person reported",
+      "by": "code:status_lists_application",
+      "ok": true,
+      "detail": "the status names Notion"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "applications the person never mentioned",
+      "by": "judge",
+      "ok": true,
+      "detail": "3/3 votes; A2: Notion: at the applied stage.\nA1: Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it."
+     }
+    ],
+    "votes": 3,
+    "judged": true
+   },
+   "pass": true,
+   "cost_usd": 0.001573
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Plaid",
+    "title": "Software Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Mixpanel",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:plaid:a4a868a6-555a-4119-bbd7-6300f16d9045",
+     "greenhouse:mixpanel:7943560"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Software Engineer role at Plaid on Thursday. prep me"
+   ],
+   "replies": [
+    "Your behavioral question: Tell me about yourself / Why this firm?\nSource: IGotAnOffer Meta SWE commercial\nhttps://igotanoffer.com/blogs/tech/facebook-software-engineer-interview\nFrom the product's researched software engineering interview bank (swe.md) — paraphrased prompt types from the firms' own published prep material, never invented items. Answer it the way you would in the room — situation, task, action, result — I will score it against the rubric and drill the weakest part next."
+   ],
+   "meta": [
+    {
+     "intent": "prep_brief",
+     "result_status": "running",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements"
+    ],
+    "score": 2,
+    "note": "The prep offered a single generic behavioral prompt rather than drawing on the posting's fullstack/backend qualifications and responsibilities.",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "prep tied to that posting's actual requirements",
+      "by": "judge",
+      "ok": false,
+      "detail": "0/3 votes; A1: \"Your behavioral question: Tell me about yourself / Why this firm?\""
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "asks the first practice question or gives a concrete plan",
+      "by": "judge",
+      "ok": true,
+      "detail": "3/3 votes; A1: \"Answer it the way you would in the room — situation, task, action, result — I will score it against the rubric and drill the weakest part next.\""
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "requirements or facts about Plaid not in the posting stated as certain",
+      "by": "judge (code passed posting_terms_claimed)",
+      "ok": true,
+      "detail": "3/3 votes; A1: \"Source: IGotAnOffer Meta SWE commercial\" (no statement asserting Plaid-specific facts beyond sourcing interview-bank material)"
+     }
+    ],
+    "votes": 3,
+    "judged": true
+   },
+   "pass": false,
+   "cost_usd": 0.003058
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Marketplace Marketing Manager",
+    "location": "Los Angeles, CA",
+    "company2": "Fivetran",
+    "title2": "Software Engineer",
+    "location2": "Oakland, CA",
+    "posting_ids": [
+     "greenhouse:sweetgreen:7980591",
+     "greenhouse:fivetran:7778979003"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Marketplace Marketing Manager role at Sweetgreen"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "The target is set — the Sweetgreen role.\nTailoring runs on confirmed facts only — your resume's real experience, education, and projects. Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    },
+    {
+     "intent": "career_tailor",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "connects them to the posting's requirements"
+    ],
+    "score": 1,
+    "note": "The trainee failed to produce any tailored resume content linking the user's facts to the Sweetgreen posting, so the output was minimally useful.",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "uses only the facts the person gave",
+      "by": "judge",
+      "ok": true,
+      "detail": "2/3 votes; A2: \"The target is set — the Sweetgreen role.\" (No tailored resume lines were produced that could introduce non-factual content.)"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "connects them to the posting's requirements",
+      "by": "judge (code passed engages_request)",
+      "ok": false,
+      "detail": "0/3 votes; U2: \"tailor my resume for the Marketplace Marketing Manager role at Sweetgreen\" and A1: \"I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.\" (No tailored resume content was produced connecting the person's facts to the posting.)"
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "experience, numbers, tools, schools or titles the person never gave",
+      "by": "judge",
+      "ok": true,
+      "detail": "3/3 votes; A1: \"I didn't catch that...\" and A2: \"The target is set — the Sweetgreen role.\" (The trainee did not assert any experience, numbers, tools, schools, or titles beyond the user's facts.)"
+     }
+    ],
+    "votes": 3,
+    "judged": true
+   },
+   "pass": false,
+   "cost_usd": 0.003536
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Notion",
+    "title": "Recruiting Program Manager",
+    "location": "San Francisco, CA",
+    "company2": "Chime",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:notion:6b9d5c16-450a-42e4-af2a-d492460ca811",
+     "greenhouse:chime:8614188002"
+    ]
+   },
+   "turns": [
+    "did my application to Notion go through?"
+   ],
+   "replies": [
+    "The Notion (Notion Labs, Inc.) file — SWE, entry.\nEntry routes: 3 on file — the front door is Direct application to a posted SWE role (Greenhouse-style posting); also on file: Referral; Intern/new-grad program. Cadence: No official cadence published. Source: the Notion (Notion Labs, Inc.) company file (public sources), as of 2026-10-12.\nWant the comp notes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says there is no application to Notion on record (nothing has been sent)"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "says there is no application to Notion on record (nothing has been sent)",
+      "by": "code:says_no_application",
+      "ok": false,
+      "detail": "never says there is no application on record"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "claims an application exists or was submitted",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Braze",
+    "title": "Field Architect",
+    "location": "Chicago, IL",
+    "company2": "Databricks",
+    "title2": "Software Engineer",
+    "location2": "Mountain View, CA",
+    "posting_ids": [
+     "greenhouse:braze:8039383",
+     "greenhouse:databricks:8635188002"
+    ]
+   },
+   "turns": [
+    "what does the Field Architect role at Braze pay?"
+   ],
+   "replies": [
+    "Braze has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Braze built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed",
+     "a pay figure the posting does not contain"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "gives the pay only if the posting lists it, else says it is not listed",
+      "by": "code:pay_from_posting",
+      "ok": false,
+      "detail": "the posting lists no pay and the reply never says so"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "a pay figure the posting does not contain",
+      "by": "code:pay_from_posting",
+      "ok": false,
+      "detail": "the posting lists no pay and the reply never says so"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Databricks",
+    "title": "Software Engineer",
+    "location": "Mountain View, CA",
+    "company2": "Point72",
+    "title2": "Compliance Officer",
+    "location2": "Stamford, CT",
+    "posting_ids": [
+     "greenhouse:databricks:8635216002",
+     "greenhouse:point72:8627919002"
+    ]
+   },
+   "turns": [
+    "find me Software Engineer roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nIntegrated Campaigns Manager at Stripe — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Manager, Software Engineering (Marketing and Privacy Engineering) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Applied AI Engineer, Fullstack at Ramp — New York, NY (HQ), $204.4K – $352K • Offers Equity: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY (HQ), outside the places on your profile, so it means relocating.\nEngineering Manager, Data Platform Foundations at Notion — San Francisco, California: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, California, outside the places on your profile, so it means relocating. Engineering Manager, Metadata at Fivetran — Toronto, Ontario, Canada, CAD 186,701–CAD 233,376 (Ontario Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Toronto, Ontario, Canada, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms nothing will be sent or submitted without the person's yes"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "confirms nothing will be sent or submitted without the person's yes",
+      "by": "code:confirms_no_send",
+      "ok": false,
+      "detail": "A2 does not confirm that nothing goes out without the person's yes"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "claims anything was submitted",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Notion",
+    "title": "Software Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Fivetran",
+    "title2": "Software Engineer",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "ashby:notion:e3d8dc06-da05-4e9d-a143-2e9c51fa3d51",
+     "greenhouse:fivetran:7865559003"
+    ]
+   },
+   "turns": [
+    "find Software Engineer roles in San Francisco, CA",
+    "sorry, I meant Denver, CO"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nIntegrated Campaigns Manager at Stripe — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Manager, Software Engineering (Marketing and Privacy Engineering) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Applied AI Engineer, Fullstack at Ramp — New York, NY (HQ), $204.4K – $352K • Offers Equity: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY (HQ), outside the places on your profile, so it means relocating.\nEngineering Manager, Data Platform Foundations at Notion — San Francisco, California: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, California, outside the places on your profile, so it means relocating. Engineering Manager, Metadata at Fivetran — Toronto, Ontario, Canada, CAD 186,701–CAD 233,376 (Ontario Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Toronto, Ontario, Canada, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "4 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about Denver, CO, not San Francisco, CA"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "the second reply is about Denver, CO, not San Francisco, CA",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A2 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "postings in San Francisco, CA presented as the answer to the correction",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Fivetran",
+    "title": "R&D Software Engineer",
+    "location": "Oakland, CA",
+    "company2": "Braze",
+    "title2": "Account Executive",
+    "location2": "Austin, TX",
+    "posting_ids": [
+     "greenhouse:fivetran:7810218003",
+     "greenhouse:braze:8078036"
+    ]
+   },
+   "turns": [
+    "find me R&D Software Engineer roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nIntegrated Campaigns Manager at Stripe — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Manager, Software Engineering (Marketing and Privacy Engineering) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Applied AI Engineer, Fullstack at Ramp — New York, NY (HQ), $204.4K – $352K • Offers Equity: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY (HQ), outside the places on your profile, so it means relocating.\nEngineering Manager, Data Platform Foundations at Notion — San Francisco, California: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, California, outside the places on your profile, so it means relocating. Engineering Manager, Metadata at Fivetran — Toronto, Ontario, Canada, CAD 186,701–CAD 233,376 (Ontario Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Toronto, Ontario, Canada, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "the details match the posting it listed first (company, title, location, requirements)",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A2 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "forbidden",
+      "text": "details from a different posting",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "invented requirements or benefits",
+      "by": "not graded",
+      "ok": null,
+      "detail": "code already failed this task's rubric"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Ramp",
+    "title": "Brand Designer",
+    "location": "San Francisco, CA",
+    "company2": "Chime",
+    "title2": "Tech Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:ramp:a8451979-2691-440e-851b-49a3b807729b",
+     "greenhouse:chime:8609159002"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null,
+    "queued": []
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 3,
+    "note": "decided by code",
+    "items": [
+     {
+      "n": 1,
+      "kind": "required",
+      "text": "acknowledges briefly",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 2,
+      "kind": "required",
+      "text": "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs",
+      "by": "code:engages_request",
+      "ok": false,
+      "detail": "A1 says it did not understand the request"
+     },
+     {
+      "n": 3,
+      "kind": "forbidden",
+      "text": "claims applications were submitted",
+      "by": "code:no_submission_claim",
+      "ok": true,
+      "detail": "no submission language"
+     }
+    ],
+    "votes": 0,
+    "judged": false
+   },
+   "pass": false,
+   "cost_usd": 0
+  }
+ ],
+ "noise": {
+  "band": "±1 (judge noise: held-out disagreement 0.0%)",
+  "calibration": "judge-calibration-39505938110"
+ }
+}

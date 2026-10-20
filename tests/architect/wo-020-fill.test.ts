@@ -26,7 +26,8 @@ const YN = ["Yes", "No"];
 Deno.test("WO-020/F1 stated facts land on the employer's own wording of the answer", () => {
   eq(fill("Will you now or in the future require employment sponsorship?", ["Yes, I will require sponsorship", "No, I will not require sponsorship"]), "No, I will not require sponsorship");
   eq(fill("EXPORT COMPLIANCE", ["I am currently a “U.S. Person”", "I am not a “U.S. Person\""]), "I am currently a “U.S. Person”");
-  eq(fill("Are you subject to any non-compete, non-solicitation, or confidentiality agreements with your current or former employers?", ["I DO have an employment agreement with a previous employer", "I DO NOT have an employment agreement with a previous employer"]), "I DO NOT have an employment agreement with a previous employer");
+  // WO-052: most employees sign a confidentiality agreement; a "no" to non-competes does not answer one: asked.
+  eq(fill("Are you subject to any non-compete, non-solicitation, or confidentiality agreements with your current or former employers?", ["I DO have an employment agreement with a previous employer", "I DO NOT have an employment agreement with a previous employer"]), "ASKED");
   eq(fill("Are you legally authorized to work in the United States?", ["I am authorized to work in the United States for any employer", "I am authorized to work in the United States for my present employer only", "I require sponsorship to work in the United States", "I am not authorized to work in the United States"]), "I am authorized to work in the United States for any employer");
   eq(fill("How did you hear about this job?", ["Campus - SpaceX event (indicate below)", "Careers site", "Glassdoor", "Indeed", "LinkedIn", "Other (indicate below)"]), "Careers site");
   eq(fill("Gender", ["Male", "Female", "Decline to self-identify"]), "Decline to self-identify");
@@ -90,7 +91,10 @@ Deno.test("WO-020/F5 on the approval card, a consent, a legal statement and a te
 
 Deno.test("WO-020/F6 fill coverage meets the bar and the committed report is today's", () => {
   const a = fillCoverage(A as any), b = fillCoverage(B as any);
-  assert(a.rate >= 0.84 && b.rate >= 0.82, `${a.rate} ${b.rate}`);
-  assert(a.ready >= 35 && b.ready >= 45, `${a.ready} ${b.ready}`);
+  // WO-052: the floors are now fills an independent review judged right (1,458 on A and B: none judged wrong; 3 years-of-
+  // experience fills judged unsure are kept, since fact_schema defines years_experience as relevant years),
+  // not what was filled: the 84.6% / 84.1% before counted 73 wrong fills and 35 the persona did not settle.
+  assert(a.rate >= 0.78 && b.rate >= 0.78, `${a.rate} ${b.rate}`);
+  assert(a.ready >= 30 && b.ready >= 38, `${a.ready} ${b.ready}`);
   assert(REPORT.includes(`| ${a.postings} | ${a.required} | ${a.filled} (`) && REPORT.includes(`| ${b.postings} | ${b.required} | ${b.filled} (`), "docs/apply/fill-coverage.md is stale: regenerate it");
 });

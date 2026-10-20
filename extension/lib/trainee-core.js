@@ -768,6 +768,7 @@
   var yesNoOnly = (q) => !q.options?.length || /^(yes|no|sí|si|ja|nee|はい|いいえ|n\/a|not sure|i'?m not sure| \| )+$/i.test(opts(q).replace(/[.\s]+/g, " ").replace(/ \| /g, " | ").trim()) || q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
   var WHY = /\bwhy\b(?!.*\b(good|great) fit\b)(?!.*\bwhy you'?re\b)|pourquoi|por qué|\binterest(s|ed)? you\b|\bexcites? you\b|\bexcited about\b|\bresonate|\bdrew you|\bwhat interested you\b|\bwhy are you interested\b|\bwhy do you want\b|\bmakes you excited\b|\bwhat makes you want\b/;
   var DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
+  var BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance/;
   var ackOpt = (x) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
   function ackShaped(q, t) {
     const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -818,17 +819,30 @@
     [
       "ai_policy_ack",
       /\bai\b|artificial intelligence/,
-      (q, t) => ackShaped(q, t)
+      (q, t) => ackShaped(q, t) && !BEYOND_CONSENT.test(t + " " + opts(q))
     ],
     [
       "certify_true",
       /\bcertif|\btrue and|\baccurate\b|applicant'?s statement/,
-      (q, t) => ackShaped(q, t)
+      (q, t) => ackShaped(q, t) && !BEYOND_CONSENT.test(t + " " + opts(q))
     ],
     [
       "privacy_ack",
-      /privacy|personal (data|information)|data (protection|processing)|\bccpa\b|consumer privacy|arbitrat|confidential|notice to (applicants|candidates)/,
-      (q, t) => ackShaped(q, t)
+      /privacy|personal (data|information)|data (protection|processing)|\bccpa\b|consumer privacy|notice to (applicants|candidates)/,
+      (q, t) => ackShaped(q, t) && !BEYOND_CONSENT.test(t + " " + opts(q))
+    ],
+    // WO-052: a box to check under the export-control "U.S. person" definition (Saronic) is the person's U.S.-person
+    // statement, the same attestation as the question that asks it outright; only a stated "yes" ever checks it.
+    [
+      "us_person",
+      /\bu\.?s\.? person\b/,
+      (q, t) => q.type === "checkbox" && ackShaped(q, t)
+    ],
+    // A notice named only in its option ("Please review the linked document:" over "I acknowledge ... Privacy Notice").
+    [
+      "privacy_ack",
+      /.*/,
+      (q, t) => ackShaped(q, t) && /privacy/.test(opts(q)) && !BEYOND_CONSENT.test(t + " " + opts(q))
     ],
     [
       "unknown",
@@ -902,7 +916,11 @@
     [
       "full_address",
       /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/,
-      (q, t) => !/e-?mail|ip address|work address/.test(t)
+      (q, t) => !/e-?mail|ip address|work address/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)
+    ],
+    [
+      "unknown",
+      /\bcity\b.*\b(zip|postal|country)\b|\b(zip|postal)\b.*\bcity\b/
     ],
     [
       "postal_code",
@@ -992,7 +1010,8 @@
     ],
     [
       "employment_status",
-      /\bare you (currently )?employed\b|\bcurrent employment status\b|\bon "?layoff"? status\b/
+      /\bare you (currently )?employed\b|\bcurrent employment status\b/,
+      (q, t) => !/\bemployed (by|with|at|in)\b|layoff|recall/.test(t)
     ],
     [
       "years_experience",
@@ -1018,6 +1037,10 @@
       /\bcompensation (expectations )?(range )?(align|aligns)\b|\balign(s)? with (the posted range|my expectations)\b|\bpays a rate of\b.*\baccept\b/
     ],
     [
+      "unknown",
+      /\b(salary|compensation|pay|ctc)\b.*\b(range|monthly|per month|a month|hourly|per hour|an hour|formatting|format)\b|\b(range|monthly|hourly)\b.*\b(salary|compensation|pay)\b|\$00/
+    ],
+    [
       "current_compensation",
       /\bcurrent (ctc|compensation|salary|base)\b/
     ],
@@ -1038,7 +1061,8 @@
     ],
     [
       "gpa",
-      /\bgpa\b|\bppa\b|\bgrade point average\b|\bdegree result\b/
+      /\bgpa\b|\bgrade point average\b|\bdegree result\b/,
+      (q, t) => !/grading system/.test(t)
     ],
     [
       "test_scores",
@@ -1072,7 +1096,8 @@
     ],
     [
       "school",
-      /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/
+      /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/,
+      (q, t) => !/\bdegree\b|high school performance/.test(t)
     ],
     // Skills.
     // "What other languages do you speak?" asks for languages besides the one a person always has: their language fact
@@ -1097,9 +1122,15 @@
     [
       "certifications",
       /\bcertification|\bcertified\b|\bcpa\b/,
-      (q, t) => !/certify that/.test(t)
+      (q, t) => !/certify that|attestation/.test(t)
     ],
     // Authorization.
+    // WO-052: the countries of citizenship with when each was obtained: the dates are the person's own (Zoox).
+    [
+      "unknown",
+      /\bcitizen\w*\b.*\b(when|obtained|dates?)\b/,
+      (q, t) => /\bcountr(y|ies)\b/.test(t)
+    ],
     [
       "citizenship",
       /\bexport\b.*\bcountr(y|ies)\b.*\bcitizen(ship)?\b|\bcountr(y|ies) of citizenship\b/
@@ -1113,7 +1144,19 @@
       /\bcitizen\b/,
       (q) => /asylee|refugee|protected individual/.test(opts(q))
     ],
+    // WO-052: "Only US Citizens will be considered" over "Yes, I am a US Citizen." and "Candidates must be US Citizens. Can
+    // you meet this requirement?" ask whether the person is a U.S. citizen (Kitware, Juvare).
+    [
+      "citizenship",
+      /\b(u\.?s\.?|united states) citizens\b/,
+      (q, t) => (/citizen/.test(opts(q)) || /\bcan you meet this requirement\b|\bare you\b/.test(t)) && !/permanent resident|green card|lawful|asylee|refugee|national\b/.test(t)
+    ],
     // Eligibility to obtain a clearance is not holding one: "None held" never answers "eligible?" (WO-042, Anduril).
+    // Willing to apply for a clearance is the person's to say; holding none does not answer it (WO-052, Kitware).
+    [
+      "clearance_eligibility",
+      /\b(willing|able) (and able )?to (apply for|obtain|get)\b.*\bclearance\b/
+    ],
     [
       "clearance_eligibility",
       /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/
@@ -1122,6 +1165,11 @@
       "security_clearance",
       /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/
     ],
+    // When the person's authorization ends is theirs to state; a "yes" to being authorized is not "no expiry".
+    [
+      "unknown",
+      /\b(authori[sz]ation|visa|permit|status)\b.*\b(expir\w*|end date)\b|\bexpir\w*\b.*\b(authori[sz]ation|visa|permit)\b/
+    ],
     [
       "sponsorship",
       /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/
@@ -1129,7 +1177,7 @@
     [
       "citizenship",
       /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/,
-      (q, t) => !/renounced/.test(t)
+      (q, t) => !/renounced|\bwhen\b|obtained|\bdates?\b/.test(t)
     ],
     [
       "work_authorization",
@@ -1151,9 +1199,15 @@
       /\btransitioning service member\b|\bveteran\b|\bdisability\b|\bgender\b|\bethnicity\b|\brace\b|\bhispanic\b|\blatin[oax]\b|\bsexual orientation\b|\bgender identity\b|\btransgender\b|^tu es\b/
     ],
     // Legal attestations.
+    // WO-052: the person's "no" to criminal history is about convictions. Drug use, a court order, a commitment, a
+    // discharge, a dishonorable discharge or a regulator's bar are other questions, each the person's own: asked.
+    [
+      "unknown",
+      /\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/
+    ],
     [
       "criminal_history",
-      /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\billegally or unlawfully\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/
+      /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\billegally or unlawfully\b/
     ],
     [
       "government_employment",
@@ -1161,11 +1215,14 @@
     ],
     [
       "non_compete",
-      /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/
+      /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/,
+      (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|conflict of interest/.test(t)
     ],
+    // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
     [
       "background_check_ok",
-      /\bbackground (check|investigation)\b|\bdrug (test|screen)\b|\bscreen monitoring\b/
+      /\bbackground (check|investigation)\b/,
+      (q, t) => !/drug|substance|reference check|monitor/.test(t)
     ],
     // Consent.
     [
@@ -1174,20 +1231,29 @@
     ],
     [
       "marketing_opt_in",
-      /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b|\btalent matching\b/
+      /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b/
     ],
     [
       "ai_policy_ack",
-      /\bai policy\b|\bai notetaker|\buse (of )?ai (tools )?to\b.*\b(research|prepare|refine|application)|\bplagiarism\b|\bown words\b|\bembrace ai\b/,
-      (q) => !LONG_TYPES.has(String(q.type))
+      /\bai policy\b|\buse (of )?ai (tools )?to\b.*\b(research|prepare|refine|application)|\bplagiarism\b|\bown words\b|\bembrace ai\b/,
+      (q, t) => !LONG_TYPES.has(String(q.type)) && !BEYOND_CONSENT.test(t + " " + opts(q))
     ],
     [
       "certify_true",
-      /\bcertif(y|ication)\b.*\b(true|accurate|correct|complete)|\btrue and (complete|correct)|\baccurate to the best\b|\bapplicant'?s? statement\b|\bcertification & attestation\b|\baffirmation\b/
+      /\bcertif(y|ication)\b.*\b(true|accurate|correct|complete)|\btrue and (complete|correct)|\baccurate to the best\b|\bapplicant'?s? statement\b/,
+      (q, t) => !BEYOND_CONSENT.test(t + " " + opts(q))
     ],
+    // A bare heading ("Certification & Attestation", "Affirmation") does not say what is attested: the person reads it
+    // (WO-052, IEM).
     [
       "privacy_ack",
-      /\bprivacy\b|\bpersonal (data|information)\b|\bdata (protection|processing)\b|\barbitrat|\backnowledg|\bconfidential(ity)? (information|acknowledg)|\bi (agree|accept)\b|\bconsumer privacy act\b|\bin consideration of\b|\bplease read\b|\breview the linked document\b|\bnotify you that personal data\b/
+      /\bprivacy\b|\bpersonal (data|information)\b|\bdata (protection|processing)\b|\bconsumer privacy act\b|\breview the linked document\b|\bnotify you that personal data\b/,
+      (q, t) => !BEYOND_CONSENT.test(t + " " + opts(q)) && (!/review the linked document/.test(t) || /privacy/.test(opts(q)))
+    ],
+    // A data-use consent beyond the standing one (reuse, sharing): the person's own, never read as a screen (WO-052, Agoda).
+    [
+      "unknown",
+      /\b(personal data|your data|data from your application)\b/
     ],
     // The application and this employer.
     [
@@ -1196,30 +1262,55 @@
     ],
     [
       "relative_here",
-      /\b(relatives?|family members?|spouses?|related to|personal relationships?|close relationships?|in-laws|anyone you live with)\b/
+      /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/,
+      (q, t) => !/friend|household|supplier|vendor|partner|personal relationship/.test(t)
     ],
     [
       "applied_before",
       /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/
     ],
+    // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
+    // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.
+    [
+      "worked_here_before",
+      /\b(currently|now) or have you ever been (a |an )?[^?]{1,60}\bemployee\b|\bare you (a |an )?current [^?]{1,60}\bemployee\b/,
+      (q, t) => !/temporar|\btemp\b|agency|vendor|contract|consult|intern|government|relative|family/.test(t)
+    ],
     [
       "worked_here_before",
       /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/,
-      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of/.test(t)
+      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)
     ],
     [
       "how_heard",
       /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/
     ],
+    // "Available on request" answers only a question about references, never a request to list them (WO-052).
     [
       "references",
-      /\breferences?\b(?!.*\b(cv|resume)\b)/
+      /\breferences?\b(?!.*\b(cv|resume)\b)/,
+      (q, t) => !/\b(list|enter|provide|names?|emails?|phone|contact|rationale|evidence|make reference|reference check)\b/.test(t)
     ],
     // This job's screens.
     // Before the other screens: a question that names an essential function but asks about commuting is about commuting.
     // Whether the person lives within commuting distance of this job's office depends on where that office is, which their
     // stated yes to working on site does not say: asked (WO-042, Snowflake).
     // WO-048: "Are you local to Chicago, IL or willing to relocate?" asks two things at once; neither fact alone answers it.
+    // WO-052: a plan to work remotely is not the person's yes to the office read backwards (Stripe).
+    [
+      "unknown",
+      /\b(plan|intend|want|prefer|wish|like) to work remote(ly)?\b/
+    ],
+    // WO-052: needing relocation, limits on relocating and knowing a role requires it are not the person's willingness.
+    [
+      "unknown",
+      /\brequire (relocation|relocating|you to relocate)\b.*\?$|\bwill you require relocation\b|\brelocation (limitation|restriction)s?\b|\bare you aware\b/
+    ],
+    // An in-person interview, many trips or a share of time traveling is not the person's general yes to the office or to travel.
+    [
+      "unknown",
+      /\bin-?person\b.{0,40}\binterview|\binterview\b.{0,40}\bin-?person\b|\b\d+\s*%\s*(of )?travel|\btravel\b.{0,40}\b\d+\s*%|\b\d+\s*-\s*\d+ times a year\b|\binternational(ly)? travel/
+    ],
     [
       "unknown",
       /\b(are|do) you (currently )?(local to|live in|living in|based in|reside in|near) (?!or\b)[a-z].*\bor\b.*\brelocat|\brelocat\w*\b.*\bor\b.*\b(local to|live in|living in|based in|reside in) (?!or\b)[a-z]/
@@ -1267,10 +1358,6 @@
     [
       "relocation",
       /\brelocat/
-    ],
-    [
-      "onsite_ok",
-      /\bdo you plan to work remotely\b/
     ],
     [
       "job_onsite",
@@ -1528,6 +1615,217 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }).filter((x) => !!x);
     return only(ranges.filter((r) => v >= r.lo && v <= r.hi).map((r) => r.o));
   }
+  function usCitizenChoice(citizenship, options) {
+    if (!US.test(low(citizenship))) return null;
+    return only(options.filter((o) => /\b(u\.?s\.?a?|united states( of america)?) citizen/.test(low(o.label)) && !/\bnot\b|\bnon-|^no\b/.test(low(o.label))));
+  }
+  var LANGUAGES = [
+    [
+      "english",
+      /\benglish\b|\banglais\b|\bengels\b|英語/
+    ],
+    [
+      "spanish",
+      /\bspanish\b|\bespañol\b|\bcastellano\b|\bspaans\b/
+    ],
+    [
+      "french",
+      /\bfrench\b|\bfrançais\b|\bfrans\b/
+    ],
+    [
+      "german",
+      /\bgerman\b|\bdeutsch\b|\bduits\b|\ballemand\b/
+    ],
+    [
+      "dutch",
+      /\bdutch\b|\bnederlands\b|\bflemish\b/
+    ],
+    [
+      "portuguese",
+      /\bportuguese\b|\bportuguês\b/
+    ],
+    [
+      "italian",
+      /\bitalian\b|\bitaliano\b/
+    ],
+    [
+      "japanese",
+      /\bjapanese\b|日本語/
+    ],
+    [
+      "chinese",
+      /\bchinese\b|\bmandarin\b|\bcantonese\b|中文/
+    ],
+    [
+      "korean",
+      /\bkorean\b|한국어/
+    ],
+    [
+      "arabic",
+      /\barabic\b/
+    ],
+    [
+      "hindi",
+      /\bhindi\b/
+    ],
+    [
+      "russian",
+      /\brussian\b/
+    ],
+    [
+      "polish",
+      /\bpolish\b/
+    ],
+    [
+      "turkish",
+      /\bturkish\b/
+    ],
+    [
+      "swedish",
+      /\bswedish\b/
+    ],
+    [
+      "danish",
+      /\bdanish\b/
+    ],
+    [
+      "norwegian",
+      /\bnorwegian\b/
+    ],
+    [
+      "finnish",
+      /\bfinnish\b/
+    ],
+    [
+      "hebrew",
+      /\bhebrew\b/
+    ],
+    [
+      "vietnamese",
+      /\bvietnamese\b/
+    ],
+    [
+      "thai",
+      /\bthai\b/
+    ],
+    [
+      "indonesian",
+      /\bindonesian\b|\bbahasa\b/
+    ],
+    [
+      "greek",
+      /\bgreek\b/
+    ],
+    [
+      "czech",
+      /\bczech\b/
+    ],
+    [
+      "hungarian",
+      /\bhungarian\b/
+    ],
+    [
+      "romanian",
+      /\bromanian\b/
+    ],
+    [
+      "ukrainian",
+      /\bukrainian\b/
+    ],
+    [
+      "basque",
+      /\bbasque\b|\beuskara\b/
+    ],
+    [
+      "catalan",
+      /\bcatalan\b/
+    ],
+    [
+      "tagalog",
+      /\btagalog\b|\bfilipino\b/
+    ],
+    [
+      "persian",
+      /\bpersian\b|\bfarsi\b/
+    ]
+  ];
+  var languagesIn = (s) => new Set(LANGUAGES.filter(([, re]) => re.test(s)).map(([n]) => n));
+  var NOT_SPOKEN = /\b(english|spanish|french|german|dutch|portuguese|italian|japanese|chinese|korean|arabic|hindi|russian|polish|turkish|swedish|danish|norwegian|finnish|hebrew|vietnamese|thai|indonesian|greek|czech|hungarian|romanian|ukrainian|basque|catalan|persian)[- ](market|customers?|clients?|law|company|companies|team|office|region|citizens?|speaking (market|countr\w*|region))\b/;
+  function languageNo(question, value) {
+    const q = low(question);
+    if (NOT_SPOKEN.test(q) || !/\b(speak|fluen\w*|proficien\w*|native|bilingual|language|spreek|vloeiend|parle|habla)/.test(q)) return null;
+    const asked = languagesIn(q), have = languagesIn(low(value));
+    if (!asked.size || !have.size) return null;
+    const missing = [
+      ...asked
+    ].filter((x) => !have.has(x));
+    if (/\bor\b|\//.test(q)) return missing.length === asked.size ? "no" : null;
+    return missing.length ? "no" : null;
+  }
+  var BORDERS = {
+    al: "fl ga ms tn",
+    ak: "",
+    az: "ca co nm nv ut",
+    ar: "la mo ms ok tn tx",
+    ca: "az nv or",
+    co: "az ks ne nm ok ut wy",
+    ct: "ma ny ri",
+    de: "md nj pa",
+    dc: "md va",
+    fl: "al ga",
+    ga: "al fl nc sc tn",
+    hi: "",
+    id: "mt nv or ut wa wy",
+    il: "ia in ky mi mo wi",
+    in: "il ky mi oh",
+    ia: "il mn mo ne sd wi",
+    ks: "co mo ne ok",
+    ky: "il in mo oh tn va wv",
+    la: "ar ms tx",
+    me: "nh",
+    md: "dc de pa va wv",
+    ma: "ct nh ny ri vt",
+    mi: "il in mn oh wi",
+    mn: "ia mi nd sd wi",
+    ms: "al ar la tn",
+    mo: "ar ia il ks ky ne ok tn",
+    mt: "id nd sd wy",
+    ne: "co ia ks mo sd wy",
+    nv: "az ca id or ut",
+    nh: "ma me vt",
+    nj: "de ny pa",
+    nm: "az co ok tx ut",
+    ny: "ct ma nj pa ri vt",
+    nc: "ga sc tn va",
+    nd: "mn mt sd",
+    oh: "in ky mi pa wv",
+    ok: "ar co ks mo nm tx",
+    or: "ca id nv wa",
+    pa: "de md nj ny oh wv",
+    ri: "ct ma ny",
+    sc: "ga nc",
+    sd: "ia mn mt nd ne wy",
+    tn: "al ar ga ky mo ms nc va",
+    tx: "ar la nm ok",
+    ut: "az co id nm nv wy",
+    vt: "ma nh ny",
+    va: "dc ky md nc tn wv",
+    wa: "id or",
+    wv: "ky md oh pa va",
+    wi: "ia il mi mn",
+    wy: "co id mt ne sd ut"
+  };
+  var near = (a, b) => a === b || (BORDERS[a] ?? "").split(" ").includes(b);
+  function locationNo(question, value) {
+    if (/relocat|willing|commut|open to|remote|hybrid|travel|authori|right to work|visa|sponsor|eligib|miles|within|office|on-?site|in-?person|work (in|from|at)/i.test(question)) return null;
+    const home = String(value).split(",")[1]?.trim().toLowerCase();
+    if (!home || !(home in STATES)) return null;
+    const named = [
+      ...question.matchAll(/,\s*([A-Z]{2})\b/g)
+    ].map((m) => m[1].toLowerCase()).filter((x) => x in STATES);
+    if (!named.length) return null;
+    return named.some((x) => near(home, x)) ? null : "no";
+  }
   var HOW_HEARD = [
     [
       /career|company (web)?site|website|direct/,
@@ -1549,6 +1847,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var howHeardChannel = (value) => HOW_HEARD.some(([v]) => v.test(low(value)));
   function yesNoFromFact(fact, value, question) {
     const q = low(question), v = low(value);
+    if (fact === "languages") return languageNo(question, value);
+    if (fact === "location") return locationNo(question, value);
     const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
     if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
     if (fact === "education_level") {
@@ -1590,7 +1890,18 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     switch (fact) {
       case "how_heard": {
         const rule = HOW_HEARD.find(([v2]) => v2.test(v));
-        return rule ? only(options.filter((o) => rule[1].test(low(o.label)))) : null;
+        if (!rule) return null;
+        const hits = options.filter((o) => rule[1].test(low(o.label)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+        return only(hits) ?? only(hits.filter((o) => /career/.test(low(o.label))));
+      }
+      case "languages": {
+        if (derived !== "no") return null;
+        return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+      }
+      case "graduation_date": {
+        const y = /\b(19|20)\d{2}\b/.exec(v)?.[0];
+        if (y && options.every((o) => /^\s*(19|20)\d{2}\s*$/.test(o.label))) return only(options.filter((o) => o.label.trim() === y));
+        break;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
@@ -1601,6 +1912,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       case "education_level": {
         const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
         if (!re) return null;
+        if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
         const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
         const core = (l) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
         if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
@@ -1630,7 +1942,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           if (itself.length === 1) return itself[0].value;
           const whole = options.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
           if (whole.length === 1 && options.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
-          return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+          return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label)))) ?? usCitizenChoice(v, options);
         }
         return only(options.filter((o) => low(o.label).startsWith(v)));
       case "notice_period":
@@ -1737,7 +2049,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var KEYS = [
     [
-      /first\s*(&|and)\s*last\s*name/i,
+      /first\s*(name\s*)?(&|and)\s*last\s*name/i,
       "full_name"
     ],
     [
@@ -1768,8 +2080,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       /cover\s*letter/i,
       "cover_letter"
     ],
+    // Before the links: "Hoe ben je met deze vacature in contact gekomen? (bijv. linkedin / ...)" asks how, not for a profile.
     [
-      /how did you (hear|learn|find out)/i,
+      /how did you (hear|learn|find out|come across)|hoe ben je\b.*\bgekomen|comment as-tu (entendu|connu|trouvé)|where did you (hear|find)/i,
       "how_heard"
     ],
     [
@@ -1780,8 +2093,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       /github/i,
       "github"
     ],
+    // A portfolio is work samples, not the person's website: asked (WO-052).
     [
-      /(personal\s*)?(website|portfolio)/i,
+      /(personal\s*)?website/i,
       "website"
     ],
     // "City" alone asks for the city, not "City, ST" (WO-048, Workday's address block).
@@ -1838,6 +2152,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (!re.test(l)) continue;
       if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
       if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
+      if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
+      if (key === "salary_expectation" && /current|present|monthly|per month|hourly|per hour|range|format|\$00/i.test(l)) continue;
       if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
       if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
       if (key === "work_authorization" && /sponsor/i.test(l.split("?")[0])) continue;
@@ -1893,14 +2209,138 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     job_relocation: "relocation",
     job_travel: "travel_ok"
   };
+  var FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
+  var NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
+  var AUTH_FACTS = /* @__PURE__ */ new Set([
+    "work_authorization",
+    "sponsorship",
+    "us_person"
+  ]);
+  function otherCountry(fact, label) {
+    if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
+    return fact === "sponsorship" || !NAMES_US.test(label);
+  }
+  var STATE_CODE = /,\s*([A-Z]{2})\b/g;
+  var PLACE_WORDS = /\b(?:in|at|from|to|near|around|within|of)\s+(?:our\s+|the\s+)?((?:[A-Z][\w.'’-]+)(?:\s+[A-Z][\w.'’-]+){0,3})/g;
+  var OUR_PLACE = /\bour\s+((?:[A-Z][\w.'’-]+\s+){1,3})(?:office|offices|hq|headquarters|campus|location|hub|studio)\b/gi;
+  var NOT_PLACE = /^(the|our|a|an|us|u\.?s\.?a?|usa|united states( of america)?|america|north america|monday|tuesday|wednesday|thursday|friday|saturday|sunday|hybrid|office|hq|headquarters|remote|person|account|executive|team|engineering|sales|ai|english|eastern|pacific|central|mountain|est|pst|cst|mst|et|pt|ct|mt|i|we|you)$/i;
+  function placesNamed(label, company = "") {
+    const out = [];
+    const add = (x) => {
+      const v = x.replace(/['’]s$/, "").replace(/\s+(hq|headquarters|office|offices|campus|location)$/i, "").trim();
+      if (!v || NOT_PLACE.test(v) || v.split(/\s+/).every((w) => NOT_PLACE.test(w))) return;
+      if (company && normCompany(v) && (normCompany(v) === normCompany(company) || normCompany(company).startsWith(normCompany(v)))) return;
+      out.push(v);
+    };
+    for (const m of label.matchAll(/\b(NYC|SF|DC|LA|Bay Area|Tri-State|Silicon Valley)\b/g)) add(m[1]);
+    for (const m of label.matchAll(STATE_CODE)) if (STATE_NAMES[m[1].toLowerCase()]) add(m[1]);
+    for (const m of label.matchAll(PLACE_WORDS)) add(m[1]);
+    for (const m of label.matchAll(OUR_PLACE)) add(m[1]);
+    return out;
+  }
+  var STATE_NAMES = {
+    al: "alabama",
+    ak: "alaska",
+    az: "arizona",
+    ar: "arkansas",
+    ca: "california",
+    co: "colorado",
+    ct: "connecticut",
+    de: "delaware",
+    dc: "district of columbia",
+    fl: "florida",
+    ga: "georgia",
+    hi: "hawaii",
+    id: "idaho",
+    il: "illinois",
+    in: "indiana",
+    ia: "iowa",
+    ks: "kansas",
+    ky: "kentucky",
+    la: "louisiana",
+    me: "maine",
+    md: "maryland",
+    ma: "massachusetts",
+    mi: "michigan",
+    mn: "minnesota",
+    ms: "mississippi",
+    mo: "missouri",
+    mt: "montana",
+    ne: "nebraska",
+    nv: "nevada",
+    nh: "new hampshire",
+    nj: "new jersey",
+    nm: "new mexico",
+    ny: "new york",
+    nc: "north carolina",
+    nd: "north dakota",
+    oh: "ohio",
+    ok: "oklahoma",
+    or: "oregon",
+    pa: "pennsylvania",
+    ri: "rhode island",
+    sc: "south carolina",
+    sd: "south dakota",
+    tn: "tennessee",
+    tx: "texas",
+    ut: "utah",
+    vt: "vermont",
+    va: "virginia",
+    wa: "washington",
+    wv: "west virginia",
+    wi: "wisconsin",
+    wy: "wyoming"
+  };
+  function isHome(place, answers) {
+    const p = place.toLowerCase();
+    const city = String(answers.city?.value ?? String(answers.location?.value ?? "").split(",")[0]).trim().toLowerCase();
+    const st = String(answers.state?.value ?? String(answers.location?.value ?? "").split(",")[1] ?? "").trim().toLowerCase();
+    if (city && (p === city || p.includes(city))) return true;
+    return !!st && (p === st || p === STATE_NAMES[st]);
+  }
+  var SITE_SCREENS = /* @__PURE__ */ new Set([
+    "job_onsite",
+    "job_commute"
+  ]);
+  var SITE_TEXT = /\b(office|on-?site|in-?person|located|location|relocat|based|commut|hq|headquarters)\b/i;
+  function formPlaces(fields, company) {
+    return fields.filter((f) => SITE_TEXT.test(f.label) && f.label.length <= 300).flatMap((f) => placesNamed(f.label, company));
+  }
+  function awayFromHome(f, places, answers) {
+    const own = placesNamed(f.label);
+    const named = own.length ? own : places;
+    return named.length > 0 && !named.some((x) => isHome(x, answers));
+  }
+  function payShape(f, value, fact, answers) {
+    if (fact !== "salary_expectation" && fact !== "current_compensation" || !/\bcurrency\b|\bctc\b/i.test(f.label)) return value;
+    const code = /\b[A-Z]{3}\b/.exec(String(answers.salary_currency?.value ?? ""))?.[0];
+    return code && /^\d[\d,.]*$/.test(value.trim()) ? `${value.trim()} ${code}` : null;
+  }
+  var WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
+  function authorizedWithoutSponsorship(answers) {
+    const w = answers.work_authorization, sp = answers.sponsorship;
+    if (!w || !sp) return null;
+    const a = yesNoOf(w.value), n = yesNoOf(sp.value);
+    if (a === "yes" && n === "no") return {
+      value: "Yes",
+      factId: w.factId
+    };
+    if (a === "no" || n === "yes") return {
+      value: "No",
+      factId: n === "yes" ? sp.factId : w.factId
+    };
+    return null;
+  }
   var SPLIT = /\s*[;,\n]\s*/;
-  function byMeaning(f, company, answers) {
+  function byMeaning(f, company, answers, places = []) {
     const m = mapQuestion({
       label: f.label,
       type: f.type,
       options: f.options
     });
     if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+    if (m.fact === "former_employers" || otherCountry(m.fact, f.label)) return null;
+    if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers)) return null;
     if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
     let a;
     if (m.fact === "worked_here_before" && answers.former_employers) {
@@ -1919,8 +2359,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     } else if (m.kind === "screen") {
       const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
       if (pref && yesNoOf(pref.value)) a = pref;
+    } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(f.label)) {
+      a = authorizedWithoutSponsorship(answers) ?? void 0;
     } else {
       a = answers[m.fact];
+    }
+    if (m.fact === "us_person" && f.options.length && answers.citizenship) {
+      const c = usCitizenChoice(String(answers.citizenship.value), f.options);
+      if (c !== null) return {
+        value: c,
+        factId: answers.citizenship.factId
+      };
     }
     if (!a) return null;
     const choice = f.options.length ? chooseOption(m.fact, String(a.value), f.options, f.label) : null;
@@ -1946,11 +2395,20 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
   var DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
   var YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+  var YES_NO_LIKE = /^(yes|no|y|n|true|false|i (agree|accept|acknowledge|consent|understand)\b.*|i am (not )?currently employed)$/i;
+  var COMPOUND = /\bif (so|yes|not|no|applicable|you (are|were|have|do|did|answered|selected))\b[^?]{0,80}\b(list|provide|describe|explain|specify|enter|state|indicate|give|share|tell|include)\b|\bplease (list|provide|describe|explain|specify|share|confirm your)\b|,? or (would|are|do|will|have|can|could) you\b/;
+  function asksYesNo(t) {
+    if (COMPOUND.test(t)) return false;
+    const asked = t.split(/(?<=[.?!:])\s+/).filter((x) => x.trim().endsWith("?"));
+    const q = (asked.length ? asked[asked.length - 1] : t.split(/(?<=[.!:])\s+/).pop() ?? t).trim();
+    return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
+  }
   function fitsField(f, value) {
     if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
     const t = norm(f.label), v = String(value).trim();
     if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
-    if ((f.type === "date" || DATE_FORMAT.test(t)) && !DATE_VALUE.test(v)) return false;
+    if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
+    if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b/.test(t)) && !DATE_VALUE.test(v)) return false;
     if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
     return true;
   }
@@ -1984,7 +2442,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       factId: g.factId
     } : null;
   }
-  var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
+  var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said|are|were|have|had|do|did|will|would))\b/i;
   var str = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
   function workEntries(answers) {
     const a = answers.work_history;
@@ -2222,6 +2680,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           anchor
         })), o.answers));
       }
+      const places = formPlaces(p.fields, p.company);
       for (const f of p.fields) {
         if (fileAlternative(f, p.fields)) continue;
         if (f.personal) continue;
@@ -2256,7 +2715,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
         const direct = o.saved[answerKey(f, p.job_id, {
           haveFact: true
-        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
+        })] ?? o.saved[answerKey(f, p.job_id)] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -2268,7 +2727,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           }
         }
         if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
-          const m = byMeaning(f, p.company, o.answers);
+          const m = byMeaning(f, p.company, o.answers, places);
           if (m) {
             a = m;
             value = m.value;
@@ -2281,6 +2740,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           const phone = String(o.answers.phone?.value ?? "").trim();
           if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
         }
+        if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
         if (value !== null && value !== "" && (a === own || fitsField(f, value))) {
           filled.push({
             name: f.name,

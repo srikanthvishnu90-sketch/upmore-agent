@@ -15,6 +15,11 @@
       "by": "the architect, WO-042, 2026-10-20, before WO-042's runs were compared",
       "fields": ["lever-shieldai cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3] (When are you available to start your fellowship?, textarea): null -> start_date", "ashby-openai 3f4e05d4-dd62-48ef-96ca-d9f293ae18d4 (When can you start a new role?, text): null -> start_date"],
       "why": "A free-text question asking when the person can start is answered by their confirmed start_date ('2 weeks'). The key's own rule leaves a stated value empty only when it does not fit the field's format ('2 weeks' in a date field, as on EOS's MM/DD/YY field, which stays null); these two entries contradicted it. Every WO-042 number uses the corrected key."
+    },
+    {
+      "by": "the architect, WO-052, 2026-10-20, from an independent review of every fill on samples A and B (the reviewer read only the persona and the fills)",
+      "fields": ["ashby-openai I acknowledge that I have opened, read, and understood the Arbitration Agreement... (checkbox): privacy_ack -> null", "lever-tsmg cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0] (Privacy Policy, Terms & Conditions and Whistleblowers Policy, select): privacy_ack -> null", "lever-cgsfederal cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3] (Ideal Annual Compensation In $00.00 Formatting, text): salary_expectation -> null"],
+      "why": "A standing consent covers what it names: a privacy notice, a certification that the answers are true, the employer's AI-use policy. An agreement to arbitrate gives up the right to sue, and terms and conditions and a whistleblower policy are more than a privacy notice: each is the person's own to accept, asked once. A box that sets its own format ($00.00) is not the stated amount typed as is. lever-tsmg is a held-out form: the change comes from the review of samples A and B, not from tuning on it."
     }
   ],
   "split": {
@@ -191,7 +196,7 @@
       "urls[Portfolio]": "website",
       "urls[Other]": "any",
       "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]": null,
-      "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]": { "fact": "privacy_ack", "expect": "I agree" },
+      "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]": null,
       "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]": "marketing_opt_in",
       "eeo[gender]": null,
       "eeo[race]": null,
@@ -213,7 +218,7 @@
       "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]": "full_address",
       "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]": { "fact": "relocation", "expect": "No." },
       "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]": { "fact": "citizenship", "expect": "I am a U.S Citizen / Permanent Resident." },
-      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]": "salary_expectation",
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]": null,
       "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]": "security_clearance"
     },
     "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027": {
@@ -334,7 +339,7 @@
       "bda78810-f000-4f1c-99c5-f783e161f2f7": "sponsorship",
       "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63": "onsite_ok",
       "f189fed2-624b-41a1-a76f-0c67a2611d1a": null,
-      "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.": "privacy_ack",
+      "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.": null,
       "I confirm I have read the above.": null,
       "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender": null,
       "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race": null,

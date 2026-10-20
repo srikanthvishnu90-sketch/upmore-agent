@@ -279,7 +279,9 @@ test("accuracy: report (precision and coverage per family; dev and held-out)", a
   // Regression floors at what was measured (WO-042 Run 2, docs/architect/work-orders/WO-042-sixty-in-thirty.md): a
   // reader or planner change that loses ground fails here. Precision is held at 100%: one wrong answer fails the suite.
   // Every wrong fill is listed in the report and shown on the card, where the person reads it before the one tap.
-  const FLOOR = { greenhouse: [1, 1], lever: [1, 0.96], ashby: [1, 0.95] };
+  // WO-052: lever 0.96 -> 0.95. Two Lever answers the key had as fills are the person's (an agreement beyond the
+  // standing privacy consent; a pay box with its own format), so 73/76 became 71/74 with the same three misses.
+  const FLOOR = { greenhouse: [1, 1], lever: [1, 0.95], ashby: [1, 0.95] };
   for (const [fam, r] of Object.entries(report.families)) {
     assert.ok(r.all.precision >= FLOOR[fam][0], `${fam} precision ${r.all.precision} fell below ${FLOOR[fam][0]}: ${JSON.stringify(r.wrong)}`);
     assert.ok(r.excluding_widgets.coverage >= FLOOR[fam][1], `${fam} coverage ${r.excluding_widgets.coverage} fell below ${FLOOR[fam][1]}`);

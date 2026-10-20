@@ -117,6 +117,65 @@ function byPayRange(value: string, options: Opt[]): string | null {
   return only(ranges.filter((r) => v >= r.lo && v <= r.hi).map((r) => r.o));
 }
 
+// WO-052: the option that says the person is a U.S. citizen ("A United States citizen or national", "U.S. citizen or
+// national"), for a person whose stated citizenship is the U.S.; never an option that says they are not one.
+export function usCitizenChoice(citizenship: string, options: Opt[]): string | null {
+  if (!US.test(low(citizenship))) return null;
+  return only(options.filter((o) => /\b(u\.?s\.?a?|united states( of america)?) citizen/.test(low(o.label)) && !/\bnot\b|\bnon-|^no\b/.test(low(o.label))));
+}
+
+// WO-052: the languages a question names. The person's languages are confirmed complete (fact_schema), so a language
+// named that is not on their list is one they do not speak; how well they speak one that is on it is theirs to say.
+const LANGUAGES: [string, RegExp][] = [
+  ["english", /\benglish\b|\banglais\b|\bengels\b|英語/], ["spanish", /\bspanish\b|\bespañol\b|\bcastellano\b|\bspaans\b/],
+  ["french", /\bfrench\b|\bfrançais\b|\bfrans\b/], ["german", /\bgerman\b|\bdeutsch\b|\bduits\b|\ballemand\b/],
+  ["dutch", /\bdutch\b|\bnederlands\b|\bflemish\b/], ["portuguese", /\bportuguese\b|\bportuguês\b/], ["italian", /\bitalian\b|\bitaliano\b/],
+  ["japanese", /\bjapanese\b|日本語/], ["chinese", /\bchinese\b|\bmandarin\b|\bcantonese\b|中文/], ["korean", /\bkorean\b|한국어/],
+  ["arabic", /\barabic\b/], ["hindi", /\bhindi\b/], ["russian", /\brussian\b/], ["polish", /\bpolish\b/], ["turkish", /\bturkish\b/],
+  ["swedish", /\bswedish\b/], ["danish", /\bdanish\b/], ["norwegian", /\bnorwegian\b/], ["finnish", /\bfinnish\b/], ["hebrew", /\bhebrew\b/],
+  ["vietnamese", /\bvietnamese\b/], ["thai", /\bthai\b/], ["indonesian", /\bindonesian\b|\bbahasa\b/], ["greek", /\bgreek\b/],
+  ["czech", /\bczech\b/], ["hungarian", /\bhungarian\b/], ["romanian", /\bromanian\b/], ["ukrainian", /\bukrainian\b/],
+  ["basque", /\bbasque\b|\beuskara\b/], ["catalan", /\bcatalan\b/], ["tagalog", /\btagalog\b|\bfilipino\b/], ["persian", /\bpersian\b|\bfarsi\b/],
+];
+const languagesIn = (s: string) => new Set(LANGUAGES.filter(([, re]) => re.test(s)).map(([n]) => n));
+// A language named as a market, a team or a law ("the German market") is not a language the question asks about.
+const NOT_SPOKEN = /\b(english|spanish|french|german|dutch|portuguese|italian|japanese|chinese|korean|arabic|hindi|russian|polish|turkish|swedish|danish|norwegian|finnish|hebrew|vietnamese|thai|indonesian|greek|czech|hungarian|romanian|ukrainian|basque|catalan|persian)[- ](market|customers?|clients?|law|company|companies|team|office|region|citizens?|speaking (market|countr\w*|region))\b/;
+function languageNo(question: string, value: string): "no" | null {
+  const q = low(question);
+  if (NOT_SPOKEN.test(q) || !/\b(speak|fluen\w*|proficien\w*|native|bilingual|language|spreek|vloeiend|parle|habla)/.test(q)) return null;
+  const asked = languagesIn(q), have = languagesIn(low(value));
+  if (!asked.size || !have.size) return null;
+  const missing = [...asked].filter((x) => !have.has(x));
+  // "English AND German": one missing is a no. "Spanish or Portuguese": a no only when none of them is theirs.
+  if (/\bor\b|\//.test(q)) return missing.length === asked.size ? "no" : null;
+  return missing.length ? "no" : null;
+}
+
+// WO-052: "Are you currently based in Miami, FL?" for a person in Chicago, IL. Only a no, and only when the person's
+// state is not one the question names nor borders one (a metro area can cross a state line: Kansas City, the New York
+// area, Portland and Vancouver, WA). Water borders count as borders. A question about moving, commuting or working
+// there is not this one.
+const BORDERS: Record<string, string> = {
+  al: "fl ga ms tn", ak: "", az: "ca co nm nv ut", ar: "la mo ms ok tn tx", ca: "az nv or", co: "az ks ne nm ok ut wy",
+  ct: "ma ny ri", de: "md nj pa", dc: "md va", fl: "al ga", ga: "al fl nc sc tn", hi: "", id: "mt nv or ut wa wy",
+  il: "ia in ky mi mo wi", in: "il ky mi oh", ia: "il mn mo ne sd wi", ks: "co mo ne ok", ky: "il in mo oh tn va wv",
+  la: "ar ms tx", me: "nh", md: "dc de pa va wv", ma: "ct nh ny ri vt", mi: "il in mn oh wi", mn: "ia mi nd sd wi",
+  ms: "al ar la tn", mo: "ar ia il ks ky ne ok tn", mt: "id nd sd wy", ne: "co ia ks mo sd wy", nv: "az ca id or ut",
+  nh: "ma me vt", nj: "de ny pa", nm: "az co ok tx ut", ny: "ct ma nj pa ri vt", nc: "ga sc tn va", nd: "mn mt sd",
+  oh: "in ky mi pa wv", ok: "ar co ks mo nm tx", or: "ca id nv wa", pa: "de md nj ny oh wv", ri: "ct ma ny",
+  sc: "ga nc", sd: "ia mn mt nd ne wy", tn: "al ar ga ky mo ms nc va", tx: "ar la nm ok", ut: "az co id nm nv wy",
+  vt: "ma nh ny", va: "dc ky md nc tn wv", wa: "id or", wv: "ky md oh pa va", wi: "ia il mi mn", wy: "co id mt ne sd ut",
+};
+const near = (a: string, b: string) => a === b || (BORDERS[a] ?? "").split(" ").includes(b);
+function locationNo(question: string, value: string): "no" | null {
+  if (/relocat|willing|commut|open to|remote|hybrid|travel|authori|right to work|visa|sponsor|eligib|miles|within|office|on-?site|in-?person|work (in|from|at)/i.test(question)) return null;
+  const home = String(value).split(",")[1]?.trim().toLowerCase();
+  if (!home || !(home in STATES)) return null;
+  const named = [...question.matchAll(/,\s*([A-Z]{2})\b/g)].map((m) => m[1].toLowerCase()).filter((x) => x in STATES);
+  if (!named.length) return null;
+  return named.some((x) => near(home, x)) ? null : "no";
+}
+
 // How the person heard, as their usual answer onto the employer's list: the careers page has many names.
 const HOW_HEARD: [RegExp, RegExp][] = [
   [/career|company (web)?site|website|direct/, /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^website$|^career page$|^careers? site$|direct to careers|web ?site/],
@@ -130,6 +189,8 @@ export const howHeardChannel = (value: string) => HOW_HEARD.some(([v]) => v.test
 // about, an education level at or above the one asked, a notice period or start shorter than the one asked.
 export function yesNoFromFact(fact: string, value: string, question: string): "yes" | "no" | null {
   const q = low(question), v = low(value);
+  if (fact === "languages") return languageNo(question, value);
+  if (fact === "location") return locationNo(question, value);
   const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
   // "In Canada or the U.S.?", "a U.S. citizen or permanent resident?": a yes from the person's country is right; a no is not
   // known, since the other half may be true of them (WO-047).
@@ -170,7 +231,23 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
   switch (fact) {
     case "how_heard": {
       const rule = HOW_HEARD.find(([v2]) => v2.test(v));
-      return rule ? only(options.filter((o) => rule[1].test(low(o.label)))) : null;
+      if (!rule) return null;
+      // WO-052: "Ad on Website" is an advertisement, not the careers site (Accenture); of "Careers Page" and another
+      // website ("Join Our Pride Website"), the careers page.
+      const hits = options.filter((o) => rule[1].test(low(o.label)) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)));
+      return only(hits) ?? only(hits.filter((o) => /career/.test(low(o.label))));
+    }
+    case "languages": {
+      // A level list ("Native Level", "Business Fluent", "Limited / No Japanese language ability"): only the no-ability
+      // option, for a language the person does not speak; a level for one they speak is theirs (WO-052, Woven).
+      if (derived !== "no") return null;
+      return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+    }
+    case "graduation_date": {
+      // WO-052: a list of years ("2040 ... 2001") takes the year of the stated date (Theodo).
+      const y = /\b(19|20)\d{2}\b/.exec(v)?.[0];
+      if (y && options.every((o) => /^\s*(19|20)\d{2}\s*$/.test(o.label))) return only(options.filter((o) => o.label.trim() === y));
+      break;
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
@@ -184,6 +261,8 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // A degree held is never one in progress. Two options that differ only in wording ("Bachelors" and "Bachelor's
       // Degree" on one live list, WO-042) are one answer: the person's own wording, else the one that says "degree", else
       // the first. "Bachelor of Arts" and "Bachelor of Science" differ in meaning, and the person is asked.
+      // WO-052: "Bachelor's in a relevant engineering or science discipline" asks whether the field fits this job too.
+      if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
       const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
       const core = (l: string) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
       if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
@@ -219,7 +298,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
         // WO-048: the same on a phone code list ("United States of America (+1)" beside "... Outlying Islands (+1)").
         const whole = options.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
         if (whole.length === 1 && options.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
-        return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+        return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label)))) ?? usCitizenChoice(v, options);
       }
       return only(options.filter((o) => low(o.label).startsWith(v)));
     case "notice_period":

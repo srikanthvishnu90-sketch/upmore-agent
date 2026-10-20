@@ -29,7 +29,8 @@ const EDUCATION: Record<string, RegExp> = {
   high_school: /high school|ged|secondary|diploma or equivalent/,
   some_college: /some college|some university|enrollment/,
   associate: /associate/,
-  bachelor: /bachelor|undergraduate degree|\bb\.?s\.?c?\b|\bb\.?a\.?\b|\bbsc\b/,
+  // "B.A." inside "M.B.A." is not a bachelor's (WO-042, Greenhouse's degree list).
+  bachelor: /bachelor|undergraduate degree|(?<![a-z]\.)\bb\.?s\.?c?\b|(?<![a-z]\.)\bb\.?a\.?\b|\bbsc\b/,
   master: /master|\bm\.?s\.?c?\b|\bmba\b|graduate degree(?!.*under)/,
   doctorate: /ph\.?d|doctor|doctoral/,
 };
@@ -44,6 +45,14 @@ const STATES: Record<string, string> = {
   vt: "vermont", va: "virginia", wa: "washington", wv: "west virginia", wi: "wisconsin", wy: "wyoming",
 };
 const US = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/;
+// What to type into an employer's place search for a stated place: the city of "Chicago, IL", or the state's full name
+// for a state given by its abbreviation ("IL" -> "Illinois"), since a place search lists places by name (WO-042).
+export function placeQuery(value: unknown): string {
+  const v = String(value ?? "").trim();
+  const st = STATES[low(v)];
+  if (st) return st.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  return v.split(",")[0].trim();
+}
 
 // A span of time in one unit (weeks for notice, years for experience): "1-2 weeks", "4+ weeks", "Less than 4 years",
 // "1 Month", "Immediately", "No experience". [min, max]; max Infinity for "N+".
@@ -91,6 +100,8 @@ const HOW_HEARD: [RegExp, RegExp][] = [
   [/indeed/, /^indeed$/],
   [/glassdoor/, /^glassdoor$/],
 ];
+// A how-heard answer that names a channel (a careers site, LinkedIn): one that can be true of every employer.
+export const howHeardChannel = (value: string) => HOW_HEARD.some(([v]) => v.test(low(value)));
 // A yes/no question whose answer follows from a stated fact: a citizenship or residence that names the country asked
 // about, an education level at or above the one asked, a notice period or start shorter than the one asked.
 export function yesNoFromFact(fact: string, value: string, question: string): "yes" | "no" | null {
@@ -138,11 +149,34 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "education_level": {
       const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
-      return re ? only(options.filter((o) => re.test(low(o.label)))) : null;
+      if (!re) return null;
+      // A degree held is never one in progress. Two options that differ only in wording ("Bachelors" and "Bachelor's
+      // Degree" on one live list, WO-042) are one answer: the person's own wording, else the one that says "degree", else
+      // the first. "Bachelor of Arts" and "Bachelor of Science" differ in meaning, and the person is asked.
+      const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+      const core = (l: string) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
+      if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
+      return only(hits);
     }
     case "state": {
+      // A place list names the state with its country ("Illinois, United States", Ashby's search; WO-042).
       const full = STATES[v] ?? v;
-      return only(options.filter((o) => low(o.label) === full || STATES[low(o.label)] === full));
+      return only(options.filter((o) => {
+        const l = low(o.label).replace(/\s*,\s*(united states( of america)?|usa|us)$/, "");
+        return l === full || STATES[l] === full;
+      }));
+    }
+    case "location":
+    case "city": {
+      // "Chicago, IL" onto a place list ("Chicago, Illinois, United States"): the same city, in the same state when one
+      // is stated; "North Chicago" or "Chicago Heights" is another city. Only one such place, or nothing (WO-042).
+      const [city, st] = v.split(/\s*,\s*/);
+      if (!city) return null;
+      const full = st ? STATES[st] ?? st : null;
+      return only(options.filter((o) => {
+        const parts = low(o.label).split(/\s*,\s*/);
+        return parts[0] === city && (!full || parts[1] === full || STATES[parts[1]] === full);
+      }));
     }
     case "country":
     case "citizenship":

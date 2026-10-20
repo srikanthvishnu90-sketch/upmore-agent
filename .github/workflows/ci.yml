@@ -7,7 +7,9 @@ permissions:
 jobs:
   gate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
+    # cancelled it (5470fe98). Headroom, not a target: a slower gate is still a finding.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,6 +19,9 @@ jobs:
       - name: Install tooling and use the runner's packaged Chrome
         run: |
           npm install --prefix "$RUNNER_TEMP/wo001-tools" --no-audit --no-fund playwright@1.64.1 esbuild@0.25.12
+          # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
+          # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
+          (cd "$RUNNER_TEMP/wo001-tools" && npx --no-install playwright install chromium)
           browser_path=$(command -v google-chrome)
           test -x "$browser_path"
           echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"

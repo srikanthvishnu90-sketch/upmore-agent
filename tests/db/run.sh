@@ -169,9 +169,16 @@ done
 # its own table and one outbox column that no later migration touches, so it is applied here, before the tests, twice.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021110000_career_board_state.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021110000_career_board_state.sql"
+# WO-031: the browser extension records the applications approved in it on the same queue; then WO-042's 120000, which
+# redefines its begin with source 'extension' (the column exists from 075000) and keeps answers typed on the form. Each
+# applied twice (idempotent), the later one last, as production ends.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021000000_career_apply_extension.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021000000_career_apply_extension.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -260,4 +267,8 @@ echo "== career_mail_erase.test.sql (an erase deletes the mail events and drafts
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021100000_career_proactive_last_word.sql"
 echo "== career_proactive_last_word.test.sql (a delivered alert or receipt is the thread's last word; queued, held and replies are not written)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_proactive_last_word.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_extension.test.sql (the extension records an approved application as the person, every queue rule kept)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_extension.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_form_answers.test.sql (answers typed on the form kept once sent; source 'extension' for the gate)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_form_answers.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

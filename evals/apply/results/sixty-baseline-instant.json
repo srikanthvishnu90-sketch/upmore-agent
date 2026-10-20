@@ -1,0 +1,3525 @@
+{
+ "report": {
+  "wo": "WO-042",
+  "label": "baseline-instant",
+  "measured_at": "2026-10-20T01:56:50.184Z",
+  "person": "instant",
+  "reading_model": null,
+  "labels": {
+   "machine": "VERIFIED offline (local TEST world, headless Chromium)",
+   "session": "VERIFIED offline (person taps at once)",
+   "live": "NOT_RUN"
+  },
+  "n": 60,
+  "sent_confirmed": 18,
+  "not_confirmed": [
+   {
+    "i": 0,
+    "form": "greenhouse-prolificacademicltd-4979452101",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b1/jobs/4979452101001\"}"
+   },
+   {
+    "i": 1,
+    "form": "greenhouse-eosfitness-4336050009",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b2/jobs/4336050009002\"}"
+   },
+   {
+    "i": 2,
+    "form": "greenhouse-spacex-8643277002",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b3/jobs/8643277002003\"}"
+   },
+   {
+    "i": 3,
+    "form": "greenhouse-andurilindustries-4802172007",
+    "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+   },
+   {
+    "i": 4,
+    "form": "greenhouse-wppmedia-5437567008",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b5/jobs/5437567008005\"}"
+   },
+   {
+    "i": 5,
+    "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 6,
+    "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 7,
+    "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 8,
+    "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 9,
+    "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 10,
+    "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 17,
+    "form": "greenhouse-prolificacademicltd-4979452101",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b18/jobs/4979452101018\"}"
+   },
+   {
+    "i": 18,
+    "form": "greenhouse-eosfitness-4336050009",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b19/jobs/4336050009019\"}"
+   },
+   {
+    "i": 19,
+    "form": "greenhouse-spacex-8643277002",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b20/jobs/8643277002020\"}"
+   },
+   {
+    "i": 20,
+    "form": "greenhouse-andurilindustries-4802172007",
+    "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+   },
+   {
+    "i": 21,
+    "form": "greenhouse-wppmedia-5437567008",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b22/jobs/5437567008022\"}"
+   },
+   {
+    "i": 22,
+    "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 23,
+    "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 24,
+    "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 25,
+    "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 26,
+    "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 27,
+    "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 34,
+    "form": "greenhouse-prolificacademicltd-4979452101",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b35/jobs/4979452101035\"}"
+   },
+   {
+    "i": 35,
+    "form": "greenhouse-eosfitness-4336050009",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b36/jobs/4336050009036\"}"
+   },
+   {
+    "i": 36,
+    "form": "greenhouse-spacex-8643277002",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b37/jobs/8643277002037\"}"
+   },
+   {
+    "i": 37,
+    "form": "greenhouse-andurilindustries-4802172007",
+    "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+   },
+   {
+    "i": 38,
+    "form": "greenhouse-wppmedia-5437567008",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b39/jobs/5437567008039\"}"
+   },
+   {
+    "i": 39,
+    "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 40,
+    "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 41,
+    "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 42,
+    "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 43,
+    "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 44,
+    "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 51,
+    "form": "greenhouse-prolificacademicltd-4979452101",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b52/jobs/4979452101052\"}"
+   },
+   {
+    "i": 52,
+    "form": "greenhouse-eosfitness-4336050009",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b53/jobs/4336050009053\"}"
+   },
+   {
+    "i": 53,
+    "form": "greenhouse-spacex-8643277002",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b54/jobs/8643277002054\"}"
+   },
+   {
+    "i": 54,
+    "form": "greenhouse-andurilindustries-4802172007",
+    "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+   },
+   {
+    "i": 55,
+    "form": "greenhouse-wppmedia-5437567008",
+    "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b56/jobs/5437567008056\"}"
+   },
+   {
+    "i": 56,
+    "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 57,
+    "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 58,
+    "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+    "result": "stopped: The page closed; nothing was sent."
+   },
+   {
+    "i": 59,
+    "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+    "result": "stopped: The page closed; nothing was sent."
+   }
+  ],
+  "wall_ms": 399081,
+  "per_application_ms": 6651,
+  "projected_in_30_min": 81,
+  "wrong_answer_submissions": 12,
+  "wrong_answers": [
+   {
+    "i": 11,
+    "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+    "wrong": [
+     {
+      "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+      "label": "When can you start a new role?",
+      "widget": false,
+      "want": null,
+      "got": "2 weeks",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 14,
+    "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+    "wrong": [
+     {
+      "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+      "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+      "widget": false,
+      "want": null,
+      "got": "Yes (checked)",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 15,
+    "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+    "wrong": [
+     {
+      "name": "_systemfield_location",
+      "label": "Which state, province, or region do you currently live in?",
+      "widget": false,
+      "want": "IL",
+      "got": "Chicago, IL",
+      "source": "trainee",
+      "verdict": "wrong_value"
+     }
+    ]
+   },
+   {
+    "i": 16,
+    "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+    "wrong": [
+     {
+      "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+      "label": "Preferred Last Name",
+      "widget": false,
+      "want": null,
+      "got": "Test",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 28,
+    "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+    "wrong": [
+     {
+      "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+      "label": "When can you start a new role?",
+      "widget": false,
+      "want": null,
+      "got": "2 weeks",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 31,
+    "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+    "wrong": [
+     {
+      "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+      "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+      "widget": false,
+      "want": null,
+      "got": "Yes (checked)",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 32,
+    "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+    "wrong": [
+     {
+      "name": "_systemfield_location",
+      "label": "Which state, province, or region do you currently live in?",
+      "widget": false,
+      "want": "IL",
+      "got": "Chicago, IL",
+      "source": "trainee",
+      "verdict": "wrong_value"
+     }
+    ]
+   },
+   {
+    "i": 33,
+    "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+    "wrong": [
+     {
+      "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+      "label": "Preferred Last Name",
+      "widget": false,
+      "want": null,
+      "got": "Test",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 45,
+    "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+    "wrong": [
+     {
+      "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+      "label": "When can you start a new role?",
+      "widget": false,
+      "want": null,
+      "got": "2 weeks",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 48,
+    "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+    "wrong": [
+     {
+      "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+      "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+      "widget": false,
+      "want": null,
+      "got": "Yes (checked)",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   },
+   {
+    "i": 49,
+    "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+    "wrong": [
+     {
+      "name": "_systemfield_location",
+      "label": "Which state, province, or region do you currently live in?",
+      "widget": false,
+      "want": "IL",
+      "got": "Chicago, IL",
+      "source": "trainee",
+      "verdict": "wrong_value"
+     }
+    ]
+   },
+   {
+    "i": 50,
+    "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+    "wrong": [
+     {
+      "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+      "label": "Preferred Last Name",
+      "widget": false,
+      "want": null,
+      "got": "Test",
+      "source": "trainee",
+      "verdict": "wrong_filled"
+     }
+    ]
+   }
+  ],
+  "field_precision": 0.9573033707865168,
+  "field_coverage": 0.9044585987261147,
+  "fields": {
+   "correct": 426,
+   "wrong_value": 3,
+   "wrong_filled": 16,
+   "missed": 42,
+   "unkeyed": 0
+  },
+  "blocked_cards": 50,
+  "person_typed": {
+   "text": 24,
+   "pick": 67
+  },
+  "card": {
+   "answers": {
+    "n": 40,
+    "p50": 13,
+    "p90": 16,
+    "max": 22,
+    "mean": 14
+   },
+   "new_answers": {
+    "n": 40,
+    "p50": 0,
+    "p90": 10,
+    "max": 13,
+    "mean": 3
+   },
+   "read_ms_model": {
+    "n": 40,
+    "p50": 9500,
+    "p90": 34865,
+    "max": 68629,
+    "mean": 16000
+   },
+   "person_ms_model": {
+    "n": 40,
+    "p50": 5000,
+    "p90": 20000,
+    "max": 26500,
+    "mean": 7188
+   }
+  },
+  "steps_ms": {
+   "load_nav_to_dcl": {
+    "n": 60,
+    "p50": 30,
+    "p90": 68,
+    "max": 124,
+    "mean": 37
+   },
+   "script_start_after_dcl": {
+    "n": 60,
+    "p50": 8,
+    "p90": 28,
+    "max": 83,
+    "mean": 13
+   },
+   "wait_to_prepare": {
+    "n": 60,
+    "p50": 12,
+    "p90": 19,
+    "max": 23,
+    "mean": 12
+   },
+   "context_rpcs": {
+    "n": 60,
+    "p50": 20,
+    "p90": 35,
+    "max": 76,
+    "mean": 23
+   },
+   "form_ready_read": {
+    "n": 60,
+    "p50": 6,
+    "p90": 10,
+    "max": 34,
+    "mean": 6
+   },
+   "plan": {
+    "n": 60,
+    "p50": 10,
+    "p90": 29,
+    "max": 62,
+    "mean": 14
+   },
+   "fill": {
+    "n": 60,
+    "p50": 296,
+    "p90": 3209,
+    "max": 3461,
+    "mean": 1011
+   },
+   "card_build": {
+    "n": 60,
+    "p50": 5,
+    "p90": 11,
+    "max": 13,
+    "mean": 6
+   },
+   "nav_to_card": {
+    "n": 60,
+    "p50": 403,
+    "p90": 3387,
+    "max": 3745,
+    "mean": 1122
+   },
+   "approve_to_click": {
+    "n": 0,
+    "p50": null,
+    "p90": null,
+    "max": null,
+    "mean": null
+   },
+   "click_to_confirmed": {
+    "n": 0,
+    "p50": null,
+    "p90": null,
+    "max": null,
+    "mean": null
+   },
+   "tap_to_next_card_visible": {
+    "n": 39,
+    "p50": 2222,
+    "p90": 2454,
+    "max": 2741,
+    "mean": 2231
+   }
+  },
+  "visibility_at_prepare": {
+   "visible": 60
+  },
+  "queue_states": {
+   "skipped": 20,
+   "confirmed": 39,
+   "open": 1
+  }
+ },
+ "rows": [
+  {
+   "i": 0,
+   "form": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/prolificacademicltd-b1/jobs/4979452101001",
+   "card_visible_at": 1792461011859,
+   "timing": {
+    "card": 1792461011850,
+    "context": 1792461011118,
+    "dcl": 1792461011077,
+    "fields": 11,
+    "fill": 1792461011846,
+    "first_card": 1792461011850,
+    "nav": 1792461011007,
+    "plan": 1792461011143,
+    "prepare": 1792461011089,
+    "read": 1792461011124,
+    "script": 1792461011084,
+    "visibility_at_prepare": "visible",
+    "widgets": 2
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 1
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b1/jobs/4979452101001\"}"
+  },
+  {
+   "i": 1,
+   "form": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/eosfitness-b2/jobs/4336050009002",
+   "card_visible_at": 1792461030471,
+   "timing": {
+    "card": 1792461030422,
+    "context": 1792461027125,
+    "dcl": 1792461027036,
+    "fields": 36,
+    "fill": 1792461030417,
+    "first_card": 1792461030422,
+    "nav": 1792461026936,
+    "plan": 1792461027150,
+    "prepare": 1792461027066,
+    "read": 1792461027132,
+    "script": 1792461027048,
+    "visibility_at_prepare": "visible",
+    "widgets": 15
+   },
+   "open_required": 12,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 11
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b2/jobs/4336050009002\"}"
+  },
+  {
+   "i": 2,
+   "form": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/spacex-b3/jobs/8643277002003",
+   "card_visible_at": 1792461049427,
+   "timing": {
+    "card": 1792461049377,
+    "context": 1792461045841,
+    "dcl": 1792461045669,
+    "fields": 31,
+    "fill": 1792461049365,
+    "first_card": 1792461049377,
+    "nav": 1792461045632,
+    "plan": 1792461045904,
+    "prepare": 1792461045765,
+    "read": 1792461045851,
+    "script": 1792461045752,
+    "visibility_at_prepare": "visible",
+    "widgets": 20
+   },
+   "open_required": 16,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 16
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b3/jobs/8643277002003\"}"
+  },
+  {
+   "i": 3,
+   "form": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/andurilindustries-b4/jobs/4802172007004",
+   "card_visible_at": 1792461067784,
+   "timing": {
+    "card": 1792461067773,
+    "context": 1792461064569,
+    "dcl": 1792461064529,
+    "fields": 33,
+    "fill": 1792461067769,
+    "first_card": 1792461067773,
+    "nav": 1792461064478,
+    "plan": 1792461064582,
+    "prepare": 1792461064549,
+    "read": 1792461064574,
+    "script": 1792461064531,
+    "visibility_at_prepare": "visible",
+    "widgets": 21
+   },
+   "open_required": 20,
+   "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+  },
+  {
+   "i": 4,
+   "form": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/wppmedia-b5/jobs/5437567008005",
+   "card_visible_at": 1792461070099,
+   "timing": {
+    "card": 1792461070074,
+    "context": 1792461067947,
+    "dcl": 1792461067883,
+    "fields": 28,
+    "fill": 1792461070070,
+    "first_card": 1792461070074,
+    "nav": 1792461067862,
+    "plan": 1792461067963,
+    "prepare": 1792461067927,
+    "read": 1792461067955,
+    "script": 1792461067908,
+    "visibility_at_prepare": "visible",
+    "widgets": 17
+   },
+   "open_required": 7,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 7
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b5/jobs/5437567008005\"}"
+  },
+  {
+   "i": 5,
+   "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg-b6/9e43a7f6-3476-482f-9cdd-ed5b73fb9ff9/apply",
+   "card_visible_at": 1792461085669,
+   "timing": {
+    "card": 1792461085654,
+    "context": 1792461085355,
+    "dcl": 1792461085293,
+    "fields": 18,
+    "fill": 1792461085647,
+    "first_card": 1792461085654,
+    "nav": 1792461085169,
+    "plan": 1792461085391,
+    "prepare": 1792461085328,
+    "read": 1792461085364,
+    "script": 1792461085314,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 428,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 6,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 18,
+    "answers": 13,
+    "new_answers": 13,
+    "words_new": 110,
+    "read_ms_model": 31231,
+    "person_ms_model": 6000
+   },
+   "approve_at": 1792461086104,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461086439,
+   "times": null
+  },
+  {
+   "i": 6,
+   "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "url": "https://jobs.lever.co/cgsfederal-b7/0130d854-9bae-48d4-8ef0-e9da1ee77ff8/apply",
+   "card_visible_at": 1792461088359,
+   "timing": {
+    "card": 1792461088351,
+    "context": 1792461088040,
+    "dcl": 1792461087996,
+    "fields": 16,
+    "fill": 1792461088346,
+    "first_card": 1792461088351,
+    "nav": 1792461087947,
+    "plan": 1792461088050,
+    "prepare": 1792461088021,
+    "read": 1792461088044,
+    "script": 1792461087998,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 433,
+   "verdicts": {
+    "empty_ok": 2,
+    "correct": 14
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 9,
+    "words_new": 86,
+    "read_ms_model": 27581,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461088798,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461089029,
+   "times": null
+  },
+  {
+   "i": 7,
+   "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "url": "https://jobs.lever.co/veeva-b8/9ac55b31-df46-4acb-b305-2c0b7ed56ff7/apply",
+   "card_visible_at": 1792461090873,
+   "timing": {
+    "card": 1792461090863,
+    "context": 1792461090661,
+    "dcl": 1792461090613,
+    "fields": 14,
+    "fill": 1792461090858,
+    "first_card": 1792461090863,
+    "nav": 1792461090575,
+    "plan": 1792461090670,
+    "prepare": 1792461090626,
+    "read": 1792461090664,
+    "script": 1792461090615,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 440,
+   "verdicts": {
+    "correct": 9,
+    "empty_ok": 5
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 15,
+    "answers": 10,
+    "new_answers": 3,
+    "words_new": 45,
+    "read_ms_model": 17645,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461091319,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461091571,
+   "times": null
+  },
+  {
+   "i": 8,
+   "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "url": "https://jobs.lever.co/shieldai-b9/ba945088-38ec-4e58-8f66-01c0497a3ff6/apply",
+   "card_visible_at": 1792461093517,
+   "timing": {
+    "card": 1792461093484,
+    "context": 1792461093179,
+    "dcl": 1792461093132,
+    "fields": 28,
+    "fill": 1792461093476,
+    "first_card": 1792461093484,
+    "nav": 1792461093100,
+    "plan": 1792461093199,
+    "prepare": 1792461093159,
+    "read": 1792461093187,
+    "script": 1792461093140,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 3,
+   "person_answered": {
+    "text": 1,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 525,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 12,
+    "any": 1,
+    "wrong_filled": 1,
+    "missed": 3
+   },
+   "wrong": [
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+     "label": "When are you available to start your fellowship?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "When are you available for full time work?",
+     "widget": false
+    },
+    {
+     "label": "How did you hear about us?✱",
+     "widget": false
+    },
+    {
+     "label": "If \"Industry Conference\" or \"Other,\" please provide more details:",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 21,
+    "answers": 16,
+    "new_answers": 6,
+    "words_new": 62,
+    "read_ms_model": 23130,
+    "person_ms_model": 11000
+   },
+   "approve_at": 1792461094055,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461094328,
+   "times": null
+  },
+  {
+   "i": 9,
+   "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/weloglobal-b10/6e0ac589-3fba-429a-8ce4-5c48a2cf0ff5/apply",
+   "card_visible_at": 1792461096333,
+   "timing": {
+    "card": 1792461096303,
+    "context": 1792461095967,
+    "dcl": 1792461095897,
+    "fields": 28,
+    "fill": 1792461096297,
+    "first_card": 1792461096303,
+    "nav": 1792461095875,
+    "plan": 1792461095991,
+    "prepare": 1792461095944,
+    "read": 1792461095975,
+    "script": 1792461095921,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 8,
+   "person_answered": {
+    "text": 0,
+    "pick": 8,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 910,
+   "verdicts": {
+    "correct": 12,
+    "any": 1,
+    "empty_ok": 13,
+    "wrong_filled": 1,
+    "missed": 1
+   },
+   "wrong": [
+    {
+     "name": "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+     "label": "What other languages do you speak at Native Level Fluency?✱",
+     "widget": false,
+     "want": null,
+     "got": "English",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Have you registered and worked on any Welocalize project previously?✱",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 26,
+    "answers": 22,
+    "new_answers": 12,
+    "words_new": 205,
+    "read_ms_model": 58781,
+    "person_ms_model": 20000
+   },
+   "approve_at": 1792461097261,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461097528,
+   "times": null
+  },
+  {
+   "i": 10,
+   "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/lyrahealth-b11/35bffe8b-ac9f-4749-ba4c-5f3a4d2bdff4/apply",
+   "card_visible_at": 1792461099570,
+   "timing": {
+    "card": 1792461099552,
+    "context": 1792461099163,
+    "dcl": 1792461099105,
+    "fields": 28,
+    "fill": 1792461099539,
+    "first_card": 1792461099552,
+    "nav": 1792461099073,
+    "plan": 1792461099215,
+    "prepare": 1792461099130,
+    "read": 1792461099197,
+    "script": 1792461099121,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 14,
+    "empty_ok": 13,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 5,
+    "words_new": 75,
+    "read_ms_model": 26408,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461099584,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461099877,
+   "times": null
+  },
+  {
+   "i": 11,
+   "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/openai-b12/8fb1615c-34bf-47c4-a1d1-b7b2f836bff3/application",
+   "card_visible_at": 1792461101884,
+   "timing": {
+    "card": 1792461101867,
+    "context": 1792461101538,
+    "dcl": 1792461101486,
+    "fields": 16,
+    "fill": 1792461101855,
+    "first_card": 1792461101867,
+    "nav": 1792461101415,
+    "plan": 1792461101586,
+    "prepare": 1792461101516,
+    "read": 1792461101551,
+    "script": 1792461101499,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 489,
+   "verdicts": {
+    "correct": 9,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 5
+   },
+   "wrong": [
+    {
+     "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+     "label": "When can you start a new role?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you now or in the future require sponsorship for employment visa status in this country?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 16,
+    "answers": 12,
+    "new_answers": 12,
+    "words_new": 126,
+    "read_ms_model": 34865,
+    "person_ms_model": 5000
+   },
+   "approve_at": 1792461102384,
+   "result": "confirmed",
+   "done_at": 1792461103200,
+   "times": {
+    "steps": {
+     "begun": 1792461102599,
+     "checked": 1792461102439,
+     "screenshot": 1792461102576,
+     "submit": 1792461102432
+    }
+   }
+  },
+  {
+   "i": 12,
+   "form": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/airwallex-b13/cba0ab2e-5ab8-416b-ac9b-115638e3cff2/application",
+   "card_visible_at": 1792461104456,
+   "timing": {
+    "card": 1792461104432,
+    "context": 1792461104167,
+    "dcl": 1792461104128,
+    "fields": 15,
+    "fill": 1792461104426,
+    "first_card": 1792461104432,
+    "nav": 1792461104108,
+    "plan": 1792461104174,
+    "prepare": 1792461104149,
+    "read": 1792461104170,
+    "script": 1792461104139,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 434,
+   "verdicts": {
+    "correct": 12,
+    "empty_ok": 2,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Do you have any relatives currently working for Airwallex?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 10,
+    "words_new": 102,
+    "read_ms_model": 30014,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461104896,
+   "result": "confirmed",
+   "done_at": 1792461105676,
+   "times": {
+    "steps": {
+     "begun": 1792461105067,
+     "checked": 1792461104948,
+     "screenshot": 1792461105055,
+     "submit": 1792461104946
+    }
+   }
+  },
+  {
+   "i": 13,
+   "form": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/lilt-production-b14/959498b8-a18e-457b-9e93-07662c38fff1/application",
+   "card_visible_at": 1792461106768,
+   "timing": {
+    "card": 1792461106747,
+    "context": 1792461106614,
+    "dcl": 1792461106576,
+    "fields": 11,
+    "fill": 1792461106745,
+    "first_card": 1792461106747,
+    "nav": 1792461106561,
+    "plan": 1792461106619,
+    "prepare": 1792461106595,
+    "read": 1792461106617,
+    "script": 1792461106580,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 5,
+   "person_answered": {
+    "text": 4,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 464,
+   "verdicts": {
+    "correct": 6,
+    "empty_ok": 4,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Are you a native Basque translator?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 15,
+    "answers": 11,
+    "new_answers": 8,
+    "words_new": 71,
+    "read_ms_model": 22199,
+    "person_ms_model": 26500
+   },
+   "approve_at": 1792461107236,
+   "result": "confirmed",
+   "done_at": 1792461108008,
+   "times": {
+    "steps": {
+     "begun": 1792461107388,
+     "checked": 1792461107264,
+     "screenshot": 1792461107374,
+     "submit": 1792461107262
+    }
+   }
+  },
+  {
+   "i": 14,
+   "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/snowflake-b15/479e06f1-273d-4a1b-af56-6543761ebff0/application",
+   "card_visible_at": 1792461109283,
+   "timing": {
+    "card": 1792461109250,
+    "context": 1792461108943,
+    "dcl": 1792461108908,
+    "fields": 16,
+    "fill": 1792461109246,
+    "first_card": 1792461109250,
+    "nav": 1792461108893,
+    "plan": 1792461108955,
+    "prepare": 1792461108930,
+    "read": 1792461108946,
+    "script": 1792461108912,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 4,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 557,
+   "verdicts": {
+    "correct": 10,
+    "missed": 4,
+    "wrong_filled": 1,
+    "empty_ok": 1
+   },
+   "wrong": [
+    {
+     "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+     "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+     "widget": false,
+     "want": null,
+     "got": "Yes (checked)",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you require company sponsorship now or in the future to maintain or extend your current work au",
+     "widget": false
+    },
+    {
+     "label": "Have you worked at Snowflake in the past in a Full-time, Part-time, contractor or Intern capacity?",
+     "widget": false
+    },
+    {
+     "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
+     "widget": false
+    },
+    {
+     "label": "Have you ever been directly employed by (1) any government or military entity, state-owned enterpris",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 19,
+    "answers": 15,
+    "new_answers": 10,
+    "words_new": 252,
+    "read_ms_model": 68629,
+    "person_ms_model": 10000
+   },
+   "approve_at": 1792461109850,
+   "result": "confirmed",
+   "done_at": 1792461110701,
+   "times": {
+    "steps": {
+     "begun": 1792461110049,
+     "checked": 1792461109881,
+     "screenshot": 1792461110027,
+     "submit": 1792461109877
+    }
+   }
+  },
+  {
+   "i": 15,
+   "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/Crusoe-b16/b1b99030-d393-4329-80fe-5bc2e4c93fef/application",
+   "card_visible_at": 1792461111885,
+   "timing": {
+    "card": 1792461111874,
+    "context": 1792461111672,
+    "dcl": 1792461111645,
+    "fields": 14,
+    "fill": 1792461111871,
+    "first_card": 1792461111874,
+    "nav": 1792461111616,
+    "plan": 1792461111681,
+    "prepare": 1792461111659,
+    "read": 1792461111676,
+    "script": 1792461111647,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 8,
+    "missed": 1,
+    "wrong_value": 1,
+    "empty_ok": 4
+   },
+   "wrong": [
+    {
+     "name": "_systemfield_location",
+     "label": "Which state, province, or region do you currently live in?",
+     "widget": false,
+     "want": "IL",
+     "got": "Chicago, IL",
+     "source": "trainee",
+     "verdict": "wrong_value"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Phone Number",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 13,
+    "answers": 9,
+    "new_answers": 4,
+    "words_new": 49,
+    "read_ms_model": 17453,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461111894,
+   "result": "confirmed",
+   "done_at": 1792461112719,
+   "times": {
+    "steps": {
+     "begun": 1792461112078,
+     "checked": 1792461111948,
+     "screenshot": 1792461112066,
+     "submit": 1792461111944
+    }
+   }
+  },
+  {
+   "i": 16,
+   "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/harvey-b17/977e6184-2dc4-422b-8ab3-bc26bb73ffee/application",
+   "card_visible_at": 1792461113985,
+   "timing": {
+    "card": 1792461113953,
+    "context": 1792461113680,
+    "dcl": 1792461113640,
+    "fields": 15,
+    "fill": 1792461113951,
+    "first_card": 1792461113953,
+    "nav": 1792461113608,
+    "plan": 1792461113693,
+    "prepare": 1792461113657,
+    "read": 1792461113683,
+    "script": 1792461113641,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 429,
+   "verdicts": {
+    "correct": 11,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 2
+   },
+   "wrong": [
+    {
+     "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+     "label": "Preferred Last Name",
+     "widget": false,
+     "want": null,
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "University or School Attended",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 8,
+    "words_new": 126,
+    "read_ms_model": 36865,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461114435,
+   "result": "confirmed",
+   "done_at": 1792461115293,
+   "times": {
+    "steps": {
+     "begun": 1792461114621,
+     "checked": 1792461114488,
+     "screenshot": 1792461114605,
+     "submit": 1792461114485
+    }
+   }
+  },
+  {
+   "i": 17,
+   "form": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/prolificacademicltd-b18/jobs/4979452101018",
+   "card_visible_at": 1792461117043,
+   "timing": {
+    "card": 1792461117023,
+    "context": 1792461116297,
+    "dcl": 1792461116215,
+    "fields": 11,
+    "fill": 1792461117020,
+    "first_card": 1792461117023,
+    "nav": 1792461116179,
+    "plan": 1792461116326,
+    "prepare": 1792461116278,
+    "read": 1792461116304,
+    "script": 1792461116262,
+    "visibility_at_prepare": "visible",
+    "widgets": 2
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 1
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b18/jobs/4979452101018\"}"
+  },
+  {
+   "i": 18,
+   "form": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/eosfitness-b19/jobs/4336050009019",
+   "card_visible_at": 1792461135502,
+   "timing": {
+    "card": 1792461135471,
+    "context": 1792461132191,
+    "dcl": 1792461132138,
+    "fields": 36,
+    "fill": 1792461135467,
+    "first_card": 1792461135471,
+    "nav": 1792461132092,
+    "plan": 1792461132259,
+    "prepare": 1792461132164,
+    "read": 1792461132197,
+    "script": 1792461132141,
+    "visibility_at_prepare": "visible",
+    "widgets": 15
+   },
+   "open_required": 12,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 11
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b19/jobs/4336050009019\"}"
+  },
+  {
+   "i": 19,
+   "form": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/spacex-b20/jobs/8643277002020",
+   "card_visible_at": 1792461154177,
+   "timing": {
+    "card": 1792461154160,
+    "context": 1792461150688,
+    "dcl": 1792461150641,
+    "fields": 31,
+    "fill": 1792461154156,
+    "first_card": 1792461154160,
+    "nav": 1792461150593,
+    "plan": 1792461150723,
+    "prepare": 1792461150651,
+    "read": 1792461150697,
+    "script": 1792461150644,
+    "visibility_at_prepare": "visible",
+    "widgets": 20
+   },
+   "open_required": 16,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 16
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b20/jobs/8643277002020\"}"
+  },
+  {
+   "i": 20,
+   "form": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/andurilindustries-b21/jobs/4802172007021",
+   "card_visible_at": 1792461172552,
+   "timing": {
+    "card": 1792461172534,
+    "context": 1792461169328,
+    "dcl": 1792461169244,
+    "fields": 33,
+    "fill": 1792461172530,
+    "first_card": 1792461172534,
+    "nav": 1792461169212,
+    "plan": 1792461169343,
+    "prepare": 1792461169294,
+    "read": 1792461169334,
+    "script": 1792461169281,
+    "visibility_at_prepare": "visible",
+    "widgets": 21
+   },
+   "open_required": 20,
+   "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+  },
+  {
+   "i": 21,
+   "form": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/wppmedia-b22/jobs/5437567008022",
+   "card_visible_at": 1792461174824,
+   "timing": {
+    "card": 1792461174801,
+    "context": 1792461172674,
+    "dcl": 1792461172629,
+    "fields": 28,
+    "fill": 1792461174797,
+    "first_card": 1792461174801,
+    "nav": 1792461172607,
+    "plan": 1792461172687,
+    "prepare": 1792461172655,
+    "read": 1792461172680,
+    "script": 1792461172647,
+    "visibility_at_prepare": "visible",
+    "widgets": 17
+   },
+   "open_required": 7,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 7
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b22/jobs/5437567008022\"}"
+  },
+  {
+   "i": 22,
+   "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg-b23/9e43a7f6-3476-482f-9cdd-ed5b73fb9fe8/apply",
+   "card_visible_at": 1792461190274,
+   "timing": {
+    "card": 1792461190250,
+    "context": 1792461189953,
+    "dcl": 1792461189913,
+    "fields": 18,
+    "fill": 1792461190244,
+    "first_card": 1792461190250,
+    "nav": 1792461189860,
+    "plan": 1792461189991,
+    "prepare": 1792461189937,
+    "read": 1792461189961,
+    "script": 1792461189931,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 413,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 6,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 18,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8700,
+    "person_ms_model": 6000
+   },
+   "approve_at": 1792461190694,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461190900,
+   "times": null
+  },
+  {
+   "i": 23,
+   "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "url": "https://jobs.lever.co/cgsfederal-b24/0130d854-9bae-48d4-8ef0-e9da1ee77fe7/apply",
+   "card_visible_at": 1792461192888,
+   "timing": {
+    "card": 1792461192869,
+    "context": 1792461192557,
+    "dcl": 1792461192522,
+    "fields": 16,
+    "fill": 1792461192863,
+    "first_card": 1792461192869,
+    "nav": 1792461192504,
+    "plan": 1792461192567,
+    "prepare": 1792461192543,
+    "read": 1792461192561,
+    "script": 1792461192529,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 424,
+   "verdicts": {
+    "empty_ok": 2,
+    "correct": 14
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461193318,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461193521,
+   "times": null
+  },
+  {
+   "i": 24,
+   "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "url": "https://jobs.lever.co/veeva-b25/9ac55b31-df46-4acb-b305-2c0b7ed56fe6/apply",
+   "card_visible_at": 1792461195383,
+   "timing": {
+    "card": 1792461195373,
+    "context": 1792461195172,
+    "dcl": 1792461195144,
+    "fields": 14,
+    "fill": 1792461195369,
+    "first_card": 1792461195373,
+    "nav": 1792461195128,
+    "plan": 1792461195180,
+    "prepare": 1792461195159,
+    "read": 1792461195175,
+    "script": 1792461195152,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 435,
+   "verdicts": {
+    "correct": 9,
+    "empty_ok": 5
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 15,
+    "answers": 10,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461195825,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461196053,
+   "times": null
+  },
+  {
+   "i": 25,
+   "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "url": "https://jobs.lever.co/shieldai-b26/ba945088-38ec-4e58-8f66-01c0497a3fe5/apply",
+   "card_visible_at": 1792461198044,
+   "timing": {
+    "card": 1792461198023,
+    "context": 1792461197724,
+    "dcl": 1792461197691,
+    "fields": 28,
+    "fill": 1792461198016,
+    "first_card": 1792461198023,
+    "nav": 1792461197672,
+    "plan": 1792461197738,
+    "prepare": 1792461197711,
+    "read": 1792461197730,
+    "script": 1792461197705,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 3,
+   "person_answered": {
+    "text": 1,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 514,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 12,
+    "any": 1,
+    "wrong_filled": 1,
+    "missed": 3
+   },
+   "wrong": [
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+     "label": "When are you available to start your fellowship?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "When are you available for full time work?",
+     "widget": false
+    },
+    {
+     "label": "How did you hear about us?✱",
+     "widget": false
+    },
+    {
+     "label": "If \"Industry Conference\" or \"Other,\" please provide more details:",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 21,
+    "answers": 16,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9900,
+    "person_ms_model": 11000
+   },
+   "approve_at": 1792461198567,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461198785,
+   "times": null
+  },
+  {
+   "i": 26,
+   "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/weloglobal-b27/6e0ac589-3fba-429a-8ce4-5c48a2cf0fe4/apply",
+   "card_visible_at": 1792461200814,
+   "timing": {
+    "card": 1792461200799,
+    "context": 1792461200469,
+    "dcl": 1792461200430,
+    "fields": 28,
+    "fill": 1792461200793,
+    "first_card": 1792461200799,
+    "nav": 1792461200408,
+    "plan": 1792461200491,
+    "prepare": 1792461200449,
+    "read": 1792461200479,
+    "script": 1792461200439,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 8,
+   "person_answered": {
+    "text": 0,
+    "pick": 8,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 789,
+   "verdicts": {
+    "correct": 12,
+    "any": 1,
+    "empty_ok": 13,
+    "wrong_filled": 1,
+    "missed": 1
+   },
+   "wrong": [
+    {
+     "name": "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+     "label": "What other languages do you speak at Native Level Fluency?✱",
+     "widget": false,
+     "want": null,
+     "got": "English",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Have you registered and worked on any Welocalize project previously?✱",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 26,
+    "answers": 22,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 11900,
+    "person_ms_model": 20000
+   },
+   "approve_at": 1792461201617,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461201845,
+   "times": null
+  },
+  {
+   "i": 27,
+   "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/lyrahealth-b28/35bffe8b-ac9f-4749-ba4c-5f3a4d2bdfe3/apply",
+   "card_visible_at": 1792461203922,
+   "timing": {
+    "card": 1792461203896,
+    "context": 1792461203539,
+    "dcl": 1792461203506,
+    "fields": 28,
+    "fill": 1792461203884,
+    "first_card": 1792461203896,
+    "nav": 1792461203476,
+    "plan": 1792461203562,
+    "prepare": 1792461203517,
+    "read": 1792461203550,
+    "script": 1792461203511,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 14,
+    "empty_ok": 13,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9500,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461203934,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461204134,
+   "times": null
+  },
+  {
+   "i": 28,
+   "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/openai-b29/8fb1615c-34bf-47c4-a1d1-b7b2f836bfe2/application",
+   "card_visible_at": 1792461206188,
+   "timing": {
+    "card": 1792461206172,
+    "context": 1792461205897,
+    "dcl": 1792461205856,
+    "fields": 16,
+    "fill": 1792461206162,
+    "first_card": 1792461206172,
+    "nav": 1792461205797,
+    "plan": 1792461205928,
+    "prepare": 1792461205871,
+    "read": 1792461205904,
+    "script": 1792461205867,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 506,
+   "verdicts": {
+    "correct": 9,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 5
+   },
+   "wrong": [
+    {
+     "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+     "label": "When can you start a new role?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you now or in the future require sponsorship for employment visa status in this country?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 16,
+    "answers": 12,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7900,
+    "person_ms_model": 5000
+   },
+   "approve_at": 1792461206702,
+   "result": "confirmed",
+   "done_at": 1792461207597,
+   "times": {
+    "steps": {
+     "begun": 1792461206887,
+     "checked": 1792461206744,
+     "screenshot": 1792461206872,
+     "submit": 1792461206741
+    }
+   }
+  },
+  {
+   "i": 29,
+   "form": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/airwallex-b30/cba0ab2e-5ab8-416b-ac9b-115638e3cfe1/application",
+   "card_visible_at": 1792461208806,
+   "timing": {
+    "card": 1792461208796,
+    "context": 1792461208530,
+    "dcl": 1792461208501,
+    "fields": 15,
+    "fill": 1792461208791,
+    "first_card": 1792461208796,
+    "nav": 1792461208487,
+    "plan": 1792461208536,
+    "prepare": 1792461208514,
+    "read": 1792461208532,
+    "script": 1792461208506,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 451,
+   "verdicts": {
+    "correct": 12,
+    "empty_ok": 2,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Do you have any relatives currently working for Airwallex?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8300,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461209264,
+   "result": "confirmed",
+   "done_at": 1792461210116,
+   "times": {
+    "steps": {
+     "begun": 1792461209424,
+     "checked": 1792461209308,
+     "screenshot": 1792461209412,
+     "submit": 1792461209306
+    }
+   }
+  },
+  {
+   "i": 30,
+   "form": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/lilt-production-b31/959498b8-a18e-457b-9e93-07662c38ffe0/application",
+   "card_visible_at": 1792461211197,
+   "timing": {
+    "card": 1792461211185,
+    "context": 1792461211050,
+    "dcl": 1792461211025,
+    "fields": 11,
+    "fill": 1792461211182,
+    "first_card": 1792461211185,
+    "nav": 1792461211001,
+    "plan": 1792461211056,
+    "prepare": 1792461211035,
+    "read": 1792461211051,
+    "script": 1792461211027,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 5,
+   "person_answered": {
+    "text": 4,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 487,
+   "verdicts": {
+    "correct": 6,
+    "empty_ok": 4,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Are you a native Basque translator?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 15,
+    "answers": 11,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7500,
+    "person_ms_model": 26500
+   },
+   "approve_at": 1792461211688,
+   "result": "confirmed",
+   "done_at": 1792461212549,
+   "times": {
+    "steps": {
+     "begun": 1792461211854,
+     "checked": 1792461211743,
+     "screenshot": 1792461211844,
+     "submit": 1792461211741
+    }
+   }
+  },
+  {
+   "i": 31,
+   "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/snowflake-b32/479e06f1-273d-4a1b-af56-6543761ebfdf/application",
+   "card_visible_at": 1792461213814,
+   "timing": {
+    "card": 1792461213805,
+    "context": 1792461213494,
+    "dcl": 1792461213459,
+    "fields": 16,
+    "fill": 1792461213800,
+    "first_card": 1792461213805,
+    "nav": 1792461213437,
+    "plan": 1792461213507,
+    "prepare": 1792461213474,
+    "read": 1792461213498,
+    "script": 1792461213461,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 4,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 533,
+   "verdicts": {
+    "correct": 10,
+    "missed": 4,
+    "wrong_filled": 1,
+    "empty_ok": 1
+   },
+   "wrong": [
+    {
+     "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+     "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+     "widget": false,
+     "want": null,
+     "got": "Yes (checked)",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you require company sponsorship now or in the future to maintain or extend your current work au",
+     "widget": false
+    },
+    {
+     "label": "Have you worked at Snowflake in the past in a Full-time, Part-time, contractor or Intern capacity?",
+     "widget": false
+    },
+    {
+     "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
+     "widget": false
+    },
+    {
+     "label": "Have you ever been directly employed by (1) any government or military entity, state-owned enterpris",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 19,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9100,
+    "person_ms_model": 10000
+   },
+   "approve_at": 1792461214355,
+   "result": "confirmed",
+   "done_at": 1792461215227,
+   "times": {
+    "steps": {
+     "begun": 1792461214522,
+     "checked": 1792461214390,
+     "screenshot": 1792461214507,
+     "submit": 1792461214387
+    }
+   }
+  },
+  {
+   "i": 32,
+   "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/Crusoe-b33/b1b99030-d393-4329-80fe-5bc2e4c93fde/application",
+   "card_visible_at": 1792461216368,
+   "timing": {
+    "card": 1792461216350,
+    "context": 1792461216151,
+    "dcl": 1792461216125,
+    "fields": 14,
+    "fill": 1792461216345,
+    "first_card": 1792461216350,
+    "nav": 1792461216111,
+    "plan": 1792461216156,
+    "prepare": 1792461216138,
+    "read": 1792461216154,
+    "script": 1792461216133,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 8,
+    "missed": 1,
+    "wrong_value": 1,
+    "empty_ok": 4
+   },
+   "wrong": [
+    {
+     "name": "_systemfield_location",
+     "label": "Which state, province, or region do you currently live in?",
+     "widget": false,
+     "want": "IL",
+     "got": "Chicago, IL",
+     "source": "trainee",
+     "verdict": "wrong_value"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Phone Number",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 13,
+    "answers": 9,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 6700,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461216372,
+   "result": "confirmed",
+   "done_at": 1792461217224,
+   "times": {
+    "steps": {
+     "begun": 1792461216529,
+     "checked": 1792461216410,
+     "screenshot": 1792461216516,
+     "submit": 1792461216407
+    }
+   }
+  },
+  {
+   "i": 33,
+   "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/harvey-b34/977e6184-2dc4-422b-8ab3-bc26bb73ffdd/application",
+   "card_visible_at": 1792461218443,
+   "timing": {
+    "card": 1792461218420,
+    "context": 1792461218155,
+    "dcl": 1792461218123,
+    "fields": 15,
+    "fill": 1792461218417,
+    "first_card": 1792461218420,
+    "nav": 1792461218108,
+    "plan": 1792461218164,
+    "prepare": 1792461218138,
+    "read": 1792461218158,
+    "script": 1792461218128,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 447,
+   "verdicts": {
+    "correct": 11,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 2
+   },
+   "wrong": [
+    {
+     "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+     "label": "Preferred Last Name",
+     "widget": false,
+     "want": null,
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "University or School Attended",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8300,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461218897,
+   "result": "confirmed",
+   "done_at": 1792461219789,
+   "times": {
+    "steps": {
+     "begun": 1792461219073,
+     "checked": 1792461218949,
+     "screenshot": 1792461219058,
+     "submit": 1792461218942
+    }
+   }
+  },
+  {
+   "i": 34,
+   "form": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/prolificacademicltd-b35/jobs/4979452101035",
+   "card_visible_at": 1792461221553,
+   "timing": {
+    "card": 1792461221536,
+    "context": 1792461220806,
+    "dcl": 1792461220714,
+    "fields": 11,
+    "fill": 1792461221532,
+    "first_card": 1792461221536,
+    "nav": 1792461220676,
+    "plan": 1792461220836,
+    "prepare": 1792461220788,
+    "read": 1792461220816,
+    "script": 1792461220774,
+    "visibility_at_prepare": "visible",
+    "widgets": 2
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 1
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b35/jobs/4979452101035\"}"
+  },
+  {
+   "i": 35,
+   "form": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/eosfitness-b36/jobs/4336050009036",
+   "card_visible_at": 1792461240027,
+   "timing": {
+    "card": 1792461239993,
+    "context": 1792461236752,
+    "dcl": 1792461236682,
+    "fields": 36,
+    "fill": 1792461239982,
+    "first_card": 1792461239993,
+    "nav": 1792461236606,
+    "plan": 1792461236773,
+    "prepare": 1792461236703,
+    "read": 1792461236758,
+    "script": 1792461236684,
+    "visibility_at_prepare": "visible",
+    "widgets": 15
+   },
+   "open_required": 12,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 11
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b36/jobs/4336050009036\"}"
+  },
+  {
+   "i": 36,
+   "form": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/spacex-b37/jobs/8643277002037",
+   "card_visible_at": 1792461258704,
+   "timing": {
+    "card": 1792461258678,
+    "context": 1792461255213,
+    "dcl": 1792461255130,
+    "fields": 31,
+    "fill": 1792461258674,
+    "first_card": 1792461258678,
+    "nav": 1792461255104,
+    "plan": 1792461255238,
+    "prepare": 1792461255172,
+    "read": 1792461255219,
+    "script": 1792461255158,
+    "visibility_at_prepare": "visible",
+    "widgets": 20
+   },
+   "open_required": 16,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 16
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b37/jobs/8643277002037\"}"
+  },
+  {
+   "i": 37,
+   "form": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/andurilindustries-b38/jobs/4802172007038",
+   "card_visible_at": 1792461277060,
+   "timing": {
+    "card": 1792461277028,
+    "context": 1792461273821,
+    "dcl": 1792461273786,
+    "fields": 33,
+    "fill": 1792461277024,
+    "first_card": 1792461277028,
+    "nav": 1792461273738,
+    "plan": 1792461273844,
+    "prepare": 1792461273799,
+    "read": 1792461273831,
+    "script": 1792461273788,
+    "visibility_at_prepare": "visible",
+    "widgets": 21
+   },
+   "open_required": 20,
+   "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+  },
+  {
+   "i": 38,
+   "form": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/wppmedia-b39/jobs/5437567008039",
+   "card_visible_at": 1792461279344,
+   "timing": {
+    "card": 1792461279316,
+    "context": 1792461277188,
+    "dcl": 1792461277141,
+    "fields": 28,
+    "fill": 1792461279310,
+    "first_card": 1792461279316,
+    "nav": 1792461277119,
+    "plan": 1792461277202,
+    "prepare": 1792461277168,
+    "read": 1792461277194,
+    "script": 1792461277159,
+    "visibility_at_prepare": "visible",
+    "widgets": 17
+   },
+   "open_required": 7,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 7
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b39/jobs/5437567008039\"}"
+  },
+  {
+   "i": 39,
+   "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg-b40/9e43a7f6-3476-482f-9cdd-ed5b73fb9fd7/apply",
+   "card_visible_at": 1792461294843,
+   "timing": {
+    "card": 1792461294834,
+    "context": 1792461294531,
+    "dcl": 1792461294436,
+    "fields": 18,
+    "fill": 1792461294827,
+    "first_card": 1792461294834,
+    "nav": 1792461294407,
+    "plan": 1792461294570,
+    "prepare": 1792461294506,
+    "read": 1792461294541,
+    "script": 1792461294492,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 434,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 6,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 18,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8700,
+    "person_ms_model": 6000
+   },
+   "approve_at": 1792461295285,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461295529,
+   "times": null
+  },
+  {
+   "i": 40,
+   "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "url": "https://jobs.lever.co/cgsfederal-b41/0130d854-9bae-48d4-8ef0-e9da1ee77fd6/apply",
+   "card_visible_at": 1792461297615,
+   "timing": {
+    "card": 1792461297602,
+    "context": 1792461297288,
+    "dcl": 1792461297254,
+    "fields": 16,
+    "fill": 1792461297597,
+    "first_card": 1792461297602,
+    "nav": 1792461297221,
+    "plan": 1792461297299,
+    "prepare": 1792461297267,
+    "read": 1792461297293,
+    "script": 1792461297255,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 415,
+   "verdicts": {
+    "empty_ok": 2,
+    "correct": 14
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461298037,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461298311,
+   "times": null
+  },
+  {
+   "i": 41,
+   "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "url": "https://jobs.lever.co/veeva-b42/9ac55b31-df46-4acb-b305-2c0b7ed56fd5/apply",
+   "card_visible_at": 1792461300244,
+   "timing": {
+    "card": 1792461300229,
+    "context": 1792461300026,
+    "dcl": 1792461300000,
+    "fields": 14,
+    "fill": 1792461300225,
+    "first_card": 1792461300229,
+    "nav": 1792461299976,
+    "plan": 1792461300035,
+    "prepare": 1792461300012,
+    "read": 1792461300029,
+    "script": 1792461300002,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 443,
+   "verdicts": {
+    "correct": 9,
+    "empty_ok": 5
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 15,
+    "answers": 10,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461300694,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461300911,
+   "times": null
+  },
+  {
+   "i": 42,
+   "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "url": "https://jobs.lever.co/shieldai-b43/ba945088-38ec-4e58-8f66-01c0497a3fd4/apply",
+   "card_visible_at": 1792461302980,
+   "timing": {
+    "card": 1792461302966,
+    "context": 1792461302664,
+    "dcl": 1792461302619,
+    "fields": 28,
+    "fill": 1792461302959,
+    "first_card": 1792461302966,
+    "nav": 1792461302602,
+    "plan": 1792461302680,
+    "prepare": 1792461302648,
+    "read": 1792461302670,
+    "script": 1792461302640,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 3,
+   "person_answered": {
+    "text": 1,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 521,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 12,
+    "any": 1,
+    "wrong_filled": 1,
+    "missed": 3
+   },
+   "wrong": [
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+     "label": "When are you available to start your fellowship?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "When are you available for full time work?",
+     "widget": false
+    },
+    {
+     "label": "How did you hear about us?✱",
+     "widget": false
+    },
+    {
+     "label": "If \"Industry Conference\" or \"Other,\" please provide more details:",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 21,
+    "answers": 16,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9900,
+    "person_ms_model": 11000
+   },
+   "approve_at": 1792461303510,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461303741,
+   "times": null
+  },
+  {
+   "i": 43,
+   "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/weloglobal-b44/6e0ac589-3fba-429a-8ce4-5c48a2cf0fd3/apply",
+   "card_visible_at": 1792461305937,
+   "timing": {
+    "card": 1792461305894,
+    "context": 1792461305550,
+    "dcl": 1792461305514,
+    "fields": 28,
+    "fill": 1792461305887,
+    "first_card": 1792461305894,
+    "nav": 1792461305461,
+    "plan": 1792461305571,
+    "prepare": 1792461305529,
+    "read": 1792461305557,
+    "script": 1792461305517,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 8,
+   "person_answered": {
+    "text": 0,
+    "pick": 8,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 885,
+   "verdicts": {
+    "correct": 12,
+    "any": 1,
+    "empty_ok": 13,
+    "wrong_filled": 1,
+    "missed": 1
+   },
+   "wrong": [
+    {
+     "name": "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+     "label": "What other languages do you speak at Native Level Fluency?✱",
+     "widget": false,
+     "want": null,
+     "got": "English",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Have you registered and worked on any Welocalize project previously?✱",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 26,
+    "answers": 22,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 11900,
+    "person_ms_model": 20000
+   },
+   "approve_at": 1792461306837,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461307112,
+   "times": null
+  },
+  {
+   "i": 44,
+   "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/lyrahealth-b45/35bffe8b-ac9f-4749-ba4c-5f3a4d2bdfd2/apply",
+   "card_visible_at": 1792461309291,
+   "timing": {
+    "card": 1792461309268,
+    "context": 1792461308913,
+    "dcl": 1792461308880,
+    "fields": 28,
+    "fill": 1792461309257,
+    "first_card": 1792461309268,
+    "nav": 1792461308841,
+    "plan": 1792461308934,
+    "prepare": 1792461308897,
+    "read": 1792461308922,
+    "script": 1792461308887,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 14,
+    "empty_ok": 13,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9500,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461309307,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461309520,
+   "times": null
+  },
+  {
+   "i": 45,
+   "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/openai-b46/8fb1615c-34bf-47c4-a1d1-b7b2f836bfd1/application",
+   "card_visible_at": 1792461311643,
+   "timing": {
+    "card": 1792461311625,
+    "context": 1792461311342,
+    "dcl": 1792461311299,
+    "fields": 16,
+    "fill": 1792461311619,
+    "first_card": 1792461311625,
+    "nav": 1792461311244,
+    "plan": 1792461311384,
+    "prepare": 1792461311314,
+    "read": 1792461311353,
+    "script": 1792461311309,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 486,
+   "verdicts": {
+    "correct": 9,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 5
+   },
+   "wrong": [
+    {
+     "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+     "label": "When can you start a new role?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you now or in the future require sponsorship for employment visa status in this country?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 16,
+    "answers": 12,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7900,
+    "person_ms_model": 5000
+   },
+   "approve_at": 1792461312137,
+   "result": "confirmed",
+   "done_at": 1792461313157,
+   "times": {
+    "steps": {
+     "begun": 1792461312344,
+     "checked": 1792461312192,
+     "screenshot": 1792461312325,
+     "submit": 1792461312187
+    }
+   }
+  },
+  {
+   "i": 46,
+   "form": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/airwallex-b47/cba0ab2e-5ab8-416b-ac9b-115638e3cfd0/application",
+   "card_visible_at": 1792461314421,
+   "timing": {
+    "card": 1792461314398,
+    "context": 1792461314127,
+    "dcl": 1792461314071,
+    "fields": 15,
+    "fill": 1792461314393,
+    "first_card": 1792461314398,
+    "nav": 1792461314041,
+    "plan": 1792461314136,
+    "prepare": 1792461314097,
+    "read": 1792461314129,
+    "script": 1792461314085,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 442,
+   "verdicts": {
+    "correct": 12,
+    "empty_ok": 2,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Do you have any relatives currently working for Airwallex?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8300,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461314871,
+   "result": "confirmed",
+   "done_at": 1792461315821,
+   "times": {
+    "steps": {
+     "begun": 1792461315038,
+     "checked": 1792461314917,
+     "screenshot": 1792461315022,
+     "submit": 1792461314915
+    }
+   }
+  },
+  {
+   "i": 47,
+   "form": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/lilt-production-b48/959498b8-a18e-457b-9e93-07662c38ffcf/application",
+   "card_visible_at": 1792461316899,
+   "timing": {
+    "card": 1792461316882,
+    "context": 1792461316748,
+    "dcl": 1792461316721,
+    "fields": 11,
+    "fill": 1792461316879,
+    "first_card": 1792461316882,
+    "nav": 1792461316702,
+    "plan": 1792461316753,
+    "prepare": 1792461316733,
+    "read": 1792461316750,
+    "script": 1792461316725,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 5,
+   "person_answered": {
+    "text": 4,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 485,
+   "verdicts": {
+    "correct": 6,
+    "empty_ok": 4,
+    "missed": 1
+   },
+   "wrong": [],
+   "missed": [
+    {
+     "label": "Are you a native Basque translator?",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 15,
+    "answers": 11,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7500,
+    "person_ms_model": 26500
+   },
+   "approve_at": 1792461317390,
+   "result": "confirmed",
+   "done_at": 1792461318337,
+   "times": {
+    "steps": {
+     "begun": 1792461317556,
+     "checked": 1792461317442,
+     "screenshot": 1792461317544,
+     "submit": 1792461317439
+    }
+   }
+  },
+  {
+   "i": 48,
+   "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/snowflake-b49/479e06f1-273d-4a1b-af56-6543761ebfce/application",
+   "card_visible_at": 1792461319612,
+   "timing": {
+    "card": 1792461319597,
+    "context": 1792461319288,
+    "dcl": 1792461319249,
+    "fields": 16,
+    "fill": 1792461319593,
+    "first_card": 1792461319597,
+    "nav": 1792461319222,
+    "plan": 1792461319300,
+    "prepare": 1792461319269,
+    "read": 1792461319291,
+    "script": 1792461319251,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 4,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 553,
+   "verdicts": {
+    "correct": 10,
+    "missed": 4,
+    "wrong_filled": 1,
+    "empty_ok": 1
+   },
+   "wrong": [
+    {
+     "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+     "label": "In office attendance is an essential function for this role and necessary to enable effective teamwo",
+     "widget": false,
+     "want": null,
+     "got": "Yes (checked)",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Will you require company sponsorship now or in the future to maintain or extend your current work au",
+     "widget": false
+    },
+    {
+     "label": "Have you worked at Snowflake in the past in a Full-time, Part-time, contractor or Intern capacity?",
+     "widget": false
+    },
+    {
+     "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
+     "widget": false
+    },
+    {
+     "label": "Have you ever been directly employed by (1) any government or military entity, state-owned enterpris",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 19,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9100,
+    "person_ms_model": 10000
+   },
+   "approve_at": 1792461320170,
+   "result": "confirmed",
+   "done_at": 1792461321124,
+   "times": {
+    "steps": {
+     "begun": 1792461320348,
+     "checked": 1792461320205,
+     "screenshot": 1792461320331,
+     "submit": 1792461320202
+    }
+   }
+  },
+  {
+   "i": 49,
+   "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/Crusoe-b50/b1b99030-d393-4329-80fe-5bc2e4c93fcd/application",
+   "card_visible_at": 1792461322277,
+   "timing": {
+    "card": 1792461322269,
+    "context": 1792461322071,
+    "dcl": 1792461322040,
+    "fields": 14,
+    "fill": 1792461322266,
+    "first_card": 1792461322269,
+    "nav": 1792461322024,
+    "plan": 1792461322076,
+    "prepare": 1792461322058,
+    "read": 1792461322074,
+    "script": 1792461322052,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 0,
+   "verdicts": {
+    "correct": 8,
+    "missed": 1,
+    "wrong_value": 1,
+    "empty_ok": 4
+   },
+   "wrong": [
+    {
+     "name": "_systemfield_location",
+     "label": "Which state, province, or region do you currently live in?",
+     "widget": false,
+     "want": "IL",
+     "got": "Chicago, IL",
+     "source": "trainee",
+     "verdict": "wrong_value"
+    }
+   ],
+   "missed": [
+    {
+     "label": "Phone Number",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 13,
+    "answers": 9,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 6700,
+    "person_ms_model": 0
+   },
+   "approve_at": 1792461322282,
+   "result": "confirmed",
+   "done_at": 1792461323227,
+   "times": {
+    "steps": {
+     "begun": 1792461322436,
+     "checked": 1792461322320,
+     "screenshot": 1792461322423,
+     "submit": 1792461322318
+    }
+   }
+  },
+  {
+   "i": 50,
+   "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/harvey-b51/977e6184-2dc4-422b-8ab3-bc26bb73ffcc/application",
+   "card_visible_at": 1792461324438,
+   "timing": {
+    "card": 1792461324425,
+    "context": 1792461324160,
+    "dcl": 1792461324133,
+    "fields": 15,
+    "fill": 1792461324422,
+    "first_card": 1792461324425,
+    "nav": 1792461324112,
+    "plan": 1792461324168,
+    "prepare": 1792461324148,
+    "read": 1792461324163,
+    "script": 1792461324135,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 446,
+   "verdicts": {
+    "correct": 11,
+    "wrong_filled": 1,
+    "missed": 1,
+    "empty_ok": 2
+   },
+   "wrong": [
+    {
+     "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+     "label": "Preferred Last Name",
+     "widget": false,
+     "want": null,
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "University or School Attended",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 17,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8300,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461324890,
+   "result": "confirmed",
+   "done_at": 1792461325874,
+   "times": {
+    "steps": {
+     "begun": 1792461325060,
+     "checked": 1792461324936,
+     "screenshot": 1792461325046,
+     "submit": 1792461324933
+    }
+   }
+  },
+  {
+   "i": 51,
+   "form": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/prolificacademicltd-b52/jobs/4979452101052",
+   "card_visible_at": 1792461327631,
+   "timing": {
+    "card": 1792461327597,
+    "context": 1792461326864,
+    "dcl": 1792461326826,
+    "fields": 11,
+    "fill": 1792461327593,
+    "first_card": 1792461327597,
+    "nav": 1792461326758,
+    "plan": 1792461326897,
+    "prepare": 1792461326846,
+    "read": 1792461326871,
+    "script": 1792461326834,
+    "visibility_at_prepare": "visible",
+    "widgets": 2
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 1
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/prolificacademicltd-b52/jobs/4979452101052\"}"
+  },
+  {
+   "i": 52,
+   "form": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/eosfitness-b53/jobs/4336050009053",
+   "card_visible_at": 1792461346046,
+   "timing": {
+    "card": 1792461346014,
+    "context": 1792461342781,
+    "dcl": 1792461342746,
+    "fields": 36,
+    "fill": 1792461346009,
+    "first_card": 1792461346014,
+    "nav": 1792461342687,
+    "plan": 1792461342802,
+    "prepare": 1792461342761,
+    "read": 1792461342787,
+    "script": 1792461342749,
+    "visibility_at_prepare": "visible",
+    "widgets": 15
+   },
+   "open_required": 12,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 11
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/eosfitness-b53/jobs/4336050009053\"}"
+  },
+  {
+   "i": 53,
+   "form": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/spacex-b54/jobs/8643277002054",
+   "card_visible_at": 1792461364711,
+   "timing": {
+    "card": 1792461364680,
+    "context": 1792461361211,
+    "dcl": 1792461361161,
+    "fields": 31,
+    "fill": 1792461364676,
+    "first_card": 1792461364680,
+    "nav": 1792461361133,
+    "plan": 1792461361239,
+    "prepare": 1792461361190,
+    "read": 1792461361219,
+    "script": 1792461361185,
+    "visibility_at_prepare": "visible",
+    "widgets": 20
+   },
+   "open_required": 16,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 16
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/spacex-b54/jobs/8643277002054\"}"
+  },
+  {
+   "i": 54,
+   "form": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/andurilindustries-b55/jobs/4802172007055",
+   "card_visible_at": 1792461383077,
+   "timing": {
+    "card": 1792461383050,
+    "context": 1792461379847,
+    "dcl": 1792461379805,
+    "fields": 33,
+    "fill": 1792461383044,
+    "first_card": 1792461383050,
+    "nav": 1792461379750,
+    "plan": 1792461379863,
+    "prepare": 1792461379819,
+    "read": 1792461379853,
+    "script": 1792461379809,
+    "visibility_at_prepare": "visible",
+    "widgets": 21
+   },
+   "open_required": 20,
+   "result": "error: locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n\u001b[2m  - waiting for locator('#end-year--0').first()\u001b[22m\n\u001b[2m    - locator resolved to <input value=\"\" type=\"number\" id=\"end-year--0\" aria-invalid=\"false\" aria-required=\"true\" aria-label=\"End date year\" class=\"input input__singl"
+  },
+  {
+   "i": 55,
+   "form": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/wppmedia-b56/jobs/5437567008056",
+   "card_visible_at": 1792461385376,
+   "timing": {
+    "card": 1792461385360,
+    "context": 1792461383232,
+    "dcl": 1792461383197,
+    "fields": 28,
+    "fill": 1792461385356,
+    "first_card": 1792461385360,
+    "nav": 1792461383149,
+    "plan": 1792461383247,
+    "prepare": 1792461383211,
+    "read": 1792461383238,
+    "script": 1792461383199,
+    "visibility_at_prepare": "visible",
+    "widgets": 17
+   },
+   "open_required": 7,
+   "person_answered": {
+    "text": 0,
+    "pick": 0,
+    "skipped_widgets": 7
+   },
+   "result": "error: card did not reach the state in time: {\"status\":\"blocked\",\"message\":\"Not ready to approve yet.\",\"url\":\"https://job-boards.greenhouse.io/wppmedia-b56/jobs/5437567008056\"}"
+  },
+  {
+   "i": 56,
+   "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg-b57/9e43a7f6-3476-482f-9cdd-ed5b73fb9fc6/apply",
+   "card_visible_at": 1792461400865,
+   "timing": {
+    "card": 1792461400837,
+    "context": 1792461400543,
+    "dcl": 1792461400495,
+    "fields": 18,
+    "fill": 1792461400829,
+    "first_card": 1792461400837,
+    "nav": 1792461400434,
+    "plan": 1792461400576,
+    "prepare": 1792461400517,
+    "read": 1792461400550,
+    "script": 1792461400509,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 1,
+    "pick": 0,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 421,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 6,
+    "any": 1
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 18,
+    "answers": 13,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 8700,
+    "person_ms_model": 6000
+   },
+   "approve_at": 1792461401292,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461401492,
+   "times": null
+  },
+  {
+   "i": 57,
+   "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "url": "https://jobs.lever.co/cgsfederal-b58/0130d854-9bae-48d4-8ef0-e9da1ee77fc5/apply",
+   "card_visible_at": 1792461403678,
+   "timing": {
+    "card": 1792461403646,
+    "context": 1792461403332,
+    "dcl": 1792461403299,
+    "fields": 16,
+    "fill": 1792461403642,
+    "first_card": 1792461403646,
+    "nav": 1792461403271,
+    "plan": 1792461403343,
+    "prepare": 1792461403312,
+    "read": 1792461403336,
+    "script": 1792461403301,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 413,
+   "verdicts": {
+    "empty_ok": 2,
+    "correct": 14
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 20,
+    "answers": 15,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461404098,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461404330,
+   "times": null
+  },
+  {
+   "i": 58,
+   "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "url": "https://jobs.lever.co/veeva-b59/9ac55b31-df46-4acb-b305-2c0b7ed56fc4/apply",
+   "card_visible_at": 1792461406422,
+   "timing": {
+    "card": 1792461406392,
+    "context": 1792461406179,
+    "dcl": 1792461406144,
+    "fields": 14,
+    "fill": 1792461406379,
+    "first_card": 1792461406392,
+    "nav": 1792461406121,
+    "plan": 1792461406187,
+    "prepare": 1792461406153,
+    "read": 1792461406182,
+    "script": 1792461406146,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 1,
+   "person_answered": {
+    "text": 0,
+    "pick": 1,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 450,
+   "verdicts": {
+    "correct": 9,
+    "empty_ok": 5
+   },
+   "wrong": [],
+   "missed": [],
+   "card": {
+    "lines": 15,
+    "answers": 10,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 7500,
+    "person_ms_model": 2500
+   },
+   "approve_at": 1792461406880,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461407110,
+   "times": null
+  },
+  {
+   "i": 59,
+   "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "url": "https://jobs.lever.co/shieldai-b60/ba945088-38ec-4e58-8f66-01c0497a3fc3/apply",
+   "card_visible_at": 1792461409262,
+   "timing": {
+    "card": 1792461409241,
+    "context": 1792461408943,
+    "dcl": 1792461408912,
+    "fields": 28,
+    "fill": 1792461409235,
+    "first_card": 1792461409241,
+    "nav": 1792461408893,
+    "plan": 1792461408958,
+    "prepare": 1792461408931,
+    "read": 1792461408949,
+    "script": 1792461408925,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "open_required": 3,
+   "person_answered": {
+    "text": 1,
+    "pick": 2,
+    "skipped_widgets": 0
+   },
+   "answer_machine_ms": 512,
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 12,
+    "any": 1,
+    "wrong_filled": 1,
+    "missed": 3
+   },
+   "wrong": [
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+     "label": "When are you available to start your fellowship?",
+     "widget": false,
+     "want": null,
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "wrong_filled"
+    }
+   ],
+   "missed": [
+    {
+     "label": "When are you available for full time work?",
+     "widget": false
+    },
+    {
+     "label": "How did you hear about us?✱",
+     "widget": false
+    },
+    {
+     "label": "If \"Industry Conference\" or \"Other,\" please provide more details:",
+     "widget": false
+    }
+   ],
+   "card": {
+    "lines": 21,
+    "answers": 16,
+    "new_answers": 0,
+    "words_new": 0,
+    "read_ms_model": 9900,
+    "person_ms_model": 11000
+   },
+   "approve_at": 1792461409785,
+   "result": "stopped: The page closed; nothing was sent.",
+   "done_at": 1792461410044,
+   "times": null
+  }
+ ]
+}

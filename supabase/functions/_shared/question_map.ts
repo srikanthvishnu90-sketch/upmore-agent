@@ -62,7 +62,9 @@ const RULES: Rule[] = [
   ["legal_name", /\bfull legal name\b|legal (first|last)? ?name and legal|^legal name\b/, (q, t) => !/native language|referr|team member/.test(t)],
   ["first_name", /^(legal )?first name\b|^given name\b|^prénom\b|^voornaam\b|^名$/],
   ["last_name", /^(legal )?(last|family) name\b|^surname\b|^nom( de famille)?$|^achternaam\b|^姓$/],
-  ["preferred_name", /^preferred (first |last )?name\b/],
+  // A preferred last name is not the preferred (first) name the person gave: left to them (WO-042, Harvey).
+  ["preferred_last_name", /^preferred (last|family|sur) ?name\b/],
+  ["preferred_name", /^preferred (first )?name\b/],
   ["pronouns", /\bpronouns?\b/],
   ["full_name", /^(full )?name\b|^your name\b|^nom complet\b/, (q, t) => !/referr|company|school|university|employer/.test(t)],
   ["signature", /^signature\b|\bsign(ature)? (here|below)\b|\btype your (full )?name\b/],
@@ -74,7 +76,7 @@ const RULES: Rule[] = [
   ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address/.test(t)],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
   ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/, (q, t) => !/\bstate\b/.test(t)],
-  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
+  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
   ["timezone", /\btime ?zone are you\b|\bwhat time ?zone\b|\btime zone you are located\b|\bwhich time zone\b/],
   ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/],
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
@@ -99,7 +101,7 @@ const RULES: Rule[] = [
 
   // Availability.
   ["notice_period", /\bnotice period\b|\bhow much notice\b|\bpréavis\b|\blwd\b/],
-  ["start_date", /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b/],
+  ["start_date", /\b(available|availability) to (start|begin)\b|\bstart date\b|\bwhen (can|could) you start\b|\bhow soon (are you able|can you) (to )?start\b|\bbest time to start\b|\bavailable to begin\b|\bdate available\b|\bcurrent availability to start\b|\bable to start within\b|\bavailable for full[- ]time (work|employment)\b/],
   ["employment_type", /\b(looking for|seeking|interested in) (full|part)-?time\b|\bfull-?time or part-?time (employment|role|position|work)\b|^are you looking for full-?time or part-?time/, (q, t) => !/employed by|worked (at|for)|employee of/.test(t)],
 
   // Pay.
@@ -113,12 +115,20 @@ const RULES: Rule[] = [
   ["unknown", /\b(graduate|doctorate|doctoral|master'?s) gpa\b|\bgpa \((graduate|doctorate)\)/, (q, t) => !/undergraduate/.test(t)],
   ["gpa", /\bgpa\b|\bppa\b|\bgrade point average\b|\bdegree result\b/],
   ["test_scores", /\b(sat|act|gre|gmat|lsat) score\b/],
+  // Greenhouse's education block names its fields with one word ("Degree", "School", "Discipline"): exact labels only,
+  // never "degree in" or "school district" (WO-042, live Greenhouse forms).
+  ["education_level", /^degree[\s*:]*$/],
+  ["school", /^(school|college|university)[\s*:]*$/],
+  ["major", /^(discipline|field of study)[\s*:]*$/],
   ["education_level", /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/],
   ["major", /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
   ["graduation_date", /\bgraduation (date|year)\b|\bgraduat(e|ed|ion) date\b|\bexpected graduation\b|\bdiplôme\b|\bhave you graduated\b/],
-  ["school", /\b(college|university|school)( name)?\b.*\b(attend|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/],
+  ["school", /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/],
 
   // Skills.
+  // "What other languages do you speak?" asks for languages besides the one a person always has: their language fact
+  // alone does not answer it (WO-042, Welo Global).
+  ["languages_other", /\b(other|additional|another|second|foreign)\b.{0,30}\blanguages?\b|\blanguages?\b.{0,30}\b(other than|besides|apart from|in addition to)\b/],
   ["languages", /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/],
   ["drivers_license", /\bdriver'?s'? licen[cs]e\b/],
   // A license or ID number is never held (no identity digits); it is asked.
@@ -129,6 +139,8 @@ const RULES: Rule[] = [
   ["citizenship", /\bexport\b.*\bcountr(y|ies)\b.*\bcitizen(ship)?\b|\bcountr(y|ies) of citizenship\b/],
   ["us_person", /\bu\.?s\.? person\b|\bexport (controls?|compliance)\b|\bdeemed export\b|\bitar\b|\bexport licen/],
   ["us_person", /\bcitizen\b/, (q) => /asylee|refugee|protected individual/.test(opts(q))],
+  // Eligibility to obtain a clearance is not holding one: "None held" never answers "eligible?" (WO-042, Anduril).
+  ["clearance_eligibility", /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/],
   ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/],
   ["sponsorship", /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/],
   ["citizenship", /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/, (q, t) => !/renounced/.test(t)],
@@ -152,13 +164,17 @@ const RULES: Rule[] = [
 
   // The application and this employer.
   ["referral", /\breferr(ed|al|ing)\b/],
-  ["relative_here", /\b(relative|family member|spouse|related to|personal relationship|close relationship|in-laws|anyone you live with)\b/],
+  ["relative_here", /\b(relatives?|family members?|spouses?|related to|personal relationships?|close relationships?|in-laws|anyone you live with)\b/],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
   ["worked_here_before", /\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of/.test(t)],
   ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/],
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/],
 
   // This job's screens.
+  // Before the other screens: a question that names an essential function but asks about commuting is about commuting.
+  // Whether the person lives within commuting distance of this job's office depends on where that office is, which their
+  // stated yes to working on site does not say: asked (WO-042, Snowflake).
+  ["job_commute", /\bcommut\w*\b.*\b(distance|range)\b|\breside within\b|\bwithin \d+ (miles|km|kilometers)\b|\b(live|reside|located|based) (near|close to|nearby)\b|\bwithin (a )?commut/, (q, t) => !/\bif you (do not|don'?t) (currently )?(live|reside)\b/.test(t)],
   ["essential_functions", /\bessential functions?\b|\bwith or without (a )?reasonable accommodation/],
   ["meets_qualifications", /\bmeet (each of |all )?(the )?(basic |essential |required )?qualifications\b|\bread the required qualifications\b/],
   ["job_physical", /\blift(ing)?\b.*\b(lbs?|pounds?)\b|\bstand(ing)? for\b|\bclimb\b|\bmedical waste\b/],

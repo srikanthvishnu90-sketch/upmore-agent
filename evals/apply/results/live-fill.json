@@ -1,0 +1,6790 @@
+{
+ "report": {
+  "wo": "WO-042",
+  "kind": "live fill, never sent",
+  "measured_at": "2026-10-20T07:03:45.180Z",
+  "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
+  "forms": 17,
+  "reachable": 17,
+  "carded": 17,
+  "all": {
+   "correct": 195,
+   "wrong": 0,
+   "missed": 8,
+   "unkeyed": 19,
+   "precision": 1,
+   "coverage": 0.9605911330049262,
+   "widgets": {
+    "should": 42,
+    "correct": 37
+   }
+  },
+  "greenhouse": {
+   "correct": 71,
+   "wrong": 0,
+   "missed": 5,
+   "unkeyed": 9,
+   "precision": 1,
+   "coverage": 0.9342105263157895,
+   "widgets": {
+    "should": 42,
+    "correct": 37
+   }
+  },
+  "lever": {
+   "correct": 73,
+   "wrong": 0,
+   "missed": 3,
+   "unkeyed": 0,
+   "precision": 1,
+   "coverage": 0.9605263157894737,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "ashby": {
+   "correct": 51,
+   "wrong": 0,
+   "missed": 0,
+   "unkeyed": 10,
+   "precision": 1,
+   "coverage": 1,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "aborted_requests": 198,
+  "aborted_hosts": [
+   "c.spl.greenhouse.io",
+   "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "jobs.lever.co",
+   "api2.hcaptcha.com",
+   "api.hcaptcha.com",
+   "hcaptcha.com",
+   "platform.linkedin.com",
+   "www.google-analytics.com",
+   "browser-intake-datadoghq.com",
+   "jobs.ashbyhq.com",
+   "csp.withgoogle.com"
+  ],
+  "allowed_graphql_reads": [
+   "cloudflare-challenge-beacon",
+   "ApiJobPosting",
+   "ApiOrganizationFromHostedJobsPageName",
+   "ApiAutocompleteGeoLocation"
+  ],
+  "aborted_graphql_ops": [
+   "ApiSetFormValue",
+   "ApiCreateFileUploadHandle",
+   "ApiSubmitCandidateTextingConsent"
+  ]
+ },
+ "rows": [
+  {
+   "form": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
+   "http_status": 200,
+   "final_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
+   "ms_goto_dcl": 264,
+   "ms_goto_load": 322,
+   "ms_fill_click_to_card": 778,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479635506,
+    "context": 1792479634893,
+    "dcl": 1792479634647,
+    "fields": 10,
+    "fill": 1792479635502,
+    "first_card": 1792479635506,
+    "nav": 1792479634402,
+    "plan": 1792479634907,
+    "prepare": 1792479634865,
+    "read": 1792479634899,
+    "script": 1792479634718,
+    "visibility_at_prepare": "visible",
+    "widgets": 2
+   },
+   "blockers": [
+    "\"Are you currently based in and can verify right to work from one of the following countries?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Are you currently based in and can verify right to work from one of the following countries?"
+   ],
+   "fields": [
+    {
+     "name": "first_name",
+     "label": "First Name*",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "last_name",
+     "label": "Last Name*",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "preferred_name",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email*",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "country",
+     "label": "Country",
+     "widget": "react-select",
+     "required": false,
+     "want": "United States",
+     "got": "United States +1",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "widget": null,
+     "required": false,
+     "want": "+1 555 010 0000",
+     "got": "+1 555-010-0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9668367101",
+     "label": "Please share a link to your LinkedIn profile if you have one:",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9668368101",
+     "label": "Are you currently based in and can verify right to work from one of the following countries? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "United States",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "question_9668369101",
+     "label": "If you selected \"REST OF WORLD\" in the previous question regarding country of residence, please let ",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 7,
+    "missed": 1,
+    "empty_ok": 1
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": [
+     "iti-0__search-input",
+     "resume"
+    ]
+   },
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "question_9668368101",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 37,
+        "first": [
+         "Australia",
+         "Austria",
+         "Belgium",
+         "Canada",
+         "Chile",
+         "Croatia"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 37,
+       "first": [
+        "Australia",
+        "Austria",
+        "Belgium",
+        "Canada",
+        "Chile",
+        "Croatia"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     }
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+   "http_status": 200,
+   "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+   "ms_goto_dcl": 284,
+   "ms_goto_load": 367,
+   "ms_fill_click_to_card": 3279,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479651883,
+    "context": 1792479648810,
+    "dcl": 1792479648501,
+    "fields": 35,
+    "fill": 1792479651875,
+    "first_card": 1792479651883,
+    "nav": 1792479648222,
+    "plan": 1792479648848,
+    "prepare": 1792479648757,
+    "read": 1792479648819,
+    "script": 1792479648580,
+    "slow": {
+     "school--0": 1268
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 15
+   },
+   "blockers": [
+    "\"Please select the certifications you currently have or are working on achieving below:\" is required and not answered yet.",
+    "\"Date Available to Start? (enter in MM/DD/YY format)\" is required and not answered yet.",
+    "\"What days and times are you available?\" is required and not answered yet.",
+    "\"EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well. Like our members, our team members know ho...\" is required and not answered yet.",
+    "\"Please enter the referring team member's Full Legal First and Last Name.\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Please select the certifications you currently have or are working on achieving below:",
+    "Date Available to Start? (enter in MM/DD/YY format)",
+    "What days and times are you available?",
+    "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work environment as well. Like our members, our team members know ho...",
+    "Please enter the referring team member's Full Legal First and Last Name."
+   ],
+   "fields": [
+    {
+     "name": "first_name",
+     "label": "First Name*",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "last_name",
+     "label": "Last Name*",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "preferred_name",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email*",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "country",
+     "label": "Country*",
+     "widget": "react-select",
+     "required": true,
+     "want": "United States",
+     "got": "United States +1",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone*",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555-010-0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cover_letter",
+     "label": "Cover Letter",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "school--0",
+     "label": "School",
+     "widget": "react-select",
+     "required": false,
+     "want": "Example State University",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "degree--0",
+     "label": "Degree",
+     "widget": "react-select",
+     "required": false,
+     "want": "Bachelor's Degree",
+     "got": "Bachelor's Degree",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "start-year--0",
+     "label": "Start date year",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "end-year--0",
+     "label": "End date year",
+     "widget": null,
+     "required": false,
+     "want": "2022",
+     "got": "2022",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872424009",
+     "label": "Do you currently have your Personal Training certification up to date? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872425009[]",
+     "label": "Please select the certifications you currently have or are working on achieving below:*",
+     "widget": "react-select",
+     "required": true,
+     "want": "None",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "question_6872426009",
+     "label": "If yes, please upload your Personal Training certification here",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872427009",
+     "label": "If you have more than one Personal Training certificate, please upload here",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872428009",
+     "label": "Do you currently have your CPR certification up to date?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872429009",
+     "label": "If yes, please upload your CPR certificate here",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872430009",
+     "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872431009",
+     "label": "Date Available to Start? (enter in MM/DD/YY format)*",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872432009[]",
+     "label": "What days and times are you available?*",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872433009",
+     "label": "Have you worked at EōS Fitness before? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872434009",
+     "label": "If yes, what position did you hold?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872435009",
+     "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its ",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872436009",
+     "label": "If yes, please provide their names.",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872437009",
+     "label": "If hired, can you show proof you are at least 18 years old? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872438009",
+     "label": "If hired, can you show proof of authorization to work in the United States? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872439009",
+     "label": "If no, please describe your work authorization status.",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872440009",
+     "label": "Can you perform essential job functions as outlined in the job description, either with or without r",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872441009",
+     "label": "If no, what special accommodations do you require?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872442009",
+     "label": "EōS Fitness is bold, upbeat and motivating. Not only in our fitness routines, but in our work enviro",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872443009",
+     "label": "SMS Messages Consent",
+     "widget": "react-select",
+     "required": false,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872444009",
+     "label": "Were you referred by a current EōS team member?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_6872445009",
+     "label": "Phone number of the person referring you",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_6872446009",
+     "label": "Please enter the referring team member's Full Legal First and Last Name.*",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 17,
+    "empty_ok": 15,
+    "missed": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": [
+     "iti-0__search-input",
+     "resume"
+    ]
+   },
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Aalborg University",
+         "Aalto University",
+         "Aarhus University",
+         "Abertay University",
+         "Aberystwyth University",
+         "Abilene Christian University"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 100,
+       "first": [
+        "Aalborg University",
+        "Aalto University",
+        "Aarhus University",
+        "Abertay University",
+        "Aberystwyth University",
+        "Abilene Christian University"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "degree--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 10,
+        "first": [
+         "Associate's Degree",
+         "Bachelor's Degree",
+         "Doctor of Medicine (M.D.)",
+         "Doctor of Philosophy (Ph.D.)",
+         "Engineer's Degree",
+         "High School"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 10,
+       "first": [
+        "Associate's Degree",
+        "Bachelor's Degree",
+        "Doctor of Medicine (M.D.)",
+        "Doctor of Philosophy (Ph.D.)",
+        "Engineer's Degree",
+        "High School"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     }
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+   "http_status": 200,
+   "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+   "ms_goto_dcl": 315,
+   "ms_goto_load": 401,
+   "ms_fill_click_to_card": 5714,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479676318,
+    "context": 1792479670775,
+    "dcl": 1792479670516,
+    "fields": 30,
+    "fill": 1792479676311,
+    "first_card": 1792479676318,
+    "nav": 1792479670206,
+    "plan": 1792479670797,
+    "prepare": 1792479670726,
+    "read": 1792479670784,
+    "script": 1792479670599,
+    "slow": {
+     "candidate-location": 516,
+     "question_37413373002[]": 1071,
+     "school--0": 2185
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 20
+   },
+   "blockers": [
+    "\"School\" is required and not answered yet.",
+    "\"GPA (Graduate)\" is required and not answered yet.",
+    "\"GPA (Doctorate)\" is required and not answered yet.",
+    "\"Active Security Clearance(s)\" is required and not answered yet."
+   ],
+   "open_required": [
+    "School",
+    "GPA (Graduate)",
+    "GPA (Doctorate)",
+    "Active Security Clearance(s)"
+   ],
+   "fields": [
+    {
+     "name": "first_name",
+     "label": "First Name*",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "last_name",
+     "label": "Last Name*",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "preferred_name",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email*",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "country",
+     "label": "Country*",
+     "widget": "react-select",
+     "required": true,
+     "want": "United States",
+     "got": "United States +1",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone*",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555-010-0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "candidate-location",
+     "label": "Location (City)*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "school--0",
+     "label": "School*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Example State University",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "degree--0",
+     "label": "Degree*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Bachelor's Degree",
+     "got": "Bachelor's Degree",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "discipline--0",
+     "label": "Discipline",
+     "widget": "react-select",
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413363002",
+     "label": "LinkedIn Profile",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413364002",
+     "label": "Portfolio or Cover Letter",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_37413365002",
+     "label": "How did you hear about this job?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": "Careers site",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413366002",
+     "label": "Please specify",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_37413367002",
+     "label": "GPA (Undergraduate)*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": "3.6 out of 4.0",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413368002",
+     "label": "GPA (Graduate)*",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_37413369002",
+     "label": "GPA (Doctorate)*",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_37413370002",
+     "label": "SAT Score*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Did not take/Do not recall",
+     "got": "Did not take/Do not recall",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413371002",
+     "label": "ACT Score*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Did not take/Do not recall",
+     "got": "Did not take/Do not recall",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413372002",
+     "label": "GRE Score*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Did not take/Do not recall",
+     "got": "Did not take/Do not recall",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413373002[]",
+     "label": "Active Security Clearance(s)*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413374002",
+     "label": "SpaceX & SpaceXAI Employment History*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413375002",
+     "label": "Can you perform all of the essential functions of this role with or without reasonable accommodation",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_37413376002",
+     "label": "Are you legally authorized to work in the United States?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": "I am authorized to work in the United States for any employer",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413377002",
+     "label": "Citizenship Status*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": "(a) U.S. citizen or national of the United States",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_37413378002",
+     "label": "If (f) Other, please explain:",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "gender",
+     "label": "Gender",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "hispanic_ethnicity",
+     "label": "Are you Hispanic/Latino?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "veteran_status",
+     "label": "Veteran Status",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 14,
+    "missed": 1,
+    "unkeyed": 6,
+    "empty_ok": 8
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "Discipline",
+     "How did you hear about this job?*",
+     "GPA (Undergraduate)*",
+     "Active Security Clearance(s)*",
+     "Are you legally authorized to work in the United States?*",
+     "Citizenship Status*"
+    ],
+    "gone_fields": [
+     "iti-0__search-input",
+     "resume"
+    ]
+   },
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "candidate-location",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 10,
+       "first": [
+        "Chicago, Illinois, United States",
+        "City of Chicago, Illinois, United States",
+        "North Chicago, Illinois, United States",
+        "Chicago Heights, Illinois, United States",
+        "East Chicago, Indiana, United States",
+        "West Chicago, Illinois, United States"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Acadia University",
+         "Adamson University",
+         "Adelphi University",
+         "Adirondack Community College",
+         "Admiral Farragut Academy",
+         "Adventist University of the Philippines"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 100,
+       "first": [
+        "Acadia University",
+        "Adamson University",
+        "Adelphi University",
+        "Adirondack Community College",
+        "Admiral Farragut Academy",
+        "Adventist University of the Philippines"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     }
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+   "http_status": 200,
+   "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+   "ms_goto_dcl": 248,
+   "ms_goto_load": 323,
+   "ms_fill_click_to_card": 3814,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479698767,
+    "context": 1792479695081,
+    "dcl": 1792479694870,
+    "fields": 32,
+    "fill": 1792479698759,
+    "first_card": 1792479698767,
+    "nav": 1792479694631,
+    "plan": 1792479695103,
+    "prepare": 1792479695060,
+    "read": 1792479695087,
+    "script": 1792479694948,
+    "slow": {
+     "discipline--0": 608,
+     "school--0": 1152
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 21
+   },
+   "blockers": [
+    "\"Cover Letter\" is required and not answered yet.",
+    "\"School\" is required and not answered yet.",
+    "\"CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.\" is required and not answered yet.",
+    "\"EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below ...\" is required and not answered yet.",
+    "\"What is your top location preference?\" is required and not answered yet.",
+    "\"Do you have a minimum of 3 months - 2 years of technical work to include technical internship and able to start full time in 2026?\" is required and not answered yet.",
+    "\"Are you open to a rotational program?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Cover Letter",
+    "School",
+    "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.",
+    "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below ...",
+    "What is your top location preference?",
+    "Do you have a minimum of 3 months - 2 years of technical work to include technical internship and able to start full time in 2026?",
+    "Are you open to a rotational program?"
+   ],
+   "fields": [
+    {
+     "name": "first_name",
+     "label": "First Name*",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "last_name",
+     "label": "Last Name*",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "preferred_name",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email*",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "country",
+     "label": "Country*",
+     "widget": "react-select",
+     "required": true,
+     "want": "United States",
+     "got": "United States +1",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone*",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555-010-0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cover_letter",
+     "label": "Cover Letter*",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "school--0",
+     "label": "School*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Example State University",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "degree--0",
+     "label": "Degree*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Bachelor's Degree",
+     "got": "Bachelor's Degree",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "discipline--0",
+     "label": "Discipline*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Statistics",
+     "got": "Statistics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "end-month--0",
+     "label": "End date month*",
+     "widget": "react-select",
+     "required": true,
+     "want": "May",
+     "got": "May",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "end-year--0",
+     "label": "End date year*",
+     "widget": null,
+     "required": true,
+     "want": "2022",
+     "got": "2022",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753034007",
+     "label": "LinkedIn Profile",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753035007",
+     "label": "Website",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753036007",
+     "label": "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_9753037007",
+     "label": "If you have held a U.S. security clearance in the past, what clearance level have you held? *",
+     "widget": "react-select",
+     "required": true,
+     "want": "N/A - have never held U.S. security clearance",
+     "got": "N/A - have never held U.S. security clearance",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753038007",
+     "label": "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_9753039007",
+     "label": "U.S. WORK AUTHORIZATION*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753040007",
+     "label": "Will you require sponsorship from Anduril for employment now or in the future (e.g, H1B visa)?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753041007",
+     "label": "U.S. Person status and/or U.S. clearance eligibility is required for this role due to access require",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753042007",
+     "label": "HISTORY WITH ANDURIL*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753043007",
+     "label": "Have you ever been employed by Anduril or any company that Anduril has acquired?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_9753044007",
+     "label": "CONFLICT OF INTEREST*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_12415488007",
+     "label": "What is your top location preference? *",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_9753998007",
+     "label": "Do you have a minimum of 3 months - 2 years of technical work to include technical internship and ab",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_9755019007",
+     "label": "Are you open to a rotational program?*",
+     "widget": "react-select",
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_9802058007",
+     "label": "How did you hear about Anduril?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": "Anduril Website",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "question_9802065007",
+     "label": "If other, please specify",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "gender",
+     "label": "Gender",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "hispanic_ethnicity",
+     "label": "Are you Hispanic/Latino?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "veteran_status",
+     "label": "Veteran Status",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 19,
+    "empty_ok": 9,
+    "missed": 1,
+    "unkeyed": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S",
+     "How did you hear about Anduril?*"
+    ],
+    "gone_fields": [
+     "iti-0__search-input",
+     "resume"
+    ]
+   },
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Aalborg University",
+         "Aalto University",
+         "Aaniiih Nakoda College",
+         "Aarhus University",
+         "Abertay University",
+         "Aberystwyth University"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 100,
+       "first": [
+        "Aalborg University",
+        "Aalto University",
+        "Aaniiih Nakoda College",
+        "Aarhus University",
+        "Abertay University",
+        "Aberystwyth University"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "degree--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 22,
+        "first": [
+         "Accelerated Master's",
+         "Advanced Certificate",
+         "Associates",
+         "Associate's Degree",
+         "Bachelors",
+         "Bachelor's Degree"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 22,
+       "first": [
+        "Accelerated Master's",
+        "Advanced Certificate",
+        "Associates",
+        "Associate's Degree",
+        "Bachelors",
+        "Bachelor's Degree"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     }
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+   "http_status": 200,
+   "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+   "ms_goto_dcl": 184,
+   "ms_goto_load": 316,
+   "ms_fill_click_to_card": 1791,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479719245,
+    "context": 1792479717630,
+    "dcl": 1792479717285,
+    "fields": 26,
+    "fill": 1792479719239,
+    "first_card": 1792479719245,
+    "nav": 1792479717106,
+    "plan": 1792479717655,
+    "prepare": 1792479717574,
+    "read": 1792479717637,
+    "script": 1792479717417,
+    "slow": {
+     "candidate-location": 480
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 17
+   },
+   "blockers": [
+    "\"What is your current notice period?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "What is your current notice period?"
+   ],
+   "fields": [
+    {
+     "name": "first_name",
+     "label": "First Name*",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "last_name",
+     "label": "Last Name*",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "preferred_name",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email*",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "country",
+     "label": "Country*",
+     "widget": "react-select",
+     "required": true,
+     "want": "United States",
+     "got": "United States +1",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone*",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555-010-0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "candidate-location",
+     "label": "Location (City)*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820173008",
+     "label": "LinkedIn Profile",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820174008",
+     "label": "Website",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820175008",
+     "label": "Are you currently an intern, freelancer, or employee at WPP or one of its agencies?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820176008",
+     "label": "Current WPP Agency (if applicable)",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "question_18820177008",
+     "label": "Have you previously worked at a WPP Agency?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820178008",
+     "label": "Are you lawfully authorized to work in the country where this job is located?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820179008",
+     "label": "Will you now or at any point in the future require sponsorship to maintain lawful employment in the ",
+     "widget": "react-select",
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820180008",
+     "label": "What are your salary expectations?*",
+     "widget": null,
+     "required": true,
+     "want": "95000",
+     "got": "95000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "question_18820181008",
+     "label": "What is your current notice period?*",
+     "widget": "react-select",
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "4017729008",
+     "label": "What gender identity do you most closely identify with?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017730008",
+     "label": "What is your sexual orientation?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017731008",
+     "label": "What is your religion?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017732008",
+     "label": "I identify my race/ethnicity as (select all that apply)",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017733008",
+     "label": "Do you consider yourself to have a disability, impairment or long-term health condition",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017898008",
+     "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, o",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017899008",
+     "label": "Do you identify as Trans?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017900008",
+     "label": "Which age range do you belong to?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4017901008",
+     "label": "Did you receive free school meals, school uniform or PE kit funding?",
+     "widget": "react-select",
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "gdpr_demographic_data_consent_given",
+     "label": "By checking this box, I consent to WPP Media collecting, storing, and processing my responses to the",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 14,
+    "empty_ok": 11,
+    "unkeyed": 1
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "What is your current notice period?*"
+    ],
+    "gone_fields": [
+     "iti-0__search-input",
+     "resume"
+    ]
+   },
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "candidate-location",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 10,
+       "first": [
+        "Chicago, Illinois, United States",
+        "City of Chicago, Illinois, United States",
+        "North Chicago, Illinois, United States",
+        "Chicago Heights, Illinois, United States",
+        "East Chicago, Indiana, United States",
+        "West Chicago, Illinois, United States"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "question_18820175008",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 2,
+        "first": [
+         "Yes",
+         "No"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 2,
+       "first": [
+        "Yes",
+        "No"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     }
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
+   "ms_goto_dcl": 272,
+   "ms_goto_load": 491,
+   "ms_fill_click_to_card": 1083,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479739168,
+    "context": 1792479738220,
+    "dcl": 1792479737815,
+    "fields": 18,
+    "fill": 1792479739160,
+    "first_card": 1792479739168,
+    "nav": 1792479737548,
+    "plan": 1792479738250,
+    "prepare": 1792479738204,
+    "read": 1792479738228,
+    "script": 1792479738021,
+    "slow": {
+     "location": 674
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"Please, add a brief comment on your experience and qualifications\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Please, add a brief comment on your experience and qualifications"
+   ],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "widget": null,
+     "required": false,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Twitter]",
+     "label": "Twitter URL",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Other]",
+     "label": "Other website",
+     "widget": null,
+     "required": false,
+     "want": "any",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "any"
+    },
+    {
+     "name": "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]",
+     "label": "Please, add a brief comment on your experience and qualifications✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+     "label": "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https:",
+     "widget": null,
+     "required": true,
+     "want": "I agree",
+     "got": "I agree",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
+     "label": "I would like to receive information about training opportunities and courses from TSMG Academy in ad",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, TSMG can contact me about future job opportunities for up to 10 yearsPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 6,
+    "any": 1
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": []
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479738961,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 116
+    },
+    {
+     "at": 1792479740150,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 135
+    }
+   ]
+  },
+  {
+   "form": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+   "ms_goto_dcl": 242,
+   "ms_goto_load": 434,
+   "ms_fill_click_to_card": 1116,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479744265,
+    "context": 1792479743238,
+    "dcl": 1792479742895,
+    "fields": 16,
+    "fill": 1792479744257,
+    "first_card": 1792479744265,
+    "nav": 1792479742656,
+    "plan": 1792479743265,
+    "prepare": 1792479743222,
+    "read": 1792479743248,
+    "script": 1792479742956,
+    "slow": {
+     "location": 712
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"Which location are you applying for?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Which location are you applying for?"
+   ],
+   "fields": [
+    {
+     "name": "opportunityLocationId",
+     "label": "Which location are you applying for? ✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "resume",
+     "label": "Resume/CV ✱test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Succes",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "pronouns",
+     "label": "Pronouns",
+     "widget": null,
+     "required": false,
+     "want": "They/them",
+     "got": "They/them",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "customPronounsOption",
+     "label": "Custom",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone ✱",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
+     "label": "Please provide your physical address.✱",
+     "widget": null,
+     "required": true,
+     "want": "1 Example St, Chicago, IL 60601",
+     "got": "1 Example St, Chicago, IL 60601",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+     "label": "Are you willing to relocate?✱",
+     "widget": null,
+     "required": true,
+     "want": "No.",
+     "got": "No.",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+     "label": "What's your citizenship / employment eligibility?✱",
+     "widget": null,
+     "required": true,
+     "want": "I am a U.S Citizen / Permanent Resident.",
+     "got": "I am a U.S Citizen / Permanent Resident.",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
+     "label": "Please Enter Your Ideal Annual Compensation In $00.00 Formatting.✱",
+     "widget": null,
+     "required": true,
+     "want": "95000",
+     "got": "95000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
+     "label": "Do You Currently Hold A Federal Security Clearance? If So, What Level Of Federal Security Clearance ",
+     "widget": null,
+     "required": false,
+     "want": "None",
+     "got": "None",
+     "source": "trainee",
+     "verdict": "correct"
+    }
+   ],
+   "verdicts": {
+    "empty_ok": 2,
+    "correct": 14
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": []
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479744029,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 148
+    },
+    {
+     "at": 1792479745249,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 154
+    }
+   ]
+  },
+  {
+   "form": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+   "ms_goto_dcl": 214,
+   "ms_goto_load": 731,
+   "ms_fill_click_to_card": 992,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479749495,
+    "context": 1792479748581,
+    "dcl": 1792479747950,
+    "fields": 14,
+    "fill": 1792479749488,
+    "first_card": 1792479749495,
+    "nav": 1792479747742,
+    "plan": 1792479748604,
+    "prepare": 1792479748568,
+    "read": 1792479748588,
+    "script": 1792479748159,
+    "slow": {
+     "location": 711
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"I understand that next steps will be sent via email and I have marked the sender address above as safe.\" is required and not answered yet."
+   ],
+   "open_required": [
+    "I understand that next steps will be sent via email and I have marked the sender address above as safe."
+   ],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "widget": null,
+     "required": false,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+     "label": "Do you now, or in the future require sponsorship?✱",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+     "label": "Do you have the unrestricted right to work in the United States?✱",
+     "widget": null,
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+     "label": "I understand that next steps will be sent via email and I have marked the sender address above as sa",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, Veeva Systems can contact me about future job opportunities for up to 2 yearsPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 9,
+    "empty_ok": 5
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": []
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479749360,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 163
+    },
+    {
+     "at": 1792479750487,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 159
+    }
+   ]
+  },
+  {
+   "form": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+   "ms_goto_dcl": 276,
+   "ms_goto_load": 504,
+   "ms_fill_click_to_card": 1557,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479755100,
+    "context": 1792479753640,
+    "dcl": 1792479753243,
+    "fields": 27,
+    "fill": 1792479755088,
+    "first_card": 1792479755100,
+    "nav": 1792479752972,
+    "plan": 1792479753674,
+    "prepare": 1792479753624,
+    "read": 1792479753650,
+    "script": 1792479753450,
+    "slow": {
+     "location": 1117
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"Are you a transitioning service member?\" is required and not answered yet.",
+    "\"What full time job(s) are you applying for?\" is required and not answered yet.",
+    "\"How did you hear about us?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Are you a transitioning service member?",
+    "What full time job(s) are you applying for?",
+    "How did you hear about us?"
+   ],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV ✱test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Succes",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "widget": null,
+     "required": false,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Twitter]",
+     "label": "Twitter URL",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Other]",
+     "label": "Other website",
+     "widget": null,
+     "required": false,
+     "want": "any",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "any"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+     "label": "Are you a transitioning service member?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+     "label": "If yes, what partnership program are you working with?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]",
+     "label": "If other, please provide further details",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+     "label": "When are you available to start your fellowship?",
+     "widget": null,
+     "required": false,
+     "want": "2 weeks",
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]",
+     "label": "When are you available for full time work?",
+     "widget": null,
+     "required": false,
+     "want": "2 weeks",
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]",
+     "label": "What full time job(s) are you applying for?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+     "label": "How did you hear about us?✱",
+     "widget": null,
+     "required": true,
+     "want": "Other",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]",
+     "label": "If \"Industry Conference\" or \"Other,\" please provide more details:",
+     "widget": null,
+     "required": false,
+     "want": "Company website",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]",
+     "label": "Are you local to or willing to relocate?✱",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+     "label": "What office(s) would you be willing to relocate to? (Select all that apply)",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]",
+     "label": "If you selected international, what location(s)?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+     "label": "Please select all languages that you are at minimum business conversational or fluent in✱",
+     "widget": null,
+     "required": true,
+     "want": "English",
+     "got": "English",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "Race",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[disability]",
+     "label": "Disability status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 13,
+    "empty_ok": 11,
+    "any": 1,
+    "missed": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": [
+     "consent[marketing]"
+    ]
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479754834,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 554
+    },
+    {
+     "at": 1792479756086,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 147
+    }
+   ]
+  },
+  {
+   "form": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+   "ms_goto_dcl": 269,
+   "ms_goto_load": 343,
+   "ms_fill_click_to_card": 1108,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479760071,
+    "context": 1792479759045,
+    "dcl": 1792479758852,
+    "fields": 28,
+    "fill": 1792479760059,
+    "first_card": 1792479760071,
+    "nav": 1792479758592,
+    "plan": 1792479759080,
+    "prepare": 1792479759034,
+    "read": 1792479759055,
+    "script": 1792479758925,
+    "slow": {
+     "location": 719
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"You will be provided with practice simulation material and instructions that will prepare you to take the final exam. Both steps are on your own time. You wi...\" is required and not answered yet.",
+    "\"Do you have previous experience as an Ads Quality Rater? (Either with Welo Data/ Welocalize or another company)\" is required and not answered yet.",
+    "\"Are you currently working as a Search Quality Rater/Internet Assessor/Search Evaluator?\" is required and not answered yet.",
+    "\"Do you own a Smartphone that you can use during the rating project?\" is required and not answered yet.",
+    "\"Do you have a PC or laptop?\" is required and not answered yet.",
+    "\"How many years have you lived in your current country? (Please choose one)\" is required and not answered yet.",
+    "\"What other languages do you speak at Native Level Fluency?\" is required and not answered yet.",
+    "\"This project pays a rate of $7.56/hour. Would you accept this rate?\" is required and not answered yet.",
+    "\"Have you registered and worked on any Welocalize project previously?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "You will be provided with practice simulation material and instructions that will prepare you to take the final exam. Both steps are on your own time. You wi...",
+    "Do you have previous experience as an Ads Quality Rater? (Either with Welo Data/ Welocalize or another company)",
+    "Are you currently working as a Search Quality Rater/Internet Assessor/Search Evaluator?",
+    "Do you own a Smartphone that you can use during the rating project?",
+    "Do you have a PC or laptop?",
+    "How many years have you lived in your current country? (Please choose one)",
+    "What other languages do you speak at Native Level Fluency?",
+    "This project pays a rate of $7.56/hour. Would you accept this rate?",
+    "Have you registered and worked on any Welocalize project previously?"
+   ],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV ✱test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Succes",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone ✱",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Other]",
+     "label": "Other website",
+     "widget": null,
+     "required": false,
+     "want": "any",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "any"
+    },
+    {
+     "name": "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]",
+     "label": "You will be provided with practice simulation material and instructions that will prepare you to tak",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+     "label": "Do you have previous experience as an Ads Quality Rater? (Either with Welo Data/ Welocalize or anoth",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[06861205-3484-4dac-b617-20073e0f48a1][field1]",
+     "label": "If yes, can you please clarify the tool you used?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]",
+     "label": "Are you currently working as a Search Quality Rater/Internet Assessor/Search Evaluator?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field1]",
+     "label": "If Yes, can you please clarify the tool you are using?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[913bd467-d4e0-4704-b53a-5e38d194b0dc][field0]",
+     "label": "How did you come across this job opportunity? Please let us know where you found our job that led yo",
+     "widget": null,
+     "required": true,
+     "want": "Company website",
+     "got": "Company website",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]",
+     "label": "Do you own a Smartphone that you can use during the rating project?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]",
+     "label": "Do you have a PC or laptop?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
+     "label": "In what country do you currently live?✱",
+     "widget": null,
+     "required": true,
+     "want": "United States",
+     "got": "United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+     "label": "How many years have you lived in your current country? (Please choose one)✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+     "label": "What other languages do you speak at Native Level Fluency?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]",
+     "label": "This project pays a rate of $7.56/hour. Would you accept this rate?✱",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]",
+     "label": "Have you applied for our Ads quality rater opportunity?✱",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]",
+     "label": "Have you registered and worked on any Welocalize project previously?✱",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": null,
+     "source": null,
+     "verdict": "missed"
+    },
+    {
+     "name": "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field1]",
+     "label": "If Yes, please let us know you Okta ID (email address, so it helps us retrieve your profile.",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 12,
+    "any": 1,
+    "empty_ok": 14,
+    "missed": 1
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": []
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479759817,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 143
+    },
+    {
+     "at": 1792479761314,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 342
+    }
+   ]
+  },
+  {
+   "form": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+   "ms_goto_dcl": 259,
+   "ms_goto_load": 432,
+   "ms_fill_click_to_card": 1300,
+   "status": "ready",
+   "message": "Read every answer, then approve.",
+   "timing": {
+    "card": 1792479765363,
+    "context": 1792479764200,
+    "dcl": 1792479763855,
+    "fields": 28,
+    "fill": 1792479765350,
+    "first_card": 1792479765363,
+    "nav": 1792479763599,
+    "plan": 1792479764246,
+    "prepare": 1792479764184,
+    "read": 1792479764218,
+    "script": 1792479764023,
+    "slow": {
+     "location": 802
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [],
+   "open_required": [],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV ✱test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Succes",
+     "widget": null,
+     "required": false,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "pronouns",
+     "label": "Pronouns",
+     "widget": null,
+     "required": false,
+     "want": "They/them",
+     "got": "They/them",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "customPronounsOption",
+     "label": "Custom",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "phone",
+     "label": "Phone ✱",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "org",
+     "label": "Current company ✱",
+     "widget": null,
+     "required": true,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Twitter]",
+     "label": "Twitter URL",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "widget": null,
+     "required": false,
+     "want": "https://example.test",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "urls[Other]",
+     "label": "Other website",
+     "widget": null,
+     "required": false,
+     "want": "any",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "any"
+    },
+    {
+     "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+     "label": "Are you legally authorized to work in the United States for our Company?✱",
+     "widget": null,
+     "required": true,
+     "want": "Yes",
+     "got": "Yes",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+     "label": "Do you now, or will you in the future, require sponsorship for employment visa status (e.g., H-1B vi",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+     "label": "Are you an employee of Lyra, Bend or an affiliated company (Currently or Previously)?✱",
+     "widget": null,
+     "required": true,
+     "want": "No",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+     "label": "If yes to the previous question, please select your affiliation:",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]",
+     "label": "If you selected \"other\", please share your relationship here",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+     "label": "If you are a Lyra employee, do you certify you have reviewed the Internal Mobility Policy and meet t",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+     "label": "To which gender identity do you most identify?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+     "label": "To which sexual orientation do you most identify?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+     "label": "Do you identify as a person living with a disability?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+     "label": "Are you fluent in any of the following languages?",
+     "widget": null,
+     "required": false,
+     "want": "English",
+     "got": "English",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+     "label": "Do you identify as LGBTQIA+?",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, Lyra Health can contact me about future job opportunities for up to 1 yearPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 14,
+    "empty_ok": 13,
+    "any": 1
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": []
+   },
+   "place_probe_trusted": {
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
+    "options": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792479765122,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 258
+    },
+    {
+     "at": 1792479766477,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
+     "status": 200,
+     "ms": 143
+    }
+   ]
+  },
+  {
+   "form": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
+   "ms_goto_dcl": 400,
+   "ms_goto_load": 907,
+   "ms_fill_click_to_card": 1478,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479771378,
+    "context": 1792479770042,
+    "dcl": 1792479769375,
+    "fields": 13,
+    "fill": 1792479771341,
+    "first_card": 1792479771378,
+    "nav": 1792479768979,
+    "plan": 1792479770565,
+    "prepare": 1792479770027,
+    "read": 1792479770550,
+    "script": 1792479769583,
+    "slow": {
+     "_systemfield_location": 428
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"I confirm I have read the above.\" is required and not answered yet."
+   ],
+   "open_required": [
+    "I confirm I have read the above."
+   ],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Legal Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "09a328e0-8d57-4f88-86ab-688de1657b17",
+     "label": "Preferred Name (if applicable)",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "20f8883c-d278-427c-9465-dc614f612e1f",
+     "label": "Phone Number",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Where are you currently located?",
+     "widget": null,
+     "required": true,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+     "label": "When can you start a new role?",
+     "widget": null,
+     "required": true,
+     "want": "2 weeks",
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "f189fed2-624b-41a1-a76f-0c67a2611d1a",
+     "label": "Additional Information",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.",
+     "label": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that ",
+     "widget": null,
+     "required": true,
+     "want": "Yes (checked)",
+     "got": "Yes (checked)",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "I confirm I have read the above.",
+     "label": "I confirm I have read the above.",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "6a730016-a129-4b28-a21a-0c6b67c1e1c5__systemfield_eeoc_gender",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "6a730016-a129-4b28-a21a-0c6b67c1e1c5__systemfield_eeoc_race",
+     "label": "Race",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "6a730016-a129-4b28-a21a-0c6b67c1e1c5__systemfield_eeoc_veteran_status",
+     "label": "Veteran Status",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    }
+   ],
+   "verdicts": {
+    "correct": 8,
+    "empty_ok": 2,
+    "unkeyed": 3
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "Gender",
+     "Race",
+     "Veteran Status"
+    ],
+    "gone_fields": [
+     "bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d",
+     "bda78810-f000-4f1c-99c5-f783e161f2f7",
+     "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63",
+     "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender",
+     "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+     "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_veteran_status"
+    ]
+   },
+   "place_probe": {
+    "found": true,
+    "role": "combobox",
+    "autocomplete": "list",
+    "cls": "_input_d7ago_28 ashby-application-form-input-autocomplete",
+    "value_after_fill": "Chicago, Illinois, United States",
+    "hidden_after_fill": null,
+    "untrusted_typing": {
+     "lever": [],
+     "options": [
+      "27",
+      "28",
+      "29",
+      "30",
+      "1",
+      "2"
+     ],
+     "expanded": "true",
+     "controls": ":r0:"
+    },
+    "typed_kept_after_blur": "",
+    "fresh_lookup_ms": 1,
+    "fresh_lookup_first": "27",
+    "hidden_after_blur": null
+   },
+   "place_probe_trusted": {
+    "lever": [],
+    "options": [
+     "Chicago, Illinois, United States",
+     "Chicago metropolitan area, United States",
+     "Chicago Heights, Illinois, United States",
+     "Chicago Ridge, Illinois, United States",
+     "Chisago City, Minnesota, United States"
+    ]
+   },
+   "place_lookups": [
+    {
+     "at": 1792479770460,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 71
+    },
+    {
+     "at": 1792479771147,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 51
+    }
+   ]
+  },
+  {
+   "form": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
+   "ms_goto_dcl": 408,
+   "ms_goto_load": 919,
+   "ms_fill_click_to_card": 1225,
+   "status": "ready",
+   "message": "Read every answer, then approve.",
+   "timing": {
+    "card": 1792479781273,
+    "context": 1792479780159,
+    "dcl": 1792479779510,
+    "fields": 13,
+    "fill": 1792479781262,
+    "first_card": 1792479781273,
+    "nav": 1792479779108,
+    "plan": 1792479780424,
+    "prepare": 1792479780141,
+    "read": 1792479780414,
+    "script": 1792479779719,
+    "slow": {
+     "_systemfield_location": 454
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [],
+   "open_required": [],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Full Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "d3315ee6-7808-40ad-bb16-75f5e5d06c0e",
+     "label": "First Name",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "ec863876-a2c3-4675-82f9-7cb2d0c57c41",
+     "label": "Middle Name",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "386e7831-bd04-4d0b-a7e1-5816b2b0b0ca",
+     "label": "Last Name / Surname",
+     "widget": null,
+     "required": true,
+     "want": "Person",
+     "got": "Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "28359782-77a8-4b04-bdbc-5225bd34cca6",
+     "label": "Phone",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "widget": null,
+     "required": false,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "1b628532-6f2d-4729-a502-459c234b38e3",
+     "label": "Linkedin Link",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "37f9cdbb-c5c4-495e-876e-593908d37fe6",
+     "label": "Salary Expectations",
+     "widget": null,
+     "required": true,
+     "want": "95000",
+     "got": "95000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "184096a9-5750-4da5-ade0-bec5148fe278",
+     "label": "What is your notice period?",
+     "widget": null,
+     "required": true,
+     "want": "2 weeks",
+     "got": "2 weeks",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "fbcbdbf8-19db-4666-970b-e7384ac0719f",
+     "label": "If Yes, please state their name here",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "d63bb003-f10c-499e-ad90-d4a49ecc3080",
+     "label": "How did you first hear about Airwallex?",
+     "widget": null,
+     "required": true,
+     "want": "Company website",
+     "got": "Company website",
+     "source": "trainee",
+     "verdict": "correct"
+    }
+   ],
+   "verdicts": {
+    "correct": 11,
+    "empty_ok": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": [
+     "7fcfdda5-b2a6-448a-8ec2-a751c6afef28",
+     "ee1ba3aa-f450-4c91-bb9e-eb7c9087ea10"
+    ]
+   },
+   "place_probe": {
+    "found": true,
+    "role": "combobox",
+    "autocomplete": "list",
+    "cls": "_input_d7ago_28 ashby-application-form-input-autocomplete",
+    "value_after_fill": "Chicago, Illinois, United States",
+    "hidden_after_fill": null,
+    "untrusted_typing": {
+     "lever": [],
+     "options": [
+      "Chicago, Illinois, United States",
+      "Chicago metropolitan area, United States",
+      "Chicago Heights, Illinois, United States",
+      "Chicago Ridge, Illinois, United States",
+      "Chisago City, Minnesota, United States"
+     ],
+     "expanded": "true",
+     "controls": ":r0:"
+    },
+    "typed_kept_after_blur": "",
+    "fresh_lookup_ms": 403,
+    "fresh_lookup_first": "Evanston, Illinois, United States",
+    "hidden_after_blur": null
+   },
+   "place_probe_trusted": {
+    "lever": [],
+    "options": [
+     "Chicago, Illinois, United States",
+     "Chicago metropolitan area, United States",
+     "Chicago Heights, Illinois, United States",
+     "Chicago Ridge, Illinois, United States",
+     "Chisago City, Minnesota, United States"
+    ]
+   },
+   "place_lookups": [
+    {
+     "at": 1792479780359,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 40
+    },
+    {
+     "at": 1792479781034,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 93
+    },
+    {
+     "at": 1792479785480,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 43
+    }
+   ]
+  },
+  {
+   "form": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
+   "ms_goto_dcl": 255,
+   "ms_goto_load": 767,
+   "ms_fill_click_to_card": 872,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479790692,
+    "context": 1792479789922,
+    "dcl": 1792479789276,
+    "fields": 10,
+    "fill": 1792479790683,
+    "first_card": 1792479790692,
+    "nav": 1792479789025,
+    "plan": 1792479790466,
+    "prepare": 1792479789910,
+    "read": 1792479790455,
+    "script": 1792479789483,
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"How long have you been a professional Translator?\" is required and not answered yet.",
+    "\"Do you have translation experience in Marketing?\" is required and not answered yet.",
+    "\"Do you have Technology translation experience?\" is required and not answered yet.",
+    "\"Do you have Legal translation experience?\" is required and not answered yet."
+   ],
+   "open_required": [
+    "How long have you been a professional Translator?",
+    "Do you have translation experience in Marketing?",
+    "Do you have Technology translation experience?",
+    "Do you have Legal translation experience?"
+   ],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "769eeb4a-2fe7-45d0-86d3-87b2caa2c658",
+     "label": "Preferred Name",
+     "widget": null,
+     "required": false,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "f9b3f66d-2515-4312-bd27-c323ec883f8c",
+     "label": "Phone Number",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "0203f527-33a0-4720-9e38-b6ad568f43fc",
+     "label": "Link to your LinkedIn Profile",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "a2804e1f-f78b-42f3-9a93-6f7195b8c64c",
+     "label": "How long have you been a professional Translator?",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "538d63d0-e2cb-4266-8735-3c6dd40f3dcf",
+     "label": "Do you have translation experience in Marketing?",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "2a4201dd-1268-43c8-9472-e62c492c092e",
+     "label": "Do you have Technology translation experience?",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "794c985a-3972-49f0-a6bd-ff9fe66c5eb2",
+     "label": "Do you have Legal translation experience?",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    }
+   ],
+   "verdicts": {
+    "correct": 6,
+    "empty_ok": 4
+   },
+   "changed_since_capture": {
+    "new_fields": [],
+    "gone_fields": [
+     "eb87c1b6-59a2-4f29-9e28-5dbfb12454bf"
+    ]
+   },
+   "place_probe": {
+    "found": false
+   },
+   "place_probe_trusted": {
+    "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n  - waiting for locator('[data-field-path=\\'_systemfield_location\\'] input').first()\n"
+   },
+   "place_lookups": []
+  },
+  {
+   "form": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
+   "ms_goto_dcl": 352,
+   "ms_goto_load": 887,
+   "ms_fill_click_to_card": 1377,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479798113,
+    "context": 1792479796848,
+    "dcl": 1792479796198,
+    "fields": 11,
+    "fill": 1792479798103,
+    "first_card": 1792479798113,
+    "nav": 1792479795853,
+    "plan": 1792479797410,
+    "prepare": 1792479796834,
+    "read": 1792479797392,
+    "script": 1792479796407,
+    "slow": {
+     "_systemfield_location": 433
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee or asylee) of the United States. Which of the following ...\" is required and not answered yet."
+   ],
+   "open_required": [
+    "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee or asylee) of the United States. Which of the following ..."
+   ],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Full Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "3fdc76ed-6ac2-497a-a6cc-e07ed517ec1d",
+     "label": "Phone Number",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "widget": null,
+     "required": true,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "f63fdc3f-8d4c-49fc-9388-3a9ef836de55",
+     "label": "LinkedIn Profile, if available",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "b1890667-a914-4163-b3c1-c5b694fd412c",
+     "label": "Additional Attachments",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "c779ac6e-f4fe-4dfe-9dfa-acd7e2823ba7",
+     "label": "Where have you most recently worked?",
+     "widget": null,
+     "required": true,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "14a4a8a4-8795-4a3d-b987-6dc49ce9dd77_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "14a4a8a4-8795-4a3d-b987-6dc49ce9dd77_5c859149-0940-42e7-8962-ec82679d8074",
+     "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked ",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": "No - I have never been employed by PwC",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+     "label": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+     "widget": null,
+     "required": true,
+     "want": "Yes (checked)",
+     "got": "Yes (checked)",
+     "source": "trainee",
+     "verdict": "correct"
+    }
+   ],
+   "verdicts": {
+    "correct": 8,
+    "empty_ok": 1,
+    "unkeyed": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
+     "Due to SEC auditor independence requirements, please let us know whether you have previously worked "
+    ],
+    "gone_fields": [
+     "28ff5b93-a104-45f7-9d46-2d13d3217dca",
+     "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+     "962f2552-c3ca-4d6c-a7d8-b7b1340558ae",
+     "a3cc08ef-4552-444a-b493-c608c65670df",
+     "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "192bb6de-7d9a-4817-a202-8c321cc1e63a_5c859149-0940-42e7-8962-ec82679d8074",
+     "a7d1a4bb-e59b-4149-a733-f46f352b0cb5"
+    ]
+   },
+   "place_probe": {
+    "found": true,
+    "role": "combobox",
+    "autocomplete": "list",
+    "cls": "_input_d7ago_28 ashby-application-form-input-autocomplete",
+    "value_after_fill": "Chicago, Illinois, United States",
+    "hidden_after_fill": null,
+    "untrusted_typing": {
+     "lever": [],
+     "options": [
+      "Chicago, Illinois, United States",
+      "Chicago metropolitan area, United States",
+      "Chicago Heights, Illinois, United States",
+      "Chicago Ridge, Illinois, United States",
+      "Chisago City, Minnesota, United States"
+     ],
+     "expanded": "true",
+     "controls": ":r0:"
+    },
+    "typed_kept_after_blur": "",
+    "fresh_lookup_ms": 405,
+    "fresh_lookup_first": "Evanston, Illinois, United States",
+    "hidden_after_blur": null
+   },
+   "place_probe_trusted": {
+    "lever": [],
+    "options": [
+     "Chicago, Illinois, United States",
+     "Chicago metropolitan area, United States",
+     "Chicago Heights, Illinois, United States",
+     "Chicago Ridge, Illinois, United States",
+     "Chisago City, Minnesota, United States"
+    ]
+   },
+   "place_lookups": [
+    {
+     "at": 1792479797198,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 42
+    },
+    {
+     "at": 1792479797897,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 59
+    },
+    {
+     "at": 1792479802363,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 65
+    }
+   ]
+  },
+  {
+   "form": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
+   "ms_goto_dcl": 205,
+   "ms_goto_load": 717,
+   "ms_fill_click_to_card": 1141,
+   "status": "ready",
+   "message": "Read every answer, then approve.",
+   "timing": {
+    "card": 1792479807722,
+    "context": 1792479806714,
+    "dcl": 1792479806062,
+    "fields": 12,
+    "fill": 1792479807715,
+    "first_card": 1792479807722,
+    "nav": 1792479805861,
+    "plan": 1792479806985,
+    "prepare": 1792479806699,
+    "read": 1792479806977,
+    "script": 1792479806269,
+    "slow": {
+     "_systemfield_location": 447
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [],
+   "open_required": [],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "aa795dbe-4fe1-4345-90bf-943f58f81ecd",
+     "label": "Phone Number",
+     "widget": null,
+     "required": false,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "communicationConsent",
+     "label": "Yes - I consent to receiving text messages",
+     "widget": null,
+     "required": false,
+     "want": "No - I do not consent to receiving text messages",
+     "got": "No - I do not consent to receiving text messages",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Which state, province, or region do you currently live in?",
+     "widget": null,
+     "required": true,
+     "want": "IL",
+     "got": "Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "b21991a7-47a4-41c1-bcc3-761b1a896534",
+     "label": "Linkedin URL",
+     "widget": null,
+     "required": false,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "e0cc67a2-f1ac-4695-b4f9-289527dc913e",
+     "label": "Github/Portfolio/Twitter/Etc",
+     "widget": null,
+     "required": false,
+     "want": "https://github.com/test-person",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "d19036a4-987f-4237-bdd8-d082505dc8fc",
+     "label": "Additional information or a note you want to share",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "4eb230df-e744-4057-8135-9b2221c4ac71__systemfield_eeoc_gender",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "4eb230df-e744-4057-8135-9b2221c4ac71__systemfield_eeoc_race",
+     "label": "Race",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "4eb230df-e744-4057-8135-9b2221c4ac71__systemfield_eeoc_veteran_status",
+     "label": "Veteran Status",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    }
+   ],
+   "verdicts": {
+    "correct": 8,
+    "empty_ok": 1,
+    "unkeyed": 3
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "Gender",
+     "Race",
+     "Veteran Status"
+    ],
+    "gone_fields": [
+     "a494b772-61d3-4270-9ec5-b098f7647123",
+     "1ccd8aff-6566-401e-9182-f72e065f4790",
+     "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_gender",
+     "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_race",
+     "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_veteran_status"
+    ]
+   },
+   "place_probe": {
+    "found": true,
+    "role": "combobox",
+    "autocomplete": "list",
+    "cls": "_input_d7ago_28 ashby-application-form-input-autocomplete",
+    "value_after_fill": "Illinois, United States",
+    "hidden_after_fill": null,
+    "untrusted_typing": {
+     "lever": [],
+     "options": [
+      "Chicago, Illinois, United States",
+      "Chicago metropolitan area, United States",
+      "Chicago Heights, Illinois, United States",
+      "Chicago Ridge, Illinois, United States",
+      "Chisago City, Minnesota, United States"
+     ],
+     "expanded": "true",
+     "controls": ":r0:"
+    },
+    "typed_kept_after_blur": "",
+    "fresh_lookup_ms": 403,
+    "fresh_lookup_first": "Evanston, Illinois, United States",
+    "hidden_after_blur": null
+   },
+   "place_probe_trusted": {
+    "lever": [],
+    "options": [
+     "Chicago, Illinois, United States",
+     "Chicago metropolitan area, United States",
+     "Chicago Heights, Illinois, United States",
+     "Chicago Ridge, Illinois, United States",
+     "Chisago City, Minnesota, United States"
+    ]
+   },
+   "place_lookups": [
+    {
+     "at": 1792479806943,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 52
+    },
+    {
+     "at": 1792479807591,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 62
+    },
+    {
+     "at": 1792479808201,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 54
+    },
+    {
+     "at": 1792479812002,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 52
+    }
+   ]
+  },
+  {
+   "form": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
+   "http_status": 200,
+   "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
+   "ms_goto_dcl": 220,
+   "ms_goto_load": 744,
+   "ms_fill_click_to_card": 1120,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792479817405,
+    "context": 1792479816399,
+    "dcl": 1792479815738,
+    "fields": 14,
+    "fill": 1792479817391,
+    "first_card": 1792479817405,
+    "nav": 1792479815528,
+    "plan": 1792479816670,
+    "prepare": 1792479816383,
+    "read": 1792479816655,
+    "script": 1792479815946,
+    "slow": {
+     "_systemfield_location": 445
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"Preferred Last Name\" is required and not answered yet.",
+    "\"This role is tied to the office location listed in the job posting. Team members are expected to work from the office 3 days per week as part of Harvey’s hyb...\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Preferred Last Name",
+    "This role is tied to the office location listed in the job posting. Team members are expected to work from the office 3 days per week as part of Harvey’s hyb..."
+   ],
+   "fields": [
+    {
+     "name": "_systemfield_name",
+     "label": "Legal First and Last Name",
+     "widget": null,
+     "required": true,
+     "want": "Test Person",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "7c3610a2-745f-4bd7-927a-d8e97e80472c",
+     "label": "Preferred First Name",
+     "widget": null,
+     "required": true,
+     "want": "Test",
+     "got": "Test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+     "label": "Preferred Last Name",
+     "widget": null,
+     "required": true,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "widget": null,
+     "required": true,
+     "want": "test.person@example.test",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "a2a0b8a6-0b1f-44ad-9fc9-4ef424704c26",
+     "label": "Phone Number",
+     "widget": null,
+     "required": true,
+     "want": "+1 555 010 0000",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "widget": null,
+     "required": true,
+     "want": "Chicago, IL",
+     "got": "Chicago, Illinois, United States",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "dd1d5af7-8d94-4ab6-860a-59b5fca04147",
+     "label": "Current or Most Recent Employer",
+     "widget": null,
+     "required": true,
+     "want": "Example Analytics",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "a0393613-cd27-4354-b328-4b8fdabcdb4e",
+     "label": "University or School Attended",
+     "widget": null,
+     "required": false,
+     "want": "Example State University",
+     "got": "Example State University",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "35987d90-0b56-44cc-b2f6-f59f86c3cc57",
+     "label": "Pronouns",
+     "widget": null,
+     "required": false,
+     "want": "they/them",
+     "got": "they/them",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "6bb220d8-dedf-4724-ad04-9897c2ad631a_eebeac06-e08c-4eee-b866-81971c178736",
+     "label": "Will you now or will you in the future require employment visa sponsorship?",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": "No, I do not require sponsorship to work in the country where this role is located",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "6bb220d8-dedf-4724-ad04-9897c2ad631a_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "label": "This role is tied to the office location listed in the job posting. Team members are expected to wor",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "8b9dae4d-2ed4-4da0-a994-e7b1d73d3a5e",
+     "label": "If you selected “Other,” please provide additional details.",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
+    },
+    {
+     "name": "39ebb162-1514-4658-8940-c15a1a71881f",
+     "label": "LinkedIn",
+     "widget": null,
+     "required": true,
+     "want": "https://www.linkedin.com/in/test-person",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "correct"
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "widget": null,
+     "required": true,
+     "want": "test-person-resume.pdf",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "correct"
+    }
+   ],
+   "verdicts": {
+    "correct": 10,
+    "empty_ok": 2,
+    "unkeyed": 2
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "Will you now or will you in the future require employment visa sponsorship?",
+     "This role is tied to the office location listed in the job posting. Team members are expected to wor"
+    ],
+    "gone_fields": [
+     "74da689e-2056-420d-9a18-4227f9bf998e",
+     "5f4d2602-62fb-409d-9100-c4c3f9f14159_eebeac06-e08c-4eee-b866-81971c178736",
+     "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093"
+    ]
+   },
+   "place_probe": {
+    "found": true,
+    "role": "combobox",
+    "autocomplete": "list",
+    "cls": "_input_d7ago_28 ashby-application-form-input-autocomplete",
+    "value_after_fill": "Chicago, Illinois, United States",
+    "hidden_after_fill": null,
+    "untrusted_typing": {
+     "lever": [],
+     "options": [
+      "Chicago, Illinois, United States",
+      "Chicago metropolitan area, United States",
+      "Chicago Heights, Illinois, United States",
+      "Chicago Ridge, Illinois, United States",
+      "Chisago City, Minnesota, United States"
+     ],
+     "expanded": "true",
+     "controls": ":r0:"
+    },
+    "typed_kept_after_blur": "",
+    "fresh_lookup_ms": 405,
+    "fresh_lookup_first": "Evanston, Illinois, United States",
+    "hidden_after_blur": null
+   },
+   "place_probe_trusted": {
+    "lever": [],
+    "options": [
+     "Chicago, Illinois, United States",
+     "Chicago metropolitan area, United States",
+     "Chicago Heights, Illinois, United States",
+     "Chicago Ridge, Illinois, United States",
+     "Chisago City, Minnesota, United States"
+    ]
+   },
+   "place_lookups": [
+    {
+     "at": 1792479816689,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 42
+    },
+    {
+     "at": 1792479817166,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 59
+    },
+    {
+     "at": 1792479821637,
+     "host": "jobs.ashbyhq.com",
+     "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
+     "status": 200,
+     "ms": 57
+    }
+   ]
+  }
+ ],
+ "aborted": [
+  {
+   "method": "POST",
+   "host": "c.spl.greenhouse.io",
+   "path": "/com.snowplowanalytics.snowplow/tp2"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "path": "/"
+  },
+  {
+   "method": "POST",
+   "host": "c.spl.greenhouse.io",
+   "path": "/com.snowplowanalytics.snowplow/tp2"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "path": "/"
+  },
+  {
+   "method": "POST",
+   "host": "c.spl.greenhouse.io",
+   "path": "/com.snowplowanalytics.snowplow/tp2"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "path": "/"
+  },
+  {
+   "method": "POST",
+   "host": "c.spl.greenhouse.io",
+   "path": "/com.snowplowanalytics.snowplow/tp2"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "path": "/"
+  },
+  {
+   "method": "POST",
+   "host": "c.spl.greenhouse.io",
+   "path": "/com.snowplowanalytics.snowplow/tp2"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "path": "/"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "GET",
+   "host": "platform.linkedin.com",
+   "path": "/xdoor/scripts/in.js"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "GET",
+   "host": "platform.linkedin.com",
+   "path": "/xdoor/scripts/in.js"
+  },
+  {
+   "method": "POST",
+   "host": "www.google-analytics.com",
+   "path": "/j/collect"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "www.google-analytics.com",
+   "path": "/j/collect"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "csp.withgoogle.com",
+   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSubmitCandidateTextingConsent"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  }
+ ]
+}

@@ -90,7 +90,7 @@ const RULES: Rule[] = [
   // A second address line is never the full address (WO-048, Workday's "Address Line 2").
   ["unknown", /^address line (2|3|two|three)\b|^address 2\b|^(apt|apartment|suite|unit)\b/],
   ["street_address", /\bstreet address\b|^address line 1\b|^street\b/, (q, t) => !/\bcity\b.*\bstate\b|\bzip\b|full street address/.test(t)],
-  ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)],
+  ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address|\b(staying|living|located|residing) in (?!the (u\.?s\.?|united states))[a-z]/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)],
   ["unknown", /\bcity\b.*\b(zip|postal|country)\b|\b(zip|postal)\b.*\bcity\b/],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
   ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b|\blocation:? city\??$/, (q, t) => !/\bstate\b/.test(t)],
@@ -120,7 +120,7 @@ const RULES: Rule[] = [
   ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
   ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b|non-?compete|non-?solicit|agreement|obligation|restrict/.test(t)],
   ["employment_status", /\bare you (currently )?employed\b|\bcurrent employment status\b/, (q, t) => !/\bemployed (by|with|at|in)\b|layoff|recall/.test(t)],
-  ["years_experience", /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/],
+  ["years_experience", /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/, (q, t) => !/\bexperience\b[^?]*\b(in|with|using|doing|working in|working with)\s+(?!(a |the |your )?(related|similar|relevant|this|that|same)\b)[a-z]/.test(t)],
 
   // Availability.
   ["notice_period", /\bnotice period\b|\bhow much notice\b|\bpréavis\b|\blwd\b/],
@@ -175,7 +175,7 @@ const RULES: Rule[] = [
   // Willing to apply for a clearance is the person's to say; holding none does not answer it (WO-052, Kitware).
   ["clearance_eligibility", /\b(willing|able) (and able )?to (apply for|obtain|get)\b.*\bclearance\b/],
   ["clearance_eligibility", /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/],
-  ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/],
+  ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/, (q, t) => !/\bare you (currently |now )?(a )?(u\. ?s\.?|united states) citizen\b/.test(t)],
   // When the person's authorization ends is theirs to state; a "yes" to being authorized is not "no expiry".
   ["unknown", /\b(authori[sz]ation|visa|permit|status)\b.*\b(expir\w*|end date)\b|\bexpir\w*\b.*\b(authori[sz]ation|visa|permit)\b/],
   // WO-056: "Are you currently authorized to work in the US? We DO assist with visa sponsorship" asks the authorization.
@@ -212,7 +212,7 @@ const RULES: Rule[] = [
 
   // The application and this employer.
   ["referral", /\breferr(ed|al|ing)\b/, (q, t) => !/government official|public official|politically exposed|public function/.test(t)],
-  ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal relationship|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)],
+  ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal (or social )?relationship|social relationship|\bcontacts?\b|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
   // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
   // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.
@@ -240,7 +240,7 @@ const RULES: Rule[] = [
   ["job_physical", /\blift(ing)?\b.*\b(lbs?|pounds?)\b|\bstand(ing)? for\b|\bclimb\b|\bmedical waste\b/],
   ["job_schedule", /\bovertime\b|\bweekends?\b|\bshift\b|\bus (time ?zone|pst hours)\b|\bdays and times\b|\bweekend\b|\bin het weekend\b|\bus shift\b|\bpst\b/],
   ["job_travel", /\btravel\b/, (q, t) => (!/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)) && !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bfully remote\b|\bwork(ing)? (fully )?remote(ly)?\b|\bdays (a|per) week\b/.test(t)],
-  ["travel_ok", /\bopen to travel\b|\bwhat % of travel\b|\bwilling to travel\b/],
+  ["travel_ok", /\bopen to travel\b|\bwhat % of travel\b|\bwilling to travel\b/, (q, t) => !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bdays (a|per) week\b/.test(t)],
   ["job_relocation", /\brelocat/, (q, t) => /\b(this position|this role|office|headquarters|hq)\b/.test(t) || /relocate (to|before)/.test(opts(q))],
   ["job_relocation", /\brelocat\w*\b.*\b(to|in)\b [a-z]/, (q, t) => !/^are you (open|willing) to relocat\w*( if needed)?\??$/.test(t)],
   ["relocation", /\brelocat/],

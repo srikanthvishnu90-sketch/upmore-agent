@@ -24,6 +24,7 @@ export function memoryChannelWorld() {
   const contacts = new Map<string, MemContact>();
   const outbox: MemOutbox[] = [];
   const claimedIds = new Set<string>();
+  const paused = new Set<string>(); // WO-091c: accounts paused or erased (career:account paused), as career_user_quiet reads
   const nonces = new Map<string, { userId: string; expiresAt: number; usedAt: number | null }>();
   const asks: { id: number; userId: string; contact: string; phone: string; askedOn: string; createdAt: number; expiresAt: number; answeredAt: number | null }[] = [];
   let users = 0, seq = 0, asksSeq = 0;
@@ -153,6 +154,7 @@ export function memoryChannelWorld() {
         return out;
       },
       async optedOut(contact) { return optedOut(contact); },
+      async quiet(userId) { return paused.has(userId) || ofUser(userId).some((c) => c.optedOut); },
       async setOptOut(contact, out, at) { await inbound.setOptOut(contact, out, at); },
       async contactsSentOn(day, channel) { return new Set(outbox.filter((o) => o.status === "delivered" && o.deliveredAt !== null && utcDay(o.deliveredAt) === day && (!channel || channelOf(o.contact!) === channel)).map((o) => o.contact)).size; },
       async sentTo(contact, day) { return outbox.some((o) => o.contact === contact && o.status === "delivered" && o.deliveredAt !== null && utcDay(o.deliveredAt) === day); },
@@ -174,6 +176,7 @@ export function memoryChannelWorld() {
 
   return {
     inbound, delivery, contacts, outbox, asks,
+    paused, // WO-091c: add a user id to pause that account
     // What Trainee starts (alerts, reports, receipts, cards): queued for the home channel at delivery time.
     queue: (userId: string, m: { key: string; kind: string; text: string; at: number; channel?: Channel | null }) => enqueue(userId, m),
     link: (contact: string, userId: string, at: number, patch: Partial<MemContact> = {}) => upsert(contact, at, { userId, ...patch }),

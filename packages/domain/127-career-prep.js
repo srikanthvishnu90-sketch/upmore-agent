@@ -1081,7 +1081,17 @@ const CareerPrep = (() => {
 
   // ---------- PREP-008 live assist OFF + voice honesty ----------
   function liveAssistGuard(text) {
-    if (/\b(during|live|feed me|listen in|real interview|while i'?m in)\b/i.test(s(text)) && /\b(answer|assist|help|feed)\b/i.test(s(text))) {
+    const t = s(text).toLowerCase().replace(/[’‘]/g, "'")
+      .replace(/\binterv(?:eiw|ew)\b/g, "interview")
+      .replace(/\bansers?\b/g, (word) => word === "anser" ? "answer" : "answers");
+    const covert = /\b(hidden|secret(?:ly)?|whisper(?:ing)?|earpiece|overlay|second screen)\b|\bwithout them knowing\b/.test(t);
+    const preparation = /\b(practi[cs](?:e|ing)|mock|rehears(?:e|al|ing)|prep|prepar(?:e|ing|ation)|before|after|debrief|review)\b|\bhow did i do\b/.test(t);
+    const interview = /\b(interview(?:er|ing)?|onsite|hirevue|coding round|panel)\b/.test(t);
+    const streamingQuestions = /\bquestions?\b/.test(t) && /\bas (?:they|my interviewer) ask\b/.test(t);
+    const inProgress = streamingQuestions || /\bon (?:the |my )?(?:interview )?call\b/.test(t) || (interview &&
+      /\b(during|live|right now|in progress|underway|happening now|has started|is waiting|listen in)\b|\b(?:i'm|i am|im) (?:in|at|taking|doing|recording|interviewing)\b|\b(?:my|the) interviewer (?:just )?(?:ask(?:s|ed)?|is asking)\b|\bin the room\b|\bon (?:zoom|teams|(?:google )?meet)\b/.test(t));
+    const asksForHelp = /\b(answers?|say|help|copilot|feed|assist|respond|responses?|solutions?|solve)\b|\btell me\b/.test(t);
+    if (asksForHelp && (covert || (inProgress && !preparation))) {
       return { refused: true, ruling: "Owner ruling 2026-10-12: live interview assist is OFF (PREP-008).",
         message: "I can't feed you answers during a real interview — that's off, by decision, not by limitation. What I can do is get you ready: a brief, a scored mock, and drills on the exact round, today.",
         prep_offer: ["a company brief", "a scored mock", "drills on the exact round"] };

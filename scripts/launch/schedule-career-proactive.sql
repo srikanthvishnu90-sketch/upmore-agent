@@ -22,4 +22,8 @@ select cron.schedule('trainee-career-proactive', '4-59/5 * * * *', format($job$
     body := '{}'::jsonb,
     timeout_milliseconds := 140000)
 $job$, :'url'));
-select jobname, schedule from cron.job where jobname = 'trainee-career-proactive';
+-- WO-092: a queued application whose approval lapsed (a pause, an erase, a facts change, expiry) becomes not_submitted,
+-- so it stops counting toward the daily cap and the 30-day company rule. Pure SQL, no secret; every 15 minutes.
+select cron.unschedule('trainee-apply-sweep') where exists (select 1 from cron.job where jobname = 'trainee-apply-sweep');
+select cron.schedule('trainee-apply-sweep', '*/15 * * * *', 'select public.career_apply_sweep_stale()');
+select jobname, schedule from cron.job where jobname in ('trainee-career-proactive', 'trainee-apply-sweep');

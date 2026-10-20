@@ -61,6 +61,7 @@ shared_tests=(
   tests/trainee-go-live.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
+  tests/depth-CAREER-WRITING.test.cjs
   tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
@@ -115,6 +116,7 @@ edge_tests=(
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
   tests/edge/career-ask-once.test.ts
+  tests/edge/control-state.test.ts
 )
 
 portable_test_paths() {

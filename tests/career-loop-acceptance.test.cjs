@@ -587,6 +587,14 @@ test("leg1: an approval in the pre-fix shape (hash only, NO approvalRef) still c
   // per-application payload hashes, status approved, no ref anywhere.
   run.approvals = {};
   for (const k of run.selected) { const a = run.apps[k]; if (a && a.stage === "doorstep") run.approvals[k] = a.payloadSha256; }
+  // WO-094: the card's per-application attestation (what approveRun
+  // records) is minted too, so this test still isolates the arming wire:
+  // the certification is given, only the approvalRef is missing.
+  run.attestations = {};
+  for (const k of Object.keys(run.approvals)) {
+    run.attestations[k] = {};
+    for (const at of run.apps[k].attestations || []) run.attestations[k][at.field_id] = { explicit: true, value: at.value, text: at.text, payloadSha256: run.approvals[k], approvalRef: null };
+  }
   run.status = "approved";
   assert.ok(!run.approvalRef, "the run carries no approvalRef (the pre-fix shape)");
   const ex = Batch.executeRun(run, deps);

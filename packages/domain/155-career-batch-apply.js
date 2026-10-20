@@ -233,7 +233,10 @@ const CareerBatchApply = (() => {
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
       const session = Portal.createPortalSession({ userId: run.userId, board });
       rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      // WO-094: no standing attestation rides into a drive (deps.attestations
+      // is not read). In card-approval mode 149 leaves a certification
+      // PENDING on the doorstep; the card's yes is the attestation act.
+      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
       absorbPrepareResult(run, app, res);
     }
 
@@ -242,6 +245,12 @@ const CareerBatchApply = (() => {
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
     if (Apply && Apply.batchCard && doorstepApps.length) {
       run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+      // WO-094: the card shows each application's certification text — the
+      // words the yes signs, for that application only (inside its hash).
+      run.card.certifications = [];
+      for (const a of doorstepApps) {
+        for (const at of a.attestations || []) run.card.certifications.push({ postingKey: a.postingKey, company: a.company, role: a.role, field_id: at.field_id, text: at.text });
+      }
     }
     run.cardSha256 = cardSha(run);
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
@@ -252,8 +261,15 @@ const CareerBatchApply = (() => {
 
   function profileFor(d, posting) {
     const base = d.profile || {};
-    if (typeof d.profileFor === "function") return d.profileFor(posting, base) || base;
-    return base;
+    const p = typeof d.profileFor === "function" ? (d.profileFor(posting, base) || base) : base;
+    // WO-094: a cover note only from a note DRAFTED for this application
+    // (deps.coverNoteFor) — it rides in the doorstep payload the card
+    // shows and the hash binds; without one the note stays uncovered.
+    const draft = typeof d.coverNoteFor === "function" ? d.coverNoteFor(posting) : null;
+    if (typeof draft !== "string" || !draft.trim()) return p;
+    const out = Object.assign({}, p, { answers: Object.assign({}, p.answers || {}) });
+    out.answers.cover_note = { value: draft.trim(), draft: true, onCard: true };
+    return out;
   }
 
   function absorbPrepareResult(run, app, res) {
@@ -261,6 +277,7 @@ const CareerBatchApply = (() => {
     if (res.resultStatus === "prepared" && res.doorstep) {
       app.stage = "doorstep";
       app.payloadSha256 = res.doorstep.payloadSha256;
+      app.attestations = (res.doorstep.attestations || []).map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       event(run, "doorstep", { postingKey: app.postingKey, company: app.company });
       return;
     }
@@ -334,6 +351,18 @@ const CareerBatchApply = (() => {
     // the identical ref, and a changed set can never reuse it (the
     // set-hash check above refuses first).
     run.approvalRef = `batch:${run.id}:${nowSha}`;
+    // WO-094: the card's yes IS the attestation act — recorded per
+    // application, bound to that application's approved payload hash
+    // (which already covers the certification text). Never standing.
+    run.attestations = {};
+    for (const key of Object.keys(run.approvals)) {
+      const app = run.apps[key];
+      if (!app || !Array.isArray(app.attestations) || !app.attestations.length) continue;
+      run.attestations[key] = {};
+      for (const a of app.attestations) {
+        run.attestations[key][a.field_id] = { explicit: true, value: a.value, text: a.text, payloadSha256: run.approvals[key], approvalRef: run.approvalRef };
+      }
+    }
     run.status = "approved";
     event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef });
     return { ok: true, approved: Object.keys(run.approvals).length, approvalRef: run.approvalRef };
@@ -365,7 +394,7 @@ const CareerBatchApply = (() => {
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
-          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
         // The approval carries the batch approvalRef minted at the
@@ -373,7 +402,8 @@ const CareerBatchApply = (() => {
         // ctx.approvalRef) at its arming wire — a real board arms
         // only under it. A run approved in the pre-fix shape (hashes
         // only, approvalRef null) still stops at the board, named.
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
+        const attestations = (run.attestations && run.attestations[key]) || {};
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null, attestations }, { log, now, posting, approvalRef: run.approvalRef || null });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);
@@ -446,6 +476,13 @@ const CareerBatchApply = (() => {
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
       lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
+      // WO-094: the certification each form asks for is signed by this yes,
+      // per application — its own words are shown, never paraphrased.
+      const certs = (run.card && Array.isArray(run.card.certifications)) ? run.card.certifications : [];
+      if (certs.length) {
+        const texts = Array.from(new Set(certs.map((c) => c.text)));
+        lines.push(`Your yes also gives each of these applications its own certification, for that application only: ${texts.map((t) => `"${t}"`).join("; ")}.`);
+      }
     }
     if (sm.submitted) lines.push(`Submitted ${sm.submitted} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);

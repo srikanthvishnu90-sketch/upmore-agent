@@ -81,8 +81,10 @@ serve((req) => {
       const store = supabaseOutreachStore(admin), events = supabaseEventStore(admin), deps = grant(admin);
       const token = (u: string, scope: string) => careerTokenFor(deps, scope)(u);
       const tz = async (u: string) => { const { data } = await admin.from("career_alert_prefs").select("tz").eq("user_id", u).maybeSingle(); return data?.tz ?? undefined; };
-      const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events });
-      const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events });
+      // WO-091c: the sends and the replies each run on their own; a failure in one is reported and the other still runs.
+      const msg = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
+      const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events }).catch(msg);
+      const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
       return { ...sends, replies };
     } : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
@@ -92,6 +94,17 @@ serve((req) => {
     } : undefined,
     // WO-032: which application an employer's email confirms, when two fit, asked once.
     asks: () => supabaseConfirmStore(admin),
+    // WO-091c: paused, opted out or erased (career_quiet_users, 20261022120000_career_control_state.sql): nothing is
+    // started for them. A read that fails throws, and that rail starts nothing this run.
+    quiet: async (ids) => {
+      const out = new Set<string>();
+      for (let i = 0; i < ids.length; i += 500) {
+        const { data, error } = await admin.rpc("career_quiet_users", { p_users: ids.slice(i, i + 500) });
+        if (error) throw new Error(`read who is paused: ${error.message}`);
+        for (const r of data ?? []) out.add(String(r.user_id));
+      }
+      return out;
+    },
     // WO-032: the questions a preparation left open, pushed once (career_apply_questions_push_as decides the rest).
     questions: {
       open: async () => {
@@ -117,6 +130,8 @@ serve((req) => {
     recordRun: async (r) => {
       const row: Record<string, unknown> = { run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, statuses: r.statuses ?? 0, followups: r.followups ?? 0,
         questions: r.questions ?? 0, confirmations: r.confirmations ?? 0, asks: r.asks ?? 0, ms: r.ms, error: r.error };
+      // WO-091c: every rail's failure, by rail (the column is 20261022120000_career_control_state.sql's).
+      if (r.errors) row.errors = r.errors;
       if (Deno.env.get("CAREER_BRIEF_DIGEST") === "on") Object.assign(row, { briefs: r.briefs ?? 0, brief_ms_max: r.brief_ms_max ?? null, digests: r.digests ?? 0 });
       const { error } = await admin.from("career_proactive_runs").insert(row);
       if (error) throw new Error(`record run: ${error.message}`);

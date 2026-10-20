@@ -1196,6 +1196,116 @@ const CareerRouter = (() => {
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft: gated.draft, gate: gated.gate, held_reason: "no_address_on_file" };
   }
 
+  // LANE A ITEM 4 (CB-0247): a SINGLE-recipient draft ask — a draft
+  // verb, one named company, a role-only recipient ("an analyst at
+  // X") — is a DRAFT ask, not a campaign: it materializes ONE draft
+  // from the user's confirmed facts, held at the gate (sends stay 0;
+  // 124's SEND_DISABLED is untouched). The old route answered it
+  // with the campaign list-building plan, so no draft ever existed
+  // and the follow-up "make it shorter" had nothing to revise.
+  // Campaign-scale asks (counts, lists, many firms) never match this
+  // gate and keep the plan-first path.
+  function singleDraftTargetOf(text) {
+    const raw = s(text);
+    const t = lc(text);
+    if (!/\b(draft|write|compose)\b/.test(t)) return null;
+    if (!/\b(coffee[ -]?chat|intro(?:duction)?|outreach|cold)\b[^.]*\b(email|note|message)\b|\bemail\b[^.]*\bto\b/.test(t)) return null;
+    if (/\b(list|names|find me|shortlist|campaign|\d+\s+(people|bankers|analysts|contacts|names))\b/.test(t)) return null;
+    const m = raw.match(/\bto\s+an?\s+([a-z][a-z ]{2,30}?)\s+at\s+(.+?)\s*$/i);
+    if (!m) return null;
+    const role = m[1].trim();
+    if (!/\b(analyst|banker|associate|recruiter|manager|engineer|consultant|intern|partner|director|alum)\b/i.test(role)) return null;
+    const company = companyFromText(raw) || m[2].replace(/[.?!]+$/, "").trim();
+    if (!company || company.length < 3) return null;
+    return { role, company };
+  }
+  function handleSingleDraftAsk(text, ctx) {
+    const target = singleDraftTargetOf(text);
+    if (!target) return null;
+    const profile = ctx.profile || {};
+    const facts = Array.isArray(profile.facts) ? profile.facts : [];
+    const edu = facts.find((f) => f && f.kind === "education");
+    const eduText = edu ? [edu.title, edu.detail, edu.text, edu.value, edu.org].filter(Boolean).join(" ") : "";
+    const school = (edu && edu.org) || (profile.basics && profile.basics.school) || null;
+    const yearM = eduText.match(/\b(freshman|sophomore|junior|senior)\b/i) || s(eduText).match(/\bclass of \d{4}\b/i);
+    const yearWord = yearM ? yearM[1] : null;
+    const majorFact = facts.find((f) => f && f.kind === "education" && /major|studying|studies/i.test([f.title, f.detail, f.text].filter(Boolean).join(" ")));
+    const exp = facts.find((f) => f && (f.kind === "experience" || f.kind === "project") && (f.title || f.detail));
+    const roleTitle = target.role.replace(/\s+/g, " ").trim();
+    const introBits = [];
+    if (yearWord && school) introBits.push(`I'm a ${yearWord} at ${school}`);
+    else if (school) introBits.push(`I'm a student at ${school}`);
+    else if (yearWord) introBits.push(`I'm a ${yearWord}`);
+    if (majorFact) { const md = [majorFact.title, majorFact.detail].filter(Boolean).join(" "); const mm = md.match(/\b(?:major(?:ing)? in|studying)\s+([^.,;]+)/i); if (mm) introBits.push(`studying ${mm[1].trim()}`); }
+    const expLine = exp ? ` ${exp.title ? `I ${/^(intern|worked|built|led|founded)/i.test(exp.title.trim()) ? "" : "worked on "}${exp.title}` : ""}${exp.detail ? ` — ${exp.detail}` : ""}`.trim() : "";
+    const body = `Subject: ${yearWord ? `${yearWord[0].toUpperCase() + yearWord.slice(1)} ` : "Student "}interested in ${target.company} — 15 minutes?\n\nHi [first name],\n\n${introBits.length ? `${introBits.join(", ")}.` : "I'm a student aiming at this work."}${expLine ? ` ${expLine}.` : ""} I'm writing to ask ${/^[aeiou]/i.test(roleTitle) ? "an" : "a"} ${roleTitle} at ${target.company} for fifteen minutes to hear about your path and any advice you'd give someone aiming at the work.\n\nNo pitch, and nothing is being sold — I just want to learn from someone doing it. If another week is easier, I'll work around your schedule.\n\nThank you for reading,\n[Your name]`;
+    const draft = { kind: "outreach_draft_sample", status: "held_sample", sends: 0, text: body, target: target.company, recipient_role: roleTitle, created_from_single_ask: true, at: new Date(nowOf(ctx)).toISOString() };
+    ctx.plan = { kind: "campaign_plan", single_draft: true, firms: [target.company], firms_named: true, count: 1, role_family: roleTitle, draft, lastAsk: s(text), at: new Date(nowOf(ctx)).toISOString() };
+    try { const tm = threadMirrorForWrite(ctx); if (tm) tm.plan = ctx.plan; } catch { /* ctx.plan stands */ }
+    const used = [];
+    if (school) used.push(`your school (${school})`);
+    if (yearWord) used.push(`your year (${yearWord})`);
+    if (exp) used.push("the experience on your profile");
+    const reply = compose({ headline: `One draft, written and held — addressed to ${/^[aeiou]/i.test(roleTitle) ? "an" : "a"} ${roleTitle} at ${target.company}.`, facts: [body, `It is written only from your confirmed facts${used.length ? ` — ${used.join(", ")}` : ""}. No named person is on file for it, so the recipient's name stays a bracketed slot: I will not invent a person or an address to fill it.`, "Nothing has been sent and nothing can be: sending stays off, and the draft moves only when a real, verified recipient is attached and you approve it."], nextStep: "Want it shorter, more casual, or re-aimed — or paste a real name and it personalizes to them?" });
+    return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
+  }
+
+  // LANE A ITEM 5 (battery connector class: 12/100 honest stops):
+  // PEOPLE-MATCHING asks — introductions, mentors, matches, match
+  // profiles, contact hand-outs, intro follow-through — name a
+  // capability this product does not have: no people-matching
+  // connector is wired, and no people database sits behind this
+  // chat. They end in the plain honest stop (what is absent, why
+  // nothing is invented, the closest real alternative) instead of
+  // the generic fallback, a recommendations detour, or a job list.
+  // State-backed warm-path read-backs (the user's OWN graph, owned
+  // by the 135 handlers downstream) are carved out: when the graph
+  // on the turn actually names people at the asked company, this
+  // handler stands down and the graph answers.
+  function handlePeopleMatchingStop(text, ctx) {
+    const t = lc(text);
+    const raw = s(text);
+    if (namedRecipientFromAsk(raw)) return null; // a named person is the draft family's ask
+    const company = companyFromText(raw, ctx);
+    if (company) {
+      try {
+        const gs = graphStoreOf(ctx);
+        if (gs && Array.isArray(gs.people) && gs.people.some((p) => p && lc(p.current_firm || p.company || "") === lc(company))) return null;
+      } catch { /* no graph: the stop stands */ }
+    }
+    const alt = "What I can do instead: build a shortlist from sources you supply — your LinkedIn export, names you paste, your school's alumni directory — with every name carrying its source, or draft a coffee-chat email to a role at a named company right now, from your confirmed facts.";
+    // The standing draft's recipient: an identity demand about a
+    // draft that exists gets the truth about THAT draft.
+    if (/\bwho exactly would this go to\b|\bgive me their name and email\b|\bwho is this (going )?to\b/.test(t)) {
+      const draft = planDraftOf(ctx);
+      if (draft) {
+        const reply = compose({ headline: "It goes to no one yet — and I won't invent a recipient for it.", facts: [`The draft on record is addressed by role${draft.target ? ` — ${draft.recipient_role || "a contact"} at ${draft.target}` : ""}. No named person, and no email address, is on file for it.`, "The moment you paste a real name (or a sourced list), the draft personalizes to that person with their real address — until then the name slot stays bracketed, because a made-up name or address would send your introduction to a stranger or to no one."], nextStep: "Paste the person's name as you have it, or say draft and I will write to another role or firm." });
+        return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+    }
+    if (/\bintroduce me to\b|\bfind me a mentor\b|\bmentor at\b|\bmatch me with\b|\bwho in your network\b|\bpropose my first match\b|\bwho am i likely to be matched with\b|\bmatch profile\b/.test(t)) {
+      const reply = compose({ headline: "I can't match or introduce you to people — that capability is not wired into this product.", facts: ["There is no people-matching service behind this chat and no connector searching alumni or mentor networks, so there is no one I can truthfully name. I won't invent a person, a name, or an email address to fill the gap."], nextStep: alt });
+      return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (/\bgive me the (email|names? and contacts|contacts)\b|\bjust give me the email of\b|\bshare my resume with your (whole )?network\b|\bnames and contacts of\b/.test(t)) {
+      const reply = compose({ headline: "I don't have people's contact details to hand out — and I won't guess them.", facts: ["No people database or email-finder is connected to this product, so there are no names or addresses on file to give you. An inferred or invented address is exactly how outreach lands in a stranger's inbox, so this product only ever uses addresses that come from a real source with the person attached.", "Your resume is likewise never broadcast: it travels one approved draft at a time, to a named person, on your approval."], nextStep: alt });
+      return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (/\bbuild my match profile\b|\bwhat do you know about me that you'?d use for matching\b/.test(t)) {
+      const reply = compose({ headline: "I can't build a match profile — matching isn't a capability this product has, and it isn't wired in.", facts: ["What I do keep is your own stated record — your targets, preferences, and the facts you've told me — and it is used for jobs, watches, prep and drafts. It is never fed to a matcher, because no matcher exists here."], nextStep: "Ask me what I remember about your targets any time and I'll read the record back — or say draft and I'll write outreach from it." });
+      return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (/\bcheck in on my intro\b|\bdid they reply\b|\bbook a call with my match\b|\bdid my intro\b[^.]*\bhappen\b|\bintro from last week\b/.test(t)) {
+      const reply = compose({ headline: "There is no intro on record to check on.", facts: ["No introduction has been made through this product — matching is not wired and sending is disabled — so no reply is outstanding, no call is waiting to be booked, and nothing about an intro can be reported. If a conversation happened outside this product, I can't see it from here."], nextStep: "I can draft the check-in email for you to send yourself — name the person and the company and it's written from your facts." });
+      return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (/\bwho can refer me\b|\bget me a referral\b|\breferral at\b[^.]*\?$/.test(t) && /\bwho\b/.test(t)) {
+      const reply = compose({ headline: "I can't find you a referrer — there is no referral network behind this chat.", facts: ["No people connector is wired, so I have no truthful way to name someone at the firm who could refer you, and I won't invent a name."], nextStep: alt });
+      return { intent: "people_matching_stop", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
+
   // ---------- outreach (124): clarification first, draft only when resolved ----------
   function handleOutreach(text, ctx) {
     const profile = ctx.profile || {};
@@ -8065,6 +8175,15 @@ const CareerRouter = (() => {
     // every one of its shapes as a search ask on v238.
     const namedApply = handleNamedRoleApply(text, c);
     if (namedApply) return namedApply;
+    // LANE A v2 ITEM 4 (CB-0247): a single named-company draft ask
+    // materializes ONE draft here, before the campaign-plan family
+    // can read it as list-building.
+    const singleDraft = handleSingleDraftAsk(text, c);
+    if (singleDraft) return singleDraft;
+    // LANE A v2 ITEM 5: people-matching asks end in the plain honest
+    // stop here, before recommendations/fallback can claim them.
+    const pmStop = handlePeopleMatchingStop(text, c);
+    if (pmStop) return pmStop;
     // LANE A v2 (LF-02 routing repair): three claim families run
     // BEFORE the recommendations block, because 154's intentFor reads
     // all three as discovery asks and the state write never landed

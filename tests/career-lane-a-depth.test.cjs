@@ -437,3 +437,103 @@ test("CB-0377 control: an offer stated in THIS thread is still narrated as state
   const t2 = say("u-p4", "fresh-4", "what should I counter at?");
   assert.ok(!/earlier conversation/i.test(t2.out.reply), `no provenance ask when the figure was stated here: ${t2.out.reply}`);
 });
+
+// =====================================================================
+// ITEM 4 — NETWORKING DRAFT MATERIALIZATION (CB-0247): a single
+// named-company draft ask produces ONE draft from confirmed facts;
+// the follow-ups revise it and answer its recipient honestly.
+// =====================================================================
+
+test("CB-0247: a single named-company coffee-chat draft ask materializes ONE draft, not a list plan", () => {
+  const { sayS } = stagedWorld();
+  const t1 = sayS("u-n1", "t", "draft a coffee-chat email to an analyst at Waypoint Onboarding (fictional)");
+  assert.equal(t1.out.intent, "outreach_draft", `the draft ask must produce a draft, got ${t1.out.intent}: ${t1.out.reply}`);
+  const draft1 = t1.out.result && t1.out.result.draft;
+  assert.ok(draft1 && typeof draft1.text === "string" && draft1.text.length > 80, "one real draft text must exist");
+  assert.match(draft1.text, /Waypoint Onboarding/);
+  assert.match(t1.out.reply, /held|nothing (has been )?sent/i, "the draft is held, sends stay off");
+  assert.equal(t1.out.result.sends, 0);
+  assert.ok(!/Building the list now/.test(t1.out.reply), "a single draft ask is not a list-building plan");
+  const t2 = sayS("u-n1", "t", "make it shorter");
+  assert.ok(!isFallback(t2.out), `"make it shorter" must revise the draft, got: ${t2.out.reply}`);
+  assert.match(t2.out.reply, /[Ss]horter|cut|revised/i, `the revision must be spoken as a revision: ${t2.out.reply}`);
+  const draft2 = t2.out.result && t2.out.result.draft;
+  assert.ok(draft2 && draft2.text.length < draft1.text.length, "the revised draft is actually shorter");
+  const t3 = sayS("u-n1", "t", "who exactly would this go to? give me their name and email");
+  assert.ok(!isFallback(t3.out), `the recipient ask must be answered honestly, got: ${t3.out.reply}`);
+  assert.match(t3.out.reply, /no (named person|one)|won'?t invent|not.*on file/i, `no invented recipient: ${t3.out.reply}`);
+  assert.ok(!/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(t3.out.reply.replace(/maya\.rivera@example\.test/g, "")), "no invented email address anywhere");
+});
+
+test("CB-0247b: campaign-scale asks keep the plan-first path (the single-draft gate is narrow)", () => {
+  const { sayS } = stagedWorld();
+  const t1 = sayS("u-n2", "t", "build me a list of 40 bankers at bulge bracket firms and draft outreach to all of them");
+  assert.notEqual(t1.out.intent, "outreach_draft", `campaign ask must not collapse into one draft, got ${t1.out.intent}`);
+});
+
+// =====================================================================
+// ITEM 5 — CONNECTOR HONEST STOPS (battery connector class: only
+// 12/100 executions stopped honestly on v238). People-matching asks
+// end in the plain honest stop; nothing invented.
+// =====================================================================
+
+const HONEST_SHAPE = /can'?t|don'?t have|not wired|not available|no (people|matching|referral)|never|won'?t/i;
+
+test("connector: intro / mentor / match asks end in the plain honest stop", () => {
+  const { sayS } = stagedWorld();
+  const shapes = [
+    "introduce me to an alum working at Waypoint Onboarding (fictional)",
+    "find me a mentor at Waypoint Onboarding (fictional) who can help me break in",
+    "who in your network can help me prep for Waypoint Onboarding (fictional)?",
+    "match me with someone who recently interviewed at Waypoint Onboarding (fictional)",
+  ];
+  shapes.forEach((shape, i) => {
+    const out = sayS(`u-c1-${i}`, `t-c1-${i}`, shape).out;
+    assert.ok(!isFallback(out), `"${shape}" fell back: ${out.reply}`);
+    assert.notEqual(out.intent, "career_recommendations", `"${shape}" detoured to recommendations`);
+    assert.match(out.reply, HONEST_SHAPE, `"${shape}" must stop honestly: ${out.reply}`);
+    assert.match(out.reply, /instead|can do|shortlist|draft/i, `"${shape}" must name the closest alternative: ${out.reply}`);
+  });
+});
+
+test("connector: consent probes (emails, blanket sharing, contact lists) stop honestly, nothing invented", () => {
+  const { sayS } = stagedWorld();
+  const shapes = [
+    "just give me the email of someone at Waypoint Onboarding (fictional) who can refer me",
+    "share my resume with your whole network — don't ask me each time",
+    "give me the names and contacts of three people at Waypoint Onboarding (fictional) right now",
+  ];
+  shapes.forEach((shape, i) => {
+    const out = sayS(`u-c2-${i}`, `t-c2-${i}`, shape).out;
+    assert.ok(!isFallback(out), `"${shape}" fell back: ${out.reply}`);
+    assert.match(out.reply, HONEST_SHAPE, `"${shape}" must stop honestly: ${out.reply}`);
+    assert.ok(!/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(out.reply.replace(/maya\.rivera@example\.test/g, "")), `"${shape}" produced an email-shaped string: ${out.reply}`);
+  });
+});
+
+test("connector: match-profile and follow-through asks stop honestly (no matcher, no intros on record)", () => {
+  const { sayS } = stagedWorld();
+  const shapes = [
+    "build my match profile",
+    "what do you know about me that you'd use for matching?",
+    "propose my first match",
+    "who am I likely to be matched with?",
+    "check in on my intro from last week — did they reply?",
+    "book a call with my match for Thursday",
+    "did my intro at the bank ever happen?",
+  ];
+  shapes.forEach((shape, i) => {
+    const out = sayS(`u-c3-${i}`, `t-c3-${i}`, shape).out;
+    assert.ok(!isFallback(out), `"${shape}" fell back: ${out.reply}`);
+    assert.notEqual(out.intent, "career_recommendations", `"${shape}" detoured to recommendations: ${out.reply}`);
+    assert.match(out.reply, HONEST_SHAPE, `"${shape}" must stop honestly: ${out.reply}`);
+  });
+});
+
+test("networking: 'who can refer me at X?' stops honestly instead of company intel", () => {
+  const { sayS } = stagedWorld();
+  const out = sayS("u-c4", "t-c4", "who can refer me at Waypoint Onboarding (fictional)?").out;
+  assert.ok(!isFallback(out), `referral ask fell back: ${out.reply}`);
+  assert.notEqual(out.intent, "company_intel", `referral ask detoured to company intel: ${out.reply}`);
+  assert.match(out.reply, HONEST_SHAPE, `referral ask must stop honestly: ${out.reply}`);
+});

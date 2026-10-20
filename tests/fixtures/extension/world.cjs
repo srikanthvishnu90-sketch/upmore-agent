@@ -21,7 +21,8 @@ const FORMS = path.join(ROOT, "tests/fixtures/forms-ci");
 const SUPABASE_HOST = "mrwngntwmnaqrqhupvlt.supabase.co";
 const APP_HOST = "upmore-topaz.vercel.app";
 const WORKDAY_HOST = "acme.wd1.myworkdayjobs.com";
-const HOSTS = ["job-boards.greenhouse.io", "boards.greenhouse.io", "jobs.lever.co", "jobs.ashbyhq.com", WORKDAY_HOST, APP_HOST, SUPABASE_HOST];
+const BOARD_API_HOST = "boards-api.greenhouse.io";
+const HOSTS = ["job-boards.greenhouse.io", "boards.greenhouse.io", BOARD_API_HOST, "jobs.lever.co", "jobs.ashbyhq.com", WORKDAY_HOST, APP_HOST, SUPABASE_HOST];
 
 const b64url = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const testJwt = (claims) => `${b64url({ alg: "none", typ: "JWT" })}.${b64url(claims)}.VEVTVC1zaWduYXR1cmU`;
@@ -278,6 +279,42 @@ function workdayVariant(html, names) {
   return html.slice(0, end + 9) + `<script>/* TEST variant: ${names} */ ${add.join("\n")}</script>` + html.slice(end + 9);
 }
 
+// WO-076: TEST Greenhouse postings (not captured forms): a page in Greenhouse's own markup (its labels, its upload group)
+// and the board API's answer for the same questions (boards-api.greenhouse.io/v1/boards/{board}/jobs/{id}?questions=true,
+// the shape of tests/fixtures/apply/greenhouse-api), so a test knows exactly which postings are ready. Fields:
+// { name, label, required, type: "input_text" | "input_file" | "multi_value_single_select", options?: string[] }.
+const escapeHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function greenhouseTestPage(o) {
+  const star = (f) => (f.required ? '<span aria-hidden="true">*</span>' : "");
+  const field = (f) => {
+    const n = escapeHtml(f.name), l = escapeHtml(f.label), req = f.required ? "true" : "false";
+    if (f.type === "input_file") {
+      return `<div class="field-wrapper"><div role="group" aria-labelledby="upload-label-${n}" aria-required="${req}" class="file-upload"><div id="upload-label-${n}" class="label upload-label">${l}${star(f)}</div>` +
+        `<div class="file-upload__wrapper"><label class="visually-hidden" for="${n}">Attach</label><input id="${n}" class="visually-hidden" type="file" accept=".pdf,.doc,.docx,.txt,.rtf"></div></div></div>`;
+    }
+    if (f.type === "multi_value_single_select") {
+      return `<div class="field-wrapper"><label id="${n}-label" for="${n}" class="label">${l}${star(f)}</label><select id="${n}" name="${n}" aria-required="${req}"><option value="">Select...</option>` +
+        (f.options || []).map((x, i) => `<option value="${i + 1}">${escapeHtml(x)}</option>`).join("") + "</select></div>";
+    }
+    return `<div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper"><label id="${n}-label" for="${n}" class="label label">${l}${star(f)}</label>` +
+      `<input id="${n}" class="input input__single-line" aria-label="${l}" aria-required="${req}" type="text" maxlength="255" value=""></div></div></div>`;
+  };
+  return `<!doctype html><html><head><title>TEST ${escapeHtml(o.title)} at ${escapeHtml(o.board)} (TEST Greenhouse-shaped posting)</title></head><body><main>
+<div class="job__location">${escapeHtml(o.location)}</div><h1 class="section-header">${escapeHtml(o.title)}</h1>
+<form method="get" action="/${escapeHtml(o.board)}/jobs/${o.id}" id="application-form" class="application--form"><div class="application--questions">${o.fields.map(field).join("")}</div>
+<div class="application--submit"><button type="submit" class="btn btn--pill">Submit application</button></div></form></main></body></html>`;
+}
+function greenhouseTestApi(o) {
+  const questions = [];
+  for (const f of o.fields) {
+    const values = (f.options || []).map((x, i) => ({ label: x, value: i + 1 }));
+    questions.push({ label: f.label, required: !!f.required, fields: [{ name: f.name, type: f.type, values }] });
+    // Greenhouse's upload comes with its paste box: one question, two fields (WO-075).
+    if (f.type === "input_file") questions.at(-1).fields.push({ name: f.name + "_text", type: "textarea", values: [] });
+  }
+  return { id: Number(o.id), title: o.title, absolute_url: `https://job-boards.greenhouse.io/${o.board}/jobs/${o.id}`, location: { name: o.location }, questions };
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     const chunks = [];
@@ -315,6 +352,8 @@ async function startWorld(o = {}) {
     essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
     essayReply: null,
     touched: [], // WO-054: what the "watch" variant saw done to a page
+    boardApiCalls: [], // WO-076: every GET of the board API, by path
+    pageGets: [], // WO-076: every page served for a TEST Greenhouse posting, by path
     serviceKeySession: false,
   };
   // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
@@ -338,6 +377,8 @@ async function startWorld(o = {}) {
   const json = (res, code, body) => res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*" }).end(JSON.stringify(body));
   // WO-048: host -> { dir, base, files, served }
   const workdayTenants = new Map();
+  // WO-076: lower-case path -> TEST Greenhouse posting
+  const ghTests = new Map();
 
   async function supabase(req, res, u) {
     if (req.method === "OPTIONS") {
@@ -459,6 +500,19 @@ async function startWorld(o = {}) {
       const host = String(req.headers.host || "").replace(/:\d+$/, "");
       const u = new URL(req.url, "https://" + host);
       if (host === SUPABASE_HOST) return await supabase(req, res, u);
+      if (host === BOARD_API_HOST) {
+        state.boardApiCalls.push(u.pathname + u.search);
+        const m = /^\/v1\/boards\/([^/]+)\/jobs\/(\d+)$/.exec(u.pathname);
+        const o = m && ghTests.get(`/${m[1]}/jobs/${m[2]}`.toLowerCase());
+        if (!o || req.method !== "GET") return json(res, 404, { status: 404, error: "Job not found" });
+        return json(res, 200, greenhouseTestApi(o));
+      }
+      if (host === "job-boards.greenhouse.io" && ghTests.has(u.pathname.toLowerCase()) && req.method === "GET") {
+        const o = ghTests.get(u.pathname.toLowerCase());
+        state.pageGets.push(u.pathname);
+        const form = { id: `gh-test-${o.board}-${o.id}`, family: "greenhouse", company: o.board, source_url: `https://job-boards.greenhouse.io/${o.board}/jobs/${o.id}` };
+        return res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }).end(greenhouseTestPage(o).replace("</body>", employerScript(form) + "</body>"));
+      }
       if (host === APP_HOST) {
         const session = state.serviceKeySession
           ? { access_token: testJwt({ role: "service_role", iss: "TEST" }), refresh_token: "TEST-service", expires_at: now() + 3600 }
@@ -527,6 +581,12 @@ async function startWorld(o = {}) {
   return {
     port, hostRules, state, forms, userId,
     cloneUrl,
+    // WO-076: serve a TEST Greenhouse posting (its page and its board API answer); returns its URL.
+    greenhouseTest(o) {
+      const t = { title: "Data Analyst", location: "Chicago, IL", ...o };
+      ghTests.set(`/${t.board}/jobs/${t.id}`.toLowerCase(), t);
+      return `https://job-boards.greenhouse.io/${t.board}/jobs/${t.id}`;
+    },
     // WO-048: serve a TEST Workday-shaped tenant directory; returns the URL of a step file. `files` adds steps from
     // elsewhere (a TEST sign-in page) by file name.
     workdayTenant(o) {

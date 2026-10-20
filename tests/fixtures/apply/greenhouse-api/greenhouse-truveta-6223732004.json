@@ -1,0 +1,199 @@
+{
+ "id": 6223732004,
+ "absolute_url": "https://job-boards.greenhouse.io/truveta/jobs/6223732004",
+ "location": {
+  "name": "Seattle, WA"
+ },
+ "questions": [
+  {
+   "label": "First Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "first_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Last Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "last_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Email",
+   "required": true,
+   "fields": [
+    {
+     "name": "email",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Phone",
+   "required": true,
+   "fields": [
+    {
+     "name": "phone",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Resume/CV",
+   "required": true,
+   "fields": [
+    {
+     "name": "resume",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "resume_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Cover Letter",
+   "required": false,
+   "fields": [
+    {
+     "name": "cover_letter",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "cover_letter_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Website",
+   "required": false,
+   "fields": [
+    {
+     "name": "question_20277113004",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "LinkedIn Profile",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_20277114004",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Are you authorized to work lawfully in the United States?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_20277115004",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "1"
+      },
+      {
+       "label": "No",
+       "value": "0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Are you located in the greater Seattle area?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_20277116004",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "1"
+      },
+      {
+       "label": "No",
+       "value": "0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "If not located in the greater Seattle area, are you willing to relocate?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_20277117004[]",
+     "type": "multi_value_multi_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "163615708004"
+      },
+      {
+       "label": "No",
+       "value": "163615709004"
+      },
+      {
+       "label": "Not Applicable",
+       "value": "163615710004"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Do you now OR in the future require visa sponsorship to continue working in the US?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_20277118004[]",
+     "type": "multi_value_multi_select",
+     "values": [
+      {
+       "label": "Yes, I am on an F1 Visa/CPT/OPT",
+       "value": "163615711004"
+      },
+      {
+       "label": "Yes, I am on an H1B Visa",
+       "value": "163615712004"
+      },
+      {
+       "label": "No, I do not require sponsorship either now OR in the future",
+       "value": "163615713004"
+      },
+      {
+       "label": "Other",
+       "value": "163615714004"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

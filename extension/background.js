@@ -424,6 +424,56 @@ async function readAndFinish(tabId, p) {
 // (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, four at a time: each is a whole employer page held in a
 // hidden tab, and an answer given now should be about postings this session reaches. Workday postings are left out: the
 // person signs in on the employer's site first (D-013), so their questions are asked on their own cards.
+// WO-076 (ready first): each waiting Greenhouse posting is planned from the board's public API before any tab opens
+// (TraineeCore.preplanGreenhouse: the form's own questions, the person's confirmed facts); a Lever or Ashby posting is not
+// known until Prepare reads its page. The queue is then ordered fit first, then ready, one open question, more, not known
+// (TraineeCore.readyFirst), the order given breaking ties. Silent: no tap or screen is added. A read that fails leaves the
+// posting not known, and Prepare reads its page as before. Nothing is sent to the board: one GET of its public API.
+const PREPLAN_AT_ONCE = 4, PREPLAN_WAIT_MS = 10_000;
+async function boardJob(api) {
+  try {
+    const r = await fetch(api, { headers: { accept: "application/json" }, credentials: "omit", signal: AbortSignal.timeout(PREPLAN_WAIT_MS) });
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
+  }
+}
+// The waiting items in the order they were given, then ordered; a running queue keeps the posting it is on and those before.
+function orderQueue(q) {
+  const fixed = q.running ? q.index + 1 : 0;
+  const rest = q.items.slice(fixed);
+  const waiting = rest.filter((x) => x.state === "waiting").sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+  q.items = [...q.items.slice(0, fixed), ...rest.filter((x) => x.state !== "waiting"), ...C.readyFirst(waiting)];
+  return q;
+}
+// Plans (url -> plan) are attached to the queue as it is when they are ready, so a change made meanwhile is never lost.
+async function attachPlans(plans) {
+  const q = await queueState();
+  for (const it of q.items) if (plans.has(it.url)) it.plan = plans.get(it.url);
+  await put(S, "queue", orderQueue(q));
+  return q;
+}
+async function preplan() {
+  const a = await session();
+  if (!a) return;
+  const todo = (await queueState()).items.filter((x) => x.state === "waiting" && !x.plan?.known && C.greenhouseApiUrl(x.url));
+  if (!todo.length) return await attachPlans(new Map());
+  const f = await facts(a.user_id);
+  const plans = new Map();
+  let next = 0;
+  const worker = async () => {
+    while (next < todo.length) {
+      const it = todo[next++];
+      const job = await boardJob(C.greenhouseApiUrl(it.url));
+      if (job) plans.set(it.url, C.preplanGreenhouse({ job, url: it.url, userId: a.user_id, answers: f.answers, saved: f.saved, now: Date.now() }));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PREPLAN_AT_ONCE, todo.length) }, worker));
+  return await attachPlans(plans);
+}
+// The person's daily limit as their account states it (25 when it does not say): the day's sends, for Prepare.
+const dayLimit = (account) => Math.max(1, Math.min(50, Math.floor(Number(account?.daily_limit)) || 25));
+
 const PREPARE_MAX = 20, PREPARE_AT_ONCE = 4, SURVEY_WAIT_MS = 45_000;
 const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
 let preparing = false;
@@ -447,14 +497,28 @@ async function surveyOne(url) {
 async function prepareQueue() {
   const a = await session();
   if (!a) return { ok: false, message: say.signedOut };
-  const waiting = (await queueState()).items.filter((x) => x.state === "waiting");
-  const workday = waiting.filter((x) => C.detectPortal(x.url)?.family === "workday").length;
-  const pick = waiting.filter((x) => C.detectPortal(x.url)?.family !== "workday").slice(0, PREPARE_MAX);
+  // WO-076: Greenhouse postings are planned from the board's API (no tab); only postings not known yet are read in hidden
+  // tabs, and only while the day's sends are not already filled with ready forms. The queue is then ordered ready first,
+  // and the panel asks the questions of the day's postings that are not ready (the rest wait as candidates).
+  let account = null;
+  try {
+    account = await rpc("career_apply_account_own", {});
+  } catch (e) {
+    if (e.message === "SIGNED_OUT") return { ok: false, message: say.signedOut };
+  }
+  const limit = dayLimit(account);
+  await preplan().catch(() => {});
+  const isWorkday = (x) => C.detectPortal(x.url)?.family === "workday";
+  const waiting0 = (await queueState()).items.filter((x) => x.state === "waiting");
+  const workday = waiting0.filter(isWorkday).length;
+  const known = waiting0.filter((x) => !isWorkday(x) && x.plan?.known);
+  const unknown = waiting0.filter((x) => !isWorkday(x) && !x.plan?.known);
+  const pick = known.filter((x) => x.plan.open === 0).length >= limit ? [] : unknown.slice(0, PREPARE_MAX);
   const notes = [];
   if (workday) notes.push(`${workday} Workday posting${workday === 1 ? " is" : "s are"} left out: Workday needs you signed in on the employer's site, so ${workday === 1 ? "its questions are" : "their questions are"} asked on the card.`);
-  const more = waiting.length - workday - pick.length;
-  if (more > 0) notes.push(`Only the next ${PREPARE_MAX} postings are read ahead (${more} more wait): each is a whole page held open in a hidden tab. Press Prepare again after them.`);
-  if (!pick.length) return { ok: false, message: notes[0] || "Add some posting links first." };
+  const more = unknown.length - pick.length;
+  if (more > 0 && pick.length) notes.push(`Only the next ${PREPARE_MAX} postings are read ahead (${more} more wait): each is a whole page held open in a hidden tab. Press Prepare again after them.`);
+  if (!pick.length && !known.length) return { ok: false, message: notes[0] || "Add some posting links first." };
   const base = { status: "reading", total: pick.length, read: 0, notes, failed: [], questions: [], left: {}, open: 0, skipped: [], saved: [], refused: [] };
   await put(S, "answer_once", base);
   const results = new Array(pick.length);
@@ -467,14 +531,25 @@ async function prepareQueue() {
     }
   };
   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
-  const ok = results.filter((r) => r.ok && Array.isArray(r.needs));
+  const plans = new Map();
+  for (const [i, r] of results.entries()) {
+    if (!r.ok || !Array.isArray(r.needs)) continue;
+    plans.set(pick[i].url, { known: true, open: Number.isInteger(r.open) ? r.open : r.needs.length, needs: r.needs, jobId: String(r.jobId), company: String(r.company), location: typeof r.location === "string" ? r.location.slice(0, 300) : undefined });
+  }
+  const q = await attachPlans(plans);
+  // The day: the first sends of the ordered queue (at most the daily limit). Its postings that still need the person are
+  // the ones the panel asks about, once.
+  const ordered = q.items.filter((x) => x.state === "waiting" && !isWorkday(x));
+  const day = ordered.slice(0, limit), s = C.daySummary(ordered, limit);
+  const asked = day.filter((x) => x.plan?.known && x.plan.open > 0);
   const f = await facts(a.user_id);
-  const merged = C.answerOnceQuestions({ postings: ok.map((r) => ({ jobId: String(r.jobId), company: String(r.company), url: r.url, location: typeof r.location === "string" ? r.location.slice(0, 300) : undefined, needs: r.needs })),
+  const merged = C.answerOnceQuestions({ postings: asked.map((x) => ({ jobId: String(x.plan.jobId), company: String(x.plan.company), url: x.url, location: x.plan.location, needs: x.plan.needs })),
     answers: f.answers, answered: new Set(f.answered) });
   const left = {};
   for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;
-  await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
-    failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
+  notes.unshift(`Today's ${s.sends} (your daily limit is ${limit}): ${s.ready} ready to approve as they are, ${s.one + s.more} need an answer first${s.unknown ? `, ${s.unknown} not read yet` : ""}.${s.waiting ? ` ${s.waiting} more wait for later days.` : ""}`);
+  await put(S, "answer_once", { ...base, status: "ready", read, total: pick.length, postings: asked.length, day: s, questions: merged.questions, left, notes,
+    open: asked.reduce((n, x) => n + x.plan.needs.length, 0), failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
   return { ok: true, questions: merged.questions.length };
 }
 // The person's own answers from the panel, stored the way an answer given on a form is (WO-042): the question is recorded
@@ -501,6 +576,19 @@ async function saveAnswerOnce(picks) {
   }
   await put(S, "answered_before", [...new Set([...(await get(S, "answered_before", [])), ...saved])]);
   await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused });
+  // WO-076: a posting whose questions the person just answered needs that much less; one with nothing left is ready and
+  // moves up within its fit. Its card still reads the page and plans again (the answers fill only options it offers).
+  const done = new Set();
+  for (const k of saved) for (const p of st.questions.find((x) => x.key === k)?.postings || []) done.add(p.jobId + "\n" + p.label);
+  if (done.size) {
+    const q = await queueState();
+    for (const it of q.items) {
+      if (it.state !== "waiting" || !it.plan?.known) continue;
+      const keep = (it.plan.needs || []).filter((n) => !done.has(it.plan.jobId + "\n" + n.label));
+      it.plan = { ...it.plan, needs: keep, open: Math.max(0, it.plan.open - ((it.plan.needs || []).length - keep.length)) };
+    }
+    await put(S, "queue", orderQueue(q));
+  }
   return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
 }
 
@@ -565,7 +653,7 @@ async function handle(m, sender) {
       const done = surveys.get(tabId);
       if (!done) return { ok: false };
       surveys.delete(tabId);
-      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [] });
+      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [], open: Number.isInteger(m.open) && m.open >= 0 ? m.open : undefined });
       return { ok: true };
     }
     case "questions": {
@@ -749,10 +837,11 @@ async function handle(m, sender) {
       return { ok: true, hash: r.hash };
     }
     case "queue-set": {
-      const urls = C.postingLinks(m.text || "", 100);
+      const urls = C.postingLinks(m.text || "", 200);
       const q = await queueState();
       const have = new Set(q.items.map((x) => C.postingKey(x.url)));
-      for (const u of urls) if (!have.has(C.postingKey(u))) q.items.push({ url: u, state: "waiting" });
+      // WO-076: seq is the order given (the fit proxy), kept whatever the queue's order becomes.
+      for (const u of urls) if (!have.has(C.postingKey(u))) q.items.push({ url: u, state: "waiting", seq: q.items.length });
       await put(S, "queue", q);
       return { ok: true, added: urls.length };
     }
@@ -773,10 +862,13 @@ async function handle(m, sender) {
       // WO-066: the postings the person asked Trainee to apply to in chat, from their own queue (row-level security: only
       // theirs), into the same queue their pasted links go; each is then prepared here and goes only on its card's tap.
       try {
-        const rows = await selectOwn("career_apply_wanted?select=posting_key,url&state=eq.waiting&order=queued_at.asc&limit=100");
+        // WO-076: up to 4× the highest daily limit (the candidates); each Greenhouse pick is planned from the board's API
+        // before any tab opens, and the queue is ordered ready first within the same fit. Nothing new to tap.
+        const rows = await selectOwn("career_apply_wanted?select=posting_key,url&state=eq.waiting&order=queued_at.asc&limit=200");
         if (!rows.length) return { ok: false, message: "Trainee has no postings waiting for you. Ask Trainee in chat to apply to some." };
         const r = await handle({ type: "queue-set", text: rows.map((x) => x.url).join("\n") }, {});
         await rpc("career_apply_want_take_own", { p_keys: rows.map((x) => x.posting_key) });
+        await preplan().catch(() => {});
         return r;
       } catch (e) {
         return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "Trainee's picks could not be read; paste the links instead." };

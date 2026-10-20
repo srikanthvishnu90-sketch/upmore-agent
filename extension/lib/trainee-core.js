@@ -2547,6 +2547,24 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       reason: null
     };
   }
+  function greenhouseQuestions(job) {
+    const out = [];
+    for (const q of job && Array.isArray(job.questions) ? job.questions : []) {
+      for (const f of Array.isArray(q.fields) ? q.fields : []) {
+        out.push({
+          name: String(f.name),
+          label: String(q.label ?? "").trim(),
+          required: !!q.required,
+          type: String(f.type ?? "input_text"),
+          options: (Array.isArray(f.values) ? f.values : []).map((v) => ({
+            label: String(v.label ?? ""),
+            value: String(v.value ?? "")
+          }))
+        });
+      }
+    }
+    return out;
+  }
   var KEYS = [
     [
       /first\s*(name\s*)?(&|and)\s*last\s*name/i,
@@ -3703,6 +3721,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
+    daySummary: () => daySummary,
     detectPortal: () => detectPortal,
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
@@ -3710,6 +3729,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     essayQuestions: () => essayQuestions,
     evidenceRecord: () => evidenceRecord,
     formAnswersToKeep: () => formAnswersToKeep,
+    formTier: () => formTier,
+    greenhouseApiUrl: () => greenhouseApiUrl,
     isIdentityField: () => isIdentityField,
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
@@ -3718,7 +3739,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     planForm: () => planForm,
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
+    preplanGreenhouse: () => preplanGreenhouse,
     questionsForTrainee: () => questionsForTrainee,
+    readyFirst: () => readyFirst,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
     shortLabel: () => shortLabel,
@@ -4127,6 +4150,71 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
   }
   var beforeSession = (fields, factIds) => fields.filter((f) => f.source === "trainee" && !!f.factId && factIds.includes(f.factId)).map((f) => f.name);
+  function greenhouseApiUrl(url) {
+    const p = detectPortal(url);
+    if (p?.family !== "greenhouse") return null;
+    if (/\.eu\.greenhouse\.io$/i.test(new URL(url).hostname)) return null;
+    const key = postingKey(url);
+    const m = key && /^greenhouse:([A-Za-z0-9_-]+):(\d+)$/.exec(key);
+    return m ? `https://boards-api.greenhouse.io/v1/boards/${m[1]}/jobs/${m[2]}?questions=true` : null;
+  }
+  function preplanGreenhouse(o) {
+    const jobId = postingKey(o.url) || o.url, company = tenantOf(jobId) || "";
+    const location2 = typeof o.job?.location?.name === "string" && o.job.location.name.trim() ? o.job.location.name.slice(0, 300) : void 0;
+    const schema = greenhouseQuestions(o.job);
+    if (!schema.length) return {
+      known: false,
+      open: 0,
+      needs: [],
+      jobId,
+      company,
+      location: location2
+    };
+    const plan = planForm({
+      userId: o.userId,
+      jobId,
+      company,
+      family: "greenhouse",
+      schema,
+      answers: o.answers,
+      saved: o.saved,
+      now: o.now,
+      location: location2
+    });
+    const open = plan.needs.length + plan.identity.filter((f) => f.required).length + new Set(plan.ambiguous.filter((f) => f.required).map((f) => normLabel(f.label))).size;
+    return {
+      known: true,
+      open,
+      needs: plan.needs,
+      jobId,
+      company,
+      location: location2
+    };
+  }
+  var formTier = (plan) => !plan || !plan.known ? 3 : plan.open === 0 ? 0 : plan.open === 1 ? 1 : 2;
+  function readyFirst(items) {
+    const band = (x) => typeof x.fit === "number" && Number.isFinite(x.fit) ? x.fit : -Infinity;
+    return items.map((x, i) => ({
+      x,
+      i
+    })).sort((a, b) => {
+      const fa = band(a.x), fb = band(b.x);
+      if (fa !== fb) return fb > fa ? 1 : -1;
+      return formTier(a.x.plan) - formTier(b.x.plan) || a.i - b.i;
+    }).map((e) => e.x);
+  }
+  function daySummary(items, limit = DEFAULT_DAILY) {
+    const day = items.slice(0, Math.max(0, limit));
+    const n = (t) => day.filter((x) => formTier(x.plan) === t).length;
+    return {
+      sends: day.length,
+      ready: n(0),
+      one: n(1),
+      more: n(2),
+      unknown: n(3),
+      waiting: Math.max(0, items.length - day.length)
+    };
+  }
   var MASKED = "[typed by you on the form; never kept by Trainee]";
   function reviewPayload(o) {
     return {

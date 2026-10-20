@@ -46,15 +46,17 @@ Deno.test("WO-066/2 the tool queues for the person, says nothing is sent, and th
   eq((await wants.list("u2")).length, 0, "another person's queue is untouched");
 });
 
-Deno.test("WO-066/3 a day's queue stops at the daily limit; what is over is refused with the limit named", async () => {
+// WO-076 (the owner, 2026-10-20: "Queue at 4× the daily limit as candidates, sends capped at 25") moved this bound from the
+// daily limit to 4× it; sends stay at the limit (tests/architect/wo-076-ready-first.test.ts).
+Deno.test("WO-066/3 a day's queue stops at 4× the daily limit (WO-076); what is over is refused with the limit named", async () => {
   const wants = memoryWantStore();
   const t = tool(wants);
-  const many = Array.from({ length: DEFAULT_DAILY + 5 }, (_, i) => GH(i + 10));
+  const many = Array.from({ length: 4 * DEFAULT_DAILY + 5 }, (_, i) => GH(i + 10));
   const out: any = await t.run({ postings: many }, ctx() as any);
-  eq(out.queued, DEFAULT_DAILY);
+  eq(out.queued, 4 * DEFAULT_DAILY);
   eq(out.refused.length, 5);
   assert(out.refused.every((r: any) => new RegExp(String(DEFAULT_DAILY)).test(r.why)), "the limit is named");
-  const next: any = await t.run({ postings: [GH(99)] }, ctx(T0 + 26 * 3600_000) as any);
+  const next: any = await t.run({ postings: [GH(999)] }, ctx(T0 + 26 * 3600_000) as any);
   eq(next.queued, 1, "a new day has room again");
 });
 

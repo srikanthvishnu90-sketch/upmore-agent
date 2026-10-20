@@ -5,7 +5,7 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { classifyField, classifyOutcome, DEFAULT_DAILY, fileAlternative, type FormField, greenhouseQuestions, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
@@ -253,6 +253,54 @@ export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: st
 // The fields on a card Trainee filled from an answer the person gave in the panel before the session (its stored row).
 export const beforeSession = (fields: SnapField[], factIds: string[]) =>
   fields.filter((f) => f.source === "trainee" && !!f.factId && factIds.includes(f.factId)).map((f) => f.name);
+
+// ------------------------------------------------------------------------------------------------ ready first (WO-076)
+// The want queue holds up to 4× the daily limit as candidates (the owner's yes, 2026-10-20); sends stay at the limit. So the
+// extension chooses: each Greenhouse posting is planned before any tab opens, from the board's own public API (the same
+// questions its form shows: greenhouseQuestions, then planForm with the person's confirmed facts); a Lever or Ashby posting
+// is not known until Prepare reads its page. The queue is then ordered fit first, then by what the form still needs. No tap
+// or screen is added: the person sees the same Prepare and the same cards, ready ones first.
+// The board API's address for a Greenhouse posting (job-boards, boards or an embedded form), or null. EU boards are left
+// to Prepare's page read: their API host is not one this order verified.
+export function greenhouseApiUrl(url: string): string | null {
+  const p = detectPortal(url);
+  if (p?.family !== "greenhouse") return null;
+  if (/\.eu\.greenhouse\.io$/i.test(new URL(url).hostname)) return null;
+  const key = postingKey(url);
+  const m = key && /^greenhouse:([A-Za-z0-9_-]+):(\d+)$/.exec(key);
+  return m ? `https://boards-api.greenhouse.io/v1/boards/${m[1]}/jobs/${m[2]}?questions=true` : null;
+}
+// What a posting still needs from the person, planned as the card would plan it. `open` counts every required thing the
+// card would leave to them: the open questions, an identity number typed on the form, two fields under one label.
+export interface Preplan { known: boolean; open: number; needs: OpenQuestion[]; jobId: string; company: string; location?: string }
+export function preplanGreenhouse(o: { job: any; url: string; userId: string; answers: Record<string, Answer>; saved: Record<string, Answer>; now: number }): Preplan {
+  const jobId = postingKey(o.url) || o.url, company = tenantOf(jobId) || "";
+  const location = typeof o.job?.location?.name === "string" && o.job.location.name.trim() ? o.job.location.name.slice(0, 300) : undefined;
+  const schema = greenhouseQuestions(o.job);
+  if (!schema.length) return { known: false, open: 0, needs: [], jobId, company, location };
+  const plan = planForm({ userId: o.userId, jobId, company, family: "greenhouse", schema, answers: o.answers, saved: o.saved, now: o.now, location });
+  const open = plan.needs.length + plan.identity.filter((f) => f.required).length + new Set(plan.ambiguous.filter((f) => f.required).map((f) => normLabel(f.label))).size;
+  return { known: true, open, needs: plan.needs, jobId, company, location };
+}
+// 0 ready, 1 one open question, 2 more, 3 not known yet.
+export const formTier = (plan: { known: boolean; open: number } | null | undefined) => (!plan || !plan.known ? 3 : plan.open === 0 ? 0 : plan.open === 1 ? 1 : 2);
+// Fit first (a carried fit band, higher is better; an item without one goes after every item with one), then the form's
+// tier, then queue order (the order the person or the brain gave, best fit first). A weaker fit never rises above a
+// stronger one to save typing. Returns a new list.
+export function readyFirst<T extends { fit?: number | null; plan?: { known: boolean; open: number } | null }>(items: T[]): T[] {
+  const band = (x: T) => (typeof x.fit === "number" && Number.isFinite(x.fit) ? x.fit : -Infinity);
+  return items.map((x, i) => ({ x, i })).sort((a, b) => {
+    const fa = band(a.x), fb = band(b.x);
+    if (fa !== fb) return fb > fa ? 1 : -1;
+    return formTier(a.x.plan) - formTier(b.x.plan) || a.i - b.i;
+  }).map((e) => e.x);
+}
+// The day's sends: the first `limit` of the ordered queue, counted by what they still need; the rest wait as candidates.
+export function daySummary(items: { plan?: { known: boolean; open: number } | null }[], limit = DEFAULT_DAILY) {
+  const day = items.slice(0, Math.max(0, limit));
+  const n = (t: number) => day.filter((x) => formTier(x.plan) === t).length;
+  return { sends: day.length, ready: n(0), one: n(1), more: n(2), unknown: n(3), waiting: Math.max(0, items.length - day.length) };
+}
 
 // ------------------------------------------------------------------------------------------------ the reviewed payload
 // Every answer the form will send, read back from the page, with where it came from:

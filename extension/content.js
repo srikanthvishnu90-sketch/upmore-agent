@@ -300,7 +300,9 @@
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
     const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+    // WO-076: everything required the card would leave to the person (as preplanGreenhouse counts it), for the queue's order.
+    const open = p.needs.length + p.identity.filter((x) => x.required).length + new Set(p.ambiguous.filter((x) => x.required).map((x) => C.normLabel(x.label))).size;
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, open });
   }
   function formReady(ms) {
     return new Promise((resolve) => {

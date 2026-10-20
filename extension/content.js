@@ -554,13 +554,32 @@
         break;
       }
     }
-    const obs = D.observe(before, planned);
+    let obs = D.observe(before, planned);
+    // WO-096: the page asks, in place, for the code the employer just emailed (Greenhouse's code box on the same form).
+    // The service worker reads it from the person's own Gmail for this approved application and types it into this
+    // frame's code box; the code never comes here. Then the employer's answer is waited for again, the same way.
+    let codeStop = null;
+    if (obs.email_code_prompt && !obs.captcha && obs.form_present_after && D.findCodeBox()) {
+      const r = await send({ type: "email-code" });
+      if (r?.typed) {
+        const until = Date.now() + C.NO_ANSWER_WAIT_MS;
+        while (Date.now() < until) {
+          await sleep(250);
+          const o = D.observe(before, planned);
+          if (!o.form_present_after || o.captcha || o.validation_errors.some((e) => !errorsBefore.includes(e))) break;
+          if (!o.email_code_prompt) break;
+        }
+        await sleep(300);
+        obs = D.observe(before, planned);
+        if (obs.email_code_prompt) codeStop = "The page did not take the code from your email. Type the newest code on the page yourself.";
+      } else codeStop = r?.stop || "Type the code the employer emailed you on the page yourself.";
+    }
     // Proof after the click: what the employer answered (or the form with its errors), identity fields covered.
     const unmaskAfter = D.maskFields(maskSelectors(last.now));
     await sleep(60);
     const after = await send({ type: "screenshot" });
     unmaskAfter();
-    await send({ type: "outcome", observation: obs, errorsBefore, timedOut, shotAfter: after?.ok ? { sha256: after.sha256, dataUrl: after.dataUrl } : null });
+    await send({ type: "outcome", observation: obs, errorsBefore, timedOut, codeStop, shotAfter: after?.ok ? { sha256: after.sha256, dataUrl: after.dataUrl } : null });
     submitting = false;
   }
 

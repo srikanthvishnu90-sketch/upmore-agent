@@ -3679,6 +3679,35 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
   }
 
+  // supabase/functions/_shared/career_email_code_poll.ts
+  var CODE_POLL_DELAYS_MS = [
+    3e3,
+    4e3,
+    6e3,
+    9e3,
+    13e3,
+    2e4,
+    3e4,
+    3e4,
+    3e4,
+    3e4
+  ];
+  var CODE_MAX_WAIT_MS = 18e4;
+  async function pollForCode(once, o = {
+    now: Date.now
+  }) {
+    const sleep2 = o.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    const max = Math.max(0, Math.min(o.maxWaitMs ?? CODE_MAX_WAIT_MS, CODE_MAX_WAIT_MS));
+    const start = o.now();
+    for (let i = 0; ; i++) {
+      const r = await once(i);
+      if (r.status !== "not_yet") return r;
+      const gap = CODE_POLL_DELAYS_MS[Math.min(i, CODE_POLL_DELAYS_MS.length - 1)];
+      if (o.now() - start + gap > max) return r;
+      await sleep2(gap);
+    }
+  }
+
   // extension/src/apply_core.ts
   var apply_core_exports = {};
   __export(apply_core_exports, {
@@ -4331,7 +4360,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return rec;
   }
-  function cardOutcome(o, hasAfterShot) {
+  function cardOutcome(o, hasAfterShot, codeStop) {
+    if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
+      return {
+        status: "done",
+        message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}`
+      };
+    }
     if (o.state === "confirmed" && hasAfterShot) {
       return {
         status: "done",
@@ -4427,10 +4462,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   // extension/src/dom.ts
   var dom_exports = {};
   __export(dom_exports, {
+    CODE_BOX: () => CODE_BOX,
     clearWorkdayOptions: () => clearWorkdayOptions,
     element: () => element,
     fieldNameFor: () => fieldNameFor,
     fill: () => fill,
+    findCodeBox: () => findCodeBox,
     findSubmit: () => findSubmit,
     fnCaptchaTech: () => fnCaptchaTech,
     fnDetectChallenge: () => fnDetectChallenge,
@@ -4448,6 +4485,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     readWorkday: () => readWorkday,
     readWorkdayReview: () => readWorkdayReview,
     takeWidgetChoice: () => takeWidgetChoice,
+    typeCode: () => typeCode,
     visibleErrors: () => visibleErrors,
     wdListValue: () => wdListValue,
     workdayAccountPage: () => workdayAccountPage,
@@ -4851,11 +4889,50 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       page_text: text
     };
   }
+  var CODE_NAMED = /(verification|security|email|one[- _]?time|confirmation)[\s_-]*code|\botp\b|passcode|^code$/i;
+  var CODE_BOX = "[data-trainee-code-box]";
+  function findCodeBox() {
+    const d = doc();
+    const words = (e) => {
+      const label = e.id ? d.querySelector(`label[for="${String(e.id).replace(/"/g, "")}"]`) : null;
+      return [
+        label?.innerText,
+        e.getAttribute("aria-label"),
+        e.name,
+        e.id,
+        e.placeholder
+      ].filter(Boolean).join(" ").trim();
+    };
+    const boxes = Array.from(d.querySelectorAll("input")).filter((e) => !e.disabled && !e.readOnly && visible(e) && [
+      "text",
+      "tel",
+      "number",
+      "search"
+    ].includes(e.type) && (e.autocomplete === "one-time-code" || CODE_NAMED.test(words(e)) || CODE_NAMED.test(String(e.name || ""))));
+    if (boxes.length !== 1 || boxes[0].maxLength > 0 && boxes[0].maxLength < 4) return null;
+    const box = boxes[0];
+    const buttons = Array.from((box.form || d).querySelectorAll("button, input[type=submit]")).filter((b) => !b.disabled && visible(b) && /submit|verify|confirm|continue/i.test(String(b.innerText || b.value || "")));
+    const button = buttons.find((b) => b.type === "submit") || buttons[0];
+    return button ? {
+      box,
+      button
+    } : null;
+  }
+  function typeCode(code) {
+    const found = findCodeBox();
+    if (!found || typeof code !== "string" || !code) return false;
+    found.box.setAttribute("data-trainee-code-box", "1");
+    found.box.focus();
+    setNative(found.box, code);
+    fire(found.box, "input", "change");
+    found.button.click();
+    return true;
+  }
   function maskFields(selectors) {
     const covers = [];
     const els = [
       ...selectors.map((s) => element(s)).filter(Boolean),
-      ...Array.from(doc().querySelectorAll("input[type=password]"))
+      ...Array.from(doc().querySelectorAll("input[type=password], " + CODE_BOX))
     ];
     for (const el of els) {
       const r = el.getBoundingClientRect();
@@ -5631,6 +5708,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     questionsToStore,
     jwtRole,
     bindFields,
+    pollForCode,
+    CODE_POLL_DELAYS_MS,
     ...apply_core_exports,
     dom: dom_exports
   };

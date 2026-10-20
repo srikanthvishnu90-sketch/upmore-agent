@@ -59,4 +59,5 @@ real texting channel is last (D-009).
 | [073](WO-073-title-search.md) | A search for a role ranks the role first: title tiers, a title-weighted database query, `title_matches` (battery T03) | PR #93 | 065 | M1 | Claude |
 | 074 | Standing answers the person gives once for a class of question (work rights by country, office and place, relatives, how they heard), in their own words; never drafted | next: order to be written | 075 | M4 | Claude |
 | [075](WO-075-resume-pair.md) | Greenhouse's resume upload and its paste box are one question (ready cards 174 → 218 of 797) | PR #95 | 064 | M4 | Claude |
+| [084](WO-084-emailed-codes.md) | The code the site emails the person, filled from their own Gmail in their own browser (D-029, D-021); the person still presses Submit | ready | 031, 024 | M4 | builder (architect review) |
 | 076 | Ready-first: the extension plans queued postings before Prepare (Greenhouse from the board's public API) and fills the day with the forms Trainee can finish; fit first, form cost second | proposed; waits on the owner (queue more postings than the day's sends) | 075 | M4 | Claude → owner |

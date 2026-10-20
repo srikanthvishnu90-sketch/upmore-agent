@@ -1167,7 +1167,8 @@ async function essayForm(k, variant = "essay") {
   await personAnswers(form, {}, new Set([WHY_NAME]));
   const card = await waitCard(form.tabId, (c) => (c.essays || []).some((e) => e.name === WHY_NAME) && c.status === "blocked" &&
     c.openRequired.length === 1, 10000);
-  await form.panel.waitForSelector(essayEl(".essay-draft:not([hidden])"), { timeout: 10000 });
+  // A form that asks for the person's own words shows its reason instead of a button.
+  await form.panel.waitForSelector(essayEl(variant.includes("aiban") ? ".essay-msg" : ".essay-draft:not([hidden])"), { timeout: 10000 });
   return { form, card };
 }
 const pageValue = async (form) => (await formNow(form.tabId)).find((f) => f.name === WHY_NAME)?.value ?? null;
@@ -1338,10 +1339,10 @@ test("essay card: a form that asks for answers without AI shows the refusal and 
   world.state.essayReply = null;
   let { form } = await essayForm(841, "essay,aiban");
   try {
-    await form.panel.click(essayEl(".essay-draft"));
-    await form.panel.waitForFunction((s) => /without AI/.test(document.querySelector(s).textContent), essayEl(".essay-msg"), { timeout: 10000 });
-    assert.ok(world.state.essayCalls[0].siblings.some((l) => /only my own words/.test(l)), "the employer's statement went with the question");
-    assert.match(await form.panel.textContent(essayEl(".essay-msg")), /^\S+ asks for answers written without AI, so Trainee won't draft this one: it needs your own words\.$/);
+    // The card reads the employer's policy itself: the reason is shown up front, with no button and no request.
+    await form.panel.waitForFunction((s) => /without AI/.test(document.querySelector(s)?.textContent || ""), essayEl(".essay-msg"), { timeout: 10000 });
+    assert.match(await form.panel.textContent(essayEl(".essay-msg")), /^This form asks for answers written without AI, so Trainee won't draft this one: it needs your own words\.$/);
+    assert.equal(world.state.essayCalls.length, 0, "nothing was sent to the drafting service");
     assert.equal(await form.panel.isHidden(essayEl(".essay-text")), true, "no draft shown");
     assert.equal(await form.panel.isHidden(essayEl(".essay-use")), true, "nothing to use");
     assert.equal(await form.panel.isHidden(essayEl(".essay-draft")), true, "and no button to try again");

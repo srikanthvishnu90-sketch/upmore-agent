@@ -181,6 +181,8 @@ function withCards(tabId, by, change) {
 const setCard = (tabId, patch, by = patch.status || "patch") =>
   withCards(tabId, by, (prev) => {
     if (patch.status === "stopped" && prev && !patch.beforeClick && (prev.status === "done" || prev.begun)) return null;
+    // A late "submitting" never undoes a finished card: the page after the click may be read before the click's message.
+    if (patch.status === "submitting" && prev?.status === "done") return null;
     return { ...(prev || {}), ...patch, tabId, updated_at: Date.now() };
   });
 const pendings = async () => await get(S, "pending", {});
@@ -316,11 +318,24 @@ async function capture(windowId) {
 }
 
 // A submit that moved the page away: the new page is read once it loads (the content script there may not run, e.g. a
-// thank-you page on the employer's own site).
-chrome.tabs.onUpdated.addListener(async (tabId, info) => {
-  if (info.status !== "complete") return;
+// thank-you page on the employer's own site). Also called from "clicked": a fast page can finish loading before that
+// message lands, and then this load event has already passed the tab by.
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.status === "complete") afterNavigation(tabId);
+});
+// One reader per click: two at once would take two pictures, and Chrome refuses a second capture within the second.
+const reading = new Set();
+async function afterNavigation(tabId) {
   const p = (await pendings())[tabId];
-  if (!p || p.finished || !p.clicked_at) return;
+  if (!p || p.finished || !p.clicked_at || reading.has(p.id)) return;
+  reading.add(p.id);
+  try {
+    await readAndFinish(tabId, p);
+  } finally {
+    reading.delete(p.id);
+  }
+}
+async function readAndFinish(tabId, p) {
   await new Promise((r) => setTimeout(r, 600));
   try {
     const { observation, shotAfter } = await readAfterNavigation(tabId, p);
@@ -329,7 +344,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, info) => {
     // The page after the click could not be read: unknown, counted as applied, never resent.
     await finish(tabId, { url_before: p.url_before, url_after: "", form_present_after: true, required_empty_after: 0, validation_errors: [], captcha: false, email_code_prompt: false, page_text: "" }, { timedOut: true });
   }
-});
+}
 
 // ------------------------------------------------------------------------------------------------ messages
 async function handle(m, sender) {
@@ -418,6 +433,13 @@ async function handle(m, sender) {
         await setPending(tabId, p);
       }
       await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });
+      // The click may have moved the page before this message landed (CI, a fast thank-you page): its load is over and
+      // onUpdated passed the tab by. A loaded page without the clicking page's mark is the page after the click.
+      const tab = await chrome.tabs.get(tabId).catch(() => null);
+      if (p && tab?.status === "complete") {
+        const [mark] = await chrome.scripting.executeScript({ target: { tabId }, func: () => globalThis.__traineeClicked === true }).catch(() => []);
+        if (mark && mark.result === false) afterNavigation(tabId);
+      }
       return { ok: true };
     }
     case "outcome":

@@ -255,6 +255,7 @@
     const errorsBefore = D.visibleErrors(), before = location.href;
     steps.begun = Date.now();
     sent = true;
+    globalThis.__traineeClicked = true; // tells the background this page is the one that clicked, not the page after it
     button.click();
     send({ type: "clicked", at: Date.now(), errorsBefore, steps });
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.

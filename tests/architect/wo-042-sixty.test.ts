@@ -115,3 +115,14 @@ Deno.test("WO-042/8 Lever's place search gets the city key by key: its lookup st
   const lever = WORLD.slice(WORLD.indexOf("function wireLever"), WORLD.indexOf("function wire(input)"));
   assert(/addEventListener\("input", function \(\) \{ box\.style\.display = "flex"; \}\)/.test(lever), "input only shows the dropdown");
 });
+
+Deno.test("WO-042/9 a page that loads before the click's message is still read; a late 'submitting' never undoes a done card", () => {
+  // CI on #62 (2cb555b7, 5f686b78, 192b27b3): Lever's thank-you page finished loading before "clicked" landed, so the
+  // load event passed the tab by and the card stayed at "submitting".
+  const clicked = BACKGROUND.slice(BACKGROUND.indexOf('case "clicked"'), BACKGROUND.indexOf('case "outcome"'));
+  assert(/tab\?\.status === "complete"/.test(clicked) && /__traineeClicked === true/.test(clicked) && /afterNavigation\(tabId\)/.test(clicked),
+    "the clicked handler reads a page that already loaded without the clicking page's mark");
+  assert(/globalThis\.__traineeClicked = true;[^\n]*\n\s*button\.click\(\);/.test(CONTENT), "the clicking page marks itself just before the click");
+  assert(/patch\.status === "submitting" && prev\?\.status === "done"\) return null/.test(BACKGROUND), "submitting never lands on done");
+  assert(/addListener\(\(tabId, info\) => \{\s*if \(info\.status === "complete"\) afterNavigation\(tabId\);/.test(BACKGROUND), "the load event uses the same reader");
+});

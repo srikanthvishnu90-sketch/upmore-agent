@@ -365,6 +365,26 @@ Merged with this order's driver, chooser and timing marks:
 - **A 12-posting session:** 12/12 confirmed, 0 wrong, tap → Submit clicked 0.19 s p50, Submit → employer's answer
   0.78 s p50.
 
+### The intermittent gate failure (2cb555b7, 5f686b78, 192b27b3): a real race after a navigating submit
+
+- **Named by the gate's new failed-test summary:** "proof: Lever (navigates) and Ashby (in place)". The Lever card
+  stayed at `submitting` (trail `card>approve>patch>submitting`).
+- **Cause (product, not test).**
+  - The content script clicks Submit, then sends `clicked`.
+  - The background reads the page after the click on `tabs.onUpdated` "complete", but only once `clicked_at` is stored.
+  - A fast thank-you page can finish loading before `clicked` lands. The load event then passes the tab by, and nothing
+    finishes the card.
+- **Fix.**
+  - The clicking page marks itself (`__traineeClicked`) just before the click.
+  - The `clicked` handler reads a tab that has already loaded without that mark.
+  - There is one reader per click: two at once take two pictures, and Chrome refuses the second capture within a
+    second, which left a card without its after-picture.
+  - A late `submitting` never undoes a done card.
+- **Verified:**
+  - offline 46/46;
+  - the proof tests 3 of 3 runs in a row;
+  - architect test WO-042/9.
+
 ### Session run: 60 postings, model person (VERIFIED-S: simulated person, reading model ASSUMED; offline)
 
 `node evals/apply/sixty-in-thirty.cjs --n 60 --person model --families lever,ashby --label run1-model-lever-ashby`, on

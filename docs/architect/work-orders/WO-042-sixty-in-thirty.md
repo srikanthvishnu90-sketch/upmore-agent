@@ -420,6 +420,16 @@ What changed:
 - **A no-options notice now counts only from 1 s after the typing.** That keeps about 1.5 s of School's 2.5 s and gives
   remote matches their time. Live run 19 checks both.
 
+### Live run 19 (VERIFIED-LIVE, CI run of 937cea9f, never sent): School fast, Discipline filled
+
+- **Precision 100% (195/195), coverage 96.1%, widgets 37/42.** That matches the best run (13 and 15), with both fixes
+  holding at once.
+- **School takes 1.13–1.15 s on each of the 3 forms**, down from 2.5–2.6 s in runs 14, 15 and 17. Fill to card is 3.23 s
+  (EOS), 4.66 s (SpaceX) and 3.77 s (Anduril), against 4.38–6.08 s in run 14.
+- **Anduril's Discipline is correct**, at 0.53 s.
+- The 8 fields still missed are run 13's. Three are the TEST persona's school, which is not on Greenhouse's list. Five
+  are questions the person answers: Prolific's country list, EOS certifications, and three Lever planner asks.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a

@@ -1,0 +1,249 @@
+{
+ "version": 1,
+ "seed": "trainee-fixed-v1",
+ "frozen_from": "shelf-39489840065.json",
+ "frozen_at": "2026-10-20T20:11:58.467Z",
+ "rule": "Per task, the posting its pick rule accepts that has been open longest (30+ days first, then by age, then id); no posting used twice; the second company differs from the first. two_places: the role phrase with the most such postings, its two longest-open in different cities.",
+ "fills": {
+  "T01": {
+   "company": "Point72",
+   "title": "Cubist Quantitative Researcher",
+   "location": "New York, NY",
+   "company2": "Databricks",
+   "title2": "Software Engineer",
+   "location2": "Bellevue, WA",
+   "posting_ids": [
+    "greenhouse:point72:7318005002",
+    "greenhouse:databricks:7994759002"
+   ],
+   "boards": [
+    "greenhouse:point72",
+    "greenhouse:databricks"
+   ]
+  },
+  "T02": {
+   "company": "Point72",
+   "title": "NLP Researcher",
+   "location": "New York, NY",
+   "company2": "Fivetran",
+   "title2": "AI Systems Architect",
+   "location2": "Oakland, CA",
+   "posting_ids": [
+    "greenhouse:point72:7661997002",
+    "greenhouse:fivetran:7651403003"
+   ],
+   "boards": [
+    "greenhouse:point72",
+    "greenhouse:fivetran"
+   ]
+  },
+  "T03": {
+   "company": "Oscar Health",
+   "title": "Product Designer",
+   "location": "Los Angeles, CA",
+   "company2": "Figma",
+   "title2": "Product Partner Manager",
+   "location2": "San Francisco, CA",
+   "posting_ids": [
+    "greenhouse:oscar:7681404",
+    "greenhouse:figma:5822583004"
+   ],
+   "boards": [
+    "greenhouse:oscar",
+    "greenhouse:figma"
+   ]
+  },
+  "T04": {
+   "company": "Klaviyo",
+   "title": "Security Engineer",
+   "location": "San Francisco, CA",
+   "company2": "Databricks",
+   "title2": "Forward Deployed Engineer",
+   "location2": "Atlanta, GA",
+   "posting_ids": [
+    "greenhouse:klaviyo:7661765003",
+    "greenhouse:databricks:8461239002"
+   ],
+   "boards": [
+    "greenhouse:klaviyo",
+    "greenhouse:databricks"
+   ]
+  },
+  "T05": {
+   "company": "William Blair",
+   "title": "Data Scientist",
+   "location": "Chicago, IL",
+   "company2": "Sweetgreen",
+   "title2": "Assistant Restaurant Manager",
+   "location2": "Raleigh, NC",
+   "posting_ids": [
+    "greenhouse:williamblair:5079386007",
+    "greenhouse:sweetgreen:7831368"
+   ],
+   "boards": [
+    "greenhouse:williamblair",
+    "greenhouse:sweetgreen"
+   ]
+  },
+  "T06": {
+   "company": "William Blair",
+   "title": "Data & AI Engineer",
+   "location": "Chicago, IL",
+   "company2": "Datadog",
+   "title2": "Commercial Account Executive",
+   "location2": "Denver, CO",
+   "posting_ids": [
+    "greenhouse:williamblair:5102983007",
+    "greenhouse:datadog:7858788"
+   ],
+   "boards": [
+    "greenhouse:williamblair",
+    "greenhouse:datadog"
+   ]
+  },
+  "T07": {
+   "company": "Notion",
+   "title": "Enterprise Technical Support Engineer",
+   "location": "San Francisco, CA",
+   "company2": "Plaid",
+   "title2": "Software Engineer",
+   "location2": "New York, NY",
+   "posting_ids": [
+    "ashby:notion:15f37b73-d217-469a-adfc-2e50cc9e2374",
+    "ashby:plaid:51d7f702-e76c-4305-b3d4-50d270ec7d1c"
+   ],
+   "boards": [
+    "ashby:notion",
+    "ashby:plaid"
+   ]
+  },
+  "T08": {
+   "company": "Plaid",
+   "title": "Software Engineer",
+   "location": "San Francisco, CA",
+   "company2": "Mixpanel",
+   "title2": "Software Engineer",
+   "location2": "San Francisco, CA",
+   "posting_ids": [
+    "ashby:plaid:a4a868a6-555a-4119-bbd7-6300f16d9045",
+    "greenhouse:mixpanel:7943560"
+   ],
+   "boards": [
+    "ashby:plaid",
+    "greenhouse:mixpanel"
+   ]
+  },
+  "T09": {
+   "company": "Sweetgreen",
+   "title": "Marketplace Marketing Manager",
+   "location": "Los Angeles, CA",
+   "company2": "Fivetran",
+   "title2": "Software Engineer",
+   "location2": "Oakland, CA",
+   "posting_ids": [
+    "greenhouse:sweetgreen:7980591",
+    "greenhouse:fivetran:7778979003"
+   ],
+   "boards": [
+    "greenhouse:sweetgreen",
+    "greenhouse:fivetran"
+   ]
+  },
+  "T10": {
+   "company": "Notion",
+   "title": "Recruiting Program Manager",
+   "location": "San Francisco, CA",
+   "company2": "Chime",
+   "title2": "Software Engineer",
+   "location2": "San Francisco, CA",
+   "posting_ids": [
+    "ashby:notion:6b9d5c16-450a-42e4-af2a-d492460ca811",
+    "greenhouse:chime:8614188002"
+   ],
+   "boards": [
+    "ashby:notion",
+    "greenhouse:chime"
+   ]
+  },
+  "T11": {
+   "company": "Braze",
+   "title": "Field Architect",
+   "location": "Chicago, IL",
+   "company2": "Databricks",
+   "title2": "Software Engineer",
+   "location2": "Mountain View, CA",
+   "posting_ids": [
+    "greenhouse:braze:8039383",
+    "greenhouse:databricks:8635188002"
+   ],
+   "boards": [
+    "greenhouse:braze",
+    "greenhouse:databricks"
+   ]
+  },
+  "T12": {
+   "company": "Databricks",
+   "title": "Software Engineer",
+   "location": "Mountain View, CA",
+   "company2": "Point72",
+   "title2": "Compliance Officer",
+   "location2": "Stamford, CT",
+   "posting_ids": [
+    "greenhouse:databricks:8635216002",
+    "greenhouse:point72:8627919002"
+   ],
+   "boards": [
+    "greenhouse:databricks",
+    "greenhouse:point72"
+   ]
+  },
+  "T13": {
+   "company": "Notion",
+   "title": "Software Engineer",
+   "location": "San Francisco, CA",
+   "company2": "Fivetran",
+   "title2": "Software Engineer",
+   "location2": "Denver, CO",
+   "posting_ids": [
+    "ashby:notion:e3d8dc06-da05-4e9d-a143-2e9c51fa3d51",
+    "greenhouse:fivetran:7865559003"
+   ],
+   "boards": [
+    "ashby:notion",
+    "greenhouse:fivetran"
+   ]
+  },
+  "T14": {
+   "company": "Fivetran",
+   "title": "R&D Software Engineer",
+   "location": "Oakland, CA",
+   "company2": "Braze",
+   "title2": "Account Executive",
+   "location2": "Austin, TX",
+   "posting_ids": [
+    "greenhouse:fivetran:7810218003",
+    "greenhouse:braze:8078036"
+   ],
+   "boards": [
+    "greenhouse:fivetran",
+    "greenhouse:braze"
+   ]
+  },
+  "T15": {
+   "company": "Ramp",
+   "title": "Brand Designer",
+   "location": "San Francisco, CA",
+   "company2": "Chime",
+   "title2": "Tech Manager",
+   "location2": "San Francisco, CA",
+   "posting_ids": [
+    "ashby:ramp:a8451979-2691-440e-851b-49a3b807729b",
+    "greenhouse:chime:8609159002"
+   ],
+   "boards": [
+    "ashby:ramp",
+    "greenhouse:chime"
+   ]
+  }
+ }
+}

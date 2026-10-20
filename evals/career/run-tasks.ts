@@ -32,7 +32,8 @@ export interface Fills { company: string; title: string; location: string; compa
 export interface TurnMeta {
   error?: string;
   // agent
-  tool_calls?: { name: string; ok: boolean; effect: string | null }[]; pending_approvals?: { tool: string; input: unknown; summary: string }[]; stopped?: string;
+  // WO-080: a failed call carries its reason, cleaned of secrets and personal data by the loop (read when present).
+  tool_calls?: { name: string; ok: boolean; effect: string | null; error?: string }[]; pending_approvals?: { tool: string; input: unknown; summary: string }[]; stopped?: string;
   // router
   intent?: string | null; result_status?: string | null; handler?: string | null;
 }
@@ -449,6 +450,9 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
   const { memoryWantStore } = await import("../../supabase/functions/_shared/career_apply_want.ts");
   const { memoryStandingStore } = await import("../../supabase/functions/_shared/agent/memory.ts");
   const { memoryPersonaStore, memoryResumeStore, edgeRenderer } = await import("../../supabase/functions/_shared/career_tailor.ts");
+  // A turn's own error is recorded with its reason, cleaned the way the loop cleans a tool's (WO-080) when the loop has it.
+  const loopMod: any = await import("../../supabase/functions/_shared/agent/loop.ts");
+  const scrub = (s: string) => typeof loopMod.scrubError === "function" ? loopMod.scrubError(s) : String(s).replace(/\s+/g, " ").trim().slice(0, 300);
   const host = (CareerHost as any).createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   if (o.kind === "agent" && !o.model) throw new Error("the agent brain needs a model");
   const pool = productPool(o.shelf), rpool = routerPool(o.shelf);
@@ -482,7 +486,7 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
           m.intent = r.intent ?? null; m.result_status = r.resultStatus ?? null; m.handler = r.handler ?? null;
           reply = r.reply;
         }
-      } catch (e) { m.error = e instanceof Error ? e.message : String(e); throw e; }
+      } catch (e) { m.error = scrub(e instanceof Error ? e.message : String(e)); throw e; }
       return { reply, stores: { snapshot: host.extractSnapshot(ctx) } };
     };
     for (const text of turns) {
@@ -497,32 +501,65 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
 }
 
 // ------------------------------------------------------------------------------------------------ the summary
-export function summaryLines(results: any[]): string[] {
+// Owner, 2026-10-20: a pass rate is never printed alone; the judge-noise band goes beside it. The band comes from the
+// latest calibration of the very judge that graded the result (same fingerprint): its held-out disagreement rate.
+export function calibrationFor(result: any, calibrations: any[]): any | null {
+  const fp = result?.judge?.fingerprint;
+  if (!fp) return null;
+  return calibrations.filter((c) => c?.kind === "judge-calibration" && !c.code_only && !c.stopped && c.fingerprint === fp)
+    .sort((a, b) => String(b.run_at).localeCompare(String(a.run_at)))[0] ?? null;
+}
+export function bandOf(result: any, calibrations: any[]): { band: string; d: number | null; calibration: string | null } {
+  const cal = calibrationFor(result, calibrations);
+  const d = cal ? (cal.noise?.[`heldout_disagreement_${result.brain}`] ?? cal.noise?.heldout_disagreement_both ?? null) : null;
+  const n = Number(result.total) || 0;
+  const band = d === null ? "± ? (judge noise not measured: no calibration of this judge)" : `±${Math.max(1, Math.ceil(n * d))} (judge noise: held-out disagreement ${(d * 100).toFixed(1)}%)`;
+  return { band, d, calibration: cal?.label ?? null };
+}
+const toolErrors = (it: any) => (it.meta || []).flatMap((m: any, i: number) => (m.tool_calls || []).filter((t: any) => !t.ok).map((t: any) => `turn ${i + 1} ${t.name}${t.error ? `: ${t.error}` : " (no reason recorded)"}`));
+export function summaryLines(results: any[], calibrations: any[] = []): string[] {
   const lines: string[] = [];
   for (const r of results) {
-    lines.push(`${r.brain.toUpperCase()} (${r.label}): ${r.passed}/${r.total} tasks passed · cost $${(r.cost_usd.brain + r.cost_usd.judge).toFixed(3)}${r.stopped ? ` · STOPPED: ${r.stopped}` : ""}`);
+    const { band } = bandOf(r, calibrations);
+    const fills = r.fill_set ? ` · fills ${String(r.fill_set.hash).slice(0, 12)}${r.fill_set.substitutions?.length ? ` (${r.fill_set.substitutions.length} substituted)` : ""}` : " · fills seeded by run id (not comparable)";
+    lines.push(`${r.brain.toUpperCase()} (${r.label}): ${r.passed}/${r.total} tasks passed ${band}${fills} · cost $${(r.cost_usd.brain + r.cost_usd.judge).toFixed(3)}${r.stopped ? ` · STOPPED: ${r.stopped}` : ""}`);
     for (const it of r.items) {
       const failing = Object.entries(it.checks || {}).filter(([, v]: any) => !v.pass).map(([k, v]: any) => `${k}: ${v.detail}`);
-      const why = it.error ? it.error : [...failing, ...(it.judge && !it.judge.pass ? [`judge: ${it.judge.note}`] : [])].join(" ; ");
-      lines.push(`  ${it.id} ${it.pass ? "PASS" : "FAIL"} ${it.goal}${it.pass ? "" : ` — ${why.slice(0, 300)}`}`);
+      const judged = it.judge && !it.judge.pass ? (it.judge.items ? it.judge.items.filter((x: any) => x.ok === false).map((x: any) => `${x.text} [${x.by}]`) : [`judge: ${it.judge.note}`]) : [];
+      const why = it.error ? it.error : [...failing, ...judged].join(" ; ");
+      const errs = toolErrors(it);
+      lines.push(`  ${it.id} ${it.pass ? "PASS" : "FAIL"} ${it.goal}${it.pass ? "" : ` — ${why.slice(0, 300)}`}${errs.length ? ` · tool errors: ${errs.join(" | ").slice(0, 400)}` : ""}`);
     }
   }
   return lines;
 }
+// One line for a commit message: each brain's pass count with its band, and the fill set's hash.
+export function tallyLine(results: any[], calibrations: any[] = []): string {
+  if (!results.length) return "no result";
+  const parts = results.map((r) => { const { d } = bandOf(r, calibrations); return `${r.brain.toUpperCase()} ${r.passed}/${r.total} ${d === null ? "±?" : `±${Math.max(1, Math.ceil((Number(r.total) || 0) * d))}`}`; });
+  const hashes = [...new Set(results.map((r) => r.fill_set ? String(r.fill_set.hash).slice(0, 8) : "seeded"))];
+  const d = bandOf(results[0], calibrations).d;
+  return `${parts.join(", ")} judge-noise${d === null ? " not measured" : ""}; fills ${hashes.join("/")}`;
+}
 
 // ---------------------------------------------------------------------------------------------------- CLI
-if (import.meta.main) {
-  const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
+async function readResults(dir: URL): Promise<any[]> {
+  const all: any[] = [];
+  try { for await (const e of Deno.readDir(dir)) if (e.name.endsWith(".json")) { try { all.push(JSON.parse(await Deno.readTextFile(new URL(e.name, dir)))); } catch { /* not a result */ } } } catch { /* no results yet */ }
+  return all;
+}
+export async function main(args: string[]): Promise<void> {
+  const opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
   const resultsDir = new URL("./results/", import.meta.url);
   const summary = opt("--summary");
   if (summary) {
     const rs: any[] = [];
     for (const b of ["router", "agent"]) { try { rs.push(JSON.parse(await Deno.readTextFile(new URL(`tasks-${b}-${summary}.json`, resultsDir)))); } catch { console.log(`${b}: no result for run ${summary}`); } }
-    for (const l of summaryLines(rs)) console.log(l);
-    const all: any[] = [];
-    for await (const e of Deno.readDir(resultsDir)) if (e.name.endsWith(".json")) { try { all.push(JSON.parse(await Deno.readTextFile(new URL(e.name, resultsDir)))); } catch { /* not a result */ } }
+    const all = await readResults(resultsDir);
+    for (const l of summaryLines(rs, all)) console.log(l);
     const cost = (x: any) => (Number(x.cost_usd?.brain) || 0) + (Number(x.cost_usd?.judge) || 0);
     console.log(`this run $${rs.reduce((s, x) => s + cost(x), 0).toFixed(3)} · all runs on this branch $${all.reduce((s, x) => s + cost(x), 0).toFixed(3)} of $${Deno.env.get("EVAL_BUDGET_USD") || "15"}`);
+    console.log(`TALLY: ${tallyLine(rs, all)}`);
     Deno.exit(0);
   }
   const brainName = opt("--brain") === "agent" ? "agent" : "router";
@@ -531,61 +568,94 @@ if (import.meta.main) {
   const label = opt("--label") || `tasks-${brainName}-${shelfId}`;
   if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
+  const V2 = await import("./judge-v2.ts");
+  const FX = await import("./fixed-fills.ts");
   const shelf: Shelf = JSON.parse(await Deno.readTextFile(new URL(`shelf-${shelfId}.json`, resultsDir)));
   const set = JSON.parse(await Deno.readTextFile(new URL("./tasks-live.json", import.meta.url)));
   const only = opt("--only");
   const tasks: TaskDef[] = set.tasks.filter((t: TaskDef) => !only || only.split(",").includes(t.id));
+  // The fixed task set is the default; --random restores the old fills seeded by the run id (not comparable).
+  let fixed: any = null;
+  if (!args.includes("--random")) { try { fixed = JSON.parse(await Deno.readTextFile(new URL(opt("--fixed") || "./tasks-fixed.json", import.meta.url))); } catch { fixed = null; } }
+  const judgeVersion = opt("--judge") === "v1" ? 1 : 2;
   const meter = newMeter(), judgeMeter = newMeter();
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
+  const votes = judgeVersion === 2 ? Math.max(1, Number(Deno.env.get("EVAL_JUDGE_VOTES") || 3)) : 1;
+  const effort = Deno.env.get("EVAL_JUDGE_REASONING") || null;
+  if (judgeVersion === 2 && effort) judgeCfg.reasoningEffort = effort;
+  const fingerprint = judgeVersion === 2 ? await V2.judgeFingerprint(judgeCfg.model, votes, effort) : "v1";
   const budgetArg = opt("--budget-usd") ?? Deno.env.get("EVAL_BUDGET_USD") ?? null;
   const budget = budgetArg === null ? null : Number(budgetArg);
   if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (brainName === "agent" && !PRICES[brainCfg.model]))) {
     console.log(`NOT RUN: a budget needs a positive number and a priced model (judge ${judgeCfg.model}, brain ${brainCfg.model}); an unpriced call cannot be capped.`);
     Deno.exit(2);
   }
-  const prior: any[] = [];
-  try { for await (const e of Deno.readDir(resultsDir)) if (e.name.endsWith(".json")) prior.push(JSON.parse(await Deno.readTextFile(new URL(e.name, resultsDir)))); } catch { /* no results yet */ }
+  const prior = await readResults(resultsDir);
   const before = spentUsd(prior, label);
   const spent = () => before + (meter.usd_micros + judgeMeter.usd_micros) / 1e6;
   const stop = budgetStop(budget, spent);
-  if (budget !== null) console.log(`budget $${budget.toFixed(2)} · already spent $${before.toFixed(3)} (${prior.length} result files)`);
+  if (budget !== null) console.log(`budget $${budget.toFixed(2)} · already spent $${before.toFixed(3)} (${prior.length} result files) · judge v${judgeVersion}${judgeVersion === 2 ? ` (${votes} votes, reasoning ${effort || "default"}, fingerprint ${fingerprint})` : ""}`);
 
   const brain = await traineeTaskBrain({ kind: brainName, shelf, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
-  const judge = async (prompt: string): Promise<Verdict> => {
-    const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: prompt }], max_tokens: 600 }, { meter: judgeMeter, role: "chat" });
-    return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));
+  const ask = async (system: string, prompt: string, max: number) => {
+    const res = await callModel(judgeCfg, { system, messages: [{ role: "user", content: prompt }], max_tokens: max }, { meter: judgeMeter, role: "chat" });
+    return (res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
   };
-  const pool = productPool(shelf), seed = shelf.seed || shelfId;
-  const items: any[] = [];
+  const judgeV1 = async (prompt: string): Promise<Verdict> => parseJudge(await ask("You are a strict grader. Output JSON only.", prompt, 600));
+  const judgeV2 = async (task: TaskDef, c: Ctx, turns: string[], run: Run) => {
+    const items = V2.rubricItems(task, c, run);
+    const vs: any[] = [];
+    if (V2.needsJudge(items)) {
+      const prompt = V2.judgeV2Prompt(task, c, turns, run, items);
+      const vote = async () => { let last: unknown; for (let t = 0; t < 2; t++) { try { return V2.parseItemJudge(await ask("You are a careful, literal grader. Output JSON only.", prompt, 3500)); } catch (e) { last = e; } } throw last; };
+      const got = await Promise.allSettled(Array.from({ length: votes }, vote));
+      for (const g of got) if (g.status === "fulfilled") vs.push(g.value); else console.log(`  judge vote failed: ${g.reason instanceof Error ? g.reason.message : String(g.reason)}`);
+      if (!vs.length) return { ...V2.combine(items, vs), note: "judge error: no vote came back" };
+    }
+    return V2.combine(items, vs);
+  };
+  const pool = productPool(shelf), seed = fixed ? fixed.seed : (shelf.seed || shelfId);
+  const items: any[] = [], used: Record<string, Fills> = {}, substitutions: { task: string; note: string }[] = [];
   let stopped: string | null = null;
   for (const task of tasks) {
     stopped = stop();
     if (stopped) break;
-    const f = fillTask(task, shelf, pool, seed);
+    let f: Fills | { error: string };
+    if (fixed?.fills?.[task.id]) {
+      try { const r = FX.resolveFixed(task, fixed.fills[task.id], shelf, pool, seed); f = r.fills; if (r.substitution) substitutions.push({ task: task.id, note: r.substitution }); }
+      catch (e) { f = { error: e instanceof Error ? e.message : String(e) }; }
+    } else f = fillTask(task, shelf, pool, seed);
     if ("error" in f) { items.push({ id: task.id, goal: task.goal, pick: task.pick, pass: false, error: `not filled: ${f.error}`, fills: null }); continue; }
-    const turns = task.turns.map((t) => fillText(t, f));
+    used[task.id] = f;
+    const turns = task.turns.map((t) => fillText(t, f as Fills));
     const c = makeCtx(shelf, f);
     const t0 = spent();
     let run: Run;
     try { run = await brain(turns); }
     catch (e) { items.push({ id: task.id, goal: task.goal, pick: task.pick, fills: f, turns, pass: false, error: `brain error: ${e instanceof Error ? e.message : String(e)}` }); continue; }
     const checks = runChecks(brainName, task, c, run);
-    let verdict: Verdict;
-    try { verdict = await judge(taskJudgePrompt(task, c, turns, run)); }
+    let verdict: any;
+    try { verdict = judgeVersion === 2 ? await judgeV2(task, c, turns, run) : await judgeV1(taskJudgePrompt(task, c, turns, run)); }
     catch (e) { verdict = { pass: false, failed: ["judge error"], score: 1, note: `judge error: ${e instanceof Error ? e.message : String(e)}` }; }
     const turnErrors = run.meta.filter((m) => m.error).map((m) => m.error);
     const pass = Object.values(checks).every((x) => x.pass) && verdict.pass && !turnErrors.length;
-    items.push({ id: task.id, goal: task.goal, pick: task.pick, fills: f, turns, replies: run.replies, meta: run.meta, end_state: { tracker: run.state.stores?.trackStore?.rows ?? [], alerts: run.state.alerts, router_watch: run.state.stores?.alertWatchState ?? null },
+    items.push({ id: task.id, goal: task.goal, pick: task.pick, fills: f, turns, replies: run.replies, meta: run.meta,
+      end_state: { tracker: run.state.stores?.trackStore?.rows ?? [], alerts: run.state.alerts, router_watch: run.state.stores?.alertWatchState ?? null, queued: (run.state as any).queued ?? null },
       checks, judge: verdict, ...(turnErrors.length ? { error: `turn error: ${turnErrors.join("; ")}` } : {}), pass, cost_usd: Number((spent() - t0).toFixed(6)) });
-    console.log(`${task.id} ${pass ? "PASS" : "FAIL"} ${task.goal} · ${Object.entries(checks).map(([k, v]) => `${k}:${v.pass ? "ok" : "FAIL"}`).join(" ")} · judge:${verdict.pass ? "ok" : "FAIL"}`);
+    const errs = toolErrors(items[items.length - 1]);
+    console.log(`${task.id} ${pass ? "PASS" : "FAIL"} ${task.goal} · ${Object.entries(checks).map(([k, v]) => `${k}:${v.pass ? "ok" : "FAIL"}`).join(" ")} · judge:${verdict.pass ? "ok" : "FAIL"}${errs.length ? ` · tool errors: ${errs.join(" | ")}` : ""}`);
   }
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
   const passed = items.filter((x) => x.pass).length;
-  const result = {
+  const fillSet = fixed ? { source: `tasks-fixed.json v${fixed.version}`, seed, hash: await FX.fillHash(used), spec_hash: await FX.fillHash(Object.fromEntries(Object.entries(fixed.fills).filter(([k]) => used[k])) as Record<string, Fills>), substitutions }
+    : null;
+  const result: any = {
     label, kind: "tasks-live", set: "tasks-live", brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
-    shelf: { run_id: shelf.run_id, file: `shelf-${shelf.run_id}.json`, seed, fetched_at: shelf.fetched_at, postings: shelf.postings.length, boards_ok: shelf.boards.filter((b) => b.status === "ok").length, boards: shelf.boards.length },
+    shelf: { run_id: shelf.run_id, file: `shelf-${shelf.run_id}.json`, seed: shelf.seed, fetched_at: shelf.fetched_at, postings: shelf.postings.length, boards_ok: shelf.boards.filter((b) => b.status === "ok").length, boards: shelf.boards.length, hash: await FX.shelfHash(shelf) },
+    fill_set: fillSet,
+    judge: { version: judgeVersion, fingerprint, votes, reasoning: effort },
     harness: brainName === "agent"
       ? "agentTurn (trunk career_brain.ts) through handleInbound; postings = the live shelf in memoryPostingsDb, searched as production does (search(searchWords(q), 150), ranked by search_jobs' searchPostings); alerts = memoryAlertStore(). Standing instructions (memoryStandingStore, read back into the prompt each turn) and tailoring (memory persona and resume stores, edgeRenderer) as production wires them. Not wired here: events, mail, interviews, digest, outreach, hired."
       : "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
@@ -593,8 +663,11 @@ if (import.meta.main) {
     budget_usd: budget, spent_before_usd: before,
     total: items.length, passed, pass_rate: items.length ? passed / items.length : 0, planned: tasks.length, stopped, items,
   };
+  const { band, calibration } = bandOf(result, prior);
+  result.noise = { band, calibration };
   await Deno.mkdir(resultsDir, { recursive: true });
   await Deno.writeTextFile(new URL(`${label}.json`, resultsDir), JSON.stringify(result, null, 1));
-  console.log(`${label}: ${passed}/${items.length} tasks passed · brain ${brainName} · judge ${judgeCfg.model} · cost $${(result.cost_usd.brain + result.cost_usd.judge).toFixed(3)}`);
+  console.log(`${label}: ${passed}/${items.length} tasks passed ${band} · fills ${fillSet ? fillSet.hash.slice(0, 12) : "seeded (not comparable)"}${substitutions.length ? ` (${substitutions.length} substituted: ${substitutions.map((s) => `${s.task} ${s.note}`).join("; ")})` : ""} · brain ${brainName} · cost $${(result.cost_usd.brain + result.cost_usd.judge).toFixed(3)}`);
   if (stopped) { console.log(`STOPPED after ${items.length} of ${tasks.length} tasks (${stopped}): not a score.`); Deno.exit(3); }
 }
+if (import.meta.main) await main(Deno.args);

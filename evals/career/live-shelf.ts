@@ -17,6 +17,10 @@ export interface ShelfPosting {
 }
 export interface Shelf {
   run_id: string; seed: string; fetched_at: string; cap: number; per_board: number;
+  // The fixed task set (tasks-fixed.json): its postings are kept whenever their board still lists them, and the rest of
+  // each board's sample is ranked by a hash of the fixed seed and the posting id, so a posting that opens or closes
+  // elsewhere on the board does not reshuffle the sample.
+  selection?: "shuffle" | "hash-rank"; pinned?: number; pins_missing?: string[];
   boards: { provider: string; board: string; company: string; field: string; status: "ok" | "failed"; open: number; kept: number; error?: string }[];
   postings: ShelfPosting[];
 }
@@ -166,7 +170,7 @@ export function normalizeBoard(b: ShelfBoard, json: any): ShelfPosting[] {
 }
 
 // ------------------------------------------------------------------------------------------------ the run
-export async function fetchShelf(o: { runId: string; seed: string; cap?: number; boards?: ShelfBoard[]; fetchFn?: typeof fetch; now?: number }): Promise<Shelf> {
+export async function fetchShelf(o: { runId: string; seed: string; cap?: number; boards?: ShelfBoard[]; fetchFn?: typeof fetch; now?: number; pins?: Set<string> }): Promise<Shelf> {
   const boards = o.boards ?? SHELF_BOARDS, cap = o.cap ?? 600, fetchFn = o.fetchFn ?? fetch;
   const read: { b: ShelfBoard; postings: ShelfPosting[]; error?: string }[] = [];
   let next = 0;
@@ -189,17 +193,25 @@ export async function fetchShelf(o: { runId: string; seed: string; cap?: number;
   const kept = new Map<string, number>();
   for (const r of ok) {
     const sorted = r.postings.slice().sort((a, b) => a.id.localeCompare(b.id));
-    const pick = shuffled(sorted, `${o.seed}:${r.b.provider}:${r.b.board}`).slice(0, perBoard);
+    let pick: ShelfPosting[];
+    if (o.pins) {
+      const pinned = sorted.filter((p) => o.pins!.has(p.id));
+      const rest = sorted.filter((p) => !o.pins!.has(p.id)).map((p) => [hashSeed(`${o.seed}:${p.id}`), p] as const)
+        .sort((x, y) => x[0] - y[0] || x[1].id.localeCompare(y[1].id)).map((x) => x[1]);
+      pick = [...pinned, ...rest].slice(0, Math.max(perBoard, pinned.length));
+    } else pick = shuffled(sorted, `${o.seed}:${r.b.provider}:${r.b.board}`).slice(0, perBoard);
     kept.set(r.b.board, pick.length);
     postings.push(...pick);
   }
-  const final = postings.slice(0, cap);
+  const final = o.pins ? postings : postings.slice(0, cap);
+  const have = new Set(final.map((p) => p.id));
   const keptFinal = new Map<string, number>();
   for (const p of final) keptFinal.set(p.board, (keptFinal.get(p.board) ?? 0) + 1);
   return {
     run_id: o.runId, seed: o.seed, fetched_at: new Date(o.now ?? Date.now()).toISOString(), cap, per_board: perBoard,
     boards: read.map((r) => ({ provider: r.b.provider, board: r.b.board, company: r.b.company, field: r.b.field, status: r.error ? "failed" as const : "ok" as const,
       open: r.postings.length, kept: keptFinal.get(r.b.board) ?? 0, ...(r.error ? { error: r.error } : {}) })),
+    ...(o.pins ? { selection: "hash-rank" as const, pinned: [...o.pins].filter((id) => have.has(id)).length, pins_missing: [...o.pins].filter((id) => !have.has(id)) } : { selection: "shuffle" as const }),
     postings: final,
   };
 }
@@ -207,12 +219,16 @@ export async function fetchShelf(o: { runId: string; seed: string; cap?: number;
 if (import.meta.main) {
   const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
   const runId = opt("--run-id") || Deno.env.get("GITHUB_RUN_ID") || `local-${new Date().toISOString().slice(0, 10)}`;
-  const seed = opt("--seed") || runId;
-  const shelf = await fetchShelf({ runId, seed, cap: Number(opt("--cap") || 600) });
+  // --pin <tasks-fixed.json>: keep the fixed task set's postings and sample the rest by the set's fixed seed.
+  const pinFile = opt("--pin");
+  const fixedSet = pinFile ? JSON.parse(await Deno.readTextFile(pinFile)) : null;
+  const pins = fixedSet ? new Set<string>(Object.values(fixedSet.fills as Record<string, { posting_ids: string[] }>).flatMap((f) => f.posting_ids)) : undefined;
+  const seed = opt("--seed") || fixedSet?.seed || runId;
+  const shelf = await fetchShelf({ runId, seed, cap: Number(opt("--cap") || 600), pins });
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });
   await Deno.writeTextFile(new URL(`./results/shelf-${runId}.json`, import.meta.url), JSON.stringify(shelf, null, 1));
   const okBoards = shelf.boards.filter((b) => b.status === "ok" && b.open > 0);
-  console.log(`shelf ${runId}: ${shelf.postings.length} postings from ${okBoards.length}/${shelf.boards.length} boards (seed ${seed}, ${shelf.per_board} per board) · with pay ${shelf.postings.filter((p) => p.pay).length}`);
+  console.log(`shelf ${runId}: ${shelf.postings.length} postings from ${okBoards.length}/${shelf.boards.length} boards (seed ${seed}, ${shelf.per_board} per board, ${shelf.selection}) · with pay ${shelf.postings.filter((p) => p.pay).length}${pins ? ` · fixed postings kept ${shelf.pinned}/${pins.size}${shelf.pins_missing?.length ? ` (closed: ${shelf.pins_missing.join(", ")})` : ""}` : ""}`);
   for (const b of shelf.boards) console.log(`  ${b.status === "ok" ? "ok    " : "FAILED"} ${b.provider}/${b.board} (${b.company}, ${b.field}): ${b.open} open, ${b.kept} kept${b.error ? ` · ${b.error}` : ""}`);
   if (okBoards.length < 10) { console.log("SHELF FAILED: fewer than 10 boards read"); Deno.exit(1); }
 }

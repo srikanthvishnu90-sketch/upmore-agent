@@ -5,6 +5,9 @@
 # runner counts what is recorded in evals/career/results/ and stops before the task that would cross it.
 # On a push to ci/trainee-tasks (dispatch is not available to the session's integration). The results commit made with
 # GITHUB_TOKEN does not trigger another run.
+# Owner, 2026-10-20: every run asks the same fixed task set (evals/career/tasks-fixed.json: the shelf keeps its postings,
+# and each result records the hash of the fills it used), and every pass rate is printed with the judge-noise band from
+# the judge's calibration (evals/career/judge-calibration.json; held-out runs 7-8). The calibration runs once per judge.
 name: trainee-tasks
 on:
   push:
@@ -28,6 +31,8 @@ jobs:
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
       EVAL_BUDGET_USD: "15"
+      EVAL_JUDGE_VOTES: "3"
+      EVAL_JUDGE_REASONING: low
       RUN: ${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
@@ -36,9 +41,13 @@ jobs:
       - name: The key is present
         run: |
           if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
-      - name: Fetch the live shelf
+      - name: Judge calibration (once per judge; reused when this judge's calibration is on the branch)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: deno run -A evals/career/judge-calibrate.ts --run "$RUN" --if-needed | tee "$RUNNER_TEMP/calibration.txt"
+      - name: Fetch the live shelf (keeps the fixed task set's postings)
         id: shelf
-        run: deno run -A evals/career/live-shelf.ts --run-id "$RUN" | tee "$RUNNER_TEMP/shelf.txt"
+        run: deno run -A evals/career/live-shelf.ts --run-id "$RUN" --pin evals/career/tasks-fixed.json | tee "$RUNNER_TEMP/shelf.txt"
       - name: Router (trunk's CareerHost)
         if: ${{ !cancelled() && steps.shelf.outcome == 'success' }}
         run: deno run -A evals/career/run-tasks.ts --brain router --shelf "$RUN" | tee "$RUNNER_TEMP/router.txt"
@@ -54,7 +63,8 @@ jobs:
           git config user.name "trainee-tasks[ci]"
           git config user.email "trainee-tasks@users.noreply.github.com"
           git add evals/career/results/ || true
-          TALLY=$(grep -E '^(ROUTER|AGENT) ' "$RUNNER_TEMP/summary.txt" 2>/dev/null | awk '{print $1, $3}' | paste -sd ' ' -)
+          # Each brain's pass count with its judge-noise band, and the fill set's hash: never a pass rate alone.
+          TALLY=$(grep -E '^TALLY: ' "$RUNNER_TEMP/summary.txt" 2>/dev/null | head -n1 | sed 's/^TALLY: //')
           git commit -m "WO-065 data: real-world task battery, run $RUN (${TALLY:-no result})" || exit 0
           git pull --rebase origin ci/trainee-tasks || true
           git push origin HEAD:ci/trainee-tasks

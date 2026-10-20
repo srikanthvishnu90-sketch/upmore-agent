@@ -77,6 +77,16 @@ select t.must_fail($$select pg_temp.claim(36,'2026-10-11T13:00:00Z','2026-10-09T
 select t.ok(career_outreach_claim('00000000-0000-4000-8000-000000000332',(select id from career_outreach_drafts where recipient_email='person36@example.test'),repeat(to_hex(36%16),64),'2026-10-11T13:00:00Z','2026-10-11T04:00:00Z')='not_approved','another person cannot claim A''s draft');
 reset role;
 
+-- Hunter's cached answers: keyed by month and a hash, never an address; the service's only.
+set role service_role;
+insert into career_email_checks(key,status,score) values('2026-10:'||repeat('c',64),'accept_all',70);
+select t.must_fail($$insert into career_email_checks(key,status) values('avery@example.test','valid')$$,'career_email_checks_key_check','an address is never a key');
+select t.must_fail($$insert into career_email_checks(key,status) values('2026-10:'||repeat('d',64),'deliverable')$$,'career_email_checks_status_check','only Hunter''s own statuses');
+reset role;
+select t.as_user('00000000-0000-4000-8000-000000000332');set role authenticated;
+select t.must_fail($$select * from career_email_checks$$,'permission denied','the cache is the service''s');
+reset role;
+
 -- An erase (a new account epoch) deletes drafts and settings, keeps the do-not-contact hashes; nobody else's changes.
 set role service_role;
 insert into career_outreach_prefs(user_id,signature) values('00000000-0000-4000-8000-000000000331','Synthetic Name') on conflict (user_id) do update set signature=excluded.signature;

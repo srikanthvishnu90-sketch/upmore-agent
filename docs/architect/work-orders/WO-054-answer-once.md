@@ -123,7 +123,10 @@ Browser (TEST world, 3 captured forms: Veeva, Lyra Health, Crusoe; sponsorship n
 - Bundle: `extension/build.ts --check` fresh.
 - Browser, Workday and schema suites: 80/80, 0 skipped (base 79/79).
 - `deno check scripts/apply.ts`: clean.
-- `node --test tests/career-*.test.cjs`: see the PR (compared with base).
+- `node --test tests/career-*.test.cjs`, run locally:
+  - branch: 1929 tests, 1815 pass, 88 fail, 26 skip;
+  - base (`origin/trunk` 0175e523): 1928 tests, 1814 pass, 88 fail, 26 skip;
+  - the same 88 fail by name on both (this environment). The one extra test is the new browser test, and it passes.
 
 ## What is not done (blunt)
 - **On these samples, with a complete persona, the panel merges nothing.** It asks the same questions earlier, not

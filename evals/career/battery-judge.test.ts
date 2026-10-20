@@ -68,7 +68,7 @@ Deno.test("rubric items: code decides its items, the judge gets the rest with th
   const tasks: Record<string, TaskDef> = Object.fromEntries(JSON.parse(Deno.readTextFileSync(new URL("./tasks-live.json", import.meta.url))).tasks.map((t: TaskDef) => [t.id, t]));
   const r = run(["1. Senior Data Analyst — Klaviyo — Boston, MA\n2. Data Analyst — Chime — San Francisco, CA", "Queued both for your approval; nothing was sent."]);
   const items = rubricItems(tasks.T02, ctx(), r);
-  eq(items.map((i) => i.rule.kind), ["judge", "code", "judge"]);
+  eq(items.map((i) => i.rule.kind), ["veto", "code", "judge"]);
   const prompt = judgeV2Prompt(tasks.T02, ctx(), ["find me Data Analyst roles", "apply to the first two"], r, items);
   assert(/The first two postings of A1's numbered list: 1\) Klaviyo \| Senior Data Analyst/.test(prompt), "the first two are resolved");
   assert(/either A, or B" is met when A or B is met/.test(prompt), "either/or rule");
@@ -127,6 +127,23 @@ Deno.test("reports: a pass rate is printed with its judge-noise band, or says th
   assert(/± \? \(judge noise not measured/.test(summaryLines([result], [])[0]), "no calibration: said so");
   assert(/± \? \(judge noise not measured/.test(summaryLines([{ ...result, judge: { fingerprint: "other" } }], [cal])[0]), "a calibration of another judge is not used");
   eq(tallyLine([result], [cal]), "AGENT 10/15 ±1 judge-noise; fills 01234567");
+});
+
+Deno.test("round 2 checks: a reply that did not understand acts on nothing; 'if none fit'; padding", async () => {
+  const { checkEngages, checkNoneFitSaid, checkNotPadded, carriesRole } = await import("./judge-v2.ts");
+  assert(!checkEngages(["I didn't catch that. Try naming the job, company, or person."]).pass);
+  assert(checkEngages(["Queued both for your approval."]).pass);
+  assert(checkNoneFitSaid(ctx(), ["1. Senior Data Analyst — Klaviyo — https://job-boards.greenhouse.io/klaviyo/jobs/1001001"]).pass, "listed: the condition does not apply");
+  assert(checkNoneFitSaid(ctx(), ["I found none. Want me to widen the search?"]).pass);
+  assert(!checkNoneFitSaid(ctx(), ["Here is what the market looks like."]).pass);
+  assert(carriesRole("Senior Product Manager, Growth", "Product Manager") && !carriesRole("Lead Technical Recruiter", "Product Manager"));
+  assert(carriesRole("Senior Account Executive, Large Provider Groups", "Commercial Account Executive"), "two of three words");
+  const many = (titles: string[]): Shelf => ({ ...SHELF, postings: titles.map((t, i) => post(`30030${i}0`, "Chime", t, "Chicago, IL")) });
+  const listOf = (s: Shelf) => s.postings.map((p, i) => `${i + 1}. ${p.title} — Chime — ${p.url}`).join("\n");
+  const padded = many(["Product Manager", "Software Engineer", "Recruiter", "Underwriter", "Sales Manager", "Analyst"]);
+  assert(!checkNotPadded(makeCtx(padded, { ...fills([padded.postings[0].id, padded.postings[1].id]), title: "Product Manager" }), [listOf(padded)]).pass);
+  const honest = many(["Product Manager", "Senior Product Manager", "Group Product Manager", "Staff Product Manager", "Analyst"]);
+  assert(checkNotPadded(makeCtx(honest, { ...fills([honest.postings[0].id, honest.postings[1].id]), title: "Product Manager" }), [listOf(honest)]).pass);
 });
 
 Deno.test("calibration: the confusion matrix counts each cell", () => {

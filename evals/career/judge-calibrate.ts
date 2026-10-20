@@ -153,4 +153,5 @@ export async function main(args: string[]): Promise<void> {
   console.log(`${label}: fingerprint ${fingerprint} · cost $${out.cost_usd.judge.toFixed(3)}${stopped ? ` · STOPPED: ${stopped}` : ""}`);
   for (const d of out.disagreements) console.log(`  disagree R${d.run_n} ${d.brain} ${d.task}: label ${d.label}${d.sure ? "" : " (unsure)"}, judge ${d.judge} :: ${d.failed.join(" | ").slice(0, 300) || d.label_reason}`);
 }
-if (import.meta.main) await main(Deno.args);
+// Not awaited at the top: judge-v2.ts imports this module, and a top-level await on that import never resolves.
+if (import.meta.main) main(Deno.args).catch((e) => { console.error(e); Deno.exit(1); });

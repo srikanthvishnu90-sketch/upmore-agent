@@ -670,4 +670,5 @@ export async function main(args: string[]): Promise<void> {
   console.log(`${label}: ${passed}/${items.length} tasks passed ${band} · fills ${fillSet ? fillSet.hash.slice(0, 12) : "seeded (not comparable)"}${substitutions.length ? ` (${substitutions.length} substituted: ${substitutions.map((s) => `${s.task} ${s.note}`).join("; ")})` : ""} · brain ${brainName} · cost $${(result.cost_usd.brain + result.cost_usd.judge).toFixed(3)}`);
   if (stopped) { console.log(`STOPPED after ${items.length} of ${tasks.length} tasks (${stopped}): not a score.`); Deno.exit(3); }
 }
-if (import.meta.main) await main(Deno.args);
+// Not awaited at the top: judge-v2.ts imports this module, and a top-level await on that import never resolves.
+if (import.meta.main) main(Deno.args).catch((e) => { console.error(e); Deno.exit(1); });

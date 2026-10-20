@@ -2,7 +2,7 @@
  "version": 1,
  "author": "architect",
  "labeled_on": "2026-10-20",
- "note": "Architect labels for the battery judge's calibration (owner, 2026-10-20). Every judged item of the eight battery runs on ci/trainee-tasks, both brains, was read against its task's must / must_not only, with the run's own shelf file open to check facts (listed postings resolved by the id in their link; pay, requirements and terms checked against the posting's text). 'sure': false marks a reading another careful grader could make the other way; agreement is reported with and without them. 'first_judge' is the verdict the original judge gave. Split: runs 1-6 tune, runs 7-8 held out. All 240 were labeled before any judge rule was written. The rules were then written from the tune split's disagreements and the owner's brief (give the judge the shelf facts; decide mechanical items in code). The held-out transcripts had been read while labeling, so the held-out number is not blind; no rule was changed after a held-out score was seen.",
+ "note": "Architect labels for the battery judge's calibration (owner, 2026-10-20). Every judged item of the eight battery runs on ci/trainee-tasks, both brains, was read against its task's must / must_not only, with the run's own shelf file open to check facts (listed postings resolved by the id in their link; pay, requirements and terms checked against the posting's text). 'sure': false marks a reading another careful grader could make the other way; agreement is reported with and without them. 'first_judge' is the verdict the original judge gave. Split: runs 1-6 tune, runs 7-8 held out. All 240 were labeled before any judge rule was written. The rules were then written from the tune split's disagreements and the owner's brief (give the judge the shelf facts; decide mechanical items in code). The held-out transcripts had been read while labeling, so the held-out number is not blind.",
  "runs": [
   "39460033310",
   "39460746482",
@@ -2653,6 +2653,20 @@
    "sure": true,
    "reason": "'I didn't catch that': no acknowledgement, nothing prepared",
    "first_judge": "fail"
+  }
+ ],
+ "rounds": [
+  {
+   "round": 1,
+   "calibration": "results/judge-calibration-39497098624.json",
+   "judge": "8f6c5a384b1adadc",
+   "measured": "held-out runs 7-8: 53/60 = 88.3% (agent 27/30, router 26/30); tune runs 1-6: 165/180 = 91.7%. The first judge on the same items: held-out 50/60 = 83.3%, tune 145/180 = 80.6%.",
+   "note": "Rules written before any held-out score was seen. This is the clean held-out number."
+  },
+  {
+   "round": 2,
+   "calibration": "the next judge-calibration-<run>.json",
+   "changed": "From the tune split's disagreements only. 12 of round 1's 15 tune disagreements were router replies 'I didn't catch that. Try naming the job' that the judge read as asking the one thing needed: code now fails every act-on-the-request item when the reply says it did not understand. T01's 'if none fit' is decided by code. A T03 list of 5+ postings where fewer than half carry the asked role is padded (code). T14: other postings listed in A1 are not 'details from a different posting' (note). The same kinds of disagreement occurred in the held-out runs (router T02/T15, T14), so round 2's held-out number has seen round 1's held-out errors by category and is not clean; round 1's is."
   }
  ]
 }

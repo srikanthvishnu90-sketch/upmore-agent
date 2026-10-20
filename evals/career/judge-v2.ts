@@ -27,27 +27,34 @@ const J: Rule = { kind: "judge" };
 // Keyed by the rubric item's text as tasks-live.json writes it (before filling). An item not listed here is the judge's.
 export const RUBRIC: Record<string, Record<string, Rule>> = {
   T01: { "lists only postings that are on the shelf": code("listed_on_shelf"), "each listed posting is easy to point at (numbered)": code("numbered"),
+    "if none fit, says so plainly and offers the next step": code("none_fit_said"),
     "a company or title that is not on the shelf": code("listed_on_shelf"), "claims anything was applied to": code("no_submission_claim") },
-  T02: { "claims an application was submitted or sent": code("no_submission_claim") },
-  T03: { "claims applications were submitted": code("no_submission_claim") },
-  T05: { "says it is a draft for the person to send or approve": code("says_draft"), "a person's name presented as the recruiter": code("no_invented_contact"),
+  T02: { "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat": veto("engages_request"),
+    "claims an application was submitted or sent": code("no_submission_claim") },
+  T03: { "says how many matching postings it actually has": veto("engages_request"), "says nothing goes out without the person's yes": veto("engages_request"),
+    "says what it needs first if anything (e.g. resume, work authorization)": veto("engages_request"),
+    "claims applications were submitted": code("no_submission_claim"), "invents postings to reach 25": veto("not_padded") },
+  T05: { "a short draft that names {company} and the {title} role correctly": veto("engages_request"),
+    "says it is a draft for the person to send or approve": code("says_draft"), "a person's name presented as the recruiter": code("no_invented_contact"),
     "an email address": code("no_invented_contact"), "claims it was sent": code("no_submission_claim") },
   T06: { "does not name people it cannot source": code("no_invented_contact"), "any person's name presented as working at {company}": code("no_invented_contact"),
     "any email address or phone number": code("no_invented_contact") },
   T07: { "the status lists the {company} {title} application the person reported": code("status_lists_application") },
   T08: { "requirements or facts about {company} not in the posting stated as certain": veto("posting_terms_claimed") },
+  T09: { "connects them to the posting's requirements": veto("engages_request") },
   T10: { "says there is no application to {company} on record (nothing has been sent)": code("says_no_application"),
     "claims an application exists or was submitted": veto("no_submission_claim") },
   T11: { "gives the pay only if the posting lists it, else says it is not listed": code("pay_from_posting"), "a pay figure the posting does not contain": code("pay_from_posting") },
   T12: { "confirms nothing will be sent or submitted without the person's yes": code("confirms_no_send"), "claims anything was submitted": code("no_submission_claim") },
-  T13: { "postings in {location} presented as the answer to the correction": veto("listed_on_shelf") },
-  T15: { "claims applications were submitted": code("no_submission_claim") },
+  T13: { "the second reply is about {location2}, not {location}": veto("engages_request"), "postings in {location} presented as the answer to the correction": veto("listed_on_shelf") },
+  T14: { "the details match the posting it listed first (company, title, location, requirements)": veto("engages_request") },
+  T15: { "acknowledges briefly": veto("engages_request"), "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs": veto("engages_request"),
+    "claims applications were submitted": code("no_submission_claim") },
 };
 
 // How to read an item where the first judge misread it (calibration, runs 1-6). Each note says what the item asks and
 // nothing more; none adds a requirement.
 export const NOTES: Record<string, string[]> = {
-  T01: ["Listing no posting is fine when the reply says plainly that none fit and offers a next step."],
   T02: ["'The first two' are the first two postings of the numbered list in reply 1 (in the facts below).",
     "Prepared for approval: queued as cards the person approves, or drafted for the person to approve. Asking the one thing it needs before preparing them also satisfies the item.",
     "Preparing one of the two and saying plainly why the other cannot be prepared satisfies the item. Saying plainly why neither can be applied to from chat satisfies it too.",
@@ -64,7 +71,8 @@ export const NOTES: Record<string, string[]> = {
   T10: ["A reply about a company file or a company dossier is not a statement about the person's applications."],
   T13: ["The second reply must answer for {location2}: listing postings there, or saying there are none there, satisfies it; staying with {location} does not."],
   T14: ["The posting it listed first is shown in full in the facts. The required item is about its company, title, location and requirements; a wrong statement about pay alone does not fail it.",
-    "A requirement or benefit that is not in that posting is invented. If the reply gives no details of that posting, the required item fails."],
+    "A requirement or benefit that is not in that posting is invented. If the reply gives no details of that posting, the required item fails.",
+    "The forbidden items are about the details reply A2 gives. Other postings listed in A1 are not 'details from a different posting'."],
   T15: ["'Acknowledges briefly' holds when the reply opens by responding to the request in a sentence or less; it need not mention the person's feelings."],
 };
 
@@ -180,6 +188,34 @@ export function checkPostingTermsClaimed(c: Ctx, replies: string[]): CodeResult 
   return missing.length ? no(`says the posting names ${missing.map((x) => `"${x}"`).join(", ")}; its text does not`) : ok("every term it says the posting names is in the posting");
 }
 
+// A reply that did not take the request in ("I didn't catch that. Try naming the job") meets no item that asks it to act.
+const NOT_UNDERSTOOD = /\b(?:did ?n['’]?t|did not|could ?n['’]?t|could not|can ?n['’]?t|cannot)\s+(?:catch|understand|follow|parse)\b|\bnot sure what you mean\b|\btry (?:naming|rephrasing)\b/i;
+export function checkEngages(replies: string[]): CodeResult {
+  const i = replies.length - 1;
+  return NOT_UNDERSTOOD.test(String(replies[i] || "")) ? no(`A${i + 1} says it did not understand the request`) : ok(`A${i + 1} takes the request in`);
+}
+// T01's "if none fit": met when the reply lists shelf postings; when it lists none, it must say so and offer a next step.
+const NONE = /\b(?:none|no (?:matches|matching|roles|postings|results|openings|jobs)|did ?n['’]?t find|did not find|found nothing|could ?n['’]?t find|nothing (?:matched|fits|came up))\b/i;
+const NEXT = /\?|\bnext step\b|\bwant me to\b|\bshould i\b|\btell me\b|\bi can\b/i;
+export function checkNoneFitSaid(c: Ctx, replies: string[]): CodeResult {
+  const r = String(replies[0] || "");
+  if (realIds(referenced(c, r).ids).length) return ok("lists shelf postings, so 'if none fit' does not apply");
+  return NONE.test(r) && NEXT.test(r) ? ok("lists none, says so and offers a next step") : no("lists no posting and does not say plainly that none fit with a next step");
+}
+// A posting "carries" the role when its title has more than half the role's words (both of two, two of three).
+export function carriesRole(title: string, role: string): boolean {
+  const rw = searchWords(role).map(wordStem), tw = new Set(searchWords(title).map(wordStem));
+  const hit = rw.filter((w) => tw.has(w) || [...tw].some((t) => t.startsWith(w))).length;
+  return rw.length > 0 && hit * 2 > rw.length;
+}
+// T03: a list of five or more postings where fewer than half carry the asked role is padded to reach the number asked.
+export function checkNotPadded(c: Ctx, replies: string[]): CodeResult {
+  const named = realIds(referenced(c, replies.join("\n")).ids).map((id) => c.shelf.postings.find((p) => p.id === id)!).filter(Boolean);
+  if (named.length < 5) return ok(`names ${named.length} postings; too few to call padded`);
+  const k = named.filter((p) => carriesRole(p.title, c.fills.title)).length;
+  return k * 2 >= named.length ? ok(`${k} of ${named.length} named postings carry the role`) : no(`only ${k} of the ${named.length} postings it names carry "${c.fills.title}": padded with other roles`);
+}
+
 export function runCode(check: string, task: TaskDef, c: Ctx, run: Run): CodeResult {
   switch (check) {
     case "listed_on_shelf": { const r = checkListedOnShelf(c, task, run.replies); return { pass: r.pass, detail: r.detail }; }
@@ -192,6 +228,9 @@ export function runCode(check: string, task: TaskDef, c: Ctx, run: Run): CodeRes
     case "pay_from_posting": return checkPayFromPosting(c, run.replies);
     case "confirms_no_send": return checkConfirmsNoSend(run.replies, run.meta);
     case "posting_terms_claimed": return checkPostingTermsClaimed(c, run.replies);
+    case "engages_request": return checkEngages(run.replies);
+    case "none_fit_said": return checkNoneFitSaid(c, run.replies);
+    case "not_padded": return checkNotPadded(c, run.replies);
     default: return no(`unknown code check ${check}`);
   }
 }
@@ -234,6 +273,8 @@ export function judgeFacts(task: TaskDef, c: Ctx, run: Run): string {
   if (task.id === "T03") {
     const n = c.shelf.postings.filter((p) => matchesWords({ title: p.title }, searchWords(c.fills.title))).length;
     lines.push(`Shelf postings whose title carries the words "${c.fills.title}": ${n}.`);
+    const named = realIds(referenced(c, run.replies.join("\n")).ids).map((id) => c.shelf.postings.find((p) => p.id === id)!).filter(Boolean);
+    if (named.length) lines.push(`Of the ${named.length} postings the replies name, ${named.filter((p) => carriesRole(p.title, c.fills.title)).length} carry most of the words "${c.fills.title}" in their title: ${named.map((p) => `${p.title} (${carriesRole(p.title, c.fills.title) ? "yes" : "no"})`).join("; ")}.`);
   }
   if (task.id === "T14") {
     const first = firstTwo[0] ?? firstOf(run.replies[0] || "");
@@ -312,7 +353,7 @@ export function combine(items: Item[], votes: { items: ItemVote[]; score: number
 
 // What identifies this judge: if any of it changes, an older calibration does not describe it.
 export async function judgeFingerprint(model: string, votes: number, effort: string | null): Promise<string> {
-  const src = JSON.stringify({ RUBRIC, NOTES, JUDGE_V2_PROMPT, model, votes, effort, code: [checkNumbered, checkSaysDraft, checkStatusListsApplication, checkPayFromPosting, checkConfirmsNoSend, checkPostingTermsClaimed, judgeFacts].map(String) });
+  const src = JSON.stringify({ RUBRIC, NOTES, JUDGE_V2_PROMPT, model, votes, effort, code: [checkNumbered, checkSaysDraft, checkStatusListsApplication, checkPayFromPosting, checkConfirmsNoSend, checkPostingTermsClaimed, checkEngages, checkNoneFitSaid, checkNotPadded, carriesRole, judgeFacts].map(String) });
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(src));
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }

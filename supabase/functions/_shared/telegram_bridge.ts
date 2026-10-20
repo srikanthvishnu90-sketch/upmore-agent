@@ -248,7 +248,10 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
     } catch (e) {
       console.error("telegram-inbound turn:", e);
       if (e instanceof ChannelRateLimitError) {
-        if (send && !dryRun) await send(parsed.chatId, VOICE.rateLimited);
+        if (send && !dryRun) {
+          try { await send(parsed.chatId, VOICE.rateLimited); }
+          catch { console.warn("telegram-inbound: rate-limit notice could not be delivered."); }
+        }
         // Acknowledge receipt so Telegram does not replay this same message.
         // The person can send a new request after the quota window permits it.
         return json({ ok: false, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });

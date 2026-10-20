@@ -131,17 +131,24 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   }
   let label = pick(opts.map(optionText));
   // A long list that is searched (a school): the menu filtered by what the planner would answer, then chosen again.
-  // Read the filtered list or the page's own "no options" notice, never the list from before the typing (live run 14: a
-  // school not on Greenhouse's list cost 2.5 s on each of 3 forms, waiting for options that could not come).
+  // Read the filtered list or this widget's own "no options" notice, never the list from before the typing (live run 14: a
+  // school not on Greenhouse's list cost 2.5 s on each of 3 forms, waiting for options that could not come). The notice is
+  // read inside this select only (react-select's menu is a sibling of its control): live run 16 read the School menu's
+  // notice, still on the page, as Discipline's, and Discipline was missed.
   if (!label && toggle && opts.length >= 50) {
+    // A list that does not change once 600 ms have passed with no loading notice is final: it is a list that filters in place
+    // or ignores the typing (the offline Greenhouse stand-in waited the full 2.4 s on every long list and timed out).
     const before = opts.map(optionText).join("\n");
+    const own = control?.parentElement;
+    const typedAt = Date.now();
     el.focus();
     setNative(el, String(wanted));
     fire(el, "input");
     opts = await until(() => {
       const now = optionEls();
       if (now.length && now.map(optionText).join("\n") !== before) return now;
-      return doc().querySelector("[class*='menu-notice--no-options']") ? [] : null;
+      if (own?.querySelector("[class*='menu-notice--no-options']")) return [];
+      return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
     }, 2400);
     label = opts?.length ? pick(opts.map(optionText)) : null;
   }

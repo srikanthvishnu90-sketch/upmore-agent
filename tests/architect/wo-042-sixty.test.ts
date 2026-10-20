@@ -178,6 +178,18 @@ Deno.test("WO-042/11 ask once, from the form: only the person's own answer to a 
   const friend = formAnswersToKeep({ jobId: "job-2", company: "Example Co", needs: needs.slice(0, 1), answers: {}, answered: new Set(),
     fields: [{ name: "q1", label: "How did you hear about us?", value: "A friend here told me", source: "you" }] });
   assertEquals(friend.answers, []);
+  // Session run 5: an acknowledgment ticked for one employer and a veteran-status answer were filled again at the next.
+  // An agreement and a self-identification answer never leave their posting.
+  const stays = [
+    { label: "I understand that next steps will be sent via email and I have marked the address", type: "input_checkbox" },
+    { label: "Are you a transitioning service member?", type: "input_text" },
+    { label: "What is your gender?", type: "input_text" },
+    { label: "I acknowledge the privacy notice", type: "input_checkbox" },
+  ];
+  const sensitive = formAnswersToKeep({ jobId: "job-3", company: "Example Co", answers: {}, answered: new Set(),
+    needs: stays.map((x) => ({ ...x, options: [] })),
+    fields: stays.map((x, i) => ({ name: "s" + i, label: x.label, value: "Yes", source: "you" })) });
+  assertEquals(sensitive.answers, [], "agreements and self-identification stay with their posting");
   // Kept only after the page confirmed the send, and a failure to keep never touches the outcome.
   const finish = BACKGROUND.slice(BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") - 400, BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") + 300);
   assert(/observation && p\.form_answers/.test(finish) && /try \{/.test(finish) && /catch/.test(finish), "kept on a confirmed send, best effort");
@@ -190,4 +202,9 @@ Deno.test("WO-042/12 a searched long list (a school) reads the filtered list or 
   assert(!/await sleep\(/.test(widget), "no fixed sleep in the widget driver");
   assert(/menu-notice--no-options/.test(widget), "the page's 'no options' ends the wait");
   assert(/!== before\) return now/.test(widget), "the list from before the typing is never read as the filtered one");
+  // Live run 16: the notice was read page-wide, and the School menu's notice ended Discipline's search: it is read inside
+  // this select only.
+  assert(/const own = control\?\.parentElement/.test(widget) && /own\?\.querySelector\("\[class\*='menu-notice--no-options'\]"\)/.test(widget), "this select's own notice only");
+  // The offline stand-in's lists never filter: an unchanged list with no loading notice is final after 600 ms, not 2.4 s.
+  assert(/Date\.now\(\) - typedAt > 600 && !own\?\.querySelector\("\[class\*='menu-notice--loading'\]"\)/.test(widget), "an unchanged list is final after 600 ms");
 });

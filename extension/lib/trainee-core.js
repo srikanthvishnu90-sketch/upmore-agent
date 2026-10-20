@@ -2413,6 +2413,18 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       answered: o.answered
     });
   }
+  var AGREEMENT = /^\s*(i|we)\s+(hereby\s+)?(understand|acknowledge|agree|confirm|certify|consent|accept|attest|authori[sz]e|have read|declare)\b/i;
+  var staysWithPosting = (row) => {
+    if (row.kind === "consent" || row.kind === "attestation" || AGREEMENT.test(row.label)) return true;
+    const m = mapQuestion({
+      label: row.label,
+      type: row.type,
+      options: row.options.map((l) => ({
+        label: l
+      }))
+    });
+    return m.fact === "eeo" || classifyField(row.label, row.type) === "eeo";
+  };
   var namesEmployer = (answer, company) => {
     const c = String(company ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|co|the)\b/g, "").replace(/\s+/g, " ").trim();
     return c.length >= 3 && ` ${answer.toLowerCase().replace(/[^a-z0-9 ]/g, " ")} `.includes(` ${c} `);
@@ -2425,7 +2437,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (/file/.test(String(row.type))) continue;
       const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
       const answer = norm3(f?.value ?? "");
-      if (!f || !answer || answer === MASKED || answer.length > 2e3) continue;
+      if (!f || !answer || answer === MASKED || answer.length > 2e3 || staysWithPosting(row)) continue;
       if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || row.key === "fact:how_heard" && !howHeardChannel(answer))) continue;
       out.push({
         key: row.key,
@@ -2792,13 +2804,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     let label = pick(opts2.map(optionText));
     if (!label && toggle && opts2.length >= 50) {
       const before = opts2.map(optionText).join("\n");
+      const own = control?.parentElement;
+      const typedAt = Date.now();
       el.focus();
       setNative(el, String(wanted));
       fire(el, "input");
       opts2 = await until(() => {
         const now = optionEls();
         if (now.length && now.map(optionText).join("\n") !== before) return now;
-        return doc().querySelector("[class*='menu-notice--no-options']") ? [] : null;
+        if (own?.querySelector("[class*='menu-notice--no-options']")) return [];
+        return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
       }, 2400);
       label = opts2?.length ? pick(opts2.map(optionText)) : null;
     }

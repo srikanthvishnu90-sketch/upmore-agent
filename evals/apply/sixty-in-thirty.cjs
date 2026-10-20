@@ -24,7 +24,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const ROOT = path.join(__dirname, "../..");
 const { startWorld } = require(path.join(ROOT, "tests/fixtures/extension/world.cjs"));
-const { expectedValue, verdict, norm } = require(path.join(ROOT, "tests/fixtures/extension/grade.cjs"));
+const { expectedValue, verdict, norm, same } = require(path.join(ROOT, "tests/fixtures/extension/grade.cjs"));
 
 const arg = (k, d) => {
   const i = process.argv.indexOf("--" + k);
@@ -137,6 +137,10 @@ async function main() {
   await panel.fill("#links", postings.map((p) => p.url).join("\n"));
   await panel.click("#q-add");
   const seen = new Set(); // question + answer lines this person already read this session
+  // What the person themselves answered on an approved card, by question wording. A question the answer key leaves to the
+  // person, which Trainee fills on a later card with exactly the person's own earlier answer to the same words, is ask
+  // once working ("reused_own"), not a wrong answer; any other value there is still wrong (session run 5).
+  const personGave = new Map();
   const rows = [];
   const wall0 = Date.now();
   await panel.click("#q-start");
@@ -177,7 +181,9 @@ async function main() {
       const graded = fieldsNow.map((fld) => {
         const want = key[fld.name] === undefined ? "unkeyed" : expectedValue(key[fld.name], fld, !!fld.widget, persona, RESUME.name);
         const got = byName[fld.name];
-        return { name: fld.name, label: String(fld.label).slice(0, 100), widget: !!fld.widget, want, got: got ? got.value : null, source: got ? got.source : null, verdict: want === "unkeyed" ? "unkeyed" : verdict(want, got) };
+        const prior = want === null ? personGave.get(norm(fld.label)) : undefined;
+        const v = want === "unkeyed" ? "unkeyed" : prior !== undefined && got && got.source === "trainee" && same(got.value, prior) ? "reused_own" : verdict(want, got);
+        return { name: fld.name, label: String(fld.label).slice(0, 100), widget: !!fld.widget, want, got: got ? got.value : null, source: got ? got.source : null, verdict: v };
       });
       r.verdicts = graded.reduce((a, g) => ((a[g.verdict] = (a[g.verdict] || 0) + 1), a), {});
       r.wrong = graded.filter((g) => g.verdict.startsWith("wrong"));
@@ -190,6 +196,7 @@ async function main() {
       const read_ms = Math.round((words / MODEL.wpm) * 60000 + (answerLines.length - fresh.length + Math.max(0, otherLines)) * MODEL.glance_s * 1000 + MODEL.decide_s * 1000);
       r.card = { lines: (card.lines || []).length, answers: answerLines.length, new_answers: fresh.length, words_new: words, read_ms_model: read_ms, person_ms_model: person_ms };
       answerLines.forEach((l) => seen.add(l));
+      for (const f of card.payload?.fields || []) if (f.source === "you" && f.value) personGave.set(norm(f.label), f.value);
       if (PERSON === "model") await sleep(read_ms + person_ms);
       r.approve_at = Date.now();
       await panel.waitForFunction(() => !document.getElementById("approve").disabled, null, { timeout: 10000 });
@@ -261,7 +268,7 @@ async function main() {
     wrong_answers: wrongSent.map((r) => ({ i: r.i, form: r.form, wrong: r.wrong })),
     field_precision: filled ? sum("correct") / filled : 1,
     field_coverage: should ? sum("correct") / should : 1,
-    fields: { correct: sum("correct"), wrong_value: sum("wrong_value"), wrong_filled: sum("wrong_filled"), missed: sum("missed"), unkeyed: sum("unkeyed") },
+    fields: { correct: sum("correct"), wrong_value: sum("wrong_value"), wrong_filled: sum("wrong_filled"), missed: sum("missed"), unkeyed: sum("unkeyed"), reused_own: sum("reused_own") },
     blocked_cards: rows.filter((r) => r.person_answered).length,
     person_typed: rows.reduce((a, r) => ({ text: a.text + (r.person_answered?.text || 0), pick: a.pick + (r.person_answered?.pick || 0) }), { text: 0, pick: 0 }),
     card: { answers: stats(rows.map((r) => r.card?.answers)), new_answers: stats(rows.map((r) => r.card?.new_answers)), read_ms_model: stats(rows.map((r) => r.card?.read_ms_model)), person_ms_model: stats(rows.map((r) => r.card?.person_ms_model)) },
@@ -273,7 +280,7 @@ async function main() {
   fs.writeFileSync(OUT, JSON.stringify({ report, rows }, null, 1) + "\n");
   const s = (x) => (x == null ? "-" : (x / 1000).toFixed(2) + "s");
   console.log(`WO-042 ${LABEL}: ${sent.length}/${N} confirmed in ${s(wall_ms)} (${s(report.per_application_ms)} each; ${report.projected_in_30_min} in 30 min at this pace) [${report.labels.session}]`);
-  console.log(`  wrong-answer submissions ${report.wrong_answer_submissions}; field precision ${(report.field_precision * 100).toFixed(1)}%, coverage ${(report.field_coverage * 100).toFixed(1)}%; cards needing the person ${report.blocked_cards} (typed ${report.person_typed.text}, picked ${report.person_typed.pick})`);
+  console.log(`  wrong-answer submissions ${report.wrong_answer_submissions}; field precision ${(report.field_precision * 100).toFixed(1)}%, coverage ${(report.field_coverage * 100).toFixed(1)}%; cards needing the person ${report.blocked_cards} (typed ${report.person_typed.text}, picked ${report.person_typed.pick}); the person's own earlier answers filled again ${report.fields.reused_own}`);
   for (const [k, v] of Object.entries(report.steps_ms)) console.log(`  ${k.padEnd(26)} p50 ${s(v.p50)}  p90 ${s(v.p90)}  max ${s(v.max)}`);
   console.log(`  card answers p50 ${report.card.answers.p50}, new p50 ${report.card.new_answers.p50}; modeled reading p50 ${s(report.card.read_ms_model.p50)} p90 ${s(report.card.read_ms_model.p90)}`);
   console.log(`  wrote ${path.relative(ROOT, OUT)}`);

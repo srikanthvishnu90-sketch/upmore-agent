@@ -387,6 +387,19 @@ What changed:
   a fixed sleep (WO-042/12). It saves up to 2.4 s per Greenhouse form whose school is not listed. Live run 15 measures
   it.
 
+### Live runs 15 and 16 (VERIFIED-LIVE, CI runs of 7c784c6c and 185f95a2, never sent)
+
+- **Run 15 (ask once from the form; before the school fix): precision 100% (195/195), coverage 96.1%.**
+  - Veeva's Lever location was filled again, so run 14's miss was Lever's lookup answering nothing once.
+  - Lever's lookup took 0.69–4.65 s across the six forms. That is Lever's service, not the typing.
+- **Run 16 (the school fix): precision 100% (194/194), coverage 95.6%, widgets 36/42.**
+  - The school wait is gone: none of the three forms has School over 300 ms.
+  - Fill to card dropped on EOS (4.38 s to 2.25 s), SpaceX (6.08 s to 3.86 s) and Anduril (5.04 s to 2.44 s).
+  - **One regression: Anduril's Discipline, the field after School, was missed.** The no-options notice was read
+    page-wide, so the School menu's notice, still on the page, ended Discipline's search at once. The notice is now read
+    inside the select's own container only (WO-042/12). Live run 17 checks that Discipline is back and School stays
+    fast.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a
@@ -507,6 +520,36 @@ What is never kept:
 - a how-heard answer that names no channel ("A friend here told me").
 
 A failure to keep never touches the application's outcome.
+
+**Session run 5 (stopped at 29/60): wrong fills found, fixed, re-measured.** From the second round, the grader counted
+wrong fills on 10 of 17 cards. Every one was a value the simulated person had given on an earlier card, filled again at
+the same wording. Read field by field, they are two different things:
+- **Agreements and self-identification, which must not travel. Fixed in the product.**
+  - Veeva's "I understand that next steps will be sent via email…" was ticked again at the next employer. An agreement
+    is given to one employer, and another employer's identical words are agreed to only by the person.
+  - Shield AI's "Are you a transitioning service member?" was answered again. Self-identification (gender, race,
+    ethnicity, veteran or disability status) is voluntary and given to one employer. The planner never fills it from
+    facts, and a kept form answer was a back door around that.
+  - So the following now stay with their posting:
+    - consents and attestations;
+    - any statement that opens "I understand / acknowledge / agree / confirm / certify / consent / accept / attest /
+      authorize / have read / declare";
+    - self-identification answers.
+- **The person's own facts at identical wording, which are ask-once working.**
+  - Welocalize's 7 ("Do you have a PC or laptop?", "languages at native fluency", "years in your current country"…) were
+    filled with exactly the person's own earlier answers.
+  - The answer key was written for a person with no history, so it marked any fill there as wrong. The session grader
+    now records what the person answered on each approved card. A later fill of exactly that answer, at the same
+    wording, counts as `reused_own`. Any other value there is still wrong.
+  - Precision and coverage stay on the original key and do not count `reused_own`.
+- **The 17-posting check after the fix** (VERIFIED offline, instant person): 0 wrong-answer submissions, precision
+  100%, 7 `reused_own`, and the acknowledgment and veteran questions left empty for the person.
+
+Then the full browser suite caught a regression from the school fix. The offline Greenhouse stand-in's long lists do not
+filter, so every searched list waited the full 2.4 s and three accuracy tests timed out. A list that is unchanged after
+600 ms, with no loading notice in its own select, is now final. Before the school fix it was read after a fixed
+400 ms. The accuracy tests pass again (18/18).
+
 
 Found while building it: "Do you have any relatives working here?" mapped to nothing, because the rule matched only
 "relative", not "relatives". A kept "No" would then have gone to every employer asking the same wording, where it can be

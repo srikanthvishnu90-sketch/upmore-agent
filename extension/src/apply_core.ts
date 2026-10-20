@@ -157,7 +157,18 @@ export function questionsForTrainee(o: { jobId: string; company: string; needs: 
 // employer, a wording, or this posting only), so it travels exactly as far as a texted answer would. Never a masked or
 // identity value, never a file, never anything the page or Trainee filled. An answer that would travel beyond this
 // posting is kept only when it can be true elsewhere: never one naming this employer, and a how-heard answer only when it
-// names a channel ("A friend here told me" is about this employer).
+// names a channel ("A friend here told me" is about this employer). Two kinds never leave their posting (session run 5,
+// where an acknowledgment ticked for one employer and a veteran-status answer were filled again at the next):
+//   a statement the person agreed to (a consent, an attestation, "I understand / acknowledge / agree / confirm ..."): an
+//     agreement is given to one employer, and another employer's identical words are agreed to only by the person;
+//   a self-identification answer (gender, race, ethnicity, veteran or disability status): voluntary, and given to one
+//     employer; the planner never fills it from facts either.
+const AGREEMENT = /^\s*(i|we)\s+(hereby\s+)?(understand|acknowledge|agree|confirm|certify|consent|accept|attest|authori[sz]e|have read|declare)\b/i;
+const staysWithPosting = (row: { kind: string; label: string; type: string; options: string[] }) => {
+  if (row.kind === "consent" || row.kind === "attestation" || AGREEMENT.test(row.label)) return true;
+  const m = mapQuestion({ label: row.label, type: row.type, options: row.options.map((l) => ({ label: l })) }) as { fact?: string };
+  return m.fact === "eeo" || classifyField(row.label, row.type) === "eeo";
+};
 const namesEmployer = (answer: string, company: string) => {
   const c = String(company ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|co|the)\b/g, "").replace(/\s+/g, " ").trim();
   return c.length >= 3 && ` ${answer.toLowerCase().replace(/[^a-z0-9 ]/g, " ")} `.includes(` ${c} `);
@@ -173,7 +184,7 @@ export function formAnswersToKeep(o: {
     if (/file/.test(String(row.type))) continue;
     const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm(x.label) === row.label);
     const answer = norm(f?.value ?? "");
-    if (!f || !answer || answer === MASKED || answer.length > 2000) continue;
+    if (!f || !answer || answer === MASKED || answer.length > 2000 || staysWithPosting(row)) continue;
     if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || (row.key === "fact:how_heard" && !howHeardChannel(answer)))) continue;
     out.push({ key: row.key, kind: row.kind, label: row.label, type: row.type, options: row.options, company: row.company, answer });
   }

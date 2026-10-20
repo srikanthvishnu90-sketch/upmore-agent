@@ -141,9 +141,16 @@ jobs:
           branch="discovery/boards-${{ github.run_id }}"
           case "$branch" in discovery/*) ;; *) echo "refusing to push $branch"; exit 1 ;; esac
           git config user.name "board-discovery[bot]"; git config user.email "board-discovery@users.noreply.github.com"
-          git checkout -b "$branch"
-          gzip -9 -c discovery-out/verdicts.jsonl > packages/career-data/discovery-verdicts.jsonl.gz
-          cp discovery-out/summary.json packages/career-data/discovery-summary.json
+          # The branch is trunk plus the four data files, so it carries no workflow change (the workflow token may not
+          # push one) and opens as a data-only PR. Its boards.json lists every provider ingest reads since WO-044.
+          mkdir -p "$RUNNER_TEMP/out"
+          cp packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json "$RUNNER_TEMP/out/"
+          gzip -9 -c discovery-out/verdicts.jsonl > "$RUNNER_TEMP/out/discovery-verdicts.jsonl.gz"
+          cp discovery-out/summary.json "$RUNNER_TEMP/out/discovery-summary.json"
+          git fetch --depth 1 origin refs/heads/trunk
+          git checkout -f -B "$branch" FETCH_HEAD
+          cp "$RUNNER_TEMP/out/board-directory.json" "$RUNNER_TEMP/out/discovery-verdicts.jsonl.gz" "$RUNNER_TEMP/out/discovery-summary.json" packages/career-data/
+          cp "$RUNNER_TEMP/out/boards.json" supabase/functions/career-ingest/boards.json
           git add packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json packages/career-data/discovery-verdicts.jsonl.gz packages/career-data/discovery-summary.json
           git commit -m "board discovery run ${{ github.run_id }}: $(grep -m1 '^VERIFIED' discovery-out/run.log | cut -c1-200)"
           git push origin "HEAD:refs/heads/$branch"

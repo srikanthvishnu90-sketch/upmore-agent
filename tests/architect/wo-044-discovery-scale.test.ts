@@ -8,7 +8,8 @@
 import {
   boardRoot, BlockSelector, ccDataCandidates, classify, commonCrawlCandidates, gibberishFor, HostPacer, keyOf, knownDead, laterCrawlNames,
   locsOf, mergeDirectory, parseClusterLine, parseRobots, planBlocks, probeRequest, PROVIDERS, selectBlocks, sitemapCandidates, slugFromUrl,
-  sourceRank, SUPPORTED, surtToUrl, tally, urlOfCdxLine, USER_AGENT, verifyCandidates, type Candidate, type Net, type VerdictRow,
+  sourceRank, splitResumeKey, SUPPORTED, surtToUrl, tally, urlOfCdxLine, urlsInHtml, USER_AGENT, verifyCandidates, waybackCandidates, waybackRootPattern,
+  hnCandidates, workdaySiteCandidates, workdaySitesInRobots, type Candidate, type Net, type VerdictRow,
 } from "../../scripts/career/board_discovery.ts";
 import { INGEST_PROVIDERS } from "../../supabase/functions/_shared/career_ingest.ts";
 import { FIX } from "./wo-044-fixtures.ts";
@@ -290,4 +291,60 @@ Deno.test("WO-044/S13 the merge phase: shards' verdicts become one summary with 
   assert(/^PARTIAL /m.test(text), "a partial shard is named");
   const summary = JSON.parse(await Deno.readTextFile(`${out}/summary.json`));
   eq([summary.verified_boards, summary.unprobed_at_deadline, summary.verified_by_provider], [2, 1, { lever: 1, workday: 1 }]);
+});
+
+Deno.test("WO-044/S14 the Wayback Machine: robots first, a board-page filter, paged by the server's resumption key, round-robin", async () => {
+  const pages: Record<string, string[]> = {
+    "jobs.lever.co/": ["http://jobs.lever.co:80/acme\nhttps://jobs.lever.co/Beta?lever-source=x\n\nKEY1", "https://jobs.lever.co/gamma/\n"],
+    "teamtailor.com": ["https://delta.teamtailor.com/\nhttps://www.teamtailor.com/en\n"],
+  };
+  const { net, calls } = fakeNet((url) => {
+    const u = new URL(url);
+    if (u.pathname === "/robots.txt") return gone();
+    const q = u.searchParams.get("url")!, key = u.searchParams.get("resumeKey");
+    return new Response(pages[q][key ? 1 : 0]);
+  });
+  const r = await waybackCandidates({ net, queries: [{ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" }, { provider: "teamtailor", url: "teamtailor.com", matchType: "domain" }], gapMs: 2000 });
+  eq(r.candidates.map((c) => `${c.provider}:${c.slug}`).sort(), ["lever:Beta", "lever:acme", "lever:gamma", "teamtailor:delta"]);
+  eq(calls[0].url, "https://web.archive.org/robots.txt");
+  const cdx = calls.slice(1).map((c) => new URL(c.url));
+  eq(cdx.map((u) => [u.searchParams.get("url"), u.searchParams.get("resumeKey")]), [["jobs.lever.co/", null], ["teamtailor.com", null], ["jobs.lever.co/", "KEY1"]], "page 1 of every query before page 2 of any");
+  for (const u of cdx) {
+    eq([u.searchParams.get("collapse"), u.searchParams.get("showResumeKey"), u.searchParams.get("fl")], ["urlkey", "true", "original"]);
+    assert(/^original:/.test(u.searchParams.get("filter")!), "a board-page filter");
+  }
+  for (let i = 2; i < calls.length; i++) assert(calls[i].at - calls[i - 1].at >= 2000, "one request per 2 s");
+  const lever = new RegExp(`^${waybackRootPattern({ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" })}$`);
+  assert(lever.test("https://jobs.lever.co/acme") && lever.test("http://jobs.lever.co:80/acme/?x=1") && !lever.test("https://jobs.lever.co/acme/123-uuid"), "one path segment");
+  const wd = new RegExp(`^${waybackRootPattern({ provider: "workday", url: "myworkdayjobs.com", matchType: "domain" })}$`);
+  assert(wd.test("https://acme.wd5.myworkdayjobs.com/en-US/External") && !wd.test("https://acme.wd5.myworkdayjobs.com/External/job/x"));
+  eq(splitResumeKey("a\nb\n\nKEY\n"), { lines: ["a", "b"], resumeKey: "KEY" });
+  eq(splitResumeKey("a\nb\n"), { lines: ["a", "b"], resumeKey: null });
+  const disallowed = fakeNet((url) => (isRobots(url) ? new Response("User-agent: *\nDisallow: /cdx/\n") : new Response("x")));
+  const b = await waybackCandidates({ net: disallowed.net, queries: [{ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" }] });
+  eq([b.blocked, disallowed.calls.length], [true, 1], "a disallowing robots.txt stops it after one request");
+});
+
+Deno.test("WO-044/S15 Hacker News search: comment links become candidates, paged back in time, robots first", async () => {
+  const hit = (t: number, html: string) => ({ created_at_i: t, comment_text: html, objectID: String(t) });
+  const { net, calls } = fakeNet((url) => {
+    const u = new URL(url);
+    if (u.pathname === "/robots.txt") return gone();
+    const before = Number(/created_at_i<(\d+)/.exec(u.searchParams.get("numericFilters")!)![1]);
+    if (before > 2000) return json({ hits: [hit(2000, `Apply: <a href="https:&#x2F;&#x2F;jobs.lever.co&#x2F;acme">here</a>`), ...Array.from({ length: 999 }, (_, i) => hit(3000 + i, "no link"))] });
+    return json({ hits: [hit(1500, "see https://boards.greenhouse.io/beta/jobs/1, or https://acme.wd1.myworkdayjobs.com/en-US/External.")] });
+  });
+  const r = await hnCandidates({ net, queries: ["jobs.lever.co"], now: 10_000_000 });
+  eq(r.candidates.map((c) => `${c.provider}:${c.slug}`).sort(), ["greenhouse:beta", "lever:acme", "workday:acme.wd1/External"]);
+  eq(calls.filter((c) => !isRobots(c.url)).length, 2, "a full page leads to the next one back in time; a short page ends it");
+  eq(urlsInHtml("x https:&#x2F;&#x2F;apply.workable.com&#x2F;acme&#x2F;, y"), ["https://apply.workable.com/acme/"]);
+});
+
+Deno.test("WO-044/S16 Workday: a tenant's robots.txt names its other career sites; only allowed sites count", async () => {
+  eq(workdaySitesInRobots("Sitemap: https://x/siteMap.xml\nUser-agent: *\nAllow: /NVIDIAExternalCareerSite/\nAllow: /en-US/\nAllow: /wday/\nDisallow: /NVIDIAResearch/\nAllow: /Interns\n"), ["NVIDIAExternalCareerSite", "Interns"]);
+  const { net, calls } = fakeNet((url) => (url === "https://nvidia.wd5.myworkdayjobs.com/robots.txt" ? new Response("User-agent: *\nAllow: /NVIDIAExternalCareerSite/\nAllow: /Interns/\n") : gone()));
+  const r = await workdaySiteCandidates([{ tenant: "nvidia", wd: "wd5" }, { tenant: "nvidia", wd: "wd5" }, { tenant: "acme", wd: "wd1" }], { net });
+  eq(r.candidates.map((c) => c.slug).sort(), ["nvidia.wd5/Interns", "nvidia.wd5/NVIDIAExternalCareerSite"]);
+  eq(calls.length, 2, "one robots read per tenant host");
+  assert(calls.every((c) => c.ua === USER_AGENT && c.method === "GET"));
 });

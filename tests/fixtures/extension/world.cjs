@@ -99,6 +99,8 @@ function placeScript(form) {
     var hidden = lever ? field.querySelector("input[name=selectedLocation]") : null;
     var picked = null, timer = null;
     var list = lever ? field.querySelector(".dropdown-results") : null;
+    // As on the live page while another window has focus (live run 8): Lever's list is laid out but visibility: hidden.
+    if (lever && list && list.parentElement) list.parentElement.style.visibility = "hidden";
     if (!lever) {
       list = document.createElement("ul");
       list.setAttribute("role", "listbox");

@@ -2729,7 +2729,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const field = el.closest(".application-field, [class*='fieldEntry'], [class*='inputContainer']") || el.parentElement;
     const hidden = field?.querySelector("input[type='hidden'][name='selectedLocation']") ?? null;
     const listed = () => {
-      const lever = Array.from(field?.querySelectorAll(".dropdown-results > *") ?? []).filter(visible);
+      const lever = Array.from(field?.querySelectorAll(".dropdown-results > *") ?? []).filter((x) => x.getClientRects().length > 0);
       if (lever.length) return lever;
       const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
       const box = id ? doc().getElementById(id) : null;

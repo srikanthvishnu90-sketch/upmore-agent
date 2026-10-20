@@ -261,6 +261,19 @@ What changed:
   - Every place lookup is recorded with its status and time (`place_lookups`), so a missing list is told apart: no
     request, a slow answer, or a refusal.
 
+### Live run 8 (VERIFIED-LIVE, CI run of 46610102, never sent)
+
+- **Precision 100% (187/187), coverage 92.1% (187/203).** Ashby is at 100% (51/51); Greenhouse widgets 35/42.
+- **Lever's location: still 0/6, and the lookup log shows why it is not the network.**
+  - `searchLocations?text=Chicago` answered 200 in about 100 ms (max 737 ms) on every form, right when the extension
+    typed.
+  - The Cloudflare beacon now passes; it was not the cause.
+  - The places came, but the driver never counted them: it also required `visibility` not hidden, and the probe did not.
+    Lever keeps its list hidden until its own page has focus, and in the bench the panel window has it.
+- **Fix:** Lever's results inside the field count when laid out, and the chooser still names the one place it clicks.
+  The TEST stand-in now keeps Lever's list at `visibility: hidden` as the live page does. Offline: Lever's location is
+  filled, 46/46.
+
 ### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
 
 WO-031's fix round brings:

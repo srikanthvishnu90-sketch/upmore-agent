@@ -121,7 +121,7 @@ const CITY_COUNTRY: [RegExp, string][] = [
   [/\blondon\b|\bmanchester\b|\bbristol\b|\bedinburgh\b|\bglasgow\b|\bbelfast\b|\bnottingham\b|\bbournemouth\b|\bwinnersh\b|\bchiswick\b|\bcamden\b/i, "United Kingdom"],
   [/\btoronto\b|\bvancouver, bc\b|\bmontr[eé]al\b|\bedmonton\b|\bcalgary\b|\bottawa\b|\bmississauga\b|\bwaterloo, on\b/i, "Canada"],
   [/\bberlin\b|\bmunich\b|\bmünchen\b|\bhamburg\b|\bfrankfurt\b/i, "Germany"], [/\bamsterdam\b|\brotterdam\b/i, "Netherlands"], [/\bparis\b(?!, (tx|texas))/i, "France"],
-  [/\bmadrid\b|\bbarcelona\b|\bvalencia\b/i, "Spain"], [/\blisbon\b|\bporto\b/i, "Portugal"], [/\bdublin\b(?!, (ca|oh|california|ohio))/i, "Ireland"],
+  [/\bmadrid\b|\bbarcelona\b|\bvalencia\b/i, "Spain"], [/\blisbon\b|\bporto\b/i, "Portugal"], // (Dublin alone may be Dublin, CA or OH: only with its country, WO-074 review)
   [/\btel aviv\b/i, "Israel"], [/\bbangalore\b|\bbengaluru\b|\bhyderabad\b|\bpune\b|\bmumbai\b|\bdelhi\b|\bnoida\b|\bgurgaon\b|\bgurugram\b|\bchennai\b/i, "India"],
   [/\btokyo\b|\bosaka\b/i, "Japan"], [/\bseoul\b|\bbusan\b/i, "South Korea"], [/\bsydney\b|\bmelbourne\b(?!, (fl|florida))|\bcanberra\b/i, "Australia"],
   [/\bdubai\b|\babu dhabi\b/i, "United Arab Emirates"], [/\briyadh\b/i, "Saudi Arabia"], [/\bs[ãa]o paulo\b/i, "Brazil"], [/\bmexico city\b/i, "Mexico"],
@@ -290,6 +290,7 @@ const CHANNEL_OPTION: Record<Exclude<Channel, "company_site">, RegExp> = {
   glassdoor: /^glassdoor( jobs?| job search)?$/,
   search_engine: /^(search engine|web search|internet search|online search|google( search)?)\b(?!.*\bjobs?\b)/,
 };
+const BOARDISH = /\b(job ?boards?|job (search )?sites?|online job|indeed|glassdoor|zip ?recruiter|monster|careerbuilder|built ?in|otta|wellfound|angel ?list|dice|handshake|simply ?hired|google jobs|efinancialcareers|welcome to the jungle|jobteaser|the muse|wayup|fairygodboss|linked ?in|third[- ]party (career|job))\b/;
 function channelOptions(ch: Channel, q: Question, company: string): Opt[] {
   const o = options(q);
   if (ch === "company_site") {
@@ -329,13 +330,16 @@ export function standingAnswer(q: Question, saved: Record<string, { value: unkno
   const out = (value: string | null) => (value === null ? null : { value, factId: `standing:${cls}:${row.factId}`.slice(0, 200), cls });
   if (cls === "how_heard") {
     const s = st as HowHeardStatement;
-    if (!options(q).length) return out(CHANNEL_NAME[s.channels[0]]);
-    for (const ch of s.channels) {
-      const hit = channelOptions(ch, q, ctx.company);
-      if (hit.length === 1) return out(hit[0].value);
-      if (hit.length > 1) return null; // two options could be it: the person picks
-    }
-    return null;
+    // Tuned on samples A-D (WO-074 review): a statement that names two ways ("the careers website or a job board") settles
+    // a form only when the form offers exactly one of them; a job board counts as offered when any board is on the list
+    // (Indeed, Glassdoor, "Job Board"...), and a generic "Job Board" beside a named board could be either: asked.
+    if (!options(q).length) return s.channels.length === 1 ? out(CHANNEL_NAME[s.channels[0]]) : null;
+    const boards = options(q).filter((o) => BOARDISH.test(leaf(o.label)));
+    const offered = s.channels.filter((ch) => (ch === "job_board" ? boards.length > 0 : channelOptions(ch, q, ctx.company).length > 0));
+    if (offered.length !== 1) return null;
+    const hit = channelOptions(offered[0], q, ctx.company);
+    if (offered[0] === "job_board" && s.channels.length > 1 && boards.length !== 1) return null;
+    return hit.length === 1 ? out(hit[0].value) : null;
   }
   if (cls === "relatives_at_employer") return out(yesNoOnto(q, "no"));
   if (cls === "work_rights") {

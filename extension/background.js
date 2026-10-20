@@ -501,7 +501,9 @@ async function saveAnswerOnce(picks) {
     }
   }
   await put(S, "answered_before", [...new Set([...(await get(S, "answered_before", [])), ...saved])]);
-  await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused });
+  // WO-074: a standing answer saved shows again, in this panel, the questions it covered and does not settle.
+  const reopen = (r.reopen || []).filter((x) => saved.includes(x.key)).flatMap((x) => x.keys);
+  await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused, reopen: [...new Set([...(st.reopen || []), ...reopen])] });
   return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
 }
 

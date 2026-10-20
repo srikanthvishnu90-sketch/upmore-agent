@@ -7,7 +7,7 @@
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
 import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, placesNamed, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import {
-  HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, STANDING_CLASSES, STANDING_INPUTS, STANDING_PROMPT, STANDING_TITLE, standingApplies, type StandingClass, standingKey,
+  HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, STANDING_CLASSES, STANDING_INPUTS, STANDING_PROMPT, STANDING_TITLE, standingAnswer, standingApplies, type StandingClass, standingKey,
 } from "../../supabase/functions/_shared/standing_answers.ts";
 export { canonicalCountry, HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, standingSummaries } from "../../supabase/functions/_shared/standing_answers.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
@@ -183,6 +183,7 @@ export interface PanelQuestion {
   key: string; kind: string; label: string; type: string; options: string[]; similar: number; postings: AskedAt[]; perPosting: boolean; selected: null;
   // WO-074: a standing answer's class: the panel draws its short form (`inputs` taps) in place of the questions it stands for.
   standing?: StandingClass; inputs?: number; choices?: { label: string; value: string }[]; covers?: string[];
+  cover?: { key: string; jobId: string; company: string; location?: string; label: string; type: string; options: string[] }[]; home?: string;
 }
 export type LeftReason = "identity" | "personal" | "essay" | "file" | "agreement";
 function leftForCard(n: OpenQuestion): LeftReason | null {
@@ -200,8 +201,9 @@ function leftForCard(n: OpenQuestion): LeftReason | null {
 // could settle (standing_answers.ts standingApplies: its class by rules, this posting's country or place known, a yes/no
 // shape). It `covers` the entries every one of whose postings asks a question of its class; while it is offered, the panel
 // shows it in their place, and if the person skips it they are shown again. It is offered only when the person has not
-// given that statement yet and only when it costs fewer taps than the entries it covers (a 2-input statement for 2 or more
-// entries). A covered question the statement then does not settle at its posting is asked on that card, as before.
+// given that statement yet and only when it costs fewer taps than the entries it covers (more entries than its inputs: a
+// 1-pick statement for 2 or more, a 2-input one for 3 or more). A covered question the statement then does not settle at
+// its posting is shown again in the panel once the statement is saved (standingUnsettled), to be answered there.
 const standingOf = (n: { label: string; type: string; options: string[] }, p: PreparedPosting, answers: Record<string, unknown>) =>
   standingApplies({ label: n.label, type: n.type, options: (n.options || []).map((l) => ({ label: l })) },
     { company: p.company, location: p.location, named: placesNamed(n.label, p.company), answers: answers as Record<string, { value: unknown }> });
@@ -209,6 +211,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
   const by = new Map<string, Omit<PanelQuestion, "label" | "type" | "options" | "similar" | "selected">>();
   const left: { jobId: string; label: string; why: LeftReason }[] = [];
   const cls = new Map<string, (StandingClass | null)[]>(); // key -> the standing class of each posting's question under it
+  const where = new Map(o.postings.map((p) => [p.jobId, p.location]));
   for (const p of o.postings) {
     const keep: OpenQuestion[] = [];
     for (const n of p.needs) {
@@ -242,14 +245,29 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
   for (const c of STANDING_CLASSES) {
     if (o.answered.has(standingKey(c))) continue;
     const covered = questions.filter((q) => (cls.get(q.key) ?? []).every((x) => x === c));
-    if (covered.length < STANDING_INPUTS[c]) continue;
+    if (covered.length <= STANDING_INPUTS[c]) continue;
     // A one-pick class carries its choices, each the whole statement it stands for; the others are typed (panel.js).
     const choices = c === "how_heard" ? HOW_HEARD_CHOICES.map((x) => ({ label: x.label, value: JSON.stringify({ channels: x.channels }) }))
       : c === "relatives_at_employer" ? [{ label: RELATIVES_NONE, value: JSON.stringify({ none: true }) }] : undefined;
     standing.push({ key: standingKey(c), kind: "standing", label: STANDING_PROMPT[c], type: "standing", options: [], similar: 0, selected: null, perPosting: false,
-      postings: covered.flatMap((q) => q.postings), covers: covered.map((q) => q.key), standing: c, inputs: STANDING_INPUTS[c], ...(choices ? { choices } : {}) });
+      postings: covered.flatMap((q) => q.postings), covers: covered.map((q) => q.key), standing: c, inputs: STANDING_INPUTS[c], ...(choices ? { choices } : {}),
+      cover: covered.flatMap((q) => q.postings.map((a) => ({ key: q.key, jobId: a.jobId, company: a.company, location: where.get(a.jobId), label: a.label, type: a.type, options: a.options }))),
+      home: String((o.answers.country as { value?: unknown } | undefined)?.value ?? "") });
   }
   return { questions, left, standing };
+}
+// WO-074: the entries a standing answer just given does not settle at one of their postings (by the same derivation the
+// planner runs), so the panel shows them again at once and the person answers them there, not later on a card.
+export function standingUnsettled(item: PanelQuestion, answer: string): string[] {
+  if (!item.standing || !item.cover) return [];
+  const saved = { [item.key]: { value: answer, factId: "panel" } };
+  const out = new Set<string>();
+  for (const c of item.cover) {
+    const q = { label: c.label, type: c.type, options: c.options.map((l) => ({ label: l, value: l })) };
+    const ctx = { company: c.company, location: c.location, named: placesNamed(c.label, c.company), answers: (item.home ? { country: { value: item.home } } : {}) as Record<string, { value: unknown }> };
+    if (!standingAnswer(q, saved, ctx)) out.add(c.key);
+  }
+  return [...out];
 }
 // The person's picks as the rows the store already takes: per posting, the questions (career_apply_questions_put_own, so
 // the row names that posting) and the answers (career_apply_questions_answer_from_form_own, under the same key the text
@@ -291,7 +309,14 @@ export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: st
     g.answers.push({ key: q.key, kind: q.kind, label: at.label, type: at.type, options: at.options, company: at.company, answer });
     groups.set(at.jobId, g);
   }
-  return { groups: [...groups.values()], refused };
+  // WO-074: each standing answer kept, and the entries it covers that it does not settle (shown again in the panel).
+  const reopen: { key: string; keys: string[] }[] = [];
+  for (const p of o.picks) {
+    const q = o.questions.find((x) => x.key === p.key);
+    const answer = String(p.answer ?? "").replace(/\s+/g, " ").trim();
+    if (q?.standing && answer && !refused.some((r) => r.key === q.key)) reopen.push({ key: q.key, keys: standingUnsettled(q, answer) });
+  }
+  return { groups: [...groups.values()], refused, reopen };
 }
 // The fields on a card Trainee filled from an answer the person gave in the panel before the session (its stored row).
 export const beforeSession = (fields: SnapField[], factIds: string[]) =>

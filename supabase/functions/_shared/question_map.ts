@@ -363,7 +363,7 @@ const SA_OFFICE = /\bon-?site\b|\bin-?office\b|\bin the office\b|\bin office\b|\
 const SA_OFFICE_ASK = /\b(are|will|would|can|could|do|does|is)\b[^?]*\byou\b|\bcomfortable\b|\bopen to\b|\bwilling\b|\bable\b|\bavailable\b|\bcommit\b|\bwork for you\b/;
 // Words in the asking sentence that make it another question: where the person lives, moving, commuting, an interview, a
 // visit, remote work, a choice among places, a schedule or hours, a condition, an acknowledgement.
-const SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b/;
+const SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b|excit|enthusias|passion|\blove\b|immediate|right away|\basap\b|\bsoon\b/; // feelings: tuned on A-D; when: found on E-H (WO-074 review)
 // Anywhere in the label: moving, commuting, travel, an interview, an internship or probation period, a customer's site,
 // remote days, a site that is not an office.
 const SA_OFFICE_NOT = /relocat|commut|interview|travel|occasional|\bintern|probation|first \d+ days|customer|client|\bwfh\b|work from home|remote (day|work|flexib)|\bstudio\b|\bcampus\b|\bwarehouse\b|\bplant\b|\bfield\b/;

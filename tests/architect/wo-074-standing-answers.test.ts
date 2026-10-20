@@ -54,11 +54,11 @@ const fromStanding = (x: { factId: string | null }, cls: string) => assert(Strin
 // ---------------------------------------------------------------------------------------------------- how they heard
 Deno.test("WO-074/how 1 applies on the class's wordings across postings, onto each form's own options", () => {
   const cases: [string, string[], string][] = [
-    ["How did you hear about us?", ["Indeed", "Job Board", "Employee Referral", "Other"], "Job Board"],
-    ["How'd you hear about us?", ["Detroit Lions Website", "Employee Referral", "Job Board", "LinkedIn"], "Detroit Lions Website"],
-    ["Where did you first hear about this job?", ["Award Annoucement", "LinkedIn - Job Posting", "Acme Careers Site", "Other"], "Acme Careers Site"],
+    ["How did you hear about us?", ["Job Board", "Employee Referral", "Other"], "Job Board"],
+    ["How'd you hear about us?", ["Detroit Lions Website", "Employee Referral", "University"], "Detroit Lions Website"],
+    ["Where did you first hear about this job?", ["Award Annoucement", "Employee Presentation", "Acme Careers Site", "Other"], "Acme Careers Site"],
     ["How did you learn about this opportunity?", ["Referred by current employee", "Job Board (Handshake, Indeed, ZipRecruiter etc.)", "Career Fair", "Other"], "Job Board (Handshake, Indeed, ZipRecruiter etc.)"],
-    ["How did you hear about this position?", ["Acme Careers", "Job board", "Friend"], "Acme Careers"],
+    ["How did you hear about this position?", ["Acme Careers", "Friend", "Other"], "Acme Careers"],
   ];
   for (const [label, o, want] of cases) {
     // The person's usual how-heard fact ("Company website") fits none of these lists; the standing answer does.
@@ -129,7 +129,7 @@ Deno.test("WO-074/rights 1 a country outside the confirmed list: not authorized 
     fromStanding(x, "work_rights");
   }
   // Options that say yes or no in sentences.
-  const y = one("Will you now or in the future require employment sponsorship?", { location: "Dublin", options: opts("Yes, I will require sponsorship", "No, I will not require sponsorship") });
+  const y = one("Will you now or in the future require employment sponsorship?", { location: "Dublin, Ireland", options: opts("Yes, I will require sponsorship", "No, I will not require sponsorship") });
   eq(y.value, "Yes, I will require sponsorship");
 });
 
@@ -193,6 +193,27 @@ Deno.test("WO-074/office 2 more days than stated, a place not listed, no place k
   ];
   for (const [label, location] of cases) eq(one(label, { location }).value, null, `${label} @ ${location}`);
   eq(one("Are you open to working 3 days onsite in one of our central offices?", { location: "San Francisco", options: opts("NYC", "SF", "Remote only") }).value, null, "not a yes/no list");
+});
+
+// ---------------------------------------------------------------------------------------------------- the review's findings
+Deno.test("WO-074/review what the independent review marked wrong is asked now", () => {
+  // A statement naming two ways (careers site or job board) on a form offering both, or a typed box: either could be it.
+  for (const o of [["Detroit Lions Website", "Employee Referral", "Job Board", "LinkedIn"], ["Acme Career Site", "Indeed", "Glassdoor", "Other"],
+    ["Acme career page (acme.com)", "Third party career site (LinkedIn, Indeed, etc.)", "Web search"]]) {
+    eq(one("How did you hear about this job?", { options: opts(...o), company: /Lions/.test(o[0]) ? "Detroit Lions" : "Acme" }).value, null, o.join(" / "));
+  }
+  eq(one("Where did you see this job posting?", { type: "input_text", options: [] }).value === "Company careers website", false, "a typed box takes one way only");
+  // The person who named one way: that way, when the form offers it once.
+  const site = row("how_heard", { channels: ["company_site"] });
+  eq(one("How did you hear about this job?", { options: opts("Acme Career Site", "Indeed", "Glassdoor", "Other"), saved: { ...ALL, ...site } }).value, "Acme Career Site");
+  // "Dublin" alone may be Dublin, California or Ohio.
+  eq(one("Will you now or in the future require visa sponsorship?", { location: "Dublin" }).value, null);
+  eq(one("Will you now or in the future require visa sponsorship?", { location: "Dublin, Ireland" }).value, "Yes");
+  // A feeling, or a start time, is not the statement's.
+  const sf = row("office", { places: ["San Francisco, CA"], maxDays: 5 });
+  for (const label of ["Are you excited to work in-office five days a week?", "Are you willing and excited for a 5 day in person office culture?",
+    "Are you able to work out of our San Francisco office immediately?"]) eq(one(label, { location: "San Francisco", saved: { ...ALL, ...sf } }).value, null, label);
+  eq(one("Can you work full-time from our San Francisco office?", { location: "San Francisco", saved: { ...ALL, ...sf } }).value, "Yes");
 });
 
 // ---------------------------------------------------------------------------------------------------- precedence
@@ -261,6 +282,10 @@ Deno.test("WO-074/panel each class is offered once, inside the answer-once panel
   eq(saved.refused, []);
   eq(saved.groups[0].answers[0].key, "standing:work_rights");
   eq(saved.groups[0].answers[0].answer, ok);
+  eq(saved.reopen, [{ key: "standing:work_rights", keys: [] }], "it settles every entry it covered");
+  // A statement that does not settle them (not every country) shows them again at once, in the panel.
+  const partial = JSON.stringify({ countries: ["United States"], complete: false, sponsorshipElsewhere: "yes" });
+  eq(answerOnceRows({ questions: all, picks: [{ key: "standing:work_rights", answer: partial }] }).reopen[0].keys.slice().sort(), st.covers!.slice().sort());
   const refused = answerOnceRows({ questions: all, picks: [{ key: "standing:work_rights", answer: JSON.stringify({ countries: [] }) }] });
   eq(refused.groups, []);
   eq(refused.refused.length, 1);

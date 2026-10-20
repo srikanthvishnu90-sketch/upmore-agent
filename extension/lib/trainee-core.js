@@ -1609,9 +1609,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var SA_AUTH = /\b(authori[sz]ed|eligible|entitled|permitted|allowed)\b.{0,30}\b(work|employment)\b|\bright to work\b|\bwork authori[sz]ation\b|\bpermiso de trabajo\b/;
   var SA_SPONSOR = /\b(require|need|requiring)\b.{0,80}\b(sponsor\w*|visa|work permit|work authori[sz]ation|immigration)\b|\bsponsor\w*\b.{0,40}\b(require|need)/;
   var SA_RIGHTS_NOT = /\bwhat\b|\bwhich (type|kind|visa|status|countr\w*|one|of)\b|\btype\b|\bkind of\b|\bdescribe|\bexplain|\bdetails?\b|\bspecify|\bplease (provide|list|indicate|confirm your|note|select)\b|\bif (yes|so|no|not|you|applicable)\b|\bunder 18\b|\bminor\b|\bpermanent\w*\b|\btemporary\b|\bexpir|\btransfer|\bgreen card\b|\bcitizen|\bnationality\b|\bresiden|\bcpt\b|\bopt\b|\bstem\b|\brelocation\b|\bminimum\b|\bat least\b|\bboth\b|\band\/or\b|\bor would\b|\blive and work\b|\bcontract\w*\b/;
+  var SA_RIGHTS_NOT_2 = /\bexperience\b|\bchecks?\b|\bfamiliar\b|\bknowledge\b|\bprocess(es)?\b|\bwant\b|\bprefer/;
   var SA_OFFICE = /\bon-?site\b|\bin-?office\b|\bin the office\b|\bin office\b|\bin[- ]person\b|\bhybrid\b|\boffice\b|\bheadquarters\b|\bhq\b/;
   var SA_OFFICE_ASK = /\b(are|will|would|can|could|do|does|is)\b[^?]*\byou\b|\bcomfortable\b|\bopen to\b|\bwilling\b|\bable\b|\bavailable\b|\bcommit\b|\bwork for you\b/;
-  var SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b/;
+  var SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b|excit|enthusias|passion|\blove\b|immediate|right away|\basap\b|\bsoon\b/;
   var SA_OFFICE_NOT = /relocat|commut|interview|travel|occasional|\bintern|probation|first \d+ days|customer|client|\bwfh\b|work from home|remote (day|work|flexib)|\bstudio\b|\bcampus\b|\bwarehouse\b|\bplant\b|\bfield\b/;
   var yesNoish = (q) => {
     const o = (q.options || []).map((x) => String(x.label).trim());
@@ -1630,10 +1631,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       cls: "relatives_at_employer",
       why: "relatives: relatives or close relationships employed here"
     };
-    if ((SA_AUTH.test(asked) || SA_SPONSOR.test(asked)) && !SA_RIGHTS_NOT.test(t)) return {
-      cls: "work_rights",
-      why: "work_rights: authorized to work, or sponsorship needed, in one place"
-    };
+    if ((SA_AUTH.test(asked) || SA_SPONSOR.test(asked)) && /\byou\b|\btienes\b|\bvous\b/.test(asked) && !SA_RIGHTS_NOT.test(t) && !SA_RIGHTS_NOT_2.test(t)) {
+      return {
+        cls: "work_rights",
+        why: "work_rights: authorized to work, or sponsorship needed, in one place"
+      };
+    }
     const question = /\?/.test(q.label) || !!q.options?.length && yesNoish(q);
     if (SA_OFFICE.test(t) && SA_OFFICE_ASK.test(asked) && question && !SA_OFFICE_NOT_ASKED.test(asked) && !SA_OFFICE_NOT.test(t)) {
       return {
@@ -2888,10 +2891,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       "Portugal"
     ],
     [
-      /\bdublin\b(?!, (ca|oh|california|ohio))/i,
-      "Ireland"
-    ],
-    [
       /\btel aviv\b/i,
       "Israel"
     ],
@@ -3201,6 +3200,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     glassdoor: /^glassdoor( jobs?| job search)?$/,
     search_engine: /^(search engine|web search|internet search|online search|google( search)?)\b(?!.*\bjobs?\b)/
   };
+  var BOARDISH = /\b(job ?boards?|job (search )?sites?|online job|indeed|glassdoor|zip ?recruiter|monster|careerbuilder|built ?in|otta|wellfound|angel ?list|dice|handshake|simply ?hired|google jobs|efinancialcareers|welcome to the jungle|jobteaser|the muse|wayup|fairygodboss|linked ?in|third[- ]party (career|job))\b/;
   function channelOptions(ch, q, company) {
     const o = options(q);
     if (ch === "company_site") {
@@ -3239,13 +3239,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     if (cls === "how_heard") {
       const s = st;
-      if (!options(q).length) return out(CHANNEL_NAME[s.channels[0]]);
-      for (const ch of s.channels) {
-        const hit = channelOptions(ch, q, ctx.company);
-        if (hit.length === 1) return out(hit[0].value);
-        if (hit.length > 1) return null;
-      }
-      return null;
+      if (!options(q).length) return s.channels.length === 1 ? out(CHANNEL_NAME[s.channels[0]]) : null;
+      const boards = options(q).filter((o2) => BOARDISH.test(leaf(o2.label)));
+      const offered = s.channels.filter((ch) => ch === "job_board" ? boards.length > 0 : channelOptions(ch, q, ctx.company).length > 0);
+      if (offered.length !== 1) return null;
+      const hit = channelOptions(offered[0], q, ctx.company);
+      if (offered[0] === "job_board" && s.channels.length > 1 && boards.length !== 1) return null;
+      return hit.length === 1 ? out(hit[0].value) : null;
     }
     if (cls === "relatives_at_employer") return out(yesNoOnto(q, "no"));
     if (cls === "work_rights") {
@@ -4543,6 +4543,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
     standingSummaries: () => standingSummaries,
+    standingUnsettled: () => standingUnsettled,
     tenantOf: () => tenantOf,
     workdayDraftLine: () => workdayDraftLine,
     workdayEmployer: () => workdayEmployer,
@@ -4838,6 +4839,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const by = /* @__PURE__ */ new Map();
     const left = [];
     const cls = /* @__PURE__ */ new Map();
+    const where = new Map(o.postings.map((p) => [
+      p.jobId,
+      p.location
+    ]));
     for (const p of o.postings) {
       const keep = [];
       for (const n of p.needs) {
@@ -4914,7 +4919,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const c of STANDING_CLASSES) {
       if (o.answered.has(standingKey(c))) continue;
       const covered = questions.filter((q) => (cls.get(q.key) ?? []).every((x) => x === c));
-      if (covered.length < STANDING_INPUTS[c]) continue;
+      if (covered.length <= STANDING_INPUTS[c]) continue;
       const choices = c === "how_heard" ? HOW_HEARD_CHOICES.map((x) => ({
         label: x.label,
         value: JSON.stringify({
@@ -4943,7 +4948,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         inputs: STANDING_INPUTS[c],
         ...choices ? {
           choices
-        } : {}
+        } : {},
+        cover: covered.flatMap((q) => q.postings.map((a) => ({
+          key: q.key,
+          jobId: a.jobId,
+          company: a.company,
+          location: where.get(a.jobId),
+          label: a.label,
+          type: a.type,
+          options: a.options
+        }))),
+        home: String(o.answers.country?.value ?? "")
       });
     }
     return {
@@ -4951,6 +4966,40 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       left,
       standing
     };
+  }
+  function standingUnsettled(item, answer) {
+    if (!item.standing || !item.cover) return [];
+    const saved = {
+      [item.key]: {
+        value: answer,
+        factId: "panel"
+      }
+    };
+    const out = /* @__PURE__ */ new Set();
+    for (const c of item.cover) {
+      const q = {
+        label: c.label,
+        type: c.type,
+        options: c.options.map((l) => ({
+          label: l,
+          value: l
+        }))
+      };
+      const ctx = {
+        company: c.company,
+        location: c.location,
+        named: placesNamed(c.label, c.company),
+        answers: item.home ? {
+          country: {
+            value: item.home
+          }
+        } : {}
+      };
+      if (!standingAnswer(q, saved, ctx)) out.add(c.key);
+    }
+    return [
+      ...out
+    ];
   }
   function answerOnceRows(o) {
     const groups = /* @__PURE__ */ new Map();
@@ -5026,11 +5075,21 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       });
       groups.set(at.jobId, g);
     }
+    const reopen = [];
+    for (const p of o.picks) {
+      const q = o.questions.find((x) => x.key === p.key);
+      const answer = String(p.answer ?? "").replace(/\s+/g, " ").trim();
+      if (q?.standing && answer && !refused.some((r) => r.key === q.key)) reopen.push({
+        key: q.key,
+        keys: standingUnsettled(q, answer)
+      });
+    }
     return {
       groups: [
         ...groups.values()
       ],
-      refused
+      refused,
+      reopen
     };
   }
   var beforeSession = (fields, factIds) => fields.filter((f) => f.source === "trainee" && !!f.factId && factIds.includes(f.factId)).map((f) => f.name);

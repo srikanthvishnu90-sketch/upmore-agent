@@ -169,7 +169,8 @@ function renderAnswerOnce(ao) {
   // WO-074: a standing answer on offer stands in for the entries it covers (they are not shown while it is, saved or not);
   // skipped, they are shown again as they were.
   const standing = ao?.status === "ready" ? (ao.standing || []).filter((q) => !ao.skipped.includes(q.key)) : [];
-  const covered = new Set(standing.flatMap((q) => q.covers || []));
+  // Once given, the questions it does not settle at their posting come back here (reopen), to be answered now.
+  const covered = new Set(standing.flatMap((q) => q.covers || []).filter((k) => !(ao.reopen || []).includes(k)));
   const live = ao?.status === "ready" ? [...standing, ...ao.questions.filter((q) => !covered.has(q.key))].filter((q) => !ao.skipped.includes(q.key) && !ao.saved.includes(q.key)) : [];
   // The person's own unsaved choices stay as they are across renders.
   for (const el of [...ol.children]) if (!live.some((q) => q.key === el.dataset.key)) el.remove();

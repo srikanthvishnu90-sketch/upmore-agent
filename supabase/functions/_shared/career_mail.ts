@@ -928,6 +928,20 @@ export function decidedAs(m: MailMeta, kind: Exclude<MailKind, "other">, why: st
   return { kind, company, role: roleOf(subject, snippet), domain: s.domain, evidence: evidenceLine(kind, why, subject, s.domain), source: "model" };
 }
 
+// WO-051: what a model's second opinion may never override, read by the same code the rules use (it changes nothing the
+// rules decide): a calendar or scheduling tool's notice, a forwarded message, and a rejection's words: the rules read a
+// rejection, or any rejection family fired (the decisive ones, and the softer regret, closer, decision and future cues).
+export function mailGuards(m: MailMeta): { calendar: boolean; forwarded: boolean; decidedAgainst: boolean; rejectionWords: boolean } {
+  const s = parseFrom(m.from), f = mailFeatures(m);
+  const decidedAgainst = classifyMail(m).kind === "rejection" || (!!f && DECIDED_AGAINST.some((k) => f.has(k)));
+  return {
+    calendar: SYSTEM_SENDER.test(`${s.name} ${s.local}`) || endsWithDomain(s.domain, [...CALENDAR_DOMAINS, ...SCHEDULERS]),
+    forwarded: FORWARDED.test(String(m.subject ?? "")),
+    decidedAgainst,
+    rejectionWords: decidedAgainst || (!!f && [...f.keys()].some((k) => k.startsWith("rj:") || k === "rule:rejection")),
+  };
+}
+
 // WO-034: the phrase that makes a text an interview invitation, read with the same rules as mail (a step already done is
 // not an invitation; a rejection, an offer, a scam or a newsletter is not one either), for an invite pasted into chat
 // where there is no sender to read. null: it does not read as an invite.

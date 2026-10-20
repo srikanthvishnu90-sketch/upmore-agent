@@ -60,3 +60,23 @@ Deno.test("WO-052/4 a form that names its office elsewhere: the person's yes to 
   eq(plan([office]), ["office"], "no office named anywhere: the person's own yes");
   eq(plan([{ name: "where", label: "Are you currently located in Chicago, IL?", options: ["Yes", "No"] }, office]).includes("office"), true, "their own city");
 });
+
+Deno.test("WO-052/5 a dropdown whose options load on open is answered on its own options later, never judged as a typed box", () => {
+  // Live run (CI, 2026-10-20): Greenhouse's react-select questions reach the planner with no options; the typed-box shape
+  // rules left 13 of them empty ("U.S. WORK AUTHORIZATION*", "...certification up to date? *").
+  const plan = (label: string) => planBatch({ userId: "TEST", answers: PERSONA, saved: {}, log: [], now: Date.UTC(2026, 9, 19),
+    postings: [{ job_id: "TEST-1", company: "Anduril", title: "", fields: [{ name: "q", label, required: true, type: "text", options: [], widget: "react-select" }] }] }).ready[0]?.fields[0]?.value ?? "ASKED";
+  eq(plan("U.S. WORK AUTHORIZATION*"), "Yes");
+  eq(plan("Are you lawfully authorized to work in the country where this job is located?*"), "Yes");
+  eq(plan("If hired, can you show proof you are at least 18 years old? *"), "Yes");
+  // "Up to date" is not a date: planned (the option itself is chosen when the menu opens).
+  eq(plan("Do you currently have your Personal Training certification up to date? *") !== "ASKED", true);
+});
+
+Deno.test("WO-052/6 the four fills sample C's independent review judged wrong (scored once; fixed after, never re-scored on C)", () => {
+  eq(fill("Current job title & company", []), "ASKED", "two things asked; the title alone is half an answer");
+  eq(fill("Are you under 18?", ["Yes", "No"]), "No", "the opposite of the person's over 18");
+  eq(fill("Are you comfortable with Noida hybrid mode?", [], { type: "checkbox" }), "ASKED", "an office in another city");
+  eq(fill("I certify that the answers given herein are true and complete to the best of my knowledge. I hereby understand and acknowledge that any employment relationship with this organization is of an “at will” nature.", ["Yes", "No"]), "ASKED", "at-will terms are more than certifying the answers");
+  eq(fill("Are any of your immediate family members practicing health care professionals that may use or purchase Heartflow products?", ["Yes", "No"], { company: "HeartFlow" }), "ASKED", "relatives at the company are not relatives' occupations");
+});

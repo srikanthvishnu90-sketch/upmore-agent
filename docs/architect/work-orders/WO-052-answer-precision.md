@@ -60,6 +60,24 @@ three misses).
 **The 85% answer-bank target is further away than it looked: 78.5% with zero judged wrong.** Every number above is on a
 complete synthetic persona; a real person's rate is NOT_RUN.
 
+## Sample C, sealed, scored once (2026-10-20)
+100 more real postings, captured by CI (`question-capture-c.yml`, seed 3, no employer from A or B; 99 with required
+questions), never read while building. Scored once on the WO-052 head (63f5c270):
+- **Coverage: 607 of 771 required questions filled (78.7%)**, 32/99 postings ready, median 1 left. A 78.9%, B 78.5%:
+  the rules carry to new employers.
+- **Precision, by two reviewers who read only the persona and the fills (215 distinct, 607 fills): 4 wrong (0.7%), 8
+  not settled (1.3%), 595 judged right (98.0%).** Not zero. The wrong ones: "Current job title & company" given the
+  title alone; a certification that also accepts at-will employment; "Are you under 18?" answered as the person's
+  over-18 "Yes"; "Comfortable with Noida hybrid mode?" answered from the yes to the office. Not settled: two in-office
+  questions with no place named (the posting's own location is not passed to the planner yet), a UK employer's salary
+  box without a currency, a work-authorization pair for "the location you are applying for" at a London company, a
+  design portfolio given the person's website, an "I also agree that..." statement cut off mid-sentence, and family
+  members' occupations.
+- Fixed after scoring (WO-052/6), each by a general rule; C is spent and is not re-scored: the next measure is a new
+  sample D.
+- Still open, honestly: the posting's location (to settle in-office and "location you are applying for" questions),
+  and the currency of a non-US employer's salary box.
+
 ## What is next
 - A sealed sample C (100 new postings, no employer from A or B, captured by CI), scored once: coverage and an
   independent review of its fills. A and B are now tuned on.

@@ -15,7 +15,7 @@ import { cardFor, type Prepared } from "./career_apply_cards.ts";
 import { type Classified, classifyMail, draftOffer, foldEvents, type MailIn, planUpdates, type StatusEvent, type TrackedApp } from "./career_mail.ts";
 import type { ReadResult } from "./career_mail_gmail.ts";
 import type { MailPerson, MailStore } from "./career_mail_store.ts";
-import { MAIL_MODEL_MAX_CALLS, MAIL_MODEL_MAX_RUN_CALLS, type MailModelWiring, secondPass } from "./career_mail_model.ts";
+import { MAIL_MODEL_DAILY_CAP, MAIL_MODEL_MAX_CALLS, MAIL_MODEL_MAX_RUN_CALLS, type MailModelWiring, secondPass, toAsk } from "./career_mail_model.ts";
 import { newMeter } from "./model_gateway.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 import { type AskStore, type ConfirmStore, planConfirmations } from "./career_apply_confirm.ts";
@@ -25,7 +25,7 @@ import { extractInvite, type InterviewRow, interviewDrafts, interviewRow, invite
 import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; below_threshold?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -141,7 +141,7 @@ export async function runCards(o: {
 // was read and moves the cursor only that far. One person's failure does not stop the others; the run then records it.
 export const MAIL_PEOPLE_PER_RUN = 200, MAIL_OVERLAP_MS = 10 * 60000, MAIL_FIRST_LOOKBACK_MS = 3 * 86400000;
 // model (WO-040): the second pass, "off" unless CAREER_MAIL_MODEL=on; model_calls asked, model_decided read with confidence.
-export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; briefs: number; brief_ms_max: number | null; confirmations: number; asks: number; model?: "off" | "on" | "NOT_WIRED"; model_ask?: string; model_calls?: number; model_decided?: number }
+export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; briefs: number; brief_ms_max: number | null; confirmations: number; asks: number; model?: "off" | "on" | "NOT_WIRED"; model_ask?: string; model_calls?: number; model_decided?: number; model_capped?: number }
 function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
   const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
   let at = now;
@@ -181,7 +181,7 @@ export async function runMail(o: {
   const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0, briefs: 0, brief_ms_max: null, confirmations: 0, asks: 0 };
   const second = o.model?.status === "on" ? o.model.deps : null;
   let reserved = 0; // model calls promised to people still running, so parallel people never pass the run's cap
-  if (o.model) Object.assign(stats, { model: o.model.status, model_calls: 0, model_decided: 0 }, o.model.status === "NOT_WIRED" ? { model_ask: o.model.ask } : {});
+  if (o.model) Object.assign(stats, { model: o.model.status, model_calls: 0, model_decided: 0, model_capped: 0 }, o.model.status === "NOT_WIRED" ? { model_ask: o.model.ask } : {});
   const failed: string[] = [];
   const one = async (p: MailPerson) => {
     const since = p.read_through ? Date.parse(p.read_through) - MAIL_OVERLAP_MS : o.now - MAIL_FIRST_LOOKBACK_MS;
@@ -195,15 +195,24 @@ export async function runMail(o: {
     // sees only mail newer than the last read, and the run as a whole asks at most MAIL_MODEL_MAX_RUN_CALLS times.
     const decided = new Map<string, Classified>(r.mails.map((m) => [m.hash, classifyMail(m)]));
     const budget = Math.max(0, Math.min(MAIL_MODEL_MAX_CALLS, MAIL_MODEL_MAX_RUN_CALLS - (stats.model_calls ?? 0) - reserved));
-    if (second && budget > 0) {
-      reserved += budget;
-      const meter = newMeter();
-      const sp = await secondPass(r.mails, apps, (payload) => second.call(payload, meter), { rules: decided, since: p.read_through ? Date.parse(p.read_through) : null, maxCalls: budget })
-        .finally(() => { reserved -= budget; });
-      for (const [h, c] of sp.decided) decided.set(h, c);
-      stats.model_calls! += sp.asked;
-      stats.model_decided! += sp.decided.size;
-      if (meter.calls) await second.cost(p.user_id, meter).catch((e) => console.error("mail second pass cost:", e instanceof Error ? e.message : e));
+    // WO-051: only the mail the rules are unsure of is asked about, and the person's calls today are claimed in the database
+    // first (MAIL_MODEL_DAILY_CAP); a store that cannot count grants none.
+    const lastRead = p.read_through ? Date.parse(p.read_through) : null;
+    const want = second && budget > 0 ? Math.min(budget, toAsk(r.mails, apps, { rules: decided, since: lastRead }).filter((x) => !x.why).length) : 0;
+    if (second && want > 0) {
+      reserved += want;
+      try {
+        const granted = o.store.claimModelCalls ? await o.store.claimModelCalls(p.user_id, want, MAIL_MODEL_DAILY_CAP, o.now).catch(() => 0) : 0;
+        stats.model_capped! += want - Math.min(want, granted);
+        if (granted > 0) {
+          const meter = newMeter();
+          const sp = await secondPass(r.mails, apps, (payload) => second.call(payload, meter), { rules: decided, since: lastRead, maxCalls: Math.min(want, granted) });
+          for (const [h, c] of sp.decided) decided.set(h, c);
+          stats.model_calls! += sp.asked;
+          stats.model_decided! += sp.decided.size;
+          if (meter.calls) await second.cost(p.user_id, meter).catch((e) => console.error("mail second pass cost:", e instanceof Error ? e.message : e));
+        }
+      } finally { reserved -= want; }
     }
     const plan = planUpdates(r.mails, apps, o.now, decided);
     const fresh = await o.store.record(p.user_id, plan.events);

@@ -203,6 +203,11 @@ export function yesNoFromFact(fact: string, value: string, question: string): "y
   const q = low(question), v = low(value);
   if (fact === "languages") return languageNo(question, value);
   if (fact === "location") return locationNo(question, value);
+  // WO-052 (sample C): "Are you under 18?" asks the opposite of the person's "over 18".
+  if (fact === "over_18" && /\bunder (the age of )?18\b|\byounger than 18\b|\ba minor\b/.test(q)) {
+    const yn = yesNoOf(v);
+    return yn === "yes" ? "no" : yn === "no" ? "yes" : null;
+  }
   const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
   // "In Canada or the U.S.?", "a U.S. citizen or permanent resident?": a yes from the person's country is right; a no is not
   // known, since the other half may be true of them (WO-047).
@@ -243,11 +248,14 @@ export function levelOption(level: string, options: Opt[]): string | null {
 export function chooseOption(fact: string, value: string, options: Opt[], question = ""): string | null {
   if (!options.length) return null;
   const v = low(value);
+  const derived = question ? yesNoFromFact(fact, value, question) : null;
+  // A question that asks the opposite of the person's stated yes or no ("Are you under 18?" for a yes to over 18): the
+  // derived answer, never the person's word taken literally (WO-052, sample C).
+  if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options);
   // The person's own words, exactly as an option: always first.
   const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
   if (exact.length) return exact[0].value;
   if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
-  const derived = question ? yesNoFromFact(fact, value, question) : null;
   // A derived yes or no lands only on a yes or no option; a list with no yes ("Master's | Bachelor's | ... | Not
   // applicable", "Canada | US | Other") is answered by the fact itself, below (WO-047).
   if (derived) {

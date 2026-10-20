@@ -3,6 +3,7 @@
 // trackStore in agent_flow_state). The run writes events, drafts and the read cursor; it never writes the queue or the
 // tracker, so a chat turn and the scheduled run never race on the same row.
 import { type Draft, mergeApps, type StatusEvent, type TrackedApp } from "./career_mail.ts";
+import { MAIL_MODEL_DAILY_CAP } from "./career_mail_model.ts";
 
 export interface MailPerson { user_id: string; read_through: string | null; tz?: string | null; quiet_start?: number; quiet_end?: number }
 export interface MailStore {
@@ -15,6 +16,9 @@ export interface MailStore {
   // false: that draft was made before (once per application and kind, ever).
   saveDraft(userId: string, d: Draft): Promise<boolean>;
   saveCursor(userId: string, readThrough: number): Promise<void>;
+  // WO-051: model calls granted to this person today (UTC), at most `want` and never past `cap` in the day, counted in the
+  // database before any call (career_mail_model_claim). A store without it grants none: the model is never asked.
+  claimModelCalls?(userId: string, want: number, cap: number, now: number): Promise<number>;
 }
 
 // Applications that reached the employer, or may have. One that never went (failed, not sent, still queued or waiting on
@@ -47,9 +51,11 @@ export function appsFromTracker(rows: any[]): TrackedApp[] {
 export interface MemoryMail {
   people: MailPerson[]; queue: Record<string, any[]>; tracker: Record<string, any[]>;
   events: Record<string, StatusEvent[]>; drafts: Record<string, Draft[]>; cursors: Record<string, number>;
+  // WO-051: model calls granted, by "<user>|<UTC day>".
+  model_calls: Record<string, number>;
 }
 export function memoryMailStore(init: Partial<MemoryMail> = {}): MailStore & { dump(): MemoryMail } {
-  const st: MemoryMail = { people: [], queue: {}, tracker: {}, events: {}, drafts: {}, cursors: {}, ...JSON.parse(JSON.stringify(init)) };
+  const st: MemoryMail = { people: [], queue: {}, tracker: {}, events: {}, drafts: {}, cursors: {}, model_calls: {}, ...JSON.parse(JSON.stringify(init)) };
   return {
     async people(limit) {
       return st.people.map((p) => ({ ...p, read_through: st.cursors[p.user_id] ? new Date(st.cursors[p.user_id]).toISOString() : p.read_through }))
@@ -69,6 +75,12 @@ export function memoryMailStore(init: Partial<MemoryMail> = {}): MailStore & { d
       return true;
     },
     async saveCursor(u, at) { st.cursors[u] = at; },
+    async claimModelCalls(u, want, cap, now) {
+      const key = `${u}|${new Date(now).toISOString().slice(0, 10)}`, used = st.model_calls[key] ?? 0;
+      const got = Math.max(0, Math.min(Math.floor(want), Math.min(cap, MAIL_MODEL_DAILY_CAP) - used));
+      st.model_calls[key] = used + got;
+      return got;
+    },
     dump() { return JSON.parse(JSON.stringify(st)); },
   };
 }
@@ -119,6 +131,11 @@ export function supabaseMailStore(admin: any): MailStore {
     },
     async saveCursor(u, at) {
       must(await admin.from("career_mail_cursors").upsert({ user_id: u, read_through: new Date(at).toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" }), "save the mail cursor");
+    },
+    // The database's own day and count (20261021130000_career_mail_model_calls.sql); the run's clock is not trusted here.
+    async claimModelCalls(u, want, cap) {
+      const got = must<number>(await admin.rpc("career_mail_model_claim", { p_user: u, p_want: Math.floor(want), p_cap: cap }), "claim mail model calls");
+      return Math.max(0, Number(got) || 0);
     },
   };
 }

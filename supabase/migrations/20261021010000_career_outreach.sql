@@ -123,6 +123,8 @@ grant all on public.career_email_checks to service_role;
 -- p_day_start is the start of the person's local day (the code reads their zone); it must be within the 26 hours before
 -- p_now. Returns 'ok' (the row is now 'sending' at p_now) or the reason it may not go: not_approved, changed,
 -- do_not_contact, daily_cap, spacing.
+create index if not exists career_outreach_drafts_recipient on public.career_outreach_drafts (lower(recipient_email), sent_at);
+
 create or replace function public.career_outreach_claim(p_user uuid, p_draft uuid, p_hash text, p_now timestamptz, p_day_start timestamptz)
 returns text language plpgsql security definer set search_path = public, pg_temp as $$
 declare d public.career_outreach_drafts; cap int; first_at timestamptz; today int;
@@ -133,8 +135,15 @@ begin
  select * into d from public.career_outreach_drafts where id = p_draft and user_id = p_user for update;
  if not found or d.status <> 'approved' or d.approved_hash is null then return 'not_approved'; end if;
  if d.approved_hash <> p_hash or d.hash <> p_hash then return 'changed'; end if;
- if exists (select 1 from public.career_outreach_dnc where user_id = p_user
-   and email_hash = encode(sha256(convert_to(lower(d.recipient_email), 'UTF8')), 'hex')) then return 'do_not_contact'; end if;
+ -- Do-not-contact is checked across every Trainee user: a "stop" to anyone stops everyone's drafts to that address.
+ if exists (select 1 from public.career_outreach_dnc
+   where email_hash = encode(sha256(convert_to(lower(d.recipient_email), 'UTF8')), 'hex')) then return 'do_not_contact'; end if;
+ -- At most 3 Trainee-drafted emails reach one recipient in 30 days, from all users together (lock on the recipient so two
+ -- people's runs cannot both take the third slot).
+ perform pg_advisory_xact_lock(hashtextextended('career_outreach_to:' || lower(d.recipient_email), 0));
+ if (select count(*) from public.career_outreach_drafts where lower(recipient_email) = lower(d.recipient_email)
+   and status in ('sending', 'sent', 'replied', 'bounced') and sent_at > p_now - interval '30 days' and sent_at <= p_now) >= 3
+   then return 'recipient_cap'; end if;
  cap := coalesce((select least(greatest(daily_cap, 1), 30) from public.career_outreach_prefs where user_id = p_user), 20);
  select min(sent_at) into first_at from public.career_outreach_drafts
   where user_id = p_user and sent_at is not null and status in ('sending', 'sent', 'replied', 'bounced');

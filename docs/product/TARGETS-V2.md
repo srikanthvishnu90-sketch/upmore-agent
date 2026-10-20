@@ -47,7 +47,7 @@ No number in this file is live: every live number is NOT_RUN until `docs/product
 ## Networking (outbound)
 | Target | Status | What is true | Next |
 |---|---|---|---|
-| 500-person verified-email lists in 24 h, 85%+ deliverable, under $50 | BUILDING (WO-033); vendors chosen (D-018) | Apollo CSV export imported by Trainee. Every address checked by Hunter; only `valid` counts as deliverable. Cost per list from the owner's real invoice. | Owner signs up for Apollo and Hunter |
+| 500-person verified-email lists in 24 h, 85%+ deliverable, under $50 | BUILDING (WO-033); D-018a: needs a data licence to serve lists to users | A CSV the person exports from their own Apollo account is imported by Trainee; lists served to users wait for an Apollo or PDL data licence (Apollo's standard terms allow internal use only). Every address checked by Hunter; only `valid` counts as deliverable. Cost per list from the owner's real invoice. | Owner signs up for Apollo and Hunter |
 | Drafts approved 10 at a time | BUILDING (WO-033) | A fact-lock on every claim. "send 1-7,9", "redo 3", "skip 4". The approval binds to the exact text. | |
 | 20-30 sends a day from Gmail, no blast | BUILDING (WO-033) | Caps in code: 20 by default, 30 at most, 10 a day during the first-week warm-up, one recipient per message. Stop and unsubscribe go to a do-not-contact list. | Needs the career Google grant |
 | Referral map, top 20 firms | BUILDING (WO-033) | Warm paths from the person's own exports only. No LinkedIn automation. | |

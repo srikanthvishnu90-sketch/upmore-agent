@@ -23,7 +23,7 @@ a list's cost labeled VERIFIED.
 
 | Role | Vendor | How Trainee uses it | Why |
 |---|---|---|---|
-| List source | Apollo | The owner (or the person) builds the search in Apollo's UI, exports a CSV, and sends it to Trainee. No Apollo API call. | The CSV path works on every plan; export credits and API terms differ by plan. |
+| List source | Apollo | The person builds the search in **their own** Apollo account, exports a CSV, and sends it to Trainee. No Apollo API call. An export from Upmore's or the owner's account is never given to users (D-018a: Apollo's terms allow internal business use only; serving lists to users needs a data licence). | The CSV path works on every plan; export credits and API terms differ by plan. |
 | Verifier | Hunter Email Verifier | `GET https://api.hunter.io/v2/email-verifier?email=...&api_key=...` with `HUNTER_API_KEY`, only for addresses that passed Trainee's free checks, cached per address per month. | Independent of the list source; its statuses (`valid`, `invalid`, `accept_all`, `webmail`, `disposable`, `unknown`) map one to one. |
 | Free first pass | Trainee | Syntax, MX through DNS-over-HTTPS, role inbox, throwaway domain. | Costs nothing. Credits are spent only on addresses that pass it. |
 

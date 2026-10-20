@@ -100,4 +100,22 @@ select t.ok((select count(*)=1 from career_outreach_drafts where user_id='000000
 reset role;
 delete from auth.users where id='00000000-0000-4000-8000-000000000331';
 select t.ok((select count(*)=0 from career_outreach_dnc where user_id='00000000-0000-4000-8000-000000000331'),'deleting the account removes the list too');
+
+-- One recipient, all Trainee users (architect review, 2026-10-20): at most 3 Trainee-drafted emails reach an address in 30
+-- days from everyone together, and a "stop" to any user stops every user's drafts to that address.
+reset role;
+insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000333','outreach-c@example.test'),('00000000-0000-4000-8000-000000000334','outreach-d@example.test');
+insert into profiles(id) values('00000000-0000-4000-8000-000000000333'),('00000000-0000-4000-8000-000000000334');
+set role service_role;
+insert into career_outreach_drafts(user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,sent_at)
+ select u::uuid, gen_random_uuid(), 1, '{"name":"Shared"}', 'Shared.Banker@example.test', 'S', 'B', 'F', repeat('c',64), 'sent', '2026-10-20T12:00:00Z'::timestamptz - (k*interval '1 day')
+ from (values ('00000000-0000-4000-8000-000000000331',1),('00000000-0000-4000-8000-000000000332',2),('00000000-0000-4000-8000-000000000333',3)) v(u,k);
+insert into career_outreach_drafts(user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,approved_hash,approved_at)
+ values('00000000-0000-4000-8000-000000000334',gen_random_uuid(),1,'{"name":"Shared"}','shared.banker@example.test','S','B','F',repeat('d',64),'approved',repeat('d',64),now()),
+       ('00000000-0000-4000-8000-000000000334',gen_random_uuid(),2,'{"name":"Stopped"}','stopped@example.test','S','B','F',repeat('e',64),'approved',repeat('e',64),now());
+select t.ok(career_outreach_claim('00000000-0000-4000-8000-000000000334',(select id from career_outreach_drafts where recipient_email='shared.banker@example.test' and user_id='00000000-0000-4000-8000-000000000334'),repeat('d',64),'2026-10-20T13:00:00Z','2026-10-20T04:00:00Z')='recipient_cap','a fourth Trainee email to the same address in 30 days is refused, whoever sends it');
+select t.ok(career_outreach_claim('00000000-0000-4000-8000-000000000334',(select id from career_outreach_drafts where recipient_email='shared.banker@example.test' and user_id='00000000-0000-4000-8000-000000000334'),repeat('d',64),'2026-11-19T13:00:00Z','2026-11-19T04:00:00Z')='ok','once the oldest falls out of the 30 days, one more may go');
+insert into career_outreach_dnc(user_id,email_hash) values('00000000-0000-4000-8000-000000000333',encode(sha256(convert_to('stopped@example.test','UTF8')),'hex'));
+select t.ok(career_outreach_claim('00000000-0000-4000-8000-000000000334',(select id from career_outreach_drafts where recipient_email='stopped@example.test'),repeat('e',64),'2026-11-19T15:00:00Z','2026-11-19T04:00:00Z')='do_not_contact','a stop given to one Trainee user stops another user''s draft to that address');
+reset role;
 rollback;

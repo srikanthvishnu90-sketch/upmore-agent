@@ -19,6 +19,7 @@ import {
   type OutreachStore, payloadHash, recordOutreach, SIGNATURE_ASK,
 } from "../career_outreach.ts";
 import { legacyRows, REFERRAL_ASK, referralMap, targetFirms } from "../career_referrals.ts";
+import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type ResumeRenderer, type ResumeStore, restatePersona, savePersona, tailorForPosting, validPersonaName } from "../career_tailor.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -37,6 +38,9 @@ const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.cr
 const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
 
+// WO-028: tailoring needs the posting by id (career_postings), where personas are kept, the private resume store and
+// the PDF renderer; without them the resume tools say they are not configured here.
+export interface TailorTools { posting: (jobId: string) => Promise<any | null>; personas: PersonaStore; resumes: ResumeStore; render: ResumeRenderer }
 // `postings(query)` returns candidate open postings: in production a full-text search of career_postings
 // (supabasePostingsDb.search), in tests a fixed pool. search_jobs filters and ranks them either way.
 // `mail` (WO-024) reads the person's applications across the apply queue and every thread's tracker, and the status
@@ -48,13 +52,14 @@ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.cre
 export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
-  events?: EventStore | null; tz?: string; outreach?: OutreachDeps | null; verifier?: Verifier | null;
+  events?: EventStore | null; tz?: string; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
   const memoryOf = () => { if (!deps.memory) throw new Error("standing instructions are not kept here"); return deps.memory; };
   const record = (c: ToolCtx, kind: string, subject: unknown, detail: Record<string, unknown> = {}) =>
     recordEvent(deps.events, { user_id: c.userId, at: c.now, kind, subject, detail, source: "chat" });
+  const tailorOf = () => { if (!deps.tailor) throw new Error("resume tailoring is not configured here"); return deps.tailor; };
   return [
     {
       name: "remember_instruction", effect: "write_own",
@@ -264,6 +269,76 @@ export function careerTools(deps: {
       description: "Score a practice interview answer with the rubric (structure, evidence, specificity) and return what to fix.",
       input_schema: obj({ answer: str("The person's answer, verbatim") }, ["answer"]),
       run: async (i) => CareerPrep.scoreAnswer(String(i.answer)),
+    },
+    {
+      name: "tailor_resume", effect: "write_own",
+      description: "Make a PDF resume for one posting from the person's CONFIRMED facts only (never drafts, never anything new). It passes the truth check and the ATS parse check or refuses with the reason. Send its text as given: plain words, the 7-day private link alone on its own line. Give job_id from search_jobs, or the posting text.",
+      input_schema: obj({ job_id: str("The posting's job_id from search_jobs"), posting_text: str("The posting's full text, if there is no job_id"), persona: str("A saved persona name, e.g. 'banking'; leave out to use the active one") }),
+      run: async (i, c) => {
+        const t = tailorOf();
+        let text = "", job_id: string | null = null, company: string | null = null;
+        if (i.job_id) {
+          const p = await t.posting(String(i.job_id));
+          if (!p) throw new Error(`no posting ${i.job_id}; search again for its job_id`);
+          text = `${p.title} at ${p.company}\n\n${p.description || ""}`; job_id = String(p.job_id); company = String(p.company);
+        } else if (String(i.posting_text ?? "").trim().length >= 40) text = String(i.posting_text).slice(0, 20000);
+        else throw new Error("give the posting's job_id from search_jobs, or its full text");
+        const st = await t.personas.get(c.userId);
+        const name = i.persona ? validPersonaName(i.persona) : st.active;
+        const persona = name ? st.items.find((p) => p.name === name) ?? null : null;
+        if (i.persona && !persona) throw new Error(`no persona named ${String(i.persona)}; saved: ${st.items.map((p) => p.name).join(", ") || "none"}`);
+        const r = await tailorForPosting({ userId: c.userId, profile: profileOf(c), posting: { text, job_id, company }, persona, deps: { render: t.render, resumes: t.resumes }, now: c.now });
+        if (!r.ok) throw new Error(`not made: ${r.reason}. ${r.refused === "link" ? "The file stays private; no link was given." : "Nothing was stored or sent."}`);
+        const { detail: _detail, ...out } = r;
+        return out;
+      },
+    },
+    {
+      name: "set_resume_contact", effect: "write_own",
+      description: "Save the name and email for the top of the person's resume, only as they typed both in this message. Never use the account email or a guess; if they have not typed them, ask: \"What name and email should go at the top of your resume?\"",
+      input_schema: obj({ name: str("Their name exactly as they typed it"), email: str("Their email exactly as they typed it") }, ["name", "email"]),
+      run: async (i, c) => {
+        if (!c.turn) throw new Error(`not saved: ask them: "${CONTACT_QUESTION}"`);
+        const r = contactFromMessage(c.turn.message, i.name, i.email);
+        if (!r.ok) throw new Error(`not saved: ${r.error}. Ask them: "${CONTACT_QUESTION}"`);
+        const p = profileOf(c);
+        p.basics = { ...(p.basics || {}), name: r.name, email: r.email };
+        return { saved: { name: r.name, email: r.email }, restated: `Your resume will show ${r.name} and ${r.email} at the top.` };
+      },
+    },
+    {
+      name: "save_resume_persona", effect: "write_own",
+      description: "Save a named resume persona the person asks for (\"make a banking version that leads with my finance internship and leaves out the retail job\"): which confirmed facts lead, in order, and which are left out. Never other facts. The name must be in their message. Restate the returned restatement exactly.",
+      input_schema: obj({
+        name: str("The persona's name in their words, e.g. 'banking'"),
+        lead_fact_ids: { type: "array", items: { type: "string" }, description: "Confirmed fact ids to lead with, in order" },
+        hide_fact_ids: { type: "array", items: { type: "string" }, description: "Confirmed fact ids this persona leaves out" },
+      }, ["name"]),
+      run: async (i, c) => {
+        const t = tailorOf(), name = validPersonaName(i.name);
+        if (!name) throw new Error("not saved: name the persona in 1 to 24 letters or numbers (not 'base')");
+        if (!c.turn || !namedIn(c.turn.message, name)) throw new Error(`not saved: the person did not name a "${name}" persona in this message`);
+        const r = savePersona(await t.personas.get(c.userId), profileOf(c), { name, lead: (i.lead_fact_ids as string[]) ?? [], hide: (i.hide_fact_ids as string[]) ?? [], now: c.now });
+        if (!r.ok) throw new Error(`not saved: ${r.error}`);
+        await t.personas.save(c.userId, r.state);
+        return { saved: r.persona, restated: restatePersona(r.persona, profileOf(c)), active: r.state.active };
+      },
+    },
+    {
+      name: "use_resume_persona", effect: "write_own",
+      description: "Switch which saved resume persona tailored resumes use (\"apply as my banking resume\"), or name 'base' to go back to the plain tailored resume. The name must be in their message. Returns the persona restated and every saved one.",
+      input_schema: obj({ name: str("The persona to use, or 'base'") }, ["name"]),
+      run: async (i, c) => {
+        const t = tailorOf(), st = await t.personas.get(c.userId), raw = String(i.name ?? "");
+        const base = /^\s*(base|default|regular|normal|main|usual)\b/i.test(raw);
+        const name = base ? null : validPersonaName(raw);
+        if (!c.turn) throw new Error("not switched: no message from the person in this turn");
+        if (base ? !/\b(base|default|regular|normal|main|usual|plain)\b/i.test(c.turn.message) : !(name && namedIn(c.turn.message, name))) throw new Error("not switched: the person did not name that persona in this message");
+        const persona = name ? st.items.find((p) => p.name === name) : null;
+        if (name && !persona) throw new Error(`no persona named ${name}; saved: ${st.items.map((p) => p.name).join(", ") || "none"}`);
+        await t.personas.save(c.userId, { ...st, active: name });
+        return { active: name ?? "base", restated: persona ? restatePersona(persona, profileOf(c)) : "your base resume: your confirmed facts in the order each posting needs", saved: st.items.map((p) => p.name) };
+      },
     },
     {
       name: "where_do_i_stand", effect: "read",

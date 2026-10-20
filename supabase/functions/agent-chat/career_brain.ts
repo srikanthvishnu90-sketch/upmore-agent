@@ -1,7 +1,7 @@
 // Which brain answers a career turn (WO-002, D-008): the CareerHost router unless CAREER_BRAIN=agent, and the agent turn
 // itself (model + tools over the person's career state).
 import { runAgentTurn, type ModelFn, type TurnResult } from "../_shared/agent/loop.ts";
-import { careerTools, type OutreachDeps } from "../_shared/agent/career_tools.ts";
+import { careerTools, type OutreachDeps, type TailorTools } from "../_shared/agent/career_tools.ts";
 import { importContactsFile, MX_NOT_WIRED, type MxResolver, type Verifier } from "../_shared/career_contacts.ts";
 import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
 import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
@@ -70,6 +70,8 @@ export async function agentTurn(o: {
   attachments?: { name: string; mime: string; text: string | null }[];
   mx?: MxResolver;
   verifier?: Verifier | null; // the paid independent check (Hunter), run by verify_contacts; absent: NOT_WIRED
+  // WO-028: the posting by id, personas, the private resume store and the PDF renderer.
+  tailor?: TailorTools | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   const notes: string[] = [];
@@ -81,7 +83,7 @@ export async function agentTurn(o: {
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

@@ -7,7 +7,7 @@ import {
 } from "../../supabase/functions/_shared/career_contacts.ts";
 import {
   admitSend, batchMessages, BATCH_FOOT, capFor, classifyReply, draftFor, emailHash, memoryOutreachStore, messageOf, OPT_OUT_LINE, OUTREACH_INTENT,
-  type OutreachDraft, outreachLock, outreachTurn, parseOutreachReply, payloadHash, recordReply, runOutreachSends, type Sender, sharedFacts,
+  type OutreachDraft, outreachLock, outreachTurn, parseOutreachReply, payloadHash, RECIPIENT_CAP, recordReply, runOutreachSends, type Sender, sharedFacts,
 } from "../../supabase/functions/_shared/career_outreach.ts";
 import { buildRaw, careerTokenFor, gmailSender, GMAIL_SEND_SCOPE } from "../../supabase/functions/_shared/career_outreach_gmail.ts";
 import { REFERRAL_ASK, referralMap, targetFirms } from "../../supabase/functions/_shared/career_referrals.ts";
@@ -338,6 +338,35 @@ Deno.test("WO-033/O1 a 'stop' or 'unsubscribe' reply puts them on the do-not-con
   await turn(store, "send all", OCT14 + 86400_000 * 30);
   const s = await runOutreachSends({ store, sender: gmail, now: OCT14 + 86400_000 * 30 });
   eq([s.sent, s.refused.do_not_contact], [0, 1]);
+});
+
+// One recipient, many Trainee users (architect review 2026-10-20, the 2M-user case): the same banker is everyone's
+// target, so caps per sender alone would still flood them.
+async function approvedTo(store: ReturnType<typeof memoryOutreachStore>, user: string, email: string, at: number) {
+  const d: any = { n: 1, recipient: recipient({ name: "Shared Banker Synthetic", email, firm: "Goldman Sachs" }), subject: `From ${user}`, body: `Hi from ${user}.`,
+    footer: `${user}\n\n${OPT_OUT_LINE}`, status: "approved", approved_at: new Date(at).toISOString(), sent_at: null, gmail_id: null, gmail_thread: null, result: null,
+    created_at: new Date(at).toISOString(), hash: "", shared: [] };
+  d.hash = await payloadHash(messageOf(d)); d.approved_hash = d.hash;
+  return (await store.saveBatch(user, `${user}-thread`, [d], at))[0];
+}
+Deno.test("WO-033/X1 one recipient gets at most RECIPIENT_CAP Trainee emails in 30 days from all users together", async () => {
+  const store = memoryOutreachStore(), gmail = fakeGmail(), to = "shared.banker@gs.example";
+  for (let k = 1; k <= 5; k++) await approvedTo(store, `TEST-U${k}`, to, OCT14);
+  const s = await runOutreachSends({ store, sender: gmail, now: OCT14 });
+  eq([s.sent, s.refused.recipient_cap], [RECIPIENT_CAP, 5 - RECIPIENT_CAP], "three of five senders reach them; the rest are held");
+  eq(gmail.sent.filter((m) => m.to === to).length, RECIPIENT_CAP);
+  // A month later the window has passed: one more may go.
+  await approvedTo(store, "TEST-U9", to, OCT14 + 31 * 86400_000);
+  eq((await runOutreachSends({ store, sender: gmail, now: OCT14 + 31 * 86400_000 })).sent, 1);
+});
+Deno.test("WO-033/X2 a 'stop' to any Trainee user stops every Trainee user's drafts to that address", async () => {
+  const store = memoryOutreachStore(), gmail = fakeGmail(), to = "asked.to.stop@gs.example";
+  const a = await approvedTo(store, "TEST-UA", to, OCT14);
+  await runOutreachSends({ store, sender: gmail, now: OCT14 });
+  eq(await recordReply({ store, userId: "TEST-UA", draft: { ...a, status: "sent" }, mail: { from: to, subject: "Re: hi", snippet: "Please stop emailing me.", at: "2026-10-15T12:00:00Z" }, now: OCT14 }), "stop");
+  await approvedTo(store, "TEST-UB", to, OCT14 + 86400_000);
+  const s = await runOutreachSends({ store, sender: gmail, now: OCT14 + 86400_000 });
+  eq([s.sent, s.refused.do_not_contact], [0, 1], "another user's draft to the same address is never sent");
 });
 
 Deno.test("WO-033/E1 'which bankers did I email in October?' end to end: import, draft, approve, send, recall", async () => {

@@ -30,7 +30,13 @@ export interface OutreachDraft {
   gmail_id: string | null; gmail_thread: string | null; result: string | null; created_at: string;
   shared?: Shared[];
 }
-export type Admit = "ok" | "not_approved" | "changed" | "do_not_contact" | "daily_cap" | "spacing";
+export type Admit = "ok" | "not_approved" | "changed" | "do_not_contact" | "daily_cap" | "spacing" | "recipient_cap";
+// One recipient, every Trainee user: at scale thousands of people target the same few hundred thousand professionals, so a
+// per-person cap alone would still flood them (and their spam reports land on every sender). A recipient gets at most
+// RECIPIENT_CAP Trainee-drafted emails in any RECIPIENT_WINDOW_DAYS, from anyone; and a "stop" to any Trainee user stops
+// every Trainee user's drafts to that address (do-not-contact is checked across people, never only the sender's own).
+export const RECIPIENT_CAP = 3;
+export const RECIPIENT_WINDOW_DAYS = 30;
 export interface Prefs { daily_cap: number | null; signature: string | null; list_costs?: Record<string, unknown> }
 export interface OutreachStore {
   saveBatch(userId: string, threadId: string | null, drafts: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[], at: number): Promise<OutreachDraft[]>;
@@ -340,10 +346,11 @@ export function capFor(p: { own: number | null | undefined; firstSentAt: string 
   return { cap: warmup ? Math.min(own, WARMUP_DAILY) : own, warmup };
 }
 // The one admission rule (the database's career_outreach_claim enforces the same numbers).
-export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean }): Admit {
+export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean; recipientSends?: number }): Admit {
   if (o.draft.status !== "approved" || !o.draft.approved_hash) return "not_approved";
   if (o.draft.approved_hash !== o.hash || o.draft.hash !== o.hash) return "changed";
   if (o.dnc) return "do_not_contact";
+  if ((o.recipientSends ?? 0) >= RECIPIENT_CAP) return "recipient_cap";
   const { cap } = capFor({ own: o.own, firstSentAt: o.firstSentAt, now: o.now });
   if (o.sends.filter((t) => t >= o.dayStart && t <= o.now).length >= cap) return "daily_cap";
   if (o.sends.some((t) => t > o.now - GAP_MS && t <= o.now)) return "spacing";
@@ -470,7 +477,7 @@ export async function runOutreachSends(o: { store: OutreachStore; sender: Sender
     const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));
     if (admit !== "ok") {
       stats.refused[admit] = (stats.refused[admit] ?? 0) + 1;
-      if (admit === "changed" || admit === "do_not_contact") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
+      if (admit === "changed" || admit === "do_not_contact" || admit === "recipient_cap") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
       continue;
     }
     const sending: OutreachDraft = { ...draft, status: "sending", sent_at: new Date(o.now).toISOString() };
@@ -569,7 +576,10 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       const mine = drafts.filter((d) => d.user_id === u && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status));
       const sends = mine.map((d) => Date.parse(d.sent_at!));
       const first = sends.length ? new Date(Math.min(...sends)).toISOString() : null;
-      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: (dnc[u] ?? new Set()).has(await emailHash(cur.recipient.email)) });
+      const h = await emailHash(cur.recipient.email), to = cur.recipient.email.toLowerCase();
+      const recipientSends = drafts.filter((d) => d.recipient.email.toLowerCase() === to && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status)
+        && Date.parse(d.sent_at) > now - RECIPIENT_WINDOW_DAYS * 86400_000).length;
+      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: Object.values(dnc).some((set) => set.has(h)), recipientSends });
       if (admit === "ok") { cur.status = "sending"; cur.sent_at = new Date(now).toISOString(); }
       return admit;
     },

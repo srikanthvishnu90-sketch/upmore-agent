@@ -313,7 +313,7 @@ The same flow with a scripted model printed:
 
 ## Not built, and why
 
-- **The 500-banker list itself.** It is built in Apollo's UI by whoever holds the account (owner's decision: no API).
+- **The 500-banker list itself.** Each person builds theirs in their own Apollo account (D-018a: an export from Upmore's account is never given to users; lists served to users wait for a data licence).
   Until a CSV is sent, `contact_list` with `bulk` answers NOT_WIRED with the one-line ask.
 - **Apollo's real header names.** They are ASSUMED. Apollo's docs do not list them. The owner exports 5 rows to confirm.
 - **Live sending.** It is off until the owner sets `CAREER_OUTREACH_SEND=on` and the person's career grant carries
@@ -331,3 +331,11 @@ The same flow with a scripted model printed:
   inside the snapshot's 1 MB limit). A list sent in one thread is not seen in another.
 - **The referral map's alumni path.** It needs a list with a school column. LinkedIn's connections export has none, so
   from that export alone the paths are 1st-degree connections.
+
+## Architect review (2026-10-20)
+- **Recipients protected across users.** At 2 million users the same few hundred thousand professionals are everyone's
+  target, so per-sender caps alone would still flood them. `career_outreach_claim` and `admitSend` now refuse a send when
+  the address already got 3 Trainee-drafted emails in 30 days from anyone (`recipient_cap`, a lock on the recipient so
+  two runs cannot take the third slot), and do-not-contact is checked across every user (a stop to anyone stops all).
+  Tests WO-033/X1, X2 and the DB checks; planted defects (cap removed, per-user do-not-contact) each fail their test.
+- **Apollo terms (D-018a).** Apollo data only from the person's own account; lists served to users wait for a licence.

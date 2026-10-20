@@ -42,6 +42,12 @@ export const FACT_SCHEMA = {
    "type": "text",
    "group": "identity"
   },
+  "preferred_last_name": {
+   "kind": "fact",
+   "type": "text",
+   "group": "identity",
+   "note": "only what the person stated; never their legal last name or preferred first name (WO-042)"
+  },
   "pronouns": {
    "kind": "fact",
    "type": "enum",
@@ -263,6 +269,12 @@ export const FACT_SCHEMA = {
    "group": "education",
    "note": "SAT/ACT/GRE as the person states them, or 'did not take'"
   },
+  "languages_other": {
+   "kind": "fact",
+   "type": "text",
+   "group": "skills",
+   "note": "languages besides the person's first language; their language fact alone does not answer it (WO-042)"
+  },
   "languages": {
    "kind": "fact",
    "type": "list",
@@ -422,6 +434,18 @@ export const FACT_SCHEMA = {
    "kind": "screen",
    "type": "yesno",
    "group": "job"
+  },
+  "clearance_eligibility": {
+   "kind": "fact",
+   "type": "yesno",
+   "group": "authorization",
+   "note": "able to obtain a U.S. security clearance; never inferred from holding none (WO-042)"
+  },
+  "job_commute": {
+   "kind": "screen",
+   "type": "yesno",
+   "group": "job",
+   "note": "lives within commuting distance of this posting's office: no stated preference answers it (WO-042)"
   },
   "job_onsite": {
    "kind": "screen",

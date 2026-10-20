@@ -75,6 +75,7 @@ MIGRATIONS=(
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
   20261020130000_career_resume_tailoring.sql
+  20261021000000_career_apply_extension.sql
   20261021010000_career_outreach.sql
   20261021020000_career_voice_mock.sql
   20261021030000_career_hired_backgrounds.sql
@@ -85,6 +86,7 @@ MIGRATIONS=(
   20261021090000_career_mail_erase.sql
   20261021100000_career_proactive_last_word.sql
   20261021110000_career_board_state.sql
+  20261021120000_career_apply_form_answers.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -104,6 +106,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_extension_begin_own')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_claim')"
   "exists (select 1 from pg_proc where proname = 'career_voice_create')"
   "to_regclass('public.career_pdl_calls') is not null"
@@ -114,6 +117,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_to_thread')"
   "to_regclass('public.career_board_state') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_questions_answer_from_form_own')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

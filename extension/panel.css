@@ -1,0 +1,26 @@
+:root { --bg: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --line: #e3e3e8; --accent: #0b6b4f; --warn: #a33a00; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #a1a1a6; --line: #3a3a3c; --accent: #3ccf9a; --warn: #ff9f5a; } }
+body { margin: 0; padding: 12px 14px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+h1 { font-size: 16px; margin: 0 0 8px; }
+section { border-top: 1px solid var(--line); padding: 10px 0; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.wrap { flex-wrap: wrap; justify-content: flex-start; }
+.small { font-size: 12px; color: var(--muted); }
+.msg { min-height: 1em; margin: 6px 0; }
+.msg.warn { color: var(--warn); }
+button { font: inherit; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; width: 100%; padding: 9px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.link { border: none; padding: 0; text-decoration: underline; color: var(--muted); }
+input[type=email], textarea { flex: 1; font: inherit; padding: 5px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--fg); width: 100%; box-sizing: border-box; }
+label.file { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; }
+label.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#card { padding-left: 18px; margin: 6px 0; }
+#card li { margin: 3px 0; word-break: break-word; }
+#card li.block { color: var(--warn); }
+footer { border-top: 1px solid var(--line); padding-top: 8px; }
+.shots { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 8px 0; }
+.shots figure { margin: 0; }
+.shots img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+blockquote { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--line); white-space: pre-wrap; }

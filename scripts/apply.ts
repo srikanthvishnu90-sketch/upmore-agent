@@ -14,6 +14,8 @@ import {
   planBatch,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
+// How a form's fields become the planner's questions; shared with the browser extension (WO-031).
+import { bindFields as bind } from "./career/form-bind.ts";
 import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
@@ -167,56 +169,6 @@ async function answer() {
     if (s.includes("\n")) break;
   }
   return s.split("\n")[0].replace(/\r$/, "");
-}
-function bind(fields: any[]) {
-  const groups = new Map<string, any[]>();
-  for (const f of fields) {
-    if (f.disabled || f.readOnly) continue;
-    // A field is known by its name, or by its id where the page names nothing: Greenhouse's job-boards form gives every
-    // field an id and no name, and Ashby's resume input has only an id (tests/fixtures/forms-ci). The id there is the
-    // question's published key (first_name, question_9668368101, _systemfield_resume). Ashby's date picker has neither;
-    // its container's data-field-path is the key.
-    const name = f.name || f.id || f.fieldPath;
-    if (!name) {
-      if (f.required) throw fail("UNNAMED_REQUIRED_FIELD: " + f.label);
-      continue;
-    }
-    groups.set(name, [...(groups.get(name) || []), f]);
-  }
-  const bindings: any = {}, schema: any[] = [];
-  for (const [name, rows] of groups) {
-    const f = rows[0], group = rows.length > 1 && rows.every((r) => ["radio", "checkbox"].includes(r.inputType));
-    if (rows.length > 1 && !group) throw fail("AMBIGUOUS_FIELD_NAME: " + name);
-    const label = group ? (f.groupLabel || f.label) : f.label, type = f.tag === "select" ? "select" : f.inputType;
-    const opts = group
-      ? rows.map((r) => ({ label: r.label, value: r.optionValue ?? r.label, selector: r.selector, ref: r.ref }))
-      : f.options || [];
-    schema.push({
-      name,
-      label: label || name,
-      type,
-      required: rows.some((r) => r.required),
-      options: opts.map((r: any) => ({ label: r.label, value: r.value })),
-    });
-    bindings[name] = {
-      field_id: name,
-      inputType: group
-        ? (type === "radio" ? "radio_group" : "checkbox_group")
-        : type === "file"
-        ? "file"
-        : type === "select"
-        ? "select"
-        : type === "checkbox"
-        ? "checkbox"
-        : "text",
-      selector: f.selector,
-      elementRefs: rows.map((r) => r.ref),
-      options: opts,
-      widget: /select__input/.test(f.cls || "") ? "react-select" : null,
-      profile_key: classifyField(label, type),
-    };
-  }
-  return { bindings, schema };
 }
 export async function runApply(args: string[]) {
   const o = options(args),

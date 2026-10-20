@@ -1,0 +1,60 @@
+# WO-042: what the build sandbox cannot reach, measured from CI.
+# 1. The option lists behind the captured Greenhouse forms' dropdowns, from Greenhouse's public Job Board API (GET only,
+#    no key), written to tests/fixtures/forms-ci/greenhouse-options.json so the offline benchmark serves real options.
+# 2. The extension on the 17 real application pages, filled and NEVER sent: Approve is never pressed, every non-GET
+#    request leaving the browser is aborted, Upmore and Supabase are the local TEST world, the resume is a TEST file,
+#    LinkedIn and Indeed are never opened (evals/apply/live-fill.cjs).
+# Both results are uploaded, and on a pull request from this repository committed back to its branch.
+name: apply-bench-live
+on:
+  pull_request:
+    paths:
+      - .github/workflows/apply-bench-live.yml
+      - evals/apply/live-fill.cjs
+      - scripts/career/capture-greenhouse-options.cjs
+      - extension/**
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: apply-bench-live-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - name: Playwright's Chromium (an unpacked extension loads only in Chromium)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
+          (cd "$RUNNER_TEMP/tools" && npx --no-install playwright install chromium)
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Greenhouse option lists (public Job Board API, GET only)
+        run: node scripts/career/capture-greenhouse-options.cjs
+      - name: The extension on the real application pages, never sent
+        run: node evals/apply/live-fill.cjs --out evals/apply/results/live-fill.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apply-bench-live
+          path: |
+            tests/fixtures/forms-ci/greenhouse-options.json
+            evals/apply/results/live-fill.json
+          retention-days: 14
+      - name: Commit the results to the pull request branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git add tests/fixtures/forms-ci/greenhouse-options.json evals/apply/results/live-fill.json
+          if git diff --cached --quiet; then echo "unchanged"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "WO-042: Greenhouse option lists and the live fill (never sent) from CI"
+          git pull --rebase --autostash origin "${{ github.head_ref }}" || true
+          git push origin "HEAD:${{ github.head_ref }}"

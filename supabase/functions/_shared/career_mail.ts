@@ -196,7 +196,7 @@ const TEXT_COMPANY = [
 // you", "Apple came back with an offer", "I've sent your CV across to Diageo", "our client Verizon", "Sysco supervisor job").
 const AGENCY_COMPANY = [
   new RegExp(`\\b${CO}\\s+(?:has\\s+|have\\s+)?(?:extended|offered|wants|would like|'d like|came back|come back|got back|has come back|decided|has decided|have decided|selected|confirmed|went with|is still|are still|has your|have your|liked|loved)\\b`, "g"),
-  new RegExp(`\\b(?:our client|client|assignment at|contract at|placement at|role at|position at|job at|offer from|feedback from|heard back from|interview with|submitted you to|submit you to|sent your (?:cv|CV|resume|profile|details) (?:across |over )?to|put you forward to|put you forward for)\\s+${CO}`, "g"),
+  new RegExp(`\\b(?:[Oo]ur client|client|assignment at|contract at|placement at|role at|position at|job at|[Oo]ffer from|[Ff]eedback from|heard back from|[Ii]nterview with|submitted you to|submit you to|sent your (?:cv|CV|resume|profile|details) (?:across |over )?to|put you forward to|put you forward for)\\s+${CO}`, "g"),
   new RegExp(`\\bat ${CO}(?=\\s*$|[,.!?]|\\s+-\\s)`, "gm"),
 ];
 function agencyClient(subject: string, snippet: string): string | undefined {
@@ -426,7 +426,8 @@ const RECRUITER_TEXT = new RegExp(String.raw`\b(your (application|resume|candida
 const PAST_STEP = /\b(thanks? (you )?(again )?for (completing|taking|interviewing|your time)[^.]*|following (your|the) (assessment|interview|call)|after (your|the) (assessment|interview|call)|interview follow up|(loved|liked|enjoyed|reviewed|read) (your|the) ([\w-]+ ){0,2}(take-?home|assessment|exercise|case study|test|challenge|assignment|work sample)|thanks? (you )?(again )?for (the|your) ([\w-]+ ){0,2}(interviews?|conversations?|chats?|calls?|meeting)( with [^.,;!?]{0,40})?|[^.,;!?]*\b(call|chat|conversation|session|time)\b[^.,;!?]{0,30}\b(share|give|go over|walk (you )?through|discuss|provide) (some |the |any |more |detailed |my |our )?feedback\b[^.]*|[^.,;!?]*\bfeedback (call|chat|session|conversation)\b[^.]*)\b/gi;
 // WO-040: a step that may come is not an invitation to it: "if you are selected for an interview, we will contact you".
 // WO-043: "if you are not selected for an interview" is a condition too.
-const MAYBE_STEP = /\b(if|should|once|when|in case) (you are |you're |you get |you be |you have been )?(not |n't )?(been )?(selected|chosen|shortlisted|invited|moved forward)\b[^.]*/gi;
+// WO-050: and a step that waits on news the recruiter does not have yet ("once I hear back we can set up a call").
+const MAYBE_STEP = /\b((if|should|once|when|in case) (you are |you're |you get |you be |you have been )?(not |n't )?(been )?(selected|chosen|shortlisted|invited|moved forward)\b[^.]*|(once|when|if|after|as soon as) (i|we) (hear|get|have|receive)( back| their| the| any)?( feedback| an update| news)?\b[^.]*)/gi;
 // A job word: a company's own domain writing about a step names the application, the role or the process. Without one,
 // "complete your assessment" or "take your test" is the company's product talking.
 const JOB_CUE = /\b(applications?|applied|applying|candidate|candidacy|positions?|roles?|jobs?|openings?|requisition|interview\w*|recruit\w*|hiring|internship|(graduate|internship|leadership|rotational|analyst|trainee|early careers?) program(me)?|resume|cv|portfolio|panel|next (stages?|steps?|rounds?)|employment|start date|(security )?clearance)\b/i;
@@ -459,7 +460,9 @@ const re = (s: string) => new RegExp(s, "i");
 const PROGRESS = String.raw`(mov(e|ed|es|ing)( (you|your \w+|yours|it|this))? (forward|ahead|on|further|to the next)|proceed\w*|progress\w*|advanc\w*|continu\w*|tak(e|ing) (you|your \w+|yours|it|this|things|them)( any)? (further|forward)|pursu\w*|consider(ed|ing)?|select\w*|chosen|shortlist\w*|invit\w*|offer(ing)? you|(an|the|any) offer|extend\w*|schedul\w*|hir(e|ed|ing)(?! (team|manager|managers|process|committee|panel|lead|partner))|(been )?successful|match\w*|(a|the right|a good|a strong) (fit|match)|align\w*|go(ing)? (forward|ahead)|be (moving|proceeding|progressing|continuing|advancing|offering|inviting|scheduling|pursuing|taking|able to (move|offer|proceed|take|invite|extend|progress|advance|continue)))`;
 const NEGATED_PROGRESS = re(String.raw`\b(not|no longer|unable to|cannot|never|decided against)\b(\s+\S+){0,5}?\s+` + PROGRESS + String.raw`\b`);
 // A clause the negation does not decide anything in: a condition, an instruction, a group of other people.
-const NOT_A_DECISION = /\b(if|unless|until|without|otherwise|whether|in case)\b|please do not|do not (hesitate|forget|miss|worry|reply|respond|share)|\b(those|anyone|applicants|candidates) (who|that) ((are|were|have|do|did|will|may) )?(not|never)\b/;
+// WO-050: nor a decision not made yet ("the team has not selected anyone yet").
+const NOT_YET = String.raw`\bnot (yet )?(selected|chosen|shortlisted|hired|picked) (anyone|anybody|someone|a candidate)\b`;
+const NOT_A_DECISION = new RegExp(String.raw`\b(if|unless|until|without|otherwise|whether|in case)\b|please do not|do not (hesitate|forget|miss|worry|reply|respond|share)|\b(those|anyone|applicants|candidates) (who|that) ((are|were|have|do|did|will|may) )?(not|never)\b|` + NOT_YET);
 const clauses = (n: string) => n.split(/[.;!?\n]+|,? but |,? however,? /i);
 // WO-045: the text without the clauses that negate a step ("we will not be extending an offer"), as written.
 function unNegated(t: string): string {
@@ -470,7 +473,7 @@ export const REPLY_PREFIX = /^\s*(re|aw|sv|vs|antw|r|rif|res|odp|ynt)\s*:/i;
 // The parts of a text that can carry a decision for a rejection phrase (read on the normalized words, returned as
 // written): split at commas too, and dropped only when the part opens with a condition ("if you are not selected, ...")
 // or is about other people or an instruction.
-const CONDITION_FIRST = /^\s*(if|unless|should|in case|once|when|whether)\b|\b(until|unless)\b|please do not|do not (hesitate|forget|miss|worry|reply|respond|share)|\b(those|anyone|applicants|candidates) (who|that) ((are|were|have|do|did|will|may) )?(not|never)\b/;
+const CONDITION_FIRST = new RegExp(String.raw`^\s*(if|unless|should|in case|once|when|whether)\b|\b(until|unless)\b|please do not|do not (hesitate|forget|miss|worry|reply|respond|share)|\b(those|anyone|applicants|candidates) (who|that) ((are|were|have|do|did|will|may) )?(not|never)\b|` + NOT_YET);
 const decidingClauses = (t: string) => t.split(/[.;!?\n,]+|\bbut\b|\bhowever\b/i).filter((c) => !CONDITION_FIRST.test(normText(c)));
 // Families: [feature, regex] read on the normalized text ("all": rejection families read the whole text, a step already
 // done included, because "thank you for interviewing ... unfortunately" is a rejection; the rest read the live text).
@@ -525,14 +528,14 @@ const FAMILIES: [string, RegExp, "all" | "live"][] = [
   // recruiter reply
   ["rr:status", re(String.raw`\b((no|any) (decision|update|news|feedback) (yet|just yet)|(very much |still )in consideration|taking (longer|more time)|inform you (about|of) the (outcome|result|decision)|reach (back )?out (as soon|once|when)|ping you|(has|have) not made a decision|radio silence|(sorry|apologies) for the (delay|slow reply|wait|radio silence)|waiting (on|for) (feedback|their|the team|the hiring)|still (meeting|deliberating|aligning)|(the )?(hm|hiring manager|team|panel) (is|are|was|has been) (still|out|traveling|travelling|back|meeting)|still (very much )?(in the running|under consideration|being considered|talking|deciding|finali[sz]ing|finishing|interviewing|reviewing|collecting|open|in process)|(running|a bit|a little) behind|taking (a little |a bit )?longer|circle back|come back to you|(should|will|would) (have|know) (more|something|an update|feedback)|(could|can) you (send|share|tell|confirm)|kindly (share|send)|(passed|shared|flagged|forwarded|noted) (your|it|them|this)|update (you|for you)|(hiring manager|team|panel) (is|are|was) (still|out|traveling|meeting)|timeline|keep you posted|be in touch|` +
     // WO-050: still going through applications; the CV sent on to the client; chasing for feedback.
-    String.raw`still (going|looking|reading|sorting|working) through|(sent|submitted|put) (you|your (cv|resume|profile|details)) (across |over |forward )?(to|for)|chase (for|the|them|up)|(no|any) feedback yet)\b`), "all"],
+    String.raw`still (going|looking|reading|sorting|working) through|(sent|submitted|put) (you|your (cv|resume|profile|details)) (across |over |forward )?(to|for)|chase (for|the|them|up)|(no|any) feedback yet|waiting (on|for) (the |their )?(\w+'s )?(feedback|panel|hiring manager|team))\b`), "all"],
 ];
 export const MAIL_KINDS: MailKind[] = ["received", "rejection", "interview", "assessment", "offer", "recruiter_reply", "other"];
 // BEGIN MAIL_WEIGHTS (generated by evals/career/mail-fit.ts from 492 tuning emails; steps 4000, rate 0.5, l2 0.004)
 export const MAIL_BIAS: Partial<Record<MailKind, number>> = { received: 0.09, rejection: 0.25, interview: -0.96, assessment: -0.85, offer: -0.43, recruiter_reply: -0.53, other: 2.43 };
 export const MAIL_WEIGHTS: Record<string, Partial<Record<MailKind, number>>> = {
   "as:deadline": { received: -0.21, rejection: -0.19, interview: -0.14, assessment: 0.71, recruiter_reply: -0.05, other: -0.11 },
-  "as:do": { received: -0.34, rejection: -0.47, interview: -0.42, assessment: 1.32, offer: -0.28, recruiter_reply: 0.11, other: 0.08 },
+  "as:do": { received: -0.34, rejection: -0.47, interview: -0.42, assessment: 1.32, offer: -0.28, recruiter_reply: 0.12, other: 0.08 },
   "as:noun": { received: -0.46, rejection: -0.42, interview: -0.22, assessment: 1.28, offer: -0.21, recruiter_reply: -0.17, other: 0.21 },
   "as:recorded": { interview: -0.19, assessment: 0.48, other: -0.16 },
   "as:task": { received: 0.15, rejection: -0.13, interview: -0.05, assessment: 0.45, offer: -0.05, recruiter_reply: -0.05, other: -0.32 },
@@ -547,8 +550,8 @@ export const MAIL_WEIGHTS: Record<string, Partial<Record<MailKind, number>>> = {
   "of:joy": { received: -0.21, rejection: -0.31, interview: 0.11, assessment: -0.16, offer: 0.91, recruiter_reply: -0.15, other: -0.18 },
   "of:noun": { received: -0.24, rejection: -0.22, interview: -0.35, assessment: -0.13, offer: 1.5, recruiter_reply: -0.23, other: -0.33 },
   "of:sign": { received: -0.13, rejection: -0.19, interview: -0.08, assessment: -0.14, offer: 0.47, recruiter_reply: 0.13, other: -0.06 },
-  "rc:got": { received: 1.67, rejection: -0.44, interview: -0.26, assessment: -0.2, offer: -0.22, recruiter_reply: 0.1, other: -0.66 },
-  "rc:review": { received: 0.81, rejection: -0.47, interview: -0.15, assessment: -0.17, offer: -0.1, recruiter_reply: 0.11 },
+  "rc:got": { received: 1.67, rejection: -0.44, interview: -0.26, assessment: -0.2, offer: -0.22, recruiter_reply: 0.11, other: -0.66 },
+  "rc:review": { received: 0.82, rejection: -0.47, interview: -0.15, assessment: -0.16, offer: -0.1, recruiter_reply: 0.09 },
   "rc:thanks": { received: 0.78, rejection: 0.45, interview: -0.13, assessment: 0.12, offer: -0.33, recruiter_reply: -0.27, other: -0.62 },
   "rj:closed": { received: -0.26, rejection: 0.62, interview: -0.05, assessment: -0.05, offer: -0.05, other: -0.18 },
   "rj:closer": { received: -0.12, rejection: 0.7, offer: -0.05, recruiter_reply: -0.2, other: -0.25 },
@@ -564,7 +567,7 @@ export const MAIL_WEIGHTS: Record<string, Partial<Record<MailKind, number>>> = {
   "rule:offer": { received: -0.4, rejection: -0.33, interview: -0.23, assessment: -0.17, offer: 1.94, recruiter_reply: -0.19, other: -0.63 },
   "rule:received": { received: 1.74, rejection: -0.15, interview: -0.06, offer: -0.29, recruiter_reply: -0.29, other: -0.91 },
   "rule:recruiter_reply": { received: -0.36, rejection: -0.23, interview: 0.07, assessment: -0.2, offer: -0.3, recruiter_reply: 1.55, other: -0.53 },
-  "rule:rejection": { received: -0.57, rejection: 1.82, interview: -0.21, assessment: -0.18, offer: -0.21, recruiter_reply: -0.46, other: -0.2 },
+  "rule:rejection": { received: -0.57, rejection: 1.82, interview: -0.21, assessment: -0.18, offer: -0.21, recruiter_reply: -0.46, other: -0.19 },
   "s:ats": { received: 0.5, rejection: 0.78, interview: 0.65, assessment: 0.31, offer: 0.07, recruiter_reply: -0.55, other: -1.77 },
   "s:board": { received: 0.59, rejection: -0.18, interview: -0.32, assessment: -0.12, offer: -0.25, recruiter_reply: -0.1, other: 0.38 },
   "s:free": { received: -0.07, interview: -0.16, assessment: -0.05, offer: -0.06, recruiter_reply: -0.1, other: 0.42 },
@@ -710,9 +713,9 @@ function readMail(m: MailMeta, opts: ReadOpts = {}): { out: Classified; features
   // unless the reply also says where the process stands (rr:status).
   if (kind === "recruiter_reply" && f.has("rule:interview") && !f.has("rr:status")) kind = "interview";
   // WO-050: the same for an offer made in a reply ("RE: Offer details - attached is your updated offer, please sign").
-  // The reply's own evidence then counts with the offer, as the earlier steps' does with an interview.
-  const offerInReply = kind === "recruiter_reply" && f.has("rule:offer") && !f.has("rr:status");
-  if (offerInReply) kind = "offer";
+  // The reply's own evidence then counts with an offer its words make, as the earlier steps' does with an interview.
+  if (kind === "recruiter_reply" && f.has("rule:offer") && !f.has("rr:status")) kind = "offer";
+  const offerInReply = kind === "offer" && f.has("rule:offer") && f.has("s:person");
   if (kind !== "other" && share(scores, kind, kind === "interview" || kind === "assessment" ? EARLIER : receipt || offerInReply ? ["recruiter_reply"] : []) < MAIL_DECISION.minShare) kind = "other";
   // A kind is said only on its own words: a sender, a greeting and a thank-you never say "no" (or anything) by themselves.
   if (kind !== "other" && ![...f.keys()].some((k) => k.startsWith(OWN[kind]) || k === `rule:${kind}`)) kind = "other";
@@ -723,9 +726,11 @@ function readMail(m: MailMeta, opts: ReadOpts = {}): { out: Classified; features
   if (kind === "interview" && !f.has("rule:interview") && !f.has("iv:noun") && !ats && !APP_REF.test(text) && !W?.job.test(all)) kind = "other";
   // Words that decide against the person: a rejection when it leads every other status (under the share bar too: these
   // families are written to be decisive), otherwise nothing at all.
-  // WO-050: a decision said outright (not a negation, which is broader) in a person's reply ("re: staff eng role - we're
-  // going to pass") is a rejection even when the reply's own weights lead: a reply is not a step forward.
-  const outright = DECIDED_AGAINST.some((k) => k !== "rj:negated" && f.has(k));
+  // WO-050: a decision said outright in a person's reply ("re: staff eng role - we're going to pass", "we went with someone
+  // else") is a rejection even when the reply's own weights lead: a reply is not a step forward. Never a negation, which is
+  // broader, nor a bare "not selected" ("the team has not selected anyone yet" is an update).
+  const softNo = (hit?: string) => !hit || /^not\b|\bnot (been )?(selected|chosen|shortlisted)\b/i.test(hit);
+  const outright = f.has("rj:other_candidate") || f.has("rj:closed") || !softNo(f.get("rule:rejection")) || !softNo(f.get("rj:pass"));
   if (DECIDED_AGAINST.some((k) => f.has(k))) kind = FORWARD.every((k) => scores.rejection >= scores[k] || (outright && k === "recruiter_reply")) ? "rejection" : "other";
   // An offer talked about is not an interview, a test, a receipt or a recruiter's note ("a call to go through the offer").
   if (["interview", "assessment", "received", "recruiter_reply"].includes(kind) && OFFER_SAID.some((k) => f.has(k))) kind = "other";

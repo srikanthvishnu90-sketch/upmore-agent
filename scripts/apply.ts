@@ -19,6 +19,7 @@ import { bindFields as bind } from "./career/form-bind.ts";
 import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
 import {
   type Ats,
+  ATS_NAMES,
   codeStop,
   EmailCode,
   fetchVerificationCode,
@@ -436,9 +437,9 @@ export async function runApply(args: string[]) {
       const form = control?.form || control?.closest("form");
       return form ? { url: form.action, method: form.method } : null;
     });
-  // WO-096: the page's one visible code box (by its label, name, placeholder or one-time-code autocomplete) and the
-  // button that sends it (in the same form, a submit/verify/confirm/continue button). Exactly one box, or nothing is
-  // typed: split one-character boxes and a page with two code boxes are the person's. Returns whether it typed and pressed.
+  // WO-096: fills the page's one visible code box (by its label, name, placeholder or one-time-code autocomplete).
+  // Exactly one box, or nothing is typed: split one-character boxes and two code boxes are the person's. Returns whether
+  // it filled the box. It never presses anything (D-029 rule 5).
   async function typeCode(code: EmailCode): Promise<boolean> {
     const marked = await page.evaluate(() => {
       const d = (globalThis as any).document;
@@ -452,20 +453,12 @@ export async function runApply(args: string[]) {
         (e.autocomplete === "one-time-code" || named.test(words(e)) || named.test(String(e.name || "")))
       ) as any[];
       if (boxes.length !== 1 || (boxes[0].maxLength > 0 && boxes[0].maxLength < 4)) return false;
-      const box = boxes[0];
-      const scope = box.form || d;
-      const buttons = Array.from(scope.querySelectorAll("button, input[type=submit]")).filter((b: any) =>
-        !b.disabled && b.getClientRects().length && /submit|verify|confirm|continue/i.test(String(b.innerText || b.value || ""))
-      ) as any[];
-      const button = buttons.find((b) => b.type === "submit") || buttons[0];
-      if (!button) return false;
-      box.setAttribute("data-trainee-code-box", "1");
-      button.setAttribute("data-trainee-code-button", "1");
+      boxes[0].setAttribute("data-trainee-code-box", "1");
       return true;
     });
     if (!marked) return false;
+    // D-029 rule 5: filled only, nothing pressed. The person presses Submit.
     await page.fill("[data-trainee-code-box]", code.reveal());
-    await page.click("[data-trainee-code-button]");
     return true;
   }
   // A verification on the page is the person's: they complete it in the browser window, press Enter, and the run
@@ -1050,52 +1043,33 @@ export async function runApply(args: string[]) {
       };
       let obs = await outcome(cap);
       // WO-096: the employer emailed a code after the approved submit. With --email-code, Trainee reads it from the
-      // person's own Gmail (read-only: the posting's application system's own senders, mail after the click), types it
-      // into the page's one code box and presses that box's own button. That is one write through the code window
-      // below's rules (one per try, the employer's own site, and a write that re-sends the application must carry every
-      // approved answer unchanged). The code stays in memory: it is never printed and never in the evidence.
-      let stop: string | null = null;
+      // person's own Gmail (read-only: the posting's application system's own senders, mail after the click) and fills
+      // the page's one code box. It presses nothing (D-029 rule 5): headless, the run stops at needs_user; with
+      // --handoff the person presses Submit and the code window below lets that one write go under its rules. The code
+      // stays in memory: it is never printed and never in the evidence.
+      let stop: string | null = null, codeFilled = false;
       if (obs.email_code_prompt && !obs.captcha && !denied && !readCode && !o.handoff) {
         stop = codeStop("no_google_connection", codeAts ?? "");
       }
       if (obs.email_code_prompt && !obs.captcha && !denied && readCode) {
-        const asked = obs;
         const got: CodeRead = codeAts ? await readCode({ ats: codeAts, sinceMs: clickAt }) : { status: "not_yet" };
         evidence.code_auto = { ats: codeAts, status: got.status };
         if (got.status === "found" && got.code) {
+          // D-029 rule 5: the code is filled and nothing is pressed. The person presses Submit (with --handoff the run
+          // watches for it below; headless, the run stops here at needs_user).
           typedCode = got.code;
-          codeAllowance = codeWrites + 1;
-          codeWindow = true;
           const typed = await typeCode(got.code);
           evidence.code_auto.typed = typed;
-          for (let w = 0; typed && w < 40 && codeWrites < codeAllowance && !evidence.code_rejection; w++) {
-            await new Promise((r) => setTimeout(r, 500));
-          }
-          await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
-          await page.waitForTimeout(2500);
-          codeWindow = false;
-          codeAllowance = codeWrites;
+          codeFilled = typed;
           // Every input is masked in the picture: the code box holds the code.
           await page.screenshot({
             path: path.join(evidenceDir, "after-code.png"),
             fullPage: true,
             mask: [page.locator("input, textarea, [contenteditable]")],
           }).catch(() => {});
-          obs = await outcome({
-            captcha: await page.evaluate(helper.detectChallenge),
-            finalUrl: page.url(),
-            text: await page.evaluate(() =>
-              String((globalThis as any).document.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6000)
-            ),
-          });
-          evidence.code_auto.requests = codeWrites;
-          if (evidence.code_rejection) {
-            evidence.code_auto.refused = evidence.code_rejection;
-            obs = asked;
-          }
-          if (denied) throw fail("HOST_REDIRECT_REFUSED");
-          if (!typed) stop = "The page's code box could not be found. Type the code the employer emailed you on the page yourself.";
-          else if (obs.email_code_prompt) stop = "The page did not take the code from your email. Type the newest code on the page yourself.";
+          stop = typed
+            ? `Filled the code ${ATS_NAMES[codeAts!]} emailed you. Press Submit to finish.`
+            : "The page's code box could not be found. Type the code the employer emailed you on the page yourself.";
         } else {
           stop = got.stop || codeStop("not_yet", codeAts ?? "");
         }
@@ -1109,8 +1083,10 @@ export async function runApply(args: string[]) {
           codeAllowance = codeWrites + 1;
           codeWindow = true;
           console.log(
-            "The employer emailed you a verification code. Type it into the browser window and press the page's own " +
-              "button yourself; Trainee never sees or keeps the code. Then press Enter here.",
+            codeFilled && i === 0
+              ? `${stop} Press the page's Submit in the browser window yourself, then press Enter here.`
+              : "The employer emailed you a verification code. Type it into the browser window and press the page's own " +
+                "button yourself; Trainee never sees or keeps the code. Then press Enter here.",
           );
           await answer();
           for (let w = 0; w < 40 && codeWrites < codeAllowance && !evidence.code_rejection; w++) {

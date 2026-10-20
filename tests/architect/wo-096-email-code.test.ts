@@ -15,6 +15,7 @@ import GATE from "../../scripts/gate.sh" with { type: "text" };
 import APPLY_SRC from "../../scripts/apply.ts" with { type: "text" };
 import BACKGROUND from "../../extension/background.js" with { type: "text" };
 import CONTENT from "../../extension/content.js" with { type: "text" };
+import DOM_SRC from "../../extension/src/dom.ts" with { type: "text" };
 import { createRequire } from "node:module";
 import { runApproved } from "../../workers/career-browser/approve-first.ts";
 import { cardOutcome } from "../../extension/src/apply_core.ts";
@@ -384,11 +385,12 @@ Deno.test("WO-096 end to end in the portal driver: a Greenhouse-shaped form with
   const { value: out, lines } = await captured(() =>
     Portal.runApplyWithEmailCode(session, input, (i: any) => fetchVerificationCode(i, { mailbox: async () => fakeBox(() => inbox), now: c.now, sleep: c.sleep }))
   );
-  assert(out.resultStatus === "completed", JSON.stringify(out));
+  // D-029 rule 5: filled, then the doorstep waits for the person's own Submit; nothing is pressed for them.
+  eq([out.resultStatus, out.code, out.stop], ["awaiting_user", "EMAIL_CODE_FILLED", "Filled the code Greenhouse emailed you. Press Submit to finish."]);
   assert(board.codeAccepted === true, "the code reached the page's code step");
-  eq(board.calls.submit, 1);
+  eq(board.calls.submit, 0);
   const steps = out.stepLog.map((s: any) => s.action);
-  assert(steps.indexOf("email_code_filled") < steps.indexOf("doorstep_reached") && steps.indexOf("doorstep_reached") < steps.indexOf("approval_bound"), steps.join(" "));
+  assert(steps.indexOf("email_code_filled") < steps.indexOf("doorstep_reached") && !steps.includes("approval_bound"), steps.join(" "));
   for (const s of [JSON.stringify(out), JSON.stringify(log), JSON.stringify(session.doorstep), JSON.stringify(session.submission), ...lines]) {
     assert(!s.includes(GH), "the code is in a record: " + s.slice(0, 160));
   }
@@ -429,7 +431,14 @@ Deno.test("WO-096 the extension: the code goes from the function's answer into t
   const fn = BACKGROUND.slice(BACKGROUND.indexOf("async function typeEmailCode"), BACKGROUND.indexOf("// ---", BACKGROUND.indexOf("async function typeEmailCode")));
   assert(/functions\/v1\/career-email-code/.test(fn) && /apply_id: p\.id, lease: p\.lease/.test(fn) && /C\.pollForCode/.test(fn), "reads for this row, as the person");
   assert(/dom\.typeCode\(c\)/.test(fn), "typed into the page by the page's own helper");
-  assert(!/console\.|keepEvidence|setCard|p\.code\s*=/.test(fn), "the code is never logged, kept in the pending record, the proof or the card");
+  assert(!/console\.|keepEvidence|setCard\([^)]*\bcode\b[,)]|p\.code\s*=/.test(fn), "the code is never logged, kept in the pending record, the proof or the card");
+  // D-029 rule 5: no press after the fill, anywhere in the extension's code path.
+  const typeFn = DOM_SRC.slice(DOM_SRC.indexOf("export function findCodeBox"), DOM_SRC.indexOf("// The screenshot never shows"));
+  for (const [name, src] of [["dom.ts", typeFn], ["background.js", fn], ["content.js", CONTENT.slice(CONTENT.indexOf("WO-096"), CONTENT.indexOf("Proof after the click"))]]) {
+    assert(!/\.click\(|requestSubmit|\.submit\(|dispatchEvent\(new KeyboardEvent/.test(src), `${name} presses something after the code`);
+  }
+  assert(/Filled the code \$\{name\} emailed you\. Press Submit to finish\./.test(fn));
+  assert(/\[data-trainee-code-box\]/.test(DOM_SRC) && /input\[type=password\], " \+ CODE_BOX/.test(DOM_SRC), "the proof's picture covers the code box");
   assert(/"email-code"/.test(BACKGROUND.slice(BACKGROUND.indexOf("const TAB_ONLY"))), "only an application page may ask");
   assert(/return \{ ok: true, typed: r\.typed, stop: r\.stop \}/.test(BACKGROUND), "the page that asked gets typed/stop, never the code");
   assert(/type: "email-code"/.test(CONTENT) && !/\.code\b(?!_)/.test(CONTENT.slice(CONTENT.indexOf("WO-096"), CONTENT.indexOf("Proof after the click"))));
@@ -444,6 +453,9 @@ Deno.test("WO-096 the engine: the code is read only after the approved click, an
   assert(post > 0 && read > post, "mail is read only after the approved click");
   assert(read > APPLY_SRC.indexOf('await answer() !== "yes"'), "and after the person's yes");
   assert(/redactCode\(JSON\.stringify\(evidence, null, 2\), typedCode\)/.test(APPLY_SRC), "the evidence file is cleaned of the code");
+  const typeFn = APPLY_SRC.slice(APPLY_SRC.indexOf("async function typeCode"), APPLY_SRC.indexOf("// A verification on the page is the person's"));
+  assert(typeFn.length > 0 && !/\.click\(|\.press\(|requestSubmit|keyboard|Enter/.test(typeFn), "D-029 rule 5: the engine never presses after the code");
+  assert(/Filled the code \$\{ATS_NAMES\[codeAts!\]\} emailed you\. Press Submit to finish\./.test(APPLY_SRC));
   assert(!/console\.log\([^)]*(typedCode|got\.code|reveal\(\))/.test(APPLY_SRC), "the code is never printed");
   assert(/LOCAL_GMAIL_LOCAL_ONLY/.test(APPLY_SRC), "the loopback Gmail stand-in only for local test pages");
 });

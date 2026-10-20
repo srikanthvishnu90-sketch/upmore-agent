@@ -9,12 +9,20 @@ the agent should be able to, using the person's own information with their conse
 ## Where a code stopped the flow (trunk before this order)
 | Place | What happened | Now |
 |---|---|---|
-| `scripts/apply.ts`, after the approved click (the worker drive; `approve-first.ts run` runs it) | `email_code_prompt` meant `needs_user/email_code`, or with `--headed --handoff` the person typed the code | `--email-code account\|local-gmail`: the code is read, typed into the page's one code box, and that box's own button is pressed. This is one write under the existing code-window rules. A stop says what the person does |
+| `scripts/apply.ts`, after the approved click (the worker drive; `approve-first.ts run` runs it) | `email_code_prompt` meant `needs_user/email_code`, or with `--headed --handoff` the person typed the code | `--email-code account\|local-gmail`: the code is read and filled into the page's one code box; nothing is pressed. Headless: `needs_user` with "Filled the code Greenhouse emailed you. Press Submit to finish." With `--handoff`, the person's own press goes under the existing code-window rules and the confirmation is recorded |
 | `scripts/apply.ts`, a code box on the form before anything was approved | `needs_user/email_code` | Unchanged, now with a named stop. There is no approved application yet to read mail for |
-| `extension/content.js` after the click: Greenhouse's code box on the same form | waited, then `needs_user`: "Finish it yourself on the page" | The service worker reads the code and types it into the frame that asked. The page's answer is waited for again |
-| `extension/background.js readAndFinish`: a submit that moved to a code page | finished as `needs_user` | Reads the code and types it once per application. The page after it is read again |
-| `packages/domain/149` (portal driver) | the board's captcha/code at open or review meant `CAPTCHA_HANDOFF` | A board's `emailCode` step at review now gives `EMAIL_CODE_REQUIRED` with a named stop. `runApplyWithEmailCode` reads the code for an approved drive, types it (`board.fillCode`) and goes on to the doorstep. Captchas are unchanged |
+| `extension/content.js` after the click: Greenhouse's code box on the same form | waited, then `needs_user`: "Finish it yourself on the page" | The service worker reads the code and fills it into the frame that asked; the card says "Filled the code … Press Submit to finish." The person's press is watched for two minutes |
+| `extension/background.js readAndFinish`: a submit that moved to a code page | finished as `needs_user` | Reads the code and fills it once per application, never pressed. The page after the person's Submit (or in two minutes) is read |
+| `packages/domain/149` (portal driver) | the board's captcha/code at open or review meant `CAPTCHA_HANDOFF` | A board's `emailCode` step at review now gives `EMAIL_CODE_REQUIRED` with a named stop. `runApplyWithEmailCode` reads the code for an approved drive, fills it (`board.fillCode`) and stops at the doorstep `EMAIL_CODE_FILLED`; the person's own Submit is `submitDoorstep`. Captchas are unchanged |
 | `extension/content.js` Workday account pages (D-013 b) | the person's own | Unchanged: Trainee never reads, fills or clicks an account page |
+
+## Rules (D-029, binding; WO-096 supersedes WO-084)
+1. **Only the code, only to the form.** Never in a table, log, chrome.storage, the card, chat or evidence; the screenshot covers the code box (`maskFields`, `CODE_BOX`; the engine masks every input).
+2. **Only the right sender, only fresh mail.** Mail must arrive after the prompt (less 30 s) and within D-021's 15 minutes. The sender must be the ATS's own sender domains, and Gmail must have authenticated them (DKIM or DMARC). D-029's "or the employer's own domain" is deliberately NOT adopted: an employer-domain mail never supplies a code. This is stricter.
+3. **Exactly one code, or none.** Two different codes are `ambiguous`; nothing is guessed.
+4. **Never a password, never the account.** Only a box whose label names a code is filled; Workday account pages stay the person's (D-013(b)).
+5. **The person still presses Submit.** After the fill, nothing is clicked or pressed and no write follows (apply.ts, extension, 149). Headless or cloud runs stop at `needs_user`. A confirmation seen while the run or extension is still watching is recorded as usual.
+6. **No grant, no reading.** Without the career grant (or without `gmail.readonly`), nothing is read and the stop names the step.
 
 ## What was built
 - `supabase/functions/_shared/career_email_code.ts`:
@@ -53,7 +61,7 @@ the agent should be able to, using the person's own information with their conse
 1. **Deploy (the owner's step):** deploy `career-email-code` (`supabase functions deploy career-email-code`). Nothing else is new on the server: no migration, no secret. It uses the existing `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` to refresh the grant, as career-proactive does.
 2. **Connect Google:** connect Google on your own account in the app (career consent, "read mail"). If it was connected before with only `gmail.send`, connect again so `gmail.readonly` is granted.
 3. **The next real Greenhouse application:**
-   - In the extension: approve the card. The code step is typed for you.
+   - In the extension: approve the card. The code is filled for you; you press Submit.
    - On the worker: run `deno run -A workers/career-browser/approve-first.ts run <resume.pdf>`.
 
    The card or the run line says "Sent; the employer's page confirmed it", or names the next step.
@@ -65,10 +73,10 @@ the agent should be able to, using the person's own information with their conse
   - **The edge function's approval gate:** signed out, someone else, queued, finished, another lease, a stale claim, another row, and another system's mail. None of them looks in the mailbox.
   - **Redaction:** console lines, errors, evidence, tracker and reply strings are scanned for the code.
   - **Mail tracking:** still noise.
-  - **149 end to end:** a Greenhouse-shaped form with a code step, through the real reader. The code is typed, then the doorstep is reached, then the approval-bound submit. Without approval nothing is read and nothing is sent.
+  - **149 end to end:** a Greenhouse-shaped form with a code step, through the real reader. The code is filled, the doorstep is reached, and nothing is submitted for the person. Without approval nothing is read and nothing is sent.
   - **Wiring:** worker args and environment, extension wiring and the card's stop, and the engine's order (read after the yes and the click).
 - `tests/career-email-code-portal.test.cjs`: 4 tests. 149 with a stand-in reader: approved, unapproved, not connected, two codes, a code the page refused, and no code step.
-- `tests/career-email-code-engine.test.cjs`: 7 tests. The real engine against a local Greenhouse-shaped fixture and a loopback Gmail API. Both code shapes end confirmed, with the new code (not an old one) reaching the employer and the resend carrying the approved answers. Every file the run wrote, its stdout and its stderr are scanned for the code. A dry run or a "no" reads no mail. No connection, no `--email-code`, two codes and a stranger's code each give a named stop with nothing more sent. `local-gmail` is refused for a real employer.
+- `tests/career-email-code-engine.test.cjs`: 8 tests. The real engine against a local Greenhouse-shaped fixture and a loopback Gmail API. Both code shapes: the new code (not an old one) is filled and nothing more is sent (no click, no write after the fill). With `--handoff` the person's press sends the new code once with the approved answers, and the run records the confirmation. Every file the run wrote, its stdout and its stderr are scanned for the code. A dry run or a "no" reads no mail. No connection, no `--email-code`, two codes and a stranger's code each give a named stop with nothing more sent. `local-gmail` is refused for a real employer.
   - These need the sandboxed Chromium the gate provides (`browser-runtime`). The build container here cannot run a sandboxed Chromium as root, so they ran in CI only.
 - Gate pieces run here: architect suite (all green), the bundles (`build-router-core.py --check`, `--career-only --check`, `extension/build.ts --check`), `deno check scripts/apply.ts` and `workers/career-browser/approve-first.ts`, and the non-browser career node tests.
 

@@ -73,8 +73,13 @@ const codeInline = () =>
     if (!(await r.json()).code_required) return;
     document.getElementById("code-box").innerHTML = '<p>Enter the security code we emailed you.</p>' +
       '<label for="code">Security code</label><input id="code" name="security_code">';
+    // The person pressing Submit after Trainee filled the code (D-029 rule 5), when the test says so.
+    const poll = setInterval(async () => {
+      if ((await (await fetch("/__person")).text()) === "go") { clearInterval(poll); f.requestSubmit(); }
+    }, 300);
   });</script>`,
   );
+let personGo = false;
 
 function gmail(req, res) {
   gmailCalls++;
@@ -108,6 +113,7 @@ function gmail(req, res) {
 before(async () => {
   server = http.createServer(async (req, res) => {
     if (req.url.startsWith("/gmail/v1/users/me/messages")) return gmail(req, res);
+    if (req.url === "/__person") return res.writeHead(200).end(personGo ? "go" : "wait");
     if (req.method === "POST") {
       const parts = [];
       for await (const c of req) parts.push(c);
@@ -171,9 +177,9 @@ async function run({ route, flags = [], prompts = [], wait = "0" }) {
   p.stdout.on("data", (b) => {
     out += b;
     while (pending.length && out.includes(pending[0][0])) {
-      const [, line] = pending.shift();
-      events.push("person:" + line);
-      p.stdin.write(line + "\n");
+      const [, line, delay] = pending.shift();
+      events.push("person:" + (typeof line === "function" ? "press" : line));
+      setTimeout(() => (typeof line === "function" ? line() : p.stdin.write(line + "\n")), delay || 0);
     }
   });
   p.stderr.on("data", (b) => (err += b));
@@ -203,38 +209,47 @@ function scan(r, codes = [CODE, OTHER]) {
 const SUBMIT = "Submit this application to ";
 const fresh = (mode = "ok") => {
   inbox = [];
+  personGo = false;
   gmailMode = mode;
   events.length = 0;
   gmailCalls = 0;
 };
 
-test("Greenhouse's code box on the form: after the person's yes, the code from their mail is typed and the employer confirms", async () => {
-  fresh();
-  emailCode(OLD, Date.now() - 10 * 60_000); // an earlier application's code, still in the inbox
-  const n = receipts.length;
-  const r = await run({ route: "/code-inline", flags: ["--submit", "--email-code", "local-gmail"], prompts: [[SUBMIT, "yes"]] });
-  assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-400));
-  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-inline", "/submit-inline"], "the application, then once more with its code");
-  assert.equal(receipts[n + 1].fields.security_code, CODE, "the new code, not the old one, reached the employer");
-  assert.equal(receipts[n + 1].fields.email, "synthetic@example.test", "the second send carries the approved answers unchanged");
-  const ev = scan(r, [CODE, OLD, OTHER]);
-  assert.equal(ev.code_auto.status, "found");
-  assert.equal(ev.code_auto.typed, true);
-  assert.deepEqual(ev.code_requests.map((x) => x.keys.includes("security_code")), [true]);
-  // The approval law: the mailbox is read only after the person's yes and the approved submit.
-  const firstRead = events.indexOf("gmail");
-  assert.ok(firstRead > events.indexOf("person:yes") && firstRead > events.indexOf("receipt:/submit-inline"), events.join(" "));
-});
+const FILLED = "Filled the code Greenhouse emailed you. Press Submit to finish.";
+// D-029 rule 5: after the fill nothing is pressed. Headless, the run ends needs_user with the filled line; no click and no
+// write reach the employer after the application itself.
+for (const [route, first] of [["/code-inline", "/submit-inline"], ["/code-after", "/submit-code"]]) {
+  test(`${route}: after the person's yes, the new code from their mail is filled and nothing is pressed`, async () => {
+    fresh();
+    emailCode(OLD, Date.now() - 10 * 60_000); // an earlier application's code, still in the inbox
+    const n = receipts.length;
+    const r = await run({ route, flags: ["--submit", "--email-code", "local-gmail"], prompts: [[SUBMIT, "yes"]] });
+    assert.deepEqual([r.result.state, r.result.reason, r.result.stop], ["needs_user", "email_code", FILLED], JSON.stringify(r.result) + r.err.slice(-400));
+    assert.deepEqual(receipts.slice(n).map((x) => x.url), [first], "nothing was sent after the fill");
+    const ev = scan(r, [CODE, OLD, OTHER]);
+    assert.deepEqual([ev.code_auto.status, ev.code_auto.typed], ["found", true]);
+    assert.equal(ev.code_requests, undefined, "no write left in a code window");
+    // The approval law: the mailbox is read only after the person's yes and the approved submit.
+    const firstRead = events.indexOf("gmail");
+    assert.ok(firstRead > events.indexOf("person:yes") && firstRead > events.indexOf("receipt:" + first), events.join(" "));
+  });
+}
 
-test("a separate code page: the code alone goes to the employer's own site, once", async () => {
+test("--handoff: the person presses Submit after the fill; the new code and the approved answers go once, and the employer confirms", async () => {
   fresh();
+  emailCode(OLD, Date.now() - 10 * 60_000);
   const n = receipts.length;
-  const r = await run({ route: "/code-after", flags: ["--submit", "--email-code", "local-gmail"], prompts: [[SUBMIT, "yes"]] });
+  const r = await run({
+    route: "/code-inline",
+    flags: ["--submit", "--handoff", "--email-code", "local-gmail"],
+    prompts: [[SUBMIT, "yes"], [FILLED, () => (personGo = true)], [FILLED, "", 5000]],
+  });
+  personGo = false;
   assert.equal(r.result.state, "confirmed", JSON.stringify(r.result) + r.err.slice(-400));
-  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-code", "/verify-code"]);
-  assert.equal(receipts[n + 1].fields.security_code, CODE);
-  const ev = scan(r);
-  assert.deepEqual(ev.code_requests.map((x) => [x.url.replace(/^.*\/\/[^/]+/, ""), x.keys]), [["/verify-code", ["security_code"]]]);
+  assert.deepEqual(receipts.slice(n).map((x) => x.url), ["/submit-inline", "/submit-inline"]);
+  assert.equal(receipts[n + 1].fields.security_code, CODE, "the new code, not the old one");
+  assert.equal(receipts[n + 1].fields.email, "synthetic@example.test", "the person's send carries the approved answers unchanged");
+  assert.equal(scan(r, [CODE, OLD, OTHER]).code_requests.length, 1);
 });
 
 test("a dry run, or a person who says no, never reads the mailbox", async () => {

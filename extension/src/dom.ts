@@ -423,12 +423,11 @@ export function observe(urlBefore: string, plannedNames: string[]) {
 }
 
 // WO-096: the page's one visible code box after the approved submit (its label, name, placeholder or one-time-code
-// autocomplete names a verification/security/email code) and the button that sends it (a submit, verify, confirm or
-// continue button in the same form). Exactly one box, or nothing: split one-character boxes and two boxes are the
-// person's. The box is marked so the proof's picture covers it.
+// autocomplete names a verification/security/email code). Exactly one box, or nothing: split one-character boxes and
+// two boxes are the person's. The box is marked so the proof's picture covers it.
 const CODE_NAMED = /(verification|security|email|one[- _]?time|confirmation)[\s_-]*code|\botp\b|passcode|^code$/i;
 export const CODE_BOX = "[data-trainee-code-box]";
-export function findCodeBox(): { box: any; button: any } | null {
+export function findCodeBox(): any {
   const d = doc();
   const words = (e: any) => {
     const label = e.id ? d.querySelector(`label[for="${String(e.id).replace(/"/g, "")}"]`) : null;
@@ -438,24 +437,16 @@ export function findCodeBox(): { box: any; button: any } | null {
     !e.disabled && !e.readOnly && visible(e) && ["text", "tel", "number", "search"].includes(e.type) &&
     (e.autocomplete === "one-time-code" || CODE_NAMED.test(words(e)) || CODE_NAMED.test(String(e.name || "")))
   );
-  if (boxes.length !== 1 || (boxes[0].maxLength > 0 && boxes[0].maxLength < 4)) return null;
-  const box = boxes[0];
-  const buttons = (Array.from((box.form || d).querySelectorAll("button, input[type=submit]")) as any[]).filter((b) =>
-    !b.disabled && visible(b) && /submit|verify|confirm|continue/i.test(String(b.innerText || b.value || ""))
-  );
-  const button = buttons.find((b) => b.type === "submit") || buttons[0];
-  return button ? { box, button } : null;
+  return boxes.length === 1 && !(boxes[0].maxLength > 0 && boxes[0].maxLength < 4) ? boxes[0] : null;
 }
-// Types the code the person's own mail holds into that box and presses its button. The code is not kept: it goes into
-// the page only. Returns whether it was typed and pressed.
+// Fills that box with the code from the person's own mail. The code is not kept: it goes into the page only. Nothing
+// is pressed (D-029 rule 5): the person presses Submit. Returns whether it was filled.
 export function typeCode(code: string): boolean {
-  const found = findCodeBox();
-  if (!found || typeof code !== "string" || !code) return false;
-  found.box.setAttribute("data-trainee-code-box", "1");
-  found.box.focus();
-  setNative(found.box, code);
-  fire(found.box, "input", "change");
-  found.button.click();
+  const box = findCodeBox();
+  if (!box || typeof code !== "string" || !code) return false;
+  box.setAttribute("data-trainee-code-box", "1");
+  setNative(box, code);
+  fire(box, "input", "change");
   return true;
 }
 

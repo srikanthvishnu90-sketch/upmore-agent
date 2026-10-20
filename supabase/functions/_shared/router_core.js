@@ -49293,8 +49293,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
        the one exception (WO-096) is the code the application system
        EMAILS the person: for a drive the person approved on its card,
        runApplyWithEmailCode reads it from their own Gmail (read-only,
-       with their Google consent) and types it, as they would; otherwise
-       the run stops EMAIL_CODE_REQUIRED naming their next step;
+       with their Google consent) and fills it, then stops at the doorstep
+       for the person's own Submit (D-029 rule 5: nothing is pressed);
+       otherwise the run stops EMAIL_CODE_REQUIRED naming their next step;
      - legal attestation fields are never auto-answered; they need the
        user's explicit per-run confirmation. EEO defaults to
        "Decline to self-identify" unless the user chose otherwise (§6.1).
@@ -49909,8 +49910,8 @@ const CareerPortalApply = (() => {
   }
   // The async leg around runApply: when the page stops on a code step, and ONLY when this drive carries the person's
   // approval of its card (input.approval.approvedByUser), readCode({ userId, ats, sinceMs }) reads the code (the worker
-  // passes career_email_code.ts fetchVerificationCode, which waits up to about three minutes); a found code is typed and
-  // the drive goes on to the doorstep, where the approval's payload binding and arming wire decide the submit as always.
+  // passes career_email_code.ts fetchVerificationCode, which waits up to about three minutes); a found code is filled and
+  // the drive stops at the doorstep, EMAIL_CODE_FILLED: the person's own Submit (submitDoorstep) sends it (D-029 rule 5).
   // Anything else (not approved, no reader, not connected, no code yet, two codes) stays EMAIL_CODE_REQUIRED with the
   // person's next step. The code lives on the session for one fill and is cleared after.
   async function runApplyWithEmailCode(session, input, readCode) {
@@ -49941,6 +49942,7 @@ const CareerPortalApply = (() => {
     session.preparationFields = [];
     session.pendingAttestations = [];
     session.doorstep = null;
+    session.codeFilledAts = null;
     return prepareRound(session, input, false, 0, []);
   }
   function prepareRound(session, input, continued, round, priorSteps) {
@@ -49964,6 +49966,7 @@ const CareerPortalApply = (() => {
       session.emailCode = null; // used once, whatever happens
       if (code && !rv.emailCode.rejected && typeof board.fillCode === "function") {
         board.fillCode(typeof code.reveal === "function" ? code.reveal() : String(code));
+        session.codeFilledAts = ats || "employer";
         logStep("email_code_filled", { ats });
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
         return prepareRound(session, inp, true, round + 1, stepLog);
@@ -50292,6 +50295,12 @@ const CareerPortalApply = (() => {
     // the payload binds to THIS payload — the step log records the
     // binding, and submitDoorstep verifies it at click time like any
     // other bound approval.
+    // D-029 rule 5 (WO-096): once an emailed code was filled, nothing is pressed for the person: the doorstep waits for
+    // their own Submit (submitDoorstep with their approval), whatever this run carries.
+    if (session.codeFilledAts) {
+      return Object.assign(prepared, { resultStatus: "awaiting_user", code: "EMAIL_CODE_FILLED",
+        stop: `Filled the code ${ATS_NAMES[session.codeFilledAts] || "the employer"} emailed you. Press Submit to finish.` });
+    }
     if (inp.approval && inp.approval.approvedByUser === true) {
       inp.approval.payloadSha256 = payloadSha256;
       logStep("approval_bound", { payloadSha256 });

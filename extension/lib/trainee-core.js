@@ -4909,23 +4909,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       "number",
       "search"
     ].includes(e.type) && (e.autocomplete === "one-time-code" || CODE_NAMED.test(words(e)) || CODE_NAMED.test(String(e.name || ""))));
-    if (boxes.length !== 1 || boxes[0].maxLength > 0 && boxes[0].maxLength < 4) return null;
-    const box = boxes[0];
-    const buttons = Array.from((box.form || d).querySelectorAll("button, input[type=submit]")).filter((b) => !b.disabled && visible(b) && /submit|verify|confirm|continue/i.test(String(b.innerText || b.value || "")));
-    const button = buttons.find((b) => b.type === "submit") || buttons[0];
-    return button ? {
-      box,
-      button
-    } : null;
+    return boxes.length === 1 && !(boxes[0].maxLength > 0 && boxes[0].maxLength < 4) ? boxes[0] : null;
   }
   function typeCode(code) {
-    const found = findCodeBox();
-    if (!found || typeof code !== "string" || !code) return false;
-    found.box.setAttribute("data-trainee-code-box", "1");
-    found.box.focus();
-    setNative(found.box, code);
-    fire(found.box, "input", "change");
-    found.button.click();
+    const box = findCodeBox();
+    if (!box || typeof code !== "string" || !code) return false;
+    box.setAttribute("data-trainee-code-box", "1");
+    setNative(box, code);
+    fire(box, "input", "change");
     return true;
   }
   function maskFields(selectors) {

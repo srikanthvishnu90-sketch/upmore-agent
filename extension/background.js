@@ -412,11 +412,12 @@ async function readAndFinish(tabId, p) {
   try {
     const { observation, shotAfter } = await readAfterNavigation(tabId, p);
     // WO-096: the submit moved to a page asking for the code the employer emailed. Once per application, the code is read
-    // from the person's own Gmail and typed there; the page after it is read again (its load, or in ten seconds).
+    // from the person's own Gmail and filled there (never pressed, D-029); the page is read again when the person's
+    // Submit loads the next page, or in two minutes.
     if (observation?.email_code_prompt && !observation.captcha && !p.code_tried) {
       const r = await typeEmailCode(tabId, 0, p);
       if (r.typed) {
-        setTimeout(() => afterNavigation(tabId), 10_000);
+        setTimeout(() => afterNavigation(tabId), 120_000);
         return;
       }
       await finish(tabId, observation, { shotAfter, codeStop: r.stop });
@@ -474,7 +475,14 @@ async function typeEmailCode(tabId, frameId, p) {
       func: (c) => globalThis.TraineeCore.dom.typeCode(c),
     });
     code = null;
-    if (res?.result === true) return { typed: true, stop: null };
+    if (res?.result === true) {
+      // D-029 rule 5: filled, never pressed. The person presses Submit; the card says so until the employer answers.
+      const name = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday" }[ats] || "the employer";
+      p.code_stop = `Filled the code ${name} emailed you. Press Submit to finish.`;
+      await setPending(tabId, p);
+      await setCard(tabId, { status: "submitting", message: p.code_stop });
+      return { typed: true, stop: p.code_stop };
+    }
   } catch { /* the page went away: the person types it */ }
   code = null;
   p.code_stop = "The page's code box could not be found. " + TYPE_IT;

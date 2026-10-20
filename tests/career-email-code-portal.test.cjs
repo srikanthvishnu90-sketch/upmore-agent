@@ -50,18 +50,23 @@ function noCode(r) {
   }
 }
 
-test("an approved drive: the emailed code is read, typed, and the doorstep and its approved submit follow", async () => {
+test("an approved drive: the emailed code is read and filled, and the doorstep waits for the person's own Submit (D-029)", async () => {
   const r = await drive({ reader: async () => ({ status: "found", code: secret(CODE) }) });
-  assert.equal(r.out.resultStatus, "completed", JSON.stringify(r.out));
-  assert.equal(r.board.codeAccepted, true, "the code was typed into the page's code step");
-  assert.equal(r.board.calls.submit, 1);
+  assert.deepEqual([r.out.resultStatus, r.out.code], ["awaiting_user", "EMAIL_CODE_FILLED"], JSON.stringify(r.out));
+  assert.equal(r.out.stop, "Filled the code Greenhouse emailed you. Press Submit to finish.");
+  assert.equal(r.board.codeAccepted, true, "the code was filled into the page's code step");
+  assert.equal(r.board.calls.submit, 0, "nothing is pressed after the code, even with the approval in the run");
   assert.deepEqual(r.reads, [{ userId: "TEST-USER-096", ats: "greenhouse", sinceMs: NOW }], "read once, for this system, from when the page asked");
   const steps = r.out.stepLog.map((s) => s.action);
   const at = (a) => steps.indexOf(a);
   assert.ok(at("email_code_stop") < at("email_code_read") && at("email_code_read") < at("email_code_filled") &&
-    at("email_code_filled") < at("doorstep_reached") && at("doorstep_reached") < at("approval_bound"), steps.join(" "));
+    at("email_code_filled") < at("doorstep_reached") && at("approval_bound") === -1, steps.join(" "));
   assert.ok(!("code" in r.session.doorstep.payload) && !Object.values(r.session.doorstep.payload).includes(CODE), "the code is not an answer");
   assert.equal(r.session.emailCode, null, "the session keeps no code");
+  // The person's own Submit, bound to the doorstep they see.
+  const sent = Portal.submitDoorstep(r.session, { approvedByUser: true, payloadSha256: r.out.doorstep.payloadSha256 }, { log: r.log, posting: POSTING });
+  assert.equal(sent.resultStatus, "completed", JSON.stringify(sent));
+  assert.equal(r.board.calls.submit, 1);
   noCode(r);
 });
 

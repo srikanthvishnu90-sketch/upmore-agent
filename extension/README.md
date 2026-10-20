@@ -28,7 +28,7 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
   next to the click. It never solves or bypasses a verification: you finish it yourself, then press Approve again.
 - When the employer emails you a code after your Approve (Greenhouse's security code), Trainee reads that one code from
   your own Gmail, if you connected Google with reading mail allowed. It reads only mail from the application system's own
-  senders that arrived after the click. It types the code into the page's code box. The code is never shown, kept, or
+  senders that arrived after the click. It fills the code into the page's code box and you press Submit. The code is never shown, kept, or
   in the proof. If Google is not connected, or two different codes arrived, the card says so and you type the code yourself.
 - Keep the application's tab in front while it sends: the screenshots are taken of the visible tab.
 - Each application is recorded on your account (the same queue as every other application: one per posting, one per

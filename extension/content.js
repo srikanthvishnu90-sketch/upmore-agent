@@ -556,13 +556,15 @@
     }
     let obs = D.observe(before, planned);
     // WO-096: the page asks, in place, for the code the employer just emailed (Greenhouse's code box on the same form).
-    // The service worker reads it from the person's own Gmail for this approved application and types it into this
-    // frame's code box; the code never comes here. Then the employer's answer is waited for again, the same way.
+    // The service worker reads it from the person's own Gmail for this approved application and fills this frame's code
+    // box; the code never comes here. Nothing is pressed (D-029 rule 5): the card asks the person to press Submit, and
+    // the employer's answer is watched for two minutes, then the code step is the person's (needs_user).
     let codeStop = null;
     if (obs.email_code_prompt && !obs.captcha && obs.form_present_after && D.findCodeBox()) {
       const r = await send({ type: "email-code" });
       if (r?.typed) {
-        const until = Date.now() + C.NO_ANSWER_WAIT_MS;
+        codeStop = r.stop;
+        const until = Date.now() + 120_000;
         while (Date.now() < until) {
           await sleep(250);
           const o = D.observe(before, planned);
@@ -571,7 +573,6 @@
         }
         await sleep(300);
         obs = D.observe(before, planned);
-        if (obs.email_code_prompt) codeStop = "The page did not take the code from your email. Type the newest code on the page yourself.";
       } else codeStop = r?.stop || "Type the code the employer emailed you on the page yourself.";
     }
     // Proof after the click: what the employer answered (or the form with its errors), identity fields covered.

@@ -11,7 +11,7 @@ import {
   readRequest, supabaseDraftCounter, supabaseFacts,
 } from "../../supabase/functions/_shared/career_essay_card.ts";
 import {
-  cardLines, draftFactId, draftFactIds, draftProvenance, essayQuestions, evidenceRecord, formAnswersToKeep, reviewPayload, showableDraft,
+  cardLines, draftFactId, draftFactIds, draftProvenance, essayQuestions, OWN_WORDS_BANNED, OWN_WORDS_UNREAD, evidenceRecord, formAnswersToKeep, reviewPayload, showableDraft,
   type SnapField,
 } from "../../extension/src/apply_core.ts";
 import { answerKey } from "../../supabase/functions/_shared/question_map.ts";
@@ -299,8 +299,8 @@ Deno.test("WO-049/10 the card offers a draft on each written question still need
   ] as any[];
   const fields = [{ name: "first", source: "trainee" }, { name: "mine", source: "you" }, { name: "exp", source: "drafted" }];
   eq(essayQuestions({ schema, fields, maxLength: { why: 1200 } }), [
-    { name: "why", label: "Why do you want to work here?*", type: "textarea", chars: 1200 },
-    { name: "exp", label: "Describe your experience with reconciliation.", type: "textarea", chars: null },
+    { name: "why", label: "Why do you want to work here?*", type: "textarea", chars: 1200, own: null },
+    { name: "exp", label: "Describe your experience with reconciliation.", type: "textarea", chars: null, own: null },
   ], "required essays not answered, and a used draft (still editable); never one the person typed, never an optional one");
   // Shown only when the server said ok and the text is whole.
   assert(showableDraft({ ok: true, text: SHORT, fact_ids: ["F-001"], facts: [], message: "" }));
@@ -378,4 +378,14 @@ Deno.test("WO-049/14 measured: essays offered a draft are a separate column, nev
     assert(REPORT.includes(`| ${c.drafted} of ${c.askedKinds.essay} essays |`), "docs/apply/fill-coverage.md is stale: regenerate it");
   }
   assert(/\| Drafted for review \|/.test(REPORT));
+});
+
+Deno.test("WO-049/15 the card reads the employer's AI policy itself: a form that asks for the person's own words offers no draft", () => {
+  const essay = { name: "why", label: "Why do you want to work here?", type: "textarea", required: true };
+  const ban = { name: "ack", label: "I confirm my answers are only my own words, written without AI tools.", type: "checkbox", required: true };
+  const vague = { name: "pol", label: "I have read the Acme AI Policy.", type: "checkbox", required: true };
+  eq(essayQuestions({ schema: [essay] as any, fields: [] })[0].own, null, "no policy: a draft may be offered");
+  eq(essayQuestions({ schema: [essay, ban] as any, fields: [] })[0].own, OWN_WORDS_BANNED);
+  eq(essayQuestions({ schema: [essay, vague] as any, fields: [] })[0].own, OWN_WORDS_UNREAD);
+  assert(/q\.own/.test(PANEL) && /if \(q\.own\)/.test(PANEL), "the card hides the button and shows the reason");
 });

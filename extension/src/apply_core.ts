@@ -10,6 +10,7 @@ import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/que
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
+import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 
 export type Family = "greenhouse" | "lever" | "ashby" | "workday";
 export interface Portal { family: Family; embedded: boolean }
@@ -412,7 +413,12 @@ export function draftFactId(ids: string[]): string {
 export const draftFactIds = (factId: string | null | undefined): string[] =>
   typeof factId === "string" && factId.startsWith(DRAFT_PREFIX) ? factId.slice(DRAFT_PREFIX.length).split(",").filter(Boolean) : [];
 
-export interface EssayAsk { name: string; label: string; type: string; chars: number | null }
+export interface EssayAsk { name: string; label: string; type: string; chars: number | null; own: string | null }
+// The employer's own AI policy, read on the card as the server reads it (ai_policy.ts over the question and the form's
+// other labels): a form that asks for answers written without AI, or names a policy it does not spell out, is never
+// offered a draft; the card says so up front and no request is sent (WO-049 follow-up).
+export const OWN_WORDS_BANNED = "This form asks for answers written without AI, so Trainee won't draft this one: it needs your own words.";
+export const OWN_WORDS_UNREAD = "This form names its own AI policy without saying what it allows, so Trainee won't draft this one: it needs your own words.";
 // The written questions the card offers to draft: required, not an identity number, a written answer by the question map,
 // and not answered yet, or answered with a draft the person used (so its text stays editable on the card). One the person
 // typed themselves, or that Trainee filled from a saved answer, is theirs and not offered.
@@ -423,7 +429,9 @@ export function essayQuestions(o: { schema: FormField[]; fields: { name: string;
     .filter((f) => !by.has(f.name) || by.get(f.name)!.source === "drafted")
     .map((f) => {
       const n = Number(o.maxLength?.[f.name]);
-      return { name: f.name, label: String(f.label), type: String(f.type || "textarea"), chars: Number.isInteger(n) && n > 0 ? n : null };
+      const policy = readAiPolicy([f.label, ...o.schema.map((x) => x.label).filter((l) => l !== f.label)]).policy;
+      const own = policy === "prohibited" ? OWN_WORDS_BANNED : policy === "unread" ? OWN_WORDS_UNREAD : null;
+      return { name: f.name, label: String(f.label), type: String(f.type || "textarea"), chars: Number.isInteger(n) && n > 0 ? n : null, own };
     });
 }
 // A draft the card may show: the server said ok, whole text that ends a sentence, within one answer's size. Anything else

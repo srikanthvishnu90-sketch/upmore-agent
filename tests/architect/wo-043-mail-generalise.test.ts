@@ -47,6 +47,14 @@ Deno.test("WO-043/E2 the splits tuned on hold the target, with no rejection ever
   }
 });
 
+Deno.test("WO-043/E3 dev4check is a floor at its one-time score (VERIFIED at ffe134ea), not a goal", () => {
+  // Scored once, after the classifier was committed: 98.5% (67/68) precision, 93.1% (67/72) recall, no rejection read as
+  // an interview. Below the 95% recall target; a regression floor only. Never tune on it.
+  const r = evaluate(dev4Splits().dev4check);
+  assert(r.status.precision >= 0.985 && r.status.recall >= 0.93, `dev4check ${JSON.stringify(r.status)}`);
+  eq(r.confusions.rejection_as_interview, 0, "dev4check: a rejection read as an interview");
+});
+
 // ------------------------------------------------------------------------------------------------ the weights
 Deno.test("WO-043/W1 the weights in career_mail.ts are what mail-fit.ts fits from the tuning splits only", () => {
   eq(TUNING_SPLITS, ["tune", "tune2", "dev3", "dev4"]);

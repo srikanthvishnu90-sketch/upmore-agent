@@ -120,7 +120,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       const s = await d.reply(contact, d.render(text));
       return ok({ link: r.ok ? "linked" : r.why, sent: s.ok });
     }
-    const command = msg.command ?? channelCommand(msg.text);
+    const command = msg.command ?? channelCommand(msg.text, msg.channel);
     // Telegram's Start from a chat Trainee has never seen is the person's first message, not a START: it goes through
     // sign-up like any first text.
     const firstStart = command === "start" && !!msg.command && !person;

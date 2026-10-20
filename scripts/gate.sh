@@ -113,6 +113,7 @@ edge_tests=(
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
   tests/edge/career-ask-once.test.ts
+  tests/edge/control-state.test.ts
 )
 
 portable_test_paths() {

@@ -1,0 +1,369 @@
+{
+ "provenance": "SYNTHETIC FIXTURE \u2014 authored 2026-10-20 for the MI-097 guards. Every person, firm, and draft in this file is fictional TEST data (sender: Alex Testcase). It replaces the original 2026-10-13 measured corpora, which were built from the owner's real networking drafts and were scrubbed from this repository on the owner's approval (2026-10-20). The synthetic drafts are engineered to the same measured gate properties the guards assert: the wave passes the per-draft gate and fails the batch enforcer on the HS classes; the post-fix set passes per-draft and fails the batch enforcer on its shared bridge clause and logistics string.",
+ "doctrineReplies": [
+  {
+   "id": "SC-100",
+   "bubbles": [
+    "Here is the honest shape of it.",
+    "You read the filing, you check the comps, and you call the contact before lunch. You draft the note, you send the note, and you log what comes back."
+   ]
+  },
+  {
+   "id": "SC-121",
+   "bubbles": [
+    "Plain answer only, no staging."
+   ]
+  },
+  {
+   "id": "SC-206",
+   "bubbles": [
+    "No, and here is why.",
+    "The model breaks, the story breaks, and the questions write themselves after that. You check the debt, you check the cash, and you check the exit before anything else."
+   ]
+  }
+ ],
+ "waveSynthetic": [
+  {
+   "n": 1,
+   "recipient": "Maya Chen (TEST)",
+   "title": "Analyst",
+   "firm": "Alderpoint",
+   "fact": "you joined Alderpoint as an analyst in 2024 after two summers interning there on the consumer coverage team",
+   "subject": "Your path at Alderpoint",
+   "body": "Hi Maya,\n\nI saw that you joined Alderpoint as an analyst in 2024 after two summers interning there on the consumer coverage team.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Alderpoint as an analyst in 2024 after two summers interning there on the consumer coverage team",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 2,
+   "recipient": "Daniel Okafor (TEST)",
+   "title": "Analyst",
+   "firm": "Briarwood",
+   "fact": "you joined Briarwood as an analyst in 2023 on the consumer coverage team after a spring internship",
+   "subject": "Your path at Briarwood",
+   "body": "Hi Daniel,\n\nI saw that you joined Briarwood as an analyst in 2023 on the consumer coverage team after a spring internship.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a budget tracker for the finance club last spring.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Briarwood as an analyst in 2023 on the consumer coverage team after a spring internship",
+    "senderFact": "At TEST University I built a budget tracker for the finance club last spring.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 3,
+   "recipient": "Sofia Marino (TEST)",
+   "title": "Associate",
+   "firm": "Hartwell",
+   "fact": "you moved to Hartwell as an associate in 2024 after two summers interning there",
+   "subject": "Your path at Hartwell",
+   "body": "Hi Sofia,\n\nI saw that you moved to Hartwell as an associate in 2024 after two summers interning there.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club over the past year.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Hartwell as an associate in 2024 after two summers interning there",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club over the past year.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 4,
+   "recipient": "James Whitfield (TEST)",
+   "title": "Analyst",
+   "firm": "Northgate",
+   "fact": "you joined Northgate as an analyst in 2025 covering Midwest industrials from the Chicago office",
+   "subject": "Your path at Northgate",
+   "body": "Hi James,\n\nI saw that you joined Northgate as an analyst in 2025 covering Midwest industrials from the Chicago office.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a valuation model for the finance club with two close classmates.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Northgate as an analyst in 2025 covering Midwest industrials from the Chicago office",
+    "senderFact": "At TEST University I built a valuation model for the finance club with two close classmates.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 5,
+   "recipient": "Priya Nair (TEST)",
+   "title": "Analyst",
+   "firm": "Calderwood",
+   "fact": "you joined Calderwood as an analyst in 2024 following a spring internship there on the healthcare desk",
+   "subject": "Your path at Calderwood",
+   "body": "Hi Priya,\n\nI saw that you joined Calderwood as an analyst in 2024 following a spring internship there on the healthcare desk.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club during the spring term.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Calderwood as an analyst in 2024 following a spring internship there on the healthcare desk",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club during the spring term.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 6,
+   "recipient": "Tom Becker (TEST)",
+   "title": "Associate",
+   "firm": "Elmsworth",
+   "fact": "you moved to Elmsworth as an associate in 2023 after graduating, working out of the Chicago office on the industrials team",
+   "subject": "Your path at Elmsworth",
+   "body": "Hi Tom,\n\nI saw that you moved to Elmsworth as an associate in 2023 after graduating, working out of the Chicago office on the industrials team.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a budget tracker for the finance club last spring with two classmates.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Elmsworth as an associate in 2023 after graduating, working out of the Chicago office on the industrials team",
+    "senderFact": "At TEST University I built a budget tracker for the finance club last spring with two classmates.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 7,
+   "recipient": "Grace Liu (TEST)",
+   "title": "Analyst",
+   "firm": "Fairhaven",
+   "fact": "you joined Fairhaven as an analyst in 2025 on the consumer coverage team after two summers interning there",
+   "subject": "Your path at Fairhaven",
+   "body": "Hi Grace,\n\nI saw that you joined Fairhaven as an analyst in 2025 on the consumer coverage team after two summers interning there.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club over the past year with two classmates.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Fairhaven as an analyst in 2025 on the consumer coverage team after two summers interning there",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club over the past year with two classmates.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 8,
+   "recipient": "Omar Haddad (TEST)",
+   "title": "Analyst",
+   "firm": "Granby",
+   "fact": "you joined Granby as an analyst in 2024 covering Midwest industrials, following a spring internship there on the healthcare desk",
+   "subject": "Your path at Granby",
+   "body": "Hi Omar,\n\nI saw that you joined Granby as an analyst in 2024 covering Midwest industrials, following a spring internship there on the healthcare desk.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a valuation model for the finance club during the spring term with two classmates.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Granby as an analyst in 2024 covering Midwest industrials, following a spring internship there on the healthcare desk",
+    "senderFact": "At TEST University I built a valuation model for the finance club during the spring term with two classmates.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 9,
+   "recipient": "Elena Petrova (TEST)",
+   "title": "Associate",
+   "firm": "Halloway",
+   "fact": "you moved to Halloway as an associate in 2025 after graduating, working out of the Chicago office on the consumer coverage team",
+   "subject": "Your path at Halloway",
+   "body": "Hi Elena,\n\nI saw that you moved to Halloway as an associate in 2025 after graduating, working out of the Chicago office on the consumer coverage team.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club last spring over the past year for the annual competition.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Halloway as an associate in 2025 after graduating, working out of the Chicago office on the consumer coverage team",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club last spring over the past year for the annual competition.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 10,
+   "recipient": "Chris Doyle (TEST)",
+   "title": "Analyst",
+   "firm": "Kestrel",
+   "fact": "you joined Kestrel as an analyst in 2023 covering Midwest industrials from the Chicago office after two summers interning there",
+   "subject": "Your path at Kestrel",
+   "body": "Hi Chris,\n\nI saw that you joined Kestrel as an analyst in 2023 covering Midwest industrials from the Chicago office after two summers interning there.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a budget tracker for the finance club with two classmates during the spring term last year.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Kestrel as an analyst in 2023 covering Midwest industrials from the Chicago office after two summers interning there",
+    "senderFact": "At TEST University I built a budget tracker for the finance club with two classmates during the spring term last year.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 11,
+   "recipient": "Aisha Bello (TEST)",
+   "title": "Analyst",
+   "firm": "Larkspur",
+   "fact": "you joined Larkspur as an analyst in 2024 on the healthcare desk, following a spring internship there after graduating the year before",
+   "subject": "Your path at Larkspur",
+   "body": "Hi Aisha,\n\nI saw that you joined Larkspur as an analyst in 2024 on the healthcare desk, following a spring internship there after graduating the year before.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a small cash-flow model for the finance club over the past year with two classmates in the honors section.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Larkspur as an analyst in 2024 on the healthcare desk, following a spring internship there after graduating the year before",
+    "senderFact": "At TEST University I built a small cash-flow model for the finance club over the past year with two classmates in the honors section.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 12,
+   "recipient": "Ben Alvarez (TEST)",
+   "title": "Associate",
+   "firm": "Iverson",
+   "fact": "you moved to Iverson as an associate in 2025 working out of the Chicago office, covering Midwest industrials on the coverage team",
+   "subject": "Your path at Iverson",
+   "body": "Hi Ben,\n\nI saw that you moved to Iverson as an associate in 2025 working out of the Chicago office, covering Midwest industrials on the coverage team.\n\nI am a sophomore at TEST University, and I am trying to understand how analysts actually spend their days. Your note about the desk training stuck with me because nobody explains the unglamorous parts.\n\nAt TEST University I built a valuation model for the finance club during the spring term last year with two classmates from the honors section.\n\nWould 15 minutes on Thursday afternoon or Friday morning work for a short call?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Iverson as an associate in 2025 working out of the Chicago office, covering Midwest industrials on the coverage team",
+    "senderFact": "At TEST University I built a valuation model for the finance club during the spring term last year with two classmates from the honors section.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  }
+ ],
+ "approvedSynthetic": [
+  {
+   "n": 1,
+   "recipient": "Ana Ruiz (TEST)",
+   "title": "Analyst",
+   "firm": "Hartwell",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Hartwell",
+   "body": "Hi Ana,\n\nI saw that you worked on a sponsor-backed carve-out at Hartwell. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I valued a small retailer for the finance club.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you worked on a sponsor-backed carve-out at Hartwell",
+    "senderFact": "At TEST University I valued a small retailer for the finance club.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 2,
+   "recipient": "Sam Ortiz (TEST)",
+   "title": "Analyst",
+   "firm": "Alderpoint",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Alderpoint",
+   "body": "Hi Sam,\n\nI saw that you joined Alderpoint as an analyst in 2024. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I built a merger model for the finance club.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Alderpoint as an analyst in 2024",
+    "senderFact": "At TEST University I built a merger model for the finance club.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 3,
+   "recipient": "Lena Fischer (TEST)",
+   "title": "Associate",
+   "firm": "Briarwood",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Briarwood",
+   "body": "Hi Lena,\n\nI saw that you moved to Briarwood as an associate in 2023. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I ran the club's stock pitch nights last year.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Briarwood as an associate in 2023",
+    "senderFact": "At TEST University I ran the club's stock pitch nights last year.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 4,
+   "recipient": "Marco Rossi (TEST)",
+   "title": "Analyst",
+   "firm": "Northgate",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Northgate",
+   "body": "Hi Marco,\n\nI saw that you joined Northgate as an analyst in 2025. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I built a small data room for a class project.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Northgate as an analyst in 2025",
+    "senderFact": "At TEST University I built a small data room for a class project.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 5,
+   "recipient": "Nina Kowalski (TEST)",
+   "title": "Analyst",
+   "firm": "Calderwood",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Calderwood",
+   "body": "Hi Nina,\n\nI saw that you joined Calderwood as an analyst in 2024. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I wrote a short memo on a local retailer.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Calderwood as an analyst in 2024",
+    "senderFact": "At TEST University I wrote a short memo on a local retailer.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 6,
+   "recipient": "Paul Nguyen (TEST)",
+   "title": "Associate",
+   "firm": "Elmsworth",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Elmsworth",
+   "body": "Hi Paul,\n\nI saw that you moved to Elmsworth as an associate in 2024. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I helped teach the first-year modeling workshop.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Elmsworth as an associate in 2024",
+    "senderFact": "At TEST University I helped teach the first-year modeling workshop.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 7,
+   "recipient": "Ruth Adler (TEST)",
+   "title": "Analyst",
+   "firm": "Fairhaven",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Fairhaven",
+   "body": "Hi Ruth,\n\nI saw that you joined Fairhaven as an analyst in 2023. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I built a budget model for a student nonprofit.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Fairhaven as an analyst in 2023",
+    "senderFact": "At TEST University I built a budget model for a student nonprofit.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 8,
+   "recipient": "Ken Watanabe (TEST)",
+   "title": "Analyst",
+   "firm": "Granby",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Granby",
+   "body": "Hi Ken,\n\nI saw that you joined Granby as an analyst in 2025. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I tracked a paper portfolio for the finance club.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Granby as an analyst in 2025",
+    "senderFact": "At TEST University I tracked a paper portfolio for the finance club.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 9,
+   "recipient": "Ivy Zhang (TEST)",
+   "title": "Associate",
+   "firm": "Halloway",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Halloway",
+   "body": "Hi Ivy,\n\nI saw that you moved to Halloway as an associate in 2023. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I organized the alumni speaker series last spring.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you moved to Halloway as an associate in 2023",
+    "senderFact": "At TEST University I organized the alumni speaker series last spring.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  },
+  {
+   "n": 10,
+   "recipient": "Leo Martins (TEST)",
+   "title": "Analyst",
+   "firm": "Kestrel",
+   "factKind": "registry",
+   "structure": "fact_lead",
+   "subject": "Question about Kestrel",
+   "body": "Hi Leo,\n\nI saw that you joined Kestrel as an analyst in 2024. The reason I am writing is simple: I want to learn how the work actually gets done.\n\nAt TEST University I built a screening tool for the finance club.\n\nWould 15 minutes on Tuesday afternoon or Thursday morning work?\n\nThanks,\nAlex Testcase (TEST)",
+   "staging": {
+    "recipientFact": "you joined Kestrel as an analyst in 2024",
+    "senderFact": "At TEST University I built a screening tool for the finance club.",
+    "senderLine": "a sophomore at TEST University",
+    "senderName": "Alex Testcase (TEST)"
+   }
+  }
+ ]
+}

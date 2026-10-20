@@ -5,7 +5,7 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
@@ -62,8 +62,10 @@ export function planForm(o: {
   const identity = o.schema.filter((f) => isIdentityField(f));
   // Two fields under one label: the label belongs to at most one of them, so neither is answered from it (WO-031
   // review: a referrer's phone read as "Phone"). Both are left to the person and listed as still needed.
+  // WO-075: Greenhouse's paste box beside its upload (resume_text by resume) is the upload's alternative, not a second
+  // field under the label; planBatch answers the pair with the approved file (fileAlternative).
   const count = new Map<string, number>();
-  for (const f of o.schema) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
+  for (const f of o.schema) if (!fileAlternative(f, o.schema)) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
   const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
   // WO-048: a form only the person fills (the disability self-identification) is neither planned nor asked by text.
   const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);

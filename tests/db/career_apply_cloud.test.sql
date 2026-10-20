@@ -18,7 +18,7 @@ declare p jsonb; h text;
 begin
  p := jsonb_build_object('version',1,'user_id',u,'job_id',job,'company',company,'url',url,'fields','[]'::jsonb,
   'privacy_epoch',1,'account_version',1,'expires_at',now()+interval '1 hour','engine_approval',repeat('e',64),
-  'resume_sha256',encode(sha256('TEST resume'::bytea),'hex')) || extra;
+  'resume_sha256',encode(sha256('TEST resume'::bytea),'hex'),'destination',url) || extra;
  h := encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex');
  return (career_apply_enqueue(p,h,h,50)).id;
 end $$;
@@ -122,6 +122,8 @@ insert into jobs values('sr',pg_temp.q('00000000-0000-4000-8000-000000000a02','T
 select t.ok(pg_temp.why((select id from jobs where name='sr'))='portal_not_cloud','SmartRecruiters is never the cloud''s');
 insert into jobs values('noeng',pg_temp.q('00000000-0000-4000-8000-000000000a02','TEST-N1','No Engine Co','https://jobs.lever.co/noeng/1','{"engine_approval":null}'));
 select t.ok(pg_temp.why((select id from jobs where name='noeng'))='not_approved','a payload without the engine''s approval hash is refused');
+insert into jobs values('ps',pg_temp.q('00000000-0000-4000-8000-000000000a02','TEST-PS1','Press Co','https://jobs.lever.co/press/1','{"destination":"the person''s own Submit, one request to https://jobs.lever.co"}'));
+select t.ok(pg_temp.why((select id from jobs where name='ps'))='person_submits','a form only the person can submit is never the cloud''s');
 insert into jobs values('l2',pg_temp.q('00000000-0000-4000-8000-000000000a02','TEST-L2','Lever Two','https://jobs.lever.co/two/2'));
 update career_watch_kv set value='{"epoch":1,"version":1,"paused":true}' where user_id='00000000-0000-4000-8000-000000000a02';
 select t.ok(pg_temp.why((select id from jobs where name='l2'))='stale','a paused account is refused');

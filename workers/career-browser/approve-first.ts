@@ -603,8 +603,38 @@ if (import.meta.main) {
         `${asked} question${asked === 1 ? "" : "s"} only you can answer went to Trainee. Text "what do you need from me" to answer each once; then prepare again.`,
       );
     }
+  } else if (cmd === "record") {
+    // WO-039: a hand submission (scripts/apply.ts --headed --person-submits --submit, the owner's first trials) recorded
+    // as this person's own computer's, so the employer's confirmation email can count it toward the cloud's gate.
+    const [url, evidenceDir] = rest;
+    if (!url || !evidenceDir) {
+      console.error("usage: approve-first.ts record <posting url> <evidence folder printed by apply.ts>");
+      Deno.exit(2);
+    }
+    const ev = JSON.parse(await Deno.readTextFile(`${evidenceDir}/evidence.json`));
+    const state = ev?.result?.state;
+    if (!["submitted_unconfirmed", "confirmed", "unknown_outcome"].includes(state) || !ev?.payload?.posting) {
+      console.error(`That run did not send an application (${state ?? "no result"}); nothing was recorded.`);
+      Deno.exit(2);
+    }
+    const client = await signedInClient("record");
+    const r = await client.rpc("career_apply_record_own", { p_job_id: ev.payload.posting, p_company: ev.payload.company, p_url: url, p_state: state });
+    console.log(r.error ? `NOT RECORDED (${r.error.message})` : `RECORDED ${ev.payload.posting}: it counts once the employer's email confirms it.`);
+  } else if (cmd === "cloud-resume") {
+    // WO-039: the resume the cloud may send, by its hash, kept until the person turns the cloud off or erases.
+    const [resume] = rest;
+    if (!resume) {
+      console.error("usage: approve-first.ts cloud-resume <resume.pdf>");
+      Deno.exit(2);
+    }
+    const bytes = await Deno.readFile(resume);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const client = await signedInClient("cloud-resume");
+    const r = await client.rpc("career_apply_cloud_resume_put_own", { p_filename: resume.split("/").pop(), p_b64: btoa(bin) });
+    console.log(r.error ? `NOT STORED (${r.error.message})` : `STORED ${r.data}: the cloud can send applications approved with this resume.`);
   } else {
-    console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch ...");
+    console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch|record|cloud-resume ...");
     Deno.exitCode = 2;
   }
 }

@@ -40,6 +40,7 @@ import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
+import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
@@ -255,6 +256,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
+      // they are the thread's last word turns it on, and "cloud off" turns it off at any time.
+      const cloud = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await cloudTurn({ message, userId: user.id, threadId: tid, store: supabaseCloudOptinStore(admin) })
+        : null;
       if (draftMeter.calls) {
         const m = draftMeter;
         const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
@@ -272,6 +278,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
         const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
+      } else if (cloud) {
+        out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

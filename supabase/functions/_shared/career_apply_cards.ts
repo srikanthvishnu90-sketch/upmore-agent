@@ -99,7 +99,7 @@ function render(list: Prepared[]) {
 }
 
 const RESULT: Record<string, string> = {
-  queued: "approved; it runs on your computer next",
+  queued: "approved; it is sent next, from your computer or, if you turned it on, the cloud",
   declined: "not sent",
   daily_cap: "not sent: today's daily limit is already used",
   company_cooldown: "not sent: you applied to them in the last 30 days",

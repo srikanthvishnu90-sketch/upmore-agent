@@ -30,6 +30,8 @@ const NOT_SENT: Record<string, string> = {
 const NEEDS_YOU: Record<string, string> = {
   captcha: "the page asks you to complete a verification",
   email_code: "the employer emailed you a code to finish it",
+  // WO-039: the cloud met a verification check, which Trainee never solves or gets around. The link is theirs to finish.
+  bot_check: "a verification check appeared, and Trainee never solves one, so finish this one yourself at this link",
 };
 
 export function receiptText(

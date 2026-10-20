@@ -53,6 +53,10 @@ let lastActivity = Date.now();
 // in ready.json below, never silently.
 // Unset means sandboxed, always; the opt-out never engages silently.
 const SANDBOX_OFF = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
+// WO-039: the cloud worker keeps its screenshots on a server, so every answer in them is masked, as the engine masks the
+// page after an emailed code (scripts/apply.ts). The person's own runs keep the plain picture they can check.
+const maskedShot = (page) => process.env.UPMORE_MASK_SCREENSHOTS === "1"
+  ? { mask: [page.locator("input, textarea, select, [contenteditable]")] } : {};
 async function getBrowser() {
   if (!pw) throw Object.assign(new Error("PLAYWRIGHT_UNRESOLVABLE"), { code: "PLAYWRIGHT_UNRESOLVABLE" });
   if (browser) return browser;
@@ -1017,7 +1021,7 @@ async function cmdSubmitCapture(board, cmd) {
   const text = await page.evaluate(() => ((document.body && document.body.innerText) || "").replace(/\s+/g, " ").slice(0, 6000)).catch(() => "");
   let screenshot = null;
   if (cmd.screenshotPath) {
-    try { await page.screenshot({ path: cmd.screenshotPath, fullPage: true }); screenshot = cmd.screenshotPath; } catch (e) { /* capture failure is reported as a null ref, never invented */ }
+    try { await page.screenshot({ path: cmd.screenshotPath, fullPage: true, ...maskedShot(page) }); screenshot = cmd.screenshotPath; } catch (e) { /* capture failure is reported as a null ref, never invented */ }
   }
   return { clicked: true, captcha: captcha || null, finalUrl: page.url(), text, screenshot };
 }
@@ -1040,7 +1044,7 @@ async function execute(boardId, cmd) {
     }
     case "review": return await cmdReview(board, cmd);
     case "submit_and_capture": return await cmdSubmitCapture(board, cmd);
-    case "screenshot": await board.page.screenshot({ path: cmd.path, fullPage: true }); return { path: cmd.path };
+    case "screenshot": await board.page.screenshot({ path: cmd.path, fullPage: true, ...maskedShot(board.page) }); return { path: cmd.path };
     case "close": await board.context.close().catch(() => {}); boards.delete(boardId); return { ok: true };
     default: throw Object.assign(new Error("unknown command " + cmd.type), { code: "BAD_COMMAND" });
   }

@@ -351,6 +351,9 @@ begin
   or coalesce(j.payload->>'engine_approval', '') !~ '^[0-9a-f]{64}$' then return 'not_approved'; end if;
  if public.career_apply_current(j.user_id, j.payload) is distinct from true then return 'stale'; end if;
  if fam is null or fam not in ('greenhouse', 'lever', 'ashby') then return 'portal_not_cloud'; end if;
+ -- A form only the person can submit (prepared with --person-submits: its destination is their own Submit press) is
+ -- never the cloud's: a server has no person at the window.
+ if coalesce(j.payload->>'destination', '') !~ '^https://' then return 'person_submits'; end if;
  if not public.career_apply_cloud_open(fam) then return 'gate_closed'; end if;
  select * into o from public.career_apply_cloud_optin where user_id = j.user_id;
  select value into a from public.career_watch_kv where user_id = j.user_id and key = 'career:account';

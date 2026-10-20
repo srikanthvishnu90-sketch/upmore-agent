@@ -2,30 +2,30 @@
  "report": {
   "wo": "WO-042",
   "kind": "live fill, never sent",
-  "measured_at": "2026-10-20T04:38:48.946Z",
+  "measured_at": "2026-10-20T04:45:40.981Z",
   "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
   "forms": 17,
   "reachable": 17,
   "carded": 17,
   "all": {
-   "correct": 193,
+   "correct": 192,
    "wrong": 0,
-   "missed": 10,
+   "missed": 11,
    "unkeyed": 19,
    "precision": 1,
-   "coverage": 0.9507389162561576,
+   "coverage": 0.9458128078817734,
    "widgets": {
     "should": 42,
     "correct": 35
    }
   },
   "greenhouse": {
-   "correct": 69,
+   "correct": 68,
    "wrong": 0,
-   "missed": 7,
+   "missed": 8,
    "unkeyed": 9,
    "precision": 1,
-   "coverage": 0.9078947368421053,
+   "coverage": 0.8947368421052632,
    "widgets": {
     "should": 42,
     "correct": 35
@@ -55,18 +55,18 @@
     "correct": 0
    }
   },
-  "aborted_requests": 171,
+  "aborted_requests": 196,
   "aborted_hosts": [
    "c.spl.greenhouse.io",
-   "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "jobs.lever.co",
    "api.hcaptcha.com",
    "api2.hcaptcha.com",
    "hcaptcha.com",
    "platform.linkedin.com",
    "www.google-analytics.com",
-   "jobs.ashbyhq.com",
-   "csp.withgoogle.com"
+   "browser-intake-datadoghq.com",
+   "jobs.ashbyhq.com"
   ],
   "allowed_graphql_reads": [
    "cloudflare-challenge-beacon",
@@ -87,23 +87,23 @@
    "url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
-   "ms_goto_dcl": 403,
-   "ms_goto_load": 466,
-   "ms_fill_click_to_card": 778,
+   "ms_goto_dcl": 389,
+   "ms_goto_load": 464,
+   "ms_fill_click_to_card": 696,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470740853,
-    "context": 1792470740223,
-    "dcl": 1792470739981,
+    "card": 1792471313041,
+    "context": 1792471312490,
+    "dcl": 1792471312244,
     "fields": 10,
-    "fill": 1792470740848,
-    "first_card": 1792470740853,
-    "nav": 1792470739587,
-    "plan": 1792470740239,
-    "prepare": 1792470740193,
-    "read": 1792470740229,
-    "script": 1792470740045,
+    "fill": 1792471313037,
+    "first_card": 1792471313041,
+    "nav": 1792471311863,
+    "plan": 1792471312509,
+    "prepare": 1792471312446,
+    "read": 1792471312497,
+    "script": 1792471312319,
     "visibility_at_prepare": "visible",
     "widgets": 2
    },
@@ -338,23 +338,23 @@
    "url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
-   "ms_goto_dcl": 326,
-   "ms_goto_load": 405,
-   "ms_fill_click_to_card": 4641,
+   "ms_goto_dcl": 268,
+   "ms_goto_load": 448,
+   "ms_fill_click_to_card": 4633,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470758597,
-    "context": 1792470754171,
-    "dcl": 1792470753865,
+    "card": 1792471330831,
+    "context": 1792471326379,
+    "dcl": 1792471326019,
     "fields": 35,
-    "fill": 1792470758588,
-    "first_card": 1792470758597,
-    "nav": 1792470753546,
-    "plan": 1792470754210,
-    "prepare": 1792470754123,
-    "read": 1792470754184,
-    "script": 1792470753945,
+    "fill": 1792471330821,
+    "first_card": 1792471330831,
+    "nav": 1792471325759,
+    "plan": 1792471326425,
+    "prepare": 1792471326341,
+    "read": 1792471326397,
+    "script": 1792471326200,
     "visibility_at_prepare": "visible",
     "widgets": 15
    },
@@ -895,23 +895,23 @@
    "url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
-   "ms_goto_dcl": 270,
-   "ms_goto_load": 359,
-   "ms_fill_click_to_card": 9180,
+   "ms_goto_dcl": 301,
+   "ms_goto_load": 378,
+   "ms_fill_click_to_card": 9172,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470786490,
-    "context": 1792470777403,
-    "dcl": 1792470777187,
+    "card": 1792471358720,
+    "context": 1792471349686,
+    "dcl": 1792471349468,
     "fields": 30,
-    "fill": 1792470786482,
-    "first_card": 1792470786490,
-    "nav": 1792470776921,
-    "plan": 1792470777423,
-    "prepare": 1792470777382,
-    "read": 1792470777409,
-    "script": 1792470777269,
+    "fill": 1792471358710,
+    "first_card": 1792471358720,
+    "nav": 1792471349177,
+    "plan": 1792471349708,
+    "prepare": 1792471349666,
+    "read": 1792471349692,
+    "script": 1792471349544,
     "visibility_at_prepare": "visible",
     "widgets": 20
    },
@@ -1395,6 +1395,162 @@
      "American Samoa +1"
     ]
    },
+   "greenhouse_typing": [
+    {
+     "way": "as_driver",
+     "typed": {
+      "active": true,
+      "found": true,
+      "has_focus": true
+     },
+     "samples": {
+      "500": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    },
+    {
+     "way": "per_key",
+     "typed": {
+      "active": true,
+      "found": true,
+      "has_focus": true
+     },
+     "samples": {
+      "500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    },
+    {
+     "way": "trusted",
+     "typed": {
+      "found": true
+     },
+     "samples": {
+      "500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    }
+   ],
    "place_lookups": []
   },
   {
@@ -1403,27 +1559,28 @@
    "url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
-   "ms_goto_dcl": 232,
-   "ms_goto_load": 366,
-   "ms_fill_click_to_card": 5192,
+   "ms_goto_dcl": 281,
+   "ms_goto_load": 397,
+   "ms_fill_click_to_card": 5239,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470810365,
-    "context": 1792470805269,
-    "dcl": 1792470804996,
+    "card": 1792471394502,
+    "context": 1792471389379,
+    "dcl": 1792471389136,
     "fields": 32,
-    "fill": 1792470810356,
-    "first_card": 1792470810365,
-    "nav": 1792470804772,
-    "plan": 1792470805292,
-    "prepare": 1792470805247,
-    "read": 1792470805275,
-    "script": 1792470805129,
+    "fill": 1792471394492,
+    "first_card": 1792471394502,
+    "nav": 1792471388864,
+    "plan": 1792471389405,
+    "prepare": 1792471389361,
+    "read": 1792471389386,
+    "script": 1792471389254,
     "visibility_at_prepare": "visible",
     "widgets": 21
    },
    "blockers": [
+    "\"First Name\" is required and not answered yet.",
     "\"Cover Letter\" is required and not answered yet.",
     "\"School\" is required and not answered yet.",
     "\"CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.\" is required and not answered yet.",
@@ -1433,6 +1590,7 @@
     "\"Are you open to a rotational program?\" is required and not answered yet."
    ],
    "open_required": [
+    "First Name",
     "Cover Letter",
     "School",
     "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.",
@@ -1448,9 +1606,9 @@
      "widget": null,
      "required": true,
      "want": "Test",
-     "got": "Test",
-     "source": "trainee",
-     "verdict": "correct"
+     "got": null,
+     "source": null,
+     "verdict": "missed"
     },
     {
      "name": "last_name",
@@ -1754,9 +1912,9 @@
     }
    ],
    "verdicts": {
-    "correct": 19,
+    "missed": 2,
+    "correct": 18,
     "empty_ok": 9,
-    "missed": 1,
     "unkeyed": 2
    },
    "changed_since_capture": {
@@ -1938,23 +2096,23 @@
    "url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
-   "ms_goto_dcl": 175,
-   "ms_goto_load": 282,
-   "ms_fill_click_to_card": 4903,
+   "ms_goto_dcl": 212,
+   "ms_goto_load": 365,
+   "ms_fill_click_to_card": 4865,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470833851,
-    "context": 1792470829170,
-    "dcl": 1792470828825,
+    "card": 1792471418103,
+    "context": 1792471413393,
+    "dcl": 1792471413045,
     "fields": 26,
-    "fill": 1792470833845,
-    "first_card": 1792470833851,
-    "nav": 1792470828658,
-    "plan": 1792470829195,
-    "prepare": 1792470829115,
-    "read": 1792470829178,
-    "script": 1792470828933,
+    "fill": 1792471418097,
+    "first_card": 1792471418103,
+    "nav": 1792471412842,
+    "plan": 1792471413419,
+    "prepare": 1792471413345,
+    "read": 1792471413400,
+    "script": 1792471413199,
     "visibility_at_prepare": "visible",
     "widgets": 17
    },
@@ -2389,6 +2547,162 @@
      "American Samoa +1"
     ]
    },
+   "greenhouse_typing": [
+    {
+     "way": "as_driver",
+     "typed": {
+      "active": true,
+      "found": true,
+      "has_focus": true
+     },
+     "samples": {
+      "500": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 0,
+       "first": null,
+       "menu": false,
+       "react": {
+        "menuIsOpen": false,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    },
+    {
+     "way": "per_key",
+     "typed": {
+      "active": true,
+      "found": true,
+      "has_focus": true
+     },
+     "samples": {
+      "500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    },
+    {
+     "way": "trusted",
+     "typed": {
+      "found": true
+     },
+     "samples": {
+      "500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "1500": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      },
+      "3000": {
+       "shown": 10,
+       "first": "Chicago, Illinois, United States",
+       "menu": true,
+       "react": {
+        "menuIsOpen": true,
+        "isFocused": true,
+        "inputValue": "Chicago",
+        "options": 10,
+        "isLoading": false
+       },
+       "active": true,
+       "has_focus": true
+      }
+     }
+    }
+   ],
    "place_lookups": []
   },
   {
@@ -2397,23 +2711,23 @@
    "url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
-   "ms_goto_dcl": 630,
-   "ms_goto_load": 827,
-   "ms_fill_click_to_card": 1615,
+   "ms_goto_dcl": 4907,
+   "ms_goto_load": 5144,
+   "ms_fill_click_to_card": 1066,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470854684,
-    "context": 1792470853177,
-    "dcl": 1792470852808,
+    "card": 1792471454509,
+    "context": 1792471453558,
+    "dcl": 1792471453155,
     "fields": 18,
-    "fill": 1792470854676,
-    "first_card": 1792470854684,
-    "nav": 1792470852190,
-    "plan": 1792470853206,
-    "prepare": 1792470853159,
-    "read": 1792470853185,
-    "script": 1792470853003,
+    "fill": 1792471454501,
+    "first_card": 1792471454509,
+    "nav": 1792471448254,
+    "plan": 1792471453590,
+    "prepare": 1792471453530,
+    "read": 1792471453568,
+    "script": 1792471453365,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2614,195 +2928,28 @@
     "new_fields": [],
     "gone_fields": []
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": "Miami, FL, USA",
-      "found": true,
-      "has_focus": true,
-      "listed": 4,
-      "lookups": 1
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
     "lever": [
      "Chicago, IL, USA",
-     "Chicago, BLZ",
-     "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE"
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
     ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792470854484,
+     "at": 1792471454313,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 683
+     "ms": 128
     },
     {
-     "at": 1792470875951,
+     "at": 1792471455912,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 85
-    },
-    {
-     "at": 1792470879075,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
-     "status": 200,
-     "ms": 104
-    },
-    {
-     "at": 1792470888662,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago",
-     "status": 200,
-     "ms": 79
+     "ms": 544
     }
    ]
   },
@@ -2812,23 +2959,23 @@
    "url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
-   "ms_goto_dcl": 193,
-   "ms_goto_load": 390,
-   "ms_fill_click_to_card": 1075,
+   "ms_goto_dcl": 625,
+   "ms_goto_load": 793,
+   "ms_fill_click_to_card": 1141,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470892724,
-    "context": 1792470891775,
-    "dcl": 1792470891409,
+    "card": 1792471460000,
+    "context": 1792471458993,
+    "dcl": 1792471458626,
     "fields": 16,
-    "fill": 1792470892714,
-    "first_card": 1792470892724,
-    "nav": 1792470891220,
-    "plan": 1792470891802,
-    "prepare": 1792470891757,
-    "read": 1792470891783,
-    "script": 1792470891605,
+    "fill": 1792471459989,
+    "first_card": 1792471460000,
+    "nav": 1792471458010,
+    "plan": 1792471459032,
+    "prepare": 1792471458972,
+    "read": 1792471459005,
+    "script": 1792471458797,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3008,195 +3155,28 @@
     "new_fields": [],
     "gone_fields": []
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": "Miami, FL, USA",
-      "found": true,
-      "has_focus": true,
-      "listed": 4,
-      "lookups": 1
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
     "lever": [
      "Chicago, IL, USA",
-     "Chicago, BLZ",
-     "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE"
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
     ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792470892505,
+     "at": 1792471459781,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 86
+     "ms": 129
     },
     {
-     "at": 1792470912043,
+     "at": 1792471461011,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 104
-    },
-    {
-     "at": 1792470915292,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
-     "status": 200,
-     "ms": 247
-    },
-    {
-     "at": 1792470924746,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago",
-     "status": 200,
-     "ms": 80
+     "ms": 162
     }
    ]
   },
@@ -3206,23 +3186,23 @@
    "url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
-   "ms_goto_dcl": 221,
-   "ms_goto_load": 742,
-   "ms_fill_click_to_card": 941,
+   "ms_goto_dcl": 558,
+   "ms_goto_load": 1106,
+   "ms_fill_click_to_card": 991,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470929004,
-    "context": 1792470928168,
-    "dcl": 1792470927516,
+    "card": 1792471465594,
+    "context": 1792471464715,
+    "dcl": 1792471464047,
     "fields": 14,
-    "fill": 1792470928996,
-    "first_card": 1792470929004,
-    "nav": 1792470927301,
-    "plan": 1792470928191,
-    "prepare": 1792470928155,
-    "read": 1792470928175,
-    "script": 1792470927726,
+    "fill": 1792471465586,
+    "first_card": 1792471465594,
+    "nav": 1792471463493,
+    "plan": 1792471464738,
+    "prepare": 1792471464703,
+    "read": 1792471464722,
+    "script": 1792471464262,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3382,183 +3362,28 @@
     "new_fields": [],
     "gone_fields": []
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": "Miami, FL, USA",
-      "found": true,
-      "has_focus": true,
-      "listed": 4,
-      "lookups": 1
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
-    "lever": [],
+    "lever": [
+     "Chicago, IL, USA",
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
+    ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792470928879,
+     "at": 1792471465459,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 96
+     "ms": 126
     },
     {
-     "at": 1792470948394,
+     "at": 1792471466619,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 143
-    },
-    {
-     "at": 1792470951447,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
-     "status": 200,
-     "ms": 91
+     "ms": 156
     }
    ]
   },
@@ -3568,23 +3393,23 @@
    "url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-   "ms_goto_dcl": 206,
-   "ms_goto_load": 425,
-   "ms_fill_click_to_card": 1100,
+   "ms_goto_dcl": 273,
+   "ms_goto_load": 500,
+   "ms_fill_click_to_card": 1166,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792470965182,
-    "context": 1792470964192,
-    "dcl": 1792470963794,
+    "card": 1792471470832,
+    "context": 1792471469793,
+    "dcl": 1792471469369,
     "fields": 27,
-    "fill": 1792470965168,
-    "first_card": 1792470965182,
-    "nav": 1792470963592,
-    "plan": 1792470964237,
-    "prepare": 1792470964174,
-    "read": 1792470964207,
-    "script": 1792470964004,
+    "fill": 1792471470817,
+    "first_card": 1792471470832,
+    "nav": 1792471469108,
+    "plan": 1792471469841,
+    "prepare": 1792471469776,
+    "read": 1792471469807,
+    "script": 1792471469574,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3882,195 +3707,28 @@
      "consent[marketing]"
     ]
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": "Miami, FL, USA",
-      "found": true,
-      "has_focus": true,
-      "listed": 4,
-      "lookups": 1
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
     "lever": [
      "Chicago, IL, USA",
-     "Chicago, BLZ",
-     "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE"
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
     ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792470964921,
+     "at": 1792471470577,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 78
+     "ms": 132
     },
     {
-     "at": 1792470984905,
+     "at": 1792471471840,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 517
-    },
-    {
-     "at": 1792470987583,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
-     "status": 200,
-     "ms": 90
-    },
-    {
-     "at": 1792470997319,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago",
-     "status": 200,
-     "ms": 201
+     "ms": 145
     }
    ]
   },
@@ -4080,23 +3738,23 @@
    "url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
-   "ms_goto_dcl": 231,
-   "ms_goto_load": 328,
-   "ms_fill_click_to_card": 1049,
+   "ms_goto_dcl": 277,
+   "ms_goto_load": 380,
+   "ms_fill_click_to_card": 1069,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792471001144,
-    "context": 1792471000199,
-    "dcl": 1792470999984,
+    "card": 1792471475838,
+    "context": 1792471474849,
+    "dcl": 1792471474617,
     "fields": 28,
-    "fill": 1792471001132,
-    "first_card": 1792471001144,
-    "nav": 1792470999758,
-    "plan": 1792471000232,
-    "prepare": 1792471000186,
-    "read": 1792471000208,
-    "script": 1792471000079,
+    "fill": 1792471475825,
+    "first_card": 1792471475838,
+    "nav": 1792471474344,
+    "plan": 1792471474885,
+    "prepare": 1792471474836,
+    "read": 1792471474859,
+    "script": 1792471474717,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4414,195 +4072,28 @@
     "new_fields": [],
     "gone_fields": []
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Miami, FL, USA",
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
     "lever": [
      "Chicago, IL, USA",
-     "Chicago, BLZ",
-     "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE"
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
     ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792471000917,
+     "at": 1792471475614,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 92
+     "ms": 133
     },
     {
-     "at": 1792471023583,
+     "at": 1792471476979,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 81
-    },
-    {
-     "at": 1792471028844,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
-     "status": 200,
-     "ms": 8446
-    },
-    {
-     "at": 1792471034256,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago",
-     "status": 200,
-     "ms": 1091
+     "ms": 259
     }
    ]
   },
@@ -4612,23 +4103,23 @@
    "url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
-   "ms_goto_dcl": 236,
-   "ms_goto_load": 424,
-   "ms_fill_click_to_card": 1133,
+   "ms_goto_dcl": 310,
+   "ms_goto_load": 494,
+   "ms_fill_click_to_card": 1171,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792471037383,
-    "context": 1792471036384,
-    "dcl": 1792471036023,
+    "card": 1792471481044,
+    "context": 1792471480001,
+    "dcl": 1792471479647,
     "fields": 28,
-    "fill": 1792471037370,
-    "first_card": 1792471037383,
-    "nav": 1792471035794,
-    "plan": 1792471036430,
-    "prepare": 1792471036359,
-    "read": 1792471036400,
-    "script": 1792471036210,
+    "fill": 1792471481030,
+    "first_card": 1792471481044,
+    "nav": 1792471479347,
+    "plan": 1792471480051,
+    "prepare": 1792471479973,
+    "read": 1792471480018,
+    "script": 1792471479833,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4925,195 +4416,28 @@
     "new_fields": [],
     "gone_fields": []
    },
-   "lever_typing": {
-    "handler_lines": {
-     "/js/application.js": [
-      "$('.application-file-input').change(function () {",
-      "$('#show-veteran-info').on('click', function () {",
-      "$('#show-disability-info').on('click', function () {",
-      "$('.eeo-section .eeo-more-info-button').on('click', function (event) {",
-      "$('#disabilitySelectElement').on('change', function (event) {",
-      "signatureSection.find('input').prop('required', hasValue);",
-      "standardPronounsOption.on('change', function (event) {",
-      "useNameOnlyPronounsOption.on('change', function (event) {",
-      "customPronounsOption.on('change', function (event) {"
-     ],
-     "/js/debounce.min.js": [
-      "*  javascript-debounce 1.0.1",
-      "*  A lightweight, dependency-free JavaScript module for debouncing functions based on David Walsh's debounce function.",
-      "*  Source code available at: https://github.com/jgarber623/javascript-debounce",
-      "*  javascript-debounce may be freely distributed under the MIT license.",
-      "!function(e,t){\"function\"==typeof define&&define.amd?define([],t):\"object\"==typeof exports?module.exports=t():e.debounce=t()}(this,function(){\"use strict\""
-     ],
-     "/js/retrieveLocations.js": [
-      "var debouncedGetLocationResultsByInput = debounce(getLocationResultsByInput, SEARCH_DELAY);",
-      "$('input.location-input').on('input', function () {",
-      "$('input.location-input').on('keydown', function (event) {",
-      "debouncedGetLocationResultsByInput();",
-      "$('input.location-input').on('blur', function (event) {",
-      "$('input.location-input').val('');",
-      "$(document).on('mousedown', '.dropdown-location', function (event) {",
-      "$('input.location-input').val(event.target.textContent);",
-      "$('input.location-input').val(activeOption.text());",
-      "function getLocationResultsByInput() {",
-      "var locationInputValue = (_a = $('input.location-input').val()) === null || _a === void 0 ? void 0 : _a.toString();",
-      "if (locationInputValue) {",
-      "if (!isValidSearchQuery(locationInputValue)) {",
-      "var encodedText = encodeURIComponent(locationInputValue);",
-      "var searchLocationsUrl = \"/searchLocations?text=\".concat(encodedText);",
-      "req_1.open('GET', searchLocationsUrl, true);"
-     ]
-    },
-    "ways": [
-     {
-      "way": "as_driver",
-      "world": "isolated",
-      "text": "Chicago",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "as_driver",
-      "world": "main",
-      "text": "Boston",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "isolated",
-      "text": "Denver",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "focus_events",
-      "world": "main",
-      "text": "Austin",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "isolated",
-      "text": "Seattle",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "clear_first",
-      "world": "main",
-      "text": "Dallas",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     },
-     {
-      "way": "per_key",
-      "world": "isolated",
-      "text": "Miami",
-      "active": true,
-      "first": "Miami, FL, USA",
-      "found": true,
-      "has_focus": true,
-      "listed": 4,
-      "lookups": 1
-     },
-     {
-      "way": "per_key",
-      "world": "main",
-      "text": "Phoenix",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 4,
-      "first": "Phoenix, AZ, USA",
-      "lookups": 1
-     },
-     {
-      "way": "change_too",
-      "world": "isolated",
-      "text": "Portland",
-      "active": true,
-      "first": null,
-      "found": true,
-      "has_focus": true,
-      "listed": 0,
-      "lookups": 0
-     },
-     {
-      "way": "change_too",
-      "world": "main",
-      "text": "Atlanta",
-      "found": true,
-      "active": true,
-      "has_focus": true,
-      "listed": 0,
-      "first": null,
-      "lookups": 0
-     }
-    ]
-   },
    "place_probe_trusted": {
     "lever": [
      "Chicago, IL, USA",
-     "Chicago, BLZ",
-     "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE"
+     "Chicago, ND, USA",
+     "Chicago, OH, USA"
     ],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792471037143,
+     "at": 1792471480795,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 95
+     "ms": 125
     },
     {
-     "at": 1792471056708,
+     "at": 1792471482173,
      "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Miami",
+     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 97
-    },
-    {
-     "at": 1792471059799,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Phoenix",
-     "status": 200,
-     "ms": 82
-    },
-    {
-     "at": 1792471069537,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago",
-     "status": 200,
-     "ms": 111
+     "ms": 157
     }
    ]
   },
@@ -5123,23 +4447,23 @@
    "url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-   "ms_goto_dcl": 543,
-   "ms_goto_load": 1228,
-   "ms_fill_click_to_card": 1400,
+   "ms_goto_dcl": 410,
+   "ms_goto_load": 1105,
+   "ms_fill_click_to_card": 1348,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792471074730,
-    "context": 1792471073414,
-    "dcl": 1792471072602,
+    "card": 1792471487130,
+    "context": 1792471485919,
+    "dcl": 1792471485063,
     "fields": 13,
-    "fill": 1792471074722,
-    "first_card": 1792471074730,
-    "nav": 1792471072063,
-    "plan": 1792471073937,
-    "prepare": 1792471073399,
-    "read": 1792471073921,
-    "script": 1792471072809,
+    "fill": 1792471487121,
+    "first_card": 1792471487130,
+    "nav": 1792471484658,
+    "plan": 1792471486436,
+    "prepare": 1792471485873,
+    "read": 1792471486425,
+    "script": 1792471485270,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5251,7 +4575,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "ded12ab0-98ca-4076-a070-b95e98639a14__systemfield_eeoc_gender",
+     "name": "8f93a601-7d18-4b54-bb55-769860de5875__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -5261,7 +4585,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "ded12ab0-98ca-4076-a070-b95e98639a14__systemfield_eeoc_race",
+     "name": "8f93a601-7d18-4b54-bb55-769860de5875__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -5271,7 +4595,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "ded12ab0-98ca-4076-a070-b95e98639a14__systemfield_eeoc_veteran_status",
+     "name": "8f93a601-7d18-4b54-bb55-769860de5875__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -5338,18 +4662,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792471073835,
+     "at": 1792471486353,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 97
+     "ms": 67
     },
     {
-     "at": 1792471074591,
+     "at": 1792471486947,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 108
+     "ms": 78
     }
    ]
   },
@@ -5359,23 +4683,23 @@
    "url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-   "ms_goto_dcl": 360,
-   "ms_goto_load": 886,
-   "ms_fill_click_to_card": 1117,
+   "ms_goto_dcl": 278,
+   "ms_goto_load": 938,
+   "ms_fill_click_to_card": 1053,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792471084468,
-    "context": 1792471083463,
-    "dcl": 1792471082806,
+    "card": 1792471496869,
+    "context": 1792471495905,
+    "dcl": 1792471495107,
     "fields": 13,
-    "fill": 1792471084462,
-    "first_card": 1792471084468,
-    "nav": 1792471082450,
-    "plan": 1792471083765,
-    "prepare": 1792471083448,
-    "read": 1792471083753,
-    "script": 1792471083015,
+    "fill": 1792471496864,
+    "first_card": 1792471496869,
+    "nav": 1792471494834,
+    "plan": 1792471496168,
+    "prepare": 1792471495890,
+    "read": 1792471496160,
+    "script": 1792471495315,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5560,25 +4884,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792471083823,
+     "at": 1792471496132,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 93
+     "ms": 69
     },
     {
-     "at": 1792471084293,
+     "at": 1792471496669,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 100
+     "ms": 65
     },
     {
-     "at": 1792471088735,
+     "at": 1792471501086,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 97
+     "ms": 60
     }
    ]
   },
@@ -5588,23 +4912,23 @@
    "url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-   "ms_goto_dcl": 303,
-   "ms_goto_load": 954,
-   "ms_fill_click_to_card": 599,
+   "ms_goto_dcl": 247,
+   "ms_goto_load": 792,
+   "ms_fill_click_to_card": 621,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792471093769,
-    "context": 1792471093278,
-    "dcl": 1792471092504,
+    "card": 1792471506048,
+    "context": 1792471505542,
+    "dcl": 1792471504849,
     "fields": 10,
-    "fill": 1792471093763,
-    "first_card": 1792471093769,
-    "nav": 1792471092206,
-    "plan": 1792471093543,
-    "prepare": 1792471093264,
-    "read": 1792471093533,
-    "script": 1792471092710,
+    "fill": 1792471506038,
+    "first_card": 1792471506048,
+    "nav": 1792471504606,
+    "plan": 1792471505807,
+    "prepare": 1792471505528,
+    "read": 1792471505797,
+    "script": 1792471505056,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5746,23 +5070,23 @@
    "url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-   "ms_goto_dcl": 600,
-   "ms_goto_load": 1137,
-   "ms_fill_click_to_card": 1304,
+   "ms_goto_dcl": 427,
+   "ms_goto_load": 1222,
+   "ms_fill_click_to_card": 1093,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792471101395,
-    "context": 1792471100184,
-    "dcl": 1792471099532,
+    "card": 1792471513545,
+    "context": 1792471512549,
+    "dcl": 1792471511631,
     "fields": 11,
-    "fill": 1792471101388,
-    "first_card": 1792471101395,
-    "nav": 1792471098938,
-    "plan": 1792471100702,
-    "prepare": 1792471100168,
-    "read": 1792471100689,
-    "script": 1792471099739,
+    "fill": 1792471513538,
+    "first_card": 1792471513545,
+    "nav": 1792471511210,
+    "plan": 1792471512843,
+    "prepare": 1792471512534,
+    "read": 1792471512830,
+    "script": 1792471511837,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5854,7 +5178,7 @@
      "verdict": "correct"
     },
     {
-     "name": "ef952991-5832-4fb1-914f-1cdd6786dc7a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "86cedd14-a1df-40b3-9c8a-d42e503c188b_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
      "widget": null,
      "required": true,
@@ -5864,7 +5188,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "ef952991-5832-4fb1-914f-1cdd6786dc7a_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "86cedd14-a1df-40b3-9c8a-d42e503c188b_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked ",
      "widget": null,
      "required": true,
@@ -5924,7 +5248,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 504,
+    "fresh_lookup_ms": 405,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -5940,25 +5264,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792471100717,
+     "at": 1792471512868,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 87
+     "ms": 70
     },
     {
-     "at": 1792471101260,
+     "at": 1792471513367,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 110
+     "ms": 84
     },
     {
-     "at": 1792471105691,
+     "at": 1792471517792,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 106
+     "ms": 79
     }
    ]
   },
@@ -5968,23 +5292,23 @@
    "url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
-   "ms_goto_dcl": 301,
-   "ms_goto_load": 826,
-   "ms_fill_click_to_card": 1035,
+   "ms_goto_dcl": 238,
+   "ms_goto_load": 754,
+   "ms_fill_click_to_card": 1134,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792471111114,
-    "context": 1792471110197,
-    "dcl": 1792471109546,
+    "card": 1792471523193,
+    "context": 1792471522195,
+    "dcl": 1792471521522,
     "fields": 12,
-    "fill": 1792471111106,
-    "first_card": 1792471111114,
-    "nav": 1792471109251,
-    "plan": 1792471110462,
-    "prepare": 1792471110181,
-    "read": 1792471110453,
-    "script": 1792471109756,
+    "fill": 1792471523183,
+    "first_card": 1792471523193,
+    "nav": 1792471521292,
+    "plan": 1792471522469,
+    "prepare": 1792471522180,
+    "read": 1792471522458,
+    "script": 1792471521730,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -6082,7 +5406,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "9a537912-54b3-4e26-b7a0-8c340d26068f__systemfield_eeoc_gender",
+     "name": "453a4f53-5a99-4806-8077-d583ca498e3a__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -6092,7 +5416,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9a537912-54b3-4e26-b7a0-8c340d26068f__systemfield_eeoc_race",
+     "name": "453a4f53-5a99-4806-8077-d583ca498e3a__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -6102,7 +5426,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9a537912-54b3-4e26-b7a0-8c340d26068f__systemfield_eeoc_veteran_status",
+     "name": "453a4f53-5a99-4806-8077-d583ca498e3a__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -6151,7 +5475,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 503,
+    "fresh_lookup_ms": 404,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -6167,32 +5491,32 @@
    },
    "place_lookups": [
     {
-     "at": 1792471110508,
+     "at": 1792471522407,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 92
+     "ms": 65
     },
     {
-     "at": 1792471111014,
+     "at": 1792471523090,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 112
+     "ms": 69
     },
     {
-     "at": 1792471111601,
+     "at": 1792471523659,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 91
+     "ms": 81
     },
     {
-     "at": 1792471115407,
+     "at": 1792471527443,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 106
+     "ms": 69
     }
    ]
   },
@@ -6202,23 +5526,23 @@
    "url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-   "ms_goto_dcl": 339,
-   "ms_goto_load": 1100,
-   "ms_fill_click_to_card": 1107,
+   "ms_goto_dcl": 260,
+   "ms_goto_load": 952,
+   "ms_fill_click_to_card": 1219,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792471121192,
-    "context": 1792471120195,
-    "dcl": 1792471119313,
+    "card": 1792471533159,
+    "context": 1792471532049,
+    "dcl": 1792471531226,
     "fields": 14,
-    "fill": 1792471121184,
-    "first_card": 1792471121192,
-    "nav": 1792471118980,
-    "plan": 1792471120465,
-    "prepare": 1792471120180,
-    "read": 1792471120450,
-    "script": 1792471119520,
+    "fill": 1792471533126,
+    "first_card": 1792471533159,
+    "nav": 1792471530971,
+    "plan": 1792471532385,
+    "prepare": 1792471532034,
+    "read": 1792471532359,
+    "script": 1792471531434,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -6322,7 +5646,7 @@
      "verdict": "correct"
     },
     {
-     "name": "3fe22f27-eb9e-490c-94ff-0386b863397b_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "ac42a134-aa09-4c0c-8e1a-751922b5abc0_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Will you now or will you in the future require employment visa sponsorship?",
      "widget": null,
      "required": true,
@@ -6332,7 +5656,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "3fe22f27-eb9e-490c-94ff-0386b863397b_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "ac42a134-aa09-4c0c-8e1a-751922b5abc0_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "This role is tied to the office location listed in the job posting. Team members are expected to wor",
      "widget": null,
      "required": true,
@@ -6408,7 +5732,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 402,
+    "fresh_lookup_ms": 404,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -6424,25 +5748,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792471120437,
+     "at": 1792471532221,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 99
+     "ms": 123
     },
     {
-     "at": 1792471120994,
+     "at": 1792471532874,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 107
+     "ms": 66
     },
     {
-     "at": 1792471125452,
+     "at": 1792471537444,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 90
+     "ms": 70
     }
    ]
   }
@@ -6455,7 +5779,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -6465,7 +5789,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -6475,7 +5799,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -6485,7 +5809,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -6495,7 +5819,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -6565,7 +5889,7 @@
   },
   {
    "method": "POST",
-   "host": "api.hcaptcha.com",
+   "host": "api2.hcaptcha.com",
    "path": "/checksiteconfig"
   },
   {
@@ -6800,11 +6124,8 @@
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -6824,152 +6145,8 @@
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiCreateFileUploadHandle"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "csp.withgoogle.com",
-   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7037,11 +6214,42 @@
   },
   {
    "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
     "ApiSetFormValue"
    ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7082,6 +6290,11 @@
    "ops": [
     "ApiSetFormValue"
    ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7157,11 +6370,87 @@
   },
   {
    "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
     "ApiSetFormValue"
    ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7213,11 +6502,145 @@
   },
   {
    "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
     "ApiSetFormValue"
    ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7269,11 +6692,8 @@
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
   },
   {
    "method": "POST",
@@ -7285,19 +6705,13 @@
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
@@ -7333,6 +6747,241 @@
   },
   {
    "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
@@ -7381,213 +7030,13 @@
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/rum"
   },
   {
    "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "csp.withgoogle.com",
-   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "csp.withgoogle.com",
-   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiCreateFileUploadHandle"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
+   "host": "browser-intake-datadoghq.com",
+   "path": "/api/v2/replay"
   },
   {
    "method": "POST",

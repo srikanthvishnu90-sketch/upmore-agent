@@ -186,6 +186,13 @@ function variantOne(name) {
   // statement that answers must be written without AI.
   if (name === "essay") return `<script>/* TEST: a written question */ ${insertField('<label for="why_test">Why do you want to work here? *</label><textarea id="why_test" name="why_test" rows="4" maxlength="1500" required></textarea>')}</script>`;
   if (name === "aiban") return `<script>/* TEST: an employer that asks for answers without AI */ ${insertField('<label><input type="checkbox" name="own_words_test" value="yes">During this application process I agree to use only my own words. I understand that the use of AI or other generated content will disqualify my application.</label>')}</script>`;
+  // WO-054: anything done to the page (a value set, a click, a submit) is reported to the world, so a test can prove
+  // Prepare only reads.
+  if (name === "watch") {
+    return `<script>/* TEST: report what is done to this page */ ["input", "change", "click", "submit"].forEach(function (t) {
+      document.addEventListener(t, function () { navigator.sendBeacon("/__employer/touched?type=" + t + "&path=" + encodeURIComponent(location.pathname)); }, true);
+    });</script>`;
+  }
   if (name === "readonly") return `<script>/* TEST: a read-only field the page sets */ ${insertField('<label for="ref_test">Posting reference</label><input id="ref_test" name="ref_test" readonly value="TEST-REF-42">')}</script>`;
   if (name === "race") {
     // TEST attacker: when the screenshot's covers come off, wait and rewrite the email (WO-031 review, item 1).
@@ -306,6 +313,7 @@ async function startWorld(o = {}) {
     rpcCalls: [],
     essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
     essayReply: null,
+    touched: [], // WO-054: what the "watch" variant saw done to a page
     serviceKeySession: false,
   };
   // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
@@ -474,6 +482,10 @@ async function startWorld(o = {}) {
         }
         state.submits.push({ form: u.searchParams.get("form"), path: u.searchParams.get("path"), host, fields, files, at: Date.now() });
         return json(res, 200, { ok: true });
+      }
+      if (u.pathname === "/__employer/touched" && req.method === "POST") {
+        state.touched.push({ host, type: u.searchParams.get("type"), path: u.searchParams.get("path"), at: Date.now() });
+        return res.writeHead(204).end();
       }
       if (host === "jobs.lever.co" && u.pathname === LABELS_PATH) {
         return res.writeHead(200, { "content-type": "text/html" }).end(LABELS_PAGE);

@@ -3576,8 +3576,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     WORKDAY_PAGE_SET: () => WORKDAY_PAGE_SET,
     WORKDAY_PERSONAL: () => WORKDAY_PERSONAL,
+    answerOnceQuestions: () => answerOnceQuestions,
+    answerOnceRows: () => answerOnceRows,
     applyUrl: () => applyUrl,
     approvalHash: () => approvalHash,
+    beforeSession: () => beforeSession,
     blockers: () => blockers,
     cardLines: () => cardLines,
     cardOutcome: () => cardOutcome,
@@ -3860,6 +3863,149 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       answers: out
     };
   }
+  function leftForCard(n) {
+    const q = {
+      label: n.label,
+      type: n.type,
+      options: (n.options || []).map((l) => ({
+        label: l
+      }))
+    };
+    if (isIdentityField({
+      label: n.label
+    }) || NEVER_BY_TEXT.test(n.label)) return "identity";
+    const m = mapQuestion(q);
+    if (n.personal || m.fact === "eeo" || classifyField(n.label, n.type) === "eeo") return "personal";
+    if (/file/.test(String(n.type)) || m.kind === "file") return "file";
+    if (m.kind === "essay") return "essay";
+    if (n.options?.length && n.options.every((l) => /^\s*(i\s+)?(will read|accept|agree|acknowledge|understand|consent|confirm|certify|attest)\b/i.test(l))) return "agreement";
+    return null;
+  }
+  function answerOnceQuestions(o) {
+    const by = /* @__PURE__ */ new Map();
+    const left = [];
+    for (const p of o.postings) {
+      const keep = [];
+      for (const n of p.needs) {
+        const why = leftForCard(n);
+        if (why) left.push({
+          jobId: p.jobId,
+          label: n.label,
+          why
+        });
+        else keep.push(n);
+      }
+      for (const r of questionsForTrainee({
+        jobId: p.jobId,
+        company: p.company,
+        location: p.location,
+        needs: keep,
+        answers: o.answers,
+        answered: o.answered
+      }).questions) {
+        if (staysWithPosting(r)) {
+          left.push({
+            jobId: p.jobId,
+            label: r.label,
+            why: "agreement"
+          });
+          continue;
+        }
+        const g = by.get(r.key) ?? {
+          key: r.key,
+          kind: r.kind,
+          postings: [],
+          perPosting: String(r.key).startsWith("job:")
+        };
+        g.postings.push({
+          jobId: p.jobId,
+          company: p.company,
+          label: r.label,
+          type: r.type,
+          options: r.options,
+          misfit: !!r.misfit
+        });
+        by.set(r.key, g);
+      }
+    }
+    const questions = [
+      ...by.values()
+    ].map((g) => {
+      const count = /* @__PURE__ */ new Map();
+      for (const a of g.postings) count.set(shortLabel(a.label), (count.get(shortLabel(a.label)) ?? 0) + 1);
+      const top = [
+        ...count
+      ].reduce((b, x) => x[1] > b[1] ? x : b)[0];
+      const rep = g.postings.find((a) => shortLabel(a.label) === top);
+      const postings = [
+        rep,
+        ...g.postings.filter((a) => a !== rep)
+      ];
+      return {
+        ...g,
+        postings,
+        label: rep.label,
+        type: rep.type,
+        options: rep.options,
+        similar: count.size - 1,
+        selected: null
+      };
+    });
+    questions.sort((a, b) => b.postings.length - a.postings.length);
+    return {
+      questions,
+      left
+    };
+  }
+  function answerOnceRows(o) {
+    const groups = /* @__PURE__ */ new Map();
+    const refused = [];
+    for (const pick2 of o.picks) {
+      const q = o.questions.find((x) => x.key === pick2.key);
+      const answer = String(pick2.answer ?? "").replace(/\s+/g, " ").trim();
+      if (!q || !answer) continue;
+      const why = answer.length > 2e3 || answer === MASKED || looksLikeIdNumber(answer) ? "not an answer Trainee keeps" : q.options.length && !q.options.includes(answer) ? "not one of the employer's options" : !q.perPosting && (q.postings.some((a) => namesEmployer(answer, a.company)) || q.key === "fact:how_heard" && !howHeardChannel(answer)) ? "it names one employer, so it is answered on that card" : null;
+      if (why) {
+        refused.push({
+          key: q.key,
+          why
+        });
+        continue;
+      }
+      const at = q.postings[0];
+      const g = groups.get(at.jobId) ?? {
+        posting: at.jobId,
+        questions: [],
+        answers: []
+      };
+      g.questions.push({
+        key: q.key,
+        kind: q.kind,
+        label: at.label,
+        type: at.type,
+        options: at.options,
+        company: at.company,
+        misfit: at.misfit
+      });
+      g.answers.push({
+        key: q.key,
+        kind: q.kind,
+        label: at.label,
+        type: at.type,
+        options: at.options,
+        company: at.company,
+        answer
+      });
+      groups.set(at.jobId, g);
+    }
+    return {
+      groups: [
+        ...groups.values()
+      ],
+      refused
+    };
+  }
+  var beforeSession = (fields, factIds) => fields.filter((f) => f.source === "trainee" && !!f.factId && factIds.includes(f.factId)).map((f) => f.name);
   var MASKED = "[typed by you on the form; never kept by Trainee]";
   function reviewPayload(o) {
     return {
@@ -3949,7 +4095,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     lines.push("Every answer exactly as it will be sent:");
     for (const f of o.payload.fields) {
       const ids = draftFactIds(f.factId);
-      const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
+      const from = f.source === "trainee" ? o.before?.includes(f.name) ? " (your answer, answered before the session)" : "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
       lines.push(`${MARK[mapQuestion({
         label: f.label
       }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);

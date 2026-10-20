@@ -145,7 +145,9 @@ async function facts(userId) {
   const merged = C.factsWithTextAnswers(imported, rows);
   const resume = await get(L, "resume", null);
   if (resume) merged.answers.resume = { value: resume.sha256, factId: "approved-local-resume:" + resume.sha256 };
-  return { answers: merged.answers, saved: merged.saved, answered: rows.map((r) => r.key), userId };
+  // WO-054: the stored rows of answers the person gave in the panel before the session, for the card's mark.
+  const beforeKeys = new Set(await get(S, "answered_before", []));
+  return { answers: merged.answers, saved: merged.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id) };
 }
 function confirmedOnly(input, owner) {
   const out = {};
@@ -416,6 +418,92 @@ async function readAndFinish(tabId, p) {
   }
 }
 
+// ------------------------------------------------------------------------------------------------ answer once (WO-054)
+// "Prepare": the next queued postings are read in hidden tabs (content.js survey(): read only, nothing filled, clicked or
+// sent; each tab closed after) and the questions only the person can answer are gathered once for the panel
+// (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, four at a time: each is a whole employer page held in a
+// hidden tab, and an answer given now should be about postings this session reaches. Workday postings are left out: the
+// person signs in on the employer's site first (D-013), so their questions are asked on their own cards.
+const PREPARE_MAX = 20, PREPARE_AT_ONCE = 4, SURVEY_WAIT_MS = 45_000;
+const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
+let preparing = false;
+async function surveyOne(url) {
+  // Opened blank, then sent to the posting, so its tab is known before its content script asks what it is for.
+  const tab = await chrome.tabs.create({ url: "about:blank", active: false });
+  let timer = null;
+  const got = new Promise((r) => surveys.set(tab.id, r));
+  const late = new Promise((r) => (timer = setTimeout(() => r({ ok: false, why: "the page did not load in time" }), SURVEY_WAIT_MS)));
+  try {
+    await chrome.tabs.update(tab.id, { url });
+    return { ...(await Promise.race([got, late])), url };
+  } catch {
+    return { ok: false, why: "the page could not be opened", url };
+  } finally {
+    clearTimeout(timer);
+    surveys.delete(tab.id);
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+async function prepareQueue() {
+  const a = await session();
+  if (!a) return { ok: false, message: say.signedOut };
+  const waiting = (await queueState()).items.filter((x) => x.state === "waiting");
+  const workday = waiting.filter((x) => C.detectPortal(x.url)?.family === "workday").length;
+  const pick = waiting.filter((x) => C.detectPortal(x.url)?.family !== "workday").slice(0, PREPARE_MAX);
+  const notes = [];
+  if (workday) notes.push(`${workday} Workday posting${workday === 1 ? " is" : "s are"} left out: Workday needs you signed in on the employer's site, so ${workday === 1 ? "its questions are" : "their questions are"} asked on the card.`);
+  const more = waiting.length - workday - pick.length;
+  if (more > 0) notes.push(`Only the next ${PREPARE_MAX} postings are read ahead (${more} more wait): each is a whole page held open in a hidden tab. Press Prepare again after them.`);
+  if (!pick.length) return { ok: false, message: notes[0] || "Add some posting links first." };
+  const base = { status: "reading", total: pick.length, read: 0, notes, failed: [], questions: [], left: {}, open: 0, skipped: [], saved: [], refused: [] };
+  await put(S, "answer_once", base);
+  const results = new Array(pick.length);
+  let next = 0, read = 0;
+  const worker = async () => {
+    while (next < pick.length) {
+      const i = next++;
+      results[i] = await surveyOne(pick[i].url);
+      await put(S, "answer_once", { ...base, read: ++read });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
+  const ok = results.filter((r) => r.ok && Array.isArray(r.needs));
+  const f = await facts(a.user_id);
+  const merged = C.answerOnceQuestions({ postings: ok.map((r) => ({ jobId: String(r.jobId), company: String(r.company), url: r.url, location: typeof r.location === "string" ? r.location.slice(0, 300) : undefined, needs: r.needs })),
+    answers: f.answers, answered: new Set(f.answered) });
+  const left = {};
+  for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;
+  await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
+    failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
+  return { ok: true, questions: merged.questions.length };
+}
+// The person's own answers from the panel, stored the way an answer given on a form is (WO-042): the question is recorded
+// for the posting that asked it, then answered under its key. The planner reads each back through `saved` (or as a fact)
+// when the queue reaches each posting, and puts it only on an option that posting itself offers.
+async function saveAnswerOnce(picks) {
+  const st = await get(S, "answer_once", null);
+  if (!st || st.status !== "ready") return { ok: false, message: "Press Prepare first." };
+  const live = st.questions.filter((q) => !st.skipped.includes(q.key) && !st.saved.includes(q.key));
+  const r = C.answerOnceRows({ questions: live, picks: Array.isArray(picks) ? picks : [] });
+  const saved = [];
+  let failed = false;
+  for (const g of r.groups) {
+    try {
+      for (let i = 0; i < g.answers.length; i += 60) {
+        await rpc("career_apply_questions_put_own", { p_job_id: g.posting, p_questions: g.questions.slice(i, i + 60) });
+        await rpc("career_apply_questions_answer_from_form_own", { p_job_id: g.posting, p_answers: g.answers.slice(i, i + 60) });
+      }
+      saved.push(...g.answers.map((x) => x.key));
+    } catch (e) {
+      if (e.message === "SIGNED_OUT") return { ok: false, message: say.signedOut };
+      failed = true;
+    }
+  }
+  await put(S, "answered_before", [...new Set([...(await get(S, "answered_before", [])), ...saved])]);
+  await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused });
+  return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
+}
+
 // ------------------------------------------------------------------------------------------------ messages
 async function handle(m, sender) {
   const tabId = sender.tab?.id ?? m.tabId;
@@ -443,7 +531,7 @@ async function handle(m, sender) {
       // fill itself, once, within ten minutes.
       const next = (await get(S, "workday_next", {}))[tabId];
       if (next) await setWorkdayNext(tabId, false);
-      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000 };
+      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000, survey: surveys.has(tabId) };
     }
     case "card": {
       // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
@@ -472,6 +560,14 @@ async function handle(m, sender) {
     }
     case "draft-clicked":
       return { ok: true };
+    case "survey": {
+      // WO-054: a hidden tab's reading of its posting, taken once, only from a tab Prepare opened.
+      const done = surveys.get(tabId);
+      if (!done) return { ok: false };
+      surveys.delete(tabId);
+      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [] });
+      return { ok: true };
+    }
     case "questions": {
       // Ask once: each question that stopped this form goes to Trainee once, to be asked by text.
       // Once per form; a Workday application asks once per step (each step has its own questions).
@@ -571,6 +667,7 @@ async function handle(m, sender) {
         card, drafts: card ? await draftsFor(m.tabId, card.jobId) : {}, queue: await queueState(),
         timing: { n: timing.length, avg_ms: timing.length ? Math.round(timing.reduce((x, y) => x + y, 0) / timing.length) : null },
         importedFacts: Object.keys((await get(S, "imported_facts", { answers: {} })).answers).length,
+        answerOnce: await get(S, "answer_once", null),
       };
     }
     case "signin-app":
@@ -697,7 +794,25 @@ async function handle(m, sender) {
     }
     case "queue-clear":
       await put(S, "queue", { items: [], index: -1, tabId: null, running: false });
+      await S.remove("answer_once");
       return { ok: true };
+    case "answer-once-prepare": {
+      if (preparing) return { ok: false, message: "Already reading the queue's postings." };
+      preparing = true;
+      try {
+        return await prepareQueue();
+      } finally {
+        preparing = false;
+      }
+    }
+    case "answer-once-save":
+      return await saveAnswerOnce(m.answers);
+    case "answer-once-skip": {
+      const st = await get(S, "answer_once", null);
+      if (!st) return { ok: false };
+      await put(S, "answer_once", { ...st, skipped: [...new Set([...st.skipped, String(m.key)])] });
+      return { ok: true };
+    }
     default:
       return { ok: false, message: "unknown request" };
   }
@@ -706,8 +821,9 @@ async function handle(m, sender) {
 // only from the extension's own panel page, never from a content script running inside an employer's page; what a page
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
-  "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked"]);
+  "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
+  "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

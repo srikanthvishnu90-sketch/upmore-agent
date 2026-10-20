@@ -29,3 +29,8 @@ blockquote { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--line
 .essay .essay-label { display: block; margin-bottom: 4px; word-break: break-word; }
 .essay textarea { min-height: 120px; resize: vertical; margin: 4px 0; }
 .essay .row { justify-content: flex-start; }
+/* WO-054: the questions only the person can answer, asked once before the session. */
+#ao-list { padding-left: 18px; margin: 6px 0; }
+#ao-list li { margin: 8px 0; word-break: break-word; }
+#ao-list .ao-where { margin: 2px 0 4px; }
+#ao-list select, #ao-list input[type=text] { font: inherit; max-width: 100%; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--fg); }

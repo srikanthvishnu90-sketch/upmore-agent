@@ -173,8 +173,10 @@
     // WO-048: a Workday step's card says what its button does: Save and Continue (a draft) or the one Submit.
     const workday = wd ? { action: wd.step.kind === "review" ? "submit" : "draft", step: wd.step.title, employer: company, conflicts: wd.conflicts,
       personal: form.schema.some((s) => s.personal) } : undefined;
+    // WO-054: what Trainee filled from an answer the person gave in the panel before the session is marked on the card.
+    const before = C.beforeSession(fields, ctx.before || []);
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
-      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday });
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday, before });
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;
@@ -187,7 +189,7 @@
     }
     const essays = portal.family === "workday" ? [] : C.essayQuestions({ schema: form.schema, fields, maxLength });
     const formLabels = [...new Set(form.schema.map((s) => String(s.label || "")).filter(Boolean))].slice(0, 200);
-    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels,
+    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before,
       ...(workday ? { action: workday.action, step: workday.step } : {}),
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
@@ -283,6 +285,37 @@
     } finally {
       busy = false;
     }
+  }
+
+  // ------------------------------------------------------------------------------------------------ prepare (WO-054)
+  // Read only, in a hidden tab the background opened for "Prepare": the form, the posting's location and the planner's
+  // open questions, reported once. Nothing here fills, clicks, sends a card or stores a question; the tab is closed after.
+  // A hidden tab runs timers about once a second, so the wait for a late form is the page's own mutations, not sleeps.
+  async function survey() {
+    const c = await send({ type: "context" });
+    if (!c?.signedIn) return send({ type: "survey", ok: false, why: "signed out" });
+    const f = await formReady(15000);
+    if (D.fnDetectChallenge()) return send({ type: "survey", ok: false, why: "a verification check on the page" });
+    if (!f.schema.length) return send({ type: "survey", ok: false, why: "no application form on the page" });
+    const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
+    const at = D.fnPostingLocation();
+    const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+  }
+  function formReady(ms) {
+    return new Promise((resolve) => {
+      let queued = false, timer = null;
+      const finish = () => {
+        obs.disconnect();
+        clearTimeout(timer);
+        resolve(D.readForm());
+      };
+      const check = () => (queued = false, D.readForm().schema.length >= 2 && finish());
+      const obs = new MutationObserver(() => !queued && (queued = true, queueMicrotask(check)));
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      timer = setTimeout(finish, ms);
+      check();
+    });
   }
 
   // ------------------------------------------------------------------------------------------------ Workday (WO-048)
@@ -579,6 +612,8 @@
   // Greenhouse form is its own frame and is filled from the panel).
   (async () => {
     const c = await send({ type: "queued" });
+    // WO-054: a tab the background opened to read a posting before the session is read and nothing more.
+    if (c?.survey) return (window === window.top || portal.embedded) && survey();
     // WO-048: the next Workday step after an approved Save and Continue (or after the person signed in) fills itself.
     if ((c?.queued || c?.workdayNext) && !c.pending && (window === window.top || portal.embedded)) await prepare();
   })();

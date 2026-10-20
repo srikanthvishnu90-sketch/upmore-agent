@@ -12,7 +12,9 @@ export type Effect = "read" | "write_own" | "external";
 // `show` (WO-033): a tool whose output the person must read exactly (a batch of outreach drafts, each in full) sets it;
 // the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it. `parts`
 // (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string; parts?: string[] } } }
+// `before` (WO-091b): the previous turn's reply as the person saw it ("" on a first turn), so a tool can check that "the
+// first one" is a posting that reply showed. Undefined only for a caller that runs a tool without the loop's history.
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -147,7 +149,10 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
-  o.ctx.turn = { message: o.message, added: [] };
+  const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
+  const before = !last ? "" : typeof last.content === "string" ? last.content
+    : Array.isArray(last.content) ? last.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : "";
+  o.ctx.turn = { message: o.message, added: [], before };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
   // WO-091a: what this turn's tools returned is a source for what the reply may say about the person, and names the
   // postings a raw job id stands for.

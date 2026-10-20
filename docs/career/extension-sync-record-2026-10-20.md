@@ -34,7 +34,9 @@ entered the repo (proofs run on the repo's own test personas).
   `state.career.stores.profile` carries basics||facts (mirrors
   `workers/career-browser/production-sources.cjs` readStoredMaster).
   No master → honest `404 PROFILE_NOT_FOUND` (chat onboarding creates
-  it). Response: `{ savedAnswers, derivedAt, savedAnswersVersion, user }`.
+  it). Response: `{ savedAnswers, user }` — `derivedAt` and
+  `savedAnswersVersion` ride INSIDE the savedAnswers map (corrected at
+  the deploy record below; the code was always this shape).
 - Composition (`composeSavedAnswers`, later layers win):
   1. identity from the master's basics verbatim (name, email, phone,
      location, links incl. portfolio→website, current company);
@@ -204,3 +206,55 @@ the proof DRIVER and the fixture check, never by shipped code.
 4. Follow-ups (not this lane): fold stored tracker records into the
    in-chat track store (agent-chat lane); the two module-149 gaps
    above; Lever/Ashby/Workday adapters.
+
+## Deploy — 2026-10-20 (deploy lane 4, owner's approval of the full supply list incl. "Deploy the saved-answers sync" + the merge)
+
+Exact commit deployed: **f8b2520c** (`work/extension-on-trunk`).
+Upmore project only (mrwngntwmnaqrqhupvlt). agent-chat and every other
+function untouched; no env changes.
+
+1. **Merge:** `work/extension-on-trunk` fast-forwarded into
+   `integration/v2-candidate` (ab94e44e → f8b2520c, 26 files, additions
+   only), pushed, ls-remote verified at f8b2520c3e3b30f6e50e868f134c136efeaab3dc.
+2. **Migration `20261020010000` APPLIED + VERIFIED LIVE:** table
+   `public.extension_submission_reports` exists — 15 columns as
+   written, RLS on, **0 policies**, both indexes present
+   (`extension_submission_reports_user_confirmation_uidx`,
+   `extension_submission_reports_user_reported_idx`).
+3. **`extension-sync` DEPLOYED — v1 ACTIVE** (verify_jwt=true;
+   prune-lane stage of exactly 3 files: `extension-sync/index.ts`,
+   `_shared/extension_sync.js`, `_shared/extension_domain.js`, both .js
+   syntax-checked; stage kept at `~/workspace/prune-lane/stage-extension-sync`).
+   Function list confirms agent-chat still v242, telegram/whatsapp v3.
+4. **Live checks** (test user gauntlet-test@upmore.test, GoTrue admin
+   magic-link JWT; all four pass):
+   - (a) GET /saved-answers with NO token → **401**
+     (`UNAUTHORIZED_NO_AUTH_HEADER`, gateway). With the anon key only →
+     **401** (`UNAUTHENTICATED`, the function's own check).
+   - (b) GET with the test-user JWT → **200 with the derived map.**
+     The map is THIN — profile keys `[location]`, answers `[]`,
+     version `sa-367a5b71` — and that is the account's real state,
+     proven two ways: SQL read of the exact master the function's rule
+     picks (freshest-25 window, first snapshot whose profile carries
+     basics||facts = the stated-facts bridge profile: basics hold only
+     a location, its 6 facts are stated-fact kinds that derive no
+     answers), and an offline run of the shipped core over that exact
+     profile producing the identical map shape AND the identical
+     version hash `sa-367a5b71`. A claimed `?user_id=` for another user
+     was ignored — the response carried the caller's own version.
+   - (c) POST a FABRICATED confirmation (claimed id GH-FAKE-99999,
+     excerpt with no parseable confirmation) → **400
+     CONFIRMATION_NOT_SHOWN**; zero rows stored for the test user.
+   - (d) POST a well-formed simulated confirmation (clearly test data:
+     Example Corp (TEST), id GH-DEMO-2026-9001) → **200, receipt
+     05eb9c05-2f36-4423-91d5-4045c3992a00**; the identical POST again →
+     **duplicate: true, the same receipt**. DB: exactly **1 row** for
+     the test user — confirmation_id GH-DEMO-2026-9001, record_class
+     employer_confirmation, tracker stage "Confirmed", source extension.
+5. Doc drift fixed in this commit (docs-follow-code): the response
+   shape line above now states the version/derivedAt ride inside the
+   map; the code was always this shape.
+
+Remaining from the list above: step 3 (the owner signs in inside the
+extension popup) and the follow-ups (in-chat track-store fold — an
+agent-chat lane; the two module-149 derivation gaps).

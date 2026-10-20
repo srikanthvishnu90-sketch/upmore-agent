@@ -30,6 +30,7 @@ import {
   firms,
   type MockState,
   recordFacts,
+  sourceOf,
   start as startMock,
   type Turn,
   validState,
@@ -54,7 +55,7 @@ const MAX_BODY = 400_000;
 // ---------- The interviewer ----------
 // What the interviewer is told: the same plan of questions as the text mock, in order, a follow-up at most per answer,
 // and about the company only the facts on its record (each with the record field it came from) or its sourced patterns.
-export function interviewerInstructions(s: MockState, o: { lib?: any[]; firms?: any[] } = {}): string {
+export function interviewerInstructions(s: MockState, o: { lib?: any[]; firms?: any[]; checks?: unknown } = {}): string {
   const cir = s.record ? companyRecords(o.lib).find((c) => String(c.company_id) === s.record!.id) ?? null : null;
   const firm = !cir && s.patterns ? firms(o.firms).find((f) => f.id === s.patterns!.id) ?? null : null;
   const company = s.company;
@@ -74,7 +75,12 @@ export function interviewerInstructions(s: MockState, o: { lib?: any[]; firms?: 
     if (!facts.length) lines.push(`- (the record holds nothing about how ${company} interviews; say nothing about it)`);
   } else if (firm) {
     lines.push(`What you may say about ${company}: only these sourced notes (interview-patterns.json, firm ${firm.id}, checked ${firm.checked}). Say nothing else about ${company}. If asked about anything not here, say you do not have that on file.`);
-    for (const p of firm.patterns || []) lines.push(`- patterns: "${p.text}" (${p.source_type}, ${p.source_url})`);
+    // WO-041: a note whose page the last source check found gone is left out; one no check has opened is marked so.
+    for (const p of firm.patterns || []) {
+      const src = sourceOf(p, o.checks);
+      if (src.status === "gone") continue;
+      lines.push(`- patterns: "${p.text}" (${p.source_type}, ${p.source_url})${src.verified ? "" : " [unverified: page not opened by a source check; do not present it as the firm's words]"}`);
+    }
   } else if (company) {
     lines.push(`There is no record of ${company} on file. Say nothing about how ${company} hires or interviews; if asked, say there is no record of it on file.`);
   }
@@ -86,7 +92,7 @@ export function interviewerInstructions(s: MockState, o: { lib?: any[]; firms?: 
   return lines.join("\n");
 }
 
-export function realtimeSecretRequest(s: MockState, o: { model?: string; voice?: string; lib?: any[]; firms?: any[] } = {}) {
+export function realtimeSecretRequest(s: MockState, o: { model?: string; voice?: string; lib?: any[]; firms?: any[]; checks?: unknown } = {}) {
   return {
     expires_after: { anchor: "created_at", seconds: SECRET_TTL_S },
     session: {

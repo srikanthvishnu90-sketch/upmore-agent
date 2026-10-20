@@ -12,7 +12,7 @@
 // Over SMS, STOP (and END, QUIT, CANCEL, UNSUBSCRIBE, STOPALL, HELP, INFO, START) are carrier keywords that trainee-inbound
 // handles before any turn runs. None of them, alone, is ever a mock command or a mock answer: the mock ends with
 // "end mock" or "stop the mock".
-import { CareerPrep } from "./router_core.career.js";
+import { CareerPaths, CareerPrep } from "./router_core.career.js";
 import { supabaseCardStore } from "./career_apply_cards.ts";
 import { hostEnv, supabaseVoiceLinks, type VoiceLinks } from "./career_voice_link.ts";
 
@@ -35,7 +35,7 @@ export interface MockState {
   role: string;
   company: string | null;
   record: { id: string; name: string; as_of: string | null } | null;
-  patterns?: { id: string; name: string; checked: string | null } | null; // a firm without a record, from its sourced patterns
+  patterns?: { id: string; name: string; checked: string | null; unverified?: string | null } | null; // a firm without a record, from its sourced patterns
   voice?: boolean; // planned for the voice page (WO-035)
   sector: string | null;
   minutes: number;
@@ -227,12 +227,28 @@ export function patternProblems(data: any, recordIds: Set<string>): string[] {
   }
   return out;
 }
-// The pattern to build a question from: a firm-attributed question first, then the firm's own pages, then reports.
-function firmPrompt(f: Firm): { text: string; label: string; asked: boolean } | null {
-  for (const q of f.questions || []) { const label = patternLabel(q); if (label && clean(q.q)) return { text: clean(q.q), label, asked: true }; }
-  const ps = (f.patterns || []).map((p) => ({ p, label: patternLabel(p) })).filter((x) => x.label && clean(x.p.text));
-  ps.sort((a, b) => (RANK[a.label!.split(",")[0]] ?? 9) - (RANK[b.label!.split(",")[0]] ?? 9));
-  return ps.length ? { text: clean(ps[0].p.text), label: ps[0].label!, asked: false } : null;
+// WO-041: what the last source check (packages/career-data/source-checks.json, through 134 sourceStatus) says about a
+// pattern's page. A page the check found gone (404 or 410) is never quoted. A page no check has opened, or one that
+// refused or failed the check, is quoted only with that said: its text is a search summary nobody has read on the page.
+export interface SourceStatus { status: string; verified: boolean; checked: string | null }
+export function sourceOf(p: { source_url?: string } | null | undefined, checks?: unknown): SourceStatus {
+  return (CareerPaths as any).sourceStatus(String(p?.source_url ?? ""), checks);
+}
+export function unverifiedNote(src: SourceStatus): string | null {
+  if (src.verified || src.status === "gone") return null;
+  if (src.status === "unverified") return "Unverified: a search summary of that page; no source check has opened the page yet.";
+  return `Unverified: the page could not be opened at the ${src.checked} source check (${src.status}).`;
+}
+// The pattern to build a question from: a firm-attributed question first, then the firm's own pages, then reports;
+// within each, a page the check opened before one it did not. Gone pages are left out.
+function firmPrompt(f: Firm, checks?: unknown): { text: string; label: string; asked: boolean; note: string | null } | null {
+  for (const q of f.questions || []) {
+    const label = patternLabel(q), src = sourceOf(q, checks);
+    if (label && clean(q.q) && src.status !== "gone") return { text: clean(q.q), label, asked: true, note: unverifiedNote(src) };
+  }
+  const ps = (f.patterns || []).map((p) => ({ p, label: patternLabel(p), src: sourceOf(p, checks) })).filter((x) => x.label && clean(x.p.text) && x.src.status !== "gone");
+  ps.sort((a, b) => (RANK[a.label!.split(",")[0]] ?? 9) - (RANK[b.label!.split(",")[0]] ?? 9) || Number(b.src.verified) - Number(a.src.verified));
+  return ps.length ? { text: clean(ps[0].p.text), label: ps[0].label!, asked: false, note: unverifiedNote(ps[0].src) } : null;
 }
 
 // ---------- The plan of questions ----------
@@ -278,7 +294,7 @@ export function questionCount(minutes: number): number {
   return Math.max(2, Math.min(MAX_QUESTIONS, Math.round(minutes / 3.5)));
 }
 
-export function plan(o: { role: string; company: string | null; cir: any | null; minutes: number; seed: number; firm?: Firm | null }): MockQuestion[] {
+export function plan(o: { role: string; company: string | null; cir: any | null; minutes: number; seed: number; firm?: Firm | null; checks?: unknown }): MockQuestion[] {
   const gen: string[] = CareerPrep.GENERIC_BEHAVIORAL;
   const seed = Math.abs(Math.floor(o.seed)) || 0;
   const beh = [gen[1], gen[2], gen[3]];
@@ -295,13 +311,14 @@ export function plan(o: { role: string; company: string | null; cir: any | null;
   const name = o.cir ? recordName(o.cir) : firm ? clean(firm.name) : (o.company ? cut(clean(o.company), 60) : null);
   const look = o.cir ? lookFor(o.cir) : null;
   // A firm without a record: its own sourced pattern (or a question a source attributes to it), quoted with its label.
-  const fp = firm ? firmPrompt(firm) : null;
+  const fp = firm ? firmPrompt(firm, o.checks) : null;
+  const unverified = fp?.note ? ` ${fp.note}` : "";
   const companyQ = look
     ? `${possessive(name!)} record says (${look.label}): "${firstSentence(look.text, 150)}". ${look.field === "signal" ? "Tell me about a time you showed that." : "Pick the part of that you know best and walk me through a real example of it."}`
     : fp
     ? (fp.asked
-      ? `A question reported from ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 200)}"`
-      : `What is on file about ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 150)}". How would you prepare for that, and which example of your own would you bring?`)
+      ? `A question reported from ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 200)}"${unverified}`
+      : `What is on file about ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 150)}".${unverified} How would you prepare for that, and which example of your own would you bring?`)
     : null;
   const companyFrom = look ? `${possessive(name!)} record (${look.label})` : fp ? `${possessive(name!)} interview patterns (${fp.label})` : "";
   type Slot = { pri: number; pos: number; q: string; kind: QKind; from: string };
@@ -325,19 +342,20 @@ export function idle(s: MockState, now: number): boolean {
   return now - s.last_at > IDLE_MS;
 }
 
-export function start(o: { role?: string | null; company?: string | null; minutes?: number; now: number; cir?: any | null; lib?: any[]; firm?: Firm | null; firms?: Firm[] }): { state: MockState; reply: string } {
+export function start(o: { role?: string | null; company?: string | null; minutes?: number; now: number; cir?: any | null; lib?: any[]; firm?: Firm | null; firms?: Firm[]; checks?: unknown }): { state: MockState; reply: string } {
   const role = cut(clean(o.role), 80), company = o.company ? cut(clean(o.company), 80) : null;
   const minutes = Math.max(5, Math.min(30, Math.round(Number(o.minutes) || DEFAULT_MINUTES)));
   const cir = o.cir !== undefined ? o.cir : (company ? findRecord(company, o.lib) : null);
   // No record: a firm among the 50 still has its sourced patterns (never a firm whose record exists; that is the record).
   const found = cir ? null : (o.firm !== undefined ? o.firm : (company ? findFirm(company, o.firms) : null));
-  const firm = found && !found.record && firmPrompt(found) ? found : null;
+  const fp = found && !found.record ? firmPrompt(found, o.checks) : null;
+  const firm = fp ? found : null;
   const sector = sectorOf(role);
-  const questions = plan({ role, company, cir, minutes, seed: Math.floor(o.now / 60_000), firm });
+  const questions = plan({ role, company, cir, minutes, seed: Math.floor(o.now / 60_000), firm, checks: o.checks });
   const state: MockState = {
     v: 1, role, company: cir ? recordName(cir) : firm ? clean(firm.name) : company,
     record: cir ? { id: String(cir.company_id), name: recordName(cir), as_of: String(cir.as_of || cir.last_verified_at || "").slice(0, 10) || null } : null,
-    patterns: firm ? { id: firm.id, name: clean(firm.name), checked: String(firm.checked || "").slice(0, 10) || null } : null,
+    patterns: firm ? { id: firm.id, name: clean(firm.name), checked: String(firm.checked || "").slice(0, 10) || null, unverified: fp?.note ?? null } : null,
     sector, minutes, started_at: o.now, last_at: o.now, questions, answers: [], status: "running",
   };
   const what = `${role || "general"} mock${state.company ? ` for ${state.company}` : ""}`;
@@ -346,7 +364,7 @@ export function start(o: { role?: string | null; company?: string | null; minute
   ];
   const fromRecord = questions.find((q) => q.kind === "company");
   if (fromRecord && state.record) lines.push(`Q${fromRecord.n} comes from ${possessive(state.record.name)} record on file.`);
-  else if (fromRecord && state.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${state.patterns.name} interviews (checked ${state.patterns.checked}).`);
+  else if (fromRecord && state.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${state.patterns.name} interviews (checked ${state.patterns.checked}).${state.patterns.unverified ? ` ${state.patterns.unverified}` : ""}`);
   else if (state.record) lines.push(`${possessive(state.record.name)} record on file has nothing to build a question from, so these are role questions.`);
   else if (company) lines.push(`No record for ${company} on file, so nothing here is about how they interview.`);
   if (!role) lines.push(`No role named, so these are general questions. Try "mock me for data analyst at Stripe" for a role mock.`);
@@ -559,7 +577,7 @@ export function voiceStartText(s: MockState, url: string): string {
   ];
   const fromRecord = s.questions.find((q) => q.kind === "company");
   if (fromRecord && s.record) lines.push(`Q${fromRecord.n} comes from ${possessive(s.record.name)} record on file.`);
-  else if (fromRecord && s.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${s.patterns.name} interviews (checked ${s.patterns.checked}).`);
+  else if (fromRecord && s.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${s.patterns.name} interviews (checked ${s.patterns.checked}).${s.patterns.unverified ? ` ${s.patterns.unverified}` : ""}`);
   else if (s.company && !s.record) lines.push(`No record for ${s.company} on file, so nothing in the call is about how they interview.`);
   return lines.join("\n");
 }

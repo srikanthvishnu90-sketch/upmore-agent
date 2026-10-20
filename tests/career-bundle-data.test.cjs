@@ -24,6 +24,7 @@ const expected = {
     bls_national: 'bls-labor-data.json', lca_companies: 'dol-lca-fy2025q4-cir-companies.json' }).map(([k, f]) => [k, readJson(dir(path.join('datasets', f)))])),
   CAREER_FIRM_GUIDE_JSON: () => readJson(dir('firm-guide.json')),
   CAREER_PATTERNS_JSON: () => readJson(dir('interview-patterns.json')),
+  CAREER_SOURCE_CHECKS_JSON: () => readJson(dir('source-checks.json')),
 };
 
 test('every career data const inflates to exactly its source data', () => {

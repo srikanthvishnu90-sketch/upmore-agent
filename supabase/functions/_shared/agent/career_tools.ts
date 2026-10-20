@@ -303,7 +303,7 @@ export function careerTools(deps: {
           try { hired = await deps.hired.backgrounds({ firm_id: firm.firm_id, name: firm.name }, role, c.now); }
           catch (e) { console.error("hired backgrounds:", (e as Error)?.message ?? e); hired = { status: "unavailable", reason: "could not be read" }; }
         }
-        return pathAnswer({ firm: String(i.firm ?? ""), role, facts, tracked: trackOf(c).rows || [], hired });
+        return pathAnswer({ firm: String(i.firm ?? ""), role, facts, tracked: trackOf(c).rows || [], hired, now: c.now });
       },
     },
     {

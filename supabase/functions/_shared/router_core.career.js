@@ -26317,7 +26317,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPlat
    bank. From that single JSON this module renders:
      - PDF  — a hand-built, text-based PDF 1.4 (standard Helvetica /
               Helvetica-Bold, real selectable text, single column). No
-              HTML-to-image, no external dependency (zlib is Node core).
+              HTML-to-image, no external dependency (zlib is Node core,
+              with a vendored pure-JS fallback for the require-less Deno
+              bundle — see the LANE F block at the top of the module).
      - DOCX — a hand-built minimal OOXML package (own ZIP writer + CRC32,
               adapted from the reverted career/rq-docx renderer de0f634,
               re-audited against current 123/133 and R1–R11: R6 sizes,
@@ -26340,11 +26342,225 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPlat
    resume JSON renders byte-identical files (§10.5 snapshot proof).
    Pure: resume object / buffers in, results out. UMD like the others. */
 const CareerRender = (() => {
-  const zlib = typeof require !== "undefined" ? (() => { try { return require("zlib"); } catch { return null; } })() : null;
-  const crypto = typeof require !== "undefined" ? (() => { try { return require("node:crypto"); } catch { return null; } })() : null;
+  // ================= pure-JS zlib + SHA-256 (edge fallback) =================
+  // LANE F (the CHANNEL-DOC-1 blocker; Lane B record
+  // docs/career/channel-doc-1-record-2026-10-20.md §5): in the Deno ESM
+  // bundle there is no `require`, so the Node captures below come back
+  // null and every render used to refuse ("zlib is unavailable in this
+  // runtime; PDF rendering needs Node") — live tailor turns rendered
+  // text-only while the reply claimed an attachment. The staged-entry
+  // guards pin, as deliberate law, that the handler graph links and
+  // executes with NO require at all, so the fix cannot be a require
+  // shim; and the render API is synchronous (123 calls renderPdf
+  // synchronously), so async platform compression cannot serve it
+  // either. The bundle-legal primitive is plain JS, vendored here as
+  // ordinary source: an RFC 1950/1951 codec plus SHA-256.
+  //   - DEFLATE writer: stored (uncompressed) blocks — always-valid
+  //     deflate, fully deterministic; the streams it serves are a few
+  //     KB of PDF text operators / DOCX parts.
+  //   - Inflater: a full RFC 1951 decoder (stored + fixed + dynamic
+  //     Huffman), so parse-check also reads Node-produced files.
+  // These run ONLY when the Node captures are absent. On Node, `zlib`
+  // and `crypto` below ARE the platform modules and rendered bytes stay
+  // byte-identical (golden-pinned in tests/career-render-edge-pdf.test.cjs;
+  // staged-bundle proof in tests/edge/edge-pdf-renderer.test.ts).
+  function adler32(data) {
+    let a = 1, b = 0;
+    for (let i = 0; i < data.length; i++) { a = (a + data[i]) % 65521; b = (b + a) % 65521; }
+    return ((b << 16) | a) >>> 0;
+  }
+  function deflateStored(data) {
+    const chunks = [];
+    let off = 0;
+    do {
+      const len = Math.min(65535, data.length - off);
+      const head = Buffer.alloc(5);
+      head[0] = off + len >= data.length ? 1 : 0; // BFINAL, BTYPE=00, then byte-aligned
+      head.writeUInt16LE(len, 1);
+      head.writeUInt16LE((~len) & 0xffff, 3);
+      chunks.push(head, Buffer.from(data.subarray(off, off + len)));
+      off += len;
+    } while (off < data.length);
+    return Buffer.concat(chunks);
+  }
+  function zlibDeflate(data) {
+    const body = deflateStored(data);
+    const out = Buffer.alloc(2 + body.length + 4);
+    out[0] = 0x78; out[1] = 0x01; // CMF/FLG: deflate, 32K window; (0x78*256+0x01) % 31 === 0
+    body.copy(out, 2);
+    out.writeUInt32BE(adler32(data), 2 + body.length);
+    return out;
+  }
+  function inflateRaw(data) { return inflateRawCore(data).buffer; }
+  // Returns the decoded bytes plus `end`: the offset just past the
+  // deflate stream. Callers slice streams out of larger buffers (a PDF
+  // stream is followed by "\nendstream"), so trailing bytes after the
+  // final block are normal and must not be read as part of the stream —
+  // Node's zlib tolerates them the same way.
+  function inflateRawCore(data) {
+    let pos = 0, bitbuf = 0, bitcnt = 0;
+    const out = [];
+    const getBits = (n) => {
+      while (bitcnt < n) {
+        if (pos >= data.length) throw new Error("deflate stream ends early");
+        bitbuf |= data[pos++] << bitcnt; bitcnt += 8;
+      }
+      const v = bitbuf & ((1 << n) - 1); bitbuf >>>= n; bitcnt -= n; return v;
+    };
+    const buildHuffman = (lengths) => {
+      const counts = new Array(16).fill(0);
+      for (const l of lengths) if (l) counts[l]++;
+      const offs = new Array(16).fill(0);
+      for (let i = 1; i < 16; i++) offs[i] = offs[i - 1] + counts[i - 1];
+      const symbols = new Array(lengths.length);
+      lengths.forEach((l, i) => { if (l) symbols[offs[l]++] = i; });
+      return { counts, symbols };
+    };
+    const decode = (huff) => {
+      let code = 0, first = 0, index = 0;
+      for (let len = 1; len < 16; len++) {
+        code |= getBits(1);
+        const count = huff.counts[len];
+        if (code - first < count) return huff.symbols[index + (code - first)];
+        index += count; first = (first + count) << 1; code <<= 1;
+      }
+      throw new Error("invalid huffman code in deflate stream");
+    };
+    const LEN_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+    const LEN_EXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+    const DIST_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+    const DIST_EXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+    let last = 0;
+    do {
+      last = getBits(1);
+      const type = getBits(2);
+      if (type === 0) {
+        pos -= bitcnt >> 3; bitbuf = 0; bitcnt = 0; // align to the byte boundary
+        if (pos + 4 > data.length) throw new Error("stored block header overruns the stream");
+        const len = data[pos] | (data[pos + 1] << 8);
+        const nlen = data[pos + 2] | (data[pos + 3] << 8);
+        if (((~len) & 0xffff) !== nlen) throw new Error("stored block length check failed");
+        pos += 4;
+        if (pos + len > data.length) throw new Error("stored block overruns the stream");
+        for (let i = 0; i < len; i++) out.push(data[pos++]);
+      } else if (type === 1 || type === 2) {
+        let lit, dist;
+        if (type === 1) {
+          const litLen = [];
+          for (let i = 0; i < 288; i++) litLen.push(i < 144 ? 8 : i < 256 ? 9 : i < 280 ? 7 : 8);
+          lit = buildHuffman(litLen);
+          dist = buildHuffman(new Array(32).fill(5));
+        } else {
+          const hlit = getBits(5) + 257, hdist = getBits(5) + 1, hclen = getBits(4) + 4;
+          const ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+          const codeLen = new Array(19).fill(0);
+          for (let i = 0; i < hclen; i++) codeLen[ORDER[i]] = getBits(3);
+          const codeHuff = buildHuffman(codeLen);
+          const lengths = new Array(hlit + hdist).fill(0);
+          let i = 0;
+          while (i < lengths.length) {
+            const sym = decode(codeHuff);
+            if (sym < 16) lengths[i++] = sym;
+            else if (sym === 16) { if (!i) throw new Error("repeat code with no previous length"); const prev = lengths[i - 1]; const rep = 3 + getBits(2); for (let j = 0; j < rep; j++) lengths[i++] = prev; }
+            else if (sym === 17) { i += 3 + getBits(3); }
+            else { i += 11 + getBits(7); }
+            if (i > lengths.length) throw new Error("code length repeat overruns the table");
+          }
+          lit = buildHuffman(lengths.slice(0, hlit));
+          dist = buildHuffman(lengths.slice(hlit));
+        }
+        for (;;) {
+          const sym = decode(lit);
+          if (sym < 256) { out.push(sym); continue; }
+          if (sym === 256) break;
+          const li = sym - 257;
+          if (li >= LEN_BASE.length) throw new Error("invalid literal/length symbol");
+          const len = LEN_BASE[li] + getBits(LEN_EXT[li]);
+          const dsym = decode(dist);
+          if (dsym >= DIST_BASE.length) throw new Error("invalid distance symbol");
+          const d = DIST_BASE[dsym] + getBits(DIST_EXT[dsym]);
+          if (d > out.length) throw new Error("deflate distance too far back");
+          for (let j = 0; j < len; j++) out.push(out[out.length - d]);
+        }
+      } else throw new Error("invalid deflate block type");
+    } while (!last);
+    return { buffer: Buffer.from(out), end: pos - (bitcnt >> 3) };
+  }
+  function zlibInflate(data) {
+    if (data.length < 6) throw new Error("zlib stream too short");
+    const cmf = data[0], flg = data[1];
+    if ((cmf * 256 + flg) % 31 !== 0 || (cmf & 0x0f) !== 8) throw new Error("invalid zlib header");
+    if (flg & 0x20) throw new Error("preset dictionary not supported");
+    const core = inflateRawCore(data.subarray(2));
+    const at = 2 + core.end; // the Adler-32 sits right after the deflate stream
+    if (at + 4 > data.length) throw new Error("zlib stream truncated before its checksum");
+    const stored = ((data[at] << 24) | (data[at + 1] << 16) | (data[at + 2] << 8) | data[at + 3]) >>> 0;
+    if (stored !== adler32(core.buffer)) throw new Error("zlib adler32 mismatch");
+    return core.buffer;
+  }
+  const pureZlib = {
+    deflateSync: (data) => zlibDeflate(data),
+    deflateRawSync: (data) => deflateStored(data),
+    inflateSync: (data) => zlibInflate(data),
+    inflateRawSync: (data) => inflateRaw(data),
+  };
+  function sha256HexPure(data) {
+    const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a, h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+    const total = ((data.length + 9 + 63) >> 6) << 6;
+    const msg = new Uint8Array(total);
+    msg.set(data);
+    msg[data.length] = 0x80;
+    const dv = new DataView(msg.buffer);
+    dv.setUint32(total - 4, (data.length << 3) >>> 0);
+    dv.setUint32(total - 8, Math.floor(data.length / 0x20000000));
+    const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+    const w = new Array(64);
+    for (let block = 0; block < total; block += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(block + i * 4);
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+        const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+      for (let i = 0; i < 64; i++) {
+        const s1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (h + s1 + ch + K[i] + w[i]) | 0;
+        const s0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (s0 + maj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+      h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
+    }
+    return [h0, h1, h2, h3, h4, h5, h6, h7].map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+  }
+  const pureCrypto = {
+    createHash: (alg) => {
+      if (alg !== "sha256") throw new Error(`pure crypto fallback supports sha256 only, not ${alg}`);
+      let buf = Buffer.alloc(0);
+      return {
+        update(data) { buf = Buffer.concat([buf, Buffer.from(data)]); return this; },
+        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Buffer.from(hex, "hex"); },
+      };
+    },
+  };
+
+  const zlibNode = typeof require !== "undefined" ? (() => { try { return require("zlib"); } catch { return null; } })() : null;
+  const cryptoNode = typeof require !== "undefined" ? (() => { try { return require("node:crypto"); } catch { return null; } })() : null;
   const cp = typeof require !== "undefined" ? (() => { try { return require("node:child_process"); } catch { return null; } })() : null;
   const fs = typeof require !== "undefined" ? (() => { try { return require("node:fs"); } catch { return null; } })() : null;
   const os = typeof require !== "undefined" ? (() => { try { return require("node:os"); } catch { return null; } })() : null;
+  // The renderers below read these two names. On Node they are the
+  // platform modules (byte-identical output); in the bundle they are
+  // the vendored pure-JS implementations above. The `if (!zlib)` refusal
+  // branches in the renderers stay as defense in depth — they can only
+  // fire again if this fallback is ever removed.
+  const zlib = zlibNode || pureZlib;
+  const crypto = cryptoNode || pureCrypto;
 
   const PDF_CONTENT_TYPE = "application/pdf";
   const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

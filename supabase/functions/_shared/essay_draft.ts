@@ -230,8 +230,10 @@ export function employerGate(q: EssayQuestion, siblingLabels: string[]) {
   return { policy, gate };
 }
 
+// limitText: the field's own limit when the form states it outside the label (WO-049: the card sends the field's maxlength
+// as "max 500 characters"); read with the label by lengthLimit, never shown to the model as part of the question.
 export async function draftEssay(o: {
-  q: EssayQuestion; siblingLabels: string[]; deps: DraftDeps; previous?: string | null;
+  q: EssayQuestion; siblingLabels: string[]; deps: DraftDeps; previous?: string | null; limitText?: string;
 }): Promise<DraftOutcome> {
   const { policy, gate } = employerGate(o.q, o.siblingLabels);
   if (!gate.allowed) return { ok: false, why: "policy", policy, detail: [gate.reason], tries: 0 };
@@ -240,7 +242,7 @@ export async function draftEssay(o: {
   catch (e) { return { ok: false, why: "model", policy, detail: [`could not read your facts: ${e instanceof Error ? e.message : String(e)}`], tries: 0 }; }
   const facts = relevantFacts(all, { label: o.q.label, company: o.q.company, why: WHY.test(o.q.label) });
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
-  const limit = lengthLimit(o.q.label);
+  const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
   const sources = [...facts.map(factText), o.q.company ?? "", o.q.label];
   let fix: string[] = [], last: { lock: Lock; long: string | null; cut: boolean } | null = null;
   for (let tries = 1; tries <= 2; tries++) {

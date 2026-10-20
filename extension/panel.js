@@ -45,7 +45,9 @@ async function render() {
     list.appendChild(li);
   }
   text($("status"), card?.message || "Open an application, then press Fill this application.", card?.status === "stopped" || card?.status === "blocked");
-  $("approve").disabled = !(card && card.status === "ready" && card.hash);
+  renderEssays(card, st.drafts || {});
+  // While an edit of a used draft is on its way to the form, the card on screen is not yet what would be sent: no tap.
+  $("approve").disabled = !(card && card.status === "ready" && card.hash) || syncing.size > 0;
   $("approve").dataset.hash = card?.hash || "";
   text($("result"), card?.status === "done" ? `${card.message}${card.ms ? ` ${(card.ms / 1000).toFixed(1)} s from card to answer.` : ""}${card.recorded === false ? " Not recorded yet; kept on this computer." : ""}` : "");
   $("card-proof").hidden = !card?.proof_id;
@@ -70,6 +72,89 @@ async function render() {
   text($("queue-progress"), q.items.length ? `${done} of ${q.items.length} done${st.timing.avg_ms ? `; average ${(st.timing.avg_ms / 1000).toFixed(1)} s from card to confirmed` : ""}` : "");
 }
 
+// ------------------------------------------------------------------------------------------------ written answers (WO-049)
+// Each written question the form still needs gets "Draft from my facts". Nothing is drafted until the person taps it (no
+// model is ever called on its own). A draft is shown whole, editable, with the facts it came from by label; it goes on the
+// form only by "Use this", and an edit after that goes on the form too, so the approval binds the edited text. A refusal,
+// thin facts, an unverified or cut-off draft, or a failure is one line, and the question stays asked.
+const syncing = new Set(); // names whose edited text is on its way to the form
+const editTimers = {};
+function essayBlock(q) {
+  const el = document.createElement("div");
+  el.className = "essay";
+  el.dataset.name = q.name;
+  el.innerHTML = '<b class="essay-label"></b><button class="essay-draft">Draft from my facts</button><p class="essay-msg msg"></p>' +
+    '<p class="essay-facts small"></p><textarea class="essay-text" rows="6" hidden></textarea>' +
+    '<div class="row"><button class="essay-use">Use this</button><button class="essay-redo">Redo</button></div>';
+  const ta = el.querySelector(".essay-text");
+  el.querySelector(".essay-draft").onclick = (e) => draftEssay(e, q.name, false);
+  el.querySelector(".essay-redo").onclick = (e) => draftEssay(e, q.name, true);
+  el.querySelector(".essay-use").onclick = async (e) => {
+    if (!e.isTrusted) return;
+    await useEssay(q.name, ta.value);
+  };
+  // An edit of the text already on the form goes on the form too (after a short pause); until it lands, no approval.
+  ta.addEventListener("input", (e) => {
+    if (!e.isTrusted || el.dataset.state !== "used") return;
+    syncing.add(q.name);
+    $("approve").disabled = true;
+    clearTimeout(editTimers[q.name]);
+    editTimers[q.name] = setTimeout(() => useEssay(q.name, ta.value), 400);
+  });
+  return el;
+}
+async function draftEssay(e, name, redo) {
+  if (!e.isTrusted) return; // only the person's own tap drafts
+  const el = [...$("essays").children].find((x) => x.dataset.name === name);
+  if (el) {
+    el.querySelector(".essay-draft").disabled = true;
+    text(el.querySelector(".essay-msg"), "Drafting from your confirmed facts...");
+  }
+  const r = await send({ type: "essay-draft", tabId: await targetTab(), name, redo });
+  if (!r?.ok && el) text(el.querySelector(".essay-msg"), r?.message || "Nothing was drafted.", true);
+  render();
+}
+async function useEssay(name, value) {
+  syncing.add(name);
+  $("approve").disabled = true;
+  try {
+    const r = await send({ type: "essay-use", tabId: await targetTab(), name, text: value });
+    const el = [...$("essays").children].find((x) => x.dataset.name === name);
+    if (!r?.ok && el) text(el.querySelector(".essay-msg"), r?.message || "Nothing changed.", true);
+  } finally {
+    syncing.delete(name);
+    render();
+  }
+}
+function renderEssays(card, drafts) {
+  const box = $("essays");
+  const list = card && ["ready", "blocked"].includes(card.status) ? card.essays || [] : [];
+  for (const el of [...box.children]) if (!list.some((q) => q.name === el.dataset.name)) el.remove();
+  for (const q of list) {
+    let el = [...box.children].find((x) => x.dataset.name === q.name);
+    if (!el) box.appendChild((el = essayBlock(q)));
+    const d = drafts[q.name] || null;
+    const state = d?.state || "none";
+    el.dataset.state = state;
+    text(el.querySelector(".essay-label"), q.label.replace(/\s*[*✱]+\s*$/, ""));
+    const draftBtn = el.querySelector(".essay-draft"), ta = el.querySelector(".essay-text");
+    draftBtn.hidden = !["none", "failed", "drafting"].includes(state);
+    draftBtn.disabled = state === "drafting";
+    const shown = state === "drafted" || state === "used";
+    ta.hidden = !shown;
+    el.querySelector(".essay-use").hidden = state !== "drafted";
+    el.querySelector(".essay-redo").hidden = !shown;
+    text(el.querySelector(".essay-facts"), shown && d.facts?.length ? `From your confirmed facts: ${d.facts.map((f) => f.label).join("; ")}` : "");
+    const said = state === "used" ? "On the form, as yours. Edit it here and the card follows; Approve sends exactly this text." : d?.message || "";
+    if (!syncing.has(q.name)) text(el.querySelector(".essay-msg"), said, state === "failed" || state === "refused");
+    // A new draft replaces what the box shows; otherwise the person's own edits stay as they are.
+    if (shown && ta.dataset.original !== d.original) {
+      ta.value = state === "used" ? d.text : d.original;
+      ta.dataset.original = d.original;
+    }
+  }
+}
+
 // Proof of one application, as this computer kept it: what was sent, when it was approved and clicked, the picture before
 // and after the click, the employer's own words, where the page ended. Never "confirmed" without the picture after.
 const when = (iso) => (iso ? new Date(iso).toLocaleString() : "not recorded");
@@ -89,7 +174,7 @@ async function showProof(id) {
   ol.textContent = "";
   for (const a of p.approved_answers || []) {
     const li = document.createElement("li");
-    li.textContent = `${a.label}: ${a.value}`;
+    li.textContent = `${a.label}: ${a.value}${a.provenance ? ` (${a.provenance})` : ""}`;
     ol.appendChild(li);
   }
   $("proof-before").src = p.screenshot || "";
@@ -150,7 +235,7 @@ $("fill").onclick = async () => {
 $("approve").onclick = async (e) => {
   if (!e.isTrusted) return;
   const hash = $("approve").dataset.hash;
-  if (!hash) return;
+  if (!hash || syncing.size) return;
   $("approve").disabled = true;
   const r = await send({ type: "approve", tabId: await targetTab(), hash });
   if (!r.ok) text($("status"), r.message, true);

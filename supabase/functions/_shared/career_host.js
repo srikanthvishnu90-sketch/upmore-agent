@@ -70,6 +70,13 @@ const CareerHost = (() => {
     // brain's offer_benchmark asks for it once and reads the answer with the rest. Cleared once benchmarked; an
     // erase resets the stores.
     "offerBenchmark",
+    // MI-121 (Crew A ruling, Registry note 7): a pending pasted-email
+    // proposal — the parse of an email the user pasted, provenance
+    // user_paste, unverified — rides the snapshot so the user's
+    // confirming turn can resolve it. It is a proposal only: tracker
+    // writes happen on the user's own-words confirmation, never
+    // from the paste itself.
+    "pendingPasteProposal",
   ];
 
   function cloneJson(v) {

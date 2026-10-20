@@ -2,33 +2,33 @@
  "report": {
   "wo": "WO-042",
   "kind": "live fill, never sent",
-  "measured_at": "2026-10-20T03:11:55.526Z",
+  "measured_at": "2026-10-20T03:19:48.265Z",
   "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
   "forms": 17,
   "reachable": 17,
   "carded": 17,
   "all": {
-   "correct": 185,
-   "wrong": 1,
+   "correct": 186,
+   "wrong": 0,
    "missed": 17,
    "unkeyed": 19,
-   "precision": 0.9946236559139785,
-   "coverage": 0.9113300492610837,
+   "precision": 1,
+   "coverage": 0.916256157635468,
    "widgets": {
     "should": 42,
-    "correct": 34
+    "correct": 35
    }
   },
   "greenhouse": {
-   "correct": 68,
-   "wrong": 1,
+   "correct": 69,
+   "wrong": 0,
    "missed": 7,
    "unkeyed": 9,
-   "precision": 0.9855072463768116,
-   "coverage": 0.8947368421052632,
+   "precision": 1,
+   "coverage": 0.9078947368421053,
    "widgets": {
     "should": 42,
-    "correct": 34
+    "correct": 35
    }
   },
   "lever": {
@@ -55,18 +55,17 @@
     "correct": 0
    }
   },
-  "aborted_requests": 169,
+  "aborted_requests": 168,
   "aborted_hosts": [
    "c.spl.greenhouse.io",
-   "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "jobs.lever.co",
    "api.hcaptcha.com",
    "api2.hcaptcha.com",
    "hcaptcha.com",
    "platform.linkedin.com",
    "www.google-analytics.com",
-   "jobs.ashbyhq.com",
-   "rs.fullstory.com"
+   "jobs.ashbyhq.com"
   ],
   "allowed_graphql_reads": [
    "ApiJobPosting",
@@ -85,23 +84,23 @@
    "url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
-   "ms_goto_dcl": 285,
-   "ms_goto_load": 336,
-   "ms_fill_click_to_card": 633,
+   "ms_goto_dcl": 3473,
+   "ms_goto_load": 3572,
+   "ms_fill_click_to_card": 571,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465671767,
-    "context": 1792465671250,
-    "dcl": 1792465671028,
+    "card": 1792466140045,
+    "context": 1792466139582,
+    "dcl": 1792466139360,
     "fields": 10,
-    "fill": 1792465671763,
-    "first_card": 1792465671767,
-    "nav": 1792465670764,
-    "plan": 1792465671265,
-    "prepare": 1792465671210,
-    "read": 1792465671255,
-    "script": 1792465671093,
+    "fill": 1792466140043,
+    "first_card": 1792466140045,
+    "nav": 1792466135891,
+    "plan": 1792466139599,
+    "prepare": 1792466139540,
+    "read": 1792466139588,
+    "script": 1792466139457,
     "visibility_at_prepare": "visible",
     "widgets": 2
    },
@@ -335,23 +334,23 @@
    "url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
-   "ms_goto_dcl": 358,
-   "ms_goto_load": 442,
-   "ms_fill_click_to_card": 4672,
+   "ms_goto_dcl": 253,
+   "ms_goto_load": 399,
+   "ms_fill_click_to_card": 4350,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465689599,
-    "context": 1792465685153,
-    "dcl": 1792465684833,
+    "card": 1792466157423,
+    "context": 1792466153196,
+    "dcl": 1792466152911,
     "fields": 35,
-    "fill": 1792465689592,
-    "first_card": 1792465689599,
-    "nav": 1792465684481,
-    "plan": 1792465685186,
-    "prepare": 1792465685099,
-    "read": 1792465685162,
-    "script": 1792465684915,
+    "fill": 1792466157419,
+    "first_card": 1792466157423,
+    "nav": 1792466152662,
+    "plan": 1792466153217,
+    "prepare": 1792466153166,
+    "read": 1792466153201,
+    "script": 1792466153056,
     "visibility_at_prepare": "visible",
     "widgets": 15
    },
@@ -891,23 +890,23 @@
    "url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
-   "ms_goto_dcl": 309,
-   "ms_goto_load": 381,
-   "ms_fill_click_to_card": 9158,
+   "ms_goto_dcl": 266,
+   "ms_goto_load": 353,
+   "ms_fill_click_to_card": 8913,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465717490,
-    "context": 1792465708462,
-    "dcl": 1792465708246,
+    "card": 1792466184970,
+    "context": 1792466176148,
+    "dcl": 1792466175934,
     "fields": 30,
-    "fill": 1792465717483,
-    "first_card": 1792465717490,
-    "nav": 1792465707942,
-    "plan": 1792465708482,
-    "prepare": 1792465708440,
-    "read": 1792465708468,
-    "script": 1792465708315,
+    "fill": 1792466184966,
+    "first_card": 1792466184970,
+    "nav": 1792466175676,
+    "plan": 1792466176161,
+    "prepare": 1792466176137,
+    "read": 1792466176152,
+    "script": 1792466176026,
     "visibility_at_prepare": "visible",
     "widgets": 20
    },
@@ -1144,7 +1143,7 @@
      "want": "No",
      "got": "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
      "source": "trainee",
-     "verdict": "wrong_value"
+     "verdict": "correct"
     },
     {
      "name": "question_37413375002",
@@ -1218,11 +1217,10 @@
     }
    ],
    "verdicts": {
-    "correct": 12,
+    "correct": 13,
     "missed": 2,
     "unkeyed": 6,
-    "empty_ok": 8,
-    "wrong_value": 1
+    "empty_ok": 8
    },
    "changed_since_capture": {
     "new_fields": [
@@ -1399,23 +1397,23 @@
    "url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
-   "ms_goto_dcl": 314,
-   "ms_goto_load": 388,
-   "ms_fill_click_to_card": 5239,
+   "ms_goto_dcl": 262,
+   "ms_goto_load": 4395,
+   "ms_fill_click_to_card": 4807,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465741496,
-    "context": 1792465736351,
-    "dcl": 1792465736129,
+    "card": 1792466212405,
+    "context": 1792466207655,
+    "dcl": 1792466203438,
     "fields": 32,
-    "fill": 1792465741489,
-    "first_card": 1792465741496,
-    "nav": 1792465735827,
-    "plan": 1792465736373,
-    "prepare": 1792465736329,
-    "read": 1792465736357,
-    "script": 1792465736207,
+    "fill": 1792466212400,
+    "first_card": 1792466212405,
+    "nav": 1792466203180,
+    "plan": 1792466207671,
+    "prepare": 1792466207647,
+    "read": 1792466207659,
+    "script": 1792466203651,
     "visibility_at_prepare": "visible",
     "widgets": 21
    },
@@ -1933,23 +1931,23 @@
    "url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
-   "ms_goto_dcl": 312,
-   "ms_goto_load": 430,
-   "ms_fill_click_to_card": 4877,
+   "ms_goto_dcl": 380,
+   "ms_goto_load": 453,
+   "ms_fill_click_to_card": 4691,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465765156,
-    "context": 1792465760461,
-    "dcl": 1792465760119,
+    "card": 1792466235788,
+    "context": 1792466231209,
+    "dcl": 1792466231008,
     "fields": 26,
-    "fill": 1792465765151,
-    "first_card": 1792465765156,
-    "nav": 1792465759814,
-    "plan": 1792465760485,
-    "prepare": 1792465760404,
-    "read": 1792465760468,
-    "script": 1792465760232,
+    "fill": 1792466235785,
+    "first_card": 1792466235788,
+    "nav": 1792466230634,
+    "plan": 1792466231222,
+    "prepare": 1792466231169,
+    "read": 1792466231213,
+    "script": 1792466231078,
     "visibility_at_prepare": "visible",
     "widgets": 17
    },
@@ -2391,23 +2389,23 @@
    "url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
-   "ms_goto_dcl": 294,
-   "ms_goto_load": 527,
-   "ms_fill_click_to_card": 3424,
+   "ms_goto_dcl": 320,
+   "ms_goto_load": 557,
+   "ms_fill_click_to_card": 5405,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465787477,
-    "context": 1792465784169,
-    "dcl": 1792465783758,
+    "card": 1792466260016,
+    "context": 1792466254685,
+    "dcl": 1792466254337,
     "fields": 18,
-    "fill": 1792465787472,
-    "first_card": 1792465787477,
-    "nav": 1792465783475,
-    "plan": 1792465784197,
-    "prepare": 1792465784143,
-    "read": 1792465784176,
-    "script": 1792465783964,
+    "fill": 1792466260012,
+    "first_card": 1792466260016,
+    "nav": 1792466254023,
+    "plan": 1792466254705,
+    "prepare": 1792466254667,
+    "read": 1792466254691,
+    "script": 1792466254542,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2646,23 +2644,23 @@
    "url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
-   "ms_goto_dcl": 231,
-   "ms_goto_load": 436,
-   "ms_fill_click_to_card": 3470,
+   "ms_goto_dcl": 208,
+   "ms_goto_load": 363,
+   "ms_fill_click_to_card": 5466,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465798707,
-    "context": 1792465795357,
-    "dcl": 1792465794996,
+    "card": 1792466273093,
+    "context": 1792466267719,
+    "dcl": 1792466267449,
     "fields": 16,
-    "fill": 1792465798701,
-    "first_card": 1792465798707,
-    "nav": 1792465794771,
-    "plan": 1792465795384,
-    "prepare": 1792465795337,
-    "read": 1792465795365,
-    "script": 1792465795200,
+    "fill": 1792466273089,
+    "first_card": 1792466273093,
+    "nav": 1792466267249,
+    "plan": 1792466267736,
+    "prepare": 1792466267703,
+    "read": 1792466267724,
+    "script": 1792466267607,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2880,23 +2878,23 @@
    "url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
-   "ms_goto_dcl": 238,
-   "ms_goto_load": 451,
-   "ms_fill_click_to_card": 3398,
+   "ms_goto_dcl": 347,
+   "ms_goto_load": 764,
+   "ms_fill_click_to_card": 5343,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465809941,
-    "context": 1792465806694,
-    "dcl": 1792465806270,
+    "card": 1792466286434,
+    "context": 1792466281173,
+    "dcl": 1792466280668,
     "fields": 14,
-    "fill": 1792465809935,
-    "first_card": 1792465809941,
-    "nav": 1792465806037,
-    "plan": 1792465806722,
-    "prepare": 1792465806670,
-    "read": 1792465806702,
-    "script": 1792465806478,
+    "fill": 1792466286430,
+    "first_card": 1792466286434,
+    "nav": 1792466280326,
+    "plan": 1792466281187,
+    "prepare": 1792466281162,
+    "read": 1792466281178,
+    "script": 1792466280874,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3065,7 +3063,12 @@
     "value_after_fill": "",
     "hidden_after_fill": "",
     "untrusted_typing": {
-     "lever": [],
+     "lever": [
+      "Chicago, IL, USA",
+      "Chicago, BLZ",
+      "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
+      "Chicago, Chegutu, Mashonaland West, ZWE"
+     ],
      "options": [],
      "expanded": null,
      "controls": null
@@ -3078,9 +3081,7 @@
      "Chicago, IL, USA",
      "Chicago, BLZ",
      "Chicago, La Cruz de Rio Grande, Región Autónoma del Atlântico Sur, NIC",
-     "Chicago, Chegutu, Mashonaland West, ZWE",
-     "Chicago, IL, USA",
-     "Chicago, BLZ"
+     "Chicago, Chegutu, Mashonaland West, ZWE"
     ],
     "options": []
    }
@@ -3091,23 +3092,23 @@
    "url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-   "ms_goto_dcl": 8025,
-   "ms_goto_load": 8275,
-   "ms_fill_click_to_card": 3487,
+   "ms_goto_dcl": 337,
+   "ms_goto_load": 754,
+   "ms_fill_click_to_card": 5441,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465829085,
-    "context": 1792465825690,
-    "dcl": 1792465825267,
-    "fields": 27,
-    "fill": 1792465829076,
-    "first_card": 1792465829085,
-    "nav": 1792465817246,
-    "plan": 1792465825740,
-    "prepare": 1792465825668,
-    "read": 1792465825706,
-    "script": 1792465825511,
+    "card": 1792466299921,
+    "context": 1792466294538,
+    "dcl": 1792466294024,
+    "fields": 28,
+    "fill": 1792466299916,
+    "first_card": 1792466299921,
+    "nav": 1792466293695,
+    "plan": 1792466294558,
+    "prepare": 1792466294528,
+    "read": 1792466294545,
+    "script": 1792466294228,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3391,19 +3392,27 @@
      "got": null,
      "source": null,
      "verdict": "empty_ok"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, Shield AI can contact me about future job opportunities for up to 1 yearPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
     }
    ],
    "verdicts": {
     "correct": 12,
     "missed": 3,
-    "empty_ok": 11,
+    "empty_ok": 12,
     "any": 1
    },
    "changed_since_capture": {
     "new_fields": [],
-    "gone_fields": [
-     "consent[marketing]"
-    ]
+    "gone_fields": []
    },
    "place_probe": {
     "found": true,
@@ -3442,23 +3451,23 @@
    "url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
-   "ms_goto_dcl": 314,
-   "ms_goto_load": 451,
-   "ms_fill_click_to_card": 3422,
+   "ms_goto_dcl": 255,
+   "ms_goto_load": 511,
+   "ms_fill_click_to_card": 5433,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465840284,
-    "context": 1792465836946,
-    "dcl": 1792465836688,
+    "card": 1792466313125,
+    "context": 1792466307771,
+    "dcl": 1792466307425,
     "fields": 28,
-    "fill": 1792465840274,
-    "first_card": 1792465840284,
-    "nav": 1792465836380,
-    "plan": 1792465836978,
-    "prepare": 1792465836931,
-    "read": 1792465836954,
-    "script": 1792465836824,
+    "fill": 1792466313120,
+    "first_card": 1792466313125,
+    "nav": 1792466307173,
+    "plan": 1792466307792,
+    "prepare": 1792466307761,
+    "read": 1792466307777,
+    "script": 1792466307629,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3813,23 +3822,23 @@
    "url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
-   "ms_goto_dcl": 269,
-   "ms_goto_load": 484,
-   "ms_fill_click_to_card": 3503,
+   "ms_goto_dcl": 1060,
+   "ms_goto_load": 1241,
+   "ms_fill_click_to_card": 5527,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792465851643,
-    "context": 1792465848254,
-    "dcl": 1792465847870,
+    "card": 1792466327163,
+    "context": 1792466321754,
+    "dcl": 1792466321446,
     "fields": 28,
-    "fill": 1792465851635,
-    "first_card": 1792465851643,
-    "nav": 1792465847605,
-    "plan": 1792465848296,
-    "prepare": 1792465848234,
-    "read": 1792465848268,
-    "script": 1792465848080,
+    "fill": 1792466327158,
+    "first_card": 1792466327163,
+    "nav": 1792466320395,
+    "plan": 1792466321780,
+    "prepare": 1792466321733,
+    "read": 1792466321763,
+    "script": 1792466321630,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4164,23 +4173,23 @@
    "url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-   "ms_goto_dcl": 463,
-   "ms_goto_load": 982,
-   "ms_fill_click_to_card": 2325,
+   "ms_goto_dcl": 529,
+   "ms_goto_load": 1068,
+   "ms_fill_click_to_card": 1217,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465862392,
-    "context": 1792465860179,
-    "dcl": 1792465859525,
+    "card": 1792466336807,
+    "context": 1792466335687,
+    "dcl": 1792466335054,
     "fields": 13,
-    "fill": 1792465862386,
-    "first_card": 1792465862392,
-    "nav": 1792465859067,
-    "plan": 1792465861511,
-    "prepare": 1792465860164,
-    "read": 1792465861495,
-    "script": 1792465859731,
+    "fill": 1792466336803,
+    "first_card": 1792466336807,
+    "nav": 1792466334528,
+    "plan": 1792466336197,
+    "prepare": 1792466335677,
+    "read": 1792466336191,
+    "script": 1792466335259,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4292,7 +4301,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "bc177296-7322-4232-820e-4ee518685ce0__systemfield_eeoc_gender",
+     "name": "61f8a0e7-05fe-40ea-a5e0-038b9d14bc5c__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -4302,7 +4311,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "bc177296-7322-4232-820e-4ee518685ce0__systemfield_eeoc_race",
+     "name": "61f8a0e7-05fe-40ea-a5e0-038b9d14bc5c__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -4312,7 +4321,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "bc177296-7322-4232-820e-4ee518685ce0__systemfield_eeoc_veteran_status",
+     "name": "61f8a0e7-05fe-40ea-a5e0-038b9d14bc5c__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -4382,23 +4391,23 @@
    "url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-   "ms_goto_dcl": 156,
-   "ms_goto_load": 680,
-   "ms_fill_click_to_card": 1618,
+   "ms_goto_dcl": 432,
+   "ms_goto_load": 950,
+   "ms_fill_click_to_card": 1048,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792465872396,
-    "context": 1792465870896,
-    "dcl": 1792465870233,
+    "card": 1792466346422,
+    "context": 1792466345451,
+    "dcl": 1792466344839,
     "fields": 13,
-    "fill": 1792465872391,
-    "first_card": 1792465872396,
-    "nav": 1792465870085,
-    "plan": 1792465871662,
-    "prepare": 1792465870881,
-    "read": 1792465871653,
-    "script": 1792465870440,
+    "fill": 1792466346420,
+    "first_card": 1792466346422,
+    "nav": 1792466344411,
+    "plan": 1792466345710,
+    "prepare": 1792466345442,
+    "read": 1792466345704,
+    "script": 1792466345044,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4586,23 +4595,23 @@
    "url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-   "ms_goto_dcl": 369,
-   "ms_goto_load": 899,
-   "ms_fill_click_to_card": 877,
+   "ms_goto_dcl": 386,
+   "ms_goto_load": 889,
+   "ms_fill_click_to_card": 519,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465881505,
-    "context": 1792465880746,
-    "dcl": 1792465880086,
+    "card": 1792466355127,
+    "context": 1792466354669,
+    "dcl": 1792466354074,
     "fields": 10,
-    "fill": 1792465881499,
-    "first_card": 1792465881505,
-    "nav": 1792465879723,
-    "plan": 1792465881261,
-    "prepare": 1792465880730,
-    "read": 1792465881251,
-    "script": 1792465880296,
+    "fill": 1792466355123,
+    "first_card": 1792466355127,
+    "nav": 1792466353692,
+    "plan": 1792466354930,
+    "prepare": 1792466354659,
+    "read": 1792466354923,
+    "script": 1792466354279,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4743,23 +4752,23 @@
    "url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-   "ms_goto_dcl": 512,
-   "ms_goto_load": 1151,
-   "ms_fill_click_to_card": 1463,
+   "ms_goto_dcl": 448,
+   "ms_goto_load": 1077,
+   "ms_fill_click_to_card": 1270,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465889276,
-    "context": 1792465887945,
-    "dcl": 1792465887181,
+    "card": 1792466362557,
+    "context": 1792466361401,
+    "dcl": 1792466360679,
     "fields": 11,
-    "fill": 1792465889272,
-    "first_card": 1792465889276,
-    "nav": 1792465886678,
-    "plan": 1792465888466,
-    "prepare": 1792465887929,
-    "read": 1792465888452,
-    "script": 1792465887389,
+    "fill": 1792466362554,
+    "first_card": 1792466362557,
+    "nav": 1792466360240,
+    "plan": 1792466361912,
+    "prepare": 1792466361391,
+    "read": 1792466361905,
+    "script": 1792466360884,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4851,7 +4860,7 @@
      "verdict": "correct"
     },
     {
-     "name": "9ba2c0eb-75df-4874-92da-092ceac7dd7a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "19f0e15c-5f15-44f1-8254-610bbb528bed_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
      "widget": null,
      "required": true,
@@ -4861,7 +4870,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9ba2c0eb-75df-4874-92da-092ceac7dd7a_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "19f0e15c-5f15-44f1-8254-610bbb528bed_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked ",
      "widget": null,
      "required": true,
@@ -4940,23 +4949,23 @@
    "url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
-   "ms_goto_dcl": 287,
-   "ms_goto_load": 938,
-   "ms_fill_click_to_card": 987,
+   "ms_goto_dcl": 278,
+   "ms_goto_load": 826,
+   "ms_fill_click_to_card": 1027,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792465898604,
-    "context": 1792465897710,
-    "dcl": 1792465896935,
+    "card": 1792466371717,
+    "context": 1792466370768,
+    "dcl": 1792466370128,
     "fields": 12,
-    "fill": 1792465898600,
-    "first_card": 1792465898604,
-    "nav": 1792465896652,
-    "plan": 1792465897976,
-    "prepare": 1792465897696,
-    "read": 1792465897966,
-    "script": 1792465897141,
+    "fill": 1792466371714,
+    "first_card": 1792466371717,
+    "nav": 1792466369854,
+    "plan": 1792466371029,
+    "prepare": 1792466370758,
+    "read": 1792466371022,
+    "script": 1792466370333,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5054,7 +5063,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "96c8d69d-557a-4e5d-b01f-856d4e8a0c3c__systemfield_eeoc_gender",
+     "name": "2b3bdd5e-a502-44eb-962e-173b05c68ad0__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -5064,7 +5073,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "96c8d69d-557a-4e5d-b01f-856d4e8a0c3c__systemfield_eeoc_race",
+     "name": "2b3bdd5e-a502-44eb-962e-173b05c68ad0__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -5074,7 +5083,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "96c8d69d-557a-4e5d-b01f-856d4e8a0c3c__systemfield_eeoc_veteran_status",
+     "name": "2b3bdd5e-a502-44eb-962e-173b05c68ad0__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -5143,23 +5152,23 @@
    "url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-   "ms_goto_dcl": 320,
-   "ms_goto_load": 897,
-   "ms_fill_click_to_card": 1329,
+   "ms_goto_dcl": 256,
+   "ms_goto_load": 800,
+   "ms_fill_click_to_card": 1175,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792465908148,
-    "context": 1792465906945,
-    "dcl": 1792465906249,
+    "card": 1792466380937,
+    "context": 1792466379867,
+    "dcl": 1792466379242,
     "fields": 14,
-    "fill": 1792465908143,
-    "first_card": 1792465908148,
-    "nav": 1792465905935,
-    "plan": 1792465907222,
-    "prepare": 1792465906929,
-    "read": 1792465907203,
-    "script": 1792465906458,
+    "fill": 1792466380929,
+    "first_card": 1792466380937,
+    "nav": 1792466378989,
+    "plan": 1792466380158,
+    "prepare": 1792466379857,
+    "read": 1792466380148,
+    "script": 1792466379447,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -5263,7 +5272,7 @@
      "verdict": "correct"
     },
     {
-     "name": "80243546-bfa8-4111-915e-0eb0e158e3e0_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "9a00b5e2-09a6-480f-a292-bc670e1fe691_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Will you now or will you in the future require employment visa sponsorship?",
      "widget": null,
      "required": true,
@@ -5273,7 +5282,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "80243546-bfa8-4111-915e-0eb0e158e3e0_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "9a00b5e2-09a6-480f-a292-bc670e1fe691_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "This role is tied to the office location listed in the job posting. Team members are expected to wor",
      "widget": null,
      "required": true,
@@ -5371,7 +5380,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5381,7 +5390,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5391,7 +5400,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5401,7 +5410,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5411,13 +5420,13 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
   },
   {
    "method": "POST",
@@ -5477,7 +5486,7 @@
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
   },
   {
    "method": "POST",
@@ -5537,62 +5546,62 @@
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
   },
   {
    "method": "POST",
    "host": "jobs.lever.co",
    "path": "/parseResume"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
   },
   {
    "method": "GET",
@@ -5602,62 +5611,62 @@
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
   },
   {
    "method": "POST",
    "host": "jobs.lever.co",
    "path": "/parseResume"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
   },
   {
    "method": "GET",
@@ -5666,13 +5675,13 @@
   },
   {
    "method": "POST",
-   "host": "www.google-analytics.com",
-   "path": "/j/collect"
+   "host": "jobs.lever.co",
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
   },
   {
    "method": "POST",
-   "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "host": "www.google-analytics.com",
+   "path": "/j/collect"
   },
   {
    "method": "POST",
@@ -5687,7 +5696,7 @@
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.8670741182925108:1792"
   },
   {
    "method": "POST",
@@ -5925,118 +5934,6 @@
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
-    "ApiCreateFileUploadHandle"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
     "ApiSetFormValue"
    ]
   },
@@ -6098,8 +5995,115 @@
   },
   {
    "method": "POST",
-   "host": "rs.fullstory.com",
-   "path": "/rec/page"
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
   },
   {
    "method": "POST",

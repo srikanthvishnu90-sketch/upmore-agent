@@ -799,6 +799,11 @@ const CareerRouter = (() => {
         ...(shortfallFact ? [shortfallFact] : []),
         ...(mismatchFact ? [mismatchFact] : []),
       ];
+    // LANE A ITEM 3 (CB-0151): the diff 123 computed for this
+    // tailoring is kept on the thread record, so a later "show me
+    // what you changed" answers from the record instead of falling
+    // back (the battery's follow-up died on the generic fallback).
+    try { const tm = threadMirrorForWrite(ctx); if (tm) tm.tailor = { company: company || null, title: titleLine, jobId: jobId || null, diff: tailored.diff || null, gaps, at: new Date(nowOf(ctx)).toISOString() }; } catch { /* the artifact itself stands */ }
     const reply = compose({ headline: headlineOverride || `Your resume is tailored for ${titleLine}.`, facts, nextStep });
     return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
   }
@@ -4621,7 +4626,37 @@ const CareerRouter = (() => {
     return { intent: "negotiation_recall", reply, resultStatus: "answered", sends: 0, payload: { kind: "negotiation_recall" } };
   }
 
+  // LANE A ITEM 7 (MI-123 variant, live battery 2026-10-20,
+  // CB-0385–0388): ASSERTION PROVENANCE for the offer record. The
+  // account's offer (written by OTHER conversations) seeds a fresh
+  // thread's negotiation record with fromAccount lineage. While that
+  // lineage stands, no negotiation turn may build on its figures or
+  // present them as stated in this conversation: the record is
+  // referenced honestly, adoption takes the user's own word ("same
+  // one"), and a figure stated in this conversation re-bases the
+  // record in captureStatedFacts (which clears the lineage). Returns
+  // a reply object to serve, or null to let negotiation proceed.
+  function inheritedOfferGate(text, ctx) {
+    const th = negotiationThreadOf(ctx);
+    if (!th || th.fromAccount !== true) return null;
+    if (!(th.amount || th.hourly || th.firm || th.deadline || th.signing)) return null;
+    if (ctx._offerStatedThisTurn) return null;
+    const t = lc(text);
+    if (/^(yes|yeah|yep|right|correct|sure|that one|same one|the same( one)?|that'?s (the one|it|right|the same))\b/.test(t) || /\bsame one\b|\bthat'?s the same\b/.test(t)) {
+      const w = negotiationThreadForWrite(ctx);
+      delete w.fromAccount;
+      w.confirmedInThread = true;
+      return null;
+    }
+    if (!/\bnegotiat|counter|offer\b/.test(t)) return null;
+    const fig = th.amount ? `$${Number(th.amount).toLocaleString()} base` : th.hourly ? `$${Number(th.hourly)} an hour` : "an offer";
+    const reply = compose({ headline: "One check before I build on that offer.", facts: [`In an earlier conversation, an offer went on your account record: ${fig}${th.firm ? ` at ${th.firm}` : th.descriptor ? ` from ${th.descriptor}` : ""}${th.deadline ? `, answer by ${th.deadline}` : ""}. Nothing about an offer has been stated in THIS conversation yet, and I will not quietly adopt the earlier record as this offer's terms — a figure counts as yours here only when you state it here.`], nextStep: "If this is that same offer, say \"same one\" and the counter plan runs on it in this conversation. If it is a new offer, tell me its base figure (and the company, when you are ready) and we build from your words." });
+    return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+
   function handleNegotiation(text, ctx) {
+    const provGate = inheritedOfferGate(text, ctx);
+    if (provGate) return provGate;
     // IB-TN-8: plumb the offer + the company file from wherever the
     // turn carries them — ctx fields, or the ask itself when it quotes
     // the offer. 128's bench/strat text carries the CIR's own source
@@ -6781,6 +6816,43 @@ const CareerRouter = (() => {
     return { intent: "prep_mock_next", reply, resultStatus: "running", graded, contradiction: contra, mock: { id: state.mockId, question: state.currentQ } };
   }
 
+  // LANE A ITEM 3 (CB-0321): an explicit advance instruction during a
+  // running mock — "keep going — next question", "skip", "next one" —
+  // is a CONTROL turn, not an answer and not a new task: it advances
+  // the session (the pending question is skipped, NO answer is
+  // recorded for it) and poses the next question. The battery's
+  // "keep going — next question" was released as task-shaped and died
+  // on the generic fallback with the mock still pending.
+  function handleMockAdvance(text, ctx, state) {
+    const t = lc(text).trim();
+    if (!/^(keep going|next question|next one|skip( this| it| that| the question)?|move on|continue)\b/.test(t)) return null;
+    const store = state && state.store;
+    const m = store && Array.isArray(store.mocks) ? store.mocks.find((x) => x.mock_id === state.mockId) : null;
+    if (!m || !Array.isArray(m.questions) || !m.questions.length) return null;
+    const profile = ctx.profile;
+    const finish = () => {
+      m.status = "complete"; m.finished_at = new Date(nowOf(ctx)).toISOString();
+      let summary = null;
+      try { summary = Prep.mockSummary(store, state.mockId); } catch { summary = null; }
+      if (profile) profile._careerRouterPrep = null;
+      try { const th = prepThreadForWrite(ctx); if (th) delete th.prepMock; } catch { /* the profile clear stands */ }
+      const reply = compose({ headline: "That is the set for now.", facts: [`Skipped questions stay unanswered — the summary scores only what you actually answered (${summary ? summary.answered : m.answers.length} answered).`, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`], nextStep: "Want to retry your weakest answer once more?" });
+      return { intent: "prep_mock_complete", reply, resultStatus: "prepared", sends: 0, summary };
+    };
+    if (state.phase === "probe") {
+      state.phase = "question";
+      if (m.idx >= m.questions.length || m.status === "complete") return finish();
+      state.currentQ = m.questions[m.idx].q;
+      const reply = compose({ headline: state.currentQ, facts: ["Probe skipped — moving on."] });
+      return { intent: "prep_mock_next", reply, resultStatus: "running", sends: 0, mock: { id: state.mockId, question: state.currentQ } };
+    }
+    m.idx += 1;
+    if (m.idx >= m.questions.length) return finish();
+    state.currentQ = m.questions[m.idx].q;
+    const reply = compose({ headline: state.currentQ, facts: ["Skipped — no answer recorded for the last one."] });
+    return { intent: "prep_mock_next", reply, resultStatus: "running", sends: 0, mock: { id: state.mockId, question: state.currentQ } };
+  }
+
   // ---------- dead-board discovery (121 registry via 131 plan) ----------
   function handleDeadBoard(text, _ctx) {
     let dead = [];
@@ -8071,6 +8143,10 @@ const CareerRouter = (() => {
       if (!taskShaped) {
         try { return handlePrepAnswer(text, c); } catch { if (profile) profile._careerRouterPrep = null; try { const th = prepThreadForWrite(c); if (th) delete th.prepMock; } catch { /* ignore */ } }
       }
+      // LANE A ITEM 3 (CB-0321): a task-shaped CONTROL instruction
+      // ("keep going — next question") is the mock's own advance, not
+      // a new task — claim it before the release.
+      { const adv = handleMockAdvance(text, c, pendingMock); if (adv) return adv; }
     }
     // IB-TN-9: roleplay asks belong to 128's negotiation roleplay —
     // the guard sits BEFORE the mock matcher, whose alternation used
@@ -8934,6 +9010,8 @@ const CareerRouter = (() => {
       // search, a role direction from the experience fact, a review
       // plan for a standing interview, and the standing plan's
       // first move. Each stands down without its record.
+      { const td = handleTailorDiffAsk(text, c); if (td) return td; }
+      { const pw = handlePacketWalkthrough(text, c); if (pw) return pw; }
       const cr = handleConversationRecall(text, c);
       if (cr) return cr;
       const rr = handleRecordRecall(text, c);
@@ -9510,11 +9588,19 @@ const CareerRouter = (() => {
         // corrected bonus, a moved deadline) — still merges, field
         // by field, exactly as before.
         const newReport = !!((rec.firm || rec.descriptor)
-          || (thread.fromAccount && sawOfferEvent && (rec.amount != null || rec.hourly || rec.signing)));
+          || (thread.fromAccount && sawOfferEvent && (rec.amount != null || rec.hourly || rec.signing))
+          // LANE A ITEM 7 (MI-123 variant, live battery CB-0385–0388):
+          // a figure asserted in THIS conversation about an offer,
+          // while no negotiation is yet running on the thread (no
+          // topic set by an earlier turn), also re-bases: the seeded
+          // record's firm/figures never ride under a figure the user
+          // stated here about what may be a different offer.
+          || (thread.fromAccount && !thread.topic && (rec.amount != null || rec.hourly || rec.signing)));
         if (newReport) {
           for (const k of ["firm", "descriptor", "descriptors", "amount", "amounts", "hourly", "signing", "signingFor", "deadline", "role", "start", "shares", "expectation", "counter", "requestedDay", "topic", "fromAccount"]) delete thread[k];
           ctx.offer = {};
         }
+        ctx._offerStatedThisTurn = true;
         Object.assign(thread, rec, { at: new Date(nowOf(ctx)).toISOString(), evidence: raw.slice(0, 200) });
         if (thread.firm || thread.amount || thread.hourly) {
           const off = (ctx.offer && typeof ctx.offer === "object") ? ctx.offer : {};
@@ -9602,6 +9688,74 @@ const CareerRouter = (() => {
   // value only (a corrected day is stated as the day it now is,
   // never as a history), the honest absence when nothing is on
   // record, and never a guess.
+  // LANE A ITEM 3 (CB-0151): "show me what you changed" after a
+  // tailoring answers from the diff the tailoring itself computed
+  // (kept on the thread record by handleTailor) — every addition and
+  // removal with 123's own reason. No tailoring on the thread: an
+  // honest substantive answer, never the fallback.
+  function handleTailorDiffAsk(text, ctx) {
+    const t = lc(text);
+    if (!/\bwhat did you change\b|\bshow me (exactly )?what you changed\b|\bwhat (exactly )?changed\b|\bwhat'?s different\b|\bthe diff\b|\bshow (me )?the changes\b|\bwhat did you (add|remove|drop|keep)\b/.test(t)) return null;
+    let rec = null;
+    try { const m = threadMirrorOf(ctx); rec = m && m.tailor ? m.tailor : null; } catch { rec = null; }
+    if (!rec || !rec.diff) {
+      const reply = compose({ headline: "No tailoring has run in this conversation yet, so there is no change list to show.", facts: ["The moment a resume is tailored here, the exact additions, removals and moves — each with its reason — are kept on this thread, and I can walk every one."], nextStep: "Name the role (or paste the posting) and I will tailor first, then show every change." });
+      return { intent: "career_tailor_diff", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const d = rec.diff;
+    const facts = [`For ${rec.title}: ${d.summary}.`];
+    for (const a of (d.added || []).slice(0, 6)) facts.push(`Added: "${a.text}" — ${a.reason}.`);
+    for (const r of (d.removed || []).slice(0, 6)) facts.push(`Removed: "${r.text}" — ${r.reason}.`);
+    for (const mv of (d.moved || []).slice(0, 4)) facts.push(`Moved: "${mv.text}" — ${mv.reason}.`);
+    if (!((d.added || []).length || (d.removed || []).length || (d.moved || []).length)) facts.push("Nothing moved: every line of the tailored version is a line of your base resume, in the same order — the tailoring changed the targeting, not the text.");
+    if (rec.gaps && rec.gaps.length) facts.push(`Gaps named, never papered over: ${rec.gaps.join(", ")}.`);
+    const reply = compose({ headline: `What changed in the ${rec.company || "that"} tailoring — and why.`, facts, nextStep: "Want any of it undone or pushed further? Name the line." });
+    return { intent: "career_tailor_diff", reply, resultStatus: "answered", sends: 0 };
+  }
+
+  // LANE A ITEM 3 (CB-0001): "walk me through what you will submit,
+  // field by field" answers from the SAME field set the doorstep
+  // assembles (141's canonical twelve), each value traced to the
+  // profile or to a confirmed portal answer. A field with no
+  // confirmed value is named as an ask — never guessed — and the
+  // walkthrough closes on the approval law: nothing submitted.
+  function handlePacketWalkthrough(text, ctx) {
+    const t = lc(text);
+    if (!/\bwalk me through\b[^.]*\bsubmit\b|\bwhat (will|would) you submit\b|\bfield by field\b|\bwhat (exactly )?(goes|will go) (in|on) (the|my) (application|form)\b|\bshow me (exactly )?what you('ll| will) (send|submit)\b/.test(t)) return null;
+    const profile = ctx.profile;
+    if (!profile || !profile.basics) return null;
+    const b = profile.basics;
+    let posting = ctx.posting && (ctx.posting.title || ctx.posting.company) ? ctx.posting : null;
+    if (!posting) {
+      const sl = (ctx.rankedShortlist || [])[0];
+      if (sl && (sl.title || sl.company)) posting = sl;
+    }
+    const targetLine = posting ? `For the ${posting.title || "role"}${posting.company ? ` at ${posting.company}` : ""} application, here is exactly what would go in, field by field:` : "Here is exactly what would go into the application, field by field:";
+    const answers = ((ctx.batchDeps || {}).portalProfile || ctx.portalProfile || {}).answers || {};
+    const answerFor = (re) => { for (const k of Object.keys(answers)) if (re.test(k) && answers[k]) return String(answers[k]); return null; };
+    const eduFact = (profile.facts || []).find((f) => f.kind === "education");
+    const eduText = eduFact ? [eduFact.title, eduFact.detail, eduFact.text, eduFact.value].filter(Boolean).join(" ") : "";
+    const gradM = eduText.match(/\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}|\d{4})\b/);
+    const facts = [targetLine];
+    facts.push(`1. Full name: ${b.name || "not on file — the application stops and asks you"}.`);
+    facts.push(`2. Email: ${b.email || "not on file — the application stops and asks you"}.`);
+    facts.push(`3. Phone: ${b.phone || "not on file — the application stops and asks you"}.`);
+    facts.push("4. Resume upload: the tailored resume document prepared for this role — the file itself, not a link.");
+    const wa = answerFor(/authori|eligible|legally/i);
+    facts.push(`5. Work authorization: ${wa ? `${wa} — your confirmed answer, on file.` : "not on file — never guessed; the application stops and asks you."}`);
+    const sp = answerFor(/sponsor/i);
+    facts.push(`6. Sponsorship: ${sp ? `${sp} — your confirmed answer, on file.` : "not on file — never guessed; the application stops and asks you."}`);
+    facts.push("7. Start date: asked, never assumed — no date goes in until you name one.");
+    facts.push(`8. Graduation date: ${gradM ? `${gradM[1]} — read from your education record.` : "not on file — the application stops and asks you."}`);
+    facts.push("9. EEO gender: never pre-answered — those questions are answered only by you, on the form, or left to the form's decline option.");
+    facts.push("10. EEO veteran status: never pre-answered — yours to answer on the form only.");
+    facts.push("11. Background-check consent: a consent is yours to give; nothing is consented to on your behalf.");
+    facts.push("12. Export-control declaration: answered only from your confirmed answers — absent one, the application stops and asks you.");
+    facts.push("Nothing has been submitted: a submission happens only on your approval of the prepared packet, and any field without a confirmed value stops the application instead of guessing.");
+    const reply = compose({ headline: "The submission, walked field by field.", facts, nextStep: "Want the packet prepared for a named role, or a field corrected first?" });
+    return { intent: "application_packet_walkthrough", reply, resultStatus: "answered", sends: 0 };
+  }
+
   function handleConversationRecall(text, ctx) {
     const t = lc(text);
     const all = statedFactsOf(ctx);
@@ -10372,7 +10526,16 @@ const CareerRouter = (() => {
       if (ev === "offer") {
         const thT = negotiationThreadOf(ctx);
         if (thT.amount || thT.deadline || thT.descriptor || thT.firm) {
-          facts0.unshift(`The offer as you stated it: ${thT.amount ? `$${Number(thT.amount).toLocaleString()} base` : "an offer"}${thT.firm ? ` at ${thT.firm}` : thT.descriptor ? ` from ${thT.descriptor}` : ""}${thT.deadline ? `, answer by ${thT.deadline}` : ""} — that record is on this thread now, and the negotiation plan runs on it whenever you ask.`);
+          // LANE A ITEM 7 (MI-123 variant, live battery CB-0385–0388):
+          // the standing record may be the ACCOUNT-seeded prior offer
+          // (fromAccount) — a figure from another conversation is
+          // never narrated as stated in THIS one. It is referenced
+          // with its provenance, and adoption needs the user's word.
+          if (thT.fromAccount) {
+            facts0.unshift(`From an earlier conversation, your account record holds an offer: ${thT.amount ? `$${Number(thT.amount).toLocaleString()} base` : "an offer"}${thT.firm ? ` at ${thT.firm}` : thT.descriptor ? ` from ${thT.descriptor}` : ""}${thT.deadline ? `, answer by ${thT.deadline}` : ""} — it was not stated in this conversation, so I have not taken it as this offer's terms. Say "same one" if this offer is that one, or tell me this offer's figure and it goes on record from your words.`);
+          } else {
+            facts0.unshift(`The offer as you stated it: ${thT.amount ? `$${Number(thT.amount).toLocaleString()} base` : "an offer"}${thT.firm ? ` at ${thT.firm}` : thT.descriptor ? ` from ${thT.descriptor}` : ""}${thT.deadline ? `, answer by ${thT.deadline}` : ""} — that record is on this thread now, and the negotiation plan runs on it whenever you ask.`);
+          }
         }
       }
       const reply = compose({ headline: `Noted — a ${ev === "oa" ? "assessment" : ev} landed. Which application is it for?`, facts: facts0, nextStep: "Name the company and the row moves in the same turn, from your words." });

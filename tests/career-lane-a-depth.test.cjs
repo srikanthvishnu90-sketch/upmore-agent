@@ -335,3 +335,105 @@ test("named-role apply, role IN the served list (loop world): the batch card is 
   assert.ok(res.card || (res.batchRun && res.batchRun.found >= 1), `expected the approval card / a run that found the role: ${JSON.stringify(Object.keys(res))}`);
   assert.match(r.out.reply, /TestCo 1/);
 });
+
+// =====================================================================
+// ITEM 3 — FOLLOW-UP COLLAPSE (a working first turn, a dead follow-up)
+// =====================================================================
+
+function stagedWorld() {
+  const w = makeWorld();
+  const profile = PILOT.gauntletProfile("p1-early-career-swe");
+  const sayS = (uid, tid, text) => w.say(uid, tid, text, { postings: CORPUS, profile });
+  return { sayS };
+}
+
+test("CB-0151: 'show me exactly what you changed and why' after a tailor answers with the diff", () => {
+  const { sayS } = stagedWorld();
+  const t1 = sayS("u-f1", "t", "tailor my resume for the New Grad Software Engineer role at Northwind Ledger (fictional)");
+  assert.equal(t1.out.intent, "career_tailor", `tailor turn must succeed first, got ${t1.out.intent}: ${t1.out.reply}`);
+  const t2 = sayS("u-f1", "t", "show me exactly what you changed and why");
+  assert.ok(!isFallback(t2.out), `the diff ask fell back (the battery's exact failure): ${t2.out.reply}`);
+  assert.match(t2.out.reply, /add|remov|kept|dropped|moved/i, `the answer must speak the diff: ${t2.out.reply}`);
+  assert.match(t2.out.reply, /Northwind Ledger/);
+});
+
+test("CB-0001: 'walk me through what you will submit, field by field' after a prepared packet walks the fields", () => {
+  const { sayS } = stagedWorld();
+  const t1 = sayS("u-f2", "t", "Adjust my resume and auto apply (tailor per role; apply under my rule)");
+  assert.equal(t1.out.intent, "application_packet", `packet turn must succeed first, got ${t1.out.intent}`);
+  const t2 = sayS("u-f2", "t", "walk me through exactly what you will submit for the first one, field by field");
+  assert.ok(!isFallback(t2.out), `the walkthrough fell back (the battery's exact failure): ${t2.out.reply}`);
+  assert.match(t2.out.reply, /Maya Rivera/, `the walkthrough must state the actual field values: ${t2.out.reply}`);
+  assert.match(t2.out.reply, /maya\.rivera@example\.test/);
+  assert.match(t2.out.reply, /[Ww]ork authorization/);
+  assert.ok(!/submitted/i.test(t2.out.reply.split("\n")[0]) || /nothing|not/i.test(t2.out.reply), "the walkthrough must not claim a submission");
+});
+
+test("CB-0321: 'keep going — next question' advances a running mock instead of falling back", () => {
+  const { sayS } = stagedWorld();
+  const t1 = sayS("u-f3", "t", "start a mock interview for a Software Engineer, Defence Systems role at Sentinel Works (fictional)");
+  assert.equal(t1.out.intent, "prep_mock_start", `mock must start first, got ${t1.out.intent}: ${t1.out.reply}`);
+  const t2 = sayS("u-f3", "t", "I would start by sizing the market, then segment by user type and willingness to pay. I would validate each segment with interviews and landing page tests before committing engineering resources to any one of them.");
+  assert.ok(!isFallback(t2.out), `the mock answer turn fell back: ${t2.out.reply}`);
+  const t3 = sayS("u-f3", "t", "keep going — next question");
+  assert.ok(!isFallback(t3.out), `the advance fell back (the battery's exact failure): ${t3.out.reply}`);
+  assert.equal(t3.out.resultStatus, "running", `the mock must still be running, got ${t3.out.resultStatus}`);
+  assert.ok(!t3.out.reply.includes("market") || /question/i.test(t3.out.reply), `the advance must pose the NEXT question, not repeat the first: ${t3.out.reply}`);
+  assert.match(t3.out.reply, /\?|Tell me about|Describe|Walk me through/i, `the advance must pose the next question: ${t3.out.reply}`);
+});
+
+// =====================================================================
+// ITEM 7 — MI-123 VARIANT: account-level offer provenance (live
+// battery 2026-10-20, CB-0377–CB-0388). A DIFFERENT conversation's
+// $85,000 offer sat on the account record; fresh threads were told
+// "The offer as you stated it: $85,000 base" and the counter was built
+// on it. Law: a figure may be presented as stated only when asserted
+// in THIS conversation; an account-level record may be referenced
+// honestly ("in an earlier conversation…") or ignored — never
+// silently adopted; negotiation asks for the unstated figure.
+// =====================================================================
+
+function seedAccountOffer(store, userId, offer) {
+  store.accounts.set(userId, { stated_facts: { facts: [], offer } });
+}
+
+test("CB-0385: fresh thread, bare offer event — the account's $85,000 is never narrated as stated here", () => {
+  const { say, store } = makeWorld();
+  seedAccountOffer(store, "u-p1", { amount: 85000 });
+  const t1 = say("u-p1", "fresh-1", "I got an offer! Help me negotiate a higher salary.");
+  assert.ok(!isFallback(t1.out), `offer event must be answered, got: ${t1.out && t1.out.reply}`);
+  assert.ok(!/as you stated it:?\s*\$85,000/i.test(t1.out.reply), `inherited figure narrated as stated in this conversation: ${t1.out.reply}`);
+  assert.ok(!/that record is on this thread now/i.test(t1.out.reply) || /earlier conversation/i.test(t1.out.reply), `reply adopts the inherited record as this thread's: ${t1.out.reply}`);
+  if (/\$85,000/.test(t1.out.reply)) assert.match(t1.out.reply, /earlier conversation/i, "any mention of the inherited figure must carry its provenance");
+  const t2 = say("u-p1", "fresh-1", "what should I counter at?");
+  assert.ok(!/counter on \$85,000/i.test(t2.out.reply), `counter built on the unconfirmed inherited figure: ${t2.out.reply}`);
+  assert.match(t2.out.reply, /same one|earlier conversation|figure|how much|what'?s the (base|offer)/i, `turn 2 must ask for / confirm the figure, got: ${t2.out.reply}`);
+});
+
+test("CB-0385b: confirmation adopts the record — 'same one' makes the counter legitimate", () => {
+  const { say, store } = makeWorld();
+  seedAccountOffer(store, "u-p2", { amount: 85000 });
+  say("u-p2", "fresh-2", "I got an offer! Help me negotiate a higher salary.");
+  say("u-p2", "fresh-2", "yes — same one, the $85,000 offer from before");
+  const t3 = say("u-p2", "fresh-2", "what should I counter at?");
+  assert.match(t3.out.reply, /\$85,000/, `after in-thread confirmation the counter plan may run on the figure, got: ${t3.out.reply}`);
+  assert.ok(!/earlier conversation/i.test(t3.out.reply) || /counter/i.test(t3.out.reply), "post-confirmation the plan proceeds instead of re-asking");
+});
+
+test("CB-0388: a NEW figure stated in this thread rebases — the seed's figure and firm never attach", () => {
+  const { say, store } = makeWorld();
+  seedAccountOffer(store, "u-p3", { amount: 85000, firm: "Lincoln International" });
+  const t1 = say("u-p3", "fresh-3", "I got an offer — $120,000 base. Help me negotiate a higher salary.");
+  assert.ok(!/Lincoln International/.test(t1.out.reply || ""), `seeded firm attached to the new offer: ${t1.out.reply}`);
+  const t2 = say("u-p3", "fresh-3", "what should I counter at?");
+  assert.match(t2.out.reply, /\$120,000/, `counter must run on the figure stated in this thread, got: ${t2.out.reply}`);
+  assert.ok(!/counter on \$85,000/i.test(t2.out.reply), "the inherited figure must not drive the counter");
+});
+
+test("CB-0377 control: an offer stated in THIS thread is still narrated as stated (provenance gate is not a gag)", () => {
+  const { say } = makeWorld();
+  const t1 = say("u-p4", "fresh-4", "I got an offer from a fintech startup, 85k base — help me negotiate");
+  assert.match(t1.out.reply, /85,000|\$85k/i, `in-thread stated figure must be read back, got: ${t1.out.reply}`);
+  const t2 = say("u-p4", "fresh-4", "what should I counter at?");
+  assert.ok(!/earlier conversation/i.test(t2.out.reply), `no provenance ask when the figure was stated here: ${t2.out.reply}`);
+});

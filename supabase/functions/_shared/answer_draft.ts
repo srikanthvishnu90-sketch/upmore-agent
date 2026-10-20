@@ -43,13 +43,32 @@ const NEVER: [RegExp, string][] = [
   [/\b(listed|stated|posted|outlined|mentioned|shown|advertised) (in|on|for) (the|this) (job |role )?(description|posting|ad|advert|listing)|\bthis (salary|pay|compensation|rate|range)\b|\b(salary|pay|compensation|rate) (range )?(for|of) this (position|role|job)\b/, "this posting's own terms"],
   [/\bnotif\w*|\bnewsletters?\b|\bmarketing\b|\bsubscribe\w*|\btalent (community|network|pool)\b|\bopt[- ]in\b|\bkeep (you|me) (informed|updated)\b/, "an opt-in"],
   [/\bcompetitors?\b|\bconflicts? of interest\b/, "an opinion about another employer"],
+  // Read by two independent reviewers (run 2, 80 of 368 wrong): the classes a model drafted wrong from nearby facts.
+  // The planner's own rules answer what they can of these with the posting's location; the rest are the person's.
+  [/\bhow(?: did| do|'?d) you (hear|find|learn|come across|get)\b|\bwhere did you (hear|find|see|learn)\b|\bheard (about|of)\b|^\s*source\s*$|\bhow did you apply\b|\breferral source\b/, "how the person found this job"],
+  [/\bsponsor\w*|\bvisas?\b|\bwork (authori[sz]ation|permit|rights?)\b|\bright to work\b|\b(authori[sz]ed|entitled|eligible|permitted|allowed) to work\b|\bcitizen\w*|\bnationalit\w*|\bpassports?\b|\b(country|place|date) of birth\b|\bborn\b|\bpermanent resid\w*|\bgreen card\b|\bimmigration\b/, "work rights, which depend on the job's country (the planner's own rules)"],
+  [/\breferences?\b|\breferees?\b/, "references"],
+  [/\b(first|last|middle|legal|preferred|full|given|family|sur)[ -]?name\b|\bnick ?name\b|\baddress\b/, "a name or address (the planner fills these from the profile)"],
+  [/\bcurrently (enrolled|attending|pursuing|studying|a student|in school)\b|\byear of (study|studies|school)\b|\bexpected graduation\b|\bschool you are (currently )?attending\b|\bhigh school\b/, "student status"],
+  [/\b(friends?|relatives?|family|related to|relationships?|spouse|roommates?|significant other|in-laws?|acquaint\w*|government officials?|politically)\b/, "people the person knows"],
+  [/\b(posted|budgeted|advertised|listed|stated|published) (salary |pay |compensation )?(range|band|rate)\b|\b(salary|pay|compensation) (range|band)\b|\bwithin (the|this|our) (range|budget)\b/, "this posting's pay range"],
+  [/\bcontact (your|the) (current |previous |former |last )?(employer|manager|supervisor)\b/, "a consent to contact an employer"],
+  [/\bhours? (per|a|each|\/) ?(week|day)\b|\bpart[- ]time\b|\bstart(ing)? immediately\b/, "hours or availability"],
+  [/\bprefer\w*|\bfavou?rite\b|\bstrongest\b|\blevel of\b|\bhow (often|frequently)\b|\brate yourself\b|\bhave you heard of\b/, "a preference or self-assessment"],
+  [/\btravel\w*\b[^?]*(\d+\s*%|percent|weekly|frequent|extensive|majority)|\d+\s*%[^?]*\btravel/, "travel beyond what a fact says"],
+  [/\blift\w*\b|\bladders?\b|\b\d+\s*(lbs?|pounds|kg)\b|\boutdoors?\b|\btemperatures?\b/, "physical demands"],
+  [/\b(resume|cv|curriculum vitae)\b/, "the resume itself"],
+  [/\breason for (leaving|seeking|looking)\b|\bwhy (are you|did you) (leav|look)\w*/, "why the person is moving"],
   // This posting's office, place or schedule: the answer depends on where this job is and what the person will do for it,
   // which no fact holds (a standing answer for postings the person approves is WO-074, the person's own choice).
   [/\b(on-?site|in[- ]office|in the office|offices?|commut\w*|relocat\w*|hybrid|in[- ]person|headquarters|located (in|within|near|close)|live (in|within|near)|resid(e|ing) (in|within|near)|(which|preferred|work) location)\b/, "this posting's office or place"],
 ];
+const PAY = /\b(salary|pay|compensation|comp|wage|rate|ctc|remuneration|stipend|earnings|income|bonus)\b/;
+const PAY_UNIT = /\b(month\w*|hour\w*|per (day|week|month|hour)|daily|weekly|bonus|equity|commission|ote|ctc|lpa|stipend|eur|gbp|inr|jpy|cad|aud|sgd|chf)\b|[€£₹¥]|\bin [€£₹¥]/;
 export function neverDraft(label: string): string | null {
   const t = String(label ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
   for (const [re, why] of NEVER) if (re.test(t)) return why;
+  if (PAY.test(t) && PAY_UNIT.test(t)) return "pay asked in a unit or currency no fact states";
   return null;
 }
 
@@ -160,8 +179,14 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
     answer = picked.join("; ");
   } else if (q.own_words) return fail("never");
   if (CONSENT.test(answer.toLowerCase())) return fail("never");
+  // "Other", "N/A", "None of the above": a pick no fact states.
+  if (/^\s*(other|n\/?a|none( of the above)?|not applicable|prefer not|i don'?t know|unsure|not sure)\b/i.test(answer)) return fail("unverified");
+  // An answer in another language's letters than the question's ("Sí" to an English question).
+  if (/[^\x00-\x7F]/.test(answer.replace(/[’‘“”–—…€£$]/g, "")) && !/[^\x00-\x7F]/.test(String(q.label ?? "").replace(/[’‘“”–—…]/g, ""))) return fail("unverified");
 
   const label = String(q.label ?? ""), l = label.toLowerCase();
+  // A date asked in a format ("MM/DD/YY", "Month and Year") is answered with a date, never a duration.
+  if (/\bmm\b|\bdd\b|\byy(yy)?\b|\bmonth and year\b|\bdate format\b/.test(l) && !/\d{1,2}[\/.-]\d{1,4}|\b(19|20)\d\d\b/.test(answer)) return fail("unverified");
   if (!options.length && norm(answer).length > 15 && norm(label).includes(norm(answer))) return fail("unverified"); // the question copied back
   const experience = EXPERIENCE.test(l), aboutThem = ABOUT_THEM.test(l);
   const negative = NEGATIVE.test(answer.toLowerCase().trim());
@@ -175,11 +200,15 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
       const t = norm(factText(f));
       return SAYS_NO.test(t) && (!subject.length || subject.some((w) => hasTerm(t, w)));
     });
-    return states ? { key: q.key, ok: true, answer, fact_ids: ids, from: cited.map(factLabel) } : fail("negative_from_absence");
+    if (!states) return fail("negative_from_absence");
+    // A "No, I do not yet have ..." says more than no: what it says past the no must be in the cited facts.
+    const rest = termsOf(answer.replace(/^\s*(no|none|n\/?a|not)\b[\s,.:;-]*/i, ""));
+    return allIn(rest, citedText) ? { key: q.key, ok: true, answer, fact_ids: ids, from: cited.map(factLabel) } : fail("unverified");
   }
   // Every other answer rests on a cited fact about this question: a word of the question in the fact, or, for a named
   // option (a tool, a channel, a field), every word of that option in the cited facts.
-  const named = options.length && !YESNO(options) ? picked.flatMap((o) => termsOf(o.replace(/^\s*(yes|no)\b[\s,.:;-]*/i, ""))) : [];
+  // Including what a "Yes, ..." or "No, ..." option says past its yes or no.
+  const named = options.length ? picked.flatMap((o) => termsOf(o.replace(/^\s*(yes|no)\b[\s,.:;-]*/i, ""))) : [];
   const about = cited.map(aboutText).join(" \n ");
   const labelTerms = termsOf(label);
   if (named.length && !allIn(named, citedText)) return fail("unverified");
@@ -196,6 +225,19 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
       if (yrs === null || yrs < claim.lo || (claim.hi !== null && yrs > claim.hi + 1)) return fail("unverified");
     }
     return { key: q.key, ok: true, answer, fact_ids: ids, from: cited.map(factLabel) };
+  }
+  // A plain yes or no restates a yes/no fact: the fact's own value is "Yes" or "No", every word of its name is in the
+  // question, and the answer says the same ("sponsorship: No" answers "Will you require sponsorship?" with No).
+  const yn = /^\s*(yes|no)\b/i.exec(answer);
+  if (yn) {
+    const says = yn[1].toLowerCase();
+    const carried = cited.some((f) => {
+      const m = /^\s*([^:]{2,60}):\s*(yes|no)\s*$/i.exec(String(f?.text ?? factText(f)));
+      if (!m || m[2].toLowerCase() !== says) return false;
+      const name = norm(m[1]).split(" ").filter((w) => w.length >= 3);
+      return name.length > 0 && name.every((w) => shares([w], label));
+    });
+    if (!carried) return fail("unverified");
   }
   if (options.length) {
     if (!picked.every((o) => optionNumbersCarried(o, label, citedText))) return fail("unverified");

@@ -8178,11 +8178,6 @@ const CareerOnboarding = (() => {
     return { built: { registry_tested: builtReg.length, career: builtCareer.map((c) => c.id) }, proven_live: proven, blocked, blocked_count: blocked.length, not_started_registry: bucket(reg, (c) => String(c.status || "").toUpperCase() === "CLAIMED").length, text };
   }
 
-  const CORRECTION_STORE = new Map();
-  function correctionKey(profile) {
-    const p = profile || {}, b = p.basics || {};
-    return b.email || b.name || p.id || ((p.facts || [])[0] && p.facts[0].id) || null;
-  }
   function newSourceToken(fact, ctx) {
     const text = `${fact.title || ""} ${fact.text || ""}`;
     const labeled = text.match(/resume-old[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b[^;]*;\s*resume-new[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b/i);
@@ -8229,31 +8224,13 @@ const CareerOnboarding = (() => {
     profile.profile_corrections = [...(profile.profile_corrections || []), auditEntry];
     profile.resume_sources = { active: "resume-new.txt", status: "active_new_wins", precedence: auditEntry.precedence };
     rebuildDependents(profile, at);
-    const key = correctionKey(profile);
-    if (key) CORRECTION_STORE.set(key, { key, audit: profile.profile_corrections.slice(), changes, graduationDate: (profile.constraints || {}).graduationDate || null, resume_sources: profile.resume_sources });
     const grad = changes.find((x) => x.field === "graduation_date");
     return { ok: true, changes, audit: auditEntry, reply: `Done — I switched your active resume to the new one and recorded that it wins over the old one.${grad ? ` Your graduation year is now ${grad.to} from the new resume,` : ""} and I rebuilt your eligibility and materials on the new facts.` };
   }
-  function applyPersistedCorrections(profile) {
-    if (!profile) return false;
-    const key = correctionKey(profile);
-    const rec = key && CORRECTION_STORE.get(key);
-    if (!rec) return false;
-    let touched = false;
-    if (rec.graduationDate && (profile.constraints || {}).graduationDate !== rec.graduationDate) { profile.constraints = Object.assign({}, profile.constraints, { graduationDate: rec.graduationDate }); touched = true; }
-    for (const ch of rec.changes || []) {
-      const fact = (profile.facts || []).find((f) => f.id === ch.fact_id);
-      if (fact && fact.needs_confirmation) { applyResolutionToFact(fact, { to: ch.to }, null); touched = true; }
-    }
-    if (!(profile.profile_corrections || []).length) profile.profile_corrections = (rec.audit || []).slice();
-    if (!profile.resume_sources || profile.resume_sources.status !== "active_new_wins") profile.resume_sources = rec.resume_sources;
-    if (!profile.dependent_state || !profile.dependent_state.rebuilt) rebuildDependents(profile, null);
-    if (touched) bumpFactVersion(profile);
-    return touched;
-  }
-  function exportCorrectionStore() { return [...CORRECTION_STORE.values()]; }
-  function restoreCorrectionStore(rows) { CORRECTION_STORE.clear(); for (const r of rows || []) if (r && r.key) CORRECTION_STORE.set(r.key, r); return CORRECTION_STORE.size; }
-  function _resetCorrectionStore() { CORRECTION_STORE.clear(); }
+  function applyPersistedCorrections() { return false; }
+  function exportCorrectionStore() { return []; }
+  function restoreCorrectionStore() { return 0; }
+  function _resetCorrectionStore() {}
 
   function createReauthLog() { return { sent: [] }; }
   function planReauthSends(log, plan, expiryId) {
@@ -8440,7 +8417,6 @@ const CareerOnboarding = (() => {
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
     const c = ctx || {};
-    if (c.profile) applyPersistedCorrections(c.profile);
     if (c.profile && /\buse the new (one|resume|version)\b|\bswitch to the new\b|\bold resume'?s wrong\b|\buse the newer\b/.test(t)) {
       const r = applyProfileCorrection(c.profile, text, c);
       return { intent: "profile_correction", resultStatus: r.ok ? "completed" : "blocked", ok: r.ok, changes: r.changes, audit: r.audit || null, reply: r.ok ? r.reply : r.text };
@@ -14023,12 +13999,14 @@ const CareerRouter = (() => {
     if (target) {
       const askText = target.askText || "tailor my resume";
       let chained = null;
-      const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
-      if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
-      if (!chained || !chained.artifact) {
-        const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
-        if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
-      }
+      try {
+        const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
+        if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
+        if (!chained || !chained.artifact) {
+          const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
+          if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
+        }
+      } catch { chained = null; }
       if (chained && chained.artifact) {
         chained.reply = `Confirmed — ${confirmed} fact${confirmed === 1 ? "" : "s"} from your resume are on your record now.\n\n${chained.reply}`;
         return chained;
@@ -15866,7 +15844,8 @@ const CareerRouter = (() => {
       || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
     if (!m) return null;
     const role = m[1].replace(/[\s,]+$/, "").trim();
-    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    const coWords = m[2].replace(/[?.!,]+$/, "").trim().split(/\s+/);
+    const company = coWords.slice(0, 1).concat(coWords.slice(1).filter((w, i, a) => a.slice(0, i + 1).every((x) => /^[A-Z0-9&(]/.test(x)))).join(" ");
     if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
     return { role, company };
   }

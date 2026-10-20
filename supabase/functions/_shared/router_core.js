@@ -30259,7 +30259,7 @@ const CareerOnboarding = (() => {
   // counter on the profile, `profile.fact_version`. Prepared packets and
   // approvals (141) stamp the version they were prepared against; any
   // correction through THIS module's write paths (answerCurrent,
-  // applyProfileCorrection, and the persisted-correction re-apply) bumps it,
+  // applyProfileCorrection) bumps it,
   // which is what makes a stale packet unsubmittable at 141's seam. A
   // missing counter reads as version 0. The counter itself carries no fact
   // data — 141 also binds a hash of the fact slices, so a correction that
@@ -30406,17 +30406,11 @@ const CareerOnboarding = (() => {
   // win — keeps an audit entry on the profile, confirms the facts the two
   // sources conflicted on, and rebuilds dependent state (eligibility /
   // materials) on the new facts. Read/recall behavior above is unchanged.
-  // Persistence: the host owns storing the profile; because a fresh session
-  // can reload the profile from its original source (discarding in-memory
-  // edits), corrections are ALSO kept in a correction store keyed by the
-  // profile's identity, and handleChat re-applies them to any later load of
-  // the same profile. The host can serialize/restore that store across real
-  // process restarts with exportCorrectionStore/restoreCorrectionStore.
-  const CORRECTION_STORE = new Map();
-  function correctionKey(profile) {
-    const p = profile || {}, b = p.basics || {};
-    return b.email || b.name || p.id || ((p.facts || [])[0] && p.facts[0].id) || null;
-  }
+  // Persistence authority is the host's atomic, owner-scoped profile JSON.
+  // Facts, audit, source precedence and dependent state travel together in
+  // that snapshot. Never cache corrections by profile email/name/id here:
+  // those are user data, not owner authority, and a failed host commit must
+  // leave no process-local state that can replay into another turn/account.
   // Extract the new source's token for a conflicting fact from the fact's own
   // labeled text ("resume-old.txt says ... 2013; resume-new.txt says ... 2014")
   // or, when the host passes the resume texts in ctx, from the new text itself.
@@ -30466,31 +30460,16 @@ const CareerOnboarding = (() => {
     profile.profile_corrections = [...(profile.profile_corrections || []), auditEntry];
     profile.resume_sources = { active: "resume-new.txt", status: "active_new_wins", precedence: auditEntry.precedence };
     rebuildDependents(profile, at);
-    const key = correctionKey(profile);
-    if (key) CORRECTION_STORE.set(key, { key, audit: profile.profile_corrections.slice(), changes, graduationDate: (profile.constraints || {}).graduationDate || null, resume_sources: profile.resume_sources });
     const grad = changes.find((x) => x.field === "graduation_date");
     return { ok: true, changes, audit: auditEntry, reply: `Done — I switched your active resume to the new one and recorded that it wins over the old one.${grad ? ` Your graduation year is now ${grad.to} from the new resume,` : ""} and I rebuilt your eligibility and materials on the new facts.` };
   }
-  function applyPersistedCorrections(profile) {
-    if (!profile) return false;
-    const key = correctionKey(profile);
-    const rec = key && CORRECTION_STORE.get(key);
-    if (!rec) return false;
-    let touched = false;
-    if (rec.graduationDate && (profile.constraints || {}).graduationDate !== rec.graduationDate) { profile.constraints = Object.assign({}, profile.constraints, { graduationDate: rec.graduationDate }); touched = true; }
-    for (const ch of rec.changes || []) {
-      const fact = (profile.facts || []).find((f) => f.id === ch.fact_id);
-      if (fact && fact.needs_confirmation) { applyResolutionToFact(fact, { to: ch.to }, null); touched = true; }
-    }
-    if (!(profile.profile_corrections || []).length) profile.profile_corrections = (rec.audit || []).slice();
-    if (!profile.resume_sources || profile.resume_sources.status !== "active_new_wins") profile.resume_sources = rec.resume_sources;
-    if (!profile.dependent_state || !profile.dependent_state.rebuilt) rebuildDependents(profile, null);
-    if (touched) bumpFactVersion(profile); // R2B: re-applying a correction to a fresh load is the same fact write, counted once per actual change
-    return touched;
-  }
-  function exportCorrectionStore() { return [...CORRECTION_STORE.values()]; }
-  function restoreCorrectionStore(rows) { CORRECTION_STORE.clear(); for (const r of rows || []) if (r && r.key) CORRECTION_STORE.set(r.key, r); return CORRECTION_STORE.size; }
-  function _resetCorrectionStore() { CORRECTION_STORE.clear(); }
+  // Deprecated compatibility APIs: legacy snapshots have no authenticated
+  // owner, commit receipt or erase epoch. They cannot safely become active
+  // profile state. Keep old callers callable, but retain/export/replay nothing.
+  function applyPersistedCorrections() { return false; }
+  function exportCorrectionStore() { return []; }
+  function restoreCorrectionStore() { return 0; }
+  function _resetCorrectionStore() {}
 
   // ---------- 4. Re-auth dedupe (ACCS-003): one message per source per expiry ----------
   function createReauthLog() { return { sent: [] }; }
@@ -30755,9 +30734,8 @@ const CareerOnboarding = (() => {
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
     const c = ctx || {};
-    // R3 write path: re-apply any persisted correction to this load of the
-    // profile first, then route the correction instruction itself.
-    if (c.profile) applyPersistedCorrections(c.profile);
+    // The host supplied the committed profile. Only an explicit correction
+    // instruction below may resolve its conflicts; reads never replay state.
     if (c.profile && /\buse the new (one|resume|version)\b|\bswitch to the new\b|\bold resume'?s wrong\b|\buse the newer\b/.test(t)) {
       const r = applyProfileCorrection(c.profile, text, c);
       return { intent: "profile_correction", resultStatus: r.ok ? "completed" : "blocked", ok: r.ok, changes: r.changes, audit: r.audit || null, reply: r.ok ? r.reply : r.text };
@@ -37884,12 +37862,25 @@ const CareerRouter = (() => {
     if (target) {
       const askText = target.askText || "tailor my resume";
       let chained = null;
-      const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
-      if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
-      if (!chained || !chained.artifact) {
-        const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
-        if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
-      }
+      // V242 LIVE-FIX (probe j, third failure mode): the confirmation
+      // above has already COMMITTED — the flips and the marker
+      // consumption are this turn's state. The tailor leg is
+      // best-effort on top of it: a leg that returns no artifact
+      // already falls through to the plain Confirmed reply below,
+      // but a leg that THREW escaped the handler, contained the
+      // whole turn, and the contained copy ("nothing changed on
+      // your side") falsely denied the commit (live thread
+      // f0a12430: 15 facts confirmed in SQL, contained reply).
+      // Hold the leg to its own contract: a throw degrades exactly
+      // like an artifact-less result — the confirmation ships.
+      try {
+        const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
+        if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
+        if (!chained || !chained.artifact) {
+          const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
+          if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
+        }
+      } catch { chained = null; }
       if (chained && chained.artifact) {
         chained.reply = `Confirmed — ${confirmed} fact${confirmed === 1 ? "" : "s"} from your resume are on your record now.\n\n${chained.reply}`;
         return chained;
@@ -40562,7 +40553,11 @@ const CareerRouter = (() => {
       || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
     if (!m) return null;
     const role = m[1].replace(/[\s,]+$/, "").trim();
-    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    // The "i" flag lets the capitalized-words group run on into lowercase words ("at Klaviyo yesterday" was recorded as
+    // the company "Klaviyo yesterday", WO-065 live task battery): the first word is kept as typed, then the name stops
+    // at the first word that does not start like a name.
+    const coWords = m[2].replace(/[?.!,]+$/, "").trim().split(/\s+/);
+    const company = coWords.slice(0, 1).concat(coWords.slice(1).filter((w, i, a) => a.slice(0, i + 1).every((x) => /^[A-Z0-9&(]/.test(x)))).join(" ");
     if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
     return { role, company };
   }

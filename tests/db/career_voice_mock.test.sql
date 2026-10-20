@@ -71,6 +71,8 @@ select t.must_fail($$select * from career_watch_kv$$,'permission denied','or rea
 reset role;
 -- The outbox still refuses an unknown kind.
 select t.must_fail($$insert into career_outbox(user_id,key,kind,text,deliver_at) values('00000000-0000-4000-8000-000000000351','voice:x','voice','x',now())$$,'career_outbox_(key|kind)_check','an unknown outbox kind is refused');
+insert into career_outbox(user_id,key,kind,text,deliver_at) values('00000000-0000-4000-8000-000000000351','status:job-1:interview','status','Acme moved your application to interview.',now()),('00000000-0000-4000-8000-000000000351','followup:job-1:d14','followup','A follow-up draft is ready.',now());
+select t.ok((select count(*)=2 from career_outbox where key in ('status:job-1:interview','followup:job-1:d14')),'mail tracking''s status and follow-up texts still queue after this migration');
 -- Deleting the account removes every session.
 delete from auth.users where id='00000000-0000-4000-8000-000000000351';
 select t.ok((select not exists (select from career_watch_kv where user_id='00000000-0000-4000-8000-000000000351')),'deleting the account removes the sessions');

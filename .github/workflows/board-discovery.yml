@@ -18,12 +18,14 @@ on:
       domains_limit: { description: "Top domains turned into slug guesses (0 = none)", default: "3000" }
       wb_pages: { description: "Wayback Machine CDX pages read per query (the gather budget ends it first)", default: "400" }
       hn_pages: { description: "Hacker News search pages (1,000 comments each) per query", default: "40" }
+      wb_limit: { description: "Wayback lines per page to start with (halved per query after a failure)", default: "5000" }
       providers: { description: "Providers to verify (comma list, or all)", default: "all" }
       resume_branch: { description: "A discovery/ branch whose dead verdicts need no new probe (empty = probe all)", default: "" }
       label_pool: { description: "Also collect the labeled-set pool (yes / no)", default: "yes" }
   schedule:
     - cron: "17 6 * * 1" # Mondays 06:17 UTC
-  # TEMPORARY (WO-044): the MCP integration cannot dispatch (403); removed in the final commit, as WO-037 did.
+  # TEMPORARY (WO-044): the MCP integration cannot dispatch (403); removed in the final commit, as WO-037 did, with the
+  # resume_branch fallbacks below (discovery/boards-39380185627) set back to "".
   push:
     branches: [wo/044-discovery-scale]
     paths: [.github/workflows/board-discovery.yml]
@@ -44,10 +46,24 @@ jobs:
       DOMAINS_LIMIT: ${{ inputs.domains_limit || '3000' }}
       WB_PAGES: ${{ inputs.wb_pages || '400' }}
       HN_PAGES: ${{ inputs.hn_pages || '40' }}
+      WB_LIMIT: ${{ inputs.wb_limit || '5000' }}
+      RESUME_BRANCH: ${{ inputs.resume_branch || 'discovery/boards-39380185627' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
+      - name: An earlier run's state (its live boards are verified again; its Wayback keys continue)
+        run: |
+          touch prior.jsonl; echo '{}' > wb-state.json
+          case "$RESUME_BRANCH" in
+            "") ;;
+            discovery/*) if printf '%s' "$RESUME_BRANCH" | grep -Eq '^discovery/[A-Za-z0-9._-]+$' && git fetch --depth 1 origin "refs/heads/$RESUME_BRANCH"; then
+                git show FETCH_HEAD:packages/career-data/discovery-verdicts.jsonl.gz | gunzip > prior.jsonl || true
+                git show FETCH_HEAD:packages/career-data/discovery-wayback-state.json > wb-state.json 2>/dev/null || echo '{}' > wb-state.json
+              fi ;;
+            *) echo "resume_branch must be a discovery/ branch"; exit 1 ;;
+          esac
+          wc -l prior.jsonl; cat wb-state.json | head -c 600; echo
       - name: A ranked domain list (Tranco top 1M, tranco-list.eu), for slug guesses
         run: |
           if [ "$DOMAINS_LIMIT" != "0" ]; then
@@ -58,7 +74,8 @@ jobs:
         run: |
           mkdir -p gather-out
           deno run -A --no-check scripts/career/discover-boards.ts --phase gather \
-            --sources diagnose,directory,candidates,hn,wayback,ccdata,sitemaps,commoncrawl,workday-robots,domains --domains domains.csv --domains-limit "$DOMAINS_LIMIT" \
+            --sources diagnose,directory,prior,candidates,hn,wayback,ccdata,sitemaps,commoncrawl,workday-robots,domains --domains domains.csv --domains-limit "$DOMAINS_LIMIT" \
+            --prior prior.jsonl --wb-state wb-state.json --wb-limit "$WB_LIMIT" \
             --cc-crawls "$CC_CRAWLS" --crawls "$CRAWLS" --cc-blocks "$CC_BLOCKS" --wb-pages "$WB_PAGES" --hn-pages "$HN_PAGES" \
             --max-minutes "$GATHER_MINUTES" --out-dir gather-out \
             | tee gather-out/gather.log | grep -E '^(SOURCES|ROBOTS|CCDATA|WAYBACK|HN|WORKDAY_ROBOTS|SITEMAP|CC )'
@@ -78,7 +95,7 @@ jobs:
       PROVIDER: ${{ matrix.provider }}
       PROVIDERS: ${{ inputs.providers || 'all' }}
       MAX_MINUTES: ${{ inputs.max_minutes || '270' }}
-      RESUME_BRANCH: ${{ inputs.resume_branch || '' }}
+      RESUME_BRANCH: ${{ inputs.resume_branch || 'discovery/boards-39380185627' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -147,11 +164,12 @@ jobs:
           cp packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json "$RUNNER_TEMP/out/"
           gzip -9 -c discovery-out/verdicts.jsonl > "$RUNNER_TEMP/out/discovery-verdicts.jsonl.gz"
           cp discovery-out/summary.json "$RUNNER_TEMP/out/discovery-summary.json"
+          cp shards/gather/wayback-state.json "$RUNNER_TEMP/out/discovery-wayback-state.json" 2>/dev/null || echo "{}" > "$RUNNER_TEMP/out/discovery-wayback-state.json"
           git fetch --depth 1 origin refs/heads/trunk
           git checkout -f -B "$branch" FETCH_HEAD
-          cp "$RUNNER_TEMP/out/board-directory.json" "$RUNNER_TEMP/out/discovery-verdicts.jsonl.gz" "$RUNNER_TEMP/out/discovery-summary.json" packages/career-data/
+          cp "$RUNNER_TEMP/out/board-directory.json" "$RUNNER_TEMP/out/discovery-verdicts.jsonl.gz" "$RUNNER_TEMP/out/discovery-summary.json" "$RUNNER_TEMP/out/discovery-wayback-state.json" packages/career-data/
           cp "$RUNNER_TEMP/out/boards.json" supabase/functions/career-ingest/boards.json
-          git add packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json packages/career-data/discovery-verdicts.jsonl.gz packages/career-data/discovery-summary.json
+          git add packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json packages/career-data/discovery-verdicts.jsonl.gz packages/career-data/discovery-summary.json packages/career-data/discovery-wayback-state.json
           git commit -m "board discovery run ${{ github.run_id }}: $(grep -m1 '^VERIFIED' discovery-out/run.log | cut -c1-200)"
           git push origin "HEAD:refs/heads/$branch"
           echo "::notice title=BRANCH::$branch"

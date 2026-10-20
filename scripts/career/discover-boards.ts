@@ -54,6 +54,12 @@ async function gather(deadline: number) {
     for (const x of c.candidates) if (PROVIDERS.includes(x.provider) && x.provider !== "workday") add({ provider: x.provider, slug: String(x.token), source: "wo017-candidates", company_hint: x.company_hint });
   }
   const log = (s: string) => console.log(s);
+  // WO-044: an earlier run's verdicts (its discovery branch): its live boards are candidates again, to be verified again
+  // (a board counts only from this run's own answer). Its dead ones are skipped at verify time (--resume).
+  if (sources.has("prior") && opt("--prior")) {
+    try { for (const l of await readLines(opt("--prior")!)) { const r = JSON.parse(l); if (r.verdict === "live" && PROVIDERS.includes(r.provider)) add({ provider: r.provider, slug: String(r.slug), source: "prior" }); } }
+    catch (e) { console.log(`PRIOR unreadable (${(e as Error).message})`); }
+  }
   if (sources.has("diagnose")) {
     for (const r of await robotsReport(["index.commoncrawl.org", "data.commoncrawl.org", "web.archive.org", "api.smartrecruiters.com", ...SITEMAP_HOSTS, "apply.workable.com", "acme.bamboohr.com", "nvidia.wd5.myworkdayjobs.com"]))
       console.log(`ROBOTS ${r.host} ${r.status} ${r.text}`);
@@ -67,7 +73,7 @@ async function gather(deadline: number) {
   if (sources.has("wayback")) {
     // Resumable (WO-044): an earlier run's resumption keys (packages/career-data/discovery-wayback-state.json on its
     // discovery branch) continue each query where it stopped; this run's keys are written for the next one.
-    let resume: Record<string, { key: string | null; done: boolean }> | undefined;
+    let resume: Record<string, { key: string | null; done: boolean; limit?: number }> | undefined;
     if (opt("--wb-state")) { try { resume = JSON.parse(await Deno.readTextFile(opt("--wb-state")!)); } catch { resume = undefined; } }
     const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), limit: Number(opt("--wb-limit", "5000")), filter: opt("--wb-filter", "roots") !== "none", deadline, log, resume });
     await Deno.writeTextFile(`${outDir}/wayback-state.json`, JSON.stringify(r.resume, null, 1) + "\n");

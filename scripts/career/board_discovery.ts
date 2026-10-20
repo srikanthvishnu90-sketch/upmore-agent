@@ -279,7 +279,7 @@ export function gibberishFor(provider: Provider, sample?: string): string {
   return w ? `${w.tenant}.${w.wd}/${GIBBERISH}` : `${GIBBERISH}.wd1/${GIBBERISH}`;
 }
 // Sources in the order a run spends its time on them: the ones that find real boards first, slug guesses last.
-const SOURCE_RANK: Record<string, number> = { directory: 0, "workday-robots": 1, hn: 1, ccdata: 1, commoncrawl: 1, wayback: 2, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
+const SOURCE_RANK: Record<string, number> = { directory: 0, prior: 0, "workday-robots": 1, hn: 1, ccdata: 1, commoncrawl: 1, wayback: 2, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
 export const sourceRank = (source: string) => SOURCE_RANK[String(source).split(":")[0]] ?? 5;
 
 // Every candidate gets one request, paced per platform, after its host's robots.txt is read and its provider's gibberish
@@ -686,7 +686,7 @@ export const WAYBACK_QUERIES: { provider: Provider; url: string; matchType: "pre
   { provider: "personio", url: "jobs.personio.com", matchType: "domain" },
   { provider: "workday", url: "myworkdayjobs.com", matchType: "domain" },
 ];
-export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES; limit?: number; filter?: boolean; resume?: Record<string, { key: string | null; done: boolean }> }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; resume: Record<string, { key: string | null; done: boolean }>; by_query: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> }> {
+export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES; limit?: number; filter?: boolean; resume?: Record<string, { key: string | null; done: boolean; limit?: number }> }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; resume: Record<string, { key: string | null; done: boolean; limit?: number }>; by_query: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> }> {
   const net = o.net ?? realNet, log = o.log ?? (() => {});
   const host = "web.archive.org";
   const pacer = new HostPacer({ gapMs: o.gapMs ?? 2000, now: net.now, sleep: net.sleep, maxGapMs: 60000 });
@@ -700,17 +700,17 @@ export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs
   // next one; no key means the last page). filter: only URLs that can name a board's own page (the server returns those
   // and skips the rest), so a page holds many boards instead of one board's thousands of postings.
   const path = (q: (typeof queries)[number]) => `/cdx/search/cdx?url=${encodeURIComponent(q.url)}&matchType=${q.matchType}&fl=original&collapse=urlkey` +
-    (o.filter === false ? "" : `&filter=${encodeURIComponent(`original:${waybackRootPattern(q)}`)}`) + `&limit=${o.limit ?? 20000}&showResumeKey=true`;
-  const state = new Map<string, { key: string | null; fails: number }>();
+    (o.filter === false ? "" : `&filter=${encodeURIComponent(`original:${waybackRootPattern(q)}`)}`) + `&limit=${state.get(q.url)?.limit ?? o.limit ?? 5000}&showResumeKey=true`;
+  const state = new Map<string, { key: string | null; fails: number; limit: number }>();
   for (const q of queries) {
     // Resuming (WO-044): an earlier run's key for this query continues where it stopped; a finished query starts over.
     const prior = o.resume?.[q.url];
     by[q.url] = { pages: 0, read: 0, slugs: 0, done: false, errors: 0 };
     if (!robots.allowed(path(q))) { blocked++; by[q.url].done = true; log(`WAYBACK ${q.url} blocked by robots`); continue; }
-    state.set(q.url, { key: prior && !prior.done && prior.key ? prior.key : null, fails: 0 });
+    state.set(q.url, { key: prior && !prior.done && prior.key ? prior.key : null, fails: 0, limit: prior?.limit ?? o.limit ?? 5000 });
   }
   const finished = new Set<string>(); // read to its last page (a query stopped by errors or the deadline is resumed next run)
-  const resumeOut = () => Object.fromEntries(queries.map((q) => [q.url, { key: state.get(q.url)?.key ?? null, done: finished.has(q.url) }]));
+  const resumeOut = () => Object.fromEntries(queries.map((q) => [q.url, { key: state.get(q.url)?.key ?? null, done: finished.has(q.url), limit: state.get(q.url)?.limit ?? o.limit ?? 5000 }]));
   // Round-robin: page n of every query before page n+1 of any, so a deadline thins every provider alike.
   for (let p = 0; p < (o.maxPages ?? 50); p++) {
     let any = false;
@@ -724,9 +724,10 @@ export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs
       try { r = await net.fetch(`https://${host}${path(q)}${st.key ? `&resumeKey=${encodeURIComponent(st.key)}` : ""}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(120000) }); } catch { r = null; }
       if (!r || r.status !== 200) {
         errors++; by[q.url].errors++;
+        st.limit = Math.max(250, Math.floor(st.limit / 2)); // a heavy query (mostly postings, few board pages) times out: ask for fewer per page
         if (r && (r.status === 429 || r.status === 503)) pacer.backoff(host, Number(r.headers.get("retry-after")) || null);
         await r?.body?.cancel().catch(() => {});
-        if (++st.fails >= 4) { by[q.url].done = true; log(`WAYBACK ${q.url}: stopped after ${st.fails} failed pages in a row (last http ${r?.status ?? 0})`); }
+        if (++st.fails >= 6) { by[q.url].done = true; log(`WAYBACK ${q.url}: stopped after ${st.fails} failed pages in a row (last http ${r?.status ?? 0})`); }
         continue;
       }
       st.fails = 0;

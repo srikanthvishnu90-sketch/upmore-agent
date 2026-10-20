@@ -324,11 +324,17 @@ Deno.test("WO-044/S14 the Wayback Machine: robots first, a board-page filter, pa
   const disallowed = fakeNet((url) => (isRobots(url) ? new Response("User-agent: *\nDisallow: /cdx/\n") : new Response("x")));
   const b = await waybackCandidates({ net: disallowed.net, queries: [{ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" }] });
   eq([b.blocked, disallowed.calls.length], [true, 1], "a disallowing robots.txt stops it after one request");
-  eq(r.resume, { "jobs.lever.co/": { key: "KEY1", done: true }, "teamtailor.com": { key: null, done: true } }, "both read to their last page");
+  eq(r.resume, { "jobs.lever.co/": { key: "KEY1", done: true, limit: 5000 }, "teamtailor.com": { key: null, done: true, limit: 5000 } }, "both read to their last page");
+  // A query that times out asks for half as many lines a page next time (a heavy query: mostly postings).
+  let tries = 0;
+  const slow = fakeNet((url) => (isRobots(url) ? gone() : ++tries <= 2 ? new Response("busy", { status: 503 }) : new Response("https://jobs.lever.co/eta\n")));
+  const s = await waybackCandidates({ net: slow.net, maxPages: 5, queries: [{ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" }] });
+  eq(slow.calls.filter((c) => !isRobots(c.url)).map((c) => new URL(c.url).searchParams.get("limit")), ["5000", "2500", "1250"]);
+  eq(s.candidates.map((x) => x.slug), ["eta"]);
   // Resuming: a query cut off last run continues from its key; one finished last run starts over.
   const again = fakeNet((url) => (isRobots(url) ? gone() : new Response(new URL(url).searchParams.get("resumeKey") === "K7" ? "https://jobs.lever.co/zeta\n\nK8" : "https://jobs.lever.co/acme\n")));
   const c = await waybackCandidates({ net: again.net, maxPages: 1, queries: [{ provider: "lever", url: "jobs.lever.co/", matchType: "prefix" }], resume: { "jobs.lever.co/": { key: "K7", done: false } } });
-  eq([c.candidates.map((x) => x.slug), c.resume], [["zeta"], { "jobs.lever.co/": { key: "K8", done: false } }], "continued from K7; K8 kept for the next run");
+  eq([c.candidates.map((x) => x.slug), c.resume], [["zeta"], { "jobs.lever.co/": { key: "K8", done: false, limit: 5000 } }], "continued from K7; K8 kept for the next run");
 });
 
 Deno.test("WO-044/S15 Hacker News search: comment links become candidates, paged back in time, robots first", async () => {

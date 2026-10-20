@@ -2,7 +2,7 @@
  "report": {
   "wo": "WO-042",
   "kind": "live fill, never sent",
-  "measured_at": "2026-10-20T02:17:54.046Z",
+  "measured_at": "2026-10-20T02:24:08.917Z",
   "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
   "forms": 17,
   "reachable": 17,
@@ -55,13 +55,13 @@
     "correct": 0
    }
   },
-  "aborted_requests": 113,
+  "aborted_requests": 122,
   "aborted_hosts": [
    "c.spl.greenhouse.io",
-   "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "jobs.lever.co",
-   "api2.hcaptcha.com",
    "api.hcaptcha.com",
+   "api2.hcaptcha.com",
    "hcaptcha.com",
    "platform.linkedin.com",
    "www.google-analytics.com",
@@ -80,23 +80,23 @@
    "url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
-   "ms_goto_dcl": 303,
-   "ms_goto_load": 373,
-   "ms_fill_click_to_card": 6405,
+   "ms_goto_dcl": 265,
+   "ms_goto_load": 334,
+   "ms_fill_click_to_card": 6567,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462478564,
-    "context": 1792462472270,
-    "dcl": 1792462472021,
+    "card": 1792462814006,
+    "context": 1792462807583,
+    "dcl": 1792462807334,
     "fields": 10,
-    "fill": 1792462478560,
-    "first_card": 1792462478564,
-    "nav": 1792462471730,
-    "plan": 1792462472287,
-    "prepare": 1792462472231,
-    "read": 1792462472277,
-    "script": 1792462472095,
+    "fill": 1792462814004,
+    "first_card": 1792462814006,
+    "nav": 1792462807079,
+    "plan": 1792462807599,
+    "prepare": 1792462807557,
+    "read": 1792462807589,
+    "script": 1792462807405,
     "visibility_at_prepare": "visible",
     "widgets": 2
    },
@@ -211,64 +211,119 @@
      "resume"
     ]
    },
-   "widget_probe": [
-    {
-     "name": "country",
-     "found": true,
-     "has_control": true,
-     "shown_before": "+1",
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
       },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "active_after_focus": true
+     },
+     {
+      "name": "question_9668368101",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 37,
+        "first": [
+         "Australia",
+         "Austria",
+         "Belgium",
+         "Canada",
+         "Chile",
+         "Croatia"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
+      "props": {
+       "options": 37,
+       "first": [
+        "Australia",
+        "Austria",
+        "Belgium",
+        "Canada",
+        "Chile",
+        "Croatia"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
      }
-    },
-    {
-     "name": "question_9668368101",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    }
-   ]
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   }
   },
   {
    "form": "greenhouse-eosfitness-4336050009",
@@ -276,23 +331,23 @@
    "url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
-   "ms_goto_dcl": 390,
-   "ms_goto_load": 475,
-   "ms_fill_click_to_card": 33898,
+   "ms_goto_dcl": 216,
+   "ms_goto_load": 327,
+   "ms_fill_click_to_card": 34018,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462517547,
-    "context": 1792462483852,
-    "dcl": 1792462483517,
+    "card": 1792462861079,
+    "context": 1792462827259,
+    "dcl": 1792462826927,
     "fields": 35,
-    "fill": 1792462517541,
-    "first_card": 1792462517547,
-    "nav": 1792462483133,
-    "plan": 1792462483888,
-    "prepare": 1792462483794,
-    "read": 1792462483862,
-    "script": 1792462483599,
+    "fill": 1792462861072,
+    "first_card": 1792462861079,
+    "nav": 1792462826718,
+    "plan": 1792462827305,
+    "prepare": 1792462827219,
+    "read": 1792462827279,
+    "script": 1792462827039,
     "visibility_at_prepare": "visible",
     "widgets": 15
    },
@@ -681,120 +736,153 @@
      "resume"
     ]
    },
-   "widget_probe": [
-    {
-     "name": "country",
-     "found": true,
-     "has_control": true,
-     "shown_before": "+1",
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
       },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Aalborg University",
+         "Aalto University",
+         "Aarhus University",
+         "Abertay University",
+         "Aberystwyth University",
+         "Abilene Christian University"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "toggle_button": {
+      "props": {
        "options": 0,
        "first": [],
-       "menu": false
-      }
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "degree--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 10,
+        "first": [
+         "Associate's Degree",
+         "Bachelor's Degree",
+         "Doctor of Medicine (M.D.)",
+         "Doctor of Philosophy (Ph.D.)",
+         "Engineer's Degree",
+         "High School"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 0,
+       "first": [],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
      }
-    },
-    {
-     "name": "school--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "degree--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "question_6872424009",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    }
-   ]
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   }
   },
   {
    "form": "greenhouse-spacex-8643277002",
@@ -802,23 +890,23 @@
    "url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
-   "ms_goto_dcl": 258,
-   "ms_goto_load": 338,
-   "ms_fill_click_to_card": 36897,
+   "ms_goto_dcl": 285,
+   "ms_goto_load": 354,
+   "ms_fill_click_to_card": 36927,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462563826,
-    "context": 1792462527055,
-    "dcl": 1792462526828,
+    "card": 1792462916735,
+    "context": 1792462879923,
+    "dcl": 1792462879693,
     "fields": 30,
-    "fill": 1792462563821,
-    "first_card": 1792462563826,
-    "nav": 1792462526573,
-    "plan": 1792462527077,
-    "prepare": 1792462527034,
-    "read": 1792462527062,
-    "script": 1792462526904,
+    "fill": 1792462916729,
+    "first_card": 1792462916735,
+    "nav": 1792462879419,
+    "plan": 1792462879943,
+    "prepare": 1792462879899,
+    "read": 1792462879929,
+    "script": 1792462879766,
     "visibility_at_prepare": "visible",
     "widgets": 20
    },
@@ -1161,120 +1249,153 @@
      "resume"
     ]
    },
-   "widget_probe": [
-    {
-     "name": "country",
-     "found": true,
-     "has_control": true,
-     "shown_before": "+1",
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
       },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "active_after_focus": true
+     },
+     {
+      "name": "candidate-location",
+      "hydrated": true,
+      "toggle_found": false,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "toggle_button": {
+      "props": {
+       "options": 7,
+       "first": [
+        "Chicago, Illinois, United States",
+        "North Chicago, Illinois, United States",
+        "Chicago Heights, Illinois, United States",
+        "West Chicago, Illinois, United States",
+        "Chicago Ridge, Illinois, United States",
+        "South Chicago Heights, Illinois, United States"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Acadia University",
+         "Adamson University",
+         "Adelphi University",
+         "Adirondack Community College",
+         "Admiral Farragut Academy",
+         "Adventist University of the Philippines"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
        "options": 0,
        "first": [],
-       "menu": false
-      }
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
      }
-    },
-    {
-     "name": "candidate-location",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "school--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "degree--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    }
-   ]
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   }
   },
   {
    "form": "greenhouse-andurilindustries-4802172007",
@@ -1282,23 +1403,23 @@
    "url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
-   "ms_goto_dcl": 285,
-   "ms_goto_load": 371,
-   "ms_fill_click_to_card": 33933,
+   "ms_goto_dcl": 301,
+   "ms_goto_load": 387,
+   "ms_fill_click_to_card": 34012,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462607211,
-    "context": 1792462573392,
-    "dcl": 1792462573143,
+    "card": 1792462969486,
+    "context": 1792462935604,
+    "dcl": 1792462935366,
     "fields": 32,
-    "fill": 1792462607205,
-    "first_card": 1792462607211,
-    "nav": 1792462572866,
-    "plan": 1792462573418,
-    "prepare": 1792462573365,
-    "read": 1792462573398,
-    "script": 1792462573231,
+    "fill": 1792462969481,
+    "first_card": 1792462969486,
+    "nav": 1792462935070,
+    "plan": 1792462935628,
+    "prepare": 1792462935580,
+    "read": 1792462935610,
+    "script": 1792462935450,
     "visibility_at_prepare": "visible",
     "widgets": 21
    },
@@ -1669,120 +1790,153 @@
      "resume"
     ]
    },
-   "widget_probe": [
-    {
-     "name": "country",
-     "found": true,
-     "has_control": true,
-     "shown_before": "+1",
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
       },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "active_after_focus": true
+     },
+     {
+      "name": "school--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 100,
+        "first": [
+         "Aalborg University",
+         "Aalto University",
+         "Aaniiih Nakoda College",
+         "Aarhus University",
+         "Abertay University",
+         "Aberystwyth University"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "toggle_button": {
+      "props": {
        "options": 0,
        "first": [],
-       "menu": false
-      }
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "degree--0",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 22,
+        "first": [
+         "Accelerated Master's",
+         "Advanced Certificate",
+         "Associates",
+         "Associate's Degree",
+         "Bachelors",
+         "Bachelor's Degree"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 0,
+       "first": [],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
      }
-    },
-    {
-     "name": "school--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "degree--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "discipline--0",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    }
-   ]
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   }
   },
   {
    "form": "greenhouse-wppmedia-5437567008",
@@ -1790,23 +1944,23 @@
    "url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
-   "ms_goto_dcl": 314,
-   "ms_goto_load": 426,
-   "ms_fill_click_to_card": 21821,
+   "ms_goto_dcl": 170,
+   "ms_goto_load": 313,
+   "ms_fill_click_to_card": 21835,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462638525,
-    "context": 1792462616881,
-    "dcl": 1792462616541,
+    "card": 1792463010030,
+    "context": 1792462988385,
+    "dcl": 1792462988006,
     "fields": 26,
-    "fill": 1792462638521,
-    "first_card": 1792462638525,
-    "nav": 1792462616234,
-    "plan": 1792462616906,
-    "prepare": 1792462616828,
-    "read": 1792462616890,
-    "script": 1792462616641,
+    "fill": 1792463010026,
+    "first_card": 1792463010030,
+    "nav": 1792462987845,
+    "plan": 1792462988418,
+    "prepare": 1792462988323,
+    "read": 1792462988398,
+    "script": 1792462988146,
     "visibility_at_prepare": "visible",
     "widgets": 17
    },
@@ -2101,120 +2255,152 @@
      "resume"
     ]
    },
-   "widget_probe": [
-    {
-     "name": "country",
-     "found": true,
-     "has_control": true,
-     "shown_before": "+1",
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
+   "widget_probe": {
+    "has_focus": true,
+    "visibility": "visible",
+    "fields": [
+     {
+      "name": "country",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 244,
+        "first": [
+         "United States +1",
+         "Afghanistan +93",
+         "Åland Islands +358",
+         "Albania +355",
+         "Algeria +213",
+         "American Samoa +1"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "props": {
+       "options": 244,
+       "first": [
+        "United States +1",
+        "Afghanistan +93",
+        "Åland Islands +358",
+        "Albania +355",
+        "Algeria +213",
+        "American Samoa +1"
+       ],
+       "isMulti": false,
+       "hops": 4
       },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
+      "active_after_focus": true
+     },
+     {
+      "name": "candidate-location",
+      "hydrated": true,
+      "toggle_found": false,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
       },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
+      "props": {
+       "options": 7,
+       "first": [
+        "Chicago, Illinois, United States",
+        "North Chicago, Illinois, United States",
+        "Chicago Heights, Illinois, United States",
+        "West Chicago, Illinois, United States",
+        "Chicago Ridge, Illinois, United States",
+        "South Chicago Heights, Illinois, United States"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
+     },
+     {
+      "name": "question_18820175008",
+      "hydrated": true,
+      "toggle_found": true,
+      "ways": {
+       "focus_then_type": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_control": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       },
+       "mousedown_toggle": {
+        "options": 2,
+        "first": [
+         "Yes",
+         "No"
+        ],
+        "menu": true
+       },
+       "arrowdown_on_input": {
+        "options": 0,
+        "first": [],
+        "menu": false
+       }
+      },
+      "props": {
+       "options": 2,
+       "first": [
+        "Yes",
+        "No"
+       ],
+       "isMulti": false,
+       "hops": 4
+      },
+      "active_after_focus": true
      }
-    },
-    {
-     "name": "candidate-location",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "question_18820175008",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    },
-    {
-     "name": "question_18820176008",
-     "found": true,
-     "has_control": true,
-     "shown_before": null,
-     "ways": {
-      "type_value": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "mousedown_control": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "focus_arrowdown": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      },
-      "toggle_button": {
-       "options": 0,
-       "first": [],
-       "menu": false
-      }
-     }
-    }
-   ]
+    ]
+   },
+   "widget_probe_trusted": {
+    "options": 244,
+    "first": [
+     "United States +1",
+     "Afghanistan +93",
+     "Åland Islands +358",
+     "Albania +355",
+     "Algeria +213",
+     "American Samoa +1"
+    ]
+   }
   },
   {
    "form": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
@@ -2222,23 +2408,23 @@
    "url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
-   "ms_goto_dcl": 5459,
-   "ms_goto_load": 5736,
-   "ms_fill_click_to_card": 450,
+   "ms_goto_dcl": 323,
+   "ms_goto_load": 878,
+   "ms_fill_click_to_card": 360,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462653749,
-    "context": 1792462653453,
-    "dcl": 1792462652991,
+    "card": 1792463029658,
+    "context": 1792463029371,
+    "dcl": 1792463028682,
     "fields": 18,
-    "fill": 1792462653743,
-    "first_card": 1792462653749,
-    "nav": 1792462647538,
-    "plan": 1792462653481,
-    "prepare": 1792462653428,
-    "read": 1792462653461,
-    "script": 1792462653197,
+    "fill": 1792463029652,
+    "first_card": 1792463029658,
+    "nav": 1792463028368,
+    "plan": 1792463029394,
+    "prepare": 1792463029355,
+    "read": 1792463029378,
+    "script": 1792463028889,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2447,23 +2633,23 @@
    "url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
-   "ms_goto_dcl": 1461,
-   "ms_goto_load": 2047,
-   "ms_fill_click_to_card": 421,
+   "ms_goto_dcl": 314,
+   "ms_goto_load": 550,
+   "ms_fill_click_to_card": 435,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462656418,
-    "context": 1792462656083,
-    "dcl": 1792462655369,
+    "card": 1792463030824,
+    "context": 1792463030486,
+    "dcl": 1792463030092,
     "fields": 16,
-    "fill": 1792462656410,
-    "first_card": 1792462656418,
-    "nav": 1792462653914,
-    "plan": 1792462656107,
-    "prepare": 1792462656071,
-    "read": 1792462656090,
-    "script": 1792462655512,
+    "fill": 1792463030817,
+    "first_card": 1792463030824,
+    "nav": 1792463029782,
+    "plan": 1792463030511,
+    "prepare": 1792463030462,
+    "read": 1792463030493,
+    "script": 1792463030148,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2651,23 +2837,23 @@
    "url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
-   "ms_goto_dcl": 296,
-   "ms_goto_load": 505,
-   "ms_fill_click_to_card": 338,
+   "ms_goto_dcl": 897,
+   "ms_goto_load": 1469,
+   "ms_fill_click_to_card": 319,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462657452,
-    "context": 1792462657222,
-    "dcl": 1792462656841,
+    "card": 1792463032773,
+    "context": 1792463032552,
+    "dcl": 1792463031840,
     "fields": 14,
-    "fill": 1792462657446,
-    "first_card": 1792462657452,
-    "nav": 1792462656552,
-    "plan": 1792462657246,
-    "prepare": 1792462657195,
-    "read": 1792462657229,
-    "script": 1792462657049,
+    "fill": 1792463032767,
+    "first_card": 1792463032773,
+    "nav": 1792463030950,
+    "plan": 1792463032572,
+    "prepare": 1792463032538,
+    "read": 1792463032557,
+    "script": 1792463032045,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -2835,23 +3021,23 @@
    "url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-   "ms_goto_dcl": 267,
-   "ms_goto_load": 986,
-   "ms_fill_click_to_card": 472,
+   "ms_goto_dcl": 329,
+   "ms_goto_load": 556,
+   "ms_fill_click_to_card": 509,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462659062,
-    "context": 1792462658705,
-    "dcl": 1792462657863,
+    "card": 1792463034045,
+    "context": 1792463033665,
+    "dcl": 1792463033238,
     "fields": 27,
-    "fill": 1792462659052,
-    "first_card": 1792462659062,
-    "nav": 1792462657603,
-    "plan": 1792462658733,
-    "prepare": 1792462658689,
-    "read": 1792462658714,
-    "script": 1792462658052,
+    "fill": 1792463034036,
+    "first_card": 1792463034045,
+    "nav": 1792463032916,
+    "plan": 1792463033708,
+    "prepare": 1792463033641,
+    "read": 1792463033678,
+    "script": 1792463033461,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3156,23 +3342,23 @@
    "url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
-   "ms_goto_dcl": 268,
-   "ms_goto_load": 413,
-   "ms_fill_click_to_card": 432,
+   "ms_goto_dcl": 322,
+   "ms_goto_load": 459,
+   "ms_fill_click_to_card": 430,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462660115,
-    "context": 1792462659785,
-    "dcl": 1792462659502,
+    "card": 1792463035112,
+    "context": 1792463034786,
+    "dcl": 1792463034515,
     "fields": 28,
-    "fill": 1792462660106,
-    "first_card": 1792462660115,
-    "nav": 1792462659242,
-    "plan": 1792462659819,
-    "prepare": 1792462659771,
-    "read": 1792462659793,
-    "script": 1792462659645,
+    "fill": 1792463035104,
+    "first_card": 1792463035112,
+    "nav": 1792463034200,
+    "plan": 1792463034819,
+    "prepare": 1792463034771,
+    "read": 1792463034794,
+    "script": 1792463034592,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3497,23 +3683,23 @@
    "url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
-   "ms_goto_dcl": 333,
-   "ms_goto_load": 905,
-   "ms_fill_click_to_card": 482,
+   "ms_goto_dcl": 305,
+   "ms_goto_load": 513,
+   "ms_fill_click_to_card": 515,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792462661670,
-    "context": 1792462661301,
-    "dcl": 1792462660593,
+    "card": 1792463036312,
+    "context": 1792463035941,
+    "dcl": 1792463035548,
     "fields": 28,
-    "fill": 1792462661661,
-    "first_card": 1792462661670,
-    "nav": 1792462660265,
-    "plan": 1792462661335,
-    "prepare": 1792462661287,
-    "read": 1792462661313,
-    "script": 1792462660802,
+    "fill": 1792463036302,
+    "first_card": 1792463036312,
+    "nav": 1792463035250,
+    "plan": 1792463035976,
+    "prepare": 1792463035924,
+    "read": 1792463035953,
+    "script": 1792463035751,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3818,23 +4004,23 @@
    "url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-   "ms_goto_dcl": 481,
-   "ms_goto_load": 499,
-   "ms_fill_click_to_card": 1611,
+   "ms_goto_dcl": 391,
+   "ms_goto_load": 1046,
+   "ms_fill_click_to_card": 1006,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462663957,
-    "context": 1792462662450,
-    "dcl": 1792462662318,
+    "card": 1792463038514,
+    "context": 1792463037652,
+    "dcl": 1792463036864,
     "fields": 13,
-    "fill": 1792462663952,
-    "first_card": 1792462663957,
-    "nav": 1792462661841,
-    "plan": 1792462663624,
-    "prepare": 1792462662437,
-    "read": 1792462663613,
-    "script": 1792462662334,
+    "fill": 1792463038508,
+    "first_card": 1792463038514,
+    "nav": 1792463036479,
+    "plan": 1792463038232,
+    "prepare": 1792463037637,
+    "read": 1792463038212,
+    "script": 1792463037071,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -3948,7 +4134,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "efec94e9-54fe-4f6d-b73e-6d386fb10ccb__systemfield_eeoc_gender",
+     "name": "2ecf85d3-3cdd-48d0-9aec-27b6d6d22b9e__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -3958,7 +4144,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "efec94e9-54fe-4f6d-b73e-6d386fb10ccb__systemfield_eeoc_race",
+     "name": "2ecf85d3-3cdd-48d0-9aec-27b6d6d22b9e__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -3968,7 +4154,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "efec94e9-54fe-4f6d-b73e-6d386fb10ccb__systemfield_eeoc_veteran_status",
+     "name": "2ecf85d3-3cdd-48d0-9aec-27b6d6d22b9e__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -4006,23 +4192,23 @@
    "url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-   "ms_goto_dcl": 290,
-   "ms_goto_load": 1122,
-   "ms_fill_click_to_card": 755,
+   "ms_goto_dcl": 239,
+   "ms_goto_load": 900,
+   "ms_fill_click_to_card": 734,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792462666018,
-    "context": 1792462665385,
-    "dcl": 1792462664425,
+    "card": 1792463040380,
+    "context": 1792463039719,
+    "dcl": 1792463038939,
     "fields": 13,
-    "fill": 1792462666011,
-    "first_card": 1792462666018,
-    "nav": 1792462664141,
-    "plan": 1792462665651,
-    "prepare": 1792462665370,
-    "read": 1792462665640,
-    "script": 1792462664632,
+    "fill": 1792463040375,
+    "first_card": 1792463040380,
+    "nav": 1792463038707,
+    "plan": 1792463040063,
+    "prepare": 1792463039705,
+    "read": 1792463040053,
+    "script": 1792463039145,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4179,23 +4365,23 @@
    "url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-   "ms_goto_dcl": 153,
-   "ms_goto_load": 674,
-   "ms_fill_click_to_card": 601,
+   "ms_goto_dcl": 199,
+   "ms_goto_load": 854,
+   "ms_fill_click_to_card": 612,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462667487,
-    "context": 1792462666985,
-    "dcl": 1792462666331,
+    "card": 1792463042003,
+    "context": 1792463041502,
+    "dcl": 1792463040704,
     "fields": 10,
-    "fill": 1792462667483,
-    "first_card": 1792462667487,
-    "nav": 1792462666183,
-    "plan": 1792462667251,
-    "prepare": 1792462666971,
-    "read": 1792462667240,
-    "script": 1792462666537,
+    "fill": 1792463041999,
+    "first_card": 1792463042003,
+    "nav": 1792463040514,
+    "plan": 1792463041843,
+    "prepare": 1792463041487,
+    "read": 1792463041831,
+    "script": 1792463040911,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4330,23 +4516,23 @@
    "url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-   "ms_goto_dcl": 499,
-   "ms_goto_load": 1196,
-   "ms_fill_click_to_card": 996,
+   "ms_goto_dcl": 345,
+   "ms_goto_load": 1017,
+   "ms_fill_click_to_card": 962,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462669806,
-    "context": 1792462668936,
-    "dcl": 1792462668126,
+    "card": 1792463044179,
+    "context": 1792463043334,
+    "dcl": 1792463042537,
     "fields": 11,
-    "fill": 1792462669799,
-    "first_card": 1792462669806,
-    "nav": 1792462667634,
-    "plan": 1792462669484,
-    "prepare": 1792462668921,
-    "read": 1792462669471,
-    "script": 1792462668332,
+    "fill": 1792463044174,
+    "first_card": 1792463044179,
+    "nav": 1792463042197,
+    "plan": 1792463043905,
+    "prepare": 1792463043320,
+    "read": 1792463043885,
+    "script": 1792463042743,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4440,7 +4626,7 @@
      "verdict": "correct"
     },
     {
-     "name": "d7e09d73-fcad-4965-9945-91a5a6881040_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "dcea319c-e868-4df7-aa7c-b650e26e517f_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
      "widget": null,
      "required": true,
@@ -4450,7 +4636,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "d7e09d73-fcad-4965-9945-91a5a6881040_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "dcea319c-e868-4df7-aa7c-b650e26e517f_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked ",
      "widget": null,
      "required": true,
@@ -4498,23 +4684,23 @@
    "url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
-   "ms_goto_dcl": 288,
-   "ms_goto_load": 303,
-   "ms_fill_click_to_card": 1532,
+   "ms_goto_dcl": 990,
+   "ms_goto_load": 1707,
+   "ms_fill_click_to_card": 673,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462671862,
-    "context": 1792462670417,
-    "dcl": 1792462670278,
+    "card": 1792463046744,
+    "context": 1792463046186,
+    "dcl": 1792463045334,
     "fields": 12,
-    "fill": 1792462671858,
-    "first_card": 1792462671862,
-    "nav": 1792462669995,
-    "plan": 1792462671663,
-    "prepare": 1792462670403,
-    "read": 1792462671655,
-    "script": 1792462670291,
+    "fill": 1792463046741,
+    "first_card": 1792463046744,
+    "nav": 1792463044349,
+    "plan": 1792463046452,
+    "prepare": 1792463046171,
+    "read": 1792463046442,
+    "script": 1792463045541,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4616,7 +4802,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "058c4ff0-d50d-49b8-b040-4e65a0fab72c__systemfield_eeoc_gender",
+     "name": "bc5abfa4-2a25-401b-9b2c-3b4ed082f38a__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -4626,7 +4812,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "058c4ff0-d50d-49b8-b040-4e65a0fab72c__systemfield_eeoc_race",
+     "name": "bc5abfa4-2a25-401b-9b2c-3b4ed082f38a__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -4636,7 +4822,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "058c4ff0-d50d-49b8-b040-4e65a0fab72c__systemfield_eeoc_veteran_status",
+     "name": "bc5abfa4-2a25-401b-9b2c-3b4ed082f38a__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -4673,23 +4859,23 @@
    "url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-   "ms_goto_dcl": 295,
-   "ms_goto_load": 1006,
-   "ms_fill_click_to_card": 767,
+   "ms_goto_dcl": 331,
+   "ms_goto_load": 1008,
+   "ms_fill_click_to_card": 791,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792462673849,
-    "context": 1792462673203,
-    "dcl": 1792462672365,
+    "card": 1792463048717,
+    "context": 1792463048050,
+    "dcl": 1792463047240,
     "fields": 14,
-    "fill": 1792462673842,
-    "first_card": 1792462673849,
-    "nav": 1792462672076,
-    "plan": 1792462673472,
-    "prepare": 1792462673187,
-    "read": 1792462673459,
-    "script": 1792462672571,
+    "fill": 1792463048712,
+    "first_card": 1792463048717,
+    "nav": 1792463046914,
+    "plan": 1792463048381,
+    "prepare": 1792463048036,
+    "read": 1792463048358,
+    "script": 1792463047446,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4795,7 +4981,7 @@
      "verdict": "correct"
     },
     {
-     "name": "d3b5c1fe-81ec-40b3-ab55-870aeea38a10_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "3180ec76-e5d7-413e-ad75-f7afc36edc6e_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Will you now or will you in the future require employment visa sponsorship?",
      "widget": null,
      "required": true,
@@ -4805,7 +4991,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "d3b5c1fe-81ec-40b3-ab55-870aeea38a10_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "3180ec76-e5d7-413e-ad75-f7afc36edc6e_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "This role is tied to the office location listed in the job posting. Team members are expected to wor",
      "widget": null,
      "required": true,
@@ -4872,7 +5058,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -4882,7 +5068,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -4892,7 +5078,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -4902,7 +5088,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -4912,13 +5098,63 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
    "method": "POST",
    "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.028301195505109122:17"
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
   },
   {
    "method": "POST",
@@ -4927,8 +5163,13 @@
   },
   {
    "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
+   "host": "jobs.lever.co",
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
   },
   {
    "method": "POST",
@@ -4958,6 +5199,11 @@
   {
    "method": "POST",
    "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
    "path": "/checksiteconfig"
   },
   {
@@ -5023,86 +5269,6 @@
   {
    "method": "POST",
    "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.lever.co",
-   "path": "/parseResume"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.028301195505109122:17"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.lever.co",
-   "path": "/parseResume"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "GET",
-   "host": "platform.linkedin.com",
-   "path": "/xdoor/scripts/in.js"
-  },
-  {
-   "method": "POST",
-   "host": "jobs.lever.co",
-   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
    "path": "/checksiteconfig"
   },
   {
@@ -5127,8 +5293,73 @@
   },
   {
    "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "GET",
+   "host": "platform.linkedin.com",
+   "path": "/xdoor/scripts/in.js"
+  },
+  {
+   "method": "POST",
    "host": "www.google-analytics.com",
    "path": "/j/collect"
+  },
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.7697018332696509:1792"
   },
   {
    "method": "POST",
@@ -5147,58 +5378,58 @@
   },
   {
    "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
    "host": "jobs.lever.co",
    "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
   },
   {
    "method": "POST",

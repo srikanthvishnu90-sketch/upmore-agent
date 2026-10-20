@@ -81,6 +81,7 @@ MIGRATIONS=(
   20261021050000_career_brief_digest.sql
   20261021070000_channel_parity.sql
   20261021075000_career_apply_ops.sql
+  20261021080000_career_apply_cloud.sql
   20261021090000_career_mail_erase.sql
   20261021100000_career_proactive_last_word.sql
 )
@@ -108,6 +109,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
   "exists (select 1 from pg_proc where proname = 'channel_link_nonce_redeem')"
   "exists (select 1 from pg_proc where proname = 'career_apply_gate_status')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_cloud_open')"
   "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_to_thread')"
 )

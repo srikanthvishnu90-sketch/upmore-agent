@@ -1,0 +1,341 @@
+{
+ "summary": {
+  "measured_at": "2026-10-20T00:45:31.852Z",
+  "parallel": 1,
+  "forms": 17,
+  "wall_ms": 234246,
+  "reached_final_review": 0,
+  "submitted_to_local_server": 0,
+  "median_dry_run_ms": null,
+  "median_submit_ms": null,
+  "bot_check_loaded": 17,
+  "stops": {
+   "ashby review:FIELD_DID_NOT_PERSIST": 6,
+   "greenhouse review:FIELD_DID_NOT_PERSIST": 5,
+   "lever review:needs_answers": 3,
+   "lever review:UNCONFIRMED_DEFAULT": 2,
+   "lever review:FIELD_DID_NOT_PERSIST": 1
+  }
+ },
+ "rows": [
+  {
+   "id": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1964
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 8990
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2082
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 6685
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1966
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 7640
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1974
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 8494
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1983
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 7226
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2007
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 7234
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2243
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 23486
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2226
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 23482
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 23823
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2133
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 23230
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "bot_check": [
+    "recaptcha_enterprise"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2217
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 23242
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1986
+    },
+    {
+     "reason": "needs_answers",
+     "ms": 1987
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2596
+    },
+    {
+     "reason": "UNCONFIRMED_DEFAULT",
+     "ms": 11714
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2253
+    },
+    {
+     "reason": "UNCONFIRMED_DEFAULT",
+     "ms": 11022
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1880
+    },
+    {
+     "reason": "needs_answers",
+     "ms": 1912
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1879
+    },
+    {
+     "reason": "FIELD_DID_NOT_PERSIST",
+     "ms": 8195
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  },
+  {
+   "id": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "bot_check": [
+    "hcaptcha"
+   ],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2241
+    },
+    {
+     "reason": "needs_answers",
+     "ms": 2234
+    }
+   ],
+   "dry_ms": null,
+   "submit": null
+  }
+ ]
+}

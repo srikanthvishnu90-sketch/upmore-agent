@@ -7,7 +7,9 @@ permissions:
 jobs:
   gate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
+    # cancelled it (5470fe98). Headroom, not a target: a slower gate is still a finding.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -345,6 +345,25 @@ What changed:
   location fix is proven live only. That is live run 13.
 - **Pinned:** architect test WO-042/10.
 
+### Live run 13 (VERIFIED-LIVE, CI run of 5470fe98, never sent): Greenhouse's location 2/2
+
+- **Precision 100% (195/195), coverage 96.1% (195/203)**, up from 92.1% at live run 10.
+  - Greenhouse: 93.4% (71/76), widgets 37/42. Location (City) is correct on SpaceX and WPP ("Chicago, Illinois,
+    United States"). Anduril's First Name is filled again.
+  - Lever: 96.1% (73/76).
+  - Ashby: 100% (51/51).
+- **The 8 fields still missed:**
+  - **School ×3:** the TEST persona's school is not in Greenhouse's list. That is the right outcome for this persona,
+    not a product gap.
+  - **Lever planner asks ×3:** "How did you hear about us?" and its detail; "worked on a Welocalize project?" The
+    answers are the person's to give.
+  - **Prolific "based in and can verify right to work from one of the following countries":** 1. The confirmed
+    work-authorization fact is about the US, not "based in and authorized in country X", so asking is right.
+  - **EOS certifications (multi-select "None"):** 1. No confirmed fact says the person holds none, so it is asked.
+- **So none of the 8 is a field Trainee could have filled from a confirmed fact.** Three are the TEST persona's school;
+  five are asks the standing rules require (D-007: never invent). The answer key marks them because a person would
+  answer them, and the person does, once (ask-once).
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a

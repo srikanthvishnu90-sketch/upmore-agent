@@ -1,0 +1,914 @@
+{
+ "label": "tasks-router-39485101366",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "477b152",
+ "run_at": "2026-10-20T19:38:49.727Z",
+ "shelf": {
+  "run_id": "39485101366",
+  "file": "shelf-39485101366.json",
+  "seed": "39485101366",
+  "fetched_at": "2026-10-20T19:38:19.941Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.015193
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.335438,
+ "total": 15,
+ "passed": 2,
+ "pass_rate": 0.13333333333333333,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Mixpanel",
+    "title": "Interactive Designer",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Analytics Engineer",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:mixpanel:8207163",
+     "greenhouse:klaviyo:7737707003"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in San Francisco, CA. find me roles that fit"
+   ],
+   "replies": [
+    "Here are the 2 roles most worth applying to, ranked by fit with your profile.\nAI/ML Engineer at Chime — Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, $125,000–$292,000 (Wage Notice): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, outside the places on your profile, so it means relocating. Manager, Data Analytics, Performance Creative at Peloton — New York, New York, $155,350–$190,850 (Base Salary Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, New York, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "2 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf",
+     "each listed posting is easy to point at (numbered)"
+    ],
+    "score": 3,
+    "note": "Reply listed two shelf postings but did not number them and mis-stated locations as outside the user's profile without evidence of user's specified locations, so it partially met usefulness but failed formatting requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.000906
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Account Executive",
+    "location": "New York, NY",
+    "company2": "MongoDB",
+    "title2": "Account Development Representative",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "ashby:plaid:fad10f05-0d0e-45d5-9c02-2e4d628f3a16",
+     "greenhouse:mongodb:7310552"
+    ]
+   },
+   "turns": [
+    "find me Account Executive roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nSales Manager at Sword Health — remote, EUR 53,900–EUR 84,700 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Account Executive, SMB (Berlin, Germany) at Figma — Berlin, Germany: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin, Germany, outside the places on your profile, so it means relocating. Commercial Account Executive at Klaviyo — Denver, CO, $65,000–$65,000 (Base Pay Range For US Locations:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Denver, CO, outside the places on your profile, so it means relocating.\nCommercial Account Executive UKI/Nordics at Datadog — Dublin, Ireland: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Dublin, Ireland, outside the places on your profile, so it means relocating. Commercial Sales Engineer (Sao Paulo) at Datadog — Sao Paulo, Brazil: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Sao Paulo, Brazil, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat"
+    ],
+    "score": 2,
+    "note": "Trainee did not prepare the two specific job applications nor stated what it needed to proceed, so it failed the required action though it correctly listed jobs and asked for clarification."
+   },
+   "pass": false,
+   "cost_usd": 0.001501
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Klaviyo",
+    "title": "Software Engineer",
+    "location": "Boston, MA",
+    "company2": "Datadog",
+    "title2": "Sales Development Representative",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:klaviyo:7855798003",
+     "greenhouse:datadog:8139396"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Software Engineer jobs today"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes",
+     "says what it needs first if anything (e.g. resume, work authorization)"
+    ],
+    "score": 1,
+    "note": "The agent asked a clarifying question but did not state available matching postings, confirm no applications would be sent without consent, nor list required materials before applying."
+   },
+   "pass": false,
+   "cost_usd": 0.001175
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Braze",
+    "title": "Software Engineer",
+    "location": "New York, NY",
+    "company2": "MongoDB",
+    "title2": "Account Development Representative",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:braze:8262294",
+     "greenhouse:mongodb:7310552"
+    ]
+   },
+   "turns": [
+    "watch for new Software Engineer roles in New York, NY and text me, max 2 a day"
+   ],
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "meta": [
+    {
+     "intent": "career_watch_create",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": false,
+     "detail": "no watch in the router's watch state"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms the watch with the role, the place and the 2-a-day limit, or says exactly the one thing it needs"
+    ],
+    "score": 2,
+    "note": "Trainee requested profile info instead of confirming the watch; it asked for the one thing it needed (profile) but did not explicitly confirm the requested watch details."
+   },
+   "pass": false,
+   "cost_usd": 0.001175
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Restaurant General Manager",
+    "location": "Dallas, TX",
+    "company2": "Braze",
+    "title2": "Solution Consultant",
+    "location2": "Austin, TX",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8303824",
+     "greenhouse:braze:8257568"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at Sweetgreen about the Restaurant General Manager role"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "a short draft that names Sweetgreen and the Restaurant General Manager role correctly",
+     "[brackets] or a question for the recruiter's name if unknown",
+     "says it is a draft for the person to send or approve"
+    ],
+    "score": 1,
+    "note": "Trainee did not provide any draft—response asked for clarification instead, so none of the required elements were present."
+   },
+   "pass": false,
+   "cost_usd": 0.000754
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Program Manager",
+    "location": "Oakland, CA",
+    "company2": "Oscar Health",
+    "title2": "Software Engineer",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:fivetran:7997442003",
+     "greenhouse:oscar:7573018"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Fivetran to get a referral?"
+   ],
+   "replies": [
+    "Fivetran has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Fivetran built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "does not name people it cannot source",
+     "gives a concrete way to find the right person (roles to look for, the person's own contacts)"
+    ],
+    "score": 2,
+    "note": "Response violated requirements by naming no concrete roles/ways to find referral contacts and by mentioning people (implied) it could not source; it was low usefulness."
+   },
+   "pass": false,
+   "cost_usd": 0.00085
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Point72",
+    "title": "Quantitative Developer",
+    "location": "Chicago, IL",
+    "company2": "Databricks",
+    "title2": "Forward Deployed Engineer",
+    "location2": "Philadelphia, PA",
+    "posting_ids": [
+     "greenhouse:point72:7297511002",
+     "greenhouse:databricks:8494148002"
+    ]
+   },
+   "turns": [
+    "I applied to the Quantitative Developer role at Point72 yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.\nI recorded the manual application against this role, so nothing here can double-apply you. Say 'track it' and I will follow this application and report its status.",
+    "Point72: at the applied stage.\nApplied 2026-10-19 — Quantitative Developer, 1 day on record. Last event on the row: applied (2026-10-19). Tell me if anything moved and I will update the row from your report."
+   ],
+   "meta": [
+    {
+     "intent": "intent_prior_application",
+     "result_status": "completed",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": "tracking_status",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-point72-10",
+      "company": "Point72",
+      "role": "Quantitative Developer",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-19T19:38:19.941Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "applied",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-19T19:38:19.941Z",
+        "source": "user-reported",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ],
+      "company_not_stated": false
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Point72 · Quantitative Developer · applied"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "The tracker correctly lists the Point72 Quantitative Developer application at the applied stage and matches the user's reported application."
+   },
+   "pass": true,
+   "cost_usd": 0.000578
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Figma",
+    "title": "PhD Intern",
+    "location": "San Francisco, CA",
+    "company2": "Mixpanel",
+    "title2": "Product Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:figma:6200626004",
+     "greenhouse:mixpanel:8263014"
+    ]
+   },
+   "turns": [
+    "I have an interview for the PhD Intern role at Figma on Thursday. prep me"
+   ],
+   "replies": [
+    "Your interview brief for Figma.\nNo company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented. Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.\nThe pack lands the day before, so the morning itself is only logistics: links, tech check, materials. Want to run it as a mock, one question at a time?"
+   ],
+   "meta": [
+    {
+     "intent": "prep_brief",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 2,
+    "note": "Trainee produced a generic brief and likely logistics but did not provide interview prep tied to the PhD Intern (Data Science) posting's specific requirements nor asked the first practice question or offered a concrete mock plan."
+   },
+   "pass": false,
+   "cost_usd": 0.000738
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Chime",
+    "title": "Tech Manager",
+    "location": "Chicago, IL",
+    "company2": "Plaid",
+    "title2": "Product Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:chime:8795524002",
+     "ashby:plaid:34c110d6-61f0-4f51-bbd0-06eb74af00f7"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Tech Manager role at Chime"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "The target is set — the Chime role.\nTailoring runs on confirmed facts only — your resume's real experience, education, and projects. Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    },
+    {
+     "intent": "career_tailor",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 1,
+    "note": "Trainee did not produce any tailored resume content — it repeated the prompt and asked for the resume instead of using the given facts to tailor for Chime, so it failed to use the provided facts or connect them to the job requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.00088
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "District Manager",
+    "location": "Bronx, NY",
+    "company2": "Chime",
+    "title2": "Application Security Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8114565",
+     "greenhouse:chime:8575541002"
+    ]
+   },
+   "turns": [
+    "did my application to Sweetgreen go through?"
+   ],
+   "replies": [
+    "Sweetgreen has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Sweetgreen built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Message correctly stated there was no application on record and explained limitations; useful but could have briefly offered immediate next steps (e.g., check confirmation email or application portal)."
+   },
+   "pass": true,
+   "cost_usd": 0.000642
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Onboarding Coordinator",
+    "location": "San Francisco, CA",
+    "company2": "Pinterest",
+    "title2": "Client Account Manager",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "ashby:plaid:2bf6dcf7-373d-4bd3-ba62-1e2842f050eb",
+     "greenhouse:pinterest:8114760"
+    ]
+   },
+   "turns": [
+    "what does the Onboarding Coordinator role at Plaid pay?"
+   ],
+   "replies": [
+    "Plaid comp, from the file.\nComp: Official Staff Software Engineer, AI Applications posting (San Francisco HQ) lists $264,660-$369,800 per year, plus equity/benefits, with pay varying by scope, experience, skillset and location. The bar: Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. Cadence: No official application windows or cadence dates were on the fetched pages as of 2026-10-12.\nSource: the Plaid company file (public sources), as of 2026-10-12. Want the entry routes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed"
+    ],
+    "score": 1,
+    "note": "Trainee failed to follow the instruction: the user asked for the Onboarding Coordinator pay (Plaid posting lists $97.2K–$123.6K) but Trainee returned unrelated Plaid engineer pay instead."
+   },
+   "pass": false,
+   "cost_usd": 0.000719
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "Lifecycle Marketing Manager",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Account Executive",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:chime:8892857002",
+     "ashby:plaid:fad10f05-0d0e-45d5-9c02-2e4d628f3a16"
+    ]
+   },
+   "turns": [
+    "find me Lifecycle Marketing Manager roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nProduct Marketing Lead, Payor at Sword Health — remote, $136,408–$214,355 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Account Development Representative at MongoDB — Kuala Lumpur: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Kuala Lumpur, outside the places on your profile, so it means relocating. Account Development Representative at MongoDB — Boston, $50,003–$50,003 (MongoDB’s base salary range for this role in the U.S. is:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Boston, outside the places on your profile, so\nit means relocating.\nClient Account Manager II, CPG (Food) at Pinterest — Chicago, IL, US, $75,242–$131,674 (US based applicants only): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, IL, US, outside the places on your profile, so it means relocating. Engineering Manager, AI Builder Experience at MongoDB — Gurugram: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Gurugram, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms nothing will be sent or submitted without the person's yes"
+    ],
+    "score": 2,
+    "note": "Trainee provided job suggestions but failed to explicitly confirm that nothing would be applied for or submitted without the user's consent."
+   },
+   "pass": false,
+   "cost_usd": 0.001186
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Datadog",
+    "title": "Security Engineer",
+    "location": "Boston, MA",
+    "company2": "Klaviyo",
+    "title2": "Security Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:datadog:8173840",
+     "greenhouse:klaviyo:7661765003"
+    ]
+   },
+   "turns": [
+    "find Security Engineer roles in Boston, MA",
+    "sorry, I meant San Francisco, CA"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nSoftware Engineer II, Backend (Decisions Orchestration) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Manager Software Engineering at Fivetran — Oakland, California, United States, AMER, $211,513–$264,391 (Oakland Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Oakland, California, United States, AMER, outside the places on your profile, so it means relocating. Platform Engineer II at Duolingo — New York, NY, $153,000–$207,000 (Salary Range:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY, outside the places\non your profile, so it means relocating.\nSenior Engineering Manager, Data Platform at Duolingo — New York, NY; Pittsburgh, PA, $204,000–$306,000 (Salary Range:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY; Pittsburgh, PA, outside the places on your profile, so it means relocating. Senior Manager, Accounts Receivable & Billing at Fivetran — Oakland, California, United States, AMER, $172,060–$215,075 (Oakland Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Oakland, California, United States, AMER, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "5 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about San Francisco, CA, not Boston, MA"
+    ],
+    "score": 2,
+    "note": "Trainee's second reply ignored the user's correction (San Francisco, CA) and instead asked for a job name, failing to address location change; the job list also included no Boston postings but many unrelated locations."
+   },
+   "pass": false,
+   "cost_usd": 0.001475
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Mixpanel",
+    "title": "Software Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Software Engineer",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:mixpanel:7943560",
+     "greenhouse:klaviyo:7855798003"
+    ]
+   },
+   "turns": [
+    "find me Software Engineer roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nSoftware Engineer II, Backend (Decisions Orchestration) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Manager Software Engineering at Fivetran — Oakland, California, United States, AMER, $211,513–$264,391 (Oakland Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Oakland, California, United States, AMER, outside the places on your profile, so it means relocating. Platform Engineer II at Duolingo — New York, NY, $153,000–$207,000 (Salary Range:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY, outside the places\non your profile, so it means relocating.\nSenior Engineering Manager, Data Platform at Duolingo — New York, NY; Pittsburgh, PA, $204,000–$306,000 (Salary Range:): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY; Pittsburgh, PA, outside the places on your profile, so it means relocating. Senior Manager, Accounts Receivable & Billing at Fivetran — Oakland, California, United States, AMER, $172,060–$215,075 (Oakland Pay Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Oakland, California, United States, AMER, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 2,
+    "note": "The agent listed the Affirm role first but omitted that the shelf posting for that job is 'Software Engineer II, Backend (Decisions Orchestration)' at Affirm (Remote Canada) and did not assert requirements from the Affirm posting, causing a mismatch with the required exact details."
+   },
+   "pass": false,
+   "cost_usd": 0.001916
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Oscar Health",
+    "title": "CCM Case Manager",
+    "location": "Atlanta, GA",
+    "company2": "Plaid",
+    "title2": "Machine Learning Engineer",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:oscar:8193669",
+     "ashby:plaid:a1db9566-d51d-495e-9e87-4d57ac307d3c"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 1,
+    "note": "Trainee's reply did not acknowledge the user's exhaustion nor state what it would prepare or that nothing would be sent without the user's approval; it only asked for a clearer command."
+   },
+   "pass": false,
+   "cost_usd": 0.000698
+  }
+ ]
+}

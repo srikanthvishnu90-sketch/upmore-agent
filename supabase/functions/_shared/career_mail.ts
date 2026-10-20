@@ -6,7 +6,8 @@
 
 export type MailKind = "received" | "rejection" | "interview" | "assessment" | "offer" | "recruiter_reply" | "other";
 export const STATUS_KINDS: MailKind[] = ["received", "rejection", "interview", "assessment", "offer", "recruiter_reply"];
-export interface MailMeta { from: string; subject: string; snippet: string; date: string }
+// auth: the message's Authentication-Results header values, top first (WO-032: only Gmail's own, the first, is trusted).
+export interface MailMeta { from: string; subject: string; snippet: string; date: string; auth?: string[] }
 export interface Classified { kind: MailKind; company?: string; role?: string; domain?: string; evidence: string }
 
 // ------------------------------------------------------------------------------------------------ senders
@@ -34,8 +35,10 @@ interface Sender { name: string; address: string; local: string; domain: string;
 export function parseFrom(from: string): Sender {
   const s = String(from ?? "").trim();
   const m = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(s);
-  const address = (m ? m[2] : s).trim().toLowerCase();
-  const name = (m ? m[1] : "").trim();
+  // The comment form, "no-reply@stripe.com (Stripe)": the address, and the comment as the name.
+  const c = m ? null : /^\s*([^\s<>()"]+@[^\s<>()"]+)\s*\(([^()]*)\)\s*$/.exec(s);
+  const address = (m ? m[2] : c ? c[1] : s).trim().toLowerCase();
+  const name = (m ? m[1] : c ? c[2] : "").trim();
   const at = address.lastIndexOf("@");
   const local = at > 0 ? address.slice(0, at) : address, domain = at > 0 ? address.slice(at + 1) : "";
   return { name, address, local, domain, label: registrableLabel(domain) };
@@ -295,6 +298,111 @@ export function candidates(mail: Classified, apps: TrackedApp[]): TrackedApp[] {
       (mail.company && urlSlugs(a.url).includes(collapsed(mail.company)))) &&
     !(mail.role && a.role && roleWords(mail.role).size && roleWords(a.role).size && roleOverlap(a.role, mail.role) === 0));
 }
+// WO-032: the message comes from this employer itself, or from the applicant tracking system it applies through naming
+// it; never from a personal address, a job board, an assessment vendor or any other domain ("Stripe <apply@talent-mail.io>"
+// says Stripe in its name and nothing else does). Used where a message decides something, not just tracks it, so it is
+// stricter than candidates() (architect review of WO-032):
+//   - an ATS sender only from the ATS's own registrable domain (greenhouse-mail.io, never greenhouse.xyz or greenhouse.com),
+//     never a scheduling or e-signature vendor, and naming this employer: its display name or words, or a tenant address
+//     ("jpmc@myworkday.com") that spells the employer or the application's own tenant;
+//   - the employer's own domain: the registrable domain of the employer's own site when the application link is on it
+//     ("careers.acme.co.uk" is acme.co.uk, so acme.com is not Acme's); otherwise the name exactly (no "careers"/"jobs"
+//     suffix: stripecareers.com and stripejobs.net are the scam pattern), or a listed alias, on a common corporate TLD
+//     (never "any TLD": stripe.xyz is not Stripe);
+//   - the application link counts only for its ATS path slug or Workday tenant, never the ATS host's own name.
+const NEVER_CONFIRMS = ["docusign.net", "gem.com", "goodtime.io"];
+const CONFIRMING_ATS = ATS.filter((d) => !NEVER_CONFIRMS.includes(d));
+// Hosting, form and site-builder platforms: many tenants share one domain, so a subdomain there is nobody's own site and
+// a message from there (a form's receipt) is evidence, never an employer's confirmation. Each is a public suffix here.
+const PLATFORMS = [
+  "google.com", "forms.gle", "googleusercontent.com", "typeform.com", "jotform.com", "airtable.com", "tally.so", "office.com",
+  "microsoft.com", "sharepoint.com", "notion.site", "github.io", "herokuapp.com", "vercel.app", "netlify.app", "pages.dev",
+  "webflow.io", "wixsite.com", "myshopify.com", "wufoo.com", "formstack.com", "surveymonkey.com",
+];
+// The registrable domain: the label under the public suffix ("careers.acme.co.uk" is acme.co.uk; "acme.github.io" is
+// acme.github.io, never github.io).
+function registrable(domain: string): { label: string; tld: string; full: string; platform: boolean } {
+  const parts = domain.toLowerCase().split(".").filter(Boolean);
+  const plat = PLATFORMS.find((p) => parts.join(".") === p || parts.join(".").endsWith("." + p));
+  const suffixLen = plat ? plat.split(".").length : /^(co|com|org|net|ac|gov|edu)\.[a-z]{2}$/.test(parts.slice(-2).join(".")) && parts.length >= 3 ? 2 : 1;
+  const reg = parts.slice(-(suffixLen + 1));
+  return { label: reg[0] ?? "", tld: reg.slice(1).join("."), full: reg.join("."), platform: !!plat };
+}
+// The ATS path slug (boards.greenhouse.io/stripe, or the embed form's ?for=stripe) or Workday tenant
+// (jpmc.wd5.myworkdayjobs.com) of an application link, and the employer's own site when the link is on it (not an ATS,
+// a job board or a shared platform).
+function linkOf(url?: string): { slug: string | null; site: { full: string; tld: string } | null } {
+  try {
+    const u = new URL(String(url ?? ""));
+    const host = u.hostname.toLowerCase(), first = (u.pathname.split("/").filter(Boolean)[0] ?? "").toLowerCase();
+    if (/(^|\.)myworkdayjobs\.com$/.test(host)) return { slug: host.split(".")[0], site: null };
+    if (/(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|workable\.com)$/.test(host)) {
+      const slug = first === "embed" ? (u.searchParams.get("for") ?? "").toLowerCase() : first;
+      return { slug: slug || null, site: null };
+    }
+    const r = registrable(host);
+    if (r.platform || endsWithDomain(host, [...ATS, ...JOB_BOARDS])) return { slug: null, site: null };
+    return { slug: null, site: { full: r.full, tld: r.tld } };
+  } catch { return { slug: null, site: null }; }
+}
+// The same employer, strictly: equal names, or an alias, or one name plus only words a careers address adds
+// ("Block Recruiting" is Block; "Block Party" is not).
+const CAREERS_WORDS = new Set(["careers", "career", "recruiting", "recruitment", "jobs", "talent", "hiring", "team", "hr"]);
+function sameEmployer(a: unknown, b: unknown): boolean {
+  const ta = companyTokens(DOMAIN_ALIASES[collapsed(a)] ?? a), tb = companyTokens(DOMAIN_ALIASES[collapsed(b)] ?? b);
+  if (!ta.length || !tb.length) return false;
+  if (ta.join("") === tb.join("")) return true;
+  const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  return short.every((t, i) => long[i] === t) && long.slice(short.length).every((t) => CAREERS_WORDS.has(t));
+}
+// The employer's own domain: the registrable domain of its own site when the posting names one; otherwise its exact name
+// or a listed alias, on .com only (never stripe.io, stripe.co.in or any other TLD). Never a shared platform.
+function employerDomain(domain: string, app: { company: string; url?: string }): boolean {
+  const r = registrable(domain);
+  if (!r.label || r.platform) return false;
+  const link = linkOf(app.url);
+  if (link.site) return r.full === link.site.full;
+  if (r.tld !== "com") return false;
+  const alias = DOMAIN_ALIASES[r.label];
+  return collapsed(app.company) === r.label || (!!alias && sameEmployer(app.company, alias)) || (!!link.slug && link.slug === r.label);
+}
+// The message is authenticated as coming from its sender's own domain: Gmail's own Authentication-Results (the first one,
+// authserv-id mx.google.com; a header the sender wrote lower down is never read) says dmarc=pass for that domain, or
+// dkim=pass with a signing domain (header.d, or header.i's domain) under the sender's registrable domain.
+export function authenticated(auth: string[] | undefined, domain: string): boolean {
+  const top = String(auth?.[0] ?? "").replace(/\s+/g, " ").trim();
+  if (!/^mx\.google\.com\s*;/i.test(top)) return false;
+  const reg = registrable(domain).full;
+  const ours = (d: string) => { const x = d.toLowerCase().replace(/^@/, "").split("@").pop() ?? ""; return !!x && registrable(x).full === reg; };
+  for (const part of top.split(";").slice(1).map((p) => p.trim())) {
+    const dmarc = /^dmarc=pass\b.*\bheader\.from=([^\s;]+)/i.exec(part);
+    if (dmarc && ours(dmarc[1])) return true;
+    const dkim = /^dkim=pass\b/i.test(part) ? /\bheader\.(?:d|i)=([^\s;]+)/i.exec(part) : null;
+    if (dkim && ours(dkim[1])) return true;
+  }
+  return false;
+}
+export function fromEmployer(mail: Classified, app: { company: string; url?: string }, from = "", auth?: string[]): boolean {
+  const domain = (mail.domain ?? "").toLowerCase();
+  if (!domain || endsWithDomain(domain, [...ASSESSMENT_VENDORS, ...JOB_BOARDS, ...FREE_MAIL, ...NEVER_CONFIRMS])) return false;
+  if (!authenticated(auth, domain)) return false; // a From line alone proves nothing
+  if (endsWithDomain(domain, CONFIRMING_ATS)) {
+    const link = linkOf(app.url);
+    const named = !!mail.company && sameEmployer(app.company, mail.company);
+    // The sender's own address names the employer only in the tenant form "<tenant>@<ats>" (not "no-reply@").
+    const local = parseFrom(from).local;
+    const tenant = !!local && !AUTOMATED_LOCAL.test(local) && (tenantAgrees(local, app.company) || (!!link.slug && local.replace(/[^a-z0-9]/g, "") === link.slug.replace(/[^a-z0-9]/g, "")));
+    return named || tenant;
+  }
+  return employerDomain(domain, app);
+}
+// WO-032 card warning: whether an email address is on the employer's own domain, by the same rules.
+export function onEmployerDomain(address: string, company: string, url?: string): boolean {
+  const domain = String(address ?? "").toLowerCase().split("@")[1] ?? "";
+  return !!domain && employerDomain(domain, { company, url });
+}
+export { roleOverlap };
+
 // One of them, only when it is the only one or its role is the clear best; otherwise null (a forced match would move
 // the wrong application).
 function pick(hits: TrackedApp[], said: string): TrackedApp | null {

@@ -46,6 +46,9 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
+import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
+import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "../_shared/career_apply_email.ts";
+import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_mail_gmail.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
@@ -276,6 +279,37 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
+      // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
+      // and "yes" while it is the last word sends exactly that email once from the person's Gmail. Code's, like the card.
+      const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+      const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
+      const sendToken = careerTokenFor({
+        env: Deno.env, fetch, now: Date.now,
+        connection: async (u) => {
+          const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
+          if (error) throw new Error(`read the career grant: ${error.message}`);
+          return data ?? null;
+        },
+        readVault: async (name) => {
+          const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
+          if (error) throw new Error("read the career grant's vault entry");
+          return data ? String(data) : null;
+        },
+        writeVault: async (name, secret) => {
+          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+          if (error) throw new Error("save the refreshed career grant");
+        },
+      }, CAREER_SEND_SCOPE);
+      // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
+      const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
+      const emailed = free && !which
+        ? await emailTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
+          store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
+          draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
+          canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+        } })
+        : null;
       if (draftMeter.calls) {
         const m = draftMeter;
         const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
@@ -286,7 +320,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
       const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
       const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
-      const outreachAns = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
             gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
@@ -305,6 +339,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
         const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
+      } else if (which) {
+        // A number not on the list leaves the ask waiting; anything else answered it.
+        out = { reply: which.reply, intent: which.status === "not_on_list" ? CONFIRM_INTENT : "career_apply_confirm_answer", resultStatus: which.status, contained: false, handler: "confirm" };
+      } else if (emailed) {
+        // A card waiting for its yes is this thread's last word, by its id (meta.email_card): a yes counts only for the card
+        // this reply showed. Anything else answered it, and leaves no email waiting.
+        out = { reply: emailed.reply, intent: emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
+        if (emailed.waiting && emailed.card_id) agentMeta = { email_card: emailed.card_id };
       } else if (outreachAns) {
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {

@@ -58,7 +58,7 @@ function employerScript(form) {
   function go(e) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     if (sent) return; sent = true;
-    fetch("/__employer/submit?form=${form.id}", { method: "POST", body: collect() }).then(function () {
+    fetch("/__employer/submit?form=${form.id}&path=" + encodeURIComponent(location.pathname), { method: "POST", body: collect() }).then(function () {
       var thanks = ${thanks};
       if (thanks) { location.href = thanks; return; }
       document.body.innerHTML = "<h1>Thank you for applying!</h1><p>Your application has been submitted. Application ID: TEST-12345</p>";
@@ -142,10 +142,23 @@ async function startWorld(o = {}) {
     rpcCalls: [],
     serviceKeySession: false,
   };
-  const findForm = (u) => forms.find((f) => {
+  // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
+  // of 60 is 60 postings at 60 companies, as the queue's rules (one posting once, one company per 30 days) see it.
+  const clones = new Map(); // host + lower-case path -> form
+  const findForm = (u) => clones.get(u.host + u.pathname.toLowerCase()) || forms.find((f) => {
     const s = new URL(f.source_url);
     return s.host === u.host && s.pathname.toLowerCase() === u.pathname.toLowerCase();
   });
+  function cloneUrl(id, k) {
+    const f = forms.find((x) => x.id === id);
+    const u = new URL(f.source_url), seg = u.pathname.split("/");
+    seg[1] = `${seg[1]}-b${k}`; // the tenant: another company
+    const i = seg.findIndex((x, j) => j > 1 && (/^\d+$/.test(x) || /^[0-9a-f-]{8,}$/i.test(x)));
+    seg[i] = /^\d+$/.test(seg[i]) ? seg[i] + String(k).padStart(3, "0") : seg[i].slice(0, -3) + (0xfff - k).toString(16).padStart(3, "0");
+    u.pathname = seg.join("/");
+    clones.set(u.host + u.pathname.toLowerCase(), f);
+    return u.href;
+  }
 
   const json = (res, code, body) => res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*" }).end(JSON.stringify(body));
 
@@ -196,6 +209,7 @@ async function startWorld(o = {}) {
         }
         const live = state.jobs.filter((j) => !["not_submitted", "failed"].includes(j.state));
         if (live.some((j) => j.job_id === p.job_id)) return json(res, 400, { message: "duplicate_job" });
+        if (live.some((j) => j.company === p.company && Date.now() - j.at < 30 * 86400000)) return json(res, 400, { message: "company_cooldown" });
         if (live.filter((j) => Date.now() - j.at < 86400000).length >= state.dailyLimit) return json(res, 400, { message: "daily_cap" });
         state.jobs = state.jobs.filter((j) => j.job_id !== p.job_id);
         const row = { id: crypto.randomUUID(), lease: crypto.randomUUID(), job_id: p.job_id, company: p.company, payload: p, payload_hash: h, state: "driving", at: Date.now() };
@@ -243,7 +257,7 @@ async function startWorld(o = {}) {
           if (typeof v === "string") fields[k] = fields[k] === undefined ? v : [].concat(fields[k], v);
           else files[k] = { name: v.name, size: v.size, sha256: sha(Buffer.from(await v.arrayBuffer())) };
         }
-        state.submits.push({ form: u.searchParams.get("form"), host, fields, files, at: Date.now() });
+        state.submits.push({ form: u.searchParams.get("form"), path: u.searchParams.get("path"), host, fields, files, at: Date.now() });
         return json(res, 200, { ok: true });
       }
       if (/\/thanks$/.test(u.pathname)) {
@@ -270,6 +284,7 @@ async function startWorld(o = {}) {
   const hostRules = HOSTS.map((h) => `MAP ${h} 127.0.0.1:${port}`).join(", ") + ", MAP * ~NOTFOUND";
   return {
     port, hostRules, state, forms, userId,
+    cloneUrl,
     urlOf: (id, v) => {
       const f = forms.find((x) => x.id === id);
       return f.source_url + (v ? "?trainee_test=" + v : "");

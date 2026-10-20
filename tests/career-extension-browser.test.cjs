@@ -198,35 +198,9 @@ test("auth: a sign-in link is asked for by email (no account created, no passwor
 });
 
 // ------------------------------------------------------------------------------------------------ field accuracy
-const norm = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
-const yn = (v) => (/^(yes|y|true|i agree|i accept|agree)\b/i.test(String(v).trim()) ? "yes" : /^(no|n|false|none)\b/i.test(String(v).trim()) ? "no" : null);
-// The expected value of one field from the persona (the key's rules, recorded in answer-key.json).
-function expectedValue(spec, field, isWidget) {
-  if (spec === null || spec === "any") return spec;
-  const fact = typeof spec === "string" ? spec : spec.fact;
-  if (typeof spec === "object" && "expect" in spec) return spec.expect;
-  if (fact === "resume") return RESUME.name;
-  const v = persona[fact];
-  if (v === undefined) throw Error("persona has no " + fact);
-  if (field.type === "file") return null;
-  const opts = (field.options || []).filter((o) => o.label && !/^(select|please select)/i.test(o.label));
-  if (opts.length) {
-    const exact = opts.find((o) => norm(o.label) === norm(v));
-    if (exact) return exact.label;
-    const want = yn(v);
-    const hits = want ? opts.filter((o) => yn(o.label) === want) : [];
-    if (hits.length === 1) return hits[0].label;
-    throw Error(`no expected option for ${field.name} (${fact}=${v}); give an explicit expect`);
-  }
-  if (field.type === "checkbox") return yn(v) === "yes" ? "Yes (checked)" : "No";
-  if (isWidget) return yn(v) === "yes" ? "Yes" : yn(v) === "no" ? "No" : v;
-  return v;
-}
-const same = (got, want) => {
-  const g = norm(got).replace(/^no \(left unchecked\)$/, "no"), w = norm(want);
-  return g === w || (w === "yes (checked)" && g === "yes") || (w === "no" && g === "no");
-};
-const emptyish = (v) => !v || norm(v) === "no (left unchecked)";
+// The answer key's grading, shared with the 60-in-30 benchmark (evals/apply/sixty-in-thirty.cjs).
+const { norm, same, emptyish, expectedValue: expectedFrom } = require("./fixtures/extension/grade.cjs");
+const expectedValue = (spec, field, isWidget) => expectedFrom(spec, field, isWidget, persona, RESUME.name);
 
 const results = [];
 for (const f of (KEY.forms ? Object.keys(KEY.forms) : [])) {

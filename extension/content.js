@@ -14,6 +14,15 @@
 
   let form = null, ctx = null, plan = null, jobId = null, company = "", expiresAt = null, shownAt = 0;
   let reviewed = null, busy = false, submitting = false, sent = false, refreshTimer = null;
+  // WO-042: when each step of this application happened (epoch ms), for the 60-in-30 benchmark and the panel's own
+  // "where the time went". Never part of the payload or its hash.
+  const nav = performance.getEntriesByType("navigation")[0];
+  const timing = {
+    nav: Math.round(performance.timeOrigin),
+    dcl: nav ? Math.round(performance.timeOrigin + nav.domContentLoadedEventEnd) : null,
+    script: Date.now(),
+    visibility_at_prepare: null,
+  };
   const filled = new Map(); // name -> the value as the page showed it right after Trainee filled it
   const factIds = new Map(); // name -> the confirmed fact it came from
   const edited = new Set(); // names the person changed themselves (trusted events only)
@@ -87,7 +96,9 @@
     const verification = [...new Set((D.fnCaptchaTech() || []).map((t) => t.replace(/-widget$/, "")))];
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open, identity: plan?.identity || [], blockers: block, verification });
     reviewed = { fields, payload, hash };
-    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open,
+    timing.card = Date.now();
+    timing.first_card ??= timing.card;
+    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing },
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
 
@@ -95,8 +106,11 @@
     if (busy || submitting) return { ok: false, message: "Already working on this page." };
     if (sent) return { ok: false, message: "This application was already sent from this page." };
     busy = true;
+    timing.prepare = Date.now();
+    timing.visibility_at_prepare = document.visibilityState;
     try {
       ctx = await send({ type: "context" });
+      timing.context = Date.now();
       if (!ctx?.signedIn) {
         await send({ type: "card", card: { status: "stopped", message: ctx?.message || "Sign in first.", lines: [] } });
         return { ok: false };
@@ -108,6 +122,7 @@
         return { ok: false };
       }
       form = D.readForm();
+      timing.read = Date.now();
       if (!form.schema.length) {
         await send({ type: "card", card: { status: "stopped", message: "No application form on this page yet. Open the Apply page, then press Fill again.", lines: [] } });
         return { ok: false };
@@ -116,6 +131,9 @@
       company = C.tenantOf(jobId) || location.hostname;
       expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
       plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now() });
+      timing.plan = Date.now();
+      timing.fields = form.schema.length;
+      timing.widgets = Object.values(form.bindings).filter((b) => b.widget).length;
       const resume = ctx.resume ? { name: ctx.resume.name, type: ctx.resume.type, bytes: Uint8Array.from(atob(ctx.resume.base64), (c) => c.charCodeAt(0)), sha256: ctx.resume.sha256 } : null;
       for (const p of plan.fill) {
         const b = form.bindings[p.name];
@@ -130,6 +148,7 @@
         }
       }
       // Ask once: what only the person can answer goes to Trainee, to be asked by text and saved for every later form.
+      timing.fill = Date.now();
       if (plan.needs.length && portal.family !== "workday") send({ type: "questions", jobId, company, needs: plan.needs });
       shownAt = Date.now();
       await refresh();
@@ -152,6 +171,7 @@
   // verification, and the application is recorded before the site's own Submit is clicked.
   async function submit(hash) {
     if (submitting) return;
+    const steps = { submit: Date.now() };
     if (!reviewed || reviewed.hash !== hash) return stop("The card you approved is not the one on this page. Nothing was sent.");
     submitting = true;
     const now = snapshot();
@@ -161,11 +181,13 @@
     if (D.fnDetectChallenge()) return stop(HANDOFF);
     const button = D.findSubmit();
     if (!button) return stop("I could not find the site's own Submit button. Nothing was sent.");
+    steps.checked = Date.now();
     const masked = form.schema.filter((s) => C.isIdentityField(s)).map((s) => form.bindings[s.name]?.selector).filter(Boolean);
     const unmask = D.maskFields(masked);
     await sleep(60);
     const shot = await send({ type: "screenshot" });
     unmask();
+    steps.screenshot = Date.now();
     // The last look, right before the record and the click.
     if (C.changedFields(reviewed.fields, snapshot()).length) return stop("A value changed after you reviewed it. Nothing was sent. Press Fill this application to read the form again.");
     const planned = [...filled.keys()];
@@ -174,8 +196,9 @@
       submitting = false;
       return;
     }
+    steps.begun = Date.now();
     const before = location.href;
-    await send({ type: "clicked", at: Date.now() });
+    await send({ type: "clicked", at: Date.now(), steps });
     sent = true;
     button.click();
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.

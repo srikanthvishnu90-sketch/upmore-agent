@@ -259,6 +259,7 @@ async function finish(tabId, observation, extra) {
       ? say.handoff
       : `Not confirmed: ${outcome.reason}.`,
     recorded,
+    times: { ...evidence.times, ...(p.steps ? { steps: p.steps } : {}) },
   });
   const stats = await get(L, "timing", []);
   if (outcome.state === "confirmed") await put(L, "timing", [...stats, evidence.ms_card_to_done].slice(-500));
@@ -368,6 +369,7 @@ async function handle(m, sender) {
       const p = (await pendings())[tabId];
       if (p) {
         p.clicked_at = m.at;
+        p.steps = m.steps || null;
         await setPending(tabId, p);
       }
       await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });

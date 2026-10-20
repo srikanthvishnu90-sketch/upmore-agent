@@ -31,7 +31,7 @@ real texting channel is last (D-009).
 | 043 | Mail tracking generalises (blind160) | done (PR #69, 2026-10-20) | 040 | M4 | Claude |
 | 044 | Discovery toward 50,000 boards every 6 h | building (wo/044-discovery-scale) | 037 | M2 | Claude (builder) |
 | 045 | Mail: interviews, terse replies, employer names (blind200) | done (PR #70, 2026-10-20) | 043 | M4 | Claude (builder) |
-| 046 | Mail in other languages (scored once on a sealed 240-message set: 99.4% / 89.1%) | in review | 045 | M4 | Claude (builder) |
-| 047 | Answer bank: residence by country, lists without a yes, the country among its territories | in review (PR #71) | 020 | M4 | Claude |
-| [048](WO-048-workday.md) | Workday fill in the extension (70%+ target): fixtures from public sources by a separate writer, 4 tenants sealed; the person signs in (D-013 b); every page's "Save and Continue" and the final Submit each need the person's tap | fixtures being written | 031 | M4 | Claude |
-| 049 | Essays drafted on the extension card from confirmed facts, on the person's tap, shown in full, used only on "Use this" (job-scoped) | building (wo/049-essay-card) | 030, 031 | M4 | Claude (builder) |
+| 046 | Mail in other languages (scored once on a sealed 240-message set: 99.4% / 89.1%) | done (PR #73, 2026-10-20) | 045 | M4 | Claude (builder) |
+| 047 | Answer bank: residence by country, lists without a yes, the country among its territories | done (PR #71, 2026-10-20) | 020 | M4 | Claude |
+| [048](WO-048-workday.md) | Workday fill in the extension (70%+ target): fixtures from public sources by a separate writer, 4 tenants sealed; the person signs in (D-013 b); every page's "Save and Continue" and the final Submit each need the person's tap | building (wo/048-workday); 2 dev tenants, 4 sealed | 031 | M4 | Claude |
+| 049 | Essays drafted on the extension card from confirmed facts, on the person's tap, shown in full, used only on "Use this" (job-scoped) | done (PR #72, 2026-10-20); deploy is the owner's | 030, 031 | M4 | Claude (builder) |

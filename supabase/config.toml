@@ -42,3 +42,8 @@ verify_jwt = false
 # WO-049: the extension card's "Draft from my facts": the signed-in person's own session only.
 [functions.career-essay-draft]
 verify_jwt = true
+
+# WO-097: other agents act for the person with a token the person minted (not a Supabase JWT); the handler hashes it and
+# every database door checks it.
+[functions.trainee-agent-api]
+verify_jwt = false

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trainee — Assisted Apply</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Trainee — Assisted Apply</h1>
+  <p id="bank-line" class="muted">Checking this page…</p>
+  <p id="coverage-line" class="coverage"></p>
+  <div id="needs-block" hidden>
+    <p class="muted">These need you (highlighted on the page, never guessed):</p>
+    <ul id="needs-list"></ul>
+  </div>
+  <button id="fill-btn" disabled>Fill from my bank</button>
+  <p id="fill-result" class="muted"></p>
+  <div id="proof-block" hidden>
+    <hr>
+    <p id="proof-line"></p>
+  </div>
+  <p class="muted small">You review everything and click Submit yourself. Trainee never submits, never solves a captcha, and never checks an attestation box for you.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

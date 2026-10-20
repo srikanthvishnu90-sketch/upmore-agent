@@ -59,6 +59,14 @@ known.
 The live-form key (`answer-key.json`, corrections) was corrected in four entries for the same reason (WPP Media and
 Snowflake in London; OpenAI's office in San Francisco).
 
+## Also here: two of sealed-wd3's misses (WO-048 round 3; that set is spent, not re-scored)
+- "What is your notice period with your current employer?" was read as the current employer (and asked): now the
+  stated notice period ("2 weeks" on a list that has it).
+- "In which U.S. state do you currently reside?" had no rule: now the person's state, on the employer's list.
+Neither wording is in samples A or B: their 2,217 fills are unchanged. The other three misses (a field of study in a
+category tree, "Corporate Website" in a prompt tree, "Are you currently employed?" on its radio) answer correctly in the
+planner on their own; they are lost in Workday's widgets and need the page to reproduce.
+
 ## Not done (blunt)
 - Sample D (100 more postings, seed 4, no employer from A, B or C, locations captured) is sealed for the next measure:
   coverage and an independent review whose reviewers are told each posting's location.

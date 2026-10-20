@@ -6,6 +6,7 @@
 // authorized, no sponsorship, onsite yes, relocation no).
 import { planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { postingCountry, postingPlaces } from "../../supabase/functions/_shared/posting_place.ts";
+import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { PERSONA } from "../../evals/apply/fill-coverage.ts";
 
 function eq(a: unknown, b: unknown, m = "") {
@@ -54,4 +55,12 @@ Deno.test("WO-053/3 an office question naming no place: the person's yes only fo
   // The question's own place still decides first.
   eq(fill("Are you able to work in person at our Chicago, IL office?", "San Francisco, CA"), "Yes");
   eq(fill("Are you willing to be onsite 3 days per week in Detroit?", "Chicago, IL"), "ASKED");
+});
+
+Deno.test("WO-053/4 two of sealed-wd3's misses (WO-048 round 3; that set is spent): the person's own state and notice period", () => {
+  // "...notice period with your current employer?" read as the current employer (asked); the stated notice period answers it.
+  eq(fill("What is your notice period with your current employer?", "Chicago, IL", ["Immediately available", "1 week", "2 weeks", "1 month", "More than 1 month"]), "2 weeks");
+  eq(fill("In which U.S. state do you currently reside?", "Chicago, IL", ["Alabama", "California", "Illinois", "New York"]), "Illinois");
+  // The employer is still the employer.
+  eq(mapQuestion({ label: "Current employer", type: "input_text", options: [] }).fact, "current_employer");
 });

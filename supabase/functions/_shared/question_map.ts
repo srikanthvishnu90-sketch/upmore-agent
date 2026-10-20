@@ -94,7 +94,7 @@ const RULES: Rule[] = [
   ["unknown", /\bcity\b.*\b(zip|postal|country)\b|\b(zip|postal)\b.*\bcity\b/],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
   ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/, (q, t) => !/\bstate\b/.test(t)],
-  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
+  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which (u\.?s\.? )?state\b|\bwhich (u\.?s\.? )?state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
   ["timezone", /\btime ?zone are you\b|\bwhat time ?zone\b|\btime zone you are located\b|\bwhich time zone\b/],
   ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/, (q, t) => !/\b(employer|company|organi[sz]ation|team|office|headquarters?|client|manager|referr\w*)\b/.test(t)],
   // WO-047: "Do you currently reside in the U.S.?" (no word edge after "U.S.") and "Are you based in the U.S.? We are only
@@ -118,7 +118,7 @@ const RULES: Rule[] = [
   ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/, (q, t) => !/\b(and|&)\s*(company|employer)\b|\b(company|employer)\b/.test(t)],
   ["unknown", /\bmay we contact your current employer\b/],
   ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
-  ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project/.test(t)],
+  ["current_employer", /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/, (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b/.test(t)],
   ["employment_status", /\bare you (currently )?employed\b|\bcurrent employment status\b/, (q, t) => !/\bemployed (by|with|at|in)\b|layoff|recall/.test(t)],
   ["years_experience", /\b(total|relevant)( professional)? years? of experience\b|\bhow many years of (relevant|professional|relevant professional) experience\b|\byears of experience do you have in a related field\b|\bexperience level do you have for this position\b|\bcombien d'années d'expérience\b|\btotal year of experience\b/],
 

@@ -1016,7 +1016,7 @@
     ],
     [
       "state",
-      /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/,
+      /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which (u\.?s\.? )?state\b|\bwhich (u\.?s\.? )?state\b|\bpermanent work location\b/,
       (q, t) => !/\bcity\b/.test(t)
     ],
     [
@@ -1091,7 +1091,7 @@
     [
       "current_employer",
       /\bcurrent (or most recent |\/ ?last )?(company|employer|organi[sz]ation)\b|\bmost recent employer\b|\bcurrent ?\/ ?(last|most recent) (company|employer)\b|\bwhere (are you currently|have you most recently|were you last) (employed|worked)\b|\bwho is your current or previous employer\b|^employer name\b|\bwhere have you most recently worked\b/,
-      (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project/.test(t)
+      (q, t) => !/second|end date|discharged|related|relative|accenture|working on a project|\bnotice\b/.test(t)
     ],
     [
       "employment_status",

@@ -1,0 +1,2887 @@
+{
+ "synthetic": true,
+ "written_at": "2026-10-20",
+ "note": "Sealed synthetic blind set of 240 job-search inbox messages (multilingual, with hard look-alikes) for one-time scoring of an email classifier.",
+ "mails": [
+  {
+   "id": "C001",
+   "split": "blind240",
+   "from": "\"Visa\" <noreply@smartrecruiters.com>",
+   "subject": "Thank you for your application to Visa",
+   "snippet": "Hi Chris, thank you for applying for the Senior Product Manager, Tap to Pay position. We've received your application and will review it carefully.",
+   "date": "2026-10-05T02:49:26Z",
+   "expect": {
+    "kind": "received",
+    "company": "Visa"
+   }
+  },
+  {
+   "id": "C002",
+   "split": "blind240",
+   "from": "\"AVA Capitol Hill Leasing\" <leasing@avalonbay.com>",
+   "subject": "Rental application received - AVA Capitol Hill",
+   "snippet": "Thank you for applying for apartment 512 at AVA Capitol Hill. Your application and screening fee have been received. Approval usually takes 2-3 business days.",
+   "date": "2026-08-07T04:38:16Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C003",
+   "split": "blind240",
+   "from": "\"Daniel Okafor\" <daniel.okafor@microsoft.com>",
+   "subject": "Microsoft Interview Loop - Software Engineer II (Round 2)",
+   "snippet": "When: Monday, September 21, 2026 9:00 AM-9:45 AM (UTC-08:00) Pacific Time. Where: Microsoft Teams Meeting. Interview with Daniel Okafor, Azure Storage team.",
+   "date": "2026-09-15T17:02:24Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Microsoft"
+   }
+  },
+  {
+   "id": "C004",
+   "split": "blind240",
+   "from": "\"Workday\" <pfizer@myworkday.com>",
+   "subject": "Pfizer: Application Received - R1427783 Clinical Data Manager",
+   "snippet": "Thank you for your interest in Pfizer. This email confirms we have received your application for Clinical Data Manager (Req ID R1427783).",
+   "date": "2026-10-12T08:19:40Z",
+   "expect": {
+    "kind": "received",
+    "company": "Pfizer"
+   }
+  },
+  {
+   "id": "C005",
+   "split": "blind240",
+   "from": "\"Hannah Gold\" <hannah@lattice.com>",
+   "subject": "Lattice - design exercise",
+   "snippet": "Hi Alex, attached is the design exercise brief for the Product Designer role. Please take up to a week and send your Figma file to me when it's done.",
+   "date": "2026-09-25T09:21:06Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Lattice"
+   }
+  },
+  {
+   "id": "C006",
+   "split": "blind240",
+   "from": "\"Departamento de RRHH\" <rrhh.empleo.remoto@gmail.com>",
+   "subject": "¡Felicidades! Has sido seleccionado",
+   "snippet": "Has sido seleccionado para el puesto de asistente virtual (1.800 €/mes). Para activar tu contrato debes abonar 150 € en tarjetas regalo de Google Play y enviarnos los códigos.",
+   "date": "2026-08-04T14:21:42Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C007",
+   "split": "blind240",
+   "from": "\"Notion Hiring\" <no-reply@ashbyhq.com>",
+   "subject": "Thanks for applying to Notion",
+   "snippet": "We've received your application for Product Designer, Mobile. Our team reviews every application and will reach out if there's a fit.",
+   "date": "2026-09-14T15:13:13Z",
+   "expect": {
+    "kind": "received",
+    "company": "Notion"
+   }
+  },
+  {
+   "id": "C008",
+   "split": "blind240",
+   "from": "\"Natalie Brooks\" <nbrooks@adobe.com>",
+   "subject": "Re: Salary expectations",
+   "snippet": "Hi Sam, thanks for applying to the Product Marketing role at Adobe. Could you send me your salary expectations and earliest start date when you get a chance?",
+   "date": "2026-09-07T01:02:15Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Adobe"
+   }
+  },
+  {
+   "id": "C009",
+   "split": "blind240",
+   "from": "\"HR Department\" <hiring.dept.remote@outlook.com>",
+   "subject": "Congratulations! Job Offer - Remote Data Entry Clerk",
+   "snippet": "You have been selected for the Remote Data Entry position ($35/hr). To receive your work laptop, purchase $500 in Apple gift cards and send the codes to our vendor.",
+   "date": "2026-08-06T00:21:48Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C010",
+   "split": "blind240",
+   "from": "\"Nexity Location\" <location@nexity.fr>",
+   "subject": "Votre dossier de location",
+   "snippet": "Madame, nous avons bien reçu votre dossier de candidature pour l'appartement T2 situé 14 rue Oberkampf. Il sera étudié par le propriétaire sous 72h.",
+   "date": "2026-09-10T22:52:44Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C011",
+   "split": "blind240",
+   "from": "\"Luxottica Careers\" <noreply@successfactors.eu>",
+   "subject": "Conferma ricezione candidatura",
+   "snippet": "Gentile Giulia, grazie per aver inviato la tua candidatura per la posizione di Buyer Junior presso Luxottica. La tua candidatura è stata ricevuta correttamente.",
+   "date": "2026-10-12T19:14:10Z",
+   "expect": {
+    "kind": "received",
+    "company": "Luxottica"
+   }
+  },
+  {
+   "id": "C012",
+   "split": "blind240",
+   "from": "\"Workday\" <medtronic@myworkday.com>",
+   "subject": "Medtronic - Your offer is ready",
+   "snippet": "Congratulations! Your offer for Quality Engineer II at Medtronic is ready to review. Log in to your candidate home to view and accept your offer by October 2.",
+   "date": "2026-09-25T15:41:06Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Medtronic"
+   }
+  },
+  {
+   "id": "C013",
+   "split": "blind240",
+   "from": "\"Patagonia Careers\" <careers@patagonia.com>",
+   "subject": "We received your application",
+   "snippet": "Thanks for your interest in working at Patagonia. We received your application for Retail Sales Associate - Boulder and will contact you if selected for next steps.",
+   "date": "2026-08-15T08:55:15Z",
+   "expect": {
+    "kind": "received",
+    "company": "Patagonia"
+   }
+  },
+  {
+   "id": "C014",
+   "split": "blind240",
+   "from": "\"Stripe Recruiting\" <no-reply@greenhouse.io>",
+   "subject": "Thank you for applying to Stripe",
+   "snippet": "Hi Jordan, Thanks for applying to Stripe! Your application for Backend Engineer, Payments has been received and our team will review it shortly.",
+   "date": "2026-10-15T04:06:31Z",
+   "expect": {
+    "kind": "received",
+    "company": "Stripe"
+   }
+  },
+  {
+   "id": "C015",
+   "split": "blind240",
+   "from": "\"Google Kalender\" <calendar-notification@google.com>",
+   "subject": "Einladung: Interview Delivery Hero - Senior Backend Engineer @ Di. 29. Sept. 2026 11:00 - 12:00 (MESZ)",
+   "snippet": "Jonas Richter hat Sie zu folgendem Termin eingeladen. Organisator: jonas.richter@deliveryhero.com. Mit Google Meet teilnehmen.",
+   "date": "2026-09-22T09:38:25Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Delivery Hero"
+   }
+  },
+  {
+   "id": "C016",
+   "split": "blind240",
+   "from": "\"Sophie Tran\" <sophie.tran@asana.com>",
+   "subject": "Invitation: Video interview with Asana - Product Marketing Manager @ Fri Aug 21, 2026 11am - 11:45am (PDT)",
+   "snippet": "Sophie Tran has invited you to a video interview with Asana for Product Marketing Manager. Organizer: sophie.tran@asana.com. Join Zoom Meeting.",
+   "date": "2026-08-17T14:19:12Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Asana"
+   }
+  },
+  {
+   "id": "C017",
+   "split": "blind240",
+   "from": "\"InfoJobs\" <alertas@infojobs.net>",
+   "subject": "Nuevas ofertas de empleo que encajan contigo",
+   "snippet": "Tenemos 12 ofertas nuevas para 'Analista de datos' en Madrid: Accenture, Telefónica, Glovo... Inscríbete antes de que se cierren.",
+   "date": "2026-09-03T12:45:34Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C018",
+   "split": "blind240",
+   "from": "\"Recrutamento Sonae\" <recrutamento@sonae.pt>",
+   "subject": "Candidatura - Técnico de Marketing",
+   "snippet": "Cara Inês, agradecemos o interesse demonstrado. Informamos que, nesta fase, a sua candidatura não foi selecionada para prosseguir no processo de recrutamento.",
+   "date": "2026-08-05T11:22:52Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Sonae"
+   }
+  },
+  {
+   "id": "C019",
+   "split": "blind240",
+   "from": "\"Epidemic Sound\" <no-reply@teamtailor.com>",
+   "subject": "About your application to Epidemic Sound",
+   "snippet": "Hi Oscar, thanks for applying for Music Licensing Manager. We've now reviewed all applications and unfortunately we won't be taking yours further.",
+   "date": "2026-08-20T20:06:09Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Epidemic Sound"
+   }
+  },
+  {
+   "id": "C020",
+   "split": "blind240",
+   "from": "\"Studenti Online - Università di Bologna\" <noreply@unibo.it>",
+   "subject": "Esito valutazione domanda di ammissione",
+   "snippet": "Gentile candidata, è stato pubblicato l'esito della valutazione della sua domanda di ammissione alla Laurea Magistrale in Economics. Acceda a Studenti Online.",
+   "date": "2026-08-09T17:07:43Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C021",
+   "split": "blind240",
+   "from": "\"Codility\" <no-reply@codility.com>",
+   "subject": "Coding test from Adyen",
+   "snippet": "Hello, Adyen invites you to complete a programming test. Time limit: 120 min. You can start at any time before 25 September 2026, 23:59 CEST.",
+   "date": "2026-09-18T09:06:38Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Adyen"
+   }
+  },
+  {
+   "id": "C022",
+   "split": "blind240",
+   "from": "\"Priya Shah | Hays\" <priya.shah@hays.com>",
+   "subject": "Feedback from Arup",
+   "snippet": "Hi Tom, I've just heard back from Arup on the Senior Structural Engineer role - unfortunately they've decided not to take your application forward. Call me re other roles.",
+   "date": "2026-09-14T10:53:56Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Arup"
+   }
+  },
+  {
+   "id": "C023",
+   "split": "blind240",
+   "from": "\"Dana White\" <dwhite@lululemon.com>",
+   "subject": "Re: Store Manager application",
+   "snippet": "Hi Morgan! Thanks for your patience. Our district manager is out this week, so things at lululemon are a bit delayed. I'll reach out once she's back.",
+   "date": "2026-10-03T05:40:10Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "lululemon"
+   }
+  },
+  {
+   "id": "C024",
+   "split": "blind240",
+   "from": "\"Kara Lindqvist\" <klindqvist@deloitte.com>",
+   "subject": "Updated: Final Round Interview - Deloitte Consulting",
+   "snippet": "The meeting time has been updated. When: Thursday, October 8, 2026 2:00 PM-4:00 PM (UTC-05:00) Eastern Time. Final round case interviews with two Managers.",
+   "date": "2026-10-02T16:49:24Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Deloitte"
+   }
+  },
+  {
+   "id": "C025",
+   "split": "blind240",
+   "from": "\"Priya Shah\" <priya.shah88@gmail.com>",
+   "subject": "Accepted: Mock interview (system design) @ Thu Sep 10, 2026 8pm - 9pm (EDT)",
+   "snippet": "Priya Shah has accepted this invitation. Organizer: jordan.patel@gmail.com. Description: practice run before my real interviews, you play interviewer please!",
+   "date": "2026-09-06T09:54:47Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C026",
+   "split": "blind240",
+   "from": "\"Laura Kim\" <laura.kim@toasttab.com>",
+   "subject": "RE: Following up on my application",
+   "snippet": "Hi Morgan, apologies for the slow reply - we've had a lot of interest in this role at Toast. The team is still reviewing and I expect an update by end of next week.",
+   "date": "2026-09-07T17:27:25Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Toast"
+   }
+  },
+  {
+   "id": "C027",
+   "split": "blind240",
+   "from": "\"Emily Chen\" <emily.chen@airtable.com>",
+   "subject": "Airtable - next steps",
+   "snippet": "Hi Jordan! The team loved your application and we'd like to set up a 45-min interview with the hiring manager, Ben. Are you free Thu or Fri afternoon this week?",
+   "date": "2026-10-12T19:22:46Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Airtable"
+   }
+  },
+  {
+   "id": "C028",
+   "split": "blind240",
+   "from": "\"Aiden Murphy\" <aiden.murphy@fivetran.com>",
+   "subject": "Re: Additional writing samples",
+   "snippet": "Hi Chris, thanks for the follow-up and the extra writing samples. I'll pass them along to the Fivetran content team. Have a good weekend!",
+   "date": "2026-08-05T09:06:55Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Fivetran"
+   }
+  },
+  {
+   "id": "C029",
+   "split": "blind240",
+   "from": "\"Selezione Intesa Sanpaolo\" <noreply@intesasanpaolo.com>",
+   "subject": "Invito a completare il test online",
+   "snippet": "Gentile Sara, nell'ambito del processo di selezione per il ruolo di Data Analyst ti invitiamo a completare un test online di ragionamento logico entro 5 giorni.",
+   "date": "2026-09-13T18:25:14Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Intesa Sanpaolo"
+   }
+  },
+  {
+   "id": "C030",
+   "split": "blind240",
+   "from": "\"Siemens Healthineers\" <noreply@successfactors.eu>",
+   "subject": "Your application has been submitted: Service Engineer (Job ID 412873)",
+   "snippet": "Dear Applicant, thank you for your application for the position Service Engineer at Siemens Healthineers. We confirm receipt and will review your documents carefully.",
+   "date": "2026-09-18T01:55:11Z",
+   "expect": {
+    "kind": "received",
+    "company": "Siemens Healthineers"
+   }
+  },
+  {
+   "id": "C031",
+   "split": "blind240",
+   "from": "\"Criteria Corp\" <noreply@criteriacorp.com>",
+   "subject": "Assessment Invitation: Enterprise Mobility",
+   "snippet": "Enterprise Mobility has requested that you complete the CCAT and an Emotional Intelligence test as part of your application for Management Trainee.",
+   "date": "2026-09-05T11:47:41Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Enterprise Mobility"
+   }
+  },
+  {
+   "id": "C032",
+   "split": "blind240",
+   "from": "\"Graduate Admissions - Northwestern\" <gradadmissions@northwestern.edu>",
+   "subject": "Your admission decision is available",
+   "snippet": "Dear Applicant, a decision has been posted to your application for the MS in Analytics. Please log in to the applicant portal to view your decision letter.",
+   "date": "2026-10-01T09:51:04Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C033",
+   "split": "blind240",
+   "from": "\"Retool\" <no-reply@ashbyhq.com>",
+   "subject": "Retool - Offer Letter",
+   "snippet": "Hi Sam, Congratulations! Your offer letter for Software Engineer, Workflows at Retool is ready. Please review and sign via the secure link below.",
+   "date": "2026-09-16T04:55:19Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Retool"
+   }
+  },
+  {
+   "id": "C034",
+   "split": "blind240",
+   "from": "\"Stephanie Wright\" <swright@cvshealth.com>",
+   "subject": "Re: Pharmacist application",
+   "snippet": "Hi Taylor, thank you for reaching out. I see your CVS application in our system. Can you confirm which store locations you're open to? There are openings in Tempe and Mesa.",
+   "date": "2026-09-12T04:51:07Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "CVS Health"
+   }
+  },
+  {
+   "id": "C035",
+   "split": "blind240",
+   "from": "\"Chewy Talent Acquisition\" <talent@chewy.com>",
+   "subject": "Reminder: Interview tomorrow at 11:00 AM",
+   "snippet": "Hi Taylor, just a reminder that your interview for Pharmacy Operations Supervisor at Chewy is tomorrow at 11:00 AM ET with Monique Harris. Teams link below.",
+   "date": "2026-09-13T04:06:44Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Chewy"
+   }
+  },
+  {
+   "id": "C036",
+   "split": "blind240",
+   "from": "\"Mollie\" <no-reply@recruitee.com>",
+   "subject": "Mollie | We received your application",
+   "snippet": "Thanks for applying for Senior Frontend Engineer at Mollie! We've received your application and our recruitment team will review it within 10 working days.",
+   "date": "2026-10-17T06:17:33Z",
+   "expect": {
+    "kind": "received",
+    "company": "Mollie"
+   }
+  },
+  {
+   "id": "C037",
+   "split": "blind240",
+   "from": "\"Trusted Traveler Programs\" <noreply@cbp.dhs.gov>",
+   "subject": "Your Global Entry application status has changed",
+   "snippet": "Your Global Entry application has been conditionally approved. Please log in to schedule your interview at an enrollment center.",
+   "date": "2026-09-15T07:28:36Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C038",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Final Interview - Head of Growth (Monzo) @ Mon Oct 12, 2026 4pm - 5pm (BST)",
+   "snippet": "Oliver Hart has invited you. Organizer: oliver.hart@monzo.com. Final interview for Head of Growth with Monzo's CPO. Join with Google Meet.",
+   "date": "2026-10-06T10:56:31Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Monzo"
+   }
+  },
+  {
+   "id": "C039",
+   "split": "blind240",
+   "from": "\"Workday\" <amgen@myworkday.com>",
+   "subject": "Update regarding your application - Senior Associate Scientist",
+   "snippet": "Thank you for applying to Amgen. We have carefully reviewed your qualifications and have decided to pursue other candidates whose experience more closely matches.",
+   "date": "2026-08-27T16:59:25Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Amgen"
+   }
+  },
+  {
+   "id": "C040",
+   "split": "blind240",
+   "from": "\"Rachel Kim\" <rachel.kim@snowflake.com>",
+   "subject": "RE: Snowflake onsite follow-up",
+   "snippet": "Hi Chris, thank you again for interviewing with us. Unfortunately the team has decided not to extend an offer at this time. Happy to share brief feedback if helpful.",
+   "date": "2026-10-17T10:32:06Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Snowflake"
+   }
+  },
+  {
+   "id": "C041",
+   "split": "blind240",
+   "from": "\"JPMorgan Chase & Co.\" <jpmc@taleo.net>",
+   "subject": "Your Application for Software Engineer III",
+   "snippet": "After careful consideration we have decided not to move forward with your application at this time. We encourage you to continue to explore opportunities at JPMorganChase.",
+   "date": "2026-09-19T03:22:18Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "JPMorgan Chase"
+   }
+  },
+  {
+   "id": "C042",
+   "split": "blind240",
+   "from": "\"SoFi\" <noreply@sofi.com>",
+   "subject": "We've received your loan application",
+   "snippet": "Thanks, Alex! We've received your personal loan application and we're reviewing it now. Most decisions are made within one business day.",
+   "date": "2026-08-13T17:20:18Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C043",
+   "split": "blind240",
+   "from": "\"CaixaBank\" <notificaciones@caixabank.com>",
+   "subject": "Tu solicitud de préstamo ha sido aprobada",
+   "snippet": "Hola Lucía, te informamos de que tu solicitud de préstamo personal ha sido aprobada. Puedes firmar el contrato desde la app CaixaBankNow.",
+   "date": "2026-10-05T10:49:41Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C044",
+   "split": "blind240",
+   "from": "\"Allianz Recruiting\" <noreply@successfactors.eu>",
+   "subject": "Online-Test zu Ihrer Bewerbung",
+   "snippet": "Sehr geehrte Frau Neumann, im nächsten Schritt bitten wir Sie, den Online-Test (Zahlenreihen und Logik, ca. 40 Min.) bis zum 18.09. zu absolvieren.",
+   "date": "2026-09-10T15:04:49Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Allianz"
+   }
+  },
+  {
+   "id": "C045",
+   "split": "blind240",
+   "from": "\"Discover\" <discover@service.discover.com>",
+   "subject": "Your application decision",
+   "snippet": "Good news, Jordan! Your Discover it Cash Back card application has been approved. Your card will arrive in 7-10 business days.",
+   "date": "2026-10-17T22:10:52Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C046",
+   "split": "blind240",
+   "from": "\"Benjamin Ford\" <bford@lilly.com>",
+   "subject": "Interview: Associate Director, Market Access - Eli Lilly",
+   "snippet": "Benjamin Ford has invited you to a Teams interview on Wednesday, September 9, 2026, 10:30-11:30 AM EDT with the Market Access leadership team.",
+   "date": "2026-09-02T16:29:07Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Eli Lilly"
+   }
+  },
+  {
+   "id": "C047",
+   "split": "blind240",
+   "from": "\"Amanda Ruiz | TEKsystems\" <aruiz@teksystems.com>",
+   "subject": "Offer from Northrop Grumman - Network Engineer contract",
+   "snippet": "Hi Devon! Northrop Grumman extended you an offer: 12-month contract, $72/hr W2, start Oct 26. Let me know if you'd like to accept and I'll send the paperwork.",
+   "date": "2026-10-09T08:39:24Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Northrop Grumman"
+   }
+  },
+  {
+   "id": "C048",
+   "split": "blind240",
+   "from": "\"Yuki Tanaka\" <yuki.tanaka@rakuten.com>",
+   "subject": "Interview confirmation - Oct 13, 15:00 JST",
+   "snippet": "Dear Ms. Patel, This is to confirm your second interview for the Data Scientist position at Rakuten on October 13 at 15:00 JST via Microsoft Teams. Kind regards",
+   "date": "2026-10-08T21:40:39Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Rakuten"
+   }
+  },
+  {
+   "id": "C049",
+   "split": "blind240",
+   "from": "\"Kelly Nguyen\" <kelly.nguyen@expediagroup.com>",
+   "subject": "Re: Application question",
+   "snippet": "Hi Jamie, yes - you can apply to up to 3 roles at once and we'll review them together. No need to resubmit your resume. Thanks for your interest in Expedia!",
+   "date": "2026-10-17T11:02:37Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Expedia"
+   }
+  },
+  {
+   "id": "C050",
+   "split": "blind240",
+   "from": "\"Capgemini Recrutement\" <noreply@capgemini.com>",
+   "subject": "Votre candidature chez Capgemini",
+   "snippet": "Bonjour Thomas, merci pour l'intérêt porté à Capgemini. Après étude attentive, nous sommes au regret de ne pas pouvoir donner une suite favorable à votre candidature.",
+   "date": "2026-09-05T14:45:55Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Capgemini"
+   }
+  },
+  {
+   "id": "C051",
+   "split": "blind240",
+   "from": "\"Nicolas Lefèvre\" <nicolas.lefevre@socgen.com>",
+   "subject": "Mise à jour : Entretien RH - Société Générale",
+   "snippet": "L'heure de la réunion a été modifiée. Quand : mardi 6 octobre 2026 11:00-11:45. Où : Microsoft Teams. Entretien RH pour le poste d'Analyste Crédit.",
+   "date": "2026-10-01T16:57:02Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Société Générale"
+   }
+  },
+  {
+   "id": "C052",
+   "split": "blind240",
+   "from": "\"GetYourGuide\" <noreply@personio.de>",
+   "subject": "Your application at GetYourGuide",
+   "snippet": "Dear Marco, we regret to tell you that we cannot consider your application for the position Product Analyst any further. Thank you for your interest.",
+   "date": "2026-10-09T08:04:59Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "GetYourGuide"
+   }
+  },
+  {
+   "id": "C053",
+   "split": "blind240",
+   "from": "\"Josh Bell\" <josh.bell@mongodb.com>",
+   "subject": "Re: referral - Ana Ruiz",
+   "snippet": "Hi Jordan, Ana mentioned you applied for the Developer Advocate role at MongoDB. Thanks for applying! I'm the recruiter on that req and will take a look this week.",
+   "date": "2026-08-30T09:45:57Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "MongoDB"
+   }
+  },
+  {
+   "id": "C054",
+   "split": "blind240",
+   "from": "\"Jess Monroe\" <jess.monroe@gitlab.com>",
+   "subject": "Re: Application - Senior Support Engineer",
+   "snippet": "Hi Jordan, thanks for following up! Your application is with the hiring manager now. I don't have an update yet but will let you know as soon as I hear back.",
+   "date": "2026-09-24T10:08:56Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "GitLab"
+   }
+  },
+  {
+   "id": "C055",
+   "split": "blind240",
+   "from": "\"Julie Martin\" <julie.martin@decathlon.com>",
+   "subject": "Invitation à un entretien - Chef de projet digital",
+   "snippet": "Bonjour Antoine, suite à votre candidature, nous souhaiterions vous rencontrer lors d'un entretien le jeudi 24 septembre à 14h à Villeneuve-d'Ascq. Merci de confirmer.",
+   "date": "2026-09-16T19:28:06Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Decathlon"
+   }
+  },
+  {
+   "id": "C056",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitación: Entrevista técnica - Globant @ jue 17 sept 2026 15:00 - 16:00 (ART)",
+   "snippet": "Sofía Benítez te invitó a Entrevista técnica - Globant. Organizador: sofia.benitez@globant.com. Unirse con Google Meet.",
+   "date": "2026-09-11T08:09:44Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Globant"
+   }
+  },
+  {
+   "id": "C057",
+   "split": "blind240",
+   "from": "\"Recrutement Ubisoft\" <noreply@smartrecruiters.com>",
+   "subject": "Ubisoft - Test technique à réaliser",
+   "snippet": "Bonjour Maxime, dans le cadre de votre candidature au poste de Développeur Gameplay C++, nous vous invitons à réaliser un test technique en ligne (2h). Lien valable 7 jours.",
+   "date": "2026-10-04T18:25:57Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Ubisoft"
+   }
+  },
+  {
+   "id": "C058",
+   "split": "blind240",
+   "from": "\"CodeSignal\" <noreply@codesignal.com>",
+   "subject": "Capital One has invited you to a General Coding Assessment",
+   "snippet": "You've been invited by Capital One to complete a General Coding Assessment for the Associate Software Engineer role. The link expires on Sep 18, 2026.",
+   "date": "2026-09-11T07:54:12Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Capital One"
+   }
+  },
+  {
+   "id": "C059",
+   "split": "blind240",
+   "from": "\"Lockheed Martin Careers\" <lmcareers@taleo.net>",
+   "subject": "Lockheed Martin - Application Confirmation",
+   "snippet": "We have received your submission for Requisition 712244BR, Systems Engineer Asc. Please do not reply to this message.",
+   "date": "2026-08-21T15:27:20Z",
+   "expect": {
+    "kind": "received",
+    "company": "Lockheed Martin"
+   }
+  },
+  {
+   "id": "C060",
+   "split": "blind240",
+   "from": "\"Claire Dubois\" <claire.dubois@backmarket.com>",
+   "subject": "Re: Entretien Product Manager - Back Market",
+   "snippet": "Bonjour Léa, merci encore pour nos échanges. Malheureusement, nous avons choisi de poursuivre avec un autre profil pour ce poste. Je te souhaite plein de réussite.",
+   "date": "2026-08-10T05:17:39Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Back Market"
+   }
+  },
+  {
+   "id": "C061",
+   "split": "blind240",
+   "from": "\"Grace Okoye\" <grace_okoye@mckinsey.com>",
+   "subject": "Re: Application - Business Analyst",
+   "snippet": "Dear Jordan, thank you for your email. I've received your updated transcript and attached it to your McKinsey application. Best, Grace",
+   "date": "2026-09-09T23:35:56Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "McKinsey & Company"
+   }
+  },
+  {
+   "id": "C062",
+   "split": "blind240",
+   "from": "\"Ben Carter | Aerotek\" <bcarter@aerotek.com>",
+   "subject": "Re: Warehouse Supervisor at Sysco",
+   "snippet": "Hi Taylor, got your resume for the Sysco supervisor job, thanks! Quick q - do you have forklift certification and are you OK with 2nd shift?",
+   "date": "2026-09-26T21:03:44Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Sysco"
+   }
+  },
+  {
+   "id": "C063",
+   "split": "blind240",
+   "from": "\"ModernLoop\" <no-reply@modernloop.io>",
+   "subject": "Interview scheduled: Rippling - Product Manager, Payroll",
+   "snippet": "Hi Alex, your interview with Rippling has been scheduled for Thu, Sep 24 at 11:00 AM PDT (45 min) with Nikhil Rao. Zoom link inside.",
+   "date": "2026-09-18T09:51:30Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Rippling"
+   }
+  },
+  {
+   "id": "C064",
+   "split": "blind240",
+   "from": "\"Unilever\" <noreply@successfactors.com>",
+   "subject": "Your application with Unilever",
+   "snippet": "Thank you for your interest in the Unilever Future Leaders Programme. After reviewing your results, we will not be progressing your application further.",
+   "date": "2026-09-26T08:55:04Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Unilever"
+   }
+  },
+  {
+   "id": "C065",
+   "split": "blind240",
+   "from": "\"Kaiser Permanente\" <kp@taleo.net>",
+   "subject": "Kaiser Permanente Application Status - Req 1288431",
+   "snippet": "Thank you for applying for Medical Assistant (Req 1288431). We wanted to let you know that this position has been filled by another candidate.",
+   "date": "2026-09-26T15:22:04Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Kaiser Permanente"
+   }
+  },
+  {
+   "id": "C066",
+   "split": "blind240",
+   "from": "\"Laura Schulz\" <laura.schulz@celonis.com>",
+   "subject": "Case Study - Value Engineer",
+   "snippet": "Hallo Felix, anbei erhältst du die Case Study für die Position Value Engineer. Bitte schick uns deine Lösung (max. 10 Folien) bis Freitag, 12 Uhr.",
+   "date": "2026-10-05T19:48:24Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Celonis"
+   }
+  },
+  {
+   "id": "C067",
+   "split": "blind240",
+   "from": "\"The Hiring Team at Robinhood\" <no-reply@greenhouse.io>",
+   "subject": "Thank you from Robinhood",
+   "snippet": "Hi Jamie, Thank you for applying to the Product Manager, Crypto role. We've reviewed your application and unfortunately we're not able to move forward.",
+   "date": "2026-08-21T22:29:38Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Robinhood"
+   }
+  },
+  {
+   "id": "C068",
+   "split": "blind240",
+   "from": "\"Chase\" <no-reply@alertsp.chase.com>",
+   "subject": "Update on your credit card application",
+   "snippet": "We're unable to approve your application for the Chase Sapphire Preferred card at this time. You'll receive a letter explaining the reasons within 30 days.",
+   "date": "2026-09-28T21:32:27Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C069",
+   "split": "blind240",
+   "from": "\"Amazon Recruitment Team\" <amazon.careers.offer@gmail.com>",
+   "subject": "Offer of Employment - Package Handler (Remote)",
+   "snippet": "Congratulations, you are hired! Before onboarding, a refundable $250 training deposit is required in Bitcoin to the wallet below. Reply with your transaction ID.",
+   "date": "2026-09-18T19:39:43Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C070",
+   "split": "blind240",
+   "from": "\"Megan\" <megan.r.lopez@gmail.com>",
+   "subject": "CONGRATS!!!",
+   "snippet": "omg just saw your post, congrats on the new job!!! so proud of you. drinks on me next week to celebrate, you deserve it",
+   "date": "2026-08-20T17:47:15Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C071",
+   "split": "blind240",
+   "from": "\"Brittany Hall\" <bhall@lpl.com>",
+   "subject": "Excel skills test - Financial Analyst",
+   "snippet": "Hi Jamie, please complete the attached Excel modeling test for the LPL Financial Analyst role and return it within 48 hours. It should take ~2 hours.",
+   "date": "2026-10-08T01:14:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "LPL Financial"
+   }
+  },
+  {
+   "id": "C072",
+   "split": "blind240",
+   "from": "\"Katrin Wolf\" <katrin.wolf@trivago.com>",
+   "subject": "AW: Rückfrage zu meiner Bewerbung",
+   "snippet": "Hallo Tim, danke für deine Nachricht. Deine Bewerbung bei trivago liegt aktuell beim Fachbereich. Sobald ich Feedback habe, melde ich mich bei dir. Viele Grüße, Katrin",
+   "date": "2026-09-27T08:32:33Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "trivago"
+   }
+  },
+  {
+   "id": "C073",
+   "split": "blind240",
+   "from": "\"SHL Assessments\" <noreply@shl.com>",
+   "subject": "PwC: Online Assessments - Action Required",
+   "snippet": "Dear Candidate, As part of your application to PwC, you are invited to complete the following online assessments: Numerical Reasoning, Verbal Reasoning. Deadline: 72h.",
+   "date": "2026-08-18T01:18:51Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "PwC"
+   }
+  },
+  {
+   "id": "C074",
+   "split": "blind240",
+   "from": "\"Pós-Graduação FEA-USP\" <posgrad@usp.br>",
+   "subject": "Resultado do processo seletivo - Mestrado",
+   "snippet": "Prezada candidata, informamos que o resultado final do processo seletivo para o Mestrado em Economia foi publicado. Você foi aprovada em 3º lugar.",
+   "date": "2026-10-11T14:03:27Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C075",
+   "split": "blind240",
+   "from": "\"N26 Talent Team\" <noreply@personio.de>",
+   "subject": "Eingangsbestätigung Ihrer Bewerbung",
+   "snippet": "Sehr geehrte Frau Weber, vielen Dank für Ihre Bewerbung als Compliance Analyst (m/w/d) bei N26. Hiermit bestätigen wir den Eingang Ihrer Unterlagen.",
+   "date": "2026-08-12T01:20:23Z",
+   "expect": {
+    "kind": "received",
+    "company": "N26"
+   }
+  },
+  {
+   "id": "C076",
+   "split": "blind240",
+   "from": "\"Maya Hollis\" <maya@buildersandbrews.fm>",
+   "subject": "Interview request - Builders & Brews podcast",
+   "snippet": "Hi Alex, I loved your talk at Config. Would you be open to joining us as a guest on Builders & Brews? We record 45-minute interviews over Zoom, any week in October.",
+   "date": "2026-10-13T20:03:22Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C077",
+   "split": "blind240",
+   "from": "\"TestGorilla\" <no-reply@testgorilla.com>",
+   "subject": "Juniper Lane Interiors invited you to take an assessment",
+   "snippet": "Hi Riley, Juniper Lane Interiors has invited you to complete an assessment for Design Coordinator. It takes about 45 minutes. Good luck!",
+   "date": "2026-09-15T00:59:39Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Juniper Lane Interiors"
+   }
+  },
+  {
+   "id": "C078",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Dental cleaning - Bright Smiles @ Thu Sep 17, 2026 8am - 9am (PDT)",
+   "snippet": "Bright Smiles Dental has invited you to Dental cleaning. Organizer: appointments@brightsmilesdental.com. Please arrive 10 minutes early.",
+   "date": "2026-09-03T13:16:34Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C079",
+   "split": "blind240",
+   "from": "\"Peloton\" <notification@jobvite.com>",
+   "subject": "Peloton | Application Update",
+   "snippet": "Hi Jamie, we appreciate your interest in the Member Support Lead role. After reviewing your application, we have decided not to move forward with your candidacy.",
+   "date": "2026-10-09T07:30:51Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Peloton"
+   }
+  },
+  {
+   "id": "C080",
+   "split": "blind240",
+   "from": "\"Camila Rocha\" <camila.rocha@stone.com.br>",
+   "subject": "Proposta de trabalho - Stone",
+   "snippet": "Oi Lucas! É com muita alegria que te enviamos a proposta para a vaga de Analista de Dados Pleno na Stone. Segue em anexo a carta proposta com salário e benefícios.",
+   "date": "2026-08-11T17:02:38Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Stone"
+   }
+  },
+  {
+   "id": "C081",
+   "split": "blind240",
+   "from": "\"Hearth & Hound Veterinary\" <notifications@app.bamboohr.com>",
+   "subject": "Thanks for applying!",
+   "snippet": "Hi Taylor, thanks for applying for the Client Care Coordinator position at Hearth & Hound Veterinary. We've got your info and will be in touch soon.",
+   "date": "2026-08-07T01:19:06Z",
+   "expect": {
+    "kind": "received",
+    "company": "Hearth & Hound Veterinary"
+   }
+  },
+  {
+   "id": "C082",
+   "split": "blind240",
+   "from": "\"Ramp\" <no-reply@ashbyhq.com>",
+   "subject": "Application received: Software Engineer, Frontend",
+   "snippet": "Hi Alex, thanks for applying to Ramp! This is a quick note to confirm we've received your application for Software Engineer, Frontend.",
+   "date": "2026-08-20T18:27:02Z",
+   "expect": {
+    "kind": "received",
+    "company": "Ramp"
+   }
+  },
+  {
+   "id": "C083",
+   "split": "blind240",
+   "from": "\"Sophie Bernard\" <sophie.bernard@qonto.com>",
+   "subject": "Re: Ma candidature - Business Developer",
+   "snippet": "Bonjour Julien, merci pour ton message ! J'ai bien vu ta candidature chez Qonto, je la transmets au manager cette semaine. Je reviens vers toi dès que j'ai un retour.",
+   "date": "2026-09-19T07:02:41Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Qonto"
+   }
+  },
+  {
+   "id": "C084",
+   "split": "blind240",
+   "from": "\"Olivia Grant\" <ogrant@hubspot.com>",
+   "subject": "Following up - HubSpot Customer Success role",
+   "snippet": "Hi Morgan, thanks for chatting with me Tuesday. After discussing with the hiring team, we've decided to move ahead with candidates who have more SaaS renewals experience.",
+   "date": "2026-08-05T18:56:48Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "HubSpot"
+   }
+  },
+  {
+   "id": "C085",
+   "split": "blind240",
+   "from": "\"Canva\" <no-reply@hire.lever.co>",
+   "subject": "Thanks for applying to Canva!",
+   "snippet": "Hi Priya, thanks so much for applying for the Content Designer role at Canva. Your application is in, and our team will take a look over the coming weeks.",
+   "date": "2026-09-24T00:54:47Z",
+   "expect": {
+    "kind": "received",
+    "company": "Canva"
+   }
+  },
+  {
+   "id": "C086",
+   "split": "blind240",
+   "from": "\"Ulta Beauty\" <notification@jobvite.com>",
+   "subject": "Application received - Salon Coordinator",
+   "snippet": "Thank you for applying for the Salon Coordinator position at Ulta Beauty, Store 0412. Your application has been successfully submitted.",
+   "date": "2026-10-01T03:36:54Z",
+   "expect": {
+    "kind": "received",
+    "company": "Ulta Beauty"
+   }
+  },
+  {
+   "id": "C087",
+   "split": "blind240",
+   "from": "\"Mariana Costa\" <mariana.costa@ifood.com.br>",
+   "subject": "Convite para entrevista - iFood",
+   "snippet": "Oi Pedro, tudo bem? Gostaríamos de agendar uma entrevista com a gestora da área para a vaga de Product Manager no iFood. Você tem disponibilidade quinta às 14h?",
+   "date": "2026-10-15T10:00:26Z",
+   "expect": {
+    "kind": "interview",
+    "company": "iFood"
+   }
+  },
+  {
+   "id": "C088",
+   "split": "blind240",
+   "from": "\"Megan Cho\" <megan.cho@figma.com>",
+   "subject": "Re: Product Designer - next steps",
+   "snippet": "Hi Alex, thanks so much for the time you spent with the team last week. I'm sorry to share that we've decided to move forward with another candidate.",
+   "date": "2026-08-21T00:40:53Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Figma"
+   }
+  },
+  {
+   "id": "C089",
+   "split": "blind240",
+   "from": "\"Recruitment Office\" <recruitment.office.jobs@gmail.com>",
+   "subject": "Your Employment Offer Letter - Administrative Assistant",
+   "snippet": "We will mail you a check for $2,950. Deposit it, keep your $300 first-week pay, and send the balance by Zelle to our equipment supplier immediately.",
+   "date": "2026-10-08T20:00:03Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C090",
+   "split": "blind240",
+   "from": "\"Aetna\" <noreply@aetna.com>",
+   "subject": "Update on your claim",
+   "snippet": "We've completed our review of claim #A26-88412 for services on 07/30/2026. The claim was denied: service not covered under your plan. See your EOB for details.",
+   "date": "2026-08-10T06:04:00Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C091",
+   "split": "blind240",
+   "from": "\"Shopify\" <no-reply@greenhouse.io>",
+   "subject": "Update on your Shopify application",
+   "snippet": "Thanks for taking the time to apply. Unfortunately, we won't be moving forward with your candidacy for Senior Developer, Checkout at this time.",
+   "date": "2026-09-09T12:23:16Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Shopify"
+   }
+  },
+  {
+   "id": "C092",
+   "split": "blind240",
+   "from": "\"pymetrics\" <noreply@pymetrics.com>",
+   "subject": "Kraft Heinz has invited you to play pymetrics games",
+   "snippet": "As part of your application to the Kraft Heinz Sales Associate program, please complete the pymetrics behavioral assessment (about 25 minutes).",
+   "date": "2026-09-20T17:19:33Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Kraft Heinz"
+   }
+  },
+  {
+   "id": "C093",
+   "split": "blind240",
+   "from": "\"Reclutamiento Grupo Bimbo\" <reclutamiento@grupobimbo.com>",
+   "subject": "Proceso de selección - Analista de Compras",
+   "snippet": "Estimada Fernanda: Agradecemos tu participación en el proceso de selección. Te informamos que la vacante ha sido cubierta. Conservaremos tus datos.",
+   "date": "2026-08-14T10:51:18Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Grupo Bimbo"
+   }
+  },
+  {
+   "id": "C094",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Intro call: Jordan <> Brex Recruiting @ Mon Aug 10, 2026 11am - 11:30am (PDT)",
+   "snippet": "Hannah Lee has invited you. Organizer: hannah.lee@brex.com. 30-min recruiter screen for Senior Software Engineer. Join with Google Meet.",
+   "date": "2026-08-05T18:35:24Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Brex"
+   }
+  },
+  {
+   "id": "C095",
+   "split": "blind240",
+   "from": "\"RH Danone\" <recrutement@danone.com>",
+   "subject": "Proposition d'embauche - Danone",
+   "snippet": "Bonjour Chloé, nous avons le plaisir de vous adresser notre proposition d'embauche en CDI pour le poste de Responsable Qualité. Vous trouverez la lettre en pièce jointe.",
+   "date": "2026-10-05T05:11:56Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Danone"
+   }
+  },
+  {
+   "id": "C096",
+   "split": "blind240",
+   "from": "\"Carlos Mendes\" <carlos@hubstaff.com>",
+   "subject": "Re: Question about the role",
+   "snippet": "Hey Alex, good question - the role is fully remote but we need 4 hours overlap with US Eastern. Salary band is $110-130k. Let me know if you have other questions.",
+   "date": "2026-10-10T04:03:48Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Hubstaff"
+   }
+  },
+  {
+   "id": "C097",
+   "split": "blind240",
+   "from": "\"WBM Vermietung\" <vermietung@wbm.de>",
+   "subject": "Einladung zur Wohnungsbesichtigung",
+   "snippet": "Sehr geehrte Frau Weber, wir laden Sie zur Besichtigung der Wohnung in der Schönhauser Allee 82 am Donnerstag, 17.09., um 16:30 Uhr ein. Bitte bringen Sie Ihre SCHUFA-Auskunft mit.",
+   "date": "2026-09-11T20:21:44Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C098",
+   "split": "blind240",
+   "from": "\"Recruitment Team - Infosys\" <careers@infosys.com>",
+   "subject": "Acknowledgement of your Application",
+   "snippet": "Dear Candidate, We acknowledge the receipt of your application for the role of Technology Analyst. Kindly note your Application ID is INF/26/88412 for further reference.",
+   "date": "2026-09-11T11:06:16Z",
+   "expect": {
+    "kind": "received",
+    "company": "Infosys"
+   }
+  },
+  {
+   "id": "C099",
+   "split": "blind240",
+   "from": "\"Dan Pereira\" <dan@harborlogistics.com>",
+   "subject": "Re: Dispatcher role",
+   "snippet": "Hi Taylor, we ended up filling the dispatcher spot internally, so we won't be moving ahead with you. Appreciate you coming in. Sent from my iPhone",
+   "date": "2026-10-16T23:48:29Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Harbor Logistics"
+   }
+  },
+  {
+   "id": "C100",
+   "split": "blind240",
+   "from": "\"Recruitment Team - TCS\" <careers@tcs.com>",
+   "subject": "Interview Call Letter - TCS Digital",
+   "snippet": "Dear Candidate, Congratulations! You are shortlisted for Technical Interview on 03-Sep-2026 at 10:30 AM IST. Kindly carry your ID proof and updated resume.",
+   "date": "2026-08-29T15:43:43Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Tata Consultancy Services"
+   }
+  },
+  {
+   "id": "C101",
+   "split": "blind240",
+   "from": "\"Hiring Team at Canonical\" <no-reply@greenhouse.io>",
+   "subject": "Canonical: Invitation to interview",
+   "snippet": "Hi Lina, thank you for your application. We're pleased to invite you to an early-stage interview with a member of the Canonical engineering team. Please book a slot.",
+   "date": "2026-08-02T12:51:21Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Canonical"
+   }
+  },
+  {
+   "id": "C102",
+   "split": "blind240",
+   "from": "\"Talent Acquisition - Wipro\" <talentacquisition@wipro.com>",
+   "subject": "Status of your candidature",
+   "snippet": "Dear Candidate, We thank you for your interest in Wipro. We regret to inform that your profile has not been shortlisted for the further rounds of Project Engineer role.",
+   "date": "2026-08-09T19:10:04Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Wipro"
+   }
+  },
+  {
+   "id": "C103",
+   "split": "blind240",
+   "from": "\"Bluebird Dental Group\" <notifications@app.bamboohr.com>",
+   "subject": "Offer letter - Dental Hygienist",
+   "snippet": "Hi Morgan, please review and e-sign the attached offer letter for the Dental Hygienist position at Bluebird Dental Group. We can't wait to have you on the team!",
+   "date": "2026-10-13T07:14:29Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Bluebird Dental Group"
+   }
+  },
+  {
+   "id": "C104",
+   "split": "blind240",
+   "from": "\"Mark de Vries\" <mark.devries@picnic.app>",
+   "subject": "Antw: Vraag over vacature",
+   "snippet": "Hoi Sem, goede vraag! De functie bij Picnic is in Amsterdam, met 2 dagen thuiswerken per week. Laat gerust weten als je nog meer vragen hebt.",
+   "date": "2026-09-16T01:03:21Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Picnic"
+   }
+  },
+  {
+   "id": "C105",
+   "split": "blind240",
+   "from": "\"Rachel Adams\" <rachel.adams@squarespace.com>",
+   "subject": "Offer Letter - Squarespace",
+   "snippet": "Hi Jordan, I'm thrilled to share your offer to join Squarespace as Senior Software Engineer! Your offer letter is attached; please review and sign by Sept 25.",
+   "date": "2026-09-18T16:49:59Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Squarespace"
+   }
+  },
+  {
+   "id": "C106",
+   "split": "blind240",
+   "from": "\"Nadia Pierce\" <nadia.pierce@thinkific.com>",
+   "subject": "Writing assignment - Content Marketing Manager",
+   "snippet": "Hi Taylor, next step is a short writing assignment: a 600-word blog post on the topic in the attached doc. Please send it to me by Monday.",
+   "date": "2026-10-05T21:29:51Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Thinkific"
+   }
+  },
+  {
+   "id": "C107",
+   "split": "blind240",
+   "from": "\"Oscar Lind\" <oscar@sanity.io>",
+   "subject": "Sanity - take-home assignment",
+   "snippet": "Hi Sam, next step is a short take-home: build a small content preview app. Spec attached; please send it back within 5 days. Aim for ~3 hrs.",
+   "date": "2026-10-01T12:20:26Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Sanity"
+   }
+  },
+  {
+   "id": "C108",
+   "split": "blind240",
+   "from": "\"Accenture Careers\" <accenture@myworkday.com>",
+   "subject": "Accenture - Application Status Update",
+   "snippet": "Thank you for your interest in Accenture. We regret to inform you that you have not been selected to proceed further in the recruitment process for this role.",
+   "date": "2026-09-15T04:45:37Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Accenture"
+   }
+  },
+  {
+   "id": "C109",
+   "split": "blind240",
+   "from": "\"Boston University Admissions\" <admissions@bu.edu>",
+   "subject": "Congratulations! Offer of admission",
+   "snippet": "Congratulations! On behalf of the admissions committee, I am pleased to offer you admission to the Questrom School of Business MBA Class of 2028.",
+   "date": "2026-08-06T17:03:41Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C110",
+   "split": "blind240",
+   "from": "\"Workday\" <walmart@myworkday.com>",
+   "subject": "Walmart: Please complete your assessment",
+   "snippet": "Thank you for applying to Walmart. To continue, please complete the required Supply Chain Assessment (approx. 30 min) in your candidate home within 3 days.",
+   "date": "2026-08-16T17:24:47Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Walmart"
+   }
+  },
+  {
+   "id": "C111",
+   "split": "blind240",
+   "from": "\"Evaluaciones Repsol\" <no-reply@hirevue.com>",
+   "subject": "Repsol: completa tu entrevista en vídeo diferida",
+   "snippet": "Hola Andrea, como siguiente paso del proceso de selección te invitamos a realizar una entrevista en vídeo grabada (sin entrevistador). Tienes 5 días para completarla.",
+   "date": "2026-08-27T16:35:38Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Repsol"
+   }
+  },
+  {
+   "id": "C112",
+   "split": "blind240",
+   "from": "\"pete\" <pete@grainline.co>",
+   "subject": "re: ops role",
+   "snippet": "thanks for the note! still sorting through apps for the grainline ops role, we're a tiny team so it's slow. will get back to you either way",
+   "date": "2026-08-03T07:14:41Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Grainline"
+   }
+  },
+  {
+   "id": "C113",
+   "split": "blind240",
+   "from": "\"Chipotle Careers\" <chipotle@talent.icims.com>",
+   "subject": "Position Filled: Kitchen Manager",
+   "snippet": "Thank you for your interest in the Kitchen Manager position at Chipotle #2291. This position has now been filled. We encourage you to apply for future openings.",
+   "date": "2026-10-15T13:17:11Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Chipotle"
+   }
+  },
+  {
+   "id": "C114",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Maya's 30th - dinner at Lilia @ Sat Oct 3, 2026 7:30pm - 10pm (EDT)",
+   "snippet": "Maya Lopez has invited you. Organizer: maya.r.lopez@gmail.com. Reservation for 10, birthday dinner, bring your appetite. Going? Yes - Maybe - No",
+   "date": "2026-09-12T19:59:31Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C115",
+   "split": "blind240",
+   "from": "\"SAP Talent Attraction\" <noreply@successfactors.eu>",
+   "subject": "Absage: Ihre Bewerbung als Werkstudent Data Science",
+   "snippet": "Liebe Frau Krüger, vielen Dank für Ihr Interesse an SAP. Leider müssen wir Ihnen mitteilen, dass wir Ihre Bewerbung nicht weiter berücksichtigen können.",
+   "date": "2026-08-19T14:51:29Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "SAP"
+   }
+  },
+  {
+   "id": "C116",
+   "split": "blind240",
+   "from": "\"Raj Malhotra\" <rmalhotra@tesla.com>",
+   "subject": "Invitation: Onsite Interview (Day 1) - Tesla Fremont @ Thu Oct 15, 2026 9am - 3pm (PDT)",
+   "snippet": "Raj Malhotra has invited you to Onsite Interview (Day 1). Where: Tesla Fremont Factory, 45500 Fremont Blvd, Lobby B. Organizer: rmalhotra@tesla.com",
+   "date": "2026-10-07T16:10:45Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Tesla"
+   }
+  },
+  {
+   "id": "C117",
+   "split": "blind240",
+   "from": "\"HireVue\" <noreply@hirevue.com>",
+   "subject": "Goldman Sachs - Complete Your Video Interview",
+   "snippet": "Thank you for your interest in Goldman Sachs. As the next step, please complete a HireVue on-demand video interview: recorded questions, no live interviewer.",
+   "date": "2026-10-01T16:25:34Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Goldman Sachs"
+   }
+  },
+  {
+   "id": "C118",
+   "split": "blind240",
+   "from": "\"Life at Spotify\" <talent-community@spotify.com>",
+   "subject": "Spotify Talent Community - October news",
+   "snippet": "Behind the scenes with our Stockholm data team, open roles in Engineering and Marketing, and tips from recruiters. You're receiving this because you joined our talent community.",
+   "date": "2026-10-02T21:35:56Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C119",
+   "split": "blind240",
+   "from": "\"Lauren Price\" <lprice@bostonscientific.com>",
+   "subject": "Onsite interview invitation - R&D Engineer II",
+   "snippet": "Hi Devon, we were impressed and would like to invite you to an onsite interview at our Maple Grove, MN campus. Our travel team will arrange flights and hotel.",
+   "date": "2026-08-24T03:53:06Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Boston Scientific"
+   }
+  },
+  {
+   "id": "C120",
+   "split": "blind240",
+   "from": "\"Instacart Recruiting\" <no-reply@greenhouse.io>",
+   "subject": "Instacart - Take Home Challenge",
+   "snippet": "Hi Morgan, here is the take-home exercise for the Data Scientist, Ads role. You'll have 72 hours from when you open the link to submit your notebook.",
+   "date": "2026-10-15T10:46:43Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Instacart"
+   }
+  },
+  {
+   "id": "C121",
+   "split": "blind240",
+   "from": "\"Coolblue\" <no-reply@recruitee.com>",
+   "subject": "Bedankt voor je sollicitatie!",
+   "snippet": "Hoi Daan, bedankt voor je sollicitatie als Data Engineer bij Coolblue. We hebben je sollicitatie goed ontvangen en nemen binnen 5 werkdagen contact met je op.",
+   "date": "2026-08-27T03:47:18Z",
+   "expect": {
+    "kind": "received",
+    "company": "Coolblue"
+   }
+  },
+  {
+   "id": "C122",
+   "split": "blind240",
+   "from": "\"Heather Lowe\" <heather.lowe@blueorigin.com>",
+   "subject": "RE: Propulsion Test Engineer - follow up",
+   "snippet": "Hi Devon, I appreciate your patience. The team has completed interviews and selected another candidate for the role. Thank you for the time you invested with us.",
+   "date": "2026-08-31T06:06:47Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Blue Origin"
+   }
+  },
+  {
+   "id": "C123",
+   "split": "blind240",
+   "from": "\"Robert Half\" <noreply@roberthalf.com>",
+   "subject": "Robert Half: We received your application",
+   "snippet": "Thanks for applying to Staff Accountant (Job 03920-0012944) with Robert Half. Your application was received and a recruiter will review your experience.",
+   "date": "2026-08-22T14:17:30Z",
+   "expect": {
+    "kind": "received",
+    "company": "Robert Half"
+   }
+  },
+  {
+   "id": "C124",
+   "split": "blind240",
+   "from": "\"Sabine Hoffmann\" <sabine.hoffmann@siemens.com>",
+   "subject": "Einladung zum Vorstellungsgespräch",
+   "snippet": "Sehr geehrter Herr Becker, wir freuen uns, Sie zu einem Vorstellungsgespräch für die Position Projektingenieur (w/m/d) am 9. September um 10:00 Uhr in Erlangen einzuladen.",
+   "date": "2026-08-31T17:00:14Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Siemens"
+   }
+  },
+  {
+   "id": "C125",
+   "split": "blind240",
+   "from": "\"HackerRank\" <support@hackerrank.com>",
+   "subject": "Invitation to Uber Coding Assessment",
+   "snippet": "Hi Jordan, Uber has invited you to take the Software Engineer II Online Assessment on HackerRank. 90 minutes, 3 questions. Please complete within 7 days.",
+   "date": "2026-08-17T18:24:02Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Uber"
+   }
+  },
+  {
+   "id": "C126",
+   "split": "blind240",
+   "from": "\"HR Team - Zoho\" <hr@zohocorp.com>",
+   "subject": "Offer Letter for the post of Member Technical Staff",
+   "snippet": "Dear Candidate, We are pleased to offer you the position of Member Technical Staff at Zoho Corporation. Please find attached the offer letter and revert with acceptance.",
+   "date": "2026-10-01T00:03:08Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Zoho"
+   }
+  },
+  {
+   "id": "C127",
+   "split": "blind240",
+   "from": "\"Taxfix\" <jobs-noreply@personio.de>",
+   "subject": "Your application at Taxfix",
+   "snippet": "Hi Daniel, thanks a lot for your application as Customer Success Manager! We have received it and will get back to you as soon as possible.",
+   "date": "2026-08-08T22:45:02Z",
+   "expect": {
+    "kind": "received",
+    "company": "Taxfix"
+   }
+  },
+  {
+   "id": "C128",
+   "split": "blind240",
+   "from": "\"maya @ fieldnote\" <maya@fieldnote.so>",
+   "subject": "re: your application",
+   "snippet": "hey jordan - thanks for applying and for the thoughtful note. we went with another candidate for this role, but i really liked your portfolio. good luck out there",
+   "date": "2026-08-31T23:42:17Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Fieldnote"
+   }
+  },
+  {
+   "id": "C129",
+   "split": "blind240",
+   "from": "\"Recrutamento Jerónimo Martins\" <recrutamento@jeronimo-martins.com>",
+   "subject": "Entrevista - Programa de Trainees",
+   "snippet": "Caro Tiago, temos o prazer de o convidar para uma entrevista presencial no dia 14 de setembro, às 10h00, na nossa sede em Lisboa. Por favor confirme a sua presença.",
+   "date": "2026-09-07T18:39:03Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Jerónimo Martins"
+   }
+  },
+  {
+   "id": "C130",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Updated invitation: Hiring Manager Interview - Gusto @ Wed Sep 16, 2026 3:30pm - 4:15pm (PDT)",
+   "snippet": "This event has been changed. When: changed to Wed Sep 16 3:30pm. Organizer: lauren.ortiz@gusto.com. Hiring manager interview for the Senior Accountant role.",
+   "date": "2026-09-11T07:07:11Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Gusto"
+   }
+  },
+  {
+   "id": "C131",
+   "split": "blind240",
+   "from": "\"Workday\" <humana@myworkday.com>",
+   "subject": "Humana - Interview Scheduled",
+   "snippet": "Your interview for Care Coordinator (R-388104) is scheduled for Friday, August 28, 2026 at 1:00 PM ET. Interview type: Phone. Interviewer: Denise Carter.",
+   "date": "2026-08-24T10:48:40Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Humana"
+   }
+  },
+  {
+   "id": "C132",
+   "split": "blind240",
+   "from": "\"Workday\" <nordstrom@myworkday.com>",
+   "subject": "Reset your password",
+   "snippet": "We received a request to reset the password for your Nordstrom candidate account. Click the link below within 24 hours. If you didn't request this, ignore this email.",
+   "date": "2026-09-02T22:51:16Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C133",
+   "split": "blind240",
+   "from": "\"Okta via DocuSign\" <dse_na3@docusign.net>",
+   "subject": "Please DocuSign: Offer Letter - Jamie Lee - Okta",
+   "snippet": "Okta People Team sent you a document to review and sign: Offer of Employment - Senior IT Analyst. REVIEW DOCUMENT",
+   "date": "2026-10-07T08:29:44Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Okta"
+   }
+  },
+  {
+   "id": "C134",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Panel Interview - Clinical Pharmacist, Walgreens @ Fri Sep 25, 2026 9am - 10am (CDT)",
+   "snippet": "Organizer: tamara.jones@walgreens.com. Panel interview for Clinical Pharmacist with the district pharmacy leadership team. Join Microsoft Teams meeting.",
+   "date": "2026-09-18T20:07:56Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Walgreens"
+   }
+  },
+  {
+   "id": "C135",
+   "split": "blind240",
+   "from": "\"Recruitment ING\" <noreply@ing.com>",
+   "subject": "Je sollicitatie bij ING",
+   "snippet": "Beste Sanne, bedankt voor je sollicitatie als Agile Coach. Helaas moeten we je laten weten dat we niet verder gaan met je sollicitatie.",
+   "date": "2026-09-08T13:51:43Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "ING"
+   }
+  },
+  {
+   "id": "C136",
+   "split": "blind240",
+   "from": "\"Javier Ortega\" <jortega@naturgy.com>",
+   "subject": "RE: Candidatura Ingeniero de Proyectos",
+   "snippet": "Hola Pablo, gracias por tu correo. ¿Podrías indicarme tu disponibilidad de incorporación y tu banda salarial actual? Así lo comento con el responsable del área en Naturgy.",
+   "date": "2026-09-20T06:35:04Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Naturgy"
+   }
+  },
+  {
+   "id": "C137",
+   "split": "blind240",
+   "from": "\"Mercado Libre\" <mercadolibre@myworkday.com>",
+   "subject": "Confirmación de postulación - Mercado Libre",
+   "snippet": "¡Hola Martín! Recibimos tu postulación para Desarrollador/a Backend Java. Nuestro equipo de Talento la va a revisar y te contactaremos si avanzás en el proceso.",
+   "date": "2026-08-21T17:53:05Z",
+   "expect": {
+    "kind": "received",
+    "company": "Mercado Libre"
+   }
+  },
+  {
+   "id": "C138",
+   "split": "blind240",
+   "from": "\"Tara Quinn\" <tara.quinn@wise.com>",
+   "subject": "Re: Wise - Senior Analyst application",
+   "snippet": "Hi Lina, thanks for flagging the typo in your CV, no worries at all! I've swapped in the corrected version on our side. Speak soon.",
+   "date": "2026-09-18T08:06:52Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Wise"
+   }
+  },
+  {
+   "id": "C139",
+   "split": "blind240",
+   "from": "\"Ambev Talentos\" <no-reply@gupy.io>",
+   "subject": "Ambev - Teste online disponível",
+   "snippet": "Olá Bruna, você avançou no processo seletivo do Programa de Trainee Ambev! A próxima etapa é um teste online de lógica e inglês. Prazo: até 20/09.",
+   "date": "2026-09-14T11:38:57Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Ambev"
+   }
+  },
+  {
+   "id": "C140",
+   "split": "blind240",
+   "from": "\"Woonnet Haaglanden\" <noreply@woonnet-haaglanden.nl>",
+   "subject": "Reactie op uw inschrijving voor een huurwoning",
+   "snippet": "Beste heer Jansen, helaas bent u niet geselecteerd voor de woning aan de Laan van Meerdervoort 210. U stond op plaats 37 van de reacties.",
+   "date": "2026-09-15T05:00:52Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C141",
+   "split": "blind240",
+   "from": "\"Marriott Careers\" <noreply@marriott.taleo.net>",
+   "subject": "Marriott Careers - Application Submitted",
+   "snippet": "We have received your application for Front Desk Agent at San Diego Marriott Marquis. Thank you for considering a career with Marriott International.",
+   "date": "2026-08-24T21:37:21Z",
+   "expect": {
+    "kind": "received",
+    "company": "Marriott International"
+   }
+  },
+  {
+   "id": "C142",
+   "split": "blind240",
+   "from": "\"MyChart - Northwell Health\" <mychart@northwell.edu>",
+   "subject": "Please complete your pre-visit assessment",
+   "snippet": "You have a new questionnaire to complete before your appointment on 9/22 with Dr. Ahmed: Health Risk Assessment (PHQ-9, GAD-7). Log in to MyChart to begin.",
+   "date": "2026-09-15T18:39:19Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C143",
+   "split": "blind240",
+   "from": "\"Vercel\" <no-reply@ashbyhq.com>",
+   "subject": "Vercel - Application Update",
+   "snippet": "Hi Sam, thanks for your interest in Vercel. We've decided not to move forward at this time. We wish you the best in your search.",
+   "date": "2026-10-15T16:21:03Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Vercel"
+   }
+  },
+  {
+   "id": "C144",
+   "split": "blind240",
+   "from": "\"Isabella Rossi\" <isabella.rossi@miro.com>",
+   "subject": "Re: Your application at Miro",
+   "snippet": "Hi Sam, thanks for your message! Just to confirm, are you applying for the Amsterdam or Berlin office? The posting covers both and I want to route you correctly.",
+   "date": "2026-08-06T04:15:04Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Miro"
+   }
+  },
+  {
+   "id": "C145",
+   "split": "blind240",
+   "from": "\"Ferrero Careers\" <noreply@ferrero.com>",
+   "subject": "Aggiornamento sulla tua candidatura",
+   "snippet": "Gentile Marco, ti ringraziamo per l'interesse verso Ferrero. Purtroppo la tua candidatura per Trade Marketing Specialist non è stata selezionata per le fasi successive.",
+   "date": "2026-08-09T21:58:59Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Ferrero"
+   }
+  },
+  {
+   "id": "C146",
+   "split": "blind240",
+   "from": "\"HR Pirelli\" <hr@pirelli.com>",
+   "subject": "Proposta di assunzione",
+   "snippet": "Gentile Luca, siamo lieti di proporti l'assunzione a tempo indeterminato come Ingegnere di Processo presso Pirelli. In allegato trovi la lettera di offerta.",
+   "date": "2026-09-06T18:30:16Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Pirelli"
+   }
+  },
+  {
+   "id": "C147",
+   "split": "blind240",
+   "from": "\"Linear\" <no-reply@ashbyhq.com>",
+   "subject": "Linear - Schedule your interview",
+   "snippet": "Hi Morgan, we'd love to move you forward to a technical interview with our engineering team. Pick a time that works for you via the link below.",
+   "date": "2026-09-08T19:38:57Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Linear"
+   }
+  },
+  {
+   "id": "C148",
+   "split": "blind240",
+   "from": "\"USAJOBS\" <noreply@usajobs.gov>",
+   "subject": "Application Received - IT Specialist (INFOSEC)",
+   "snippet": "Your application for IT Specialist (INFOSEC), announcement VA-26-1188, has been received by the Department of Veterans Affairs.",
+   "date": "2026-08-09T18:24:03Z",
+   "expect": {
+    "kind": "received",
+    "company": "Department of Veterans Affairs"
+   }
+  },
+  {
+   "id": "C149",
+   "split": "blind240",
+   "from": "\"David Okoro\" <david.okoro@gmail.com>",
+   "subject": "Accepted: Coffee - career advice @ Wed Aug 26, 2026 8:30am - 9:15am (PDT)",
+   "snippet": "David Okoro has accepted this invitation. Organizer: alexkim.work@gmail.com. Where: Blue Bottle, Hayes Valley.",
+   "date": "2026-08-21T16:51:31Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C150",
+   "split": "blind240",
+   "from": "\"Tyler Reed\" <treed@carvana.com>",
+   "subject": "Re: Pay range?",
+   "snippet": "hey alex, the range for the Senior Ops Analyst role at carvana is 85-100k depending on experience, plus bonus. let me know if that works for you",
+   "date": "2026-09-02T08:08:58Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Carvana"
+   }
+  },
+  {
+   "id": "C151",
+   "split": "blind240",
+   "from": "\"Gong\" <no-reply@greenhouse.io>",
+   "subject": "Your offer from Gong",
+   "snippet": "Congratulations! Gong has sent you an offer for Account Executive, Mid-Market. Click below to review and accept your offer electronically.",
+   "date": "2026-08-22T16:55:55Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Gong"
+   }
+  },
+  {
+   "id": "C152",
+   "split": "blind240",
+   "from": "\"Marcus Webb\" <mwebb@cloudflare.com>",
+   "subject": "Invitation: Cloudflare Onsite - System Design @ Thu Oct 1, 2026 10am - 11am (CDT)",
+   "snippet": "You have been invited by Marcus Webb (Recruiting Coordinator, Cloudflare) to: Onsite - System Design with Ana Ruiz. Organizer: mwebb@cloudflare.com. View all guest info",
+   "date": "2026-09-24T10:28:33Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Cloudflare"
+   }
+  },
+  {
+   "id": "C153",
+   "split": "blind240",
+   "from": "\"Mark Sullivan\" <msullivan@nike.com>",
+   "subject": "Re: Nike - Brand Manager application",
+   "snippet": "Hi Chris, thanks for your note - I found your application. Could you send me a portfolio or a couple of campaign examples you led? Thanks!",
+   "date": "2026-08-22T20:35:53Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Nike"
+   }
+  },
+  {
+   "id": "C154",
+   "split": "blind240",
+   "from": "\"Andrea Lopez\" <alopez@sutterhealth.org>",
+   "subject": "Re: NP position",
+   "snippet": "Hi Riley - got it, thanks for the updated license info. I'll add it to your file for the Nurse Practitioner position. Sent from my iPhone",
+   "date": "2026-09-13T13:19:56Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Sutter Health"
+   }
+  },
+  {
+   "id": "C155",
+   "split": "blind240",
+   "from": "\"dev @ loopwork\" <dev@loopwork.app>",
+   "subject": "small task",
+   "snippet": "hey jordan, before next steps could you do a small paid task? fix the 2 bugs in the loopwork repo i shared + write a short note. 4h max, we pay you $200. due friday",
+   "date": "2026-10-19T01:18:04Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Loopwork"
+   }
+  },
+  {
+   "id": "C156",
+   "split": "blind240",
+   "from": "\"Steve Park\" <spark@hcahealthcare.com>",
+   "subject": "Offer - RN, Med/Surg (Night Shift)",
+   "snippet": "Hi Riley, it was a pleasure speaking today. As discussed, we are pleased to offer you the RN Med/Surg position at $46.50/hr plus night differential. Formal letter to follow.",
+   "date": "2026-09-06T19:11:54Z",
+   "expect": {
+    "kind": "offer",
+    "company": "HCA Healthcare"
+   }
+  },
+  {
+   "id": "C157",
+   "split": "blind240",
+   "from": "\"University of Michigan Careers\" <careers@umich.edu>",
+   "subject": "Status update: Research Administrator Senior (Posting 261544)",
+   "snippet": "The search for this position has concluded and another applicant has been selected. Thank you for your interest in employment at the University of Michigan.",
+   "date": "2026-08-17T12:04:40Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "University of Michigan"
+   }
+  },
+  {
+   "id": "C158",
+   "split": "blind240",
+   "from": "\"Clara Fontaine\" <clara@podcast-lesbatisseurs.fr>",
+   "subject": "Proposition d'interview pour notre podcast",
+   "snippet": "Bonjour Antoine, j'anime le podcast Les Bâtisseurs et j'aimerais beaucoup vous recevoir pour une interview de 40 minutes sur votre parcours. Seriez-vous disponible en octobre ?",
+   "date": "2026-09-16T02:45:22Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C159",
+   "split": "blind240",
+   "from": "\"Recursos Humanos Mapfre\" <rrhh@mapfre.com>",
+   "subject": "Carta oferta - Mapfre",
+   "snippet": "Estimado Javier: Nos complace ofrecerte el puesto de Actuario Senior en Mapfre. Adjuntamos la carta oferta con las condiciones. Te agradeceríamos tu respuesta antes del viernes.",
+   "date": "2026-09-17T04:25:48Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Mapfre"
+   }
+  },
+  {
+   "id": "C160",
+   "split": "blind240",
+   "from": "\"Michael Grant | Michael Page\" <michaelgrant@michaelpage.com>",
+   "subject": "RE: Finance Manager - Diageo",
+   "snippet": "Hi Tom, thanks for the call earlier. I've sent your CV across to Diageo's hiring manager this morning. I'll chase for feedback early next week.",
+   "date": "2026-10-16T14:22:07Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Diageo"
+   }
+  },
+  {
+   "id": "C161",
+   "split": "blind240",
+   "from": "\"Priya Nair\" <priya.nair@stripe.com>",
+   "subject": "Invitation: Stripe - Technical Phone Screen (Jordan Patel) @ Tue Sep 8, 2026 1pm - 2pm (EDT) (jordan.patel@gmail.com)",
+   "snippet": "Priya Nair has invited you to Stripe - Technical Phone Screen. Organizer: priya.nair@stripe.com. Interviewer: Kevin Zhao (Payments Infra). Join with Google Meet.",
+   "date": "2026-09-02T19:37:12Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Stripe"
+   }
+  },
+  {
+   "id": "C162",
+   "split": "blind240",
+   "from": "\"Personalabteilung ZEISS\" <personal@zeiss.com>",
+   "subject": "Vertragsangebot - Optikingenieur (m/w/d)",
+   "snippet": "Sehr geehrte Frau Fischer, wir freuen uns, Ihnen die Position als Optikingenieurin bei ZEISS anzubieten. Anbei erhalten Sie Ihren Arbeitsvertrag zur Unterschrift.",
+   "date": "2026-08-09T03:46:47Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Zeiss"
+   }
+  },
+  {
+   "id": "C163",
+   "split": "blind240",
+   "from": "\"Mixpanel\" <no-reply@hire.lever.co>",
+   "subject": "Mixpanel offer - please review",
+   "snippet": "Hi Chris, we're excited to extend you an offer for Solutions Engineer at Mixpanel! Your offer letter is available at the link below. Please review and e-sign.",
+   "date": "2026-08-22T07:06:24Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Mixpanel"
+   }
+  },
+  {
+   "id": "C164",
+   "split": "blind240",
+   "from": "\"nick\" <nick@quarry.build>",
+   "subject": "chat this week?",
+   "snippet": "hey alex, saw your application for the design eng role at quarry, would love to do a 30 min intro interview. thu 2pm pt work? if not send me a few times",
+   "date": "2026-08-18T13:08:55Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Quarry"
+   }
+  },
+  {
+   "id": "C165",
+   "split": "blind240",
+   "from": "\"LinkedIn Job Alerts\" <jobalerts-noreply@linkedin.com>",
+   "subject": "\"product designer\": 14 new jobs in New York",
+   "snippet": "Figma - Product Designer · Notion - Senior Product Designer · Ramp - Product Designer, Card. Apply with your LinkedIn profile.",
+   "date": "2026-08-19T15:44:05Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C166",
+   "split": "blind240",
+   "from": "\"Itaú Unibanco\" <no-reply@gupy.io>",
+   "subject": "Retorno sobre sua candidatura - Itaú",
+   "snippet": "Olá Rafael, agradecemos seu interesse. Após análise, informamos que seu perfil não seguirá para as próximas etapas do processo seletivo desta vaga.",
+   "date": "2026-08-10T00:14:51Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Itaú Unibanco"
+   }
+  },
+  {
+   "id": "C167",
+   "split": "blind240",
+   "from": "\"Little Fern Montessori\" <notifications@app.bamboohr.com>",
+   "subject": "Lead Teacher position",
+   "snippet": "Dear Riley, thank you for applying for the Lead Teacher position. After reviewing all applications, we have offered the position to another candidate.",
+   "date": "2026-10-10T15:47:35Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Little Fern Montessori"
+   }
+  },
+  {
+   "id": "C168",
+   "split": "blind240",
+   "from": "\"Tom Fischer\" <tom.fischer@hellofresh.com>",
+   "subject": "Reschedule request - interview Thursday",
+   "snippet": "Hi Daniel, apologies, our hiring manager has a conflict on Thursday. Could we move your HelloFresh interview to Monday 10:00 CET? Same Zoom link. Sorry for the shuffle!",
+   "date": "2026-10-03T06:31:38Z",
+   "expect": {
+    "kind": "interview",
+    "company": "HelloFresh"
+   }
+  },
+  {
+   "id": "C169",
+   "split": "blind240",
+   "from": "\"Recrutement L'Oréal\" <noreply@loreal.taleo.net>",
+   "subject": "Accusé de réception de votre candidature",
+   "snippet": "Bonjour Camille, Nous accusons bonne réception de votre candidature au poste de Chef de produit junior et vous remercions de l'intérêt porté à L'Oréal.",
+   "date": "2026-08-04T18:51:57Z",
+   "expect": {
+    "kind": "received",
+    "company": "L'Oréal"
+   }
+  },
+  {
+   "id": "C170",
+   "split": "blind240",
+   "from": "\"The Kroger Co.\" <noreply@talent.icims.com>",
+   "subject": "Thank you for applying - Pharmacy Technician",
+   "snippet": "Thank you for submitting your application for the Pharmacy Technician position at The Kroger Co. store #427. A member of our team will review it.",
+   "date": "2026-10-19T10:09:37Z",
+   "expect": {
+    "kind": "received",
+    "company": "Kroger"
+   }
+  },
+  {
+   "id": "C171",
+   "split": "blind240",
+   "from": "\"RentCafe\" <noreply@rentcafe.com>",
+   "subject": "Application status: not approved",
+   "snippet": "We regret to inform you that your rental application for 1840 Pine St, Unit 3B has not been approved based on the results of the screening report.",
+   "date": "2026-08-19T19:31:58Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C172",
+   "split": "blind240",
+   "from": "\"React Summit Program Committee\" <cfp@reactsummit.com>",
+   "subject": "Your React Summit proposal",
+   "snippet": "Thank you for submitting 'Typed pipelines at scale'. Unfortunately, we were unable to accept your talk this year. We received over 1,100 proposals.",
+   "date": "2026-08-31T02:45:12Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C173",
+   "split": "blind240",
+   "from": "\"Talento Cabify\" <no-reply@ashbyhq.com>",
+   "subject": "Confirmación de tu entrevista con Cabify",
+   "snippet": "¡Hola Lucía! Te confirmamos la entrevista con el hiring manager el lunes 5 de octubre a las 12:00 (CEST) por Google Meet. ¡Mucha suerte!",
+   "date": "2026-09-29T20:09:20Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Cabify"
+   }
+  },
+  {
+   "id": "C174",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Notification: Block - update resume + send 5 applications @ Tue Aug 18, 2026 9am - 11am",
+   "snippet": "Reminder for an event you created. Calendar: Personal. Organizer: alexkim.work@gmail.com. No guests. Notes: tailor resume for fintech roles.",
+   "date": "2026-08-18T08:53:10Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C175",
+   "split": "blind240",
+   "from": "\"Sam Rivera\" <sam.rivera88@gmail.com>",
+   "subject": "Fwd: Panel interview confirmed - City of Austin",
+   "snippet": "> From: Human Resources <hr@austintexas.gov> > Your panel interview for Planner II is confirmed for Aug 26, 9:00 AM, One Texas Center, Room 325.",
+   "date": "2026-08-20T15:22:07Z",
+   "expect": {
+    "kind": "interview",
+    "company": "City of Austin"
+   }
+  },
+  {
+   "id": "C176",
+   "split": "blind240",
+   "from": "\"Jennifer Moore\" <jmoore@rtx.com>",
+   "subject": "RE: Security clearance status",
+   "snippet": "Hi Devon, Thanks for the details on your clearance. Could you also send the date your last investigation closed? Our FSO at Raytheon asked for it.",
+   "date": "2026-09-07T21:22:48Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Raytheon"
+   }
+  },
+  {
+   "id": "C177",
+   "split": "blind240",
+   "from": "\"Mayo Clinic\" <mayoclinic@talent.icims.com>",
+   "subject": "Mayo Clinic - Thank you for your application",
+   "snippet": "Thank you for applying to Registered Nurse - Cardiac ICU (Job ID 2026-48812). Your application has been received and is being reviewed by our recruitment team.",
+   "date": "2026-08-07T08:36:48Z",
+   "expect": {
+    "kind": "received",
+    "company": "Mayo Clinic"
+   }
+  },
+  {
+   "id": "C178",
+   "split": "blind240",
+   "from": "\"Workday\" <medline@myworkday.com>",
+   "subject": "Medline - Your Application Status",
+   "snippet": "Thank you for applying to the Territory Sales Representative position at Medline. This position is no longer available and your application will not move forward.",
+   "date": "2026-09-25T05:34:41Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Medline"
+   }
+  },
+  {
+   "id": "C179",
+   "split": "blind240",
+   "from": "\"Alex Kim\" <alexkim.work@gmail.com>",
+   "subject": "Fwd: Your Onsite Interview Itinerary - Wayfair",
+   "snippet": "Forwarded message from Wayfair Talent: Your onsite on Oct 6 at our Boston HQ (4 Copley Pl) begins at 9:30 AM. Agenda: 4 interviews, lunch with the team.",
+   "date": "2026-09-30T14:40:37Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Wayfair"
+   }
+  },
+  {
+   "id": "C180",
+   "split": "blind240",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Notification: Interview prep - practice behavioral stories @ Mon Sep 14, 2026 7pm - 8pm (EDT)",
+   "snippet": "This is a reminder for the following event. Organizer: jordan.patel@gmail.com (you). Calendar: Jordan Patel. No guests. Notes: STAR stories, salary talking points.",
+   "date": "2026-09-14T14:50:09Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C181",
+   "split": "blind240",
+   "from": "\"Laura Bennett\" <laura.bennett@astrazeneca.com>",
+   "subject": "Teams meeting: Interview - Regulatory Affairs Associate",
+   "snippet": "Microsoft Teams meeting. Laura Bennett has invited you to an interview for the Regulatory Affairs Associate position at AstraZeneca, Wednesday 30 Sept, 14:00 BST.",
+   "date": "2026-09-23T14:19:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "AstraZeneca"
+   }
+  },
+  {
+   "id": "C182",
+   "split": "blind240",
+   "from": "\"Bolt\" <no-reply@recruitee.com>",
+   "subject": "Bolt | Update on your application",
+   "snippet": "Hi Lina, thank you for applying for Senior Ops Analyst. After reviewing your application we've decided not to proceed further with your candidacy.",
+   "date": "2026-08-10T00:54:55Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Bolt"
+   }
+  },
+  {
+   "id": "C183",
+   "split": "blind240",
+   "from": "\"Etsy\" <no-reply@hire.lever.co>",
+   "subject": "Etsy application update",
+   "snippet": "Hi Avery, thanks for your interest in Etsy and the Senior Copywriter role. We've decided to pursue other candidates, but we'll keep your info for future roles.",
+   "date": "2026-09-01T03:22:14Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Etsy"
+   }
+  },
+  {
+   "id": "C184",
+   "split": "blind240",
+   "from": "\"StepStone Jobagent\" <jobagent@stepstone.de>",
+   "subject": "Ihr Jobagent: 9 neue Stellenangebote für Projektmanager",
+   "snippet": "Projektmanager (m/w/d) - Siemens, München · Senior Projektmanager IT - Allianz, Berlin · Jetzt schnell bewerben!",
+   "date": "2026-08-20T18:02:50Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C185",
+   "split": "blind240",
+   "from": "\"Nubank\" <no-reply@greenhouse.io>",
+   "subject": "Recebemos sua candidatura!",
+   "snippet": "Oi Ana, obrigado por se candidatar para a vaga de Engenheira de Software no Nubank. Recebemos sua candidatura e nosso time vai analisá-la com carinho.",
+   "date": "2026-08-15T22:12:24Z",
+   "expect": {
+    "kind": "received",
+    "company": "Nubank"
+   }
+  },
+  {
+   "id": "C186",
+   "split": "blind240",
+   "from": "\"Rocket Mortgage\" <noreply@rocketmortgage.com>",
+   "subject": "You're pre-approved! Your offer is waiting",
+   "snippet": "Good news - based on your information you're pre-approved for up to $420,000. Lock your rate today before this offer expires.",
+   "date": "2026-08-15T12:22:30Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C187",
+   "split": "blind240",
+   "from": "\"Beatriz Lima\" <beatriz.lima@vtex.com>",
+   "subject": "Re: Candidatura - Desenvolvedora Frontend",
+   "snippet": "Oi Júlia, obrigada pelo contato! Ainda estamos analisando os perfis na VTEX, mas já anotei seu interesse. Te dou um retorno assim que tiver novidades.",
+   "date": "2026-08-28T13:12:36Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "VTEX"
+   }
+  },
+  {
+   "id": "C188",
+   "split": "blind240",
+   "from": "\"Glassdoor\" <noreply@glassdoor.com>",
+   "subject": "Top 20 interview questions at Amazon (and how to answer)",
+   "snippet": "Prep for your next interview: real questions shared by candidates at Amazon, Google and Meta, plus salary insights for your role.",
+   "date": "2026-10-16T05:46:13Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C189",
+   "split": "blind240",
+   "from": "\"Welcome to the Jungle\" <hello@welcometothejungle.com>",
+   "subject": "Ces entreprises recrutent : 8 offres pour vous",
+   "snippet": "Data Analyst chez Doctolib, Product Manager chez Alan, Chargé de recrutement chez BlaBlaCar… Découvrez les offres sélectionnées pour vous cette semaine.",
+   "date": "2026-10-04T13:31:13Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C190",
+   "split": "blind240",
+   "from": "\"Candidate Experience at Datadog\" <surveys@greenhouse.io>",
+   "subject": "How was your interview experience?",
+   "snippet": "Hi Jordan, you recently interviewed with Datadog. We'd love your honest feedback on the process - this 2-minute survey is anonymous and won't affect your candidacy.",
+   "date": "2026-08-31T18:32:07Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C191",
+   "split": "blind240",
+   "from": "\"Olivia Turner\" <oturner@ey.com>",
+   "subject": "RE: Visa sponsorship question",
+   "snippet": "Hi Devon, good question - I'm checking with the hiring partner on sponsorship for this EY role and will come back to you this week.",
+   "date": "2026-08-01T06:20:19Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "EY"
+   }
+  },
+  {
+   "id": "C192",
+   "split": "blind240",
+   "from": "\"Daniela Ruiz\" <daniela.ruiz@rappi.com>",
+   "subject": "Re: Postulación Product Designer",
+   "snippet": "Hola Valentina, ¡gracias por escribir! Tu postulación en Rappi ya está en manos del equipo de diseño. Apenas tenga novedades te aviso. Un abrazo.",
+   "date": "2026-10-13T09:20:58Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Rappi"
+   }
+  },
+  {
+   "id": "C193",
+   "split": "blind240",
+   "from": "\"Tinyloop\" <hiring@tinyloop.dev>",
+   "subject": "got your application",
+   "snippet": "hey! just confirming we got your application for the founding engineer role. we read everything ourselves, so give us a week or so. - the tinyloop team",
+   "date": "2026-08-04T02:35:53Z",
+   "expect": {
+    "kind": "received",
+    "company": "Tinyloop"
+   }
+  },
+  {
+   "id": "C194",
+   "split": "blind240",
+   "from": "\"Kevin Brooks | Insight Global\" <kbrooks@insightglobal.com>",
+   "subject": "Interview with Cigna - Tue 2pm",
+   "snippet": "Hi Jamie, great news - Cigna wants to interview you for the Business Systems Analyst contract. Tuesday 2pm ET on Teams with their IT manager. Can you confirm by EOD?",
+   "date": "2026-09-04T15:16:42Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Cigna"
+   }
+  },
+  {
+   "id": "C195",
+   "split": "blind240",
+   "from": "\"Target Careers\" <target@myworkday.com>",
+   "subject": "Thank you for applying to Target",
+   "snippet": "Thank you for applying for Guest Advocate (Cashier) at store T-1784. We've received your application. Track your status anytime in your candidate home.",
+   "date": "2026-09-01T07:34:39Z",
+   "expect": {
+    "kind": "received",
+    "company": "Target"
+   }
+  },
+  {
+   "id": "C196",
+   "split": "blind240",
+   "from": "\"IKEA\" <noreply@smartrecruiters.com>",
+   "subject": "Your application at IKEA",
+   "snippet": "Hi Emma, thank you for applying for the Co-worker Logistics role at IKEA. Unfortunately, we have chosen to proceed with other candidates this time.",
+   "date": "2026-09-13T04:06:42Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "IKEA"
+   }
+  },
+  {
+   "id": "C197",
+   "split": "blind240",
+   "from": "\"Bay Area Food Bank\" <volunteer@bayareafoodbank.org>",
+   "subject": "We received your volunteer application",
+   "snippet": "Thanks for signing up to volunteer! We received your application for the Saturday warehouse shift. A coordinator will email you orientation details.",
+   "date": "2026-10-03T04:11:53Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C198",
+   "split": "blind240",
+   "from": "\"Pinterest Recruiting via GoodTime\" <scheduling@goodtime.io>",
+   "subject": "Interview Confirmed: Pinterest - Machine Learning Engineer",
+   "snippet": "Your interviews with Pinterest are confirmed for Wednesday, October 7. 4 sessions, 10:00am-2:15pm PT via Zoom. Your itinerary and links are below.",
+   "date": "2026-09-30T09:21:32Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Pinterest"
+   }
+  },
+  {
+   "id": "C199",
+   "split": "blind240",
+   "from": "\"Zillow Talent Acquisition\" <notification@jobvite.com>",
+   "subject": "Thanks for your interest in Zillow!",
+   "snippet": "Hi Morgan, We received your application for Senior Data Scientist and appreciate your interest in Zillow. If your background is a match, we'll be in touch.",
+   "date": "2026-09-16T17:41:12Z",
+   "expect": {
+    "kind": "received",
+    "company": "Zillow"
+   }
+  },
+  {
+   "id": "C200",
+   "split": "blind240",
+   "from": "\"Telefónica\" <no-reply@successfactors.eu>",
+   "subject": "Actualización sobre tu candidatura",
+   "snippet": "Hola Carlos, te agradecemos tu interés en Telefónica. Lamentablemente, en esta ocasión no continuaremos con tu candidatura para el puesto de Ingeniero/a Cloud.",
+   "date": "2026-09-28T16:44:20Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Telefónica"
+   }
+  },
+  {
+   "id": "C201",
+   "split": "blind240",
+   "from": "\"Rahul Verma\" <rahul.verma@freshworks.com>",
+   "subject": "RE: Application for Solutions Engineer",
+   "snippet": "Hi Priya, Thanks for your mail. Kindly share your current CTC, expected CTC and notice period so that I can update your profile in our system.",
+   "date": "2026-09-29T22:10:49Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Freshworks"
+   }
+  },
+  {
+   "id": "C202",
+   "split": "blind240",
+   "from": "\"Farfetch Careers\" <no-reply@smartrecruiters.com>",
+   "subject": "Candidatura recebida - Analista de Dados",
+   "snippet": "Olá João, agradecemos a sua candidatura à vaga de Analista de Dados na Farfetch, no Porto. A sua candidatura foi recebida com sucesso.",
+   "date": "2026-08-05T21:37:11Z",
+   "expect": {
+    "kind": "received",
+    "company": "Farfetch"
+   }
+  },
+  {
+   "id": "C203",
+   "split": "blind240",
+   "from": "\"Erik Johansson\" <erik.johansson@spotify.com>",
+   "subject": "Re: Moving my application to a different role",
+   "snippet": "Hi Sam, thanks for letting me know you'd also be interested in the Platform team role. I've added a note to your Spotify profile so both teams can see it.",
+   "date": "2026-09-17T11:49:10Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Spotify"
+   }
+  },
+  {
+   "id": "C204",
+   "split": "blind240",
+   "from": "\"Alan\" <no-reply@teamtailor.com>",
+   "subject": "Candidature reçue - Alan",
+   "snippet": "Salut Hugo ! On a bien reçu ta candidature pour le poste de Product Ops chez Alan. L'équipe la regarde et revient vers toi très vite.",
+   "date": "2026-08-16T08:39:29Z",
+   "expect": {
+    "kind": "received",
+    "company": "Alan"
+   }
+  },
+  {
+   "id": "C205",
+   "split": "blind240",
+   "from": "\"Indeed\" <alert@indeed.com>",
+   "subject": "30+ new Data Analyst jobs near Chicago, IL",
+   "snippet": "Data Analyst - Northern Trust - Chicago, IL · Easily apply · Responsive employer. Data Analyst II - Allstate - Northbrook, IL...",
+   "date": "2026-08-22T03:36:32Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C206",
+   "split": "blind240",
+   "from": "\"Atlassian\" <no-reply@hire.lever.co>",
+   "subject": "Reminder: Your interview with Atlassian tomorrow",
+   "snippet": "Hi Priya, a friendly reminder of your Values interview tomorrow, Sept 29 at 9:00 AM AEST via Zoom with Liam from our Sydney team.",
+   "date": "2026-09-28T14:09:40Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Atlassian"
+   }
+  },
+  {
+   "id": "C207",
+   "split": "blind240",
+   "from": "\"Kevin\" <kevin@brightwheel.com>",
+   "subject": "Re: Thanks!",
+   "snippet": "Hey Jamie, appreciated your thoughtful cover letter for the brightwheel role. Quick question: are you open to relocating to SF, or only remote?",
+   "date": "2026-08-14T13:17:02Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Brightwheel"
+   }
+  },
+  {
+   "id": "C208",
+   "split": "blind240",
+   "from": "\"Personalabteilung SWM\" <bewerbung@swm.de>",
+   "subject": "Ihre Bewerbung - Stellen-ID 26-0412",
+   "snippet": "Sehr geehrter Herr Yilmaz, nach sorgfältiger Prüfung haben wir uns für einen anderen Bewerber entschieden. Wir danken Ihnen für Ihr Interesse an den Stadtwerken München.",
+   "date": "2026-10-05T21:12:18Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Stadtwerke München"
+   }
+  },
+  {
+   "id": "C209",
+   "split": "blind240",
+   "from": "\"sam @ driftwood\" <sam@driftwood.ai>",
+   "subject": "offer!!",
+   "snippet": "alex - we'd love to have you as driftwood's first designer. offer details attached: $145k + 0.6% equity. take the weekend to think it over, happy to jump on a call",
+   "date": "2026-09-02T06:04:18Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Driftwood"
+   }
+  },
+  {
+   "id": "C210",
+   "split": "blind240",
+   "from": "\"Meta University Recruiting\" <noreply@meta.com>",
+   "subject": "Your Meta Internship Offer",
+   "snippet": "Hi Priya, Congratulations! We're excited to extend you an offer for the Software Engineer Intern role for Summer 2027 at Meta. Please review your offer in the portal.",
+   "date": "2026-09-12T15:05:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Meta"
+   }
+  },
+  {
+   "id": "C211",
+   "split": "blind240",
+   "from": "\"Deutsche Bahn Karriere\" <bewerbung@deutschebahn.com>",
+   "subject": "Ihre Bewerbung bei der Deutschen Bahn - Eingangsbestätigung",
+   "snippet": "Hallo Herr Schmidt, vielen Dank für Ihre Bewerbung als Fahrdienstleiter (w/m/d) in Hamburg. Ihre Unterlagen sind bei uns eingegangen.",
+   "date": "2026-10-12T02:12:25Z",
+   "expect": {
+    "kind": "received",
+    "company": "Deutsche Bahn"
+   }
+  },
+  {
+   "id": "C212",
+   "split": "blind240",
+   "from": "\"Twilio Recruiting\" <no-reply@greenhouse.io>",
+   "subject": "Update: Staff Engineer, Messaging",
+   "snippet": "We wanted to let you know that the Staff Engineer, Messaging role has been closed. As a result we are unable to continue with your application. Thank you for applying.",
+   "date": "2026-08-21T02:10:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Twilio"
+   }
+  },
+  {
+   "id": "C213",
+   "split": "blind240",
+   "from": "\"Coderbyte\" <hello@coderbyte.com>",
+   "subject": "You've been invited to a coding challenge by Zendesk",
+   "snippet": "Zendesk has invited you to complete a coding challenge for the Software Engineer, Messaging position. 2 challenges, 75 minutes total. Start whenever you're ready.",
+   "date": "2026-08-28T22:46:46Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Zendesk"
+   }
+  },
+  {
+   "id": "C214",
+   "split": "blind240",
+   "from": "\"Qualtrics Survey\" <noreply@qemailserver.com>",
+   "subject": "Tell us about your recent interview with Accenture",
+   "snippet": "Your feedback helps us improve the candidate experience. The survey takes about 3 minutes and responses are confidential.",
+   "date": "2026-09-04T16:40:10Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C215",
+   "split": "blind240",
+   "from": "\"Bosch Group\" <jobs@smartrecruiters.com>",
+   "subject": "Your application to Bosch Group - Embedded Software Engineer",
+   "snippet": "Dear Lena, thank you for applying for Embedded Software Engineer at Bosch Group. We have successfully received your application and will get back to you.",
+   "date": "2026-08-31T11:01:41Z",
+   "expect": {
+    "kind": "received",
+    "company": "Bosch"
+   }
+  },
+  {
+   "id": "C216",
+   "split": "blind240",
+   "from": "\"Plaid\" <no-reply@hire.lever.co>",
+   "subject": "Your application to Plaid",
+   "snippet": "Hi Sam - thanks for applying to Plaid for the Data Analyst role. We got your application and the team is reviewing it now.",
+   "date": "2026-10-03T06:53:25Z",
+   "expect": {
+    "kind": "received",
+    "company": "Plaid"
+   }
+  },
+  {
+   "id": "C217",
+   "split": "blind240",
+   "from": "\"Jenna Park, Compass\" <jenna.park@compass.com>",
+   "subject": "Offer accepted on 22 Linden Ave!!",
+   "snippet": "Hi Chris & Dana - great news, the sellers accepted your offer at $612,000! Next steps: earnest money due within 3 days and the home inspection on Tuesday.",
+   "date": "2026-08-29T16:19:05Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C218",
+   "split": "blind240",
+   "from": "\"Grace Liu\" <grace.liu@nvidia.com>",
+   "subject": "RE: Offer details - Deep Learning Engineer",
+   "snippet": "Hi Chris, attached is your updated NVIDIA offer reflecting the revised sign-on bonus we discussed. The rest of the terms remain the same. Please sign via the link by Friday.",
+   "date": "2026-08-26T21:34:38Z",
+   "expect": {
+    "kind": "offer",
+    "company": "NVIDIA"
+   }
+  },
+  {
+   "id": "C219",
+   "split": "blind240",
+   "from": "\"Banco Inter\" <naoresponda@bancointer.com.br>",
+   "subject": "Sua proposta de crédito foi aprovada!",
+   "snippet": "Olá Rafael, boas notícias: sua proposta de crédito pessoal foi aprovada. Confira as condições e contrate pelo app em até 5 dias.",
+   "date": "2026-08-22T00:00:48Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C220",
+   "split": "blind240",
+   "from": "\"HackerEarth\" <noreply@hackerearth.com>",
+   "subject": "Flipkart Hiring Challenge - Test link",
+   "snippet": "Dear Candidate, you have been shortlisted for the online test for SDE-1 at Flipkart. Test window: 12 Sep 10:00 to 13 Sep 22:00 IST.",
+   "date": "2026-09-07T07:11:50Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Flipkart"
+   }
+  },
+  {
+   "id": "C221",
+   "split": "blind240",
+   "from": "\"Datadog\" <no-reply@us.greenhouse-mail.io>",
+   "subject": "Datadog Application Confirmation",
+   "snippet": "Thank you for your interest in Datadog! We wanted to let you know we received your application for Site Reliability Engineer, and we are delighted that you...",
+   "date": "2026-09-19T08:34:05Z",
+   "expect": {
+    "kind": "received",
+    "company": "Datadog"
+   }
+  },
+  {
+   "id": "C222",
+   "split": "blind240",
+   "from": "\"BBVA Talento\" <no-reply@successfactors.eu>",
+   "subject": "Hemos recibido tu candidatura",
+   "snippet": "Hola Lucía, gracias por tu interés en BBVA. Hemos recibido correctamente tu candidatura para la posición de Analista de Riesgos y la revisaremos con atención.",
+   "date": "2026-09-21T05:24:06Z",
+   "expect": {
+    "kind": "received",
+    "company": "BBVA"
+   }
+  },
+  {
+   "id": "C223",
+   "split": "blind240",
+   "from": "\"Airbnb\" <no-reply@greenhouse.io>",
+   "subject": "Your application to Airbnb",
+   "snippet": "Hi Jordan, Thank you for your interest in Airbnb. After careful review, we've decided not to move forward with your application for Software Engineer, Payments.",
+   "date": "2026-09-15T04:47:55Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Airbnb"
+   }
+  },
+  {
+   "id": "C224",
+   "split": "blind240",
+   "from": "\"Wells Fargo Recruiting\" <wellsfargo@myworkday.com>",
+   "subject": "Requisition closed - R-338190",
+   "snippet": "The Business Analyst role you applied for at Wells Fargo (R-338190) has been closed and will not be filled. Your application will not be considered further.",
+   "date": "2026-10-16T11:15:02Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Wells Fargo"
+   }
+  },
+  {
+   "id": "C225",
+   "split": "blind240",
+   "from": "\"Angela Rossi\" <arossi@bainbridgecapital.com>",
+   "subject": "RE: Analyst application - Bainbridge Capital",
+   "snippet": "Hi Chris, thanks for your patience. We'd like to invite you to a first-round interview at our office (55 Water St, 21st Fl) on Tuesday 9/15 at 10am. Please confirm.",
+   "date": "2026-09-09T12:07:28Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Bainbridge Capital"
+   }
+  },
+  {
+   "id": "C226",
+   "split": "blind240",
+   "from": "\"Ryan O'Neill\" <ryan.oneill@intercom.io>",
+   "subject": "Re: Intercom - Senior PM",
+   "snippet": "Hey Jordan, great chatting earlier. I've set up your hiring manager interview with Des for Friday 15:00 Dublin time - invite incoming. Shout if that doesn't work.",
+   "date": "2026-08-02T17:38:09Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Intercom"
+   }
+  },
+  {
+   "id": "C227",
+   "split": "blind240",
+   "from": "\"Boeing\" <boeing@taleo.net>",
+   "subject": "Boeing Application Status",
+   "snippet": "Your application for Job Requisition 00000412789 Manufacturing Engineer has been reviewed. We regret to inform you that you were not selected for this position.",
+   "date": "2026-10-06T13:47:11Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Boeing"
+   }
+  },
+  {
+   "id": "C228",
+   "split": "blind240",
+   "from": "\"Spark Hire\" <noreply@sparkhire.com>",
+   "subject": "One-Way Video Interview from Allied Universal",
+   "snippet": "Allied Universal has invited you to a one-way video interview for Security Account Manager. Record your answers to 6 questions anytime before Aug 30.",
+   "date": "2026-08-24T15:59:21Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Allied Universal"
+   }
+  },
+  {
+   "id": "C229",
+   "split": "blind240",
+   "from": "\"Hannah Cole\" <hannah.cole@citybusinessjournal.com>",
+   "subject": "Quick interview for a story on remote work?",
+   "snippet": "Hi Jordan, I'm a reporter writing a piece on how mid-career engineers are navigating remote work. Would you have 15 minutes for a phone interview this week?",
+   "date": "2026-09-22T21:41:39Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C230",
+   "split": "blind240",
+   "from": "\"The Muse\" <newsletter@themuse.com>",
+   "subject": "5 emails to send after an interview",
+   "snippet": "Plus: companies hiring now (Spotify, HubSpot, Etsy), how to negotiate your offer, and the one question to ask every interviewer.",
+   "date": "2026-08-16T07:34:15Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C231",
+   "split": "blind240",
+   "from": "\"Yelp Recruiting\" <no-reply@greenhouse.io>",
+   "subject": "Interview Confirmation: Yelp - Senior Data Engineer",
+   "snippet": "Hi Jordan, your virtual onsite with Yelp is confirmed for Thursday, October 22, 9:00 AM-1:00 PM PT. You'll meet 4 interviewers; Zoom links and the agenda are below.",
+   "date": "2026-10-16T11:59:43Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Yelp"
+   }
+  },
+  {
+   "id": "C232",
+   "split": "blind240",
+   "from": "\"Coursera\" <no-reply@coursera.org>",
+   "subject": "Reminder: Peer-graded Assignment due Sunday",
+   "snippet": "Your assignment 'Build a Regression Model' in the Machine Learning Specialization is due Sunday, 11:59 PM PT. Submit soon to stay on schedule.",
+   "date": "2026-09-12T21:29:39Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  },
+  {
+   "id": "C233",
+   "split": "blind240",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "Confirmed: 30 Minute Interview with Erin Walsh (Duolingo) on Tuesday, September 1, 2026",
+   "snippet": "Hi Jordan, A new event has been scheduled. Event type: 30 Minute Interview. With: Erin Walsh, Talent Acquisition at Duolingo. Location: Zoom.",
+   "date": "2026-08-27T18:10:32Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Duolingo"
+   }
+  },
+  {
+   "id": "C234",
+   "split": "blind240",
+   "from": "\"Paula Martín\" <paula.martin@inditex.com>",
+   "subject": "Entrevista - Proceso de selección Inditex",
+   "snippet": "Hola Álvaro, nos gustaría invitarte a una entrevista para el puesto de Analista de Producto el próximo martes 22 a las 10:00 en nuestras oficinas de Arteixo. ¿Te viene bien?",
+   "date": "2026-09-15T10:34:26Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Inditex"
+   }
+  },
+  {
+   "id": "C235",
+   "split": "blind240",
+   "from": "\"Voi Technology\" <no-reply@teamtailor.com>",
+   "subject": "Application received - Operations Lead, Paris",
+   "snippet": "Hi! We just wanted to let you know that we've received your application for Operations Lead at Voi. We'll be in touch as soon as we've had a look.",
+   "date": "2026-10-03T04:22:10Z",
+   "expect": {
+    "kind": "received",
+    "company": "Voi Technology"
+   }
+  },
+  {
+   "id": "C236",
+   "split": "blind240",
+   "from": "\"Recruitment bol\" <recruitment@bol.com>",
+   "subject": "Uitnodiging sollicitatiegesprek",
+   "snippet": "Hoi Lotte, leuk dat je hebt gesolliciteerd! We nodigen je graag uit voor een eerste gesprek op woensdag 16 september om 13:00 op ons kantoor in Utrecht.",
+   "date": "2026-09-08T13:19:16Z",
+   "expect": {
+    "kind": "interview",
+    "company": "bol"
+   }
+  },
+  {
+   "id": "C237",
+   "split": "blind240",
+   "from": "\"Ricardo Santos\" <ricardo.santos@talkdesk.com>",
+   "subject": "RE: Candidatura Customer Success",
+   "snippet": "Olá Miguel, obrigado pela mensagem. Pode enviar-me o seu CV atualizado em inglês? A versão que recebemos está em português e a equipa da Talkdesk é internacional.",
+   "date": "2026-09-10T14:07:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Talkdesk"
+   }
+  },
+  {
+   "id": "C238",
+   "split": "blind240",
+   "from": "\"Coinbase Recruiting\" <no-reply@greenhouse.io>",
+   "subject": "Please select your availability - Coinbase interview",
+   "snippet": "Hi Sam, we'd like to schedule your technical interview for Senior Backend Engineer at Coinbase. Please use the link below to share your availability for next week.",
+   "date": "2026-10-05T06:12:53Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Coinbase"
+   }
+  },
+  {
+   "id": "C239",
+   "split": "blind240",
+   "from": "\"Jordan Patel\" <jordan.patel@gmail.com>",
+   "subject": "Fwd: Interview Invitation - Spotify Data Engineer",
+   "snippet": "---------- Forwarded message --------- From: Spotify Recruiting. Hi Jordan, we'd like to invite you to a 60-minute technical interview on Sep 10 at 16:00 CET.",
+   "date": "2026-09-04T15:16:14Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Spotify"
+   }
+  },
+  {
+   "id": "C240",
+   "split": "blind240",
+   "from": "\"Interview Kickstart\" <hello@interviewkickstart.com>",
+   "subject": "Your FAANG offer starts here",
+   "snippet": "Join 15,000+ engineers who landed offers at top tech companies. Free webinar Thursday: cracking the system design interview. Seats are limited.",
+   "date": "2026-10-19T10:19:36Z",
+   "expect": {
+    "kind": "other",
+    "company": null
+   }
+  }
+ ]
+}

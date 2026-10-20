@@ -47,7 +47,7 @@ function session(ps: Posting[], f: Facts, answered: Set<string>, tag: string, pe
   for (const x of m.left) left[x.why] = (left[x.why] || 0) + 1;
   return {
     facts: next, postings: ps.length, open, jobOpen, panel: m.questions.length, panelJob: m.questions.filter((q) => q.perPosting).length,
-    merged: m.questions.filter((q) => q.postings.length > 1).length, askedByMerged: m.questions.filter((q) => !q.perPosting).reduce((n, q) => n + q.postings.length, 0),
+    merged: m.questions.filter((q) => q.postings.length > 1).length, askedByMerged: m.questions.filter((q) => q.postings.length > 1).reduce((n, q) => n + q.postings.length, 0),
     left, refused: rows.refused.length, readyBefore: before.filter((x) => ready(x.r)).length, readyAfter: after.filter((x) => ready(x.r)).length,
     openAfter: after.reduce((n, x) => n + x.r.needs.length, 0),
     askedAgain: after.reduce((n, x) => n + x.r.needs.filter((q) => panelKeys.has(keyOf(q, x.p.id, persona))).length, 0),
@@ -86,7 +86,7 @@ if (import.meta.main) {
       rows.push(`| ${name} | ${how} | ${m.postings} | ${m.open} | ${m.panel} (${m.panelJob} one posting's) | ${m.jobOpen} (${pct(m.jobOpen, m.open)}) | ${m.readyBefore} | ${m.readyAfter} | ${m.openAfter} | ${m.askedAgain} |`);
       if (size === 20) per.push(`- ${name}: panel questions per session ${m.sessions.map((s) => s.panel).join(", ")}; open on cards per session ${m.sessions.map((s) => s.open).join(", ")}.`);
       if (size === Infinity) {
-        per.push(`- ${name}, one queue: ${m.merged} panel questions are asked by more than one posting, and stand for ${m.askedByMerged} questions on cards; ` +
+        per.push(`- ${name}, one queue: ${m.merged} panel questions are asked by more than one posting (standing for ${m.askedByMerged} questions on cards); ` +
           `left for the cards (never in the panel): ${Object.entries(m.left).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}; TEST answers refused: ${m.refused}.`);
       }
     }

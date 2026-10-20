@@ -78,7 +78,11 @@ const RULES: Rule[] = [
   ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/, (q, t) => !/\bstate\b/.test(t)],
   ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which state\b|\bwhich state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
   ["timezone", /\btime ?zone are you\b|\bwhat time ?zone\b|\btime zone you are located\b|\bwhich time zone\b/],
-  ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/],
+  ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/, (q, t) => !/\b(employer|company|organi[sz]ation|team|office|headquarters?|client|manager|referr\w*)\b/.test(t)],
+  // WO-047: "Do you currently reside in the U.S.?" (no word edge after "U.S.") and "Are you based in the U.S.? We are only
+  // able to hire within the U.S." ask where the person lives, by country; "Are you currently located in Canada or the
+  // U.S?" names two. Only about the person ("you ... located in"), never compound with authorization, a move or a distance.
+  ["country", /\byou (are )?(currently |presently |now )?(live|living|reside|residing|based|located) in (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk)( or (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk))?(?![a-z])/, (q, t) => !/authori|sponsor|visa|able to work|right to work|willing|relocat|commut|eligib|permit|miles|within \d|citizen/.test(t)],
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
   ["location", /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
 

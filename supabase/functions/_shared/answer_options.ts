@@ -107,7 +107,9 @@ export const howHeardChannel = (value: string) => HOW_HEARD.some(([v]) => v.test
 export function yesNoFromFact(fact: string, value: string, question: string): "yes" | "no" | null {
   const q = low(question), v = low(value);
   const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
-  if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v ? "no" : null;
+  // "In Canada or the U.S.?", "a U.S. citizen or permanent resident?": a yes from the person's country is right; a no is not
+  // known, since the other half may be true of them (WO-047).
+  if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
   if (fact === "education_level") {
     const order = ["high_school", "some_college", "associate", "bachelor", "master", "doctorate"];
     const have = order.indexOf(v.replace(/'s|s$/g, "").replace(/ degree$/, ""));
@@ -135,7 +137,12 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
   if (exact.length) return exact[0].value;
   if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
   const derived = question ? yesNoFromFact(fact, value, question) : null;
-  if (derived) return byYesNo(derived, options);
+  // A derived yes or no lands only on a yes or no option; a list with no yes ("Master's | Bachelor's | ... | Not
+  // applicable", "Canada | US | Other") is answered by the fact itself, below (WO-047).
+  if (derived) {
+    const yn = byYesNo(derived, options);
+    if (yn || options.some((o) => yesNoOf(o.label) === "yes")) return yn;
+  }
   switch (fact) {
     case "how_heard": {
       const rule = HOW_HEARD.find(([v2]) => v2.test(v));
@@ -180,7 +187,13 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "country":
     case "citizenship":
-      if (US.test(v)) return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+      if (US.test(v)) {
+        // A country list holds "United States" and "United States Minor Outlying Islands": the country itself, when it is
+        // there exactly once, is the answer (WO-047, Canonical).
+        const itself = options.filter((o) => US.test(low(o.label)));
+        if (itself.length === 1) return itself[0].value;
+        return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+      }
       return only(options.filter((o) => low(o.label).startsWith(v)));
     case "notice_period":
     case "start_date":

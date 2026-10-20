@@ -331,7 +331,7 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
           if (!got) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ } continue; }
           const form = new FormData();
           form.append("chat_id", String(chatIdValue(parsed.chatId)));
-          form.append("document", new Blob([got.bytes], { type: got.mime }), got.filename);
+          form.append("document", new Blob([new Uint8Array(got.bytes)], { type: got.mime }), got.filename);
           await botApiForm(deps, token, "sendDocument", form);
         } else if (art.url) {
           await botApi(deps, token, "sendDocument", { chat_id: chatIdValue(parsed.chatId), document: art.url });

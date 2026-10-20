@@ -41,6 +41,39 @@ const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
 
+// The JavaScript host restores these optional fields from owner-scoped JSON.
+// Opaque records remain unknown until their existing runtime validators read them.
+interface CareerContextExtensions {
+  _hostPatch?: Record<string, unknown>;
+  batchApplyState?: unknown;
+}
+interface CareerTurnOutcome {
+  reply: string;
+  intent: string | null;
+  resultStatus?: string | null;
+  contained: boolean;
+  handler?: string | null;
+  capabilities: unknown;
+  result?: Record<string, unknown> | null;
+  task?: unknown;
+  batch?: unknown;
+}
+type PoolFilter =
+  | { op: "ilike"; column: string; value: string }
+  | { op: "eq"; column: string; value: unknown };
+interface PoolReadSpec {
+  table: string;
+  select: string;
+  order: { column: string; ascending: boolean; nullsFirst: boolean };
+  filters?: PoolFilter[];
+  limit: number;
+}
+interface PoolReadQuery {
+  ilike(column: string, value: string): PoolReadQuery;
+  eq(column: string, value: unknown): PoolReadQuery;
+  limit(count: number): PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>;
+}
+
 export async function handleChat(req: Request): Promise<Response> {
   const ctx: TurnCtx = { note: null, user: null, thread: null };
   const res = await handleChatInner(req, ctx);
@@ -225,8 +258,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // never an invented role. The worker's postingsFor reads through
     // the same loader, so the two pools cannot disagree.
     const poolLoader = CareerPool.createKbPoolLoader({
-      readRows: async (spec: any) => {
-        let q = admin.from(spec.table).select(spec.select)
+      readRows: async (spec: PoolReadSpec) => {
+        let q: PoolReadQuery = admin.from(spec.table).select(spec.select)
           .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst });
         for (const f of (spec.filters ?? [])) {
           if (f.op === "ilike") q = q.ilike(f.column, f.value);
@@ -252,7 +285,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // throws (loader contract), and any failure here leaves the
       // window pool standing on its own — the turn keeps its honest
       // named stop, never a crash, never an invented role.
-      let postings = pool.postings;
+      type CareerPosting = Awaited<ReturnType<typeof poolLoader.loadTargeted>>["postings"][number];
+      let postings: CareerPosting[] = pool.postings;
       try {
         const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
         if (target && target.company) {
@@ -263,8 +297,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           }
         }
       } catch { /* the window pool stands on its own */ }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings });
-      let out = host.runTurn(message, ctx);
+      const ctx: ReturnType<typeof host.createTurnCtx> & CareerContextExtensions = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings });
+      let out: CareerTurnOutcome = host.runTurn(message, ctx);
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;
@@ -284,7 +318,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (careerBatch && (out.handler !== "CareerHostControl" || pausedBatchReadback)) {
         const plan = await planCareerBatchIntent({ batchRequest: careerBatch, message, userId: user.id, threadId: tid,
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence,
-          summarizeRun: (run) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
+          summarizeRun: (run: unknown) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
         out = plan.out; batchIntent = plan.intent;
       } else if (delegateBatch && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
         const plan = await planCareerBatchPrepare({ run: ctx.batchApplyState, userId: user.id, threadId: tid,

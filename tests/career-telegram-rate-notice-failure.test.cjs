@@ -7,7 +7,9 @@ if(!process.execArgv.includes('--experimental-transform-types')){
 
 async function fixture(mode){
   const F=await import('./edge/lib/channel_fixture.ts');
-  const {handleTelegramWebhook}=await import('../supabase/functions/_shared/telegram_bridge.ts');
+  const {handleTelegramWebhook}=await import(process.env.UPMORE_TELEGRAM_RELEASE_CONTRACT==='1'
+    ? '../supabase/releases/career-case2-isolation-v1/telegram-inbound/_shared/telegram.ts'
+    : '../supabase/functions/_shared/telegram_bridge.ts');
   const admin=new F.FakeAdmin(),calls=[];
   const env=F.envOf({SUPABASE_URL:F.SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:F.SERVICE_KEY,CHANNEL_TEST_USER_ID:F.TEST_USER,TELEGRAM_BOT_TOKEN:'fixture-token',TELEGRAM_WEBHOOK_SECRET:'fixture-secret',TELEGRAM_ALLOWED_CHAT_IDS:'424242'});
   const deps={env,createAdmin:()=>admin,paceMs:0,fetchFn:async(url,init)=>{

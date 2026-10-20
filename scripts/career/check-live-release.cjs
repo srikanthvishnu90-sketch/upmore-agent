@@ -8,10 +8,11 @@ const { stripTypeScriptTypes } = require("node:module");
 const { spawnSync } = require("node:child_process");
 
 const DEFAULT_ROOT = path.resolve(__dirname, "../../supabase/releases/career-case2-isolation-v1");
-const MANIFEST_SHA256 = "e62b1ecbd71cd2fdaeab139eec3c38e2ede72750569e79adc2358682f0eec8fe";
-const PROVENANCE_SHA256 = "77e52065bb19589428454cca2d7da50a8363079c98820f7ef6fd5d39f39fb4b6";
+const MANIFEST_SHA256 = "94246f7358967f77fc453a440857ab327314b6cad813f52ffb55a656b43b9fb8";
+const PROVENANCE_SHA256 = "b88310239d6bc1cf04f76639790e8fb23f6f229823427501dcf14a885d2353c7";
 const ROUTER_PLAN_SHA256 = "40db18ab52c031a56384154728fb8b4c4adfdef07418dfec9da334b3f15ee6b1";
 const ROUTER_SHA256 = "7339f0c04f1d85ad3242c2a4466605baeab9ca35dc12bbe22e791fac78603033";
+const TYPE_PLAN_SHA256 = "2d26f201bb6425ff166da477f2407419cae263ffd8ac0bdd58173773162718e2";
 const HOST_PLAN_SHA256 = "413c3e124c013d38faf0d544e48d65ba617f9ec5b94b35835349b939c470321f";
 const REMOTE_IMPORTS = new Set([
   "https://deno.land/std@0.208.0/http/server.ts",
@@ -48,7 +49,7 @@ function verifyRelease(root = DEFAULT_ROOT) {
     if (!base || base.version !== (fn.name === "agent-chat" ? 246 : 7) || base.files.length !== expected.paths.length) deny("base provenance changed");
     const baseFiles = new Map(base.files.map(file => [file.path, file]));
     if (baseFiles.size !== expected.paths.length || expected.paths.some(name => !baseFiles.has(name))) deny("base file allowlist changed");
-    const changed = new Set(fn.name === "agent-chat" ? ["_shared/career_host.js", "_shared/router_core.career.js"] : ["_shared/channel_bridge.ts", "_shared/channel_present.ts", "_shared/telegram.ts"]);
+    const changed = new Set(fn.name === "agent-chat" ? ["_shared/career_host.js", "_shared/router_core.career.js", "src/handler-career.ts", "_shared/career_persistence.js"] : ["_shared/channel_bridge.ts", "_shared/channel_present.ts", "_shared/telegram.ts"]);
     const actual = [];
     function walk(dir) {
       for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -126,6 +127,28 @@ function verifyRelease(root = DEFAULT_ROOT) {
     payloads.push({ name: fn.name, entrypoint_path: fn.entrypoint, verify_jwt: fn.verify_jwt, files: payloadFiles });
   }
   if (expectedFunctions.size) deny("required function missing");
+  const typePlanBytes = fs.readFileSync(path.join(root, "type-boundary-transform.json"));
+  if (sha(typePlanBytes) !== TYPE_PLAN_SHA256) deny("reviewed type boundary transform changed");
+  const typePlan = JSON.parse(typePlanBytes.toString("utf8"));
+  const typeBases = new Map([
+    ["agent-chat/src/handler-career.ts", "a2c270d5aec8a5b07f9693f28054c0cdd575487f8f7140c985c480c137259f04"],
+    ["agent-chat/_shared/career_persistence.js", "75507cdcbef14440f6e2d0ff7c237a3d3fb12262cb868d0ab33aae55120b3c07"],
+    ["telegram-inbound/_shared/telegram.ts", "b5f8b8e963841f1fb126efa4ce487c5f12933dbf8301c3368283459ecaabe917"],
+  ]);
+  for (const file of typePlan.files) {
+    if (!typeBases.has(file.path) || file.base_sha256 !== typeBases.get(file.path)) deny("type boundary base changed");
+    typeBases.delete(file.path);
+    const slash = file.path.indexOf("/"), functionName = file.path.slice(0, slash), name = file.path.slice(slash + 1);
+    let original = Buffer.from(payloads.find(fn => fn.name === functionName).files.find(source => source.name === name).content, "utf8");
+    if (original.length !== file.candidate_bytes || sha(original) !== file.candidate_sha256) deny("type boundary target changed");
+    for (const change of [...file.replacements].sort((a, b) => b.new_start - a.new_start)) {
+      const before = Buffer.from(change.old_utf8), after = Buffer.from(change.new_utf8), start = change.new_start;
+      if (!Number.isSafeInteger(start) || start < 0 || start + after.length > original.length || !original.subarray(start, start + after.length).equals(after)) deny("type boundary inverse site changed");
+      original = Buffer.concat([original.subarray(0, start), before, original.subarray(start + after.length)]);
+    }
+    if (original.length !== file.base_bytes || sha(original) !== file.base_sha256) deny("unreviewed type boundary change");
+  }
+  if (typeBases.size) deny("type boundary proof missing");
   return { root, manifest, verified, payloads };
 }
 

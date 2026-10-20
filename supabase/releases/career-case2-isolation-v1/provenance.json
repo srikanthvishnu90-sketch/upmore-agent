@@ -5,7 +5,9 @@
   "changes": {
     "agent-chat": [
       "_shared/career_host.js",
-      "_shared/router_core.career.js"
+      "_shared/router_core.career.js",
+      "src/handler-career.ts",
+      "_shared/career_persistence.js"
     ],
     "telegram-inbound": [
       "_shared/channel_bridge.ts",
@@ -111,5 +113,22 @@
         }
       ]
     }
-  ]
+  ],
+  "type_boundary_runtime_equivalence": {
+    "method": "In-memory esbuild 0.25.12 type erasure with comments and whitespace removed; emitted output is not shipped.",
+    "files": [
+      {
+        "file": "agent-chat/src/handler-career.ts",
+        "emitted_runtime_equal": true,
+        "canonical_js_sha256": "813a7f5c6486d8b1e1aaef770cec3d24e2c7b2c95f65de507a9870b61f9b0b65",
+        "method": "In-memory esbuild0.25.12 type erasure plus comment/whitespace removal; no emitted code is shipped."
+      },
+      {
+        "file": "agent-chat/_shared/career_persistence.js",
+        "emitted_runtime_equal": true,
+        "canonical_js_sha256": "a1272a3980837cbb5abc9203000218e85dfd961995a825af214f1ef6c31cc782",
+        "method": "In-memory esbuild0.25.12 type erasure plus comment/whitespace removal; no emitted code is shipped."
+      }
+    ]
+  }
 }

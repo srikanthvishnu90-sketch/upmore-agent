@@ -9,7 +9,9 @@ if(!process.execArgv.includes('--experimental-transform-types')){
 }else{
  async function world(channel,{status=429,retry='3600',dry=false}={}){
   const F=await import('./edge/lib/channel_fixture.ts');
-  const {handleTelegramWebhook}=await import('../supabase/functions/_shared/telegram_bridge.ts');
+  const {handleTelegramWebhook}=await import(process.env.UPMORE_TELEGRAM_RELEASE_CONTRACT==='1'
+   ? '../supabase/releases/career-case2-isolation-v1/telegram-inbound/_shared/telegram.ts'
+   : '../supabase/functions/_shared/telegram_bridge.ts');
   const {handleWhatsappWebhook,twilioSignature}=await import('../supabase/functions/_shared/whatsapp_twilio.ts');
   const admin=new F.FakeAdmin(),calls=[];let upstreamStatus=status;
   const env=F.envOf({SUPABASE_URL:F.SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:F.SERVICE_KEY,CHANNEL_TEST_USER_ID:F.TEST_USER,TELEGRAM_BOT_TOKEN:'fixture-token',TELEGRAM_WEBHOOK_SECRET:'fixture-secret',TELEGRAM_ALLOWED_CHAT_IDS:'424242',TWILIO_ACCOUNT_SID:'ACfixture',TWILIO_AUTH_TOKEN:'fixture-auth',TWILIO_WHATSAPP_FROM:'whatsapp:+12025550100',WHATSAPP_ALLOWED_NUMBERS:'+12025550101'});

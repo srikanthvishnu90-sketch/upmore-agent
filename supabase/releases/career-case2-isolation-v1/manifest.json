@@ -15,8 +15,8 @@
         },
         {
           "path": "src/handler-career.ts",
-          "bytes": 21635,
-          "sha256": "a2c270d5aec8a5b07f9693f28054c0cdd575487f8f7140c985c480c137259f04"
+          "bytes": 22929,
+          "sha256": "15fe3e4afb9fcca4ac09cc0367e0dabceb29a754d60be8117e804d0de5f8d8b2"
         },
         {
           "path": "_shared/identity_redact.ts",
@@ -60,8 +60,8 @@
         },
         {
           "path": "_shared/career_persistence.js",
-          "bytes": 4001,
-          "sha256": "75507cdcbef14440f6e2d0ff7c237a3d3fb12262cb868d0ab33aae55120b3c07"
+          "bytes": 4039,
+          "sha256": "9397908f99e172eaf428c036b45c0326a1c91919a5f27ec87a33f2083576d130"
         },
         {
           "path": "_shared/channel_artifacts.ts",
@@ -83,8 +83,8 @@
         },
         {
           "path": "_shared/telegram.ts",
-          "bytes": 16800,
-          "sha256": "b5f8b8e963841f1fb126efa4ce487c5f12933dbf8301c3368283459ecaabe917"
+          "bytes": 16816,
+          "sha256": "358bba5ab774f04c288823db194c23ad02c91606400fe69d822517767da2c9d1"
         },
         {
           "path": "_shared/channel_bridge.ts",

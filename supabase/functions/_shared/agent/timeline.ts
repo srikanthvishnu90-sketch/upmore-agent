@@ -13,6 +13,8 @@ export const EVENT_KINDS = [
   "instruction_kept", "instruction_removed", "fact_confirmed",
   "search", "outreach_drafted", "outreach_sent", "intro_proposed", "intro_made",
   "mock_done", "status_change", "note",
+  // WO-033: an outreach draft approved, answered, or bounced (20261021010000_career_outreach.sql widens the table's check).
+  "outreach_approved", "outreach_replied", "outreach_bounced",
 ] as const;
 export type EventKind = typeof EVENT_KINDS[number];
 export const SUBJECT_MAX = 200, DETAIL_MAX = 4096, RECALL_MAX = 50, SUMMARY_MAX = 1600;
@@ -207,7 +209,7 @@ export function threadSummary(events: CareerEvent[], now: number, tz?: string): 
   if (finished.length) lines.push(`- Applications finished: ${finished.slice(-5).reverse().map((e) => `${e.subject} ${String(e.detail?.state ?? "").replace(/_/g, " ")} (${on(e)})`).join(", ")}${finished.length > 5 ? ` and ${finished.length - 5} more` : ""}.`);
   const tracked = of("status_change").filter((e) => e.source !== "card");
   if (tracked.length) lines.push(`- Applications they reported: ${tracked.slice(-5).reverse().map((e) => `${e.subject}${e.detail?.stage ? ` ${e.detail.stage}` : ""} (${on(e)})`).join(", ")}.`);
-  for (const [k, label] of [["outreach_drafted", "Outreach drafted"], ["outreach_sent", "Outreach sent"], ["intro_proposed", "Intros proposed"], ["intro_made", "Intros made"], ["mock_done", "Mock interviews"], ["note", "Notes"]] as const) {
+  for (const [k, label] of [["outreach_drafted", "Outreach drafted"], ["outreach_approved", "Outreach approved"], ["outreach_sent", "Outreach sent"], ["outreach_replied", "Outreach replies"], ["outreach_bounced", "Outreach bounced"], ["intro_proposed", "Intros proposed"], ["intro_made", "Intros made"], ["mock_done", "Mock interviews"], ["note", "Notes"]] as const) {
     const xs = of(k);
     if (xs.length) lines.push(`- ${label}: ${xs.length} (${names(xs.map((e) => e.subject))}).`);
   }

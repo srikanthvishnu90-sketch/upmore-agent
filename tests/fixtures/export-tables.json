@@ -544,6 +544,10 @@
    "order": ["updated_at"]
   },
   {
+   "table": "career_outreach_drafts",
+   "order": ["created_at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

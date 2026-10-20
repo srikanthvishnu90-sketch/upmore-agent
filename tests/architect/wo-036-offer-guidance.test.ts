@@ -122,13 +122,27 @@ Deno.test("WO-036/T4 a median from fewer than 5 filings is never a benchmark; ev
   const sea = benchmarks(parseOfferWords("Stripe offered 180k base, Seattle, software engineer"), data);
   const seaOews = sea.find((b) => b.kind === "oews")!;
   eq(seaOews.shown, false);
-  // With nothing imported (the files as shipped today), each source says "not loaded yet" and the national BLS figure
-  // is labeled national.
-  const now = offerTurn({ words: "JPM offered 110k base, 15k signing, NYC, analyst", pending: null, now: NOW }).result;
+  // With nothing imported (a dataset still awaiting its import), each source says "not loaded yet" and the national BLS
+  // figure is labeled national. Built explicitly: the shipped files now carry CI's real import.
+  const awaiting = (d: any) => ({ ...d, status: "awaiting_import", period: null, reference_period: null, cells: [] });
+  const shipped = payData();
+  const empty = { ...shipped, lca_wages: awaiting(shipped.lca_wages), oews_metro: awaiting(shipped.oews_metro) };
+  const now = offerTurn({ words: "JPM offered 110k base, 15k signing, NYC, analyst", pending: null, now: NOW, data: empty as any }).result;
   assert(now.messages[0].includes("not loaded yet"), "a missing file is said, not filled");
   const nat = now.benchmarks.find((b) => b.kind === "bls_national")!;
   eq([nat.shown, nat.median, nat.period], [true, 101910, "May 2024"]);
   assert(now.messages[0].includes("nationwide; not the New York metro, not entry level"), "the caveat is plain");
+});
+
+Deno.test("WO-036/T4b the shipped data is CI's real import: a New York software offer gets a BLS metro benchmark with its period", () => {
+  const shipped = payData();
+  eq([shipped.oews_metro.status, shipped.lca_wages.status], ["imported", "imported"], "both datasets imported");
+  const r = offerTurn({ words: "Google offered 150k base, NYC, software engineer", pending: null, now: NOW }).result;
+  const oews = r.benchmarks.find((b) => b.kind === "oews")!;
+  assert(oews.shown && typeof oews.median === "number" && oews.median > 50000 && oews.median < 400000, JSON.stringify(oews));
+  assert(/^May 20\d\d$/.test(String(oews.period)), `period is said: ${oews.period}`);
+  assert(!r.messages.join("\n").includes("not loaded yet"), "nothing claims missing data when it is loaded");
+  for (const b of r.benchmarks) if (b.kind === "lca" && b.shown) assert((b.n ?? 0) >= 5, "an LCA benchmark always has n >= 5");
 });
 
 Deno.test("WO-036/T5 the counter never invents a competing offer, a preference or a deadline", async () => {

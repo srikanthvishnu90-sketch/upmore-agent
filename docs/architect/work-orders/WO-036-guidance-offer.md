@@ -278,10 +278,10 @@ After reverting: 19 passed, 0 failed.
   schema.
 
 ## Not built, and why
-- **Real LCA title x city and OEWS metro numbers.** dol.gov and bls.gov were unreachable from the build environment. The
-  importers and fixtures are in. `.github/workflows/import-pay-data.yml` downloads the newest public files in CI, runs
-  both importers and commits the two datasets back to the PR branch; the architect then rebuilds the bundles. Until
-  that commit lands, both datasets say `awaiting_import` and the benchmark says it has no filed or survey wage.
+- **Real LCA and OEWS numbers: done in CI (2026-10-20).** `.github/workflows/import-pay-data.yml` imported DOL LCA FY2025 Q4
+  (977 cells from 8,135 certified filings; 249 at n >= 5) and BLS OEWS May 2025 through the BLS Public Data API (90
+  metro x occupation cells), and committed both. www.bls.gov refused the bulk file (HTTP 403 without a contact email in the
+  request), so the API route is used. VERIFIED from the CI log and the committed files.
 - **Live PDL validation.** There is no key here. The first live call should confirm two things: the company phrases
   match PDL's canonical names, and the nested-clause behavior. If the phrases are wrong the result is fewer records,
   never wrong ones. Check `career_pdl_calls` (kept vs returned) after the first calls.

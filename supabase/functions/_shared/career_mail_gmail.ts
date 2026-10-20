@@ -100,12 +100,16 @@ export interface TokenDeps {
   now: () => number;
 }
 export function careerToken(d: TokenDeps): (userId: string) => Promise<string | null> {
+  return careerTokenFor(d, CAREER_READ_SCOPE);
+}
+// The same token for any scope the grant must carry (WO-033 sends with gmail.send through this reader).
+export function careerTokenFor(d: TokenDeps, scope: string): (userId: string) => Promise<string | null> {
   return async (userId) => {
     const name = `oauth_google_career_${userId}`;
     const conn = await d.connection(userId);
     if (!conn || conn.vault_name !== name) return null;
     const scopes = Array.isArray(conn.scopes) ? conn.scopes : String(conn.scopes ?? "").split(/[\s,]+/);
-    if (!scopes.includes(CAREER_READ_SCOPE)) return null;
+    if (!scopes.includes(scope)) return null;
     const raw = await d.readVault(name);
     if (!raw) return null;
     let tok: any;

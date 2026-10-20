@@ -1,0 +1,45 @@
+# WO-064: the panel's open questions drafted from confirmed facts, measured on the captured samples with the real model
+# (evals/apply/answer-draft.ts). Needs the repository secret OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it
+# the run prints NOT RUN and fails: a number is never faked. Spend: $5 in total across every run on this branch; the
+# runner counts what evals/apply/results/answer-draft-*.json recorded and stops before crossing it.
+# On a push to ci/answer-draft: the results and the review file land on ci/answer-draft only. Whether each draft is right
+# is read afterwards by two independent reviewers from the review file; this run only counts.
+name: answer-draft-eval
+on:
+  push:
+    branches: [ci/answer-draft]
+    paths:
+      - .github/workflows/answer-draft-eval.yml
+      - evals/apply/answer-draft.ts
+      - supabase/functions/_shared/answer_draft.ts
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: answer-draft-eval, cancel-in-progress: false }
+jobs:
+  eval:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_BUDGET_USD: "5"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Samples A to H
+        run: |
+          deno run -A evals/apply/answer-draft.ts --samples a,b,c,d,e,f,g,h --label "ah-${{ github.run_id }}" \
+            --review "evals/apply/results/answer-draft-review-ah-${{ github.run_id }}.json" | tee "$RUNNER_TEMP/out.txt"
+      - name: Commit the results to ci/answer-draft
+        if: always()
+        run: |
+          git config user.name "answer-draft-eval[ci]"
+          git config user.email "answer-draft-eval@users.noreply.github.com"
+          git add evals/apply/results/ || true
+          git commit -m "WO-064 data: answer drafts measured, run ${{ github.run_id }} ($(tail -1 "$RUNNER_TEMP/out.txt" 2>/dev/null))" || exit 0
+          git push origin HEAD:ci/answer-draft

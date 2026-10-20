@@ -474,6 +474,7 @@ async function prepareQueue() {
   const left = {};
   for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;
   await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
+    ownWords: ok.filter((r) => r.ownWords).map((r) => String(r.jobId)),
     failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
   return { ok: true, questions: merged.questions.length };
 }
@@ -502,6 +503,36 @@ async function saveAnswerOnce(picks) {
   await put(S, "answered_before", [...new Set([...(await get(S, "answered_before", [])), ...saved])]);
   await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused });
   return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
+}
+
+// WO-064: the panel's open questions drafted from the person's confirmed facts, on their tap ("Draft from my facts"). The
+// questions go to career-answer-draft as the employers ask them; the function reads the facts from the account itself.
+// The drafts are only shown: "Use these drafts" puts them in the panel's choices, and only Save my answers keeps them.
+const NO_SHORT = "Trainee couldn't draft these right now; nothing changed. Answer them here as before, or try again in a few minutes.";
+async function draftAnswerOnce() {
+  const a = await session();
+  if (!a) return { ok: false, message: say.signedOut };
+  const st = await get(S, "answer_once", null);
+  if (!st || st.status !== "ready") return { ok: false, message: "Press Prepare first." };
+  const live = st.questions.filter((q) => !st.skipped.includes(q.key) && !st.saved.includes(q.key));
+  if (!live.length) return { ok: false, message: "No open questions to draft." };
+  const cfg = await config();
+  let j = null;
+  try {
+    const r = await fetch(cfg.supabaseUrl + "/functions/v1/career-answer-draft", {
+      method: "POST", headers: { apikey: cfg.anonKey, authorization: "Bearer " + a.access_token, "content-type": "application/json" },
+      body: JSON.stringify({ questions: C.shortDraftRequest(live, st.ownWords || []) }),
+    });
+    if (r.status === 401) return { ok: false, message: say.signedOut };
+    j = await r.json().catch(() => null);
+  } catch {
+    return { ok: false, message: NO_SHORT };
+  }
+  if (!j || j.ok !== true) return { ok: false, message: (j && j.message) || NO_SHORT };
+  const drafts = C.draftsFromReply(live, j.drafts);
+  const now = await get(S, "answer_once", st);
+  await put(S, "answer_once", { ...now, drafts: { ...(now.drafts || {}), ...drafts }, draftMsg: String(j.message || "").slice(0, 300) });
+  return { ok: true, drafted: Object.keys(drafts).length };
 }
 
 // ------------------------------------------------------------------------------------------------ messages
@@ -565,7 +596,7 @@ async function handle(m, sender) {
       const done = surveys.get(tabId);
       if (!done) return { ok: false };
       surveys.delete(tabId);
-      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [] });
+      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [], ownWords: m.ownWords === true });
       return { ok: true };
     }
     case "questions": {
@@ -820,6 +851,8 @@ async function handle(m, sender) {
     }
     case "answer-once-save":
       return await saveAnswerOnce(m.answers);
+    case "answer-once-draft":
+      return await draftAnswerOnce();
     case "answer-once-skip": {
       const st = await get(S, "answer_once", null);
       if (!st) return { ok: false };
@@ -835,7 +868,7 @@ async function handle(m, sender) {
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
-  "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
+  "answer-once-prepare", "answer-once-save", "answer-once-skip", "answer-once-draft"]);
 const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).

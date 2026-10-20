@@ -1502,6 +1502,68 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// WO-064: the same three forms; on the person's tap Trainee drafts what their confirmed facts carry. Each draft is shown
+// under its question with the fact it came from; nothing is chosen until the person taps "Use these drafts", which fills
+// only empty choices; nothing is saved until Save. The request carries the questions only, never a fact.
+test("answer once drafts: shown with their facts on the person's tap, put in empty choices only on 'Use these drafts', saved only on Save", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.answerDraftCalls = [];
+  world.state.questions.delete("fact:sponsorship"); // the answer-once test above answered it; an answer is never replaced
+  const saved = world.state.answers;
+  world.state.answers = saved.filter((a) => a.key !== "fact:sponsorship");
+  const ids = ["lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027", "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d", "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03"];
+  const urls = ids.map((id, k) => world.cloneUrl(id, 64 + k));
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?answer-once-drafts=1");
+  const tabId = await tabIdOf(page.url());
+  const panel = await openPanel(tabId);
+  try {
+    await panel.fill("#links", urls.join("\n"));
+    await panel.click("#q-add");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
+    await panel.click("#q-prepare");
+    await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length > 0, null, { timeout: 60000 });
+    assert.equal(world.state.answerDraftCalls.length, 0, "nothing is drafted before the person asks");
+    assert.equal(await panel.isVisible("#ao-use"), false);
+    await panel.click("#ao-draft");
+    await panel.waitForFunction(() => /Trainee's draft: No/.test(document.querySelector('#ao-list li[data-key="fact:sponsorship"] .ao-drafted')?.textContent || ""), null, { timeout: 10000 });
+    assert.equal(world.state.answerDraftCalls.length, 1);
+    const body = world.state.answerDraftCalls[0];
+    assert.deepEqual(Object.keys(body), ["questions"], "the request carries the questions only, never a fact");
+    for (const q of body.questions) assert.deepEqual(Object.keys(q).sort(), ["company", "key", "label", "options", "own_words", "type"]);
+    const spons = panel.locator('#ao-list li[data-key="fact:sponsorship"]');
+    assert.match(await spons.locator(".ao-drafted").textContent(), /from your facts: other: TEST work authorization/);
+    const values = await panel.$$eval("#ao-list li .ao-answer", (els) => els.map((e) => e.value));
+    assert.ok(values.every((v) => v === ""), "a draft is shown, never chosen: " + JSON.stringify(values));
+    // A choice the person already made stays theirs; "Use these drafts" fills only the empty ones.
+    const other = await panel.$$eval("#ao-list li", (lis) => lis.map((li) => ({ key: li.dataset.key, tag: li.querySelector(".ao-answer").tagName })).filter((x) => x.key !== "fact:sponsorship"));
+    if (other[0]) {
+      const el = panel.locator(`#ao-list li[data-key="${other[0].key}"] .ao-answer`);
+      if (other[0].tag === "SELECT") await el.selectOption({ index: 1 }); else await el.fill("TEST answer typed by the person");
+    }
+    const firstOther = other[0] ? await panel.locator(`#ao-list li[data-key="${other[0].key}"] .ao-answer`).inputValue() : null;
+    const calls = (world.state.formAnswerCalls || []).length;
+    await panel.click("#ao-use");
+    await panel.waitForFunction(() => /put in your choices|already has your own choice/.test(document.getElementById("ao-msg")?.textContent || ""), null, { timeout: 5000 });
+    assert.equal(await spons.locator(".ao-answer").inputValue(), "No");
+    if (other[0]) assert.equal(await panel.locator(`#ao-list li[data-key="${other[0].key}"] .ao-answer`).inputValue(), firstOther, "the person's own choice is kept");
+    assert.match(await panel.textContent("#ao-msg"), /1 draft put in your choices/);
+    assert.equal((world.state.formAnswerCalls || []).length, calls, "nothing saved before Save");
+    await panel.click("#ao-save");
+    await panel.waitForFunction(() => ![...document.querySelectorAll("#ao-list li")].some((li) => li.dataset.key === "fact:sponsorship"), null, { timeout: 10000 });
+    await waitFor(() => world.state.answers.some((a) => a.key === "fact:sponsorship" && a.answer === "No"), 10000);
+    const after = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.ok(after.saved.includes("fact:sponsorship"), JSON.stringify({ saved: after.saved, refused: after.refused }));
+    assert.equal(world.state.submits.length, 0, "nothing was sent");
+  } finally {
+    world.state.answers = saved;
+    await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await sw.evaluate(() => chrome.storage.session.remove(["answer_once", "answered_before"]));
+    await panel.close();
+    await page.close();
+  }
+});
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

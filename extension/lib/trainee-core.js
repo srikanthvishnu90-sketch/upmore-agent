@@ -3707,6 +3707,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
     draftProvenance: () => draftProvenance,
+    draftsFromReply: () => draftsFromReply,
     essayQuestions: () => essayQuestions,
     evidenceRecord: () => evidenceRecord,
     formAnswersToKeep: () => formAnswersToKeep,
@@ -3714,6 +3715,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
     outcomeOf: () => outcomeOf,
+    ownWordsAsked: () => ownWordsAsked,
     payloadText: () => payloadText,
     planForm: () => planForm,
     postingKey: () => postingKey,
@@ -3721,6 +3723,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
+    shortDraftRequest: () => shortDraftRequest,
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
     tenantOf: () => tenantOf,
@@ -4077,6 +4080,39 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       questions,
       left
     };
+  }
+  function ownWordsAsked(labels) {
+    const p = readAiPolicy(labels).policy;
+    return p === "prohibited" || p === "unread";
+  }
+  function shortDraftRequest(questions, ownWordsJobs) {
+    const own = new Set(ownWordsJobs.map(String));
+    return questions.slice(0, 200).map((q) => ({
+      key: q.key,
+      label: q.label,
+      type: q.type,
+      options: q.options,
+      company: q.postings[0]?.company ?? "",
+      own_words: q.postings.some((p) => own.has(String(p.jobId)))
+    }));
+  }
+  function draftsFromReply(questions, drafts) {
+    const out = {};
+    const byKey = new Map(questions.map((q) => [
+      q.key,
+      q
+    ]));
+    for (const d of Array.isArray(drafts) ? drafts : []) {
+      const q = byKey.get(String(d?.key));
+      if (!q || d?.ok !== true || typeof d.answer !== "string" || !d.answer.trim()) continue;
+      const answer = d.answer.trim().slice(0, 600);
+      if (q.options.length && !answer.split(/\s*;\s*/).every((a) => q.options.includes(a))) continue;
+      out[q.key] = {
+        answer,
+        from: (Array.isArray(d.from) ? d.from : []).map((x) => String(x).slice(0, 100)).slice(0, 4)
+      };
+    }
+    return out;
   }
   function answerOnceRows(o) {
     const groups = /* @__PURE__ */ new Map();

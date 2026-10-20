@@ -42,3 +42,6 @@ verify_jwt = false
 # WO-049: the extension card's "Draft from my facts": the signed-in person's own session only.
 [functions.career-essay-draft]
 verify_jwt = true
+
+[functions.career-answer-draft]
+verify_jwt = true

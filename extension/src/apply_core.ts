@@ -221,6 +221,34 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
   questions.sort((a, b) => b.postings.length - a.postings.length);
   return { questions, left };
 }
+// WO-064: the panel's questions drafted from the person's confirmed facts, on their tap (career-answer-draft). A form that
+// asks for the person's own words gets no free-text draft (own_words); the server never sees a fact from here.
+export function ownWordsAsked(labels: string[]): boolean {
+  const p = readAiPolicy(labels).policy;
+  return p === "prohibited" || p === "unread";
+}
+export function shortDraftRequest(questions: PanelQuestion[], ownWordsJobs: string[]) {
+  const own = new Set(ownWordsJobs.map(String));
+  return questions.slice(0, 200).map((q) => ({
+    key: q.key, label: q.label, type: q.type, options: q.options, company: q.postings[0]?.company ?? "",
+    own_words: q.postings.some((p) => own.has(String(p.jobId))),
+  }));
+}
+// What the panel shows: a draft only for a question still open, and an option answer only when it is one of that
+// question's own options (the server checked; this checks again, since the reply came over the network).
+export type ShownDraft = { answer: string; from: string[] };
+export function draftsFromReply(questions: PanelQuestion[], drafts: unknown): Record<string, ShownDraft> {
+  const out: Record<string, ShownDraft> = {};
+  const byKey = new Map(questions.map((q) => [q.key, q]));
+  for (const d of Array.isArray(drafts) ? drafts : []) {
+    const q = byKey.get(String(d?.key));
+    if (!q || d?.ok !== true || typeof d.answer !== "string" || !d.answer.trim()) continue;
+    const answer = d.answer.trim().slice(0, 600);
+    if (q.options.length && !answer.split(/\s*;\s*/).every((a: string) => q.options.includes(a))) continue;
+    out[q.key] = { answer, from: (Array.isArray(d.from) ? d.from : []).map((x: unknown) => String(x).slice(0, 100)).slice(0, 4) };
+  }
+  return out;
+}
 // The person's picks as the rows the store already takes: per posting, the questions (career_apply_questions_put_own, so
 // the row names that posting) and the answers (career_apply_questions_answer_from_form_own, under the same key the text
 // path uses). An empty pick is a skip, left for the card. A pick that is not one of the shown options, an identity-shaped

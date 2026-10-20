@@ -78,13 +78,15 @@ async function render() {
 // ------------------------------------------------------------------------------------------------ answer once (WO-054)
 // The questions only the person can answer, gathered from the queue's next postings, most asked first, each at the
 // employer's own wording and with the employer's own options. Every choice starts empty: Trainee never picks one. Skip
-// leaves a question for its card; only the person's own tap on Save stores anything.
+// leaves a question for its card; only the person's own tap on Save stores anything. WO-064: on the person's tap, Trainee
+// drafts what their confirmed facts carry; each draft is shown under its question with the facts it came from, and only
+// the person's tap on "Use these drafts" puts them in the empty choices (never over one they made), to check before Save.
 const LEFT = { essay: "written answers (drafted on their card)", personal: "self-identification questions (yours, on the form)", identity: "identity numbers (typed by you)",
   file: "file uploads", agreement: "agreements (each is one employer's)" };
 function aoItem(q) {
   const li = document.createElement("li");
   li.dataset.key = q.key;
-  li.innerHTML = '<b class="ao-label"></b><p class="ao-where small"></p><span class="ao-input"></span> <button class="link ao-skip">Skip</button>';
+  li.innerHTML = '<b class="ao-label"></b><p class="ao-where small"></p><span class="ao-input"></span> <button class="link ao-skip">Skip</button><p class="ao-drafted small"></p>';
   li.querySelector(".ao-label").textContent = q.label.replace(/\s*[*✱]+\s*$/, "") + (q.similar ? ` (and ${q.similar} similar)` : "");
   const n = q.postings.length, names = [...new Set(q.postings.map((p) => p.company))];
   li.querySelector(".ao-where").textContent = q.perPosting ? `Only for ${names[0]}` : `Asked by ${n} posting${n === 1 ? "" : "s"}: ${names.join(", ")}`;
@@ -118,13 +120,21 @@ function renderAnswerOnce(ao) {
     const el = [...ol.children].find((x) => x.dataset.key === q.key) || aoItem(q);
     if (ol.children[i] !== el) ol.insertBefore(el, ol.children[i] || null);
   });
+  const drafts = ao?.drafts || {};
+  for (const el of [...ol.children]) {
+    const d = drafts[el.dataset.key];
+    el.querySelector(".ao-drafted").textContent = d ? `Trainee's draft: ${d.answer}${d.from.length ? ` (from your facts: ${d.from.join("; ")})` : ""}` : "";
+  }
   $("ao-save").hidden = !live.length;
+  $("ao-draft").hidden = !live.length;
+  $("ao-use").hidden = !live.some((q) => drafts[q.key]);
   if (!ao) return text($("ao-msg"), "");
   if (ao.status === "reading") return text($("ao-msg"), `Reading posting ${ao.read} of ${ao.total} in the background. Nothing is filled or sent.`);
   const left = Object.entries(ao.left || {}).map(([k, v]) => `${v} ${LEFT[k] || k}`);
   text($("ao-msg"), [
     `Read ${ao.postings} of ${ao.total} postings: ${ao.questions.length} question${ao.questions.length === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
     ...(ao.notes || []), ...(ao.failed || []).map((f) => `Not read: ${f.url} (${f.why}); its questions are asked on its card.`),
+    ao.draftMsg || "",
     left.length ? `Left for the cards: ${left.join(", ")}.` : "",
     ao.saved.length ? `${ao.saved.length} answer${ao.saved.length === 1 ? "" : "s"} saved. Each fills every posting whose own options fit it; you approve each card as always.` : "",
     ...(ao.refused || []).map((r) => `Not saved (${r.why}): asked again on its card.`),
@@ -136,6 +146,29 @@ $("q-prepare").onclick = async (e) => {
   const r = await send({ type: "answer-once-prepare" });
   if (r && r.ok === false && r.message) text($("ao-msg"), r.message, true);
   render();
+};
+$("ao-draft").onclick = async (e) => {
+  if (!e.isTrusted) return; // drafts cost a model call: only the person's own tap asks
+  $("ao-draft").disabled = true;
+  text($("ao-msg"), "Drafting from your confirmed facts...");
+  const r = await send({ type: "answer-once-draft" });
+  $("ao-draft").disabled = false;
+  if (r && r.ok === false && r.message) return text($("ao-msg"), r.message, true);
+  render();
+};
+$("ao-use").onclick = async (e) => {
+  if (!e.isTrusted) return; // only the person's own tap puts a draft in a choice
+  const st = await send({ type: "status" });
+  const drafts = st?.answerOnce?.drafts || {};
+  let n = 0;
+  for (const li of [...$("ao-list").children]) {
+    const d = drafts[li.dataset.key], input = li.querySelector(".ao-answer");
+    if (!d || input.value.trim()) continue;
+    if (input.tagName === "SELECT" && ![...input.options].some((o) => o.value === d.answer)) continue;
+    input.value = d.answer;
+    n++;
+  }
+  text($("ao-msg"), n ? `${n} draft${n === 1 ? "" : "s"} put in your choices. Check each one, change any that's wrong, then Save my answers.` : "Every drafted question already has your own choice.");
 };
 $("ao-save").onclick = async (e) => {
   if (!e.isTrusted) return; // only the person's own tap stores an answer

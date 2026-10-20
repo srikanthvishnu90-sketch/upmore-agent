@@ -300,7 +300,8 @@
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
     const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs,
+      ownWords: C.ownWordsAsked(f.schema.map((s) => String(s.label || ""))) });
   }
   function formReady(ms) {
     return new Promise((resolve) => {

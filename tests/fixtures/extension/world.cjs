@@ -313,6 +313,7 @@ async function startWorld(o = {}) {
     wanted: [], // WO-066: career_apply_wanted rows {posting_key, url, company, title, state}
     rpcCalls: [],
     essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
+    answerDraftCalls: [], // WO-064: what reached the career-answer-draft stand-in
     essayReply: null,
     touched: [], // WO-054: what the "watch" variant saw done to a page
     serviceKeySession: false,
@@ -380,6 +381,18 @@ async function startWorld(o = {}) {
         ok: true, text: `TEST draft ${n}: as a Data Analyst at Example Analytics for 3 years I built the weekly reporting, and I studied Statistics at Example State University.`,
         facts, fact_ids: facts.map((f) => f.id), message: "Drafted by Trainee only from your confirmed facts. TEST: this is a stand-in draft.", used: n, cap: 60,
       });
+    }
+    // WO-064: the TEST stand-in for supabase/functions/career-answer-draft (its real logic is tested with a stub model in
+    // tests/architect/wo-064-short-drafts.test.ts). Each call is recorded. A sponsorship question offering "No" is drafted
+    // "No" from a TEST fact; every other question has no draft (no fact carries it).
+    if (u.pathname === "/functions/v1/career-answer-draft" && req.method === "POST") {
+      state.answerDraftCalls.push(args);
+      const drafts = (Array.isArray(args.questions) ? args.questions : []).map((q) =>
+        /sponsor/i.test(q.label) && (q.options || []).includes("No")
+          ? { key: q.key, ok: true, answer: "No", fact_ids: ["TEST-F6"], from: ["other: TEST work authorization, no sponsorship needed"] }
+          : { key: q.key, ok: false, why: "no_fact" });
+      const n = drafts.filter((d) => d.ok).length;
+      return json(res, 200, { ok: true, drafts, drafted: n, used: n, cap: 600, message: `Trainee drafted ${n} of ${drafts.length} from your confirmed facts. TEST stand-in.` });
     }
     const m = /^\/rest\/v1\/rpc\/([a-z_]+)$/.exec(u.pathname);
     if (!m) return json(res, 404, { message: "not found" });

@@ -203,7 +203,7 @@ export interface HandlerDeps {
   card(userId: string): EssayCardDeps;
   done?(userId: string): Promise<void>; // after the draft: the turn's cost is recorded
 }
-const jwtRole = (token: string): string | null => {
+export const jwtRole = (token: string): string | null => {
   try {
     const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
     return JSON.parse(atob(part + "=".repeat((4 - part.length % 4) % 4))).role ?? null;

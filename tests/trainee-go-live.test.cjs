@@ -59,6 +59,8 @@ test('dry run: six steps in order, every Trainee migration in order, agent-chat 
     'supabase functions deploy trainee-deliver --project-ref abcdefghijklmnopqrst --no-verify-jwt',
     'supabase functions deploy trainee-inbound --project-ref abcdefghijklmnopqrst --no-verify-jwt']);
   assert.doesNotMatch(out, /deploy agent-chat[^\n]*--no-verify-jwt/, 'agent-chat keeps the JWT check');
+  inOrder(out, ['supabase functions deploy career-essay-draft --project-ref abcdefghijklmnopqrst', 'supabase functions deploy career-answer-draft --project-ref abcdefghijklmnopqrst']);
+  assert.doesNotMatch(out, /deploy career-(essay|answer)-draft[^\n]*--no-verify-jwt/, "the extension's functions keep the JWT check");
   const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
   inOrder(out, [`CAREER_INGEST_SECRET=*** psql *** -X -q -v ON_ERROR_STOP=1 -v url=${base}/career-ingest -f scripts/launch/schedule-career-ingest.sql`,
     `CAREER_PROACTIVE_SECRET=*** psql *** -X -q -v ON_ERROR_STOP=1 -v url=${base}/career-proactive -f scripts/launch/schedule-career-proactive.sql`,

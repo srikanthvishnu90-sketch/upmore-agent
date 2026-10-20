@@ -26,7 +26,8 @@
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret)
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
+#                 then the extension's career-essay-draft and career-answer-draft with the JWT check on
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
@@ -426,6 +427,11 @@ else
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
+  done
+  # The extension's own functions (WO-049 written answers, WO-064 short answers): the signed-in person's session only, so
+  # the gateway's JWT check stays on (verify_jwt = true in supabase/config.toml).
+  for fn in career-essay-draft career-answer-draft; do
+    run "supabase functions deploy $fn --project-ref $REF" supabase functions deploy "$fn" --project-ref "$REF"
   done
   ok
 fi

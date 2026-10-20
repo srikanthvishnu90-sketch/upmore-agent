@@ -176,7 +176,8 @@
     // WO-054: what Trainee filled from an answer the person gave in the panel before the session is marked on the card.
     const before = C.beforeSession(fields, ctx.before || []);
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
-      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday, before });
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday,
+      standing: C.standingSummaries(ctx?.saved || {}), before }); // WO-074: "from your standing answer: ..." in the person's own terms
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;

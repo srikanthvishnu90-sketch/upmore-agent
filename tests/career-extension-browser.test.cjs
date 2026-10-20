@@ -1502,6 +1502,77 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// ------------------------------------------------------------------------------------------------ standing answers (WO-074)
+// Three London postings (the captured Snowflake form, as three companies), each asking whether the person is authorized to
+// work "in the country to which you are applying": three questions the TEST person's US facts do not answer. Prepare
+// offers ONE standing answer in the same panel, in place of all three; the TEST person types their countries and picks one
+// line, the existing Save keeps it, and every card is filled from it, saying so; nothing is sent.
+test("standing answers: the panel asks work rights once in place of three questions; the existing Save keeps it; each card says which standing answer filled it; nothing is sent", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const urls = [74, 75, 76].map((k) => world.cloneUrl("ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75", k) + "?trainee_test=watch");
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?standing=1");
+  const tabId = await tabIdOf(page.url());
+  const panel = await openPanel(tabId);
+  try {
+    await panel.fill("#links", urls.join("\n"));
+    await panel.click("#q-add");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
+    await panel.click("#q-prepare");
+    await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length > 0, null, { timeout: 60000 });
+    const ao = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.equal(ao.postings, 3, JSON.stringify(ao.failed));
+    const st = (ao.standing || []).find((q) => q.key === "standing:work_rights");
+    assert.ok(st, JSON.stringify({ standing: ao.standing, questions: ao.questions.map((q) => q.key + " " + q.label) }));
+    assert.equal(st.covers.length, 3, JSON.stringify(st.covers));
+    const items = await panel.$$eval("#ao-list li", (lis) => lis.map((li) => ({ key: li.dataset.key, text: li.textContent })));
+    // Fewer taps, never more: the standing item (2 inputs) stands where its 3 entries were; none of them is shown.
+    assert.ok(items.some((i) => i.key === "standing:work_rights"), JSON.stringify(items));
+    for (const k of st.covers) assert.ok(!items.some((i) => i.key === k), `covered entry ${k} not shown`);
+    assert.equal(items.length, ao.questions.length - st.covers.length + ao.standing.length, "the panel lists the standing item in place of what it covers");
+    assert.ok(st.inputs < st.covers.length);
+    assert.match(items.find((i) => i.key === "standing:work_rights").text, /stands for 3 questions on 3 postings/);
+    // Every input starts empty; the statement is composed only from the person's own picks.
+    const li = panel.locator('#ao-list li[data-key="standing:work_rights"]');
+    assert.equal(await li.locator(".sa-text").inputValue(), "");
+    assert.equal(await li.locator(".sa-pick").inputValue(), "");
+    assert.equal(await li.locator(".ao-answer").inputValue(), "");
+    await li.locator(".sa-text").fill("United States");
+    await li.locator(".sa-pick").selectOption("yes");
+    const calls = (world.state.formAnswerCalls || []).length;
+    await panel.click("#ao-save");
+    await panel.waitForFunction(() => !document.querySelector('#ao-list li[data-key="standing:work_rights"]'), null, { timeout: 10000 });
+    const after = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.ok(after.saved.includes("standing:work_rights"), JSON.stringify(after.refused));
+    assert.deepEqual(after.reopen || [], [], "the statement settles every question it stood for");
+    for (const k of st.covers) assert.equal(await panel.locator(`#ao-list li[data-key="${k}"]`).count(), 0, "settled entries stay away");
+    assert.ok(world.state.formAnswerCalls.length > calls, "kept through career_apply_questions_answer_from_form_own");
+    const kept = world.state.answers.find((a) => a.key === "standing:work_rights");
+    assert.deepEqual(JSON.parse(kept.answer), { countries: ["United States"], complete: true, sponsorshipElsewhere: "yes" });
+    // The queue fills each card from the standing answer and says so: not authorized in the UK (the box left unticked).
+    await panel.click("#q-start");
+    for (const url of urls) {
+      await waitFor(() => page.url() === url, 15000);
+      const card = await waitCard(tabId, (c) => c.url === url && ["ready", "blocked"].includes(c.status), 20000);
+      const from = card.payload.fields.filter((x) => String(x.factId || "").startsWith("standing:work_rights:"));
+      assert.equal(from.length, 1, `${url}: ${JSON.stringify(card.lines)}`);
+      assert.equal(from[0].source, "trainee");
+      assert.match(from[0].value, /^No\b/, "not authorized to work in the UK");
+      assert.ok(card.lines.some((l) => l.includes(C_label(from[0].label)) && /from your standing answer: may work without sponsorship in United States/.test(l)), JSON.stringify(card.lines));
+      await panel.click("#q-skip");
+    }
+    assert.equal(world.state.submits.length, 0, "nothing was sent");
+    assert.equal(world.state.begins.length, 0, "nothing was recorded as an application");
+  } finally {
+    world.state.answers = world.state.answers.filter((a) => !String(a.key).startsWith("standing:"));
+    for (const k of [...world.state.questions.keys()]) if (String(k).startsWith("standing:")) world.state.questions.delete(k);
+    await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await sw.evaluate(() => chrome.storage.session.remove(["answer_once", "answered_before"]));
+    await panel.close();
+    await page.close();
+  }
+});
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

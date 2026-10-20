@@ -73,6 +73,13 @@ CAREER_INTERVIEW_BANKS_LINE = "const CAREER_INTERVIEW_BANKS_JSON = " + json.dump
 CAREER_KB_LINE = "const CAREER_KB_JSON = " + json.dumps(json.loads((root / "packages/career-data/kb-aggregates.json").read_text()), separators=(",", ":")) + ";\n"
 # WO-035: the interview patterns of the 50 firms the mock covers (127's interviewPatterns), the same embed pattern.
 CAREER_PATTERNS_LINE = "const CAREER_PATTERNS_JSON = " + json.dumps(json.loads((root / "packages/career-data/interview-patterns.json").read_text()), separators=(",", ":")) + ";\n"
+# WO-036: the public pay data the offer benchmark reads (128 payData) and the target-firm guide (134 firmGuide).
+_ds = root / "packages/career-data/datasets"
+_pay = {"maps": "pay-maps.json", "lca_wages": "dol-lca-wages.json", "oews_metro": "bls-oews-metro.json", "bls_national": "bls-labor-data.json", "lca_companies": "dol-lca-fy2025q4-cir-companies.json"}
+CAREER_PAY_LINE = "const CAREER_PAY_JSON = " + json.dumps({k: json.loads((_ds / f).read_text()) for k, f in _pay.items()}, separators=(",", ":")) + ";\n"
+CAREER_FIRM_GUIDE_LINE = "const CAREER_FIRM_GUIDE_JSON = " + json.dumps(json.loads((root / "packages/career-data/firm-guide.json").read_text()), separators=(",", ":")) + ";\n"
+content += CAREER_PAY_LINE
+content += CAREER_FIRM_GUIDE_LINE
 content += CAREER_INTERVIEW_BANKS_LINE
 content += CAREER_KB_LINE
 content += CAREER_PATTERNS_LINE
@@ -283,6 +290,8 @@ def career_data_line(name, value):
 
 CAREER_DATA = {
     "CAREER_FIRM_SETS_JSON": json.loads((root / "packages/career-data/firm-sets.json").read_text()),
+    "CAREER_PAY_JSON": {k: json.loads((_ds / f).read_text()) for k, f in _pay.items()},
+    "CAREER_FIRM_GUIDE_JSON": json.loads((root / "packages/career-data/firm-guide.json").read_text()),
     "CAREER_CIRS_JSON": [json.loads(f.read_text()) for f in _cir_files],
     "CAREER_INTERVIEW_BANKS_JSON": {f.stem: f.read_text() for f in _bank_files},
     "CAREER_KB_JSON": json.loads((root / "packages/career-data/kb-aggregates.json").read_text()),

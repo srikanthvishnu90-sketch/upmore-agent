@@ -7,6 +7,7 @@ import { careerSystemPrompt } from "../_shared/agent/prompt.ts";
 import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
 import { styleBlock } from "../_shared/agent/style.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
+import type { HiredSource } from "../_shared/career_hired.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { DigestStore, InterviewStore } from "../_shared/career_brief_store.ts";
 import type { AlertPrefs } from "../_shared/career_alerts.ts";
@@ -76,6 +77,8 @@ export async function agentTurn(o: {
   verifier?: Verifier | null; // the paid independent check (Hunter), run by verify_contacts; absent: NOT_WIRED
   // WO-028: the posting by id, personas, the private resume store and the PDF renderer.
   tailor?: TailorTools | null;
+  // WO-036: who a firm hired, from People Data Labs aggregates (NOT_WIRED without the owner's PDL_API_KEY).
+  hired?: HiredSource | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   const notes: string[] = [];
@@ -87,7 +90,7 @@ export async function agentTurn(o: {
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

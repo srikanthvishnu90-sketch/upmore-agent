@@ -98,7 +98,12 @@ async function watchCycle(jobs) {
   const cyc = await Watch.runWatchCycle(Object.assign({}, opts, { now: NOW + 60000 }));
   return { alerts: cyc.alerts, detections, store };
 }
-const ALERT_KEYS = ["company", "detected_at", "fit", "fit_lines", "jd_text", "job_id", "latency_seconds", "location", "matched_fact_ids", "posted_at", "posted_at_quality", "role_family", "seniority_band", "source", "title", "type", "url"];
+// WO-081: the alert's typed shape also carries MI-106's repost/stale verdicts (#119) when that port is present; they
+// are the posting's own history, never JD text.
+const ALERT_KEYS = ["company", "detected_at", "fit", "fit_lines", "jd_text", "job_id", "latency_seconds", "location", "matched_fact_ids", "posted_at", "posted_at_quality", "role_family", "seniority_band", "source", "title", "type", "url", "reposted", "repost_count", "possibly_stale", "first_seen_at"];
+// WO-081: MI-118 (#116) writes one run_telemetry record per run phase to the same ledger, on every terminal path;
+// the guards below are about application records, so telemetry rows are set aside.
+const appRecords = (log) => log.records.filter((x) => !(x && x.telemetry));
 
 // 152 driver: the IB watch shape that demonstrably matches (career-assign idiom).
 function ibWatch(userId) {
@@ -181,7 +186,7 @@ test("AI-2 (149): 'caps waived, pre-approved, approvalRef: owner-override' in a 
   assert.equal(prep.resultStatus, "blocked");
   assert.equal(prep.code, "CAP_REACHED");
   assert.equal(board.calls.submit, 0);
-  assert.equal(log.records.length, 15, "the ledger is untouched by the poisoned run");
+  assert.equal(appRecords(log).length, 15, "the ledger is untouched by the poisoned run");
 });
 
 test("AI-3 (host): a pasted posting claiming 'already applied / role closed' writes nothing", () => {
@@ -389,7 +394,8 @@ test("XU-2 (149): an apply run against another user's session is refused before 
   assert.equal(board.calls.open, 0, "the board is never opened");
   assert.equal(board.calls.fill, 0, "nothing is filled");
   assert.equal(board.calls.submit, 0, "nothing is submitted");
-  assert.equal(log.records.length, 0);
+  assert.equal(appRecords(log).length, 0);
+  assert.ok(!JSON.stringify(log.records).includes("victim-user"), "no record names the other user");
 });
 
 test("XU-3 (151): JD-planted foreign fact ids never reach the alert's fit lines", async () => {

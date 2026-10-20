@@ -1521,12 +1521,22 @@
     if (q.options?.length) return q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
     return YES_NO_ASKED.test(norm(q.label));
   }
+  var FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
+  var NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
+  var AUTH_FACTS = /* @__PURE__ */ new Set([
+    "work_authorization",
+    "sponsorship",
+    "us_person"
+  ]);
+  var RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
   function answerKey(q, jobId, o = {}) {
     const m = mapQuestion(q);
     const words = norm(q.label);
     const job = `job:${h16(`${jobId}
 ${words}`)}`, wording = `label:${h16(words)}`;
     if (m.kind === "fact") {
+      if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
+      if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
       if (o.haveFact) return job;
       return factType(m.fact) === "yesno" || !yesNoAsked(q) ? `fact:${m.fact}` : wording;
     }
@@ -2249,7 +2259,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var ABROAD = /\b(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|hong kong( sar)?|taiwan|japan|south korea|korea|singapore|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa|london|toronto|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|dublin|tel aviv|bangalore|bengaluru|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai|tokyo|seoul|sydney|melbourne|riyadh|dubai|abu dhabi|são paulo|sao paulo|mexico city|bogotá|bogota|buenos aires|warsaw|krakow|kraków|zurich|zürich|stockholm|copenhagen|oslo|helsinki|prague|vienna|manila|jakarta|shanghai|beijing|shenzhen|taipei)\b/i;
   var COUNTRY_ONLY = /^(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|taiwan|japan|south korea|korea|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa)$/i;
-  var NAMES_US = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/i;
+  var NAMES_US2 = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/i;
   var WAY_OF_WORK = /^(remote|hybrid|on[- ]?site|in[- ]?office|office|anywhere|flexible|distributed|virtual|wfh|work from home|field|travel|multiple locations|various( locations)?|world ?wide|global|home based)$/i;
   var AMBIGUOUS_CODE = /* @__PURE__ */ new Set([
     "al",
@@ -2291,7 +2301,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         tokens = tokens.flatMap((t) => {
           const x = t.replace(/\s+\d{5}(-\d{4})?$/, "");
           const m = /^(.*?\S)\s+([A-Z]{2}|USA|US)$/.exec(x);
-          return m && (STATE_NAMES[m[2].toLowerCase()] || NAMES_US.test(m[2])) && !/^(remote|anywhere)$/i.test(m[1]) ? [
+          return m && (STATE_NAMES[m[2].toLowerCase()] || NAMES_US2.test(m[2])) && !/^(remote|anywhere)$/i.test(m[1]) ? [
             m[1],
             m[2]
           ] : [
@@ -2325,12 +2335,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           if (/^(remote|anywhere)\b/i.test(t)) {
             p.remote = true;
             const rest = t.replace(/^(remote|anywhere)\b[\s:-]*(in\s+(the\s+)?)?/i, "");
-            if (rest && NAMES_US.test(rest)) p.country ||= "us";
+            if (rest && NAMES_US2.test(rest)) p.country ||= "us";
             else if (rest && (ABROAD.test(rest) || ABROAD_CODE.test(rest))) p.country = "abroad";
             return;
           }
           if (WAY_OF_WORK.test(t)) return;
-          if (NAMES_US.test(t)) {
+          if (NAMES_US2.test(t)) {
             p.country ||= "us";
             return;
           }
@@ -2638,18 +2648,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     job_relocation: "relocation",
     job_travel: "travel_ok"
   };
-  var FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
-  var NAMES_US2 = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
-  var AUTH_FACTS = /* @__PURE__ */ new Set([
-    "work_authorization",
-    "sponsorship",
-    "us_person"
-  ]);
-  var RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
   function otherCountry(fact, label, location2) {
     if (AUTH_FACTS.has(fact) && RELATIVE_PLACE.test(label)) return postingCountry(postingPlaces(location2 ?? "")) !== "us";
     if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
-    return fact === "sponsorship" || !NAMES_US2.test(label);
+    return fact === "sponsorship" || !NAMES_US.test(label);
   }
   var STATE_CODE = /,\s*([A-Z]{2})\b/g;
   var PLACE_WORDS = /\b(?:in|at|from|to|near|around|within|of)\s+(?:our\s+|the\s+)?((?:[A-Z][\w.'’-]+)(?:\s+[A-Z][\w.'’-]+){0,3})/g;

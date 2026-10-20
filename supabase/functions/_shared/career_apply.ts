@@ -6,7 +6,7 @@
 //                     the person's confirmed facts; anything missing is asked once for the whole batch and saved, so later
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
-import { answerKey, mapQuestion, norm as normQuestion } from "./question_map.ts";
+import { answerKey, AUTH_FACTS, FOREIGN, mapQuestion, NAMES_US, norm as normQuestion, RELATIVE_PLACE } from "./question_map.ts";
 import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 import { type PlacePart, postingAtHome, postingCountry, postingPlaces, STATE_NAMES } from "./posting_place.ts";
 
@@ -188,12 +188,6 @@ const PREFERENCE: Record<string, string> = { job_onsite: "onsite_ok", job_reloca
 // 1. Work rights are the person's for the country they stated. A question about another country's authorization or
 //    visa ("authorized to work in South Korea?", "¿Tienes permiso de trabajo en España?", "visa sponsorship in the UK?")
 //    is asked; "the US or Canada" may still take the US yes, never a sponsorship "no" for both.
-const FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
-const NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
-const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_person"]);
-// WO-053: work rights "in the country where this job is located" (or "...in which you are applying") are the person's US
-// ones only when the posting's own location is in the US; abroad or unsettled, asked.
-const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
 export function otherCountry(fact: string, label: string, location?: string): boolean {
   if (AUTH_FACTS.has(fact) && RELATIVE_PLACE.test(label)) return postingCountry(postingPlaces(location ?? "")) !== "us";
   if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;

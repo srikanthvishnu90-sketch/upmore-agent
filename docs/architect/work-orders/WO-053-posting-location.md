@@ -59,6 +59,16 @@ known.
 The live-form key (`answer-key.json`, corrections) was corrected in four entries for the same reason (WPP Media and
 Snowflake in London; OpenAI's office in San Francisco).
 
+## Also here: an answer about work rights elsewhere is never kept as the person's own
+Found while scoping the answer-once panel. What the person answers is stored under `answerKey`, and a work-rights
+question was keyed as the person's fact or by its wording alone. A "No" to "authorized to work in the country where this
+job is located?" at a London posting would have answered the same wording at a US posting. A "Yes" to "visa sponsorship
+in the UK?" became the person's sponsorship fact for every employer. Now:
+- the job's own country is that posting's key alone;
+- a named foreign country travels only with its wording, never as the person's fact.
+WO-053 makes these questions asked far more often, so this had to land with it. Test WO-053/5 runs end to end, from
+the London answer to a US posting.
+
 ## Also here: two of sealed-wd3's misses (WO-048 round 3; that set is spent, not re-scored)
 - "What is your notice period with your current employer?" was read as the current employer (and asked): now the
   stated notice period ("2 weeks" on a list that has it).

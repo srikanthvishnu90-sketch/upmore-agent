@@ -64,3 +64,24 @@ Deno.test("WO-053/4 two of sealed-wd3's misses (WO-048 round 3; that set is spen
   // The employer is still the employer.
   eq(mapQuestion({ label: "Current employer", type: "input_text", options: [] }).fact, "current_employer");
 });
+
+Deno.test("WO-053/5 an answer about work rights somewhere else is never kept as the person's own", async () => {
+  const { answerKey } = await import("../../supabase/functions/_shared/question_map.ts");
+  const yn = [{ label: "Yes" }, { label: "No" }];
+  const key = (label: string, job = "gh:wpp:1") => answerKey({ label, type: "multi_value_single_select", options: yn } as any, job);
+  const here = "Are you lawfully authorized to work in the country where this job is located?";
+  const sponsorUK = "Do you need visa sponsorship in the UK now or in the future?";
+  // The job's own country: that posting's alone.
+  eq(key(here).startsWith("job:"), true);
+  eq(key(here) === key(here, "gh:acme:2"), false, "a London answer does not travel to another posting");
+  // Another named country: only with that wording, never the person's sponsorship fact.
+  eq(key(sponsorUK).startsWith("label:"), true);
+  eq(key("Will you now or in the future require visa sponsorship?"), "fact:sponsorship", "the US question stays the person's fact");
+  // End to end: the person said "No" for WPP's London posting; a US posting with the same wording is not answered by it.
+  const saved = { [key(here)]: { value: "No", factId: "TEXT" }, [key(sponsorUK)]: { value: "Yes", factId: "TEXT" } };
+  const plan = (job: string, location: string, label: string) => planBatch({ userId: "TEST", answers: PERSONA, saved, log: [], now: 0,
+    postings: [{ job_id: job, company: "Example Co", title: "", location, fields: [{ name: "q", label, required: true, type: "multi_value_single_select", options: yn.map((o) => ({ ...o, value: o.label })) }] }] }).ready[0]?.fields[0]?.value ?? "ASKED";
+  eq(plan("gh:wpp:1", "London, United Kingdom", here), "No", "the person's own answer for that posting");
+  eq(plan("gh:acme:2", "Austin, TX", here), "Yes", "a US posting: the person's US authorization, not the London answer");
+  eq(plan("gh:acme:2", "Austin, TX", "Will you now or in the future require visa sponsorship?"), "No", "the UK sponsorship yes is not theirs here");
+});

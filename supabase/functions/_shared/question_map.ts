@@ -290,11 +290,22 @@ function yesNoAsked(q: Question): boolean {
   if (q.options?.length) return q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
   return YES_NO_ASKED.test(norm(q.label));
 }
+// Work rights are the person's for the country they stated (WO-052, WO-053). An answer to work rights somewhere else
+// is never kept as their fact: "...in the country where this job is located" is that posting's alone, and "...in the
+// UK?" travels only with its own wording, which names the country.
+export const FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
+export const NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
+export const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_person"]);
+// WO-053: work rights "in the country where this job is located" (or "...in which you are applying") are the person's US
+// ones only when the posting's own location is in the US; abroad or unsettled, asked.
+export const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
 export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean } = {}): string {
   const m = mapQuestion(q);
   const words = norm(q.label);
   const job = `job:${h16(`${jobId}\n${words}`)}`, wording = `label:${h16(words)}`;
   if (m.kind === "fact") {
+    if (AUTH_FACTS.has(m.fact) && RELATIVE_PLACE.test(q.label)) return job;
+    if (AUTH_FACTS.has(m.fact) && FOREIGN.test(q.label) && (m.fact === "sponsorship" || !NAMES_US.test(q.label))) return wording;
     if (o.haveFact) return job;
     return factType(m.fact) === "yesno" || !yesNoAsked(q) ? `fact:${m.fact}` : wording;
   }

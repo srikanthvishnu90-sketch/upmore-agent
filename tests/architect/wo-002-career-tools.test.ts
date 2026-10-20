@@ -28,8 +28,8 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own",
     list_applications: "read", track_application: "write_own", search_jobs: "read",
     set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own", recall: "read",
-    get_interview_questions: "read", interview_brief: "read", score_interview_answer: "read", where_do_i_stand: "read",
-    tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own",
+    get_interview_questions: "read", interview_brief: "read", score_interview_answer: "read",
+    tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own", where_do_i_stand: "read",
   });
   for (const t of tools) {
     assert(t.description.length >= 20 && t.description.length <= 400, `${t.name}: a real description`);

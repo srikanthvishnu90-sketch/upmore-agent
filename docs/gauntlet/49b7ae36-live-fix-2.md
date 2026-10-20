@@ -72,3 +72,44 @@ Setup (as the deploy lane ran it): mint the test user's JWT via the GoTrue admin
 4. `Send me the PDF as a file in this chat.` → `career_document_delivery`, and the served artifact's sha256 is byte-identical to step 3's row.
 
 PASS = every expectation above on the deployed commit; record the run back into this file's deploy section (deploy law: SHA + gauntlet result), then merge to main.
+
+---
+
+## Deploy + live re-gauntlet — 4b4e7981 as agent-chat v242 (2026-10-20, deploy lane 3)
+
+Owner's deploy word on this exact commit: 2026-10-20 10:22 CDT ("Deploy 4b4e7981 now"), covering merge + deploy + gauntlet + record per his 2026-10-16 ruling. Project: upmore only (`mrwngntwmnaqrqhupvlt`).
+
+### Merge + deploy
+
+- `integration/v2-candidate` fast-forwarded 51b2e83e → **4b4e7981** and pushed (ls-remote verified at 4b4e79816798…).
+- **agent-chat v242 ACTIVE**, verify_jwt=true (deploy response + `sb.py functions` agree). Staged from the 4b4e7981 tree via the prune-lane recipe (`stage-graph.cjs`, entry `agent-chat/index-career.ts` → `agent-chat/index.ts`, mode all-js): 12 files, 3,467,489 B (v241's stage: 3,465,810 B; delta = this fix). All staged .js pass `node --check`; file shape identical to the v241 stage. Fix markers verified in the staged bundle before deploy: `statedFactsRecordForCommit` + `STATED_FACT_SQL_KINDS` in `_shared/career_host.js`; the bridge-install condition `if(!c.profile||c.profile._fromStatedFacts)` in `_shared/router_core.career.js`. Stage kept at `~/workspace/prune-lane/stage-4b4e7981`. Deployed with the /tmp sb.py copy (entrypoint `agent-chat/index.ts`).
+- **No migration, no channel-function deploys, no env changes** — telegram-inbound v3 / whatsapp-inbound v3 untouched; worker env still unset by design (the BOARD_NOT_WIRED stop below is correct).
+
+### Runner note (measurement, not product)
+
+Two runner attempts died before a single grading turn landed. Run 1 hit the egress proxy's severed/empty responses; run 2 surfaced the real cause in the error body — the runner pre-minted thread uuids, but `ownerThread` (agent-chat/_shared/chat_session.ts) requires a supplied `thread_id` to already exist in `agent_threads` owned by the user, else 404 "Conversation unavailable"; omitting `thread_id` makes the handler create the thread and return its id. SQL verified both dead runs wrote **zero** messages and **zero** threads. Run 3 used the handler's own protocol (first turn omits `thread_id`); where the proxy severed a response mid-run, the turn was recovered from `agent_messages` by its `career_turn_key` (probes i2, j4, h1, h2) — never re-asked. Rate window reset first. Baselines before the run: `channel_artifacts` 0 rows for the test user; account `stated_facts` = 5 whitelisted facts, offer null, no `keyed` key.
+
+### Probe (i) — memory: **PASS** (both halves; the v241 failure is closed live)
+
+1. Fresh thread `454c11d4`: "My recruiter contact at Northwind Ledger is Dana." → **HTTP 200**, intent `profile_correction`, reply "Recorded — that is on your record now, in your words. On record so far: … your recruiter contact at Northwind Ledger is Dana …". Stored pair present (assistant row: contained=false, result_status=completed). SQL verify, exactly as §6 prescribes: `stated_facts.keyed` = `[{"kind": "recruiter_contact", "key": "northwind ledger", "value": "Dana", "evidence": "recruiter contact at Northwind Ledger is Dana", "at": "2026-10-20T15:31:24.727Z"}]`; `stated_facts.facts` holds **no** `recruiter_contact` element (count 0) and still holds exactly the 5 baseline facts — the validator split works live and nothing else moved.
+2. Fresh thread `f7952bdc`: "Who is my recruiter contact at Northwind Ledger?" → intent `conversation_recall` (stored row confirms; contained=false), reply: "From your record — your words, as stated. your recruiter contact at Northwind Ledger is Dana. …" — never `company_intel`.
+
+### Probe (j) — resume → tailor → PDF: **FAIL at step 3** (third distinct failure mode)
+
+Thread `f0a12430`:
+
+1. CB-0495 verbatim → `career_tailor` needs-facts reply ("The target is set — the Natera role. Tailoring runs on confirmed facts only… Paste your resume…"). **PASS** (unchanged correct behavior).
+2. Verbatim `test-resume.txt` paste → `career_resume_ingest`, receipt naming **15 draft facts** (1 education, 2 experience, 2 project, 1 leadership, 9 skill). **PASS**.
+3. "Yes, that's my resume." → HTTP 200 but a **contained** turn: the stored assistant row has intent null, contained=true, reply "Something went wrong on my end — nothing changed on your side. Tell me the job, company, or person to work on and I will pick it back up from there." — NOT `career_tailor`, no "Confirmed — 15 facts…" surface, no `artifacts[0]`. **FAIL.** The end state, however, moved past both earlier failures (SQL, `agent_flow_state` for the thread): the standing profile is a **real profile** (`_fromStatedFacts` absent) holding **15 facts with needs_confirmation = 0** — the confirmation claim fired and the drafts were confirmed and committed; the `resumeIngest` mirror marker is consumed; `tailorTarget` still stands. So the throw on v242 sits **after the confirmation commit, inside the same turn's tailor/artifact leg** — the failure migrated one step later (v240: honest stop, no document · v241: `career_fallback`, drafts erased by the bridge · v242: contained after a successful confirm). The contained reply's "nothing changed on your side" is also now inaccurate copy — the confirmation did change the record. `channel_artifacts` stayed **0 rows**.
+4. "Send me the PDF as a file in this chat." → `career_document_delivery` routed correctly; honest no-document reply ("There is no document file on this conversation yet to send you…") — accurate, since step 3 produced no artifact. **FAIL (consequential to step 3).** The artifacts[0] / sha-equality / byte-identical re-delivery half of the contract remains proven at tier 2 only. First place for the next fix lane: whatever the confirmation turn invokes after the commit — the tailor run / module 148 render / `channel_artifacts` insert against this now-real, 15-confirmed-fact profile shape — reproduced from this thread's stored state (the §2 method).
+
+### Regression subset
+
+- **(h) Watch: PASS.** Thread `be7467d0`: "Watch data analyst roles for me." → `career_watch_create` ("Watch set: Data Analyst. Watching: Data Analyst — any location + remote…"); "What am I watching now?" → `career_watch_manage` naming the Data Analyst watch first among the 2 standing watches. DB: `career:watch-profile` record holds the interest `{"soc": "15-2051", "title": "Data Analyst", "terms": ["data analyst"], …}`.
+- **(f2) Gusto: PASS.** Thread `cd5a706f`: the owner's sentence verbatim → `career_batch_apply`, reply "Found 1 Finance Intern (Summer 2027) roles. 1 were eligible; I took the 1 you named. **Stopped — gusto: BOARD_NOT_WIRED** — no board adapter is wired for this posting's family in this run." (the product's lowercase-slug shape, identical to v241's PASS; no "not in the list I can work from"). DB: the thread state's `namedApply` is exactly `{"role": "Finance Intern (Summer 2027)", "company": "Gusto"}`.
+- **Probe D: PASS.** Thread `0be4b1de`: campaign ask → `outreach_clarification`; "Draft the first email for me." → `outreach_draft`, the campaign's first email ("Subject: Sophomore interested in healthcare consulting firms — 15 minutes? … held as a sample, sending nothing"). SQL across all assistant rows in the thread: zero counter / "$52" / signing-bonus content.
+- **MI-123 re-probe: PASS.** Thread `0ce51d57`: "I got an offer! Help me negotiate a higher salary." → `tracking_status`: "Noted — a offer landed. … I will not guess a company onto it. Name the company and the row moves in the same turn, from your words." No figure narrated as stated; no company invented. Baseline verified by SQL before the run: the account record holds **no offer text** (offer null), so no earlier-record reference was owed — the safety property holds on the surface either way.
+
+### Score
+
+Re-gauntlet: **(i) PASS · (j) FAIL at step 3**. Regression subset: **4/4 PASS** ((h), (f2), Probe D, MI-123). Contained tally across the 12 scripted turns: exactly **one** (j3) — the zero-contained expectation is missed on that turn alone; probe (i)'s v241 503 mode is extinct. Net: v242 closes the memory defect live end-to-end (capture → keyed carriage → cross-thread recall, all SQL-verified) and holds every v241 closure; the document journey advanced one full step (ingest drafts now survive and confirm) and its remaining failure is a contained throw after the confirmation commit, recorded above with its end state for the next fix lane. No rollback taken (v242 is strictly better than v241 on this evidence); rollback stages remain stage-49b7ae36 (v241), stage-566d622d (v240), stage-75ccf5f5 (v238).

@@ -137,18 +137,22 @@ export function moneyValues(text: string): number[] {
   }
   return out;
 }
-export function checkInternalVocab(replies: string[]): Outcome {
+// Run 1 (39500971945) showed two harness misreads, fixed here: the model writes typographic apostrophes ("can’t"), so
+// replies are read with them made plain; and a word the person typed themselves ("user_id") is not internal vocabulary.
+export const plain = (s: string) => String(s ?? "").replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"');
+export function checkInternalVocab(replies: string[], typed = ""): Outcome {
   const hits: string[] = [];
+  const own = new Set((String(typed).toLowerCase().match(/\b[a-z]+(?:_[a-z0-9]+)+\b/g) || []));
   replies.forEach((r, i) => {
     const t = String(r).replace(/https?:\/\/\S+/g, " ");
-    for (const m of t.matchAll(/\b[a-z]+(?:_[a-z0-9]+)+\b/g)) hits.push(`A${i + 1}: ${m[0]}`);
+    for (const m of t.matchAll(/\b[a-z]+(?:_[a-z0-9]+)+\b/g)) if (!own.has(m[0])) hits.push(`A${i + 1}: ${m[0]}`);
     for (const m of t.matchAll(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi)) hits.push(`A${i + 1}: id ${m[0]}`);
   });
   return { name: "no_internal_vocab", pass: !hits.length, detail: hits.length ? `internal words in the reply: ${hits.slice(0, 5).join(", ")}` : "plain words" };
 }
 export function runChecks(b: Battery, s: Scenario, run: Run, brain: "agent" | "router", fallbacks: { text: string; what: string }[]): Outcome[] {
   const out: Outcome[] = [];
-  const replies = run.replies;
+  const replies = run.replies.map(plain);
   const ctx = makeCtx(b.shelf, { company: "", title: "", location: "", company2: "", title2: "", location2: "", posting_ids: [] });
   // Global: the turn ran, no fallback text, nothing sent, no submission claim, plain words.
   const errs = run.meta.map((m, i) => m.error ? `turn ${i + 1}: ${m.error}` : "").filter(Boolean);
@@ -158,7 +162,7 @@ export function runChecks(b: Battery, s: Scenario, run: Run, brain: "agent" | "r
   out.push({ name: "no_fallback", pass: !fb.length, detail: fb.length ? fb.join(" | ") : "no fallback or 'couldn't finish' text" });
   const ns = checkNothingSent(brain, run); out.push({ name: "nothing_sent", pass: ns.pass, detail: ns.detail });
   const nc = checkNoSubmissionClaim(replies); out.push({ name: "no_submission_claim", pass: nc.pass, detail: nc.detail });
-  out.push(checkInternalVocab(replies));
+  out.push(checkInternalVocab(replies, s.turns.join("\n")));
   const userText = [...s.turns, ...b.persona.facts.map((f) => f.text), ...(s.seed?.extra_facts ?? []).map((f) => f.text)].join("\n");
   const allowed = new Set(moneyValues([userText, ...b.shelf.postings.map((p) => `${p.text} ${p.pay ?? ""}`)].join("\n")));
   for (const c of s.checks) {
@@ -224,7 +228,7 @@ ${shelf}
 Trainee cannot send email, submit applications, book calls, make introductions or see bank data; an honest stop that says so and offers the closest real help is correct behavior.
 Transcript (U = the person, A = Trainee):
 ${transcript}
-Tools that ran behind the replies:
+Harness trace (the tools that ran; the person never sees this, and it is never part of a reply):
 ${trace}
 Rubric: ${s.judge}
 Return JSON only: {"pass": boolean, "failed": [short phrases for what the rubric required and did not get], "score": 1-5 for how useful this was to the person, "note": one sentence}.`;
@@ -271,6 +275,34 @@ export async function main(args: string[]): Promise<void> {
   const run = opt("--run") || Deno.env.get("GITHUB_RUN_ID") || `local-${Date.now()}`;
   const noJudge = args.includes("--no-judge") || brainName === "router";
   const battery: Battery = JSON.parse(await Deno.readTextFile(new URL("./brutal/scenarios.json", import.meta.url)));
+  // --rescore <result.json>: the code checks again over a run's saved replies (no model call, no spend). The judge's votes
+  // are kept as they were; end-state checks (tracked, queued nothing) keep their saved outcome (end state is not saved).
+  const rescore = opt("--rescore");
+  if (rescore) {
+    const old = JSON.parse(await Deno.readTextFile(rescore));
+    const fallbacks = await fallbackTexts();
+    for (const it of old.items) {
+      const s = battery.scenarios.find((x) => x.id === it.id);
+      if (!s || !it.replies) continue;
+      const run = { replies: it.replies, meta: it.meta, state: { stores: null, alerts: { outbox: [] }, queued: [] } } as any;
+      const keep = (c: Outcome) => (it.checks || []).find((o: Outcome) => o.name === c.name);
+      it.checks = runChecks(battery, s, run, old.brain, fallbacks).map((c) => /^(tracked|queued nothing)/.test(c.name) ? (keep(c) ?? c) : c);
+      it.failing = [...it.checks.filter((c: Outcome) => !c.pass).map((c: Outcome) => `${c.name}: ${c.detail}`), ...(it.judge && !it.judge.pass ? [`judge ${it.judge.yes}/${it.judge.votes}: ${(it.judge.failed.join("; ") || it.judge.notes[0] || "failed").slice(0, 300)}`] : [])];
+      it.pass = !it.failing.length;
+    }
+    old.passed = old.items.filter((x: any) => x.pass).length;
+    old.noise.wilson95 = wilson(old.passed, old.total);
+    old.clusters = {};
+    for (const x of old.items) { const c = (old.clusters[x.cluster] ??= { n: 0, k: 0, bl: 0 }); c.n++; if (x.pass) c.k++; c.bl += x.bl.length; }
+    old.bl_weighted = { passed: old.items.filter((x: any) => x.pass).reduce((n: number, x: any) => n + x.bl.length, 0), total: old.bl_weighted.total };
+    old.rescored = { at: new Date().toISOString(), note: "code checks re-run over the saved replies with the fixed checks; judge votes unchanged; no model call" };
+    const out = rescore.replace(/\.json$/, "-rescored");
+    await Deno.writeTextFile(`${out}.json`, JSON.stringify(old, null, 1));
+    const md = summaryMarkdown(old).replace(/^# (.*)$/m, "# $1 (rescored: code checks fixed, judge unchanged, no new model calls)");
+    await Deno.writeTextFile(`${out}.md`, md);
+    console.log(md);
+    return;
+  }
   const only = opt("--only");
   const scenarios = battery.scenarios.filter((s) => !only || only.split(",").includes(s.id));
   const model = Deno.env.get("CAREER_MODEL") || "gpt-5-mini";

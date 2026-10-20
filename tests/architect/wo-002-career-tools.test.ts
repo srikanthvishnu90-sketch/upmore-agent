@@ -18,7 +18,7 @@ function byName(tools: any[]) { return Object.fromEntries(tools.map((t) => [t.na
 Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet", () => {
   const tools = careerTools({ postings: async () => [] });
   eq(tools.map((t) => t.name).sort(), [
-    "add_profile_fact", "confirm_profile_fact", "forget_instruction", "get_interview_questions", "get_job_alerts", "get_memory", "get_profile",
+    "add_profile_fact", "confirm_profile_fact", "correct_profile_fact", "forget_instruction", "get_interview_questions", "get_job_alerts", "get_memory", "get_profile",
     "interview_brief", "list_applications", "recall", "remember_instruction", "save_resume_persona", "score_interview_answer", "search_jobs", "set_job_alerts", "set_resume_contact",
     "stop_job_alerts", "tailor_resume", "track_application", "use_resume_persona", "where_do_i_stand",
     "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts",
@@ -30,7 +30,7 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
     remember_instruction: "write_own", forget_instruction: "write_own", get_memory: "read",
-    get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own",
+    get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own", correct_profile_fact: "write_own",
     list_applications: "read", track_application: "write_own", queue_applications: "write_own", get_posting: "read", search_jobs: "read",
     set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own", recall: "read",
     get_interview_questions: "read", interview_brief: "read", offer_benchmark: "write_own", career_path_answer: "read",

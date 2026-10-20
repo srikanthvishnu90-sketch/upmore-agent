@@ -48,8 +48,13 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
 // fact's own words (3+ letters, not filler) must be in their message, and words of inference are refused outright.
 const FILLER = new Set(["the", "and", "for", "with", "has", "have", "had", "was", "are", "is", "years", "year", "wants", "want", "work", "worked", "role", "roles", "job", "jobs", "their", "they", "from", "who", "that", "this", "person", "user"]);
 const GUESSED = /\b(assum\w*|infer\w*|probabl\w*|likely|presumabl\w*|guess\w*|seems?|maybe|perhaps|implied)\b/i;
+// WO-083: "sorry, I meant Denver" corrects something; it is never itself a fact. CORRECTING is the person's message saying
+// so (the cue for correct_profile_fact); a fact whose own words are an apology or "I meant" is the sentence, not the fact.
+export const CORRECTING = /\b(i meant|meant to say|i mean\b|my bad|scratch that|correction|typo|i misspoke|oops|whoops)|\b(sorry|wait|no|actually),? (?:no,? )?(?:it'?s|i'?m|its|make (?:that|it))\b|\bnot \w+,? (?:but|it'?s)\b/i;
+const CORRECTION_SENTENCE = /\b(sorry|oops|whoops|my bad|i meant|meant to say|scratch that|correction|i misspoke|typo)\b/i;
 export function factRefusal(text: string, message: string | undefined): string | null {
   if (GUESSED.test(text)) return "not saved: a fact about the person is only what they said, never an assumption or inference";
+  if (CORRECTION_SENTENCE.test(text)) return "not saved: that is a correction, not a fact; save the corrected value in plain words (correct_profile_fact on the fact it corrects)";
   if (message === undefined) return null;
   const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !FILLER.has(w));
   const said = new Set(words(message)), mine = words(text);
@@ -139,7 +144,14 @@ export function careerTools(deps: {
       run: async (i, c) => {
         const refused = factRefusal(String(i.text ?? ""), c.turn?.message);
         if (refused) throw new Error(refused);
-        const fact = CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" });
+        // WO-083: a correction of a fact already on file replaces it; it is never saved next to it. The profile keeps
+        // location, goal and other kinds it does not know as "other", so the kind asked for is kept as the fact's topic.
+        const topic = String(i.kind), kind = CareerProfile.KINDS.includes(topic) ? topic : "other";
+        const same = (profileOf(c).facts || []).filter((f: any) => (f.topic ? f.topic === topic : f.kind === kind) && !c.turn?.added.includes(f.id));
+        if (c.turn && CORRECTING.test(c.turn.message) && same.length) {
+          throw new Error(`not saved: the person is correcting what is on file; use correct_profile_fact on the one it corrects (${same.map((f: any) => `${f.id}: ${f.text}`).join("; ")}) so the old value is removed`);
+        }
+        const fact = CareerProfile.addFact(profileOf(c), { kind, topic, text: String(i.text), needs_confirmation: true, status: "draft" });
         c.turn?.added.push(fact.id);
         return { fact };
       },
@@ -156,6 +168,24 @@ export function careerTools(deps: {
         const fact = CareerProfile.confirmFact(profileOf(c), id);
         await record(c, "fact_confirmed", fact?.text ?? id, { id, kind: fact?.kind ?? null });
         return { fact };
+      },
+    },
+    {
+      name: "correct_profile_fact", effect: "write_own",
+      description: "Replace a saved fact the person just corrected (\"sorry, I meant Denver\"): the corrected value, in their words, takes the old one's place and the old value is gone. It waits for their yes like any new fact. Never save the correction sentence itself.",
+      input_schema: obj({ id: str("The fact id being corrected, e.g. F-001"), text: str("The corrected fact in the person's own words, e.g. Lives in Denver") }, ["id", "text"]),
+      run: async (i, c) => {
+        const id = String(i.id), text = String(i.text ?? "");
+        const old = (profileOf(c).facts || []).find((f: any) => f.id === id);
+        if (!old) throw new Error(`no fact ${id} on file`);
+        if (!c.turn || !CORRECTING.test(c.turn.message)) throw new Error("not corrected: the person did not correct anything in this message");
+        const refused = factRefusal(text, c.turn.message);
+        if (refused) throw new Error(refused);
+        const was = old.text;
+        const fact = CareerProfile.updateFact(profileOf(c), id, { text, needs_confirmation: true, status: "draft" });
+        c.turn.added.push(id);
+        await record(c, "note", `fact corrected: ${text}`, { id, kind: fact?.kind ?? null, replaced: was });
+        return { fact, replaced: was };
       },
     },
     {

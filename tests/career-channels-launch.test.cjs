@@ -36,7 +36,12 @@ test('go-live: the channel inputs are set masked, the two webhooks deploy withou
   assert.match(out, /supabase functions deploy trainee-inbound [^\n]*--no-verify-jwt[\s\S]*supabase functions deploy trainee-telegram --project-ref abcdefghijklmnopqrst --no-verify-jwt[\s\S]*supabase functions deploy trainee-whatsapp --project-ref abcdefghijklmnopqrst --no-verify-jwt/);
   assert.match(out, /deno check [^\n]*trainee-telegram\/index\.ts [^\n]*trainee-whatsapp\/index\.ts/);
   const migs = [...out.matchAll(/-f supabase\/migrations\/(\S+\.sql)/g)].map((m) => m[1]);
-  assert.equal(migs[migs.length - 1], '20261021070000_channel_parity.sql');
+  // The channel migration sets the outbox kinds and key prefixes; no later migration may narrow them, so it applies after
+  // every migration that rewrites those checks (a later one that leaves the outbox alone may follow it).
+  const rewritesOutbox = (f) => /career_outbox_(kind|key)_check/.test(fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'));
+  const at = migs.indexOf('20261021070000_channel_parity.sql');
+  assert.ok(at >= 0, 'the channel migration applies');
+  assert.deepEqual(migs.slice(at + 1).filter(rewritesOutbox), [], 'nothing after the channel migration rewrites the outbox checks');
   assert.match(out, /Telegram webhook \(setWebhook with secret_token=<TELEGRAM_WEBHOOK_SECRET>\): https:\/\/abcdefghijklmnopqrst\.supabase\.co\/functions\/v1\/trainee-telegram/);
   assert.match(out, /WhatsApp callback URL \(verify token <WHATSAPP_VERIFY_TOKEN>, subscribe to messages\): https:\/\/abcdefghijklmnopqrst\.supabase\.co\/functions\/v1\/trainee-whatsapp/);
   assert.match(out, /TELEGRAM_WEBHOOK_SECRET=\*\*\* WHATSAPP_VERIFY_TOKEN=\*\*\* [^\n]*node scripts\/launch\/trainee-smoke\.cjs/, 'the smoke gets the channel secrets, masked');

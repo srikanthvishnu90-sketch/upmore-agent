@@ -851,7 +851,7 @@
   var yesNoOnly = (q) => !q.options?.length || /^(yes|no|sí|si|ja|nee|はい|いいえ|n\/a|not sure|i'?m not sure| \| )+$/i.test(opts(q).replace(/[.\s]+/g, " ").replace(/ \| /g, " | ").trim()) || q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
   var WHY = /\bwhy\b(?!.*\b(good|great) fit\b)(?!.*\bwhy you'?re\b)|pourquoi|por qué|\binterest(s|ed)? you\b|\bexcites? you\b|\bexcited about\b|\bresonate|\bdrew you|\bwhat interested you\b|\bwhy are you interested\b|\bwhy do you want\b|\bmakes you excited\b|\bwhat makes you want\b/;
   var DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
-  var BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
+  var BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
   var ackOpt = (x) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
   function ackShaped(q, t) {
     const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -1011,13 +1011,13 @@
     ],
     [
       "city",
-      /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/,
+      /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b|\blocation:? city\??$/,
       (q, t) => !/\bstate\b/.test(t)
     ],
     [
       "state",
       /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which (u\.?s\.? )?state\b|\bwhich (u\.?s\.? )?state\b|\bpermanent work location\b/,
-      (q, t) => !/\bcity\b/.test(t)
+      (q, t) => !/\bcity\b|certif|licen[cs]|granted|issued/.test(t)
     ],
     [
       "timezone",
@@ -1048,7 +1048,8 @@
     ],
     [
       "how_heard",
-      /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/
+      /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/,
+      (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)
     ],
     [
       "unknown",
@@ -1133,7 +1134,7 @@
     [
       "salary_currency",
       /\bcurrency\b/,
-      (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b/.test(t)
+      (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b|\bamount and( the)? currency\b|\bbonus\b|\bequity\b|\btotal (annual )?compensation\b/.test(t)
     ],
     [
       "salary_expectation",
@@ -1263,9 +1264,11 @@
       "unknown",
       /\b(authori[sz]ation|visa|permit|status)\b.*\b(expir\w*|end date)\b|\bexpir\w*\b.*\b(authori[sz]ation|visa|permit)\b/
     ],
+    // WO-056: "Are you currently authorized to work in the US? We DO assist with visa sponsorship" asks the authorization.
     [
       "sponsorship",
-      /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/
+      /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/,
+      (q, t) => !/^(are|is) you (currently |now )?(legally )?authori[sz]ed to work\b[^?]*\?/.test(t) || /^[^?]*\bsponsor/.test(t)
     ],
     [
       "citizenship",
@@ -1308,7 +1311,7 @@
     ],
     [
       "non_compete",
-      /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/,
+      /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b/,
       (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|non-?solicit|restrictive covenant|post-employment restriction/.test(t)
     ],
     // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
@@ -1324,7 +1327,7 @@
     ],
     [
       "marketing_opt_in",
-      /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b/
+      /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b|\bmarketing (communications?|e-?mails?|updates)\b|\brecruitment marketing\b/
     ],
     [
       "ai_policy_ack",
@@ -1377,7 +1380,8 @@
     ],
     [
       "how_heard",
-      /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/
+      /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/,
+      (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)
     ],
     // "Available on request" answers only a question about references, never a request to list them (WO-052).
     [
@@ -1433,7 +1437,7 @@
     [
       "job_travel",
       /\btravel\b/,
-      (q, t) => !/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)
+      (q, t) => (!/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)) && !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bfully remote\b|\bwork(ing)? (fully )?remote(ly)?\b|\bdays (a|per) week\b/.test(t)
     ],
     [
       "travel_ok",
@@ -2261,8 +2265,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     "burlingame",
     "emeryville"
   ]);
-  var ABROAD = /\b(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|hong kong( sar)?|taiwan|japan|south korea|korea|singapore|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa|london|toronto|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|dublin|tel aviv|bangalore|bengaluru|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai|tokyo|seoul|sydney|melbourne|riyadh|dubai|abu dhabi|são paulo|sao paulo|mexico city|bogotá|bogota|buenos aires|warsaw|krakow|kraków|zurich|zürich|stockholm|copenhagen|oslo|helsinki|prague|vienna|manila|jakarta|shanghai|beijing|shenzhen|taipei)\b/i;
-  var COUNTRY_ONLY = /^(canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|taiwan|japan|south korea|korea|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa)$/i;
+  var ABROAD = /\b(afghanistan|albania|algeria|andorra|angola|armenia|azerbaijan|bahrain|bangladesh|belarus|bolivia|bosnia|botswana|bulgaria|cambodia|cameroon|costa rica|croatia|cyprus|dominican republic|ecuador|el salvador|estonia|ethiopia|ghana|guatemala|honduras|iceland|iran|iraq|jamaica|kazakhstan|kosovo|kuwait|latvia|lithuania|luxembourg|malta|mauritius|moldova|mongolia|montenegro|morocco|mozambique|myanmar|namibia|nepal|nicaragua|north macedonia|oman|pakistan|paraguay|rwanda|senegal|serbia|slovakia|slovenia|sri lanka|tanzania|tunisia|uganda|ukraine|uruguay|uzbekistan|venezuela|zambia|zimbabwe|bahamas|barbados|bermuda|cayman islands|trinidad and tobago|canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|hong kong( sar)?|taiwan|japan|south korea|korea|singapore|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa|london|toronto|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|dublin|tel aviv|bangalore|bengaluru|hyderabad|pune|mumbai|delhi|noida|gurgaon|gurugram|chennai|tokyo|seoul|sydney|melbourne|riyadh|dubai|abu dhabi|são paulo|sao paulo|mexico city|bogotá|bogota|buenos aires|warsaw|krakow|kraków|zurich|zürich|stockholm|copenhagen|oslo|helsinki|prague|vienna|manila|jakarta|shanghai|beijing|shenzhen|taipei)\b/i;
+  var COUNTRY_ONLY = /^(afghanistan|albania|algeria|andorra|angola|armenia|azerbaijan|bahrain|bangladesh|belarus|bolivia|bosnia|botswana|bulgaria|cambodia|cameroon|costa rica|croatia|cyprus|dominican republic|ecuador|el salvador|estonia|ethiopia|ghana|guatemala|honduras|iceland|iran|iraq|jamaica|kazakhstan|kosovo|kuwait|latvia|lithuania|luxembourg|malta|mauritius|moldova|mongolia|montenegro|morocco|mozambique|myanmar|namibia|nepal|nicaragua|north macedonia|oman|pakistan|paraguay|rwanda|senegal|serbia|slovakia|slovenia|sri lanka|tanzania|tunisia|uganda|ukraine|uruguay|uzbekistan|venezuela|zambia|zimbabwe|bahamas|barbados|bermuda|cayman islands|trinidad and tobago|canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|españa|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|czechia|czech republic|hungary|romania|greece|israel|india|china|taiwan|japan|south korea|korea|australia|new zealand|mexico|méxico|brazil|brasil|argentina|colombia|chile|peru|philippines|indonesia|malaysia|vietnam|thailand|uae|united arab emirates|saudi arabia|ksa|qatar|south africa|nigeria|kenya|egypt|turkey|türkiye|emea|apac|latam|europe|asia|africa)$/i;
   var NAMES_US2 = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/i;
   var WAY_OF_WORK = /^(remote|hybrid|on[- ]?site|in[- ]?office|office|anywhere|flexible|distributed|virtual|wfh|work from home|field|travel|multiple locations|various( locations)?|world ?wide|global|home based)$/i;
   var AMBIGUOUS_CODE = /* @__PURE__ */ new Set([
@@ -2300,7 +2304,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const out = [];
     for (const chunk of String(text ?? "").split(/\s*(?:;|\||•|·|\n)\s*/)) {
       const head = chunk.replace(/:.*$/, "");
-      for (const seg of head.split(/\s+\/\s*|\s*\/\s+|\s+or\s+|\s+&\s+/i)) {
+      for (const seg of head.split(/\s+\/\s*|\s*\/\s+|(?<=[a-z])\/(?=[A-Z])|\s+or\s+|\s+&\s+/i)) {
         let tokens = seg.split(/\s*(?:,|\(|\)|\s-\s|^([A-Z]{2})-|-(?=[A-Z][a-z]))\s*/).filter((t) => t && t.trim()).map((t) => t.replace(/\s+/g, " ").trim());
         tokens = tokens.flatMap((t) => {
           const x = t.replace(/\s+\d{5}(-\d{4})?$/, "");
@@ -2376,6 +2380,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
             }
           }
           if (ABROAD.test(t)) {
+            if (COUNTRY_ONLY.test(t) && i === 0 && tokens.slice(1).some(isState)) {
+              p.city ||= low2;
+              p.country = "us";
+              return;
+            }
             if (COUNTRY_ONLY.test(t)) {
               p.country = "abroad";
               return;
@@ -2599,6 +2608,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
       if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
       if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
+      if (key === "sponsorship" && l.includes("?") && !/sponsor|visa/i.test(l.split("?")[0])) continue;
+      if (key === "how_heard" && /\breferring (employee|person)\b|\bwho referred you\b|\bname of (the )?(person|employee) who referred\b/i.test(l)) continue;
       if (key === "work_authorization" && /sponsor/i.test(l.split("?")[0])) continue;
       return key;
     }
@@ -2703,18 +2714,27 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ],
       /\b(need|have|required?) to relocate\b/i
     ],
+    // able to obtain or hold a clearance is its own fact; "U.S. person status and/or clearance eligibility" is met by being one
     [
       [
         "us_person"
       ],
-      /\bclearance\b/i
+      /\b(obtain|maintain|hold|get|qualify for|eligible for)\b[^?]{0,40}\bclearance\b/i
     ],
     // work through a vendor or an agency is not on the person's own list of employers; a contractor's is
     [
       [
         "worked_here_before"
       ],
-      /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\bfor an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i
+      /\bvendor\b|\bconsultant\b|\bthrough an agency\b|\bhaken\b|\b(for|at) an? ([\w&-]+ ){0,3}(company|companies|firm|organi[sz]ation|insurer|provider|bank|agency|startup)\b/i
+    ],
+    // WO-056: a question for those who served ("If you've previously served in the U.S. Armed Forces: ...") is not the
+    // person's "no government employment"; its "Not Applicable" is theirs to pick.
+    [
+      [
+        "government_employment"
+      ],
+      /\bif you('ve| have)? (previously |ever )?served\b|\bauthori[sz]e the release\b/i
     ],
     [
       [
@@ -2733,6 +2753,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   function beyondFact(fact, f) {
     if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
+    if (fact === "security_clearance" && (f.options ?? []).some((o) => /\b(expired|inactive|previously held|lapsed)\b/i.test(o.label))) return true;
     return BEYOND_FACT.some(([facts, re]) => facts.includes(fact) && re.test(askedPart(f.label)));
   }
   var STATE_CODE = /,\s*([A-Z]{2})\b/g;
@@ -2786,7 +2807,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
   var askedPart = (label) => {
-    const parts = label.split(/(?<=[.?!])\s+/).filter((x) => x.trim());
+    const kept = label.replace(/\b(?:[A-Za-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024"));
+    const parts = kept.split(/(?<=[.?!])\s+/).filter((x) => x.trim()).map((x) => x.replace(/\u2024/g, "."));
     return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? label;
   };
   function authorizedWithoutSponsorship(answers) {

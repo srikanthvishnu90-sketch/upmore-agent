@@ -35,7 +35,7 @@ const DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|prov
 // WO-052 (independent review of every fill): a standing consent covers what it names and nothing more. An agreement to
 // arbitrate, a confidentiality or non-disclosure agreement, terms and conditions, a whistleblower policy, sharing the
 // person's data with others or keeping it for other roles, being recorded, monitored or matched by AI: the person's own.
-const BEYOND_CONSENT = /arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
+const BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
 const ackOpt = (x: string) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
 function ackShaped(q: Question, t: string): boolean {
   const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -93,8 +93,8 @@ const RULES: Rule[] = [
   ["full_address", /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/, (q, t) => !/e-?mail|ip address|work address/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)],
   ["unknown", /\bcity\b.*\b(zip|postal|country)\b|\b(zip|postal)\b.*\bcity\b/],
   ["postal_code", /\b(zip|postal|post) ?(\/ ?postal )?code\b|^zip\b|\bcode postal\b/],
-  ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b/, (q, t) => !/\bstate\b/.test(t)],
-  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which (u\.?s\.? )?state\b|\bwhich (u\.?s\.? )?state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b/.test(t)],
+  ["city", /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b|\blocation:? city\??$/, (q, t) => !/\bstate\b/.test(t)],
+  ["state", /^state( or province| \/ province)?\b|\bstate of residence\b|\bwhat (u\.?s\.? )?state\b|\bin which (u\.?s\.? )?state\b|\bwhich (u\.?s\.? )?state\b|\bpermanent work location\b/, (q, t) => !/\bcity\b|certif|licen[cs]|granted|issued/.test(t)],
   ["timezone", /\btime ?zone are you\b|\bwhat time ?zone\b|\btime zone you are located\b|\bwhich time zone\b/],
   ["country", /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/, (q, t) => !/\b(employer|company|organi[sz]ation|team|office|headquarters?|client|manager|referr\w*)\b/.test(t)],
   // WO-047: "Do you currently reside in the U.S.?" (no word edge after "U.S.") and "Are you based in the U.S.? We are only
@@ -104,7 +104,7 @@ const RULES: Rule[] = [
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
   ["location", /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
 
-  ["how_heard", /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/],
+  ["how_heard", /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/, (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)],
   ["unknown", /\bconsecutive weeks\b|\binternship\/co-?op duration\b/],
   ["former_employers", /\bsecond most recent employer\b|\blist your work history\b|\bwork history\b/, (q, t) => !/discharged|resign|reason for leaving/.test(t)],
 
@@ -132,7 +132,7 @@ const RULES: Rule[] = [
   ["unknown", /\b(salary|compensation|pay|ctc)\b.*\b(range|monthly|per month|a month|hourly|per hour|an hour|formatting|format)\b|\b(range|monthly|hourly)\b.*\b(salary|compensation|pay)\b|\$00/],
   ["current_compensation", /\bcurrent (ctc|compensation|salary|base)\b/],
   // "Your salary expectations (including currency)" asks the amount, with its currency; "what currency should we use?" asks the currency.
-  ["salary_currency", /\bcurrency\b/, (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b/.test(t)],
+  ["salary_currency", /\bcurrency\b/, (q, t) => !/\b(including|include|with|in) (the |your |a )?currency\b|\bamount and( the)? currency\b|\bbonus\b|\bequity\b|\btotal (annual )?compensation\b/.test(t)],
   ["salary_expectation", /\bexpected (annual |base )?(ctc|compensation|salary)\b|\b(compensation|salary) (expectation|you expect|are you seeking|requirement)|\bdesired (salary|compensation)\b|\bideal annual compensation\b|\bexpected total annual compensation\b|\bcompensation you (expect|are seeking)\b|\bsalary expectations?\b/],
 
   // Education.
@@ -178,7 +178,8 @@ const RULES: Rule[] = [
   ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/],
   // When the person's authorization ends is theirs to state; a "yes" to being authorized is not "no expiry".
   ["unknown", /\b(authori[sz]ation|visa|permit|status)\b.*\b(expir\w*|end date)\b|\bexpir\w*\b.*\b(authori[sz]ation|visa|permit)\b/],
-  ["sponsorship", /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/],
+  // WO-056: "Are you currently authorized to work in the US? We DO assist with visa sponsorship" asks the authorization.
+  ["sponsorship", /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/, (q, t) => !/^(are|is) you (currently |now )?(legally )?authori[sz]ed to work\b[^?]*\?/.test(t) || /^[^?]*\bsponsor/.test(t)],
   ["citizenship", /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/, (q, t) => !/renounced|\bwhen\b|obtained|\bdates?\b/.test(t)],
   ["work_authorization", /\b(legally )?(authori[sz]ed|eligible|entitled) (to work|for employment)\b|\bright to work\b|\bunrestricted right\b|\bproof of authorization\b|\beligibility to work\b|\bpermiso de trabajo\b|\bwork authori[sz]ation\b|\blegal right to work\b|\bverify (your|both your) identity and|\bauthori[sz]ation to work\b/],
   ["over_18", /\b(at least |over (the age of )?|)18( years)?( of age| or older| jaar)\b|\b18 jaar\b|\bunder 18\b|\bover the age of 18\b|\bat least 18\b/],
@@ -194,13 +195,13 @@ const RULES: Rule[] = [
   ["unknown", /\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/],
   ["criminal_history", /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\billegally or unlawfully\b/],
   ["government_employment", /\b(u\.?s\.? )?government (\(|employee|employment|or military)|\bgovernment employee\b|\barmed forces\b|\breserves or the national guard\b|\bstate-owned\b|\bus government employment\b|\bprior us government\b/],
-  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|non-?solicit|restrictive covenant|post-employment restriction/.test(t)],
+  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|non-?solicit|restrictive covenant|post-employment restriction/.test(t)],
   // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
   ["background_check_ok", /\bbackground (check|investigation)\b/, (q, t) => !/drug|substance|reference check|monitor/.test(t)],
 
   // Consent.
   ["sms_opt_in", /\b(text|sms|whatsapp)\b.*\b(message|communication|update|opt|consent|contact)|\bopt[- ]in to (text|receive text)|\bsms consent\b|\bcontact you by text\b/],
-  ["marketing_opt_in", /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b/],
+  ["marketing_opt_in", /\bnewsletter|\btalent community\b|\bother job openings\b|\btraining opportunities and courses\b|\bstay connected\b|\bmarketing (communications?|e-?mails?|updates)\b|\brecruitment marketing\b/],
   ["ai_policy_ack", /\bai policy\b|\buse (of )?ai (tools )?to\b.*\b(research|prepare|refine|application)|\bplagiarism\b|\bown words\b|\bembrace ai\b/, (q, t) => !LONG_TYPES.has(String(q.type)) && !BEYOND_CONSENT.test(t + " " + opts(q))],
   ["certify_true", /\bcertif(y|ication)\b.*\b(true|accurate|correct|complete)|\btrue and (complete|correct)|\baccurate to the best\b|\bapplicant'?s? statement\b/, (q, t) => !BEYOND_CONSENT.test(t + " " + opts(q))],
   // A bare heading ("Certification & Attestation", "Affirmation") does not say what is attested: the person reads it
@@ -217,7 +218,7 @@ const RULES: Rule[] = [
   // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.
   ["worked_here_before", /\b(currently|now) or have you ever been (a |an )?[^?]{1,60}\bemployee\b|\bare you (a |an )?current [^?]{1,60}\bemployee\b/, (q, t) => !/temporar|\btemp\b|agency|vendor|contract|consult|intern|government|relative|family/.test(t)],
   ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)],
-  ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/],
+  ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/, (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)],
   // "Available on request" answers only a question about references, never a request to list them (WO-052).
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/, (q, t) => !/\b(list|enter|provide|names?|emails?|phone|contact|rationale|evidence|make reference|reference check)\b/.test(t)],
 
@@ -238,7 +239,7 @@ const RULES: Rule[] = [
   ["meets_qualifications", /\bmeet (each of |all )?(the )?(basic |essential |required )?qualifications\b|\bread the required qualifications\b/],
   ["job_physical", /\blift(ing)?\b.*\b(lbs?|pounds?)\b|\bstand(ing)? for\b|\bclimb\b|\bmedical waste\b/],
   ["job_schedule", /\bovertime\b|\bweekends?\b|\bshift\b|\bus (time ?zone|pst hours)\b|\bdays and times\b|\bweekend\b|\bin het weekend\b|\bus shift\b|\bpst\b/],
-  ["job_travel", /\btravel\b/, (q, t) => !/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)],
+  ["job_travel", /\btravel\b/, (q, t) => (!/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)) && !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bfully remote\b|\bwork(ing)? (fully )?remote(ly)?\b|\bdays (a|per) week\b/.test(t)],
   ["travel_ok", /\bopen to travel\b|\bwhat % of travel\b|\bwilling to travel\b/],
   ["job_relocation", /\brelocat/, (q, t) => /\b(this position|this role|office|headquarters|hq)\b/.test(t) || /relocate (to|before)/.test(opts(q))],
   ["job_relocation", /\brelocat\w*\b.*\b(to|in)\b [a-z]/, (q, t) => !/^are you (open|willing) to relocat\w*( if needed)?\??$/.test(t)],

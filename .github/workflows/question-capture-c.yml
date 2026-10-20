@@ -39,7 +39,8 @@ jobs:
           node -e 'const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1]));fs.writeFileSync(process.argv[2],JSON.stringify(s.filter(x=>x.family!=="greenhouse")))' "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/render-sources.json"
           node scripts/career/render-form.cjs "$RUNNER_TEMP/c/render-sources.json" "$RUNNER_TEMP/c/rendered"
       - name: Build the question set
-        run: deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/gh" "$RUNNER_TEMP/c/rendered" evals/apply/questions-ci-c.json "CI run ${{ github.run_id }} of question-capture-c.yml at ${{ github.sha }}, sample C (seed 3, no employer from A or B); sealed: scored once (WO-052)"
+        run: |
+          deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/gh" "$RUNNER_TEMP/c/rendered" evals/apply/questions-ci-c.json "CI run ${{ github.run_id }} of question-capture-c.yml at ${{ github.sha }}, sample C (seed 3, no employer from A or B), sealed and scored once (WO-052)"
       - name: Commit to ci/question-capture-c
         run: |
           git config user.name "question-capture[ci]"

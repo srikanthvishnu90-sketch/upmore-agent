@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contoso Test Health Careers - Voluntary Disclosures (TEST Workday-shaped page)</title>
+<style>*{box-sizing:border-box}
+body{margin:0;background:#f6f7f8;color:#333d47;font:14px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.test-banner{position:sticky;top:0;z-index:50;background:#fff3b0;color:#4a3b00;border-bottom:2px solid #c9a400;padding:6px 16px;font-weight:700;text-align:center}
+.css-header header{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #ced3d9;padding:10px 24px}
+.css-header h1{font-size:18px;margin:0;font-weight:600}
+.css-logo{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:6px;background:#0875e1;color:#fff;font-weight:700}
+.css-main{max-width:860px;margin:0 auto;padding:16px 16px 96px}
+h2{font-size:22px;margin:8px 0 2px}
+.css-jobloc{margin:0 0 12px;color:#5e6a75}
+.css-progress{display:flex;flex-wrap:wrap;gap:4px;list-style:none;padding:0;margin:0 0 16px}
+.css-progress li{flex:1 1 110px;border-top:4px solid #ced3d9;padding:6px 4px 0;font-size:12px;color:#5e6a75}
+.css-progress li[data-automation-id="progressBarActiveStep"]{border-top-color:#0875e1;color:#0875e1;font-weight:700}
+.css-progress li[data-automation-id="progressBarCompletedStep"]{border-top-color:#319c8a}
+.css-flow{background:#fff;border:1px solid #ced3d9;border-radius:8px;padding:16px 24px}
+h3{font-size:20px;margin:4px 0 12px}
+h4{font-size:16px;margin:18px 0 8px;border-bottom:1px solid #e8ebed;padding-bottom:4px}
+h5{font-size:14px;margin:0}
+.css-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.css-field{margin:12px 0;max-width:560px}
+.css-field label,.css-field legend{display:block;font-weight:600;margin-bottom:4px}
+.css-field fieldset{border:0;margin:0;padding:0}
+.css-q{display:inline}.css-q p{margin:0;display:inline}
+abbr{color:#de2e21;text-decoration:none;margin-left:2px}
+input[type=text],input[type=password],input[type=email],input[type=tel],input:not([type]),textarea{width:100%;max-width:420px;padding:7px 9px;border:1px solid #a0aab4;border-radius:4px;font:inherit;background:#fff}
+textarea{max-width:560px}
+input[aria-invalid=true],textarea[aria-invalid=true],button[aria-invalid=true]{border-color:#de2e21;box-shadow:0 0 0 1px #de2e21}
+.css-dd{position:relative;display:inline-block;max-width:420px;width:100%}
+.css-ddbtn{width:100%;text-align:left;padding:7px 30px 7px 9px;border:1px solid #a0aab4;border-radius:4px;background:#fff;font:inherit;cursor:pointer}
+.css-ddbtn::after{content:"\25BE";position:absolute;right:10px}
+.css-wdval{position:absolute;left:0;bottom:0;width:0;height:0;padding:0;border:0;opacity:0;pointer-events:none}
+.css-ms{max-width:420px;border:1px solid #a0aab4;border-radius:4px;background:#fff;padding:3px}
+.css-msin{display:flex;align-items:center;gap:4px}
+.css-msin input{border:0;box-shadow:none;flex:1}
+.css-icon{display:inline-grid;place-items:center;width:26px;height:26px;color:#5e6a75;cursor:pointer;user-select:none}
+.css-pills{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px}
+.css-pills [data-automation-id=selectedItem]{display:flex;align-items:center;gap:6px;background:#e6f0fb;border:1px solid #9cc3ee;border-radius:12px;padding:1px 4px 1px 10px}
+.css-pills p{margin:0}
+[data-automation-id=DELETE_charm]{cursor:pointer;padding:0 4px;font-weight:700}
+.css-radios,.css-cbs{display:flex;flex-direction:column;gap:4px}
+.css-radio,.css-cb{display:flex;align-items:center;gap:8px}
+.css-radio label,.css-cb label{display:inline;font-weight:400;margin:0}
+.css-date{display:inline-flex;align-items:center;gap:2px;border:1px solid #a0aab4;border-radius:4px;padding:2px 4px;background:#fff}
+.css-date input{border:0;width:46px;padding:4px;text-align:center}
+.css-date [data-automation-id="dateSectionYear-input"]{width:58px}
+.css-sep{color:#8a949e}
+.css-section{margin:8px 0 20px}
+.css-rows>[role=group]{border:1px solid #e0e4e8;border-radius:6px;padding:8px 14px;margin:10px 0;background:#fbfcfd}
+.wd-row-head{display:flex;justify-content:space-between;align-items:center}
+.css-btn1,.css-btn2,.css-del{font:inherit;border-radius:18px;padding:7px 18px;cursor:pointer}
+.css-btn1{background:#0875e1;color:#fff;border:1px solid #0875e1;font-weight:600}
+.css-btn2,.css-del{background:#fff;color:#0875e1;border:1px solid #a0aab4}
+.css-del{padding:3px 12px;color:#de2e21}
+.css-drop{border:2px dashed #a0aab4;border-radius:6px;padding:14px;text-align:center;max-width:560px}
+.css-drop p{margin:2px 0}
+.css-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+[data-automation-id=file-upload-item]{display:flex;gap:12px;align-items:center;margin-top:6px}
+[data-automation-id=file-upload-successful]{color:#319c8a}
+.css-footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #ced3d9;padding:10px 16px;display:flex;justify-content:flex-end;gap:10px;z-index:20}
+.wd-popup{position:absolute;z-index:40;background:#fff;border:1px solid #a0aab4;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.18);max-height:260px;overflow:auto}
+.wd-popup ul{list-style:none;margin:0;padding:4px 0}
+.wd-popup [role=option]{padding:6px 12px;cursor:pointer;display:flex;justify-content:space-between}
+.wd-popup [role=option][aria-disabled=true]{color:#8a949e;cursor:default}
+.wd-popup [role=option][aria-selected=true]{background:#e6f0fb}
+.wd-popup .wd-focus,.wd-popup [role=option]:hover{background:#d4e6fa}
+.wd-prompt-back{padding:6px 12px;font-weight:600;border-bottom:1px solid #e0e4e8;cursor:pointer}
+.wd-noitems{padding:8px 12px;color:#5e6a75}
+.wd-error-banner{border:1px solid #de2e21;background:#fdecea;border-radius:6px;padding:8px 14px;margin:0 0 12px}
+.wd-error-banner h3{color:#b3261e;font-size:16px;margin:0}
+.wd-error-banner ul{margin:4px 0 0;padding-left:18px}
+.wd-inline-error p{color:#b3261e;margin:4px 0 0;font-size:13px}
+.css-ro{margin:12px 0}
+.css-ro .css-ro-label{display:block;font-weight:600}
+.css-note{color:#5e6a75;max-width:640px}
+.wd-review-section{margin:8px 0 18px}
+.wd-review-section dl{display:grid;grid-template-columns:minmax(140px,240px) 1fr;gap:4px 16px;margin:0}
+.wd-review-section dt{color:#5e6a75}
+.wd-review-section dd{margin:0;overflow-wrap:anywhere}
+.wd-muted{color:#5e6a75}
+.css-signin{max-width:420px}
+.css-honeypot{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.css-linkbtn{background:none;border:0;color:#0875e1;text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+.css-clickfilter{position:absolute;inset:0;cursor:pointer}
+.css-submitwrap{position:relative;display:inline-block;margin-top:8px}
+@media (max-width:600px){.css-main{padding:12px 12px 96px}.css-flow{padding:12px}.css-progress li{flex-basis:70px}}
+</style>
+</head>
+<body>
+<div class="test-banner" role="note">TEST Workday-shaped page &mdash; synthetic fixture; not a real employer, job, or Workday site</div>
+<div data-automation-id="header" class="css-header"><header><span class="css-logo" aria-hidden="true">C</span><h1>Careers at Contoso Test Health</h1></header></div>
+<main class="css-main">
+<h2 data-automation-id="jobPostingHeader">Analyst II, Revenue Analytics</h2>
+<p class="css-jobloc" data-automation-id="locations">Remote - United States &middot; JR-2207</p>
+<ol data-automation-id="progressBar" class="css-progress"><li data-automation-id="progressBarCompletedStep"><span class="css-hidden">completed step 1 of 6</span><label>My Information</label></li><li data-automation-id="progressBarCompletedStep"><span class="css-hidden">completed step 2 of 6</span><label>My Experience</label></li><li data-automation-id="progressBarCompletedStep"><span class="css-hidden">completed step 3 of 6</span><label>Application Questions</label></li><li data-automation-id="progressBarActiveStep"><span class="css-hidden">current step 4 of 6</span><label>Voluntary Disclosures</label></li><li data-automation-id="progressBarInactiveStep"><span class="css-hidden">step 5 of 6</span><label>Self Identify</label></li><li data-automation-id="progressBarInactiveStep"><span class="css-hidden">step 6 of 6</span><label>Review</label></li></ol>
+<div data-automation-id="applyFlowPage" class="css-flow">
+<div data-automation-id="voluntaryDisclosuresPage">
+<h3>Voluntary Disclosures</h3>
+<p class="css-note">Contoso Test Health is an equal opportunity employer. Providing the information below is voluntary and refusal to provide it will not subject you to any adverse treatment. The information is kept in a separate, limited-access file and is not used to make employment decisions. (TEST text.)</p>
+<div data-automation-id="formField-gender" class="css-field"><label for="personalInfoUS--gender">Gender</label><div class="css-dd"><button type="button" id="personalInfoUS--gender" name="gender" aria-haspopup="listbox" class="css-ddbtn">Select One</button><input type="text" class="css-wdval" tabindex="0" autocomplete="off" value=""></div></div>
+<div data-automation-id="formField-hispanicOrLatino" class="css-field"><label for="personalInfoUS--hispanicOrLatino">Are you Hispanic or Latino?</label><div class="css-dd"><button type="button" id="personalInfoUS--hispanicOrLatino" name="hispanicOrLatino" aria-haspopup="listbox" class="css-ddbtn">Select One</button><input type="text" class="css-wdval" tabindex="0" autocomplete="off" value=""></div></div>
+<div data-automation-id="formField-ethnicityMulti" class="css-field"><fieldset><legend><div class="css-q"><p>Race Category: (Please select all that apply.)</p></div></legend><div class="css-cbs"><div class="css-cb"><input type="checkbox" id="227bcdba53859c3a4ca1b49dc096ae79-ethnicityMulti"><label for="227bcdba53859c3a4ca1b49dc096ae79-ethnicityMulti">American Indian or Alaska Native (United States of America)</label></div><div class="css-cb"><input type="checkbox" id="3512f91b87dea2dfd11a942262908470-ethnicityMulti"><label for="3512f91b87dea2dfd11a942262908470-ethnicityMulti">Asian (United States of America)</label></div><div class="css-cb"><input type="checkbox" id="27a40330301b04fcf3235f11aedf53bb-ethnicityMulti"><label for="27a40330301b04fcf3235f11aedf53bb-ethnicityMulti">Black or African American (United States of America)</label></div><div class="css-cb"><input type="checkbox" id="77609a4738def0687de80f30215392df-ethnicityMulti"><label for="77609a4738def0687de80f30215392df-ethnicityMulti">Native Hawaiian or Other Pacific Islander (United States of America)</label></div><div class="css-cb"><input type="checkbox" id="2ab042eee43b5141b79ff8ccb5da4496-ethnicityMulti"><label for="2ab042eee43b5141b79ff8ccb5da4496-ethnicityMulti">White (United States of America)</label></div></div></fieldset></div>
+<div data-automation-id="formField-veteranStatus" class="css-field"><label for="personalInfoUS--veteranStatus">Veteran Status</label><div class="css-dd"><button type="button" id="personalInfoUS--veteranStatus" name="veteranStatus" aria-haspopup="listbox" class="css-ddbtn">Select One</button><input type="text" class="css-wdval" tabindex="0" autocomplete="off" value=""></div></div>
+<h4 id="Terms-and-Conditions-section">Terms and Conditions</h4>
+<p class="css-note">I certify that the information provided in this application is true and complete, and I understand that any false statement or omission may disqualify me from employment. I authorize Contoso Test Health to verify the information I have provided. (TEST text.)</p>
+<div data-automation-id="formField-acceptTermsAndAgreements" class="css-field"><div class="css-cb"><input type="checkbox" id="termsAndConditions--acceptTermsAndAgreements" name="acceptTermsAndAgreements" aria-required="true"><label for="termsAndConditions--acceptTermsAndAgreements">Yes, I have read and agree to the terms and conditions<abbr title="required" aria-hidden="true">*</abbr></label></div></div>
+</div>
+</div>
+<div data-automation-id="pageFooter" class="css-footer"><button data-automation-id="pageFooterBackButton" class="css-btn2">Back</button><button data-automation-id="pageFooterNextButton" class="css-btn1">Save and Continue</button></div>
+</main>
+<script>window.WD_CFG = {"required": ["[data-automation-id=\"formField-acceptTermsAndAgreements\"]"], "lists": {"personalInfoUS--gender": [{"l": "Select One", "v": "", "p": true, "d": false}, {"l": "Man", "v": "48ca8b1ccaa251e5b4be68549c6afe26"}, {"l": "Woman", "v": "564feb1e0d905f2bcc342b0b0cb0f9bd"}, {"l": "Non-binary", "v": "631068edb44a9954fd0fd24494d6b0dd"}, {"l": "I don't wish to answer", "v": "9ad42f29aa84ddc9da6acbeed60c0ee8"}], "personalInfoUS--hispanicOrLatino": [{"l": "Select One", "v": "", "p": true, "d": false}, {"l": "Yes", "v": "06c29125fee187e42e8664fd8403304d"}, {"l": "No", "v": "49afecb3654903e62c333a49de6ff132"}], "personalInfoUS--veteranStatus": [{"l": "Select One", "v": "", "p": true, "d": false}, {"l": "I am a protected veteran", "v": "5fc6c3afc88d91ae8a96e95a75f79a51"}, {"l": "I am not a protected veteran", "v": "6423ea141e559ac23326ce8d5703c9e1"}, {"l": "I am not a veteran", "v": "1fe2b5f34b3fd91e88ccb5a399442742"}, {"l": "I choose not to self-identify", "v": "29faceec4ce8315295dea4d7ab779825"}]}, "prompts": {}, "conditionals": [], "sections": {}, "initialRows": [], "initialPills": [], "tenant": "dev-b", "page": "4-voluntary", "stepTitle": "Voluntary Disclosures", "next": "5-self-identify.html", "prev": "3-questions.html"};</script>
+<script>
+(function () {
+  'use strict';
+  /* TEST Workday-shaped page runtime. Static fixture behaviour only; no network. */
+  var CFG = window.WD_CFG || {};
+  var doc = document;
+  function q(s, c) { return (c || doc).querySelector(s); }
+  function qa(s, c) { return Array.prototype.slice.call((c || doc).querySelectorAll(s)); }
+  var seq = 0;
+  function dyn(prefix) { seq += 1; return prefix + '-' + (7919 * seq + 4096).toString(16); }
+  function fire(el, type) { el.dispatchEvent(new Event(type, { bubbles: true })); }
+  function store() { try { var s = window.sessionStorage; s.getItem('x'); return s; } catch (e) { return null; } }
+  function fieldOf(el) { return el.closest('[data-automation-id^="formField-"], [data-automation-id="attachments-FileUpload"]'); }
+  function shown(el) {
+    for (var n = el; n && n !== doc.body; n = n.parentElement) {
+      if (n.hidden || n.style.display === 'none') return false;
+    }
+    return true;
+  }
+  function clean(t) { return (t || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
+  function labelOf(field) {
+    var l = q('legend, label', field);
+    return l ? clean(l.textContent) : clean(field.getAttribute('data-automation-id'));
+  }
+  function make(tag, attrs, text) {
+    var e = doc.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function idxKey(id) { return id.replace(/^([A-Za-z]+)-\d+--/, '$1-{{IDX}}--'); }
+
+  /* ---------------- required bookkeeping ---------------- */
+  function requiredFields() {
+    var out = [];
+    (CFG.required || []).forEach(function (sel) { qa(sel).forEach(function (f) { out.push(f); }); });
+    Object.keys(CFG.sections || {}).forEach(function (name) {
+      var s = CFG.sections[name];
+      rowsOf(name).forEach(function (row) {
+        (s.required || []).forEach(function (aid) {
+          var f = q('[data-automation-id="' + aid + '"]', row);
+          if (f) out.push(f);
+        });
+      });
+    });
+    return out;
+  }
+  function isRequiredField(field) { return requiredFields().indexOf(field) >= 0; }
+
+  /* ---------------- dropdown buttons (button + ul[role=listbox]) ---------------- */
+  function listFor(btn) {
+    var L = CFG.lists || {};
+    return L[btn.id] || L[idxKey(btn.id)] || [];
+  }
+  function hiddenOf(btn) {
+    var n = btn.nextElementSibling;
+    return n && n.tagName === 'INPUT' ? n : null;
+  }
+  var active = null;
+  function closePopups() {
+    qa('[data-automation-activepopup="true"]').forEach(function (p) { p.parentNode.removeChild(p); });
+    qa('[aria-expanded="true"]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    active = null;
+  }
+  function place(pop, anchor) {
+    var r = anchor.getBoundingClientRect();
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    pop.style.top = (window.scrollY + r.bottom + 2) + 'px';
+    pop.style.minWidth = Math.max(r.width, 240) + 'px';
+  }
+  function mark() {
+    if (!active) return;
+    active.items.forEach(function (li, i) { li.classList.toggle('wd-focus', i === active.idx); });
+    var li = active.items[active.idx];
+    if (li) {
+      (active.ul || active.lb).setAttribute('aria-activedescendant', li.id);
+      if (li.scrollIntoView) li.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  function btnAriaLabel(btn) {
+    var field = fieldOf(btn);
+    var lab = btn.id ? q('label[for="' + btn.id + '"]') : null;
+    var base = lab ? clean(lab.textContent) : '';
+    var req = field && isRequiredField(field) ? ' Required' : '';
+    btn.setAttribute('aria-label', base + ' ' + clean(btn.textContent) + req);
+  }
+  function openList(btn) {
+    closePopups();
+    var opts = listFor(btn);
+    var h = hiddenOf(btn);
+    var cur = h ? h.value : '';
+    var pop = make('div', { 'class': 'wd-popup', 'data-automation-widget': 'wd-popup', 'data-automation-activepopup': 'true' });
+    var ul = make('ul', { role: 'listbox', id: dyn('listbox'), tabindex: '-1' });
+    var items = [];
+    var start = 0;
+    opts.forEach(function (o, i) {
+      var sel = cur === '' ? (i === 0 && !!o.p) : o.v === cur;
+      var li = make('li', { role: 'option', id: dyn('option'), 'aria-selected': sel ? 'true' : 'false', 'data-value': o.v });
+      if (o.d) li.setAttribute('aria-disabled', 'true');
+      li.appendChild(make('div', {}, o.l));
+      li.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      li.addEventListener('click', function () {
+        if (o.d) return;
+        choose(btn, o);
+        closePopups();
+        btn.focus();
+      });
+      if (sel) start = i;
+      ul.appendChild(li);
+      items.push(li);
+    });
+    pop.appendChild(ul);
+    doc.body.appendChild(pop);
+    place(pop, btn);
+    btn.setAttribute('aria-expanded', 'true');
+    active = { kind: 'list', btn: btn, ul: ul, items: items, opts: opts, idx: start };
+    mark();
+  }
+  function choose(btn, o) {
+    var h = hiddenOf(btn);
+    btn.textContent = o.l;
+    if (h) { h.value = o.p ? '' : o.v; fire(h, 'input'); fire(h, 'change'); }
+    btnAriaLabel(btn);
+    var f = fieldOf(btn);
+    if (f) clearError(f);
+    fire(btn, 'change');
+    runConditionals();
+  }
+  function chooseByLabel(btn, label) {
+    var o = listFor(btn).filter(function (x) { return x.l === label; })[0];
+    if (o) choose(btn, o);
+  }
+
+  /* ---------------- prompt widgets (search + selected pills) ---------------- */
+  function promptCfg(input) {
+    var P = CFG.prompts || {};
+    return P[input.id] || P[idxKey(input.id)] || { multi: false, tree: [] };
+  }
+  function containerOf(input) { return input.closest('[data-automation-id="multiSelectContainer"]'); }
+  function selectedLabels(container) {
+    return qa('[data-automation-id="promptSelectionLabel"]', container).map(function (p) { return p.textContent; });
+  }
+  function leaves(nodes, path, out) {
+    nodes.forEach(function (n) {
+      if (n.c) leaves(n.c, path.concat(n.l), out);
+      else out.push(n);
+    });
+    return out;
+  }
+  function openPrompt(input, nodes, title, stack) {
+    closePopups();
+    var cont = containerOf(input);
+    var sel = selectedLabels(cont);
+    var pop = make('div', { 'class': 'wd-popup', 'data-automation-id': 'activeListContainer', 'data-automation-activepopup': 'true' });
+    if (title) {
+      var back = make('div', { role: 'button', tabindex: '-1', 'class': 'wd-prompt-back', 'aria-label': 'Back' }, '‹ ' + title);
+      back.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      back.addEventListener('click', function () {
+        var prev = stack.pop();
+        openPrompt(input, prev.nodes, prev.title, stack);
+      });
+      pop.appendChild(back);
+    }
+    var lb = make('div', { role: 'listbox', id: dyn('listbox'), 'aria-multiselectable': promptCfg(input).multi ? 'true' : 'false' });
+    var items = [];
+    nodes.forEach(function (n) {
+      var opt = make('div', { role: 'option', id: dyn('menuItem'), 'data-automation-id': 'promptOption', 'data-automation-label': n.l, 'aria-selected': sel.indexOf(n.l) >= 0 ? 'true' : 'false', tabindex: '-1' });
+      if (n.c) {
+        opt.setAttribute('aria-haspopup', 'true');
+        opt.appendChild(make('span', {}, n.l));
+        opt.appendChild(make('span', { 'class': 'wd-icon-chevron-right-small', 'aria-hidden': 'true' }, '›'));
+      } else {
+        opt.appendChild(make('div', { 'data-automation-id': 'promptLeafNode' }, n.l));
+      }
+      opt.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      opt.addEventListener('click', function () {
+        if (n.c) {
+          stack.push({ nodes: nodes, title: title });
+          openPrompt(input, n.c, n.l, stack);
+        } else {
+          pick(input, n);
+        }
+      });
+      lb.appendChild(opt);
+      items.push(opt);
+    });
+    if (!nodes.length) pop.appendChild(make('div', { 'class': 'wd-noitems' }, 'No Items.'));
+    pop.appendChild(lb);
+    doc.body.appendChild(pop);
+    place(pop, cont);
+    input.setAttribute('aria-expanded', 'true');
+    active = { kind: 'prompt', input: input, lb: lb, items: items, nodes: nodes, idx: 0, nav: false, stack: stack };
+    mark();
+  }
+  function searchPrompt(input) {
+    var cfg = promptCfg(input);
+    var qv = input.value.trim().toLowerCase();
+    if (!qv) { openPrompt(input, cfg.tree, null, []); return; }
+    var hits = leaves(cfg.tree, [], []).filter(function (n) { return n.l.toLowerCase().indexOf(qv) >= 0; });
+    openPrompt(input, hits, null, []);
+  }
+  function renderPills(cont, labels) {
+    var ul = q('[data-automation-id="selectedItemList"]', cont);
+    ul.innerHTML = '';
+    labels.forEach(function (l) {
+      var li = make('li', { 'data-automation-id': 'menuItem', role: 'presentation' });
+      var d = make('div', { 'data-automation-id': 'selectedItem', role: 'option', 'aria-selected': 'true', tabindex: '0', title: l });
+      d.appendChild(make('p', { 'data-automation-id': 'promptSelectionLabel' }, l));
+      var x = make('span', { 'data-automation-id': 'DELETE_charm', role: 'button', 'aria-label': 'Delete ' + l, tabindex: '-1' }, '×');
+      x.addEventListener('click', function () {
+        renderPills(cont, selectedLabels(cont).filter(function (s) { return s !== l; }));
+        runConditionals();
+      });
+      d.appendChild(x);
+      li.appendChild(d);
+      ul.appendChild(li);
+    });
+    var cnt = q('.wd-count', cont);
+    if (cnt) cnt.textContent = labels.length + (labels.length === 1 ? ' item selected' : ' items selected');
+  }
+  function pick(input, node) {
+    var cont = containerOf(input);
+    var cfg = promptCfg(input);
+    var cur = selectedLabels(cont);
+    var next = cfg.multi ? (cur.indexOf(node.l) >= 0 ? cur : cur.concat(node.l)) : [node.l];
+    renderPills(cont, next);
+    input.value = '';
+    var f = fieldOf(input);
+    if (f) clearError(f);
+    if (cfg.multi) openPrompt(input, active && active.nodes ? active.nodes : cfg.tree, null, []);
+    else { closePopups(); input.focus(); }
+    fire(input, 'change');
+    runConditionals();
+  }
+  function pickByLabel(input, label) {
+    var n = leaves(promptCfg(input).tree, [], []).filter(function (x) { return x.l === label; })[0];
+    if (n) { renderPills(containerOf(input), promptCfg(input).multi ? selectedLabels(containerOf(input)).concat(label) : [label]); }
+  }
+
+  /* ---------------- date spinbuttons ---------------- */
+  function partKind(inp) {
+    var a = inp.getAttribute('data-automation-id') || '';
+    if (a.indexOf('Month') >= 0) return 'M';
+    if (a.indexOf('Day') >= 0) return 'D';
+    return 'Y';
+  }
+  function partLen(inp) { return partKind(inp) === 'Y' ? 4 : 2; }
+  function syncSpin(inp) {
+    var v = inp.value;
+    if (v) { inp.setAttribute('aria-valuenow', String(parseInt(v, 10))); inp.setAttribute('aria-valuetext', v); }
+    else { inp.removeAttribute('aria-valuenow'); inp.setAttribute('aria-valuetext', inp.getAttribute('placeholder') || ''); }
+  }
+  function partsOf(inp) { return qa('[role="spinbutton"]', inp.closest('[data-automation-id="dateInputWrapper"]')); }
+  function validPart(inp) {
+    var v = inp.value, k = partKind(inp);
+    if (!/^\d+$/.test(v)) return false;
+    var n = parseInt(v, 10);
+    if (k === 'M') return n >= 1 && n <= 12;
+    if (k === 'D') return n >= 1 && n <= 31;
+    return v.length === 4 && n >= 1900;
+  }
+  var stepping = false;
+  function stepSpin(inp, d) {
+    var k = partKind(inp);
+    var min = k === 'Y' ? 1 : 1, max = k === 'M' ? 12 : (k === 'D' ? 31 : 9999);
+    var n = parseInt(inp.value, 10);
+    if (isNaN(n)) n = k === 'Y' ? new Date().getFullYear() : (d > 0 ? min : max);
+    else n = n + d;
+    if (n < min) n = max === 9999 ? min : max;
+    if (n > max) n = min;
+    inp.value = k === 'Y' ? String(n) : (n < 10 ? '0' + n : String(n));
+    syncSpin(inp);
+    stepping = true;
+    fire(inp, 'input');
+    stepping = false;
+  }
+
+  /* ---------------- repeatable sections ---------------- */
+  function sectionGroup(name) {
+    var s = CFG.sections[name];
+    var h = doc.getElementById(s.labelId);
+    return h ? h.closest('[role="group"]') : null;
+  }
+  function rowsOf(name) {
+    var g = sectionGroup(name);
+    if (!g) return [];
+    return qa(':scope > .css-rows > [role="group"]', g);
+  }
+  function relabel(name) {
+    var s = CFG.sections[name];
+    rowsOf(name).forEach(function (row, i) {
+      var n = i + 1;
+      row.setAttribute('aria-labelledby', s.panel + '-' + n + '-panel');
+      var hid = q('.wd-panel-label', row);
+      hid.id = s.panel + '-' + n + '-panel';
+      hid.textContent = s.title + ' ' + n;
+      var h5 = q('h5', row);
+      h5.id = s.h5 + n;
+      h5.setAttribute('title', s.h5 + n);
+      h5.textContent = s.title + ' ' + n;
+    });
+    var g = sectionGroup(name);
+    var add = q(':scope > [data-automation-id="add-button"]', g);
+    var any = rowsOf(name).length > 0;
+    add.textContent = any ? 'Add Another' : 'Add';
+    add.setAttribute('aria-label', (any ? 'Add Another ' : 'Add ') + s.title);
+  }
+  function addRow(name, values) {
+    var s = CFG.sections[name];
+    var g = sectionGroup(name);
+    var holder = q(':scope > .css-rows', g);
+    var idx = s.next;
+    s.next = s.next + (s.step || 1);
+    var row = make('div', { role: 'group' });
+    row.innerHTML = '<div class="wd-panel-label css-hidden"></div><div class="wd-row-head"><h5></h5><button class="css-del">Delete</button></div>' +
+      s.template.replace(/\{\{IDX\}\}/g, String(idx));
+    holder.appendChild(row);
+    q('.css-del', row).addEventListener('click', function () {
+      row.parentNode.removeChild(row);
+      relabel(name);
+    });
+    relabel(name);
+    if (values) applyValues(row, values);
+    return row;
+  }
+  function applyValues(scope, values) {
+    Object.keys(values).forEach(function (suffix) {
+      var v = values[suffix];
+      var el = q('[id$="' + suffix + '"]', scope);
+      if (!el) return;
+      if (el.matches('button[aria-haspopup="listbox"]')) { chooseByLabel(el, v); return; }
+      if (el.matches('input[type="checkbox"]')) { el.checked = !!v; fire(el, 'change'); return; }
+      if (el.matches('[data-automation-id="searchBox"]')) { pickByLabel(el, v); return; }
+      if (el.getAttribute('data-automation-id') === 'dateInputWrapper') {
+        var parts = partsOf(q('[role="spinbutton"]', el));
+        String(v).split('/').forEach(function (p, i) { if (parts[i]) { parts[i].value = p; syncSpin(parts[i]); } });
+        return;
+      }
+      el.value = v;
+    });
+  }
+
+  /* ---------------- conditionals ---------------- */
+  function valueLabel(sel) {
+    var el = q(sel);
+    if (!el) return '';
+    if (el.matches('[data-automation-id="searchBox"]')) return selectedLabels(containerOf(el)).join('|');
+    if (el.matches('button[aria-haspopup="listbox"]')) { var h = hiddenOf(el); return h && h.value ? clean(el.textContent) : ''; }
+    if (el.matches('input[type="radio"]')) {
+      var c = qa('input[name="' + el.name + '"]').filter(function (r) { return r.checked; })[0];
+      if (!c) return '';
+      var lab = q('label[for="' + c.id + '"]');
+      return lab ? clean(lab.textContent) : c.value;
+    }
+    if (el.matches('input[type="checkbox"]')) return el.checked ? 'on' : '';
+    return el.value || '';
+  }
+  function runConditionals() {
+    (CFG.conditionals || []).forEach(function (c) {
+      var on = valueLabel(c.when).split('|').indexOf(c.equals) >= 0;
+      qa(c.show).forEach(function (f) {
+        f.hidden = !on;
+        if (!on) {
+          qa('input[type="text"], textarea', f).forEach(function (i) { i.value = ''; });
+          clearError(f);
+        }
+      });
+    });
+  }
+
+  /* ---------------- file upload ---------------- */
+  function addFiles(zoneField, files) {
+    var list = q('.css-uploaded', zoneField);
+    Array.prototype.forEach.call(files, function (file) {
+      var item = make('div', { 'data-automation-id': 'file-upload-item' });
+      item.appendChild(make('div', { 'data-automation-id': 'file-upload-item-name' }, file.name));
+      item.appendChild(make('div', { 'data-automation-id': 'file-upload-successful' }, 'Successfully Uploaded!'));
+      var del = make('button', { type: 'button', 'data-automation-id': 'delete-file', 'aria-label': 'Delete ' + file.name }, 'Delete');
+      del.addEventListener('click', function () { item.parentNode.removeChild(item); });
+      item.appendChild(del);
+      list.appendChild(item);
+    });
+    var live = q('[data-automation-id="ariaLiveMessage"]', zoneField);
+    if (live) live.textContent = 'Successfully Uploaded!';
+    clearError(zoneField);
+  }
+
+  /* ---------------- validation, errors, navigation ---------------- */
+  function hasValue(field) {
+    if (q('[data-automation-id="file-upload-input-ref"]', field)) return !!q('[data-automation-id="file-upload-item"]', field);
+    if (q('[data-automation-id="multiSelectContainer"]', field)) return !!q('[data-automation-id="selectedItem"]', field);
+    var radios = qa('input[type="radio"]', field);
+    if (radios.length) return radios.some(function (r) { return r.checked; });
+    var cbs = qa('input[type="checkbox"]', field);
+    if (cbs.length) return cbs.some(function (c) { return c.checked; });
+    var spins = qa('[role="spinbutton"]', field);
+    if (spins.length) return spins.every(validPart);
+    var btn = q('button[aria-haspopup="listbox"]', field);
+    if (btn) { var h = hiddenOf(btn); return !!(h && h.value); }
+    var t = q('textarea, input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input:not([type])', field);
+    return !!(t && t.value.trim());
+  }
+  function clearError(field) {
+    qa(':scope > [data-automation-id="errorMessage"]', field).forEach(function (e) { e.parentNode.removeChild(e); });
+    qa('[aria-invalid="true"]', field).forEach(function (e) { e.removeAttribute('aria-invalid'); });
+  }
+  function showErrors(missing) {
+    var page = q('[data-automation-id="applyFlowPage"]') || doc.body;
+    var old = q('[data-automation-id="errorBanner"]');
+    if (old) old.parentNode.removeChild(old);
+    if (!missing.length) return;
+    var banner = make('div', { 'data-automation-id': 'errorBanner', role: 'alert', tabindex: '-1', 'class': 'wd-error-banner' });
+    banner.appendChild(make('h3', { 'data-automation-id': 'errorHeading' }, 'Errors Found'));
+    banner.appendChild(make('p', {}, missing.length + (missing.length === 1 ? ' error' : ' errors')));
+    var ul = make('ul', {});
+    missing.forEach(function (f) {
+      var msg = 'Error: The field ' + labelOf(f) + ' is required and must have a value.';
+      ul.appendChild(make('li', {}, msg));
+      clearError(f);
+      var em = make('div', { 'data-automation-id': 'errorMessage', role: 'alert', 'class': 'wd-inline-error' });
+      em.appendChild(make('p', {}, msg));
+      f.appendChild(em);
+      var c = q('input:not([type="hidden"]), textarea, button', f);
+      if (c) c.setAttribute('aria-invalid', 'true');
+    });
+    banner.appendChild(ul);
+    var anchor = q('h3', page);
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(banner, anchor.nextSibling);
+    else page.insertBefore(banner, page.firstChild);
+    banner.focus();
+  }
+  function validate() {
+    var missing = requiredFields().filter(function (f) { return shown(f) && !hasValue(f); });
+    showErrors(missing);
+    return missing.length === 0;
+  }
+  function displayValue(f) {
+    if (q('[data-automation-id="file-upload-input-ref"]', f)) return qa('[data-automation-id="file-upload-item-name"]', f).map(function (n) { return n.textContent; }).join(', ');
+    if (q('[data-automation-id="multiSelectContainer"]', f)) return selectedLabels(f).join(', ');
+    var radios = qa('input[type="radio"]', f);
+    if (radios.length) { var r = radios.filter(function (x) { return x.checked; })[0]; return r ? valueLabel('#' + r.id) : ''; }
+    var cbs = qa('input[type="checkbox"]', f);
+    if (cbs.length) {
+      if (cbs.length === 1) return cbs[0].checked ? 'Yes' : 'No';
+      return cbs.filter(function (c) { return c.checked; }).map(function (c) { var l = q('label[for="' + c.id + '"]'); return l ? clean(l.textContent) : c.id; }).join(', ');
+    }
+    var spins = qa('[role="spinbutton"]', f);
+    if (spins.length) return spins.map(function (s) { return s.value; }).join('/');
+    var btn = q('button[aria-haspopup="listbox"]', f);
+    if (btn) { var h = hiddenOf(btn); return h && h.value ? clean(btn.textContent) : ''; }
+    var t = q('textarea, input[type="text"], input[type="email"], input[type="tel"], input:not([type])', f);
+    return t ? t.value : '';
+  }
+  function summary() {
+    var page = q('[data-automation-id="applyFlowPage"]') || doc.body;
+    return qa('[data-automation-id^="formField-"], [data-automation-id="attachments-FileUpload"]', page)
+      .filter(function (f) { return shown(f) && !f.parentElement.closest('[data-automation-id^="formField-"]'); })
+      .map(function (f) {
+        var row = f.closest('[role="group"][aria-labelledby$="-panel"]');
+        var rowName = row ? clean(q('h5', row).textContent) : '';
+        return [rowName, labelOf(f), displayValue(f)];
+      });
+  }
+  function saveSummary() {
+    var s = store();
+    if (!s) return;
+    try { s.setItem('wdtest:' + CFG.tenant + ':' + CFG.page, JSON.stringify({ title: CFG.stepTitle, rows: summary() })); } catch (e) { /* ignore */ }
+  }
+  function renderReview() {
+    var holder = q('[data-automation-id="applyFlowReviewPage"]');
+    if (!holder) return;
+    var s = store();
+    var any = false;
+    (CFG.reviewPages || []).forEach(function (p) {
+      var data = null;
+      try { data = s ? JSON.parse(s.getItem('wdtest:' + CFG.tenant + ':' + p) || 'null') : null; } catch (e) { data = null; }
+      if (!data) return;
+      any = true;
+      var sec = make('div', { 'data-automation-id': p.replace(/^\d-/, '') + '-section', 'class': 'wd-review-section' });
+      sec.appendChild(make('h3', {}, data.title));
+      var dl = make('dl', {});
+      data.rows.forEach(function (r) {
+        dl.appendChild(make('dt', {}, (r[0] ? r[0] + ' — ' : '') + r[1]));
+        dl.appendChild(make('dd', {}, r[2] || '—'));
+      });
+      sec.appendChild(dl);
+      holder.appendChild(sec);
+    });
+    if (!any) holder.appendChild(make('p', { 'class': 'wd-muted' }, 'No saved answers were found in this browser session.'));
+  }
+
+  /* ---------------- sign-in page ---------------- */
+  function signInSubmit(viewSel) {
+    var view = q(viewSel);
+    var missing = requiredFields().filter(function (f) { return view.contains(f) && shown(f) && !hasValue(f); });
+    showErrors(missing);
+    if (missing.length) return;
+    var pw = qa('input[type="password"]', view);
+    if (pw.length === 2 && pw[0].value !== pw[1].value) {
+      showErrors([pw[1].closest('[data-automation-id^="formField-"]')]);
+      return;
+    }
+    window.location.href = CFG.next;
+  }
+
+  /* ---------------- event wiring ---------------- */
+  doc.addEventListener('click', function (e) {
+    var t = e.target;
+    var btn = t.closest && t.closest('button[aria-haspopup="listbox"]');
+    if (btn) {
+      if (active && active.btn === btn) closePopups();
+      else openList(btn);
+      return;
+    }
+    var inp = t.closest && t.closest('[data-automation-id="searchBox"]');
+    if (inp) {
+      if (!(active && active.input === inp)) searchPrompt(inp);
+      return;
+    }
+    if (t.closest && t.closest('[data-automation-id="promptSearchButton"], [data-automation-id="promptIcon"]')) {
+      var i2 = q('[data-automation-id="searchBox"]', containerOf(t));
+      if (i2) { i2.focus(); searchPrompt(i2); }
+      return;
+    }
+    if (!(t.closest && t.closest('[data-automation-activepopup="true"]'))) closePopups();
+
+    var add = t.closest && t.closest('[data-automation-id="add-button"]');
+    if (add) {
+      var g = add.closest('[role="group"]');
+      Object.keys(CFG.sections || {}).forEach(function (name) { if (sectionGroup(name) === g) addRow(name); });
+      return;
+    }
+    var sel = t.closest && t.closest('[data-automation-id="select-files"]');
+    if (sel) { var fi = q('[data-automation-id="file-upload-input-ref"]', fieldOf(sel)); if (fi) fi.click(); return; }
+    if (t.closest && t.closest('[data-automation-id="pageFooterNextButton"]')) {
+      if (CFG.review) {
+        window.__submitted = true;
+        var page = q('[data-automation-id="applyFlowPage"]');
+        page.innerHTML = '';
+        var ty = make('div', { 'data-automation-id': 'thankYouMessage', role: 'status' });
+        ty.appendChild(make('h3', {}, 'Application Submitted'));
+        ty.appendChild(make('p', {}, 'TEST Workday-shaped page: nothing was sent anywhere.'));
+        page.appendChild(ty);
+        var foot = q('[data-automation-id="pageFooter"]');
+        if (foot) foot.hidden = true;
+        document.title = 'Application Submitted (TEST Workday-shaped page)';
+        return;
+      }
+      if (validate()) { saveSummary(); window.location.href = CFG.next; }
+      return;
+    }
+    if (t.closest && t.closest('[data-automation-id="pageFooterBackButton"]')) {
+      if (CFG.prev) window.location.href = CFG.prev;
+      return;
+    }
+    if (t.closest && t.closest('[data-automation-id="dateIcon"]')) return;
+    if (CFG.signIn) {
+      if (t.closest('[data-automation-id="click_filter"][aria-label="Sign In"], [data-automation-id="signInSubmitButton"]')) { signInSubmit('[data-automation-id="signInContent"]'); return; }
+      if (t.closest('[data-automation-id="click_filter"][aria-label="Create Account"], [data-automation-id="createAccountSubmitButton"]')) { signInSubmit('[data-automation-id="createAccountContent"]'); return; }
+      if (t.closest('[data-automation-id="createAccountLink"]')) { q('[data-automation-id="signInContent"]').hidden = true; q('[data-automation-id="createAccountContent"]').hidden = false; showErrors([]); return; }
+      if (t.closest('[data-automation-id="signInLink"]')) { q('[data-automation-id="signInContent"]').hidden = false; q('[data-automation-id="createAccountContent"]').hidden = true; showErrors([]); return; }
+      if (t.closest('[data-automation-id="forgotPasswordLink"]')) { return; }
+    }
+  });
+
+  doc.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (active && active.kind === 'list') {
+      if (e.key === 'ArrowDown') { active.idx = Math.min(active.items.length - 1, active.idx + 1); mark(); e.preventDefault(); return; }
+      if (e.key === 'ArrowUp') { active.idx = Math.max(0, active.idx - 1); mark(); e.preventDefault(); return; }
+      if (e.key === 'Enter' || e.key === ' ') {
+        var o = active.opts[active.idx], b = active.btn;
+        if (o && !o.d) choose(b, o);
+        closePopups();
+        b.focus();
+        e.preventDefault();
+        return;
+      }
+      if (e.key === 'Escape') { var b2 = active.btn; closePopups(); b2.focus(); e.preventDefault(); return; }
+      if (e.key === 'Tab') { closePopups(); return; }
+      if (e.key.length === 1 && /\S/.test(e.key)) {
+        var k = e.key.toLowerCase();
+        for (var j = 1; j <= active.opts.length; j++) {
+          var ii = (active.idx + j) % active.opts.length;
+          if (active.opts[ii].l.toLowerCase().charAt(0) === k) { active.idx = ii; mark(); break; }
+        }
+        e.preventDefault();
+        return;
+      }
+    }
+    if (t.matches && t.matches('button[aria-haspopup="listbox"]') && ['Enter', ' ', 'ArrowDown', 'ArrowUp'].indexOf(e.key) >= 0) {
+      openList(t);
+      e.preventDefault();
+      return;
+    }
+    if (t.matches && t.matches('[data-automation-id="searchBox"]')) {
+      if (active && active.kind === 'prompt' && active.input === t) {
+        if (e.key === 'ArrowDown') { active.idx = Math.min(active.items.length - 1, active.idx + 1); active.nav = true; mark(); e.preventDefault(); return; }
+        if (e.key === 'ArrowUp') { active.idx = Math.max(0, active.idx - 1); active.nav = true; mark(); e.preventDefault(); return; }
+        if (e.key === 'Escape') { closePopups(); e.preventDefault(); return; }
+        if (e.key === 'Enter' && active.nav && active.items[active.idx]) { active.items[active.idx].click(); e.preventDefault(); return; }
+      }
+      if (e.key === 'Enter') { searchPrompt(t); e.preventDefault(); return; }
+      if (e.key === 'Tab') closePopups();
+    }
+    if (t.matches && t.matches('[role="spinbutton"]')) {
+      if (e.key === 'ArrowUp') { stepSpin(t, 1); e.preventDefault(); return; }
+      if (e.key === 'ArrowDown') { stepSpin(t, -1); e.preventDefault(); return; }
+      if (e.key === 'Backspace' && !t.value) {
+        var ps = partsOf(t), pi = ps.indexOf(t);
+        if (pi > 0) { ps[pi - 1].focus(); e.preventDefault(); }
+      }
+    }
+  });
+
+  doc.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.matches && t.matches('[role="spinbutton"]')) {
+      var len = partLen(t);
+      var v = t.value.replace(/\D/g, '');
+      var overflow = v.length > len ? v.slice(len) : '';
+      v = v.slice(0, len);
+      if (v !== t.value) t.value = v;
+      syncSpin(t);
+      var f = fieldOf(t);
+      if (f) clearError(f);
+      if (doc.activeElement === t && !stepping) {
+        var k = partKind(t);
+        var full = v.length === len || (k === 'M' && /^[2-9]$/.test(v)) || (k === 'D' && /^[4-9]$/.test(v));
+        if (full) {
+          var ps = partsOf(t), i = ps.indexOf(t);
+          if (ps[i + 1]) {
+            ps[i + 1].focus();
+            if (overflow) { ps[i + 1].value = overflow; fire(ps[i + 1], 'input'); }
+          }
+        }
+      }
+      return;
+    }
+    if (t.matches && t.matches('[data-automation-id="searchBox"]')) {
+      if (doc.activeElement === t) searchPrompt(t);
+      return;
+    }
+    var f2 = fieldOf(t);
+    if (f2 && t.value && t.value.trim()) clearError(f2);
+  });
+
+  doc.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (t.matches && t.matches('[role="spinbutton"]') && t.value) {
+      var k = partKind(t);
+      if (k !== 'Y' && t.value.length === 1) { t.value = '0' + t.value; syncSpin(t); }
+    }
+  });
+
+  doc.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.matches && t.matches('input[type="checkbox"][id$="--currentlyWorkHere"]')) {
+      var row = t.closest('[role="group"]');
+      var end = q('[data-automation-id="formField-endDate"]', row);
+      if (end) { end.hidden = t.checked; if (t.checked) clearError(end); }
+    }
+    if (t.matches && t.matches('input[type="checkbox"][id$="-disabilityStatus"]')) {
+      var boxes = qa('input[type="checkbox"][id$="-disabilityStatus"]');
+      boxes.forEach(function (b) { if (b !== t) { b.disabled = t.checked; if (t.checked) b.checked = false; } });
+    }
+    if (t.matches && t.matches('input[type="radio"], input[type="checkbox"]')) {
+      var f = fieldOf(t);
+      if (f) clearError(f);
+      runConditionals();
+    }
+    if (t.matches && t.matches('[data-automation-id="file-upload-input-ref"]') && t.files && t.files.length) {
+      addFiles(fieldOf(t), t.files);
+    }
+  });
+
+  doc.addEventListener('dragover', function (e) {
+    if (e.target.closest && e.target.closest('[data-automation-id="file-upload-drop-zone"]')) e.preventDefault();
+  });
+  doc.addEventListener('drop', function (e) {
+    var z = e.target.closest && e.target.closest('[data-automation-id="file-upload-drop-zone"]');
+    if (!z) return;
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addFiles(fieldOf(z), e.dataTransfer.files);
+  });
+  window.addEventListener('resize', closePopups);
+
+  /* ---------------- initial state ---------------- */
+  qa('button[aria-haspopup="listbox"]').forEach(btnAriaLabel);
+  Object.keys(CFG.sections || {}).forEach(function (name) { relabel(name); });
+  (CFG.initialRows || []).forEach(function (r) { addRow(r.section, r.values); });
+  (CFG.initialPills || []).forEach(function (p) { var i = q(p.sel); if (i) renderPills(containerOf(i), p.labels); });
+  runConditionals();
+  renderReview();
+})();
+
+</script>
+</body>
+</html>

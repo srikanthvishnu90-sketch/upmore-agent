@@ -29,6 +29,28 @@
   const factIds = new Map(); // name -> the confirmed fact it came from
   const chosen = new Map(); // name -> the employer's option text a widget fill clicked, shown while the widget still shows it
   const edited = new Set(); // names the person changed themselves (trusted events only)
+  // WO-048, Workday: the step this card is for, what Workday itself had set when Trainee first read it (a default, a resume
+  // parse: shown as Workday's, never Trainee's, never overwritten), where a confirmed fact says otherwise, and whether the
+  // step holds the person's own disability form.
+  const pageSet = new Map(); // name -> the value Workday showed before Trainee filled anything
+  let wd = null; // { step: {title, kind}, conflicts, personal } while this page is a Workday application step
+  const inWorkday = () => portal.family === "workday" && D.isWorkdayFlow();
+  // WO-048: on a Workday step, a long number that is a date (01/31/2026 on a date's spinbuttons) or the person's own
+  // confirmed number (their phone, as Workday shows its national part) is not an identity number: it is shown as it is.
+  const ownNumber = (v) => {
+    const t = String(v ?? "").trim(), d = t.replace(/\D/g, "");
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$|^\d{1,2}\/\d{4}$/.test(t)) return true;
+    return d.length >= 8 && Object.values(ctx?.answers || {}).some((a) => {
+      const f = String(a?.value ?? "").replace(/\D/g, "");
+      return f.length >= 8 && f.endsWith(d) && d.length >= f.length - 3;
+    });
+  };
+  const resetStep = () => {
+    for (const m of [filled, factIds, chosen, edited, pageSet]) m.clear();
+    reviewed = null;
+    plan = null;
+    wd = null;
+  };
 
   // The person's own edits: a trusted input or change on a field (Trainee's own fills dispatch untrusted events). A radio
   // or checkbox Trainee clicks gets a trusted change from the browser itself, so nothing that happens while Trainee is
@@ -53,6 +75,14 @@
       if (n) personEdit(n);
     }, true);
   }
+  // WO-048: on Workday a person may drop their file on the upload's drop zone (a trusted drop, no change on the input).
+  if (portal.family === "workday") {
+    document.addEventListener("drop", (e) => {
+      if (!e.isTrusted || !form) return;
+      const n = D.fieldNameFor(e.target, form);
+      if (n) setTimeout(() => personEdit(n), 0);
+    }, true);
+  }
   // A choice picked in a widget menu (no input event on the field itself): the focused field's.
   document.addEventListener("mousedown", (e) => {
     if (!e.isTrusted || !form) return;
@@ -68,6 +98,12 @@
 
   // Every non-empty answer on the form now, with where it came from and what the browser sends for it (apply_core.ts).
   function snapshot() {
+    // WO-048: Workday's review step is read as Workday shows it (every answer of every step); the Submit is bound to it.
+    if (wd?.step.kind === "review") {
+      form = { raw: [], bindings: {}, schema: [] };
+      return D.readWorkdayReview().filter((r) => r.value).map((r) => ({ name: r.name, label: r.label, value: r.value, source: "fixed", factId: null,
+        masked: C.isIdentityField(r) || (C.looksLikeIdNumber(r.value) && !ownNumber(r.value)), detail: "", selector: "" }));
+    }
     form = D.readForm();
     const out = [];
     for (const s of form.schema) {
@@ -76,14 +112,15 @@
       if (!v && filled.get(s.name) === NO_UNCHECKED && b.inputType === "checkbox") v = NO_UNCHECKED;
       if (!v) continue;
       const identity = C.isIdentityField(s);
-      const source = !identity && filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you" : "page";
+      const source = !identity && filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you"
+        : wd && pageSet.get(s.name) === v ? "workday" : "page";
       // The employer's own option text a widget fill clicked ("United States +1"), while the widget still shows it (WO-042).
       if (source === "trainee" && chosen.has(s.name)) v = chosen.get(s.name);
       out.push({ name: s.name, label: s.label, value: v, source, factId: source === "trainee" ? factIds.get(s.name) ?? null : null,
-        masked: identity || (source !== "trainee" && C.looksLikeIdNumber(v)), detail: D.readDetail(b), selector: b.selector });
+        masked: identity || (source !== "trainee" && C.looksLikeIdNumber(v) && !(wd && ownNumber(v))), detail: D.readDetail(b), selector: b.selector });
     }
     // Read-only fields the page set are sent too: shown and bound to the approval (WO-031 review).
-    for (const f of D.readFixed()) {
+    for (const f of wd ? [] : D.readFixed()) {
       out.push({ name: "fixed:" + f.name, label: f.label, value: f.value, source: "fixed", factId: null,
         masked: C.isIdentityField(f) || C.looksLikeIdNumber(f.value), detail: "", selector: f.selector });
     }
@@ -118,12 +155,16 @@
     if (!ctx.account) block.push("Your Upmore account has no job settings yet. Text Trainee once so it can record your applications.");
     else if (ctx.account.paused) block.push("Your account is paused, so nothing is sent.");
     const verification = [...new Set((D.fnCaptchaTech() || []).map((t) => t.replace(/-widget$/, "")))];
+    // WO-048: a Workday step's card says what its button does: Save and Continue (a draft) or the one Submit.
+    const workday = wd ? { action: wd.step.kind === "review" ? "submit" : "draft", step: wd.step.title, employer: company, conflicts: wd.conflicts,
+      personal: form.schema.some((s) => s.personal) } : undefined;
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
-      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)) });
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday });
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;
     await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing },
+      ...(workday ? { action: workday.action, step: workday.step } : {}),
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
 
@@ -134,11 +175,20 @@
     timing.prepare = Date.now();
     timing.visibility_at_prepare = document.visibilityState;
     try {
+      // WO-048 rule 1: the person's Workday account is theirs. A sign-in, create-account, verify-password or emailed-code
+      // page is never read, filled or clicked; nothing on it is kept. The next step fills itself once they are in.
+      if (portal.family === "workday" && D.workdayAccountPage()) return await signInFirst();
       ctx = await send({ type: "context" });
       timing.context = Date.now();
       if (!ctx?.signedIn) {
         await send({ type: "card", card: { status: "stopped", message: ctx?.message || "Sign in first.", lines: [] } });
         return { ok: false };
+      }
+      if (portal.family === "workday") {
+        // Workday renders its step after the page loads.
+        for (let i = 0; i < 40 && !inWorkday() && D.readForm().schema.length < 2; i++) await sleep(250);
+        if (D.workdayAccountPage()) return await signInFirst();
+        if (inWorkday()) return await prepareWorkday();
       }
       // The form may render after the page loads.
       for (let i = 0; i < 40 && D.readForm().schema.length < 2; i++) await sleep(250);
@@ -210,6 +260,150 @@
     }
   }
 
+  // ------------------------------------------------------------------------------------------------ Workday (WO-048)
+  async function signInFirst() {
+    resetStep();
+    form = null;
+    await send({ type: "card", card: { status: "stopped", signIn: true, url: location.href, message: C.workdaySignIn(C.workdayEmployer(location.href)), lines: [] } });
+    return { ok: false };
+  }
+  const yesish = (v) => /^(true|yes|y|on|checked)\b/i.test(String(v ?? "").trim());
+  // Workday's value and the planner's for one field say the same thing (an option's text for its value, a box's yes or no,
+  // a number's digits).
+  function sameAnswer(s, pageValue, planned) {
+    const shownAs = (s?.options || []).find((o) => o.value === planned)?.label ?? planned;
+    const n = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (s?.type === "checkbox" && !(s.options || []).length) return yesish(pageValue) === yesish(shownAs);
+    if (n(pageValue) === n(shownAs)) return true;
+    const d = (x) => String(x ?? "").replace(/\D/g, "");
+    return !/[a-z]/i.test(pageValue + shownAs) && d(pageValue).length >= 4 && d(pageValue) === d(shownAs);
+  }
+  // One Workday step: Workday's own values kept apart, the rows the person's own lists need added, every field the planner
+  // answers filled (never over a value already there), and the card for this step.
+  async function prepareWorkday() {
+    const step = D.workdayStep();
+    if (wd && wd.step.title !== step.title) resetStep();
+    wd = { step, conflicts: [], personal: false };
+    jobId = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
+    company = C.workdayEmployer(location.href);
+    expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
+    if (D.fnDetectChallenge()) {
+      await send({ type: "card", card: { status: "stopped", message: HANDOFF, lines: [] } });
+      return { ok: false };
+    }
+    if (step.kind === "review") {
+      plan = { fill: [], needs: [], identity: [], ambiguous: [] };
+      timing.read = timing.plan = timing.fill = Date.now();
+      shownAt = Date.now();
+      await refresh();
+      return { ok: true };
+    }
+    D.clearWorkdayOptions();
+    const resume = ctx.resume ? { name: ctx.resume.name, type: ctx.resume.type, bytes: Uint8Array.from(atob(ctx.resume.base64), (c) => c.charCodeAt(0)), sha256: ctx.resume.sha256 } : null;
+    // What Workday had before Trainee touched this step is Workday's.
+    form = D.readForm();
+    for (const s of form.schema) {
+      const v = D.readValue(form.bindings[s.name]);
+      if (v && !filled.has(s.name) && !edited.has(s.name) && !pageSet.has(s.name)) pageSet.set(s.name, v);
+    }
+    // Rows only for the person's own entries (jobs, education, languages they stated), with Workday's own Add.
+    for (const s of D.workdaySections()) {
+      const n = Math.min(C.rowsToAdd(s.kind, s.anchors, ctx.answers), 10);
+      for (let i = 0; i < n; i++) if (!(await D.workdayAddRow(s.kind))) break;
+    }
+    const tried = new Set();
+    for (let pass = 0; pass < 4; pass++) {
+      form = D.readForm();
+      await D.loadWorkdayOptions(form);
+      form = D.readForm();
+      plan = C.planForm({ userId: ctx.userId, jobId, company, family: "workday", workdayFlow: true, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now() });
+      let did = 0;
+      for (const p of plan.fill) {
+        if (filled.has(p.name) || edited.has(p.name) || pageSet.has(p.name) || tried.has(p.name)) continue;
+        const b = form.bindings[p.name];
+        if (!b) continue;
+        tried.add(p.name);
+        if (D.readValue(b)) continue; // never over a value already on the page
+        const t0 = Date.now();
+        const ok = await D.fill(b, p.value, resume);
+        await sleep(20);
+        if (Date.now() - t0 > 300) (timing.slow ??= {})[p.name] = Date.now() - t0;
+        let v = D.readValue(b);
+        if (ok && !v && b.inputType === "checkbox" && !yesish(p.value)) v = NO_UNCHECKED;
+        if (ok && v) {
+          filled.set(p.name, v);
+          factIds.set(p.name, p.factId);
+          did++;
+        }
+      }
+      if (!did) break;
+    }
+    timing.read = timing.plan = timing.fill = Date.now();
+    form = D.readForm();
+    timing.fields = form.schema.length;
+    // Where Workday's own value and the person's confirmed answer differ: side by side on the card, Workday's left.
+    wd.conflicts = plan.fill.filter((p) => pageSet.has(p.name) && !sameAnswer(form.schema.find((s) => s.name === p.name), pageSet.get(p.name), p.value))
+      .map((p) => {
+        const s = form.schema.find((x) => x.name === p.name);
+        return { label: p.label, workday: pageSet.get(p.name), yours: (s?.options || []).find((o) => o.value === p.value)?.label ?? p.value };
+      });
+    shownAt = Date.now();
+    await refresh();
+    return { ok: true };
+  }
+  const SAVE_WAIT_MS = 15000;
+  // After the one tap on a Workday step's card: the step must still be exactly what the person approved; only then is
+  // Workday's Save and Continue clicked, which sends this step to the employer as a draft. Nothing is submitted here.
+  async function saveAndContinue(hash) {
+    if (!reviewed || reviewed.hash !== hash) return stop("The card you approved is not the one on this page. Nothing was saved or sent.");
+    submitting = true;
+    personAbort = false;
+    await D.hashFiles();
+    const s = stillApproved();
+    if (personAbort) return stop(ABORTED);
+    if (!s.ok) return stop(changedMsg(s.changed));
+    if (D.fnDetectChallenge()) return stop(HANDOFF);
+    if (D.workdayAccountPage()) return stop(C.workdaySignIn(company));
+    const button = D.workdayNextButton();
+    if (!button || D.workdayStep().kind !== "page") return stop("I could not find Workday's Save and Continue. Nothing was saved or sent.");
+    const ok = await send({ type: "draft", hash, payload: reviewed.payload, step: wd?.step.title || "" });
+    if (!ok?.ok) {
+      submitting = false;
+      return;
+    }
+    // The last look and the click, in one task.
+    const last = stillApproved();
+    if (personAbort || !last.ok || D.fnDetectChallenge() || !button.isConnected) {
+      return stop(personAbort ? ABORTED : last.ok ? "The page changed before Save and Continue. Nothing was saved." : changedMsg(last.changed));
+    }
+    const before = D.workdayStep().title, errorsBefore = D.visibleErrors();
+    button.click();
+    send({ type: "draft-clicked", at: Date.now() });
+    // A page that moves away ends this script; the next step fills itself there. One that answers in place (Workday is one
+    // page) shows the next step, or its errors.
+    const end = Date.now() + SAVE_WAIT_MS;
+    while (Date.now() < end) {
+      await sleep(200);
+      const errors = D.visibleErrors().filter((e) => !errorsBefore.includes(e));
+      if (errors.length) {
+        submitting = false;
+        return send({ type: "stopped", message: `Workday did not save this page: ${errors.slice(0, 3).join("; ")}. Fix it on the page, then press Fill this application again. Nothing was submitted.` });
+      }
+      if (D.workdayAccountPage()) {
+        submitting = false;
+        return signInFirst();
+      }
+      const now = D.workdayStep();
+      if (now.title && now.title !== before) {
+        submitting = false;
+        resetStep();
+        return prepare();
+      }
+    }
+    submitting = false;
+    return send({ type: "stopped", message: "Workday did not show its next step within 15 seconds. Check the page; nothing was submitted." });
+  }
+
   // Nothing was sent. The card says why and stays stopped until the person changes something or presses Fill again.
   async function stop(message, extra = {}) {
     submitting = false;
@@ -232,6 +426,8 @@
   // there must be a picture of it, and the application is recorded before the site's own Submit is clicked.
   async function submit(hash) {
     if (submitting || sent) return;
+    // WO-048: a Workday step that is not the review saves a draft; only the review step's card submits.
+    if (wd && wd.step.kind === "page") return saveAndContinue(hash);
     // WO-042: when each step after the tap happened, for the benchmark (never part of the payload or its hash).
     const steps = { submit: Date.now() };
     if (!reviewed || reviewed.hash !== hash) return stop("The card you approved is not the one on this page. Nothing was sent.");
@@ -321,6 +517,7 @@
   // Greenhouse form is its own frame and is filled from the panel).
   (async () => {
     const c = await send({ type: "queued" });
-    if (c?.queued && !c.pending && (window === window.top || portal.embedded)) await prepare();
+    // WO-048: the next Workday step after an approved Save and Continue (or after the person signed in) fills itself.
+    if ((c?.queued || c?.workdayNext) && !c.pending && (window === window.top || portal.embedded)) await prepare();
   })();
 })();

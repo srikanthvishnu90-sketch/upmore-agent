@@ -23,7 +23,7 @@ function byYesNo(want: "yes" | "no", options: Opt[]): string | null {
   return only(plain);
 }
 
-const DECLINE = /decline|prefer not|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|ne préfère pas/;
+const DECLINE = /decline|prefer not|\bnot declared\b|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|ne préfère pas/;
 
 const EDUCATION: Record<string, RegExp> = {
   high_school: /high school|ged|secondary|diploma or equivalent/,
@@ -91,6 +91,30 @@ function bySpan(value: string, options: Opt[], unit: "weeks" | "years"): string 
   if (!inside.every((x) => x.s![1] === Infinity)) return null;
   inside.sort((a, b) => b.s![0] - a.s![0]);
   return inside[0].s![0] === inside[1].s![0] ? null : inside[0].o.value;
+}
+
+// WO-048: a stated pay amount onto a list of pay ranges ("$80,000 - $99,999", "$120,000+", "80k - 100k"): the one range it
+// falls in. An amount on the edge of two ranges, a list that is not ranges, or an amount that is not a number: asked.
+const money = (s: string): number | null => {
+  const m = /^\$?\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?$/i.exec(s.trim());
+  if (!m) return null;
+  const n = Number(m[1].replace(/,/g, ""));
+  return m[2] ? n * 1000 : n;
+};
+function byPayRange(value: string, options: Opt[]): string | null {
+  const v = money(String(value).replace(/\s*(usd|dollars|per year|a year|\/ ?(yr|year))\s*$/i, ""));
+  if (v === null || v < 1000) return null;
+  const ranges = options.map((o) => {
+    const t = low(o.label).replace(/–|—/g, "-").replace(/\s*(usd|per year|annually|\/ ?(yr|year))\s*$/, "");
+    let m = /^(.+?)\s*(?:-|to)\s*(.+)$/.exec(t);
+    if (m && money(m[1]) !== null && money(m[2]) !== null) return { o, lo: money(m[1])!, hi: money(m[2])! };
+    m = /^(.+?)\s*(?:\+|or more|and above)$/.exec(t);
+    if (m && money(m[1]) !== null) return { o, lo: money(m[1])!, hi: Infinity };
+    m = /^(?:less than|under|below)\s+(.+)$/.exec(t);
+    if (m && money(m[1]) !== null) return { o, lo: 0, hi: money(m[1])! - 0.01 };
+    return null;
+  }).filter((x): x is { o: Opt; lo: number; hi: number } => !!x);
+  return only(ranges.filter((r) => v >= r.lo && v <= r.hi).map((r) => r.o));
 }
 
 // How the person heard, as their usual answer onto the employer's list: the careers page has many names.
@@ -180,13 +204,21 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "country":
     case "citizenship":
-      if (US.test(v)) return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+      if (US.test(v)) {
+        // WO-048: "United States of America" (or "... (+1)" on a phone code list) beside "United States Minor Outlying
+        // Islands": the one that names the country whole.
+        const whole = options.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
+        if (whole.length === 1 && options.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
+        return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+      }
       return only(options.filter((o) => low(o.label).startsWith(v)));
     case "notice_period":
     case "start_date":
       return bySpan(value, options, "weeks");
     case "years_experience":
       return bySpan(value, options, "years");
+    case "salary_expectation":
+      return byPayRange(value, options);
     case "pronouns": {
       const p = /she/.test(v) ? /she/ : /he\/him|^he/.test(v) ? /\bhe\b/ : /they/.test(v) ? /they/ : null;
       return p ? only(options.filter((o) => p.test(low(o.label)))) : null;

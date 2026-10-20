@@ -47,6 +47,8 @@ async function render() {
   text($("status"), card?.message || "Open an application, then press Fill this application.", card?.status === "stopped" || card?.status === "blocked");
   $("approve").disabled = !(card && card.status === "ready" && card.hash);
   $("approve").dataset.hash = card?.hash || "";
+  // WO-048: a Workday step's tap saves that step as a draft; only the review step's tap submits.
+  $("approve").textContent = card?.action === "draft" ? "Approve this page: Save and Continue" : "Approve and submit";
   text($("result"), card?.status === "done" ? `${card.message}${card.ms ? ` ${(card.ms / 1000).toFixed(1)} s from card to answer.` : ""}${card.recorded === false ? " Not recorded yet; kept on this computer." : ""}` : "");
   $("card-proof").hidden = !card?.proof_id;
   $("card-proof").dataset.id = card?.proof_id || "";

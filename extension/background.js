@@ -198,6 +198,20 @@ function setPending(tabId, v) {
   return run;
 }
 
+// WO-048: one flag per tab, "the next Workday step may fill itself": set by an approved Save and Continue or by the
+// sign-in card, taken once by the next page.
+let nextQueue = Promise.resolve();
+function setWorkdayNext(tabId, on) {
+  const run = nextQueue.then(async () => {
+    const all = await get(S, "workday_next", {});
+    if (on) all[tabId] = { at: Date.now() };
+    else delete all[tabId];
+    await put(S, "workday_next", all);
+  });
+  nextQueue = run.catch(() => {});
+  return run;
+}
+
 async function keepEvidence(rec) {
   const list = await get(L, "evidence", []);
   list.unshift(rec);
@@ -376,7 +390,11 @@ async function handle(m, sender) {
     case "queued": {
       const q = await queueState();
       const p = (await pendings())[tabId];
-      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished) };
+      // WO-048: a Workday step saved with the person's approval (or a sign-in they did themselves) lets the next step
+      // fill itself, once, within ten minutes.
+      const next = (await get(S, "workday_next", {}))[tabId];
+      if (next) await setWorkdayNext(tabId, false);
+      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000 };
     }
     case "card": {
       // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
@@ -384,8 +402,27 @@ async function handle(m, sender) {
       const card = await withCards(tabId, "card", (prev) =>
         prev && prev.status === "submitting" ? prev
           : { ...m.card, tabId, approved: false, status: m.card.status || (m.card.blockers?.length ? "blocked" : "ready"), updated_at: Date.now() });
+      if (m.card?.signIn) await setWorkdayNext(tabId, true);
       return { ok: true, card };
     }
+    case "draft": {
+      // WO-048: Workday's Save and Continue sends one step to the employer as a draft. The content script may click it only
+      // for the step the person approved, by its hash; the approved answers are kept on this computer as the proof.
+      const card = (await cards())[tabId];
+      if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash || card.action !== "draft") {
+        await setCard(tabId, { status: "stopped", message: "This page was not approved as it is now. Nothing was saved or sent.", approved: false }, "refused");
+        return { ok: false };
+      }
+      const drafts = await get(L, "workday_drafts", []);
+      drafts.unshift({ at: Date.now(), company: card.company, url: card.url, job_id: card.jobId, step: m.step, approval_hash: m.hash, approved_answers: m.payload?.fields || [],
+        card_shown_at: card.shown_at || null, approved_at: card.approved_at || null });
+      await put(L, "workday_drafts", drafts.slice(0, 300));
+      await setWorkdayNext(tabId, true);
+      await setCard(tabId, { status: "saving", message: `Saving this page to ${card.company} as a draft with Workday's Save and Continue. Nothing is submitted.` });
+      return { ok: true };
+    }
+    case "draft-clicked":
+      return { ok: true };
     case "questions": {
       // Ask once: each question that stopped this form goes to Trainee once, to be asked by text.
       const done = await get(S, "asked", {});
@@ -413,7 +450,8 @@ async function handle(m, sender) {
     case "begin": {
       const card = (await cards())[tabId];
       // The content script may only start the one application the person approved, by its hash.
-      if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash) return { ok: false, message: "This application was not approved as it is now. Nothing was sent." };
+      // A Workday step's draft approval (WO-048) never submits: only a card that submits starts an application.
+      if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash || card.action === "draft") return { ok: false, message: "This application was not approved as it is now. Nothing was sent." };
       try {
         const row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
         await setPending(tabId, {
@@ -577,7 +615,7 @@ async function handle(m, sender) {
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

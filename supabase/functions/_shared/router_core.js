@@ -37565,7 +37565,17 @@ const CareerRouter = (() => {
     try { cls = ProfileMod.classifyResumeIngest(raw); } catch { return null; }
     if (!cls || !cls.ok) return null;
     if (!resumePasteDraftsOf(raw)) return null;
-    const profile = (ctx.profile && typeof ctx.profile === "object") ? ctx.profile : ProfileMod.createProfile({});
+    // V241 LIVE-FIX LANE 2 (probe j): ingest never lands on a BRIDGE
+    // profile (profileFromStatedFacts' per-turn derivation, marked
+    // _fromStatedFacts): the bridge is re-derived from the stated
+    // facts on the next turn, so every draft written into it is
+    // discarded before the confirmation turn can read it — on the
+    // deployed product the 15 pasted-resume drafts vanished exactly
+    // that way. Ingest lands on a REAL profile: the standing one, or
+    // a fresh record the drafts themselves found. The stated facts
+    // stay on the record through statedFacts, untouched.
+    const standingProfile = (ctx.profile && typeof ctx.profile === "object") ? ctx.profile : null;
+    const profile = (standingProfile && !standingProfile._fromStatedFacts) ? standingProfile : ProfileMod.createProfile({});
     let res = null;
     try { res = ProfileMod.ingestResume(profile, raw, { now: nowOf(ctx) }); } catch { return null; }
     if (!res || !res.ok) return null;
@@ -44052,7 +44062,17 @@ const CareerRouter = (() => {
     // DEPTH LANE A (MI-013): bridge the stated facts into a thin
     // profile (see profileFromStatedFacts) so fact-stating users are
     // served by the profile-reading routes in THIS turn already.
-    { const bp = profileFromStatedFacts(c); if (bp) c.profile = bp; else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
+    // V241 LIVE-FIX LANE 2 (probe j): the bridge serves PROFILE-LESS
+    // turns only — its own contract ("a real profile is never touched
+    // by the bridge"). Installing it over a standing REAL profile
+    // shadowed that profile for the whole turn: on the deployed
+    // product, an account with stated facts on record got the fresh
+    // bridge on EVERY turn, so the profile carrying the resume-ingest
+    // drafts was replaced before the confirmation claim read it and
+    // the drafts were lost with the turn. A standing bridge profile
+    // is still re-derived each turn (corrections re-aim it, erasures
+    // drop it); a real profile is left standing.
+    { const bp = profileFromStatedFacts(c); if (bp) { if (!c.profile || c.profile._fromStatedFacts) c.profile = bp; } else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
     // DEPTH LANE A (LF-01h): an explicit memory invocation — "draft
     // it from what you know about me" — is the most specific claim a
     // turn can carry: the user is ordering the record's USE. It is

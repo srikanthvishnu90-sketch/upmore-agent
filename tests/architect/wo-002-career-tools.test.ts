@@ -22,7 +22,8 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     "interview_brief", "list_applications", "recall", "remember_instruction", "save_resume_persona", "score_interview_answer", "search_jobs", "set_job_alerts", "set_resume_contact",
     "stop_job_alerts", "tailor_resume", "track_application", "use_resume_persona", "where_do_i_stand",
     "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts",
-  ].sort()); // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028;
+    "brief_from_invite", "set_weekly_digest",
+  ].sort()); // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028; brief_from_invite and set_weekly_digest: WO-034;
   // contacts, outreach drafts and the referral map: WO-033 (drafting is write_own: sending is only by the approval reply and the scheduled run)
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
@@ -34,6 +35,7 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own", where_do_i_stand: "read",
     contact_list: "read", verify_contacts: "write_own", record_list_cost: "write_own", draft_outreach: "write_own",
     set_outreach_signature: "write_own", set_outreach_limit: "write_own", referral_map: "read",
+    brief_from_invite: "write_own", set_weekly_digest: "write_own",
   });
   for (const t of tools) {
     assert(t.description.length >= 20 && t.description.length <= 400, `${t.name}: a real description`);

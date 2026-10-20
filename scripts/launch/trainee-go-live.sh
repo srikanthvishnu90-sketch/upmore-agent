@@ -71,6 +71,7 @@ MIGRATIONS=(
   20261020130000_career_resume_tailoring.sql
   20261021010000_career_outreach.sql
   20261021020000_career_voice_mock.sql
+  20261021050000_career_brief_digest.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -92,6 +93,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_claim')"
   "exists (select 1 from pg_proc where proname = 'career_voice_create')"
+  "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

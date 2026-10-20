@@ -30,11 +30,16 @@ export function appsFromQueue(rows: any[]): TrackedApp[] {
 const TRACK_KIND: Record<string, StatusEvent["kind"]> = {
   confirmation: "received", rejection: "rejection", interview_invite: "interview", oa_invite: "assessment", offer: "offer", recruiter_other: "recruiter_reply",
 };
+// WO-034: a stage the person reported ("I have an interview with Datadog") is that step too, dated when they said it.
+const STAGE_KIND: Record<string, StatusEvent["kind"]> = {
+  "Recruiter screen": "recruiter_reply", "OA/assessment": "assessment", "Interview rounds": "interview", Final: "interview", Offer: "offer", Rejected: "rejection",
+};
+const trackerKind = (e: any): StatusEvent["kind"] | undefined => TRACK_KIND[e?.type] ?? (e?.type === "manual_update" ? STAGE_KIND[e?.stage_after] : undefined);
 export function appsFromTracker(rows: any[]): TrackedApp[] {
   return (rows ?? []).filter((r) => r && r.app_id && r.company).map((r) => ({
     ref: `track:${r.app_id}`, company: String(r.company), role: r.role ? String(r.role) : undefined, url: r.url || undefined,
     applied_at: r.applied_at ?? undefined, stage: String(r.stage || "Submitted"), source: "tracker" as const,
-    events: (r.events ?? []).filter((e: any) => TRACK_KIND[e?.type] && e.at).map((e: any) => ({ kind: TRACK_KIND[e.type], at: String(e.at) })),
+    events: (r.events ?? []).filter((e: any) => trackerKind(e) && e.at).map((e: any) => ({ kind: trackerKind(e)!, at: String(e.at), source: "tracker" })),
   }));
 }
 

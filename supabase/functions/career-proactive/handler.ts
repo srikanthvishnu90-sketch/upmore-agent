@@ -3,12 +3,13 @@
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
 import { equalSecret } from "../_shared/message_service.ts";
-import { runAlerts, runCards, runMail, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import { runAlerts, runCards, runDigest, runInterviewDrafts, runMail, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { ReadResult } from "../_shared/career_mail_gmail.ts";
 import type { EventStore } from "../_shared/agent/timeline.ts";
+import type { DigestStore, InterviewStore } from "../_shared/career_brief_store.ts";
 
 export interface ProactiveDeps {
   env: { get(k: string): string | undefined };
@@ -26,6 +27,9 @@ export interface ProactiveDeps {
   mail?: { store: () => MailStore; read: (userId: string, sinceMs: number, nowMs: number) => Promise<ReadResult> };
   // The account timeline each receipt is also written to (WO-027). Absent: receipts only.
   events?: () => EventStore;
+  // WO-034: interviews (an invite read by mail tracking is briefed in the same run; a dated interview gets its thank-you
+  // and nudge drafted) and the weekly digest. Absent: none of the three this run. Nothing here sends mail.
+  briefs?: { interviews: () => InterviewStore; drafts: () => Pick<MailStore, "applications" | "events" | "saveDraft">; digest: () => DigestStore };
   // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
   // A failure here is reported in the run's answer and never stops the alerts.
   outreach?: (now: number) => Promise<Record<string, unknown>>;
@@ -45,10 +49,17 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
     if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
     if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
+    const interviews = d.briefs ? d.briefs.interviews() : null;
     if (d.mail) {
-      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read });
+      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, briefs: interviews });
       stats.statuses = m.statuses;
       stats.followups = m.followups;
+      stats.briefs = m.briefs;
+      stats.brief_ms_max = m.brief_ms_max;
+    }
+    if (d.briefs && interviews) {
+      stats.followups = (stats.followups ?? 0) + await runInterviewDrafts({ outbox: store, now: started, interviews, drafts: d.briefs.drafts() });
+      stats.digests = await runDigest({ outbox: store, now: started, store: d.briefs.digest() });
     }
     const outreach = d.outreach ? await d.outreach(started).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : null;
     const ms = d.now() - started;

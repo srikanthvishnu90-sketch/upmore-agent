@@ -153,7 +153,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -167,6 +167,10 @@ AGAIN="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WO
 [[ "$AGAIN" == "== no pending migrations" ]] || { echo "$AGAIN"; echo "FAIL a re-run applied something"; exit 1; }
 "${PSQL[@]}" -tAc "select count(*) from public.upmore_migration_ledger where filename='20261011040000_model_health_and_turn_costs.sql'" | grep -qx 1 || { echo "FAIL ledger row"; exit 1; }
 echo "  ok   ledger backfilled, only new files applied, a re-run applies nothing"
+# Interviews and the weekly digest (WO-034): it redefines career_host_commit, which 20261015020000 creates with a plain
+# create, so the ledger above applies it first, in production order; here it is applied twice more: idempotent.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
 echo "== concurrent message workers"
 python3 "$HERE/message_concurrency.py" "${PSQL[@]}"
 echo "== career_apply_jobs.test.sql (complete career authority schema)"
@@ -200,4 +204,9 @@ echo "== career_voice_mock.test.sql (one start per link in 10 minutes, one debri
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021010000_career_outreach.sql"
 echo "== career_outreach.test.sql (approval is the exact message; 10 a day the first week, 20 by default, 30 at most; 90 seconds apart; stop is forever)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Re-applied after the earlier migrations' re-runs above: each one redefines the outbox lists, and production ends on the
+# latest file's (outbox kinds only grow, tests/outbox-kinds.test.cjs), so the last re-run here must be the latest too.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
+echo "== career_brief_digest.test.sql (interviews and the weekly digest: own reads, stated starts only, once per key, wiped by an erase)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_brief_digest.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

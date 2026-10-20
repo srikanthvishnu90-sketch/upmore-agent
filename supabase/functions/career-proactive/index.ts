@@ -6,6 +6,7 @@ import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
+import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
@@ -77,6 +78,16 @@ serve((req) => {
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events });
       return { ...sends, replies };
     } : undefined,
-    recordRun: async (r) => { const { error } = await admin.from("career_proactive_runs").insert({ run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, statuses: r.statuses ?? 0, followups: r.followups ?? 0, ms: r.ms, error: r.error }); if (error) throw new Error(`record run: ${error.message}`); },
+    // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
+    // once the owner turns them on at deploy, after that migration.
+    briefs: Deno.env.get("CAREER_BRIEF_DIGEST") === "on" ? {
+      interviews: () => supabaseInterviewStore(admin), drafts: () => supabaseMailStore(admin), digest: () => supabaseDigestStore(admin),
+    } : undefined,
+    recordRun: async (r) => {
+      const row: Record<string, unknown> = { run_at: r.at, users: r.users, alerts: r.alerts, held: r.held, reports: r.reports, duplicates: r.duplicates, postings: r.postings, receipts: r.receipts ?? 0, cards: r.cards ?? 0, statuses: r.statuses ?? 0, followups: r.followups ?? 0, ms: r.ms, error: r.error };
+      if (Deno.env.get("CAREER_BRIEF_DIGEST") === "on") Object.assign(row, { briefs: r.briefs ?? 0, brief_ms_max: r.brief_ms_max ?? null, digests: r.digests ?? 0 });
+      const { error } = await admin.from("career_proactive_runs").insert(row);
+      if (error) throw new Error(`record run: ${error.message}`);
+    },
   });
 });

@@ -13,6 +13,10 @@ import { appsFromTracker, type MailStore } from "../career_mail_store.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
 import { missingIntegration } from "./integrations.ts";
 import { brief as interviewBrief, findRecord } from "../career_mock.ts";
+import { extractInvite, INTERVIEWER_NOTE, interviewRow, inviteBrief, isInvite, splitInvite, whenLine } from "../career_invite.ts";
+import { sameCompany } from "../career_mail.ts";
+import type { DigestStore, InterviewStore } from "../career_brief_store.ts";
+import { DAY_NAMES, DEFAULT_DIGEST, validDigest } from "../career_digest.ts";
 import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, sameFirm, type Verifier, vendorSource } from "../career_contacts.ts";
 import {
   BATCH_MAX, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
@@ -50,9 +54,11 @@ export interface TailorTools { posting: (jobId: string) => Promise<any | null>; 
 // `outreach` (WO-033): where drafts, approvals, the do-not-contact list and the person's outreach settings are kept, and
 // the model that writes each draft (the fact-lock checks every one). Absent: the outreach tools say so, never pretend.
 export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
+// `interviews` and `digest` (WO-034) keep a pasted invite (for its thank-you, nudge and the digest) and the weekly digest's
+// settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
-  events?: EventStore | null; tz?: string; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null;
+  events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -342,7 +348,7 @@ export function careerTools(deps: {
     },
     {
       name: "where_do_i_stand", effect: "read",
-      description: "Where the person stands with one employer (\"where do I stand with JPMorgan?\"): every application to it, its stage, and the last thing that happened with its date, from their applications and the status emails found in their mail. Facts only; say what it returns.",
+      description: "Where the person stands with one employer (\"where do I stand with JPMorgan?\"): every application to it, its stage, the last thing that happened, and history: each stage with its date and source (mail, tracker or Trainee). From their records only; say what it returns.",
       input_schema: obj({ company: str("The employer as the person said it, e.g. 'JPMorgan'") }, ["company"]),
       run: async (i, c) => {
         const company = String(i.company ?? "").trim();
@@ -493,6 +499,68 @@ export function careerTools(deps: {
         const rows = [...contactsOf(c.state), ...legacyRows(profileOf(c).connections)];
         if (!targets.length) return { firms: [], ask: "Which firms are you targeting? Name up to 20.", ...(rows.length ? {} : { export_ask: REFERRAL_ASK }) };
         return referralMap({ targets, rows, facts: profileOf(c).facts || [] });
+      },
+    },
+    {
+      name: "brief_from_invite", effect: "write_own",
+      description: "The person pasted or forwarded an interview invite: read only what it states (company, role, date, time, zone, format, who they meet), keep it, and return the brief texts (record with sources, question patterns, 10-point plan). text: the invite as pasted. Relay the texts; add nothing it does not state.",
+      input_schema: obj({ text: str("The invite exactly as the person pasted it in this message") }, ["text"]),
+      run: async (i, c) => {
+        const text = String(i.text ?? "");
+        if (!c.turn || !quotedFrom(c.turn.message, text)) throw new Error("not briefed: that text is not in the person's message this turn; ask them to paste the invite");
+        const parts = splitInvite(text);
+        if (!isInvite(parts.body, parts.subject ?? "")) return { is_invite: false, note: "this does not read as an interview invitation; ask what they need" };
+        const inv = extractInvite({ text, sentAt: c.now });
+        // The application it is for: the one application to that employer, or none (never a forced match).
+        let ref: string | null = null;
+        if (inv.company) {
+          const here = appsFromTracker(trackOf(c).rows);
+          const stored = deps.mail ? await deps.mail.applications(c.userId).catch(() => []) : [];
+          const at = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))].filter((a) => sameCompany(a.company, inv.company));
+          if (at.length === 1) ref = at[0].ref;
+        }
+        const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`invite:${c.userId}:${text.replace(/\s+/g, " ").trim()}`)));
+        const key = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+        const postings = await deps.postings(`${inv.role ?? ""} ${inv.company ?? ""}`.trim()).catch(() => []);
+        const b = inviteBrief(inv, { now: c.now, postings });
+        // Kept for its thank-you, its nudge and the digest; a store that cannot be written never stops the brief.
+        let kept = false;
+        if (deps.interviews) {
+          try {
+            kept = await deps.interviews.save(c.userId, interviewRow(inv, { key, source: "chat", ref, mail_at: null, seen_at: c.now }));
+            if (kept) await deps.interviews.briefed(c.userId, key, c.now, 0);
+          } catch (e) { console.error("brief_from_invite: not kept", e instanceof Error ? e.message : String(e)); }
+        }
+        return {
+          is_invite: true, invite: { company: inv.company, role: inv.role, when: whenLine(inv), format: inv.format, interviewers: inv.interviewers },
+          interviewers_note: INTERVIEWER_NOTE, texts: b.texts, record: b.record, patterns_from: b.patterns_from, kept,
+        };
+      },
+    },
+    {
+      name: "set_weekly_digest", effect: "write_own",
+      description: "Turn the weekly digest on or off (\"weekly digest off\") or change its day and hour (default Sunday 6 pm in their zone, never in quiet hours). Send only what changed. Restate the setting.",
+      input_schema: obj({
+        on: { type: "boolean", description: "false stops the digest; true turns it back on" },
+        day: str("Day of the week, e.g. Sunday"),
+        hour: { type: "number", description: "Local hour 0-23; 6 pm is 18" },
+        timezone: str("IANA zone, e.g. America/Chicago, if the person said where they are"),
+      }),
+      run: async (i, c) => {
+        if (!deps.digest) throw new Error("the weekly digest is not kept here");
+        const prev = await deps.digest.get(c.userId);
+        const v = validDigest(i, prev?.prefs ?? DEFAULT_DIGEST);
+        if (!v.ok) throw new Error(v.error);
+        const alertRow = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
+        const tz = i.timezone !== undefined ? validZone(i.timezone) : (prev?.tz ?? alertRow?.tz ?? deps.tz ?? "America/New_York");
+        if (!tz) throw new Error(`unknown time zone ${i.timezone}`);
+        await deps.digest.save(c.userId, v.prefs, tz);
+        const q = { start: alertRow?.prefs.quiet_start ?? DEFAULT_PREFS.quiet_start, end: alertRow?.prefs.quiet_end ?? DEFAULT_PREFS.quiet_end };
+        const quiet = q.start === q.end ? false : q.start > q.end ? v.prefs.hour >= q.start || v.prefs.hour < q.end : v.prefs.hour >= q.start && v.prefs.hour < q.end;
+        return {
+          digest: { on: v.prefs.on, day: DAY_NAMES[v.prefs.day], hour: v.prefs.hour, timezone: tz, quiet_hours: `${q.start}:00-${q.end}:00` },
+          ...(quiet && v.prefs.on ? { note: `that hour is in their quiet hours, so it arrives when quiet hours end (${q.end}:00)` } : {}),
+        };
       },
     },
   ];

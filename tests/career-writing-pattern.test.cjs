@@ -1,15 +1,20 @@
 /* MI-097 / BUG-236 / FR-394 — the writing-pattern system (module 154).
  *
- * FAIL-FIRST property: the guards are built on the 2026-10-13 MEASURED
- * corpora (packages/career-data/fixtures/writing-pattern-corpus.json):
- * the 12 networking drafts that failed HS-1/2/3/4/5/6 must FAIL the new
- * batch enforcer naming those classes; the doctrine-voice replies must
- * fail the tells check; an invented number must hard-fail fact-lock.
- * The owner-approved post-fix drafts must PASS the per-draft gate (they
- * were approved as individual drafts) — and the batch enforcer's verdict
- * on them is asserted FAIL with the recorded violation classes, because
- * approval of drafts is not a metric pass (10/10 carried the identical
- * bridge clause and logistics string; see MI-097).
+ * FAIL-FIRST property: the guards are built on the SYNTHETIC corpora
+ * (packages/career-data/fixtures/writing-pattern-corpus-synthetic.json),
+ * engineered to the measured properties of the original 2026-10-13
+ * corpora (which were built from the owner's real networking drafts and
+ * were scrubbed from this repository on the owner's approval,
+ * 2026-10-20; every person, firm, and draft in the synthetic fixture is
+ * fictional TEST data): the 12 synthetic wave drafts that share one
+ * template must FAIL the new batch enforcer naming the HS classes; the
+ * doctrine-voice replies must fail the tells check; an invented number
+ * must hard-fail fact-lock. The synthetic post-fix drafts must PASS the
+ * per-draft gate — and the batch enforcer's verdict on them is asserted
+ * FAIL with the recorded violation classes, because a shared bridge
+ * clause and logistics string is a batch defect no matter how clean
+ * each draft is alone (10/10 carry the identical bridge clause and
+ * logistics string; see MI-097).
  *
  * No detector scores anywhere (claims register): every assertion is a
  * deterministic metric from the design.
@@ -20,7 +25,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const W = require("../packages/domain/154-career-writing.js");
-const corpus = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "packages", "career-data", "fixtures", "writing-pattern-corpus.json"), "utf8"));
+const corpus = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "packages", "career-data", "fixtures", "writing-pattern-corpus-synthetic.json"), "utf8"));
 
 // Fact packs are built from each draft's STAGING record in the
 // fixture (what the generator was fed, per the generation run's own
@@ -124,7 +129,7 @@ test("fail-first: banned-phrase slop fails on the first hit", () => {
 });
 
 test("fail-first: an invented number hard-fails fact-lock and is named", () => {
-  const d = corpus.approvedPostfix[0]; // "you worked on a sponsor-backed carve-out at Evercore"
+  const d = corpus.approvedSynthetic[0]; // "you worked on a sponsor-backed carve-out at Hartwell"
   const tampered = d.body.replace("sponsor-backed carve-out", "a $40 million carve-out");
   assert.notEqual(tampered, d.body, "the tamper actually changed the draft");
   const card = W.slopGate(tampered, postfixGateOpts(d));
@@ -133,34 +138,34 @@ test("fail-first: an invented number hard-fails fact-lock and is named", () => {
   assert.ok(card.metrics.fact_lock.value.untraced.some((u) => /40/.test(u)), `the invented $40 is named as untraced: ${JSON.stringify(card.metrics.fact_lock.value.untraced)}`);
 });
 
-test("the 2026-10-13 wave drafts pass the PER-DRAFT gate (their defect was batch-shaped)", () => {
+test("the synthetic wave drafts pass the PER-DRAFT gate (their defect is batch-shaped)", () => {
   let passed = 0;
-  for (const d of corpus.wave2026_10_13) if (W.slopGate(d.body, waveGateOpts(d)).pass) passed++;
+  for (const d of corpus.waveSynthetic) if (W.slopGate(d.body, waveGateOpts(d)).pass) passed++;
   assert.equal(passed, 12, `expected 12/12 per-draft passes, got ${passed}`);
 });
 
-test("the owner-approved post-fix drafts pass the per-draft gate + fact-lock", () => {
-  corpus.approvedPostfix.forEach((d, i) => {
+test("the synthetic post-fix drafts pass the per-draft gate + fact-lock", () => {
+  corpus.approvedSynthetic.forEach((d, i) => {
     const card = W.slopGate(d.body, postfixGateOpts(d));
-    assert.equal(card.pass, true, `approved draft ${i + 1} (${d.recipient}) must pass; failures: ${card.failures.join(",")} untraced: ${JSON.stringify(card.metrics.fact_lock.value.untraced || [])}`);
+    assert.equal(card.pass, true, `synthetic draft ${i + 1} (${d.recipient}) must pass; failures: ${card.failures.join(",")} untraced: ${JSON.stringify(card.metrics.fact_lock.value.untraced || [])}`);
   });
 });
 
 // ---------- [5] batch enforcer — fail-first ----------
 const asBatch = (list, packs) => list.map((d, i) => ({ subject: d.subject, body: d.body, firm: d.firm, recipientName: d.recipient, title: d.title, leadFactKind: "registry", factTexts: packs ? [packs(i)] : [d.fact] }));
 
-test("fail-first: the 2026-10-13 wave FAILS the batch enforcer on the HS classes", () => {
-  const v = W.batchGate(asBatch(corpus.wave2026_10_13, (i) => corpus.wave2026_10_13[i].fact));
+test("fail-first: the synthetic wave FAILS the batch enforcer on the HS classes", () => {
+  const v = W.batchGate(asBatch(corpus.waveSynthetic, (i) => corpus.waveSynthetic[i].fact));
   assert.equal(v.pass, false);
   for (const k of ["verbatim_sentence_reuse", "subject_frames", "length_spread", "logistics_repetition", "opening_diversity", "structure_fingerprint", "lead_fact_kind_spread"]) {
     assert.ok(v.failures.includes(k), `wave must fail ${k}; failures: ${v.failures.join(",")}`);
   }
-  assert.ok(Math.abs(v.metrics.length_spread.value.ratio - 1.18) < 0.02, "length ratio reproduces the HS report's 1.18");
+  assert.ok(Math.abs(v.metrics.length_spread.value.ratio - 1.18) < 0.02, "length ratio reproduces the engineered 1.18");
 });
 
-test("recorded discrepancy: the APPROVED post-fix batch also fails the enforcer (bridge + logistics at 100%)", () => {
-  const v = W.batchGate(asBatch(corpus.approvedPostfix, (i) => corpus.approvedPostfix[i].staging.recipientFact));
-  assert.equal(v.pass, false, "owner approval of drafts is not a metric pass — the enforcer must still say so");
+test("recorded property: the SYNTHETIC post-fix batch also fails the enforcer (bridge + logistics at 100%)", () => {
+  const v = W.batchGate(asBatch(corpus.approvedSynthetic, (i) => corpus.approvedSynthetic[i].staging.recipientFact));
+  assert.equal(v.pass, false, "individually clean drafts are not a metric pass at batch level — the enforcer must still say so");
   assert.ok(v.failures.includes("logistics_repetition") || v.failures.includes("bridge_clause_monoculture") || v.failures.includes("verbatim_sentence_reuse"), `failures: ${v.failures.join(",")}`);
 });
 

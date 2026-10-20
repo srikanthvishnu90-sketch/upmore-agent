@@ -233,7 +233,9 @@ test("R2A SH03: 'is my previous application packet still approved and valid?' is
   const s = H.session("R2A-SH03", "r2a-sh03");
   const r1 = L.chatTurn(s, "use the new one, old resume's wrong", { profile });
   assert.ok(r1.result && r1.result.ok, "baseline: 130's correction still runs");
-  const profile2 = L.gauntletProfile("p4-experienced-product");
+  // Reload the saved profile JSON; an older source fixture is not the
+  // owner's committed state. The actual SQL restart is tested separately.
+  const profile2 = JSON.parse(JSON.stringify(profile));
   const r3 = L.chatTurn(s, "is my previous application packet still approved and valid?", { profile: profile2 });
   assert.equal(r3.handler, "142-career-router.handleChat", "the validity question is owned by the router's intent layer");
   assert.ok(r3.result && r3.result.intent !== "career_packet", "the question is not misrouted into packet preparation (DD-9)");

@@ -28,6 +28,22 @@
     <ol id="card"></ol>
     <button id="approve" class="primary" disabled>Approve and submit</button>
     <p id="result" class="msg"></p>
+    <button id="card-proof" hidden>Proof</button>
+  </section>
+
+  <section id="proof" hidden>
+    <div class="row"><b id="proof-heading">Proof</b><button id="proof-close" class="link">Close</button></div>
+    <p class="small">Kept only on this computer.</p>
+    <p id="proof-meta" class="small"></p>
+    <b>Answers sent, as you approved them</b>
+    <ol id="proof-answers" class="small"></ol>
+    <div class="shots">
+      <figure><figcaption class="small">The form before the click</figcaption><img id="proof-before" alt="The filled form before the click"></figure>
+      <figure><figcaption class="small">The page after the click</figcaption><img id="proof-after" alt="The page after the click"></figure>
+    </div>
+    <blockquote id="proof-text" class="small"></blockquote>
+    <p id="proof-url" class="small"></p>
+    <p id="proof-times" class="small"></p>
   </section>
 
   <section id="queue-box" hidden>
@@ -41,7 +57,10 @@
     <p id="q-msg" class="msg"></p>
   </section>
 
-  <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button></footer>
+  <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button>
+    <button id="clear-proof" class="link">Clear proof on this computer</button>
+    <span id="clear-confirm" hidden>Clear every application's proof from this computer? <button id="clear-yes" class="link">Yes, clear it</button> <button id="clear-no" class="link">No</button></span>
+    <span id="clear-msg"></span></footer>
   <script src="config.js"></script>
   <script src="panel.js"></script>
 </body>

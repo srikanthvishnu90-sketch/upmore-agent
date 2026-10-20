@@ -21,8 +21,10 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
 });
 
+// Where the session goes is fixed by config.js, never by storage: a content script can write chrome.storage.local, and a
+// value written there must never send the person's token to another server (WO-031 review).
 async function config() {
-  return { ...globalThis.TRAINEE_DEFAULTS, ...(await get(L, "config", {})) };
+  return { ...globalThis.TRAINEE_DEFAULTS };
 }
 
 // ------------------------------------------------------------------------------------------------ the person's session
@@ -174,8 +176,13 @@ function withCards(tabId, by, change) {
   cardQueue = run.catch(() => {});
   return run;
 }
+// A "stopped" never lands on a card whose application already went (status done) or is past its record (begun), unless
+// it is the content script's own stop before the click: "nothing was sent" is said only when that is true (WO-031 review).
 const setCard = (tabId, patch, by = patch.status || "patch") =>
-  withCards(tabId, by, (prev) => ({ ...(prev || {}), ...patch, tabId, updated_at: Date.now() }));
+  withCards(tabId, by, (prev) => {
+    if (patch.status === "stopped" && prev && !patch.beforeClick && (prev.status === "done" || prev.begun)) return null;
+    return { ...(prev || {}), ...patch, tabId, updated_at: Date.now() };
+  });
 const pendings = async () => await get(S, "pending", {});
 let pendingQueue = Promise.resolve();
 function setPending(tabId, v) {
@@ -219,27 +226,36 @@ async function openNext(q) {
   q.tabId = t.id;
   await put(S, "queue", q);
 }
-async function queueAfter(tabId, state, ms) {
+async function queueAfter(tabId, state, ms, proofId) {
   const q = await queueState();
   if (!q.running || q.tabId !== tabId || q.index < 0) return;
   const it = q.items[q.index];
   it.state = state;
   if (ms !== null) it.ms = ms;
+  if (proofId) it.proof_id = proofId;
   await put(S, "queue", q);
   setTimeout(() => queueState().then((q2) => q2.running && openNext(q2)), 900);
 }
 
 // ------------------------------------------------------------------------------------------------ the submit
-async function finish(tabId, observation, extra) {
+// One finish per application, whoever reports first (the content script in place, or the page load after a navigating
+// submit): the row id is taken before any await, so a second report returns at once (WO-031 review).
+const finishing = new Set();
+async function finish(tabId, observation, extra = {}) {
   const p = (await pendings())[tabId];
-  if (!p || p.finished) return null;
+  if (!p || p.finished || finishing.has(p.id)) return null;
+  finishing.add(p.id);
   p.finished = true;
   await setPending(tabId, p);
   const done = Date.now();
-  const outcome = observation ? C.outcomeOf(observation) : { state: "not_submitted", reason: extra?.reason || "stopped before the click", confirmation_id: null };
-  const evidence = C.evidenceRecord({
+  const outcome = observation
+    ? C.outcomeAfterClick(observation, extra.errorsBefore || p.errors_before || [], !!extra.timedOut)
+    : { state: "not_submitted", reason: extra.reason || C.BEFORE_CLICK, confirmation_id: null };
+  const shotAfter = observation && extra.shotAfter?.sha256 ? extra.shotAfter : null;
+  const evidence = await C.evidenceRecord({
     payload: p.payload, hash: p.hash, outcome, pageText: observation?.page_text || "", urlAfter: observation?.url_after || p.url_before,
-    screenshotSha256: p.screenshot_sha256, times: { card: p.card_shown_at, approved: p.approved_at, clicked: p.clicked_at || done, done },
+    screenshotSha256: p.screenshot_sha256, screenshotAfterSha256: shotAfter?.sha256 ?? null,
+    times: { card: p.card_shown_at, approved: p.approved_at, clicked: p.clicked_at || done, done },
   });
   let recorded = false;
   for (let i = 0; i < 3 && !recorded; i++) {
@@ -250,21 +266,51 @@ async function finish(tabId, observation, extra) {
       await new Promise((r) => setTimeout(r, 500 * (i + 1)));
     }
   }
-  await keepEvidence({ ...evidence, state: outcome.state, job_id: p.payload.job_id, company: p.payload.company, screenshot: p.screenshot || null, recorded });
-  const card = await setCard(tabId, {
-    status: "done", result: outcome.state, ms: evidence.ms_card_to_done,
-    message: outcome.state === "confirmed"
-      ? `Sent and confirmed by the employer${outcome.confirmation_id ? ` (${outcome.confirmation_id})` : ""}.`
-      : outcome.state === "needs_user"
-      ? say.handoff
-      : `Not confirmed: ${outcome.reason}.`,
-    recorded,
+  // The proof stays on this computer: the answers as approved, both pictures, the employer's words, the times.
+  const proved = outcome.state === "confirmed" && !!shotAfter;
+  await keepEvidence({
+    ...evidence, id: p.id, state: outcome.state, proved, job_id: p.payload.job_id, company: p.payload.company, url: p.payload.url,
+    approved_answers: p.payload.fields, screenshot: p.screenshot || null, screenshot_after: shotAfter?.dataUrl || null, recorded,
   });
   const stats = await get(L, "timing", []);
-  if (outcome.state === "confirmed") await put(L, "timing", [...stats, evidence.ms_card_to_done].slice(-500));
+  if (proved) await put(L, "timing", [...stats, evidence.ms_card_to_done].slice(-500));
   await setPending(tabId, null);
-  await queueAfter(tabId, outcome.state, evidence.ms_card_to_done);
-  return card;
+  // A stop before the click leaves the posting open for another try; anything after the click moves the queue on. The queue
+  // is final before the card says done, so the panel never shows a done card beside an open queue item.
+  if (observation) await queueAfter(tabId, proved ? "confirmed" : outcome.state, evidence.ms_card_to_done, p.id);
+  const view = observation ? C.cardOutcome(outcome, !!shotAfter) : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
+  return await withCards(tabId, "finish:" + outcome.state, (prev) => ({
+    ...(prev || {}), tabId, updated_at: Date.now(), status: view.status, message: view.message, result: outcome.state, proved,
+    ms: evidence.ms_card_to_done, recorded, proof_id: p.id, approved: false,
+  }));
+}
+
+// The page after a navigating submit (Lever's thank-you): read and photographed from the tab while it is in front, identity
+// fields covered while the picture is taken.
+async function readAfterNavigation(tabId, p) {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ["lib/trainee-core.js"] });
+  const [res] = await chrome.scripting.executeScript({
+    target: { tabId }, args: [p.url_before, p.planned_names],
+    func: (before, names) => {
+      const T = globalThis.TraineeCore, D = T.dom, f = D.readForm();
+      const sel = f.schema.filter((s) => T.isIdentityField(s) || T.looksLikeIdNumber(D.readValue(f.bindings[s.name]))).map((s) => f.bindings[s.name].selector);
+      globalThis.__traineeUnmask = D.maskFields(sel);
+      return D.observe(before, names);
+    },
+  });
+  let shotAfter = null;
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (tab?.active) shotAfter = await capture(tab.windowId);
+  await chrome.scripting.executeScript({ target: { tabId }, func: () => globalThis.__traineeUnmask?.() }).catch(() => {});
+  return { observation: res?.result || null, shotAfter };
+}
+async function capture(windowId) {
+  try {
+    const url = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
+    return { sha256: await sha256Hex(b64ToBytes(url.split(",")[1])), dataUrl: url };
+  } catch {
+    return null;
+  }
 }
 
 // A submit that moved the page away: the new page is read once it loads (the content script there may not run, e.g. a
@@ -275,13 +321,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, info) => {
   if (!p || p.finished || !p.clicked_at) return;
   await new Promise((r) => setTimeout(r, 600));
   try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["lib/trainee-core.js"] });
-    const [res] = await chrome.scripting.executeScript({
-      target: { tabId }, func: (before, names) => globalThis.TraineeCore.dom.observe(before, names), args: [p.url_before, p.planned_names],
-    });
-    if (res?.result) await finish(tabId, res.result);
+    const { observation, shotAfter } = await readAfterNavigation(tabId, p);
+    if (observation) await finish(tabId, observation, { shotAfter });
   } catch {
-    await finish(tabId, { url_before: p.url_before, url_after: "", form_present_after: false, required_empty_after: 0, validation_errors: [], captcha: false, email_code_prompt: false, page_text: "" });
+    // The page after the click could not be read: unknown, counted as applied, never resent.
+    await finish(tabId, { url_before: p.url_before, url_after: "", form_present_after: true, required_empty_after: 0, validation_errors: [], captcha: false, email_code_prompt: false, page_text: "" }, { timedOut: true });
   }
 });
 
@@ -335,14 +379,12 @@ async function handle(m, sender) {
       }
     }
     case "screenshot": {
-      // The filled form before the click, identity fields covered by the content script while it is taken.
-      try {
-        const url = await chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" });
-        const bytes = b64ToBytes(url.split(",")[1]);
-        return { ok: true, sha256: await sha256Hex(bytes), dataUrl: url };
-      } catch (e) {
-        return { ok: false, message: String(e.message || e) };
-      }
+      // The page as the person sees it, identity fields covered by the content script while it is taken. Only from the tab
+      // in front: a picture of another tab is no proof of this one.
+      const tab = await chrome.tabs.get(sender.tab.id).catch(() => null);
+      if (!tab?.active) return { ok: false, message: "the application's tab is not in front" };
+      const shot = await capture(sender.tab.windowId);
+      return shot ? { ok: true, ...shot } : { ok: false, message: "the picture could not be taken" };
     }
     case "begin": {
       const card = (await cards())[tabId];
@@ -354,13 +396,14 @@ async function handle(m, sender) {
           id: row.id, lease: row.lease, hash: m.hash, payload: m.payload, url_before: m.urlBefore, planned_names: m.plannedNames,
           card_shown_at: card.shown_at, approved_at: card.approved_at, screenshot_sha256: m.screenshot?.sha256 || null, screenshot: m.screenshot?.dataUrl || null,
         });
+        await setCard(tabId, { begun: true });
         return { ok: true };
       } catch (e) {
         const why = /daily_cap/.test(e.message) ? "You reached today's application limit." : /company_cooldown/.test(e.message)
           ? "You applied to this company in the last 30 days." : /duplicate_job/.test(e.message) ? "You already applied to this posting."
           : e.message === "SIGNED_OUT" ? say.signedOut : /stale|current/.test(e.message) ? "Your account changed since this card was made; review it again."
           : "Trainee could not record this application, so it was not sent.";
-        await setCard(tabId, { status: "stopped", message: why + " Nothing was sent.", approved: false });
+        await setCard(tabId, { status: "stopped", message: why + " Nothing was sent.", approved: false }, "refused");
         return { ok: false, message: why };
       }
     }
@@ -368,6 +411,7 @@ async function handle(m, sender) {
       const p = (await pendings())[tabId];
       if (p) {
         p.clicked_at = m.at;
+        p.errors_before = m.errorsBefore || [];
         await setPending(tabId, p);
       }
       await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });
@@ -376,10 +420,18 @@ async function handle(m, sender) {
     case "outcome":
       return { ok: true, card: await finish(tabId, m.observation, m) };
     case "stopped": {
-      await setCard(tabId, { status: "stopped", message: m.message, approved: false });
-      if (m.finishPending) await finish(tabId, null, { reason: m.reason });
+      if (m.finishPending) await finish(tabId, null, { reason: C.BEFORE_CLICK, message: m.message });
+      else await setCard(tabId, { status: "stopped", message: m.message, approved: false, beforeClick: !!m.beforeClick });
       return { ok: true };
     }
+    case "proof": {
+      const list = await get(L, "evidence", []);
+      return { ok: true, proof: list.find((e) => e.id === m.id) || null };
+    }
+    case "clear-proof":
+      if (m.confirm !== "clear") return { ok: false, message: "Not cleared." };
+      await L.remove(["evidence", "timing"]);
+      return { ok: true };
     // ---- from the panel (the person)
     case "status": {
       const a = await session();
@@ -428,7 +480,12 @@ async function handle(m, sender) {
         return { ...card, approved: true, approved_hash: m.hash, approved_at: Date.now(), status: "submitting", message: "Checking the form is still exactly what you approved...", updated_at: Date.now() };
       });
       if (!taken) return { ok: false, message: "This card changed; read the new one before approving." };
-      chrome.tabs.sendMessage(m.tabId, { type: "submit", hash: m.hash }).catch(() => setCard(m.tabId, { status: "stopped", message: "The page closed; nothing was sent.", approved: false }));
+      // The content script answers at once and then works. If the page cannot be reached at all, nothing was recorded or
+      // clicked; once a record exists, the outcome is finish()'s alone, never "nothing was sent" (WO-031 review).
+      chrome.tabs.sendMessage(m.tabId, { type: "submit", hash: m.hash }).catch(async () => {
+        if ((await pendings())[m.tabId]) return;
+        await setCard(m.tabId, { status: "stopped", message: "The page could not be reached, so nothing was sent.", approved: false }, "unreachable");
+      });
       return { ok: true };
     }
     case "queue-set": {
@@ -482,9 +539,32 @@ async function handle(m, sender) {
       return { ok: false, message: "unknown request" };
   }
 }
+// Who may ask what (WO-031 review): what the person does (approve, sign in, set the resume, the queue, the proof) comes
+// only from the extension's own panel page, never from a content script running inside an employer's page; what a page
+// reports comes only from a content script in a tab.
+const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve",
+  "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped"]);
+// The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
+// panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
+const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));
+const fromPage = (sender) => !!sender.tab && typeof sender.url === "string" && !sender.url.startsWith(chrome.runtime.getURL(""));
 chrome.runtime.onMessage.addListener((m, sender, reply) => {
   // Only this extension's own pages and content scripts talk here; nothing a web page sends is read.
   if (sender.id !== chrome.runtime.id) return false;
+  const type = m?.type;
+  if (PANEL_ONLY.has(type) && !fromPanel(sender)) {
+    reply({ ok: false, message: "Only the Trainee panel can ask for that." });
+    return false;
+  }
+  if (TAB_ONLY.has(type) && !fromPage(sender)) {
+    reply({ ok: false, message: "Only an application page can report that." });
+    return false;
+  }
+  if (!PANEL_ONLY.has(type) && !TAB_ONLY.has(type)) {
+    reply({ ok: false, message: "unknown request" });
+    return false;
+  }
   handle(m || {}, sender).then(reply, (e) => reply({ ok: false, message: String(e?.message || e) }));
   return true;
 });

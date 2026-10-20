@@ -48,18 +48,74 @@ async function render() {
   $("approve").disabled = !(card && card.status === "ready" && card.hash);
   $("approve").dataset.hash = card?.hash || "";
   text($("result"), card?.status === "done" ? `${card.message}${card.ms ? ` ${(card.ms / 1000).toFixed(1)} s from card to answer.` : ""}${card.recorded === false ? " Not recorded yet; kept on this computer." : ""}` : "");
+  $("card-proof").hidden = !card?.proof_id;
+  $("card-proof").dataset.id = card?.proof_id || "";
   const q = st.queue;
   const ol = $("queue");
   ol.textContent = "";
   q.items.forEach((it, i) => {
     const li = document.createElement("li");
     li.textContent = `${it.state === "open" ? "now: " : ""}${it.url}${it.state !== "waiting" && it.state !== "open" ? ` (${it.state}${it.ms ? `, ${(it.ms / 1000).toFixed(1)} s` : ""})` : ""}`;
+    if (it.proof_id) {
+      const b = document.createElement("button");
+      b.textContent = "Proof";
+      b.className = "link proof-item";
+      b.onclick = () => showProof(it.proof_id);
+      li.append(" ", b);
+    }
     if (i === q.index && q.running) li.style.fontWeight = "600";
     ol.appendChild(li);
   });
   const done = q.items.filter((x) => !["waiting", "open"].includes(x.state)).length;
   text($("queue-progress"), q.items.length ? `${done} of ${q.items.length} done${st.timing.avg_ms ? `; average ${(st.timing.avg_ms / 1000).toFixed(1)} s from card to confirmed` : ""}` : "");
 }
+
+// Proof of one application, as this computer kept it: what was sent, when it was approved and clicked, the picture before
+// and after the click, the employer's own words, where the page ended. Never "confirmed" without the picture after.
+const when = (iso) => (iso ? new Date(iso).toLocaleString() : "not recorded");
+async function showProof(id) {
+  const r = await send({ type: "proof", id });
+  const p = r?.proof;
+  $("proof").hidden = false;
+  if (!p) {
+    text($("proof-heading"), "No proof is kept on this computer for that application.");
+    return;
+  }
+  text($("proof-heading"), p.proved
+    ? `Proof: ${p.company}, sent and confirmed by the employer${p.confirmation_id ? ` (${p.confirmation_id})` : ""}`
+    : `Not confirmed: ${p.screenshot_after ? p.reason : "the page after the click could not be photographed"}. This is what the page showed.`);
+  text($("proof-meta"), `Approved ${when(p.times?.approved_at)}, approval ${String(p.approval_hash || "").slice(0, 12)}`);
+  const ol = $("proof-answers");
+  ol.textContent = "";
+  for (const a of p.approved_answers || []) {
+    const li = document.createElement("li");
+    li.textContent = `${a.label}: ${a.value}`;
+    ol.appendChild(li);
+  }
+  $("proof-before").src = p.screenshot || "";
+  $("proof-before").hidden = !p.screenshot;
+  $("proof-after").src = p.screenshot_after || "";
+  $("proof-after").hidden = !p.screenshot_after;
+  text($("proof-text"), p.confirmation_text ? `"${p.confirmation_text}"${p.confirmation_id ? ` (confirmation ${p.confirmation_id})` : ""}` : "The employer's page said nothing that could be read.");
+  text($("proof-url"), `Final page: ${p.url_after || "not recorded"}`);
+  const t = p.times || {};
+  text($("proof-times"), `Card ${when(t.card_shown_at)}; approved ${when(t.approved_at)}; clicked ${when(t.clicked_at)}; answer read ${when(t.finished_at)}`);
+}
+$("card-proof").onclick = () => showProof($("card-proof").dataset.id);
+$("proof-close").onclick = () => ($("proof").hidden = true);
+$("clear-proof").onclick = () => {
+  $("clear-confirm").hidden = false;
+  text($("clear-msg"), "");
+};
+$("clear-no").onclick = () => ($("clear-confirm").hidden = true);
+$("clear-yes").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const r = await send({ type: "clear-proof", confirm: "clear" });
+  $("clear-confirm").hidden = true;
+  $("proof").hidden = true;
+  text($("clear-msg"), r.ok ? "Proof cleared from this computer." : r.message);
+  render();
+};
 
 $("use-app").onclick = async () => text($("signin-msg"), (await send({ type: "signin-app" })).message || "Signed in.") || render();
 $("magic").onclick = async () => text($("signin-msg"), (await send({ type: "signin-magic", email: $("email").value.trim() })).message);

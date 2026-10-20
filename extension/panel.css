@@ -20,3 +20,7 @@ label.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 #card li { margin: 3px 0; word-break: break-word; }
 #card li.block { color: var(--warn); }
 footer { border-top: 1px solid var(--line); padding-top: 8px; }
+.shots { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 8px 0; }
+.shots figure { margin: 0; }
+.shots img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+blockquote { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--line); white-space: pre-wrap; }

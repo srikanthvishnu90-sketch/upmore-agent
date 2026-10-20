@@ -1,4 +1,5 @@
 # WO-053 (architect): a fourth, sealed 100-posting sample (D) of real required questions, with each posting's own location,
+# Triggered by a change to this file on ci/question-capture-d (a new branch alone did not start it).
 # captured where the internet is. On a push to ci/question-capture-d: 40 Greenhouse, 30 Lever and 30 Ashby postings in
 # seeded random order (seed 4), no employer from samples A, B or C, the same read-only capture as question-capture.yml
 # (Greenhouse's public questions API; Lever and Ashby pages rendered in sandboxed Chromium, nothing clicked or typed).

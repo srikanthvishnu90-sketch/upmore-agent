@@ -17,7 +17,7 @@ alter table public.career_outbox drop constraint if exists career_outbox_key_che
 alter table public.career_outbox add constraint career_outbox_key_check
   check (key ~ '^(alert|report|reply|receipt|card|mock):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
-alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'mock'));
+alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock'));
 
 create or replace function public.career_voice_create(p_user uuid, p_thread uuid, p_state jsonb, p_now timestamptz)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$

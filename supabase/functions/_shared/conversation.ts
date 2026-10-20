@@ -48,7 +48,8 @@ export function normalizeContact(contact: string): string {
 const URL_RE = /https?:\/\/[^\s<>"']+/g;
 const isBareLink = (s: string) => /^https?:\/\/\S+$/.test(s.trim());
 
-function splitLong(text: string, max: number): string[] {
+// Exported for the WhatsApp and Telegram adapters (WO-038), which pack messages at their own size with the same rules.
+export function splitLong(text: string, max: number): string[] {
   const t = text.trim();
   if (t.length <= max) return [t];
   // Chunk on existing line breaks first (the model structures replies with

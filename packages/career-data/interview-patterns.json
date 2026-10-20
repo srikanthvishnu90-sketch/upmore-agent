@@ -1,0 +1,753 @@
+{
+ "version": 1,
+ "checked": "2026-10-20",
+ "about": "WO-035: the interview patterns of the 50 firms the mock covers. A firm with a full company record (packages/career-data/cirs) takes its patterns from that record; the 17 firms without one carry their own here. Every pattern and every firm question cites a public URL with its source type (official, posting, reported, anecdotal) and the date it was checked. A question is listed under a firm only when a source attributes that question to that firm; nothing here claims when a firm last asked anything. Questions that cannot be sourced to a firm stay in the role banks (packages/career-data/interview-banks).",
+ "list_basis": "ASSUMED: the 50 are the 33 companies with a full record plus 17 large employers in the same four groups (banks, consulting, big tech, quant) chosen by the builder; the owner has not named the 50 (WO-025).",
+ "method": "Checked by web search on the dates given; the build sandbox could not open firm pages directly, so each pattern restates the search result's summary of the cited page. Open the URL before quoting a pattern as the firm's words.",
+ "firms": [
+  {
+   "id": "accenture",
+   "name": "Accenture",
+   "aliases": [
+    "accenture plc"
+   ],
+   "sector": "consulting",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Accenture's careers blog says the behavioral interview evaluates how you manage and overcome challenging situations, and suggests answering with the situation, the actions you took and the result.",
+     "source_url": "https://www.accenture.com/us-en/blogs/blogs-careers/how-to-prepare-for-a-behavioral-interview",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "Its example topics: managing a challenging project, adopting a new system or way of working, working with a difficult colleague or client, learning and applying a new skill, resolving a conflict, and handling a stressful period.",
+     "source_url": "https://www.accenture.com/us-en/blogs/blogs-careers/how-to-prepare-for-a-behavioral-interview",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "Topics, not verbatim questions: the post's exact wording was not copied."
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "airbnb",
+   "name": "Airbnb, Inc.",
+   "aliases": [],
+   "sector": "tech",
+   "record": "airbnb",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "amazon",
+   "name": "Amazon",
+   "aliases": [],
+   "sector": "big_tech",
+   "record": "amazon",
+   "checked": "2026-10-13",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "anduril",
+   "name": "Anduril Industries",
+   "aliases": [],
+   "sector": "tech",
+   "record": "anduril",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "apple",
+   "name": "Apple",
+   "aliases": [
+    "apple inc"
+   ],
+   "sector": "big_tech",
+   "record": null,
+   "checked": "2026-10-19",
+   "patterns": [
+    {
+     "text": "Apple's process is decentralized: what follows the recruiter call varies by team, and the job description hints at what each interview loop will emphasize.",
+     "source_url": "https://www.interviewquery.com/interview-guides/apple",
+     "source_type": "reported",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "Guides list a recruiter screen, a technical or role-specific phone interview, a take-home assessment for some roles, and an onsite or virtual loop that for engineers covers coding, system design and behavioral questions.",
+     "source_url": "https://tryexponent.com/blog/apple-interview-process",
+     "source_type": "reported",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "bain",
+   "name": "Bain & Company",
+   "aliases": [],
+   "sector": "consulting",
+   "record": "bain",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "bank-of-america",
+   "name": "Bank of America",
+   "aliases": [
+    "bofa",
+    "bofa securities",
+    "bank of america merrill lynch"
+   ],
+   "sector": "banks",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Candidate guides describe a recorded HireVue video interview of behavioral questions, with a short time to prepare each answer, before the superday.",
+     "source_url": "https://www.cleverprep.com/companies/bank-of-america/summer-analyst",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "The superday is reported as a mix of technical and behavioral interviews.",
+     "source_url": "https://www.tryexponent.com/guides/bank-of-america-investment-banking-summer-analyst-interview",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "barclays",
+   "name": "Barclays",
+   "aliases": [
+    "barclays plc",
+    "barclays investment bank"
+   ],
+   "sector": "banks",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "For programmes without technical requirements, candidates may be invited to a recorded video interview of three to five questions; the assessment centre has two or three stages, including a motivational interview with a member of the leadership team.",
+     "source_url": "https://brightnetwork.co.uk/employer-advice/barclays/internship-and-graduate-application-process",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "Bright Network employer-advice page about Barclays (UK programmes)."
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "bcg",
+   "name": "Boston Consulting Group",
+   "aliases": [],
+   "sector": "consulting",
+   "record": "bcg",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "blackstone",
+   "name": "Blackstone — Summer Analyst Program (investing groups)",
+   "aliases": [],
+   "sector": "buy_side",
+   "record": "blackstone",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "centerview",
+   "name": "Centerview Partners",
+   "aliases": [
+    "centerview"
+   ],
+   "sector": "banks",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Candidate reports describe a first round and then a superday that mixes behavioral interviews, finance technicals, situational questions, and brain teasers or case questions.",
+     "source_url": "https://www.wallstreetoasis.com/company/centerview-partners/interview",
+     "source_type": "anecdotal",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "Reported technical questions include a paper LBO and a merger model with stock and cash consideration.",
+     "source_url": "https://www.tryexponent.com/guides/centerview-partners-investment-banking-summer-analyst-interview",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "citadel",
+   "name": "Citadel",
+   "aliases": [
+    "citadel llc"
+   ],
+   "sector": "quant",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "A Citadel-hosted 2022 article describes the internship interviews as a phone screen followed by four on-site interviews, with traders, quantitative researchers and software engineers interviewing, and values assessed alongside technical ability.",
+     "source_url": "https://www.citadel.com/wp-content/uploads/2022/07/Heres_how_to_land_a_spot_in_citadels_summer_internship_program.pdf",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "Article dated 2022; covers Citadel and Citadel Securities internships. Citadel Securities has its own record."
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "citadel-securities",
+   "name": "Citadel Securities",
+   "aliases": [],
+   "sector": "quant",
+   "record": "citadel-securities",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "citi",
+   "name": "Citi",
+   "aliases": [
+    "citigroup",
+    "citibank"
+   ],
+   "sector": "banks",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Citi's campus recruiters advise matching your past experience to the competencies in the job description, preparing for technical questions, and having a clear answer to why Citi and why that business line.",
+     "source_url": "https://careers.citigroup.com/students-and-graduates/interview-advice-ishaan.html",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "Summarized across Citi's recruiter interview-advice pages for students; open the page to see which recruiter gives which tip."
+    },
+    {
+     "text": "A university careers page on Citi says the first-round interview covers behavioral and technical questions, and the superday has several individual and group activities that test critical and lateral thinking.",
+     "source_url": "https://globalgrad.uq.edu.au/employers/citi-au",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "University of Queensland page about Citi Australia."
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "coinbase",
+   "name": "Coinbase",
+   "aliases": [],
+   "sector": "tech",
+   "record": "coinbase",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "datadog",
+   "name": "Datadog",
+   "aliases": [],
+   "sector": "tech",
+   "record": "datadog",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "de-shaw",
+   "name": "D. E. Shaw & Co.",
+   "aliases": [],
+   "sector": "quant",
+   "record": "de-shaw",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "deloitte-consulting",
+   "name": "Deloitte Consulting",
+   "aliases": [],
+   "sector": "consulting",
+   "record": "deloitte-consulting",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "duolingo",
+   "name": "Duolingo, Inc.",
+   "aliases": [],
+   "sector": "tech",
+   "record": "duolingo",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "evercore",
+   "name": "Evercore — Advisory (Investment Banking)",
+   "aliases": [],
+   "sector": "banks",
+   "record": "evercore",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "figma",
+   "name": "Figma",
+   "aliases": [],
+   "sector": "tech",
+   "record": "figma",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "goldman-sachs-ibd",
+   "name": "Goldman Sachs — Investment Banking (Global Banking & Markets)",
+   "aliases": [],
+   "sector": "banks",
+   "record": "goldman-sachs-ibd",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "google",
+   "name": "Google",
+   "aliases": [],
+   "sector": "big_tech",
+   "record": "google",
+   "checked": "2026-10-13",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "hudson-river-trading",
+   "name": "Hudson River Trading",
+   "aliases": [],
+   "sector": "quant",
+   "record": "hudson-river-trading",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "imc",
+   "name": "IMC Trading",
+   "aliases": [
+    "imc"
+   ],
+   "sector": "quant",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "IMC's recruitment page says interns and graduates need no specific industry experience; it looks for a general interest in financial markets and a strong analytical or technical background, and advises researching IMC's culture and preparing technical concepts.",
+     "source_url": "https://www.imc.com/us/careers/recruitment-process",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "Technical rounds with traders are reported to involve mental math, probability, and market-making or betting games.",
+     "source_url": "https://www.tradermath.org/articles/everything-you-need-to-know-about-the-imc-interview",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "jane-street",
+   "name": "Jane Street",
+   "aliases": [],
+   "sector": "quant",
+   "record": "jane-street",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "jpmorgan-ibd",
+   "name": "JPMorganChase — Global Investment Banking (IBD)",
+   "aliases": [],
+   "sector": "banks",
+   "record": "jpmorgan-ibd",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "kearney",
+   "name": "Kearney",
+   "aliases": [
+    "a.t. kearney",
+    "at kearney"
+   ],
+   "sector": "consulting",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Kearney's cases are reported as candidate-led, like BCG and Bain cases, and some offices also give a written case or an Excel test.",
+     "source_url": "https://igotanoffer.com/blogs/mckinsey-case-interview-blog/at-kearney-case-interview",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "kkr",
+   "name": "KKR",
+   "aliases": [],
+   "sector": "buy_side",
+   "record": "kkr",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "lazard",
+   "name": "Lazard — Financial Advisory",
+   "aliases": [],
+   "sector": "banks",
+   "record": "lazard",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "mckinsey",
+   "name": "McKinsey & Company",
+   "aliases": [],
+   "sector": "consulting",
+   "record": "mckinsey",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "meta",
+   "name": "Meta",
+   "aliases": [
+    "meta platforms",
+    "facebook"
+   ],
+   "sector": "big_tech",
+   "record": null,
+   "checked": "2026-10-19",
+   "patterns": [
+    {
+     "text": "The first technical screen is a coding interview with a Meta engineer that decides whether you go on to the full loop: one or two problems on data structures and algorithms in a shared online editor, and you are expected to say what you are thinking as you work.",
+     "source_url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
+     "source_type": "official",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "Meta Careers blog post dated 2022-10-06; the format may have changed since."
+    },
+    {
+     "text": "A typical software engineering loop is reported as two coding interviews, a system design interview for mid-level and senior engineers, and a behavioral interview.",
+     "source_url": "https://www.tryexponent.com/guides/meta-software-engineer-interview",
+     "source_type": "reported",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "microsoft",
+   "name": "Microsoft",
+   "aliases": [],
+   "sector": "big_tech",
+   "record": "microsoft",
+   "checked": "2026-10-13",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "millennium",
+   "name": "Millennium",
+   "aliases": [],
+   "sector": "quant",
+   "record": "millennium",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "moelis",
+   "name": "Moelis & Company",
+   "aliases": [
+    "moelis",
+    "moelis and company"
+   ],
+   "sector": "banks",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Moelis runs global Analyst and Associate programs and offers students a series of virtual recruiting events to prepare for investment banking interviews.",
+     "source_url": "https://www.moelis.com/careers/explore-opportunities/",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "Guides describe an online assessment, a first round of one or two interviews with an analyst or associate focused mostly on technicals, then a superday of back-to-back interviews with bankers.",
+     "source_url": "https://www.tryexponent.com/guides/moelis-investment-banking-summer-analyst-interview",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "morgan-stanley-ibd",
+   "name": "Morgan Stanley — Investment Banking Division (IBD)",
+   "aliases": [],
+   "sector": "banks",
+   "record": "morgan-stanley-ibd",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "netflix",
+   "name": "Netflix",
+   "aliases": [
+    "netflix inc"
+   ],
+   "sector": "big_tech",
+   "record": null,
+   "checked": "2026-10-19",
+   "patterns": [
+    {
+     "text": "Guides describe a recruiter call, a hiring manager screen, a technical phone interview and an onsite loop, with heavy weight on Netflix's culture and values; candidates are told to be ready to discuss the culture memo.",
+     "source_url": "https://tryexponent.com/blog/an-inside-look-into-the-netflix-interview-process",
+     "source_type": "reported",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "notion",
+   "name": "Notion (Notion Labs, Inc.)",
+   "aliases": [],
+   "sector": "tech",
+   "record": "notion",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "nvidia",
+   "name": "NVIDIA",
+   "aliases": [
+    "nvidia corporation"
+   ],
+   "sector": "big_tech",
+   "record": null,
+   "checked": "2026-10-19",
+   "patterns": [
+    {
+     "text": "NVIDIA's hiring page says interviews are with the hiring manager and team members by phone, video or in person, and that you complete an onsite, in-person interview at an office before you can be considered for an offer.",
+     "source_url": "https://www.nvidia.com/en-eu/about-nvidia/careers/how-we-hire/",
+     "source_type": "official",
+     "checked": "2026-10-19",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "oliver-wyman",
+   "name": "Oliver Wyman",
+   "aliases": [],
+   "sector": "consulting",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "The interview has two main parts, a behavioral interview and a case interview; cases are built on business problems the firm has helped clients with, across sectors such as finance, health, energy, retail and transportation.",
+     "source_url": "https://managementconsulted.com/oliver-wyman-case-interview/",
+     "source_type": "reported",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "optiver",
+   "name": "Optiver",
+   "aliases": [],
+   "sector": "quant",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Optiver's US campus FAQ says the process starts with an online assessment followed by behavioral and technical interviews, that final rounds are virtual, and that it assesses quick decision-making and composure under pressure; mental math is necessary but not sufficient.",
+     "source_url": "https://optiver.com/careers/us-campus-recruiting-faqs-2/",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "palantir",
+   "name": "Palantir Technologies",
+   "aliases": [],
+   "sector": "tech",
+   "record": "palantir",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "plaid",
+   "name": "Plaid",
+   "aliases": [],
+   "sector": "tech",
+   "record": "plaid",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "point72",
+   "name": "Point72",
+   "aliases": [],
+   "sector": "quant",
+   "record": "point72",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "ramp",
+   "name": "Ramp",
+   "aliases": [],
+   "sector": "tech",
+   "record": "ramp",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "salesforce",
+   "name": "Salesforce",
+   "aliases": [
+    "salesforce inc"
+   ],
+   "sector": "big_tech",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "Salesforce's university recruiting guide tells candidates to review the company's values and products before the interview, and to use Trailhead, starting with the Rock Your Future With Salesforce trail.",
+     "source_url": "https://www.salesforce.com/company/careers/university-recruiting/navigating-your-interview/",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    },
+    {
+     "text": "For sales roles, Salesforce's own Trailhead module describes a panel interview and a sales presentation.",
+     "source_url": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-sales-team-interviews/shine-in-your-sales-interviews",
+     "source_type": "official",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox"
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "sig",
+   "name": "Susquehanna International Group",
+   "aliases": [
+    "sig",
+    "susquehanna"
+   ],
+   "sector": "quant",
+   "record": null,
+   "checked": "2026-10-20",
+   "patterns": [
+    {
+     "text": "SIG's campus postings list the steps: application, an online assessment of quantitative and problem-solving skills, behavioral and technical phone interviews, and an office interview with a trader interview and a trade floor visit.",
+     "source_url": "https://resources.cdo.mit.edu/companies/susquehanna-international-group/jobs/43764798-graduate-quantitative-trader-2026",
+     "source_type": "posting",
+     "checked": "2026-10-20",
+     "basis": "web search result summary; the page itself was not opened from the build sandbox",
+     "note": "SIG's Graduate Quantitative Trader 2026 posting as listed on MIT's career site."
+    }
+   ],
+   "questions": []
+  },
+  {
+   "id": "snowflake",
+   "name": "Snowflake Inc.",
+   "aliases": [],
+   "sector": "tech",
+   "record": "snowflake",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "stripe",
+   "name": "Stripe",
+   "aliases": [],
+   "sector": "tech",
+   "record": "stripe",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  },
+  {
+   "id": "two-sigma",
+   "name": "Two Sigma",
+   "aliases": [],
+   "sector": "quant",
+   "record": "two-sigma",
+   "checked": "2026-10-12",
+   "patterns": [],
+   "questions": []
+  }
+ ]
+}

@@ -23,6 +23,7 @@ const expected = {
   CAREER_PAY_JSON: () => Object.fromEntries(Object.entries({ maps: 'pay-maps.json', lca_wages: 'dol-lca-wages.json', oews_metro: 'bls-oews-metro.json',
     bls_national: 'bls-labor-data.json', lca_companies: 'dol-lca-fy2025q4-cir-companies.json' }).map(([k, f]) => [k, readJson(dir(path.join('datasets', f)))])),
   CAREER_FIRM_GUIDE_JSON: () => readJson(dir('firm-guide.json')),
+  CAREER_PATTERNS_JSON: () => readJson(dir('interview-patterns.json')),
 };
 
 test('every career data const inflates to exactly its source data', () => {

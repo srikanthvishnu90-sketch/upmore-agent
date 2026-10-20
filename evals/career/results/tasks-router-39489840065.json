@@ -1,0 +1,915 @@
+{
+ "label": "tasks-router-39489840065",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "a6c0b70",
+ "run_at": "2026-10-20T20:12:29.919Z",
+ "shelf": {
+  "run_id": "39489840065",
+  "file": "shelf-39489840065.json",
+  "seed": "39489840065",
+  "fetched_at": "2026-10-20T20:11:58.467Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.015284
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.48371700000000006,
+ "total": 15,
+ "passed": 2,
+ "pass_rate": 0.13333333333333333,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Systems Engineer",
+    "location": "Denver, CO",
+    "company2": "Databricks",
+    "title2": "Software Engineer",
+    "location2": "Mountain View, CA",
+    "posting_ids": [
+     "greenhouse:fivetran:7826669003",
+     "greenhouse:databricks:8635188002"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in Denver, CO. find me roles that fit"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nAI/ML Engineer at Chime — Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, $125,000–$292,000 (Wage Notice): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, IL, USA; New York, NY, USA; San Francisco, CA, USA, outside the places on your profile, so it means relocating. Manager, Data Analytics, Performance Creative at Peloton — New York, New York, $155,350–$190,850 (Base Salary Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, New York, outside the places on your profile, so it means relocating. Master's University Grad Machine Learning Engineer 2027 (USA) at Pinterest — San\nFrancisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, $146,000–$196,000 (US based applicants only): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, outside the places on your profile, so it means relocating.\nPhD University Grad Machine Learning Engineer (USA) at Pinterest — San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US, $174,078–$229,044 (US based applicants only): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US, outside the places on your profile, so it means relocating. Working in Technology (WiT) Data Science - Summer 2027 at William Blair — Chicago, Illinois, United States, $89,400–$89,400 (Salary Range): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Chicago, Illinois, United States, outside the places on your profile, so it means relocating.\nTell me one to tailor your resume for, and I will do that next."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "4 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf",
+     "each listed posting is easy to point at (numbered)"
+    ],
+    "score": 2,
+    "note": "Trainee listed many shelf postings but included positions not on the provided shelf and did not number the results for easy reference."
+   },
+   "pass": false,
+   "cost_usd": 0.001292
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "Tech Manager",
+    "location": "Chicago, IL",
+    "company2": "Mixpanel",
+    "title2": "Product Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:chime:8795524002",
+     "greenhouse:mixpanel:8223567"
+    ]
+   },
+   "turns": [
+    "find me Tech Manager roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nAnalyst – Case Operations at Pathward — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Balance Sheet Strategy Analyst at Pathward — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Care Coordinator at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCompliance Manager (Data Protection Officer, Regulatory Compliance & Privacy) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Credentialing Manager at Talkspace — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat",
+     "does not apply to postings other than the first two it listed"
+    ],
+    "score": 2,
+    "note": "Trainee failed to prepare the two specific postings or state what is needed to apply — it asked the user to name the job again instead of preparing the listed first two for approval."
+   },
+   "pass": false,
+   "cost_usd": 0.001456
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Datadog",
+    "title": "Commercial Account Executive",
+    "location": "Denver, CO",
+    "company2": "William Blair",
+    "title2": "Learning & Development Specialist",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:datadog:7858788",
+     "greenhouse:williamblair:5213487007"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Commercial Account Executive jobs today"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes",
+     "says what it needs first if anything (e.g. resume, work authorization)"
+    ],
+    "score": 1,
+    "note": "Trainee's response did not meet any required items: it asked a clarifying question but failed to state available matches, confirm no submissions would be sent without consent, or list required materials."
+   },
+   "pass": false,
+   "cost_usd": 0.000771
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "Business Control Manager",
+    "location": "Chicago, IL",
+    "company2": "e.l.f. Beauty",
+    "title2": "Account Manager",
+    "location2": "Los Angeles, CA",
+    "posting_ids": [
+     "greenhouse:chime:8877396002",
+     "lever:elfbeauty:1d67aeec-bae2-461c-a055-77ead14dfab0"
+    ]
+   },
+   "turns": [
+    "watch for new Business Control Manager roles in Chicago, IL and text me, max 2 a day"
+   ],
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "meta": [
+    {
+     "intent": "career_watch_create",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": false,
+     "detail": "no watch in the router's watch state"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms the watch with the role, the place and the 2-a-day limit, or says exactly the one thing it needs"
+    ],
+    "score": 2,
+    "note": "Trainee asked for the user's profile first instead of confirming the watch (did not explicitly confirm the watch or say exactly the one required thing)."
+   },
+   "pass": false,
+   "cost_usd": 0.000686
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Content Producer",
+    "location": "San Francisco, CA",
+    "company2": "Sweetgreen",
+    "title2": "Retail Technology Systems Engineer",
+    "location2": "Los Angeles, CA",
+    "posting_ids": [
+     "ashby:plaid:87db265b-1a34-415b-8cc0-b08393eba9cc",
+     "greenhouse:sweetgreen:8279653"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at Plaid about the Content Producer role"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "a short draft that names Plaid and the Content Producer role correctly",
+     "[brackets] or a question for the recruiter's name if unknown",
+     "says it is a draft for the person to send or approve"
+    ],
+    "score": 1,
+    "note": "Trainee's reply did not provide any draft—only asked for clarification—so it failed to produce the required networking note and draft-language items."
+   },
+   "pass": false,
+   "cost_usd": 0.000721
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Braze",
+    "title": "Software Engineer",
+    "location": "Austin, TX",
+    "company2": "Sweetgreen",
+    "title2": "Retail Technology Systems Engineer",
+    "location2": "Los Angeles, CA",
+    "posting_ids": [
+     "greenhouse:braze:8262953",
+     "greenhouse:sweetgreen:8279653"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Braze to get a referral?"
+   ],
+   "replies": [
+    "Braze has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Braze built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "does not name people it cannot source",
+     "gives a concrete way to find the right person (roles to look for, the person's own contacts)"
+    ],
+    "score": 2,
+    "note": "Response correctly avoided naming people or giving contact details but failed to provide concrete roles or ways to find who to contact for a referral, making it minimally useful."
+   },
+   "pass": false,
+   "cost_usd": 0.001215
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Executive Communications Manager",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Security Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:figma:6150074004",
+     "greenhouse:klaviyo:7661765003"
+    ]
+   },
+   "turns": [
+    "I applied to the Executive Communications Manager role at Figma yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.\nI recorded the manual application against this role, so nothing here can double-apply you. Say 'track it' and I will follow this application and report its status.",
+    "Figma: at the applied stage.\nApplied 2026-10-19 — Executive Communications Manager, 1 day on record. Last event on the row: applied (2026-10-19). Tell me if anything moved and I will update the row from your report."
+   ],
+   "meta": [
+    {
+     "intent": "intent_prior_application",
+     "result_status": "completed",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": "tracking_status",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-figma-10",
+      "company": "Figma",
+      "role": "Executive Communications Manager",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-19T20:11:58.467Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "applied",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-19T20:11:58.467Z",
+        "source": "user-reported",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ],
+      "company_not_stated": false
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Figma · Executive Communications Manager · applied"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 3,
+    "note": "Tracker correctly lists the Figma Executive Communications Manager application at 'applied' stage with the reported date; response was accurate but minimal and could have included next steps or follow-up recommendations."
+   },
+   "pass": true,
+   "cost_usd": 0.000712
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Clover Health",
+    "title": "Product Operations Manager",
+    "location": "Houston, TX",
+    "company2": "Notion",
+    "title2": "Recruiting Program Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:cloverhealth:8159138",
+     "ashby:notion:6b9d5c16-450a-42e4-af2a-d492460ca811"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Product Operations Manager role at Clover Health on Thursday. prep me"
+   ],
+   "replies": [
+    "Your interview brief for Clover Health.\nNo company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented. Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.\nThe pack lands the day before, so the morning itself is only logistics: links, tech check, materials. Want to run it as a mock, one question at a time?"
+   ],
+   "meta": [
+    {
+     "intent": "prep_brief",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 2,
+    "note": "Reply was generic and did not tie prep to the Clover posting details or offer the first mock question/concrete plan as required."
+   },
+   "pass": false,
+   "cost_usd": 0.000727
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Notion",
+    "title": "Enterprise Technical Support Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Machine Learning Engineer",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "ashby:notion:15f37b73-d217-469a-adfc-2e50cc9e2374",
+     "ashby:plaid:5e56c0a6-3caa-4255-8c63-95c29cbc2a32"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Enterprise Technical Support Engineer role at Notion"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "The target is set — the Notion (Notion Labs, Inc.) role.\nTailoring runs on confirmed facts only — your resume's real experience, education, and projects. That is what your real material will be cut against. Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    },
+    {
+     "intent": "career_tailor",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 1,
+    "note": "Trainee refused to accept the user's provided facts and did not produce a tailored resume — it asked for the resume again instead of using the confirmed facts to tailor to the Notion posting."
+   },
+   "pass": false,
+   "cost_usd": 0.000701
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "Tech Manager",
+    "location": "Chicago, IL",
+    "company2": "Notion",
+    "title2": "Treasury Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:chime:8322483002",
+     "ashby:notion:6f5d0bc7-dd9e-48fd-9a1d-733ad391e151"
+    ]
+   },
+   "turns": [
+    "did my application to Chime go through?"
+   ],
+   "replies": [
+    "Chime has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Chime built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee correctly stated there was no application on record and clearly explained what that means; helpful but could have offered next concrete steps (e.g., how to apply or verify submission)."
+   },
+   "pass": true,
+   "cost_usd": 0.000936
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Product Design Manager",
+    "location": "Denver, CO",
+    "company2": "Stripe",
+    "title2": "Sales Manager",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:fivetran:7822456003",
+     "greenhouse:stripe:8191706"
+    ]
+   },
+   "turns": [
+    "what does the Product Design Manager role at Fivetran pay?"
+   ],
+   "replies": [
+    "Fivetran has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Fivetran built from its public postings instead, or a firm whose file exists?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed"
+    ],
+    "score": 2,
+    "note": "Trainee did not answer the pay question directly; instead it explained lack of company file without stating the pay from the posting or saying pay was not listed."
+   },
+   "pass": false,
+   "cost_usd": 0.00066
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Datadog",
+    "title": "Commercial Account Executive",
+    "location": "Denver, CO",
+    "company2": "Plaid",
+    "title2": "GTM Compliance Analyst",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:datadog:7858788",
+     "ashby:plaid:d2c9d8b1-0428-4fdf-8b00-fd3ea28271b3"
+    ]
+   },
+   "turns": [
+    "find me Commercial Account Executive roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nPartner Sales Manager at Fivetran — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Strategic Account Executive, Life Science at Databricks — remote: closest fit on your profile, with the gaps named in the caveat; caveat: AWS, Azure named in the posting and not yet on your profile. Account Executive, Enterprise (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating.\nAccount Executive, SMB (Berlin, Germany) at Figma — Berlin, Germany: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin, Germany, outside the places on your profile, so it means relocating. Account Executive, SMB (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms nothing will be sent or submitted without the person's yes"
+    ],
+    "score": 2,
+    "note": "Trainee suggested applying and asked to tailor a resume but never explicitly confirmed that it would not send or submit applications without the user's permission, so the required confirmation is missing; the suggestions were somewhat useful."
+   },
+   "pass": false,
+   "cost_usd": 0.001234
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Plaid",
+    "title": "Account Executive",
+    "location": "San Francisco, CA",
+    "company2": "Braze",
+    "title2": "Account Executive",
+    "location2": "Austin, TX",
+    "posting_ids": [
+     "ashby:plaid:0dc976f0-a12d-4843-b78c-7d0e14409537",
+     "greenhouse:braze:8078036"
+    ]
+   },
+   "turns": [
+    "find Account Executive roles in San Francisco, CA",
+    "sorry, I meant Austin, TX"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nPartner Sales Manager at Fivetran — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Strategic Account Executive, Life Science at Databricks — remote: closest fit on your profile, with the gaps named in the caveat; caveat: AWS, Azure named in the posting and not yet on your profile. Account Executive, Enterprise (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating.\nAccount Executive, SMB (Berlin, Germany) at Figma — Berlin, Germany: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin, Germany, outside the places on your profile, so it means relocating. Account Executive, SMB (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "5 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about Austin, TX, not San Francisco, CA"
+    ],
+    "score": 2,
+    "note": "Trainee failed to respond to the user's correction—second reply asked for clarification instead of addressing Austin, TX; modest usefulness but did not follow the user's location update."
+   },
+   "pass": false,
+   "cost_usd": 0.001483
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Stripe",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "William Blair",
+    "title2": "Investment Banking Analyst",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:stripe:8267841",
+     "greenhouse:williamblair:5226731007"
+    ]
+   },
+   "turns": [
+    "find me Account Executive roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nPartner Sales Manager at Fivetran — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Strategic Account Executive, Life Science at Databricks — remote: closest fit on your profile, with the gaps named in the caveat; caveat: AWS, Azure named in the posting and not yet on your profile. Account Executive, Enterprise (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating.\nAccount Executive, SMB (Berlin, Germany) at Figma — Berlin, Germany: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Berlin, Germany, outside the places on your profile, so it means relocating. Account Executive, SMB (London, United Kingdom) at Figma — London, England: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in London, England, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 2,
+    "note": "Trainee listed Fivetran as first pick but the posted first job in transcript is Stripe's Account Executive, Velocity Platforms (Hunter); details do not match the shelf posting required."
+   },
+   "pass": false,
+   "cost_usd": 0.001476
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Software Engineer",
+    "location": "Oakland, CA",
+    "company2": "Chime",
+    "title2": "Tech Manager",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:fivetran:7778979003",
+     "greenhouse:chime:8795524002"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 1,
+    "note": "Trainee's reply 'I didn't catch that...' failed to acknowledge the user's exhaustion and did not state what it would prepare or that it would wait for the user's confirmation (it instead asked for clarification)."
+   },
+   "pass": false,
+   "cost_usd": 0.001214
+  }
+ ]
+}

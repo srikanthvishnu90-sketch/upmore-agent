@@ -435,6 +435,12 @@ export const FACT_SCHEMA = {
    "type": "yesno",
    "group": "job"
   },
+  "clearance_eligibility": {
+   "kind": "fact",
+   "type": "yesno",
+   "group": "authorization",
+   "note": "able to obtain a U.S. security clearance; never inferred from holding none (WO-042)"
+  },
   "job_commute": {
    "kind": "screen",
    "type": "yesno",

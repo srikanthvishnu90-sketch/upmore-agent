@@ -638,6 +638,12 @@
         "type": "yesno",
         "group": "job"
       },
+      "clearance_eligibility": {
+        "kind": "fact",
+        "type": "yesno",
+        "group": "authorization",
+        "note": "able to obtain a U.S. security clearance; never inferred from holding none (WO-042)"
+      },
       "job_commute": {
         "kind": "screen",
         "type": "yesno",
@@ -1041,6 +1047,11 @@
       "us_person",
       /\bcitizen\b/,
       (q) => /asylee|refugee|protected individual/.test(opts(q))
+    ],
+    // Eligibility to obtain a clearance is not holding one: "None held" never answers "eligible?" (WO-042, Anduril).
+    [
+      "clearance_eligibility",
+      /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/
     ],
     [
       "security_clearance",
@@ -1473,6 +1484,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       case "state": {
         const full = STATES[v] ?? v;
         return only(options.filter((o) => low(o.label) === full || STATES[low(o.label)] === full));
+      }
+      case "location":
+      case "city": {
+        const [city, st] = v.split(/\s*,\s*/);
+        if (!city) return null;
+        const full = st ? STATES[st] ?? st : null;
+        return only(options.filter((o) => {
+          const parts = low(o.label).split(/\s*,\s*/);
+          return parts[0] === city && (!full || parts[1] === full || STATES[parts[1]] === full);
+        }));
       }
       case "country":
       case "citizenship":
@@ -2046,6 +2067,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     blockers: () => blockers,
     cardLines: () => cardLines,
     changedFields: () => changedFields,
+    chooseWidgetOption: () => chooseWidgetOption,
     detectPortal: () => detectPortal,
     evidenceRecord: () => evidenceRecord,
     isIdentityField: () => isIdentityField,
@@ -2196,6 +2218,32 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         required: f.required
       }))
     };
+  }
+  function chooseWidgetOption(o) {
+    const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
+    if (!labels.length) return null;
+    const dial = labels.length > 20 && labels.filter((l) => /\s\+\d{1,4}$/.test(l)).length > labels.length * 0.8;
+    const options = labels.map((l) => ({
+      label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l,
+      value: l
+    }));
+    const r = planForm({
+      userId: o.userId,
+      jobId: o.jobId,
+      company: o.company,
+      family: o.family,
+      schema: [
+        {
+          ...o.field,
+          options
+        }
+      ],
+      answers: o.answers,
+      saved: o.saved,
+      now: o.now
+    });
+    const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
+    return v !== null && labels.includes(v) ? v : null;
   }
   function questionsForTrainee(o) {
     return questionsToStore({
@@ -2394,37 +2442,78 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
     return t || null;
   }
-  async function driveWidget(el, wanted) {
-    el.focus();
-    setNative(el, wanted);
-    fire(el, "input");
-    for (let i = 0; i < 12; i++) {
-      await sleep(250);
-      const opts2 = Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")).filter(visible);
-      if (!opts2.length) continue;
-      const w = norm2(wanted);
-      const hit = opts2.find((o) => norm2(o.textContent) === w) || (/^(yes|no)$/.test(w) ? opts2.find((o) => norm2(o.textContent).split(" ")[0] === w) : null);
-      if (!hit) break;
-      for (const t of [
-        "mousedown",
-        "mouseup",
-        "click"
-      ]) hit.dispatchEvent(new W.MouseEvent(t, {
-        bubbles: true,
-        cancelable: true
-      }));
-      await sleep(150);
-      return !!widgetValue(el);
+  var optionEls = () => Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")).filter(visible);
+  var optionText = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
+  async function until(fn, ms, every = 40) {
+    const end = Date.now() + ms;
+    for (; ; ) {
+      const v = fn();
+      if (v || Date.now() >= end) return v;
+      await sleep(every);
     }
-    setNative(el, "");
-    fire(el, "input");
-    el.blur();
-    return false;
   }
-  async function fill(b, value, resume) {
+  function press(el) {
+    for (const t of [
+      "mousedown",
+      "mouseup",
+      "click"
+    ]) el.dispatchEvent(new W.MouseEvent(t, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      view: W
+    }));
+  }
+  function closeMenu(el) {
+    el.dispatchEvent(new W.KeyboardEvent("keydown", {
+      key: "Escape",
+      code: "Escape",
+      keyCode: 27,
+      bubbles: true
+    }));
+    el.blur?.();
+  }
+  async function driveWidget(el, wanted, choose) {
+    const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+    const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
+    const pick = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    if (toggle) press(toggle);
+    else {
+      el.focus();
+      setNative(el, String(wanted).split(",")[0].trim());
+      fire(el, "input");
+    }
+    let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 3e3);
+    if (!opts2) {
+      closeMenu(el);
+      return false;
+    }
+    let label = pick(opts2.map(optionText));
+    if (!label && toggle && opts2.length >= 50) {
+      el.focus();
+      setNative(el, String(wanted));
+      fire(el, "input");
+      await sleep(400);
+      opts2 = await until(() => optionEls().length ? optionEls() : null, 2e3);
+      label = opts2 ? pick(opts2.map(optionText)) : null;
+    }
+    const hit = label ? (opts2 || []).find((o) => optionText(o) === label) : null;
+    if (!hit) {
+      if (!toggle) {
+        setNative(el, "");
+        fire(el, "input");
+      }
+      closeMenu(el);
+      return false;
+    }
+    press(hit);
+    const shown = await until(() => widgetValue(el), 1e3);
+    return !!shown;
+  }
+  async function fill(b, value, resume, choose) {
     const el = firstEl(b);
     if (!el) return false;
-    if (b.widget === "react-select") return await driveWidget(el, value);
+    if (b.widget === "react-select") return await driveWidget(el, value, choose);
     if (b.inputType === "file") {
       if (!resume) return false;
       const dt = new W.DataTransfer();

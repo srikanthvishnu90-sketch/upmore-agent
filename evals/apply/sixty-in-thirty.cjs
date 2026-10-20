@@ -33,6 +33,7 @@ const arg = (k, d) => {
 const N = Number(arg("n", 60));
 const PERSON = arg("person", "instant");
 const LABEL = arg("label", "run");
+const FAMILIES = arg("families", "greenhouse,lever,ashby").split(",");
 const OUT = arg("out", path.join(ROOT, `evals/apply/results/sixty-${LABEL}.json`));
 const EXT = path.join(ROOT, "extension");
 const KEY = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/extension/answer-key.json"), "utf8"));
@@ -122,7 +123,7 @@ async function main() {
   await setup.close();
 
   // The session's postings: the 17 forms in turn, each use another posting at another company.
-  const ids = Object.keys(KEY.forms);
+  const ids = Object.keys(KEY.forms).filter((id) => FAMILIES.includes(id.split("-")[0]));
   const postings = Array.from({ length: N }, (_, i) => {
     const id = ids[i % ids.length];
     return { id, url: world.cloneUrl(id, i + 1) };
@@ -197,6 +198,11 @@ async function main() {
       if (done.status === "stopped") done = await waitCard(tabId, (c) => c.url === p.url && c.status === "done", 3000).catch(() => done);
       r.result = done.status === "done" ? done.result : "stopped: " + done.message;
       r.done_at = Date.now();
+      // Ground truth: what the TEST employer received for this posting (the card's own word is recorded beside it).
+      const path = new URL(p.url).pathname;
+      const got = world.state.submits.filter((x) => x.path === path || (x.via === "form-post" && x.form === p.id));
+      r.employer_received = got.length;
+      if (r.result !== "confirmed" && got.length) r.result_card_said = r.result, r.result = "received_by_employer";
       r.times = done.times || null;
     } catch (e) {
       r.result = "error: " + String(e.message || e).slice(0, 300);
@@ -211,7 +217,7 @@ async function main() {
   await world.close();
 
   // ------------------------------------------------------------------------------------------------ the report
-  const sent = rows.filter((r) => r.result === "confirmed");
+  const sent = rows.filter((r) => r.result === "confirmed" || r.result === "received_by_employer");
   const wrongSent = sent.filter((r) => r.wrong.length);
   const allGraded = rows.flatMap((r) => (r.verdicts ? [r.verdicts] : []));
   const sum = (k) => allGraded.reduce((a, v) => a + (v[k] || 0), 0);
@@ -241,6 +247,9 @@ async function main() {
     labels: { machine: "VERIFIED offline (local TEST world, headless Chromium)", session: PERSON === "model" ? "VERIFIED-S (simulated person; reading model ASSUMED)" : "VERIFIED offline (person taps at once)", live: "NOT_RUN" },
     n: N,
     sent_confirmed: sent.length,
+    card_said_otherwise: rows.filter((r) => r.result === "received_by_employer").map((r) => ({ i: r.i, form: r.form, card: r.result_card_said })),
+    double_sends: rows.filter((r) => (r.employer_received || 0) > 1).map((r) => ({ i: r.i, form: r.form, n: r.employer_received })),
+    families: FAMILIES,
     not_confirmed: rows.filter((r) => r.result !== "confirmed").map((r) => ({ i: r.i, form: r.form, result: r.result })),
     wall_ms,
     per_application_ms: Math.round(wall_ms / N),

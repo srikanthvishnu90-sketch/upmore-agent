@@ -109,6 +109,23 @@ export function planForm(o: {
   return { fill, needs: questions, identity: identity.map((f) => ({ name: f.name, label: f.label, required: f.required })) };
 }
 
+// WO-042: a dropdown widget's options exist only once its menu opens on the page (Greenhouse's react-select). The choice
+// among them is the planner's, exactly as for an ordinary select: the field is planned again with the employer's own
+// option texts. A phone-country list ("United States +1") is matched by its country. Nothing the planner would not choose
+// is ever picked: no answer, or one that is not on the list, leaves the widget for the person.
+export function chooseWidgetOption(o: {
+  userId: string; jobId: string; company: string; family: Family; field: FormField; labels: string[];
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number;
+}): string | null {
+  const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
+  if (!labels.length) return null;
+  const dial = labels.length > 20 && labels.filter((l) => /\s\+\d{1,4}$/.test(l)).length > labels.length * 0.8;
+  const options = labels.map((l) => ({ label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l, value: l }));
+  const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }], answers: o.answers, saved: o.saved, now: o.now });
+  const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
+  return v !== null && labels.includes(v) ? v : null;
+}
+
 // The rows career_apply_questions_put_own stores, keyed by how far each answer may travel (answerKey).
 export function questionsForTrainee(o: { jobId: string; company: string; needs: { label: string; type: string; options: string[] }[]; answers: Record<string, unknown>; answered: Set<string> }) {
   return questionsToStore({ posting: o.jobId, company: o.company, questions: o.needs }, { facts: o.answers, answered: o.answered });

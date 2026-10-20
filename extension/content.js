@@ -138,7 +138,10 @@
       for (const p of plan.fill) {
         const b = form.bindings[p.name];
         if (!b || edited.has(p.name)) continue; // never over what the person typed
-        const ok = await D.fill(b, p.value, resume);
+        // A dropdown widget: its options are read when its menu opens, and the planner chooses among them.
+        const s = form.schema.find((x) => x.name === p.name);
+        const choose = b.widget && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now() }) : undefined;
+        const ok = await D.fill(b, p.value, resume, choose);
         await sleep(20);
         let v = D.readValue(b);
         if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = "No (left unchecked)";

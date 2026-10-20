@@ -134,6 +134,8 @@ const RULES: Rule[] = [
   ["citizenship", /\bexport\b.*\bcountr(y|ies)\b.*\bcitizen(ship)?\b|\bcountr(y|ies) of citizenship\b/],
   ["us_person", /\bu\.?s\.? person\b|\bexport (controls?|compliance)\b|\bdeemed export\b|\bitar\b|\bexport licen/],
   ["us_person", /\bcitizen\b/, (q) => /asylee|refugee|protected individual/.test(opts(q))],
+  // Eligibility to obtain a clearance is not holding one: "None held" never answers "eligible?" (WO-042, Anduril).
+  ["clearance_eligibility", /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/],
   ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/],
   ["sponsorship", /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/],
   ["citizenship", /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/, (q, t) => !/renounced/.test(t)],

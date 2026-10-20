@@ -64,36 +64,75 @@ function widgetValue(el: any): string | null {
   const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
   return t || null;
 }
-// Type the value, wait for the employer's own option list, pick the option that names it. No option list, no value:
-// typed text in a search box is never an answer.
-async function driveWidget(el: any, wanted: string): Promise<boolean> {
-  el.focus();
-  setNative(el, wanted);
-  fire(el, "input");
-  for (let i = 0; i < 12; i++) {
-    await sleep(250);
-    const opts = (Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")) as any[]).filter(visible);
-    if (!opts.length) continue;
-    const w = norm(wanted);
-    const hit = opts.find((o) => norm(o.textContent) === w) ||
-      (/^(yes|no)$/.test(w) ? opts.find((o) => norm(o.textContent).split(" ")[0] === w) : null);
-    if (!hit) break;
-    for (const t of ["mousedown", "mouseup", "click"]) hit.dispatchEvent(new W.MouseEvent(t, { bubbles: true, cancelable: true }));
-    await sleep(150);
-    return !!widgetValue(el);
+// WO-042, measured on the live pages from CI (evals/apply/results/live-fill.json): a Greenhouse react-select menu opens
+// for a page script only through the widget's own "Toggle flyout" button (typing, ArrowDown or a mousedown on the
+// control open nothing). Once open, the employer's own option texts are read and the planner chooses among them
+// (`choose`, apply_core chooseWidgetOption): an option is clicked only when the planner names it. A place search with no
+// toggle (Greenhouse's location) opens on what is typed into it. Waits poll briefly; nothing waits a fixed 3 seconds.
+type Chooser = (labels: string[]) => string | null;
+const optionEls = () => (Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")) as any[]).filter(visible);
+const optionText = (o: any) => String(o.textContent || "").replace(/\s+/g, " ").trim();
+async function until<T>(fn: () => T | null, ms: number, every = 40): Promise<T | null> {
+  const end = Date.now() + ms;
+  for (;;) {
+    const v = fn();
+    if (v || Date.now() >= end) return v;
+    await sleep(every);
   }
-  setNative(el, "");
-  fire(el, "input");
-  el.blur();
-  return false;
+}
+function press(el: any) {
+  for (const t of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new W.MouseEvent(t, { bubbles: true, cancelable: true, button: 0, view: W }));
+}
+function closeMenu(el: any) {
+  el.dispatchEvent(new W.KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
+  el.blur?.();
+}
+async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<boolean> {
+  const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+  const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
+  const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
+  if (toggle) press(toggle);
+  else {
+    // A place search: the city typed, the employer's own places read back.
+    el.focus();
+    setNative(el, String(wanted).split(",")[0].trim());
+    fire(el, "input");
+  }
+  let opts = await until(() => (optionEls().length ? optionEls() : null), toggle ? 1500 : 3000);
+  if (!opts) {
+    closeMenu(el);
+    return false;
+  }
+  let label = pick(opts.map(optionText));
+  // A long list that is searched (a school): the menu filtered by what the planner would answer, then chosen again.
+  if (!label && toggle && opts.length >= 50) {
+    el.focus();
+    setNative(el, String(wanted));
+    fire(el, "input");
+    await sleep(400);
+    opts = await until(() => (optionEls().length ? optionEls() : null), 2000);
+    label = opts ? pick(opts.map(optionText)) : null;
+  }
+  const hit = label ? (opts || []).find((o) => optionText(o) === label) : null;
+  if (!hit) {
+    if (!toggle) {
+      setNative(el, "");
+      fire(el, "input");
+    }
+    closeMenu(el);
+    return false;
+  }
+  press(hit);
+  const shown = await until(() => widgetValue(el), 1000);
+  return !!shown;
 }
 
 export interface Resume { name: string; type: string; bytes: Uint8Array; sha256: string }
 // Fill one bound field with the planner's value. Returns false when the page did not take it.
-export async function fill(b: any, value: string, resume: Resume | null): Promise<boolean> {
+export async function fill(b: any, value: string, resume: Resume | null, choose?: Chooser): Promise<boolean> {
   const el = firstEl(b);
   if (!el) return false;
-  if (b.widget === "react-select") return await driveWidget(el, value);
+  if (b.widget === "react-select") return await driveWidget(el, value, choose);
   if (b.inputType === "file") {
     if (!resume) return false;
     const dt = new W.DataTransfer();

@@ -144,6 +144,18 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       const full = STATES[v] ?? v;
       return only(options.filter((o) => low(o.label) === full || STATES[low(o.label)] === full));
     }
+    case "location":
+    case "city": {
+      // "Chicago, IL" onto a place list ("Chicago, Illinois, United States"): the same city, in the same state when one
+      // is stated; "North Chicago" or "Chicago Heights" is another city. Only one such place, or nothing (WO-042).
+      const [city, st] = v.split(/\s*,\s*/);
+      if (!city) return null;
+      const full = st ? STATES[st] ?? st : null;
+      return only(options.filter((o) => {
+        const parts = low(o.label).split(/\s*,\s*/);
+        return parts[0] === city && (!full || parts[1] === full || STATES[parts[1]] === full);
+      }));
+    }
     case "country":
     case "citizenship":
       if (US.test(v)) return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));

@@ -88,8 +88,12 @@
     }, true);
   }
   // A choice picked in a widget menu (no input event on the field itself): the focused field's.
+  // WO-048 round 3: on Workday only a press in an open list (or on the field itself) is a pick; a press elsewhere while a
+  // list button still has focus (Workday focuses it after any pick, the page's own too) is not the person changing it.
+  const notAPick = (e) => portal.family === "workday" && !!document.activeElement &&
+    !(e.target.closest?.('[role="listbox"], [role="option"]') || document.activeElement.contains(e.target));
   document.addEventListener("mousedown", (e) => {
-    if (!e.isTrusted || !form) return;
+    if (!e.isTrusted || !form || notAPick(e)) return;
     const n = document.activeElement && D.fieldNameFor(document.activeElement, form);
     if (n && form.bindings[n]?.widget) personEdit(n);
   }, true);

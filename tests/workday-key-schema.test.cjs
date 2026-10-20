@@ -203,3 +203,53 @@ test("schema 2: repeating-section slots anchor on their entity; schema 1 anchors
     assert.ok(W.rowGroups(k.fields.filter((f) => f.page === "2-my-experience")).length >= 3, `${t}: slots anchored by Company / School / Language`);
   }
 });
+
+// Round 3 (WO-048): the second schema names its sections without the "Section" suffix too, and a section whose first row
+// is the person's call (no nth says "fill") still allows the rows below its lowest "never".
+test("schema 2: section ids without the Section suffix (workExperience, education, languages, websites)", () => {
+  const k = {
+    company: "c", pages: ["2-my-experience.html"],
+    rows: [
+      { page: "2-my-experience.html", selector: '[aria-labelledby="Work-Experience-1-panel"] [id$="--companyName"]', label: "Company", type: "text", should: "fill", expected: "Contoso Test Labs", section: "workExperience" },
+      { page: "2-my-experience.html", selector: '[aria-labelledby="Education-1-panel"] [id$="--schoolName"]', label: "School", type: "text", should: "fill", expected: "X", section: "education" },
+      { page: "2-my-experience.html", selector: '[aria-labelledby="Languages-1-panel"] [id$="--language"]', label: "Language", type: "dropdown", should: "fill", expected: "English", section: "languages" },
+      { page: "2-my-experience.html", selector: '[aria-labelledby="Websites-1-panel"] [id$="--url"]', label: "URL", type: "text", should: "ask", expected: null, section: "websites" },
+    ],
+    actions: [
+      { kind: "add_row", page: "2-my-experience.html", target: "workExperience", nth: 1, should: "fill" },
+      { kind: "add_row", page: "2-my-experience.html", target: "education", nth: 1, should: "fill" },
+      { kind: "add_row", page: "2-my-experience.html", target: "languages", nth: 1, should: "never" },
+      { kind: "add_row", page: "2-my-experience.html", target: "websites", nth: 1, should: "ask" },
+      { kind: "add_row", page: "2-my-experience.html", target: "websites", nth: 2, should: "never" },
+    ],
+  };
+  const n = W.normalizeKey(k, "/t/s");
+  assert.deepEqual(n.key_warnings, [], "every section id is known");
+  assert.deepEqual(n.fields.map((f) => f.section), ["Work Experience", "Education", "Languages", "Websites"]);
+  assert.deepEqual(n.fields.map((f) => f.sectionId), ["workExperience", "education", "languages", "websites"]);
+  const add = n.actions.filter((a) => a.action === "add-row");
+  assert.deepEqual(add.find((a) => a.target === "workExperience"), { action: "add-row", page: "2-my-experience", section: "Work Experience", target: "workExperience", rowsNeeded: 1, should: "fill" });
+  // Websites: nth 1 is the person's call, nth 2 never: one row may be there (sealed-wd2 t4: round 2 said "at most 0").
+  const web = add.find((a) => a.target === "websites" && a.should === "never");
+  assert.equal(web.rowsMax, 1);
+  assert.equal(add.find((a) => a.target === "languages" && a.should === "never").rowsMax, 0, "never from the first row: none");
+  // With a fill nth the limit is unchanged (the rows needed).
+  assert.equal(W.normalizeKey(key2(), "/t/s").actions.find((a) => a.section === "Work Experience" && a.should === "never").rowsMax, 2);
+  assert.equal(W.gradeAddRow(web, 1).verdict, "never-ok");
+  assert.equal(W.gradeAddRow(web, 2).verdict, "never-violation");
+});
+
+test("the test person answers from the key: the expected value, a clear for an empty one, the TEST resume for a file", () => {
+  const a = W.personAnswerFor;
+  assert.deepEqual(a({ type: "prompt", should: "ask", expected: "Career Fair" }), { value: "Career Fair" });
+  assert.deepEqual(a({ type: "multiPrompt", should: "fill", expected: ["SQL", "Python"], match: "set" }), { value: ["SQL", "Python"] });
+  assert.deepEqual(a({ type: "dropdown", should: "ask", expected: "Up to 25%" }), { value: "Up to 25%" });
+  assert.deepEqual(a({ type: "checkbox", should: "fill", expected: true }), { value: true });
+  assert.deepEqual(a({ type: "text", should: "fill", expected: null, match: "empty" }), { clear: true });
+  assert.deepEqual(a({ type: "text", should: "never", expected: null }), { clear: true });
+  assert.deepEqual(a({ type: "text", should: "fill", expected: "" }), { clear: true });
+  assert.deepEqual(a({ type: "file", should: "ask", expected: null, required: true }), { upload: true });
+  assert.deepEqual(a({ type: "file", should: "fill", expected: "resume.pdf" }), { upload: true });
+  assert.equal(a({ type: "text", should: "ask", expected: null }), null, "nothing in the key: the person's own generic answer");
+  assert.equal(a(null), null);
+});

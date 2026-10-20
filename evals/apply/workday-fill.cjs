@@ -111,7 +111,9 @@ const settled = (url) => (c) => c.url === url && ["ready", "blocked", "stopped"]
 //     selectors name the slot ([aria-labelledby="<Section>-<n>-panel"] ...) and the slot has a row whose expected is the
 //     entity; otherwise the label rule (Company / School / Language) as for schema 1; otherwise by slot.
 // Anything the harness cannot read faithfully is listed in key_warnings (in the report) instead of being guessed.
-const SECTION_NAMES = { workExperienceSection: "Work Experience", educationSection: "Education", languageSection: "Languages", languagesSection: "Languages", websiteSection: "Websites", websitesSection: "Websites" };
+// Round 3: a schema-2 key may also name its sections without the "Section" suffix.
+const SECTION_NAMES = { workExperienceSection: "Work Experience", educationSection: "Education", languageSection: "Languages", languagesSection: "Languages", websiteSection: "Websites", websitesSection: "Websites",
+  workExperience: "Work Experience", education: "Education", language: "Languages", languages: "Languages", website: "Websites", websites: "Websites" };
 const ACTION_KINDS = { sign_in: "sign-in", create_account: "create-account", add_row: "add-row", submit: "submit" };
 const MATCH_KINDS = ["exact", "casefold", "contains-casefold", "digits", "url", "empty", "empty-or-na", "set"];
 const pageName = (p) => String(p ?? "").replace(/\.html$/, "");
@@ -158,8 +160,10 @@ function normalizeKey(key, dir) {
     const rowsNeeded = fills.length ? Math.max(...fills) : 0;
     if (list.some((a) => !Number.isFinite(Number(a.nth)))) warnings.push(`add_row ${target}: an action without a numeric nth`);
     if (fills.length) actions.push({ action: "add-row", page, section, target, rowsNeeded, should: "fill" });
-    // Any "never" nth: rows beyond rowsNeeded must not be added (one graded check per section).
-    if (nevers.length) actions.push({ action: "add-row", page, section, target, rowsMax: rowsNeeded, nths: nevers.sort((x, y) => x - y), should: "never" });
+    // Any "never" nth: rows beyond rowsNeeded must not be added (one graded check per section). Round 3: with no "fill" nth
+    // (the first rows are the person's call, "ask"), the rows below the lowest "never" may be there: lowest never - 1.
+    nevers.sort((x, y) => x - y);
+    if (nevers.length) actions.push({ action: "add-row", page, section, target, rowsMax: fills.length ? rowsNeeded : Math.max(0, nevers[0] - 1), nths: nevers, should: "never" });
     // An "ask" nth (the person decides whether to add it) is recorded, not graded.
     if (asks.length) actions.push({ action: "add-row", page, section, target, nths: asks.sort((x, y) => x - y), should: "ask" });
   }
@@ -368,20 +372,38 @@ function grade(row, read, fields) {
 }
 
 // ------------------------------------------------------------------------------------------------ the test person
-// Every required field still empty, answered by the person with real input. What they type is theirs, never graded.
-function tagRequired() {
+// The person answers, with real input, what is theirs: every required field still empty, what the card says is still
+// needed, and (round 3) a value the page set itself that blocks the tap. What they give is never graded (each step is
+// graded before they touch it). Round 3: where the key has the answer, the person gives the key's answer (the expected
+// value; a clear where the right state is empty; the TEST resume for a file); elsewhere a generic one (the first option, a
+// TEST text).
+function personAnswerFor(row) {
+  if (!row) return null;
+  if (row.type === "file") return { upload: true };
+  if (row.should === "never" || wantsEmpty(row)) return { clear: true };
+  if (row.expected === null || row.expected === undefined) return null;
+  return { value: row.expected };
+}
+// Tags each field the person answers now: o.selectors are the step's key rows (to find a field's row), o.required which
+// of them the key says are required, o.names the card's fields the page set (to change or clear), o.labels what the card
+// still needs. A field's required mark: a "*" in an abbr, Workday's abbr[title=required] (a star drawn by CSS), an
+// aria-required control, or the key.
+function tagForPerson(o) {
   const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
   const sel = '[data-automation-id^="formField-"], [data-automation-id="attachments-FileUpload"]';
+  const clean = (t) => String(t || "").replace(/[*✱]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const asked = (o.labels || []).map(clean).filter(Boolean);
+  const pageSet = new Set((o.names || []).map((n) => String(n).replace(/~\d+$/, "").replace(/@.*$/, "")));
   const out = [];
+  document.querySelectorAll("[data-eval-person]").forEach((e) => e.removeAttribute("data-eval-person"));
   Array.from(document.querySelectorAll(sel)).filter((w) => !w.parentElement.closest(sel) && vis(w)).forEach((w, i) => {
-    const req = Array.from(w.querySelectorAll("abbr")).some((a) => /\*/.test(a.textContent)) || !!w.querySelector('[aria-required="true"]');
-    if (!req) return;
-    const file = w.querySelector('input[type="file"]'), date = w.querySelector('[data-automation-id="dateInputWrapper"]');
-    const prompt = w.querySelector('[data-automation-id="searchBox"]'), list = w.querySelector('button[aria-haspopup="listbox"]');
-    const radios = w.querySelectorAll('input[type="radio"]'), boxes = w.querySelectorAll('input[type="checkbox"]');
-    const area = w.querySelector("textarea"), text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"]');
-    let kind = null, empty = false, parts = 0;
     if (w.querySelector('input[type="password"]')) return;
+    const file = w.querySelector('input[type="file"]'), date = w.querySelector('[data-automation-id="dateInputWrapper"]');
+    const prompt = w.querySelector('[data-automation-id="searchBox"]') || w.querySelector('[data-automation-id="multiSelectContainer"] input[type="text"]');
+    const list = w.querySelector('button[aria-haspopup="listbox"]');
+    const radios = w.querySelectorAll('input[type="radio"]'), boxes = w.querySelectorAll('input[type="checkbox"]');
+    const area = w.querySelector("textarea"), text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"]');
+    let kind = null, empty = false, parts = 0;
     if (file) [kind, empty] = ["file", !w.querySelector('[data-automation-id="file-upload-item"]')];
     else if (date) {
       const ps = Array.from(date.querySelectorAll('[role="spinbutton"]'));
@@ -392,63 +414,170 @@ function tagRequired() {
     else if (boxes.length) [kind, empty] = ["box", !Array.from(boxes).some((r) => r.checked)];
     else if (area) [kind, empty] = ["text", !area.value.trim()];
     else if (text) [kind, empty] = ["text", !text.value.trim()];
-    if (!kind || !empty) return;
+    if (!kind) return;
+    let row = -1;
+    (o.selectors || []).some((s, k) => {
+      try {
+        if (Array.from(document.querySelectorAll(s)).some((e) => w === e || w.contains(e))) row = k;
+      } catch { /* a selector this page cannot read */ }
+      return row >= 0;
+    });
+    const req = Array.from(w.querySelectorAll("abbr")).some((a) => /\*/.test(a.textContent) || /^required$/i.test(a.getAttribute("title") || "")) ||
+      !!w.querySelector('[aria-required="true"]') || (row >= 0 && !!(o.required || [])[row]);
+    const lab = clean((w.querySelector("legend") || w.querySelector("label"))?.textContent);
+    const needed = !!lab && asked.some((l) => l === lab || l.endsWith(": " + lab));
+    const ids = [w.getAttribute("data-automation-id"), ...Array.from(w.querySelectorAll("input, button, textarea, [data-automation-id=dateInputWrapper]")).flatMap((e) => [e.id, e.getAttribute("name")])].filter(Boolean);
+    let mode = null;
+    if (!empty && ids.some((x) => pageSet.has(x))) mode = "pageSet";
+    else if (empty && (req || needed)) mode = "empty";
+    if (!mode) return;
     w.setAttribute("data-eval-person", String(i));
-    out.push({ i, kind, parts });
+    out.push({ i, kind, parts, row, mode });
   });
   return out;
 }
 // The person drags their file onto Workday's drop zone: a real (trusted) drop, as the browser makes it. Playwright's own
-// file setters fire untrusted events, which the extension rightly treats as the page's, not the person's.
+// file setters fire untrusted events, which the extension rightly treats as the page's, not the person's. Round 3: a
+// drop zone that takes no drop gets the person's click on "Select files" and the file chosen in the browser's own chooser.
+function testResumeFile() {
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "trainee-wd-file-")), TEST_FILE.name);
+  fs.writeFileSync(file, TEST_FILE.buffer);
+  return file;
+}
 async function personDropsFile(page, wrapper) {
   const zone = wrapper.locator('[data-automation-id="file-upload-drop-zone"]').first();
   await (await zone.count() ? zone : wrapper).scrollIntoViewIfNeeded();
   const box = (await zone.count()) ? await zone.boundingBox() : await wrapper.boundingBox();
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "trainee-wd-file-")), TEST_FILE.name);
-  fs.writeFileSync(file, TEST_FILE.buffer);
+  const file = testResumeFile();
   const cdp = await page.context().newCDPSession(page);
   const x = box.x + box.width / 2, y = box.y + box.height / 2;
   const data = { items: [], files: [file], dragOperationsMask: 1 };
   for (const type of ["dragEnter", "dragOver", "drop"]) await cdp.send("Input.dispatchDragEvent", { type, x, y, data });
   await cdp.detach().catch(() => {});
 }
+const uploaded = (w) => w.locator('[data-automation-id="file-upload-item"], [data-automation-id="file-upload-item-name"]').count().then((n) => n > 0).catch(() => false);
+async function personUploads(page, w) {
+  await personDropsFile(page, w);
+  for (let k = 0; k < 15 && !(await uploaded(w)); k++) await sleep(100);
+  if (await uploaded(w)) return;
+  const pick = w.locator('[data-automation-id="select-files"], button:has-text("Select files"), button:has-text("Upload")').first();
+  if (!(await pick.count())) throw Error("no drop zone took the file and there is no Select files button");
+  const [chooser] = await Promise.all([page.waitForEvent("filechooser", { timeout: 4000 }), pick.click()]);
+  await chooser.setFiles(testResumeFile());
+  for (let k = 0; k < 20 && !(await uploaded(w)); k++) await sleep(100);
+}
 const POPUP = '[role="listbox"]:not([data-automation-id="selectedItemList"])';
-async function personAnswers(page, log) {
-  const done = [];
+const same = (a, b) => norm(String(a).replace(/[›*]/g, "")) === norm(String(b).replace(/[›*]/g, ""));
+// The index of the open list's option whose text is `label` (-1: none).
+async function optionIndex(page, label) {
+  const texts = await page.locator(`${POPUP} [role="option"]`).allTextContents().catch(() => []);
+  return texts.findIndex((t) => same(t, label));
+}
+// The person picks `value` on a search prompt: types the leaf, searches, and clicks the one result that is it.
+async function personPrompts(page, w, value) {
+  const leaf = String(value).split(" > ").pop();
+  const box = w.locator('[data-automation-id="searchBox"], [data-automation-id="multiSelectContainer"] input[type="text"]').first();
+  await box.click();
+  await page.keyboard.press("Control+A").catch(() => {});
+  await page.keyboard.type(leaf, { delay: 10 });
+  await page.keyboard.press("Enter");
+  const end = Date.now() + 3000;
+  let i = -1;
+  while (Date.now() < end && (i = await optionIndex(page, leaf)) < 0) await sleep(100);
+  if (i < 0) {
+    await page.keyboard.press("Escape").catch(() => {});
+    throw Error(`no option "${leaf}" on the prompt`);
+  }
+  await page.locator(`${POPUP} [role="option"]`).nth(i).click();
+  await sleep(100);
+  await page.keyboard.press("Escape").catch(() => {});
+}
+// The person gives one answer (`a` from personAnswerFor, or null for a generic one; `same` re-confirms what is there).
+async function personGives(page, w, t, a) {
+  const v = a && "value" in a ? a.value : undefined;
+  if (t.kind === "file") return personUploads(page, w);
+  if (t.kind === "text") {
+    const box = w.locator("textarea, input:not([type]), input[type=text], input[type=email], input[type=tel], input[type=number], input[type=url]").first();
+    return box.fill(a?.clear ? "" : v !== undefined ? (Array.isArray(v) ? v.join(", ") : String(v)) : a?.same ? await box.inputValue() : "TEST answer typed by the person");
+  }
+  if (t.kind === "radio") {
+    const labels = await w.locator('input[type="radio"]').evaluateAll((rs) => rs.map((r) => (r.id && document.querySelector(`label[for="${CSS.escape(r.id)}"]`)?.textContent) || r.closest("label")?.textContent || r.value));
+    const k = v !== undefined ? labels.findIndex((l) => same(l, v)) : a?.same ? await w.locator('input[type="radio"]').evaluateAll((rs) => rs.findIndex((r) => r.checked)) : 0;
+    return w.locator('input[type="radio"]').nth(Math.max(0, k)).check();
+  }
+  if (t.kind === "box") {
+    const boxes = w.locator('input[type="checkbox"]');
+    if ((await boxes.count()) > 1 && Array.isArray(v)) {
+      const labels = await boxes.evaluateAll((rs) => rs.map((r) => (r.id && document.querySelector(`label[for="${CSS.escape(r.id)}"]`)?.textContent) || r.closest("label")?.textContent || r.value));
+      for (const [k, l] of labels.entries()) await boxes.nth(k).setChecked(v.some((x) => same(x, l)));
+      return;
+    }
+    return boxes.first().setChecked(a?.clear ? false : v !== undefined ? v === true || /^(yes|true|on|checked)$/i.test(String(v)) : true);
+  }
+  if (t.kind === "date") {
+    await w.locator('[role="spinbutton"]').first().click();
+    const d = v !== undefined ? String(v).replace(/\D/g, "") : "";
+    return page.keyboard.type(d || (t.parts === 1 ? "2020" : t.parts === 2 ? "012020" : "01012020"), { delay: 15 });
+  }
+  if (t.kind === "list") {
+    const btn = w.locator('button[aria-haspopup="listbox"]').first();
+    const now = (await btn.textContent()).trim();
+    await btn.click();
+    const opts = page.locator(`${POPUP} [role="option"]:not([aria-disabled="true"])`);
+    await opts.first().waitFor({ timeout: 3000 });
+    const want = a?.clear ? "Select One" : v !== undefined ? String(v) : a?.same ? now : null;
+    const k = want === null ? -1 : await optionIndex(page, want);
+    if (want !== null && k < 0) throw Error(`no option "${want}" on the list`);
+    return (k >= 0 ? page.locator(`${POPUP} [role="option"]`).nth(k) : opts.filter({ hasNotText: /^\s*Select One\s*$/i }).first()).click({ timeout: 3000 });
+  }
+  if (t.kind === "prompt") {
+    if (a?.clear || (v !== undefined && t.mode === "pageSet")) {
+      const x = w.locator('[data-automation-id="DELETE_charm"]');
+      for (let n = await x.count(); n > 0; n--) await x.first().click().catch(() => {});
+      if (a?.clear) return;
+    }
+    if (v !== undefined) {
+      for (const one of Array.isArray(v) ? v : [v]) await personPrompts(page, w, one);
+      return;
+    }
+    // Generic: the open list's options (never a chosen pill of another prompt, which is an option of its own list); a
+    // category opens the next level, which replaces the list.
+    await w.locator('[data-automation-id="searchBox"], [data-automation-id="multiSelectContainer"] input[type="text"]').first().click();
+    for (let k = 0; k < 4; k++) {
+      const opt = page.locator(`${POPUP} [role="option"]`).first();
+      await opt.waitFor({ timeout: 3000 });
+      const cat = (await opt.getAttribute("aria-haspopup")) === "true" || (await opt.locator('[data-automation-id="promptOptionMore"], .wd-icon-chevron-right-small').count()) > 0;
+      await opt.click();
+      if (!cat) break;
+      await sleep(150);
+    }
+    await page.keyboard.press("Escape").catch(() => {});
+  }
+}
+// One pass of the person over the step. o: { rows (the step's key rows, selectors as on the page), names, labels }.
+async function personAnswers(page, log, o = {}) {
+  const rows = o.rows || [];
+  const done = [], seen = new Set();
   for (let round = 0; round < 4; round++) {
-    const todo = await page.evaluate(tagRequired);
+    const todo = (await page.evaluate(tagForPerson, { selectors: rows.map((r) => r.selector), required: rows.map((r) => r.required === true),
+      names: round === 0 ? o.names || [] : [], labels: round === 0 ? o.labels || [] : [] })).filter((t) => !seen.has(t.mode + t.i));
     if (!todo.length) break;
     for (const t of todo) {
+      seen.add(t.mode + t.i);
       const w = page.locator(`[data-eval-person="${t.i}"]`).first();
+      // A required field still empty that the key keeps empty for Trainee ("never", or the person's to state): the person
+      // still answers it (generically: the key has no answer of theirs to give).
+      const a0 = personAnswerFor(rows[t.row]), a = t.mode === "empty" && a0?.clear ? null : a0;
       try {
-        if (t.kind === "text") await w.locator("textarea, input:not([type]), input[type=text], input[type=email], input[type=tel]").first().fill("TEST answer typed by the person");
-        else if (t.kind === "radio") await w.locator('input[type="radio"]').first().check();
-        else if (t.kind === "box") await w.locator('input[type="checkbox"]').first().check();
-        else if (t.kind === "file") await personDropsFile(page, w);
-        else if (t.kind === "date") {
-          await w.locator('[role="spinbutton"]').first().click();
-          await page.keyboard.type(t.parts === 1 ? "2020" : t.parts === 2 ? "012020" : "01012020", { delay: 15 });
-        } else if (t.kind === "list") {
-          await w.locator('button[aria-haspopup="listbox"]').first().click();
-          const opt = page.locator(`${POPUP} [role="option"]:not([aria-disabled="true"])`).filter({ hasNotText: /^\s*Select One\s*$/i }).first();
-          await opt.click({ timeout: 3000 });
-        } else if (t.kind === "prompt") {
-          // The open list's options (never a chosen pill of another prompt, which is an option of its own list); a category
-          // opens the next level, which replaces the list.
-          await w.locator('[data-automation-id="searchBox"]').first().click();
-          for (let k = 0; k < 4; k++) {
-            const opt = page.locator(`${POPUP} [role="option"]`).first();
-            await opt.waitFor({ timeout: 3000 });
-            const cat = (await opt.getAttribute("aria-haspopup")) === "true" || (await opt.locator('[data-automation-id="promptOptionMore"], .wd-icon-chevron-right-small').count()) > 0;
-            await opt.click();
-            if (!cat) break;
-            await sleep(150);
-          }
-          await page.keyboard.press("Escape").catch(() => {});
-        }
-        done.push(t.kind);
+        // A page-set value with nothing in the key: the person keeps it, as their own choice (re-confirmed).
+        await personGives(page, w, t, t.mode === "pageSet" && !a ? { same: true } : a);
+        done.push(t.mode === "pageSet" ? "page-set:" + t.kind : t.kind);
       } catch (e) {
-        log(`  the test person could not answer a required ${t.kind}: ${String(e.message).split("\n")[0]}`);
+        log(`  the test person could not answer a ${t.mode === "pageSet" ? "page-set" : "required"} ${t.kind}${a && "value" in a ? ` (${JSON.stringify(a.value)})` : ""}: ${String(e.message).split("\n")[0]}`);
+        if (a && "value" in a && t.mode === "empty") {
+          // The key's answer is not on the page as written: the person's own generic answer, so the step can go on.
+          await personGives(page, w, t, null).then(() => done.push(t.kind)).catch(() => {});
+        }
       }
       await sleep(80);
     }
@@ -460,23 +589,61 @@ async function personAnswers(page, log) {
 // The person signs in on Workday's own sign-in step, themselves (TEST credentials, typed by the test person, with real
 // keys and a real pointer). Round 2: Workday lays a click_filter over its own Sign In button, so the person's click lands
 // on whatever is on top at the button's centre (as a real click does), never on a hidden control; an email-first sign-in
-// (only the email and Next, the password on the next view) takes two rounds. Nothing here is the extension's.
+// (only the email and Next, the password on the next view) takes two rounds. Round 3: the password a person would choose
+// (letters, a number, a symbol: a password rule refuses one without), a custom "I agree" box ticked, and the wait after
+// the click is for the person to be in (a new page, or the application shown in place), up to 45 s; a sign-in that does
+// not let them in says why (the page's own message). Nothing here is the extension's.
+const PERSON_PASSWORD = "TEST-password-typed-by-the-person-2026!";
+const signInGone = () => {
+  const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+  if (Array.from(document.querySelectorAll('input[type="password"], [data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).some(vis)) return false;
+  return Array.from(document.querySelectorAll('[data-automation-id^="formField-"], [data-automation-id="applyFlowPage"], [data-automation-id="applyFlowReviewPage"], [data-automation-id="progressBar"]')).some(vis);
+};
+const pageMessage = (page) => page.evaluate(() => {
+  const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+  return Array.from(document.querySelectorAll('[role="alert"], [data-automation-id="errorMessage"], .wd-error-banner'))
+    .filter(vis).map((e) => e.textContent.replace(/\s+/g, " ").trim()).filter(Boolean).join(" | ").slice(0, 300);
+}).catch(() => "");
+// Signed in: the page moved on, or the application is shown where the sign-in was. null while neither.
+async function signedIn(page, before) {
+  if (page.url() !== before) return "navigated";
+  return (await page.evaluate(signInGone).catch(() => false)) ? "in-place" : null;
+}
+async function waitSignedIn(page, before, ms = 45000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    const s = await signedIn(page, before);
+    if (s) {
+      await page.waitForLoadState("domcontentloaded").catch(() => {});
+      return s;
+    }
+    await sleep(250);
+  }
+  const why = await pageMessage(page);
+  throw Error(`the test person's sign-in did not let them in within ${Math.round(ms / 1000)} s${why ? `: the page says "${why}"` : " (the page showed no message)"}`);
+}
 async function personSignsIn(page) {
   const before = page.url();
   for (let round = 0; round < 3; round++) {
+    // The click of the round before may have signed them in while it was being checked: never type into the application.
+    if (round > 0 && (await sleep(300), await signedIn(page, before))) return;
     const inputs = await page.evaluate(() => {
       const vis = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
       const view = Array.from(document.querySelectorAll('[data-automation-id="signInContent"], [data-automation-id="createAccountContent"]')).find(vis) || document.body;
       document.querySelectorAll("[data-eval-signin]").forEach((e) => e.removeAttribute("data-eval-signin"));
-      return Array.from(view.querySelectorAll("input")).filter((i) => vis(i) && i.type !== "hidden" && i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1)
-        .map((i, n) => (i.setAttribute("data-eval-signin", String(n)), { n: String(n), type: i.type, empty: i.type === "checkbox" ? !i.checked : !i.value }));
-    });
+      const boxes = Array.from(view.querySelectorAll('input, [role="checkbox"]')).filter((i) => vis(i) && i.type !== "hidden" && i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1);
+      return boxes.map((i, n) => {
+        i.setAttribute("data-eval-signin", String(n));
+        const custom = i.tagName !== "INPUT";
+        return { n: String(n), type: custom ? "checkbox" : i.type, custom, empty: custom ? i.getAttribute("aria-checked") !== "true" : i.type === "checkbox" ? !i.checked : !i.value };
+      });
+    }).catch(() => []);
     for (const i of inputs.filter((x) => x.empty)) {
       const loc = page.locator(`[data-eval-signin="${i.n}"]`);
-      if (i.type === "checkbox") await loc.check().catch(() => {});
-      else {
+      if (i.type === "checkbox") await (i.custom ? loc.click() : loc.check()).catch(() => {});
+      else if (i.type !== "radio") {
         await loc.click().catch(() => {});
-        await page.keyboard.type(i.type === "password" ? "TEST-password-typed-by-the-person" : "test.person@example.test", { delay: 5 });
+        await page.keyboard.type(i.type === "password" ? PERSON_PASSWORD : "test.person@example.test", { delay: 5 });
       }
     }
     // The button the person presses: the view's own submit (Sign In, Create Account, Next, Continue), by its centre.
@@ -489,24 +656,33 @@ async function personSignsIn(page) {
       b.scrollIntoView({ block: "center" });
       const r = b.getBoundingClientRect();
       return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-    });
-    if (!box) throw Error("the test person found no Sign In, Next or Continue button");
+    }).catch(() => null);
+    if (!box) {
+      if (await signedIn(page, before)) return;
+      throw Error("the test person found no Sign In, Next or Continue button");
+    }
     await page.mouse.click(box.x, box.y);
-    // Moved on (signed in), or the next view of the same sign-in (the password after the email).
+    // Moved on (signed in, or on its way: "Signing in..."), the next view of the same sign-in (the password after the
+    // email), or an error the page shows.
     const end = Date.now() + 8000;
-    let more = false;
+    let more = false, why = "";
     while (Date.now() < end) {
-      if (page.url() !== before) return;
-      more = await page.evaluate(() => Array.from(document.querySelectorAll("input")).some((i) => i.getClientRects().length > 0 && i.type !== "hidden" &&
-        i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1 && (i.type === "checkbox" ? false : !i.value))).catch(() => false);
+      if (await signedIn(page, before)) return;
+      // More of the sign-in: an empty password box, or an empty box of Workday's sign-in view (never the application's).
+      more = await page.evaluate(() => Array.from(document.querySelectorAll('input[type="password"], [data-automation-id="signInContent"] input, [data-automation-id="createAccountContent"] input'))
+        .some((i) => i.getClientRects().length > 0 && i.type !== "hidden" && i.getAttribute("data-automation-id") !== "beecatcher" && i.tabIndex !== -1 &&
+          (i.type === "checkbox" ? false : !i.value))).catch(() => false);
       if (more) break;
+      why = await pageMessage(page);
+      if (why) break;
       await sleep(150);
     }
-    if (!more) {
-      // Workday answered nothing to the click: the person presses Enter in the last box, as people do.
+    if (!more && !why) {
+      // Workday answered nothing yet: a slow sign-in moves on by itself; otherwise the person presses Enter in the last box.
+      if (await waitSignedIn(page, before, 10000).catch(() => null)) return;
       await page.keyboard.press("Enter").catch(() => {});
       await sleep(1500);
-      if (page.url() !== before) return;
+      if (await signedIn(page, before)) return;
     }
   }
 }
@@ -547,10 +723,12 @@ async function runTenant(o) {
     const tabId = await tabIdOf(sw, page.url());
     const panel = await openPanel(ctx, sw, tabId);
     let pressedFill = false;
+    let inPlace = null; // round 3: the step a sign-in showed where it was (same URL), by the key's page order
     for (let step = 0; step < pages.length + 2; step++) {
       await page.waitForLoadState("domcontentloaded");
       const url = page.url();
-      const file = decodeURIComponent(new URL(url).pathname.slice(base.length));
+      const file = inPlace ?? decodeURIComponent(new URL(url).pathname.slice(base.length));
+      inPlace = null;
       const name = file.replace(/\.html$/, "");
       const rows = (key.fields || []).filter((r) => r.page === name);
       log(`${report.tenant}: ${file}`);
@@ -589,7 +767,12 @@ async function runTenant(o) {
         report.actions.push({ page: file, action: "sign-in", by: "the test person" });
         const before = url;
         await personSignsIn(page);
-        await page.waitForURL((u) => String(u) !== before, { timeout: 15000 });
+        if ((await waitSignedIn(page, before)) === "in-place") {
+          const at = pages.map(pageName).indexOf(name);
+          inPlace = at >= 0 && pages[at + 1] ? pages[at + 1] : null;
+          if (!inPlace) throw Error(`${file}: signed in on the same page, and the key names no step after it`);
+          await sleep(500);
+        }
         continue;
       }
       if (card.action === "submit") {
@@ -602,25 +785,57 @@ async function runTenant(o) {
         }
         break;
       }
-      // A draft step: the person answers what is theirs, then approves this page's exact payload.
-      const answered = await personAnswers(page, log);
-      card = await waitCard(sw, tabId, (c) => c.url === url && c.status === "ready", 15000);
+      // A draft step: the person answers what is theirs (from the key where it has the answer), then approves this page's
+      // exact payload. Round 3: while the card still blocks, the person answers what it names: a required question still
+      // open, a value the page set (changed to the key's answer, cleared, or kept as theirs).
+      const keyRows = rows.map((r) => ({ ...r, selector: remapSelector(r.selector, map) }));
+      const answered = await personAnswers(page, log, { rows: keyRows });
+      const ready = (c) => c.url === url && c.status === "ready";
+      card = await waitCard(sw, tabId, ready, 5000);
+      for (let k = 0; !card && k < 3; k++) {
+        const c = await cardOf(sw, tabId);
+        if (c?.url !== url || c.status !== "blocked") {
+          card = await waitCard(sw, tabId, ready, 10000);
+          continue;
+        }
+        const names = (c.payload?.fields || []).filter((f) => f.source === "page").map((f) => f.name);
+        answered.push(...await personAnswers(page, log, { rows: keyRows, names, labels: c.openRequired || [] }));
+        card = await waitCard(sw, tabId, ready, 6000);
+      }
       if (!card) {
         const c = await cardOf(sw, tabId);
         report.errors.push(`${file}: the card never became ready: ${JSON.stringify(c?.blockers || c?.message || null).slice(0, 400)}`);
         break;
       }
       pg.person_answered = answered;
-      await panel.waitForSelector("#approve:not([disabled])", { timeout: 10000 });
       const before = url;
-      await panel.click("#approve");
-      try {
-        await page.waitForURL((u) => String(u) !== before, { timeout: 20000 });
-      } catch {
-        const c = await cardOf(sw, tabId);
-        report.errors.push(`${file}: Save and Continue did not move on: ${String(c?.message || "").slice(0, 300)}`);
-        break;
+      let moved = false;
+      for (let k = 0; k < 2 && !moved; k++) {
+        await panel.waitForSelector("#approve:not([disabled])", { timeout: 10000 });
+        await panel.click("#approve");
+        try {
+          await page.waitForURL((u) => String(u) !== before, { timeout: 20000 });
+          moved = true;
+        } catch {
+          // Workday refused the page (a required answer the page asks for and nobody marked): the person answers what the
+          // key says is required, presses Fill again and approves the new card, once.
+          const c = await cardOf(sw, tabId);
+          if (k === 1) {
+            report.errors.push(`${file}: Save and Continue did not move on: ${String(c?.message || "").slice(0, 300)}`);
+            break;
+          }
+          log(`  ${file}: Workday did not save the page (${String(c?.message || "").slice(0, 160)}); the person answers what it needs and approves again`);
+          const more = await personAnswers(page, log, { rows: keyRows });
+          answered.push(...more);
+          await panel.click("#fill");
+          if (!(await waitCard(sw, tabId, ready, 30000))) {
+            const d = await cardOf(sw, tabId);
+            report.errors.push(`${file}: Save and Continue did not move on, and the card was not ready again: ${JSON.stringify(d?.blockers || d?.message || null).slice(0, 300)}`);
+            break;
+          }
+        }
       }
+      if (!moved) break;
     }
     report.submitted = await page.evaluate(() => window.__submitted === true).catch(() => false);
     report.records = world.state.begins.length;
@@ -683,5 +898,5 @@ async function main() {
   process.exit(report.errors.length ? 1 : 0);
 }
 module.exports = { runTenant, launch, openPanel, signIn, waitCard, cardOf, tabIdOf, matches, matchBy, grade, gradeAddRow, summarize, slug, personSignsIn, personAnswers,
-  normalizeKey, rowGroups, wantsEmpty };
+  normalizeKey, rowGroups, wantsEmpty, personAnswerFor, waitSignedIn, PERSON_PASSWORD };
 if (require.main === module) main();

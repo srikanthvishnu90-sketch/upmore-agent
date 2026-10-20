@@ -392,6 +392,59 @@ test("the Submit on the review step is its own tap, bound to the review page's r
   }
 });
 
+// Round 3: sealed-wd2 t4's wrong, reproduced on the builder's own TEST page (tests/fixtures/workday/sections): a past
+// job's Location in a row labelled by two ids and no role took the person's home "Chicago, IL". Rows in shapes a reader
+// can miss (that row; a section box with no role; a fieldset whose legend names the section; a field only its id names)
+// never take a person-level fact; a recognised row takes its own job from the person's list.
+test("a field inside a repeating section never takes a person-level fact, whatever shape the section has", async (t) => {
+  if (skip(t)) return;
+  const tenant = world.workdayTenant({ host: "adatum.wd5.myworkdayjobs.com", dir: path.join(FIX, "sections") });
+  const f = await open(tenant.url("2-my-experience.html"));
+  try {
+    const card = await fill(f);
+    const mine = Object.fromEntries(traineeOf(card).map((x) => [x.label, x.value]));
+    assert.deepEqual(mine, {
+      "Work Experience 1: Job Title": "Data Analyst", "Work Experience 1: Company": "Example Analytics",
+      "Work Experience 2: Job Title": "Sales Associate", "Work Experience 2: Company": "Sample Retail",
+      "Education 1: School or University": "Example State University", "Email Address": "test.person@example.test",
+    }, "each row its own job or school; only the person's own contact field takes a person-level fact");
+    const page = await f.page.evaluate(() => Object.fromEntries(["workExperience-30--location", "workExperience-31--location", "education-7--city", "input-88",
+      "workExperience-44--email"].map((id) => [id, document.getElementById(id).value])));
+    assert.deepEqual(page, { "workExperience-30--location": "", "workExperience-31--location": "", "education-7--city": "", "input-88": "", "workExperience-44--email": "" },
+      "no row part holds the person's city, phone or email");
+    assert.equal(card.status, "blocked");
+    assert.ok((card.blockers || []).some((b) => /Work Experience 2: Location/.test(b)), "the past job's required location is asked: " + JSON.stringify(card.blockers));
+  } finally {
+    await f.close();
+  }
+});
+
+// Round 3: the harness's test person completes a tenant (the builder's own TEST tenant tests/fixtures/workday/person-r3,
+// shaped after what stopped sealed-wd2's runs): a sign-in with a password rule that takes seconds; a required how-heard
+// prompt Trainee asks (its required mark has no star in its text); a travel answer the page set itself, which blocks the
+// tap until the person changes it; a required Resume/CV whose star is only on the section heading. Trainee's fills are
+// graded before the person touches anything; then the person answers from the key, with real input.
+test("the harness's test person completes a tenant: signs in, answers what Trainee asks, changes a page-set value, uploads the resume", async (t) => {
+  if (skip(t)) return;
+  const r = await W.runTenant({ tenant: path.join(FIX, "person-r3"), log: () => {} });
+  console.log(r.summary);
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.served.includes("6-review.html"), "reached the review: " + JSON.stringify(r.served));
+  assert.equal(r.submitted, false);
+  assert.equal(r.records, 0);
+  assert.equal(r.wrong, 0);
+  assert.equal(r.never_violations, 0);
+  assert.deepEqual(r.actions.find((a) => a.action === "sign-in"), { page: "0-sign-in.html", action: "sign-in", by: "the test person" });
+  const row = (l) => r.rows.find((x) => x.label === l);
+  assert.equal(row("Are you legally authorized to work in the United States?").verdict, "fill-correct");
+  // Graded before the person touched anything: the how-heard prompt still empty, the travel answer still the page's.
+  assert.deepEqual([row("How Did You Hear About Us?").verdict, row("How Did You Hear About Us?").got], ["asked-correctly", ""]);
+  const travel = row("What percentage of the time are you willing to travel?");
+  assert.deepEqual([travel.verdict, travel.got, travel.source], ["asked-correctly", "Up to 75%", "page"]);
+  const q = r.pages.find((p) => p.file === "1-questions.html");
+  assert.deepEqual(q.person_answered.slice().sort(), ["file", "page-set:list", "prompt"], JSON.stringify(q.person_answered));
+});
+
 // Round 2: the spent tenants s1-s4 too (scored once blind by the architect; now development fixtures, NOT blind). Each
 // row a tenant is known to miss is named: any other miss fails (s2's "local to Chicago or willing to relocate" is two
 // questions in one, asked).

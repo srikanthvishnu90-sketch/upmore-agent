@@ -130,6 +130,11 @@ export function classifyField(label: string, type: string): string {
     // WO-052: "City, State, Zip" and "City, Country" ask for more than the place the person gave; a current, monthly,
     // hourly or ranged pay is not the expected annual salary.
     if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
+    // WO-058 (sample G): "Where are you located? Are you able to relocate or commute?" asks more than where they live; "the
+    // best phone number and email" asks for two; a number given as consent to texts is a consent the person declined.
+    if (key === "location" && /relocat|commut/i.test(l)) continue;
+    if ((key === "email" || key === "phone") && /e-?mail/i.test(l) && /phone|mobile|number/i.test(l)) continue;
+    if (key === "phone" && /\b(sms|text messages?|texts)\b/i.test(l)) continue;
     if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
     // The resume answer is the approved file itself: it goes into an upload, never typed into a box as text.
     if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;

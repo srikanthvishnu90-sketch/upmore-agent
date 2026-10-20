@@ -1,0 +1,912 @@
+{
+ "label": "tasks-router-39485162284",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "c6b1261",
+ "run_at": "2026-10-20T19:42:38.222Z",
+ "shelf": {
+  "run_id": "39485162284",
+  "file": "shelf-39485162284.json",
+  "seed": "39485162284",
+  "fetched_at": "2026-10-20T19:42:07.317Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.014595
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.335438,
+ "total": 15,
+ "passed": 2,
+ "pass_rate": 0.13333333333333333,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Point72",
+    "title": "Quantitative Researcher",
+    "location": "New York, NY",
+    "company2": "Gallup",
+    "title2": "Executive Assistant",
+    "location2": "Washington, DC",
+    "posting_ids": [
+     "greenhouse:point72:7297612002",
+     "greenhouse:gallup:4456638009"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in New York, NY. find me roles that fit"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nData Engineer Intern (2027) at Figma — San Francisco, CA • New York, NY, $46–$46 (Internship): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA • New York, NY, outside the places on your profile, so it means relocating. Machine Learning Intern 2027 (Zurich) at Pinterest — Zurich, CH: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Zurich, CH, outside the places on your profile, so it means relocating. Manager, AI/ML Engineering at Lyra Health — United States, $161,000–$221,500 per year salary: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in United States,\noutside the places on your profile, so it means relocating.\nMaster's Machine Learning Internship 2027 (USA) at Pinterest — San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, outside the places on your profile, so it means relocating. PhD Data Science Internship 2027 (USA) at Pinterest — San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, outside the places on your profile, so it\nmeans relocating. Tell me one to tailor your resume for, and I will do that next."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "3 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf"
+    ],
+    "score": 2,
+    "note": "Trainee listed roles (e.g., Lyra Health) that are not on today's shelf and also did not number the listed postings; useful suggestions but failed strict shelf and formatting requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.001122
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "SoFi",
+    "title": "Lifecycle Marketing Manager",
+    "location": "Cottonwood Heights, UT",
+    "company2": "Braze",
+    "title2": "Account Executive",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:sofi:8010637003",
+     "greenhouse:braze:8129309"
+    ]
+   },
+   "turns": [
+    "find me Lifecycle Marketing Manager roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nLead Growth Engineer at Sword Health — remote, EUR 70,000–EUR 110,000 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: TypeScript named in the posting and not yet on your profile. Product Marketing Lead, Payor at Sword Health — remote, $136,408–$214,355 (Total Compensation Range): closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Senior Manager, Employer Subsidized and New Growth Platforms at Oscar Health — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nClient Account Manager II, Beauty CPG at Pinterest — New York, NY, US, $88,521–$154,911 (US based applicants only): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York, NY, US, outside the places on your profile, so it means relocating. Engineering Manager, AI Builder Experience at MongoDB — Gurugram: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Gurugram, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat"
+    ],
+    "score": 2,
+    "note": "Trainee listed jobs and asked which to tailor for but did not prepare the two specific postings for application nor asked what it needed to proceed, so it failed to follow the user's 'apply to the first two' instruction."
+   },
+   "pass": false,
+   "cost_usd": 0.001235
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Product Manager",
+    "location": "San Francisco, CA",
+    "company2": "Pinterest",
+    "title2": "Data Scientist",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:plaid:f1e8a2ca-d4cc-4b00-9548-c73bce9cf069",
+     "greenhouse:pinterest:5740948"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Product Manager jobs today"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes",
+     "says what it needs first if anything (e.g. resume, work authorization)"
+    ],
+    "score": 1,
+    "note": "Trainee's reply was a clarification prompt and did not state how many matching postings exist, did not confirm no applications would be sent without consent, and did not request required items like a resume or authorization."
+   },
+   "pass": false,
+   "cost_usd": 0.001027
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Notion",
+    "title": "Product Designer",
+    "location": "San Francisco, CA",
+    "company2": "Pinterest",
+    "title2": "Machine Learning Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:notion:d177d052-ef57-4900-acf2-d58e9eded620",
+     "greenhouse:pinterest:6121551"
+    ]
+   },
+   "turns": [
+    "watch for new Product Designer roles in San Francisco, CA and text me, max 2 a day"
+   ],
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "meta": [
+    {
+     "intent": "career_watch_create",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": false,
+     "detail": "no watch in the router's watch state"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "confirms the watch with the role, the place and the 2-a-day limit, or says exactly the one thing it needs"
+    ],
+    "score": 2,
+    "note": "Trainee asked for profile before confirming the watch instead of confirming the watch (role, place, 2/day) or explicitly stating the single required item, so the required confirmation wasn't provided though the follow-up request was reasonable."
+   },
+   "pass": false,
+   "cost_usd": 0.000829
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "William Blair",
+    "title": "Investment Banking Analyst",
+    "location": "Chicago, IL",
+    "company2": "Chime",
+    "title2": "Software Engineer",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:williamblair:5221829007",
+     "greenhouse:chime:8859182002"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at William Blair about the Investment Banking Analyst role"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "a short draft that names William Blair and the Investment Banking Analyst role correctly",
+     "[brackets] or a question for the recruiter's name if unknown",
+     "says it is a draft for the person to send or approve"
+    ],
+    "score": 1,
+    "note": "Trainee's reply did not provide any draft or requested content; it asked for clarification instead, so it failed all required items and is minimally useful."
+   },
+   "pass": false,
+   "cost_usd": 0.000708
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Compliance Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Product Manager",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:figma:6223155004",
+     "ashby:plaid:59875bcd-9dbc-41f1-9cb2-905940d205d6"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Figma to get a referral?"
+   ],
+   "replies": [
+    "The Figma file — Software Engineering (SWE), entry.\nThe bar: Craft + collaboration bar: postings emphasize product mindset, user experience and mentoring others, on top of deep systems skill (real-time multiplayer, performance). Entry routes: 4 on file — the front door is SWE intern application via the official early-career page / Greenhouse (entry-level cohort) — Official page lists Software Engineer Intern roles for Summer 2027 (including a London variant) among its early-career openings as of the October 2026 fetch; also on file: Early-career full-time roles (Engineering listed among early-career fields); Direct application to a specific experienced SWE posting on Greenhouse. Source: the Figma company file (public sources), as of\n2026-10-12.\nWant the comp notes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "does not name people it cannot source"
+    ],
+    "score": 1,
+    "note": "Reply named a specific Figma file/asset rather than giving roles or concrete ways to find a person, and it included an internal artifact reference instead of actionable contact guidance."
+   },
+   "pass": false,
+   "cost_usd": 0.000769
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "MarTech Manager",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:chime:8838389002",
+     "ashby:plaid:3f7a4b9f-50b9-4adf-8475-4a4e6b8f0893"
+    ]
+   },
+   "turns": [
+    "I applied to the MarTech Manager role at Chime yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.\nI recorded the manual application against this role, so nothing here can double-apply you. Say 'track it' and I will follow this application and report its status.",
+    "Chime: at the applied stage.\nApplied 2026-10-19 — MarTech Manager, 1 day on record. Last event on the row: applied (2026-10-19). Tell me if anything moved and I will update the row from your report."
+   ],
+   "meta": [
+    {
+     "intent": "intent_prior_application",
+     "result_status": "completed",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": "tracking_status",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-chime-10",
+      "company": "Chime",
+      "role": "MarTech Manager",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-19T19:42:07.317Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "applied",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-19T19:42:07.317Z",
+        "source": "user-reported",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ],
+      "company_not_stated": false
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Chime · MarTech Manager · applied"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Status correctly lists the Chime MarTech Manager application the user reported and shows applied with event timestamp; clear and accurate but could include the job URL and pay for completeness."
+   },
+   "pass": true,
+   "cost_usd": 0.000689
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Restaurant Manager",
+    "location": "Fayetteville, AR",
+    "company2": "Mixpanel",
+    "title2": "Interactive Designer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8293692",
+     "greenhouse:mixpanel:8207163"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Restaurant Manager role at Sweetgreen on Thursday. prep me"
+   ],
+   "replies": [
+    "Your interview brief for Sweetgreen.\nNo company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented. Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.\nThe pack lands the day before, so the morning itself is only logistics: links, tech check, materials. Want to run it as a mock, one question at a time?"
+   ],
+   "meta": [
+    {
+     "intent": "prep_brief",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 1,
+    "note": "Reply was a one-line label and did not tie prep to the Sweetgreen Restaurant Manager posting or offer a first practice question or concrete plan."
+   },
+   "pass": false,
+   "cost_usd": 0.00083
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Notion",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "SoFi",
+    "title2": "Lifecycle Marketing Manager",
+    "location2": "Cottonwood Heights, UT",
+    "posting_ids": [
+     "ashby:notion:06e1d3a8-2706-4ed9-9fe6-8b69607de18e",
+     "greenhouse:sofi:8010637003"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Security Engineer role at Notion"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "The target is set — the Notion (Notion Labs, Inc.) role.\nTailoring runs on confirmed facts only — your resume's real experience, education, and projects. That is what your real material will be cut against. Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    },
+    {
+     "intent": "career_tailor",
+     "result_status": "awaiting_user",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 2,
+    "note": "Trainee failed to produce any tailored resume content in the transcript — it only acknowledged the target and requested resume input, so it did not use the user's facts or connect them to Notion's Security Engineer requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.000828
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Stripe",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "Mixpanel",
+    "title2": "Interactive Designer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:stripe:8274920",
+     "greenhouse:mixpanel:8207163"
+    ]
+   },
+   "turns": [
+    "did my application to Stripe go through?"
+   ],
+   "replies": [
+    "The Stripe file — Software engineering, entry-level: interns and new graduates.\nThe bar: Stripe publishes its intern bar in the listing itself: strong CS fundamentals through pursuit of a Bachelor's or Master's in computer science, math or a related discipline; programming experience from side projects or classwork; and experience in previous internships or other multi-person projects — including open source — that shows you can take feedback from mentors, peers and stakeholders. Entry routes: 3 on file — the front door is Software Engineer, Intern (converts to new-grad offers) — The published entry door: the listing's minimum requirements are a real screen — CS fundamentals through a degree in progress, programming evidence from projects or classwork, and prior\nmulti-person project experience; also on file: Open-source / multi-person project route into the same screen; New-grad software engineer postings across product and infrastructure teams. Cadence: A Software Engineer, Intern listing was live on Stripe's careers site when checked in October 2026.\nSource: the Stripe company file (public sources), as of 2026-10-12. Want the comp notes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says there is no application to Stripe on record (nothing has been sent)"
+    ],
+    "score": 2,
+    "note": "Trainee described Stripe intern requirements and on-file entry routes but did not state that no application was submitted, so the required statement is missing."
+   },
+   "pass": false,
+   "cost_usd": 0.001081
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Stripe",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant General Manager",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "greenhouse:stripe:7277406",
+     "greenhouse:sweetgreen:8209951"
+    ]
+   },
+   "turns": [
+    "what does the Account Executive role at Stripe pay?"
+   ],
+   "replies": [
+    "Stripe comp, from the file.\nComp: Stripe publishes an annual salary range on many role listings and states on them that the range may span several career levels and is narrowed during the interview process based on experience, qualifications and location, with equity, bonus and benefits on top. The bar: Stripe publishes its intern bar in the listing itself: strong CS fundamentals through pursuit of a Bachelor's or Master's in computer science, math or a related discipline; programming experience from side projects or classwork; and experience in previous internships or other multi-person projects — including open source — that shows you can take feedback from mentors, peers and stakeholders. Cadence: A Software\nEngineer, Intern listing was live on Stripe's careers site when checked in October 2026.\nSource: the Stripe company file (public sources), as of 2026-10-12. Want the entry routes or the culture signals next?"
+   ],
+   "meta": [
+    {
+     "intent": "company_intel",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed"
+    ],
+    "score": 1,
+    "note": "Trainee replied with extraneous company-level information instead of stating that the Stripe Account Executive posting does not list pay."
+   },
+   "pass": false,
+   "cost_usd": 0.000928
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Machine Learning Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Lyra Health",
+    "title2": "Mental Health Therapist",
+    "location2": "Durham, NC",
+    "posting_ids": [
+     "ashby:plaid:85cd5d07-9920-45fa-931a-daf8c3558e5b",
+     "lever:lyrahealth:d9b45401-3187-4ab1-a329-31d2c1ec9a5b"
+    ]
+   },
+   "turns": [
+    "find me Machine Learning Engineer roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nData Engineer Intern (2027) at Figma — San Francisco, CA • New York, NY, $46–$46 (Internship): closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA • New York, NY, outside the places on your profile, so it means relocating. Machine Learning Intern 2027 (Zurich) at Pinterest — Zurich, CH: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Zurich, CH, outside the places on your profile, so it means relocating. Manager, AI/ML Engineering at Lyra Health — United States, $161,000–$221,500 per year salary: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in United States,\noutside the places on your profile, so it means relocating.\nMaster's Machine Learning Internship 2027 (USA) at Pinterest — San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, outside the places on your profile, so it means relocating. PhD Data Science Internship 2027 (USA) at Pinterest — San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US, outside the places on your profile, so it\nmeans relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 2,
+    "note": "Trainee did not send or submit anything without user's consent, but misunderstood 'stop' and continued prompting, so low usefulness."
+   },
+   "pass": true,
+   "cost_usd": 0.001265
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Notion",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Security Engineer",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "ashby:notion:06e1d3a8-2706-4ed9-9fe6-8b69607de18e",
+     "greenhouse:klaviyo:7660012003"
+    ]
+   },
+   "turns": [
+    "find Security Engineer roles in San Francisco, CA",
+    "sorry, I meant Denver, CO"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nItemized Bill Reviewer at Oscar Health — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Software Engineer I, Backend (Collections) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: Python, Kotlin, MySQL, Kubernetes, AWS named in the posting and not yet on your profile. Software Engineer II, Backend (Decisions Orchestration) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCritical Support Manager - Escalations at Stripe — Seattle or San Francisco: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Seattle or San Francisco, outside the places on your profile, so it means relocating. Intern, Software Engineering at Braze — New York City: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York City, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "4 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about Denver, CO, not San Francisco, CA"
+    ],
+    "score": 2,
+    "note": "Trainee failed to respond to the user's location correction—second reply asked for a job name instead of searching for Denver roles, so it didn't address the user's clarified location."
+   },
+   "pass": false,
+   "cost_usd": 0.00126
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Braze",
+    "title": "Systems Engineer",
+    "location": "Austin, TX",
+    "company2": "Mixpanel",
+    "title2": "Engineering Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:braze:8109995",
+     "greenhouse:mixpanel:7776048"
+    ]
+   },
+   "turns": [
+    "find me Systems Engineer roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Here are the 5 roles most worth applying to, ranked by fit with your profile.\nItemized Bill Reviewer at Oscar Health — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting. Software Engineer I, Backend (Collections) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: Python, Kotlin, MySQL, Kubernetes, AWS named in the posting and not yet on your profile. Software Engineer II, Backend (Decisions Orchestration) at Affirm — remote: closest fit on your profile, with the gaps named in the caveat; caveat: no tradeoff stated in the posting.\nCritical Support Manager - Escalations at Stripe — Seattle or San Francisco: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in Seattle or San Francisco, outside the places on your profile, so it means relocating. Intern, Software Engineering at Braze — New York City: closest fit on your profile, with the gaps named in the caveat; caveat: the role is in New York City, outside the places on your profile, so it means relocating. Tell me one to tailor your resume for, and I will do that next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": "career_discovery",
+     "result_status": "prepared",
+     "handler": "CareerRouter"
+    },
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 2,
+    "note": "Trainee recommended 'Itemized Bill Reviewer at Oscar Health — remote' as top fit but the user's request was 'Systems Engineer roles' and Trainee's first pick is a different job type, so required details do not match."
+   },
+   "pass": false,
+   "cost_usd": 0.001233
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Pinterest",
+    "title": "Machine Learning Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "GTM Compliance Analyst",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:pinterest:6121551",
+     "ashby:plaid:d2c9d8b1-0428-4fdf-8b00-fd3ea28271b3"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "meta": [
+    {
+     "intent": null,
+     "result_status": null,
+     "handler": null
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 1,
+    "note": "Trainee asked for clarification but did not acknowledge the user's exhaustion nor state what it would prepare or that it would wait for the user's approval (or ask for the one needed item)."
+   },
+   "pass": false,
+   "cost_usd": 0.000791
+  }
+ ]
+}

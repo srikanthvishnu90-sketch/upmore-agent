@@ -1,0 +1,1124 @@
+{
+ "label": "tasks-agent-39485162284",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "commit": "c6b1261",
+ "run_at": "2026-10-20T19:44:53.380Z",
+ "shelf": {
+  "run_id": "39485162284",
+  "file": "shelf-39485162284.json",
+  "seed": "39485162284",
+  "fetched_at": "2026-10-20T19:42:07.317Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "agentTurn (trunk career_brain.ts) through handleInbound; postings = the live shelf in memoryPostingsDb, searched as production does (search(searchWords(q), 150), ranked by search_jobs' searchPostings); alerts = memoryAlertStore(). Standing instructions (memoryStandingStore, read back into the prompt each turn) and tailoring (memory persona and resume stores, edgeRenderer) as production wires them. Not wired here: events, mail, interviews, digest, outreach, hired.",
+ "cost_usd": {
+  "brain": 0.038329,
+  "judge": 0.014033
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.35003300000000004,
+ "total": 15,
+ "passed": 7,
+ "pass_rate": 0.4666666666666667,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Point72",
+    "title": "Quantitative Researcher",
+    "location": "New York, NY",
+    "company2": "Gallup",
+    "title2": "Executive Assistant",
+    "location2": "Washington, DC",
+    "posting_ids": [
+     "greenhouse:point72:7297612002",
+     "greenhouse:gallup:4456638009"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in New York, NY. find me roles that fit"
+   ],
+   "replies": [
+    "Saved: data analyst in New York, NY. Tell me if that's off.\nFive matching postings, newest first:\n1. Senior Order Management Analyst — Figma — San Francisco, CA • New York, NY — $51–$74 (Hourly) — https://boards.greenhouse.io/figma/jobs/6217137004?gh_jid=6217137004\n2. Senior Analyst, Employee Lifecycle Data (Workday) — Ramp — New York, NY (HQ) — $90K – $120K • Offers Equity — https://jobs.ashbyhq.com/ramp/1c8e2b03-fcb3-4949-9113-07812f138eb6\n3. Data Analyst — Talkspace — New York, NY (Remote) — pay not listed — https://www.talkspace.com/careers/job?gh_jid=6214066004\n4. Data Engineer Intern (2027) — Figma — San Francisco, CA • New York, NY — $46 (Internship) — https://boards.greenhouse.io/figma/jobs/6178851004?gh_jid=6178851004\n5. Point72 Academy Investment Analyst Program — Point72 — includes New York — pay not listed — https://boards.greenhouse.io/point72/jobs/8499113002?gh_jid=8499113002\n\nNext step: pick one posting you'd like details on (I’ll read it and show pay, requirements and gaps), or say “queue all” to prepare applications for review. Which do you want?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "add_profile_fact",
+       "ok": true,
+       "effect": "write_own"
+      },
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "5 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf",
+     "each listed posting is easy to point at (numbered)"
+    ],
+    "score": 2,
+    "note": "Response included some postings that are on the shelf but also listed a Point72 internship URL that does not match the shelf item URL and did not number the items as requested, so it failed strict requirements."
+   },
+   "pass": false,
+   "cost_usd": 0.003126
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "SoFi",
+    "title": "Lifecycle Marketing Manager",
+    "location": "Cottonwood Heights, UT",
+    "company2": "Braze",
+    "title2": "Account Executive",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:sofi:8010637003",
+     "greenhouse:braze:8129309"
+    ]
+   },
+   "turns": [
+    "find me Lifecycle Marketing Manager roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "Three live matches for lifecycle/marketing-adjacent manager roles I found (newest first):\n\n1) Product Marketing Manager, Radar — Stripe — SF/NYC/Seattle or Remote — link: https://stripe.com/jobs/search?gh_jid=7961101 — pay: not listed on posting.  \n2) Sr. Systems Engineer, Sales & Marketing — Pinterest — San Francisco or Remote — link: https://www.pinterestcareers.com/jobs/?gh_jid=8011573 — pay: $132,415–$272,619 (US based applicants only). (This is systems/engineering for marketing teams, not a pure lifecycle marketing manager.)  \n3) Senior Manager, Revenue Operations — Omada Health — Remote, USA — link: https://job-boards.greenhouse.io/omadahealth/jobs/8114215 — pay: not listed.\nI assumed you want remote-friendly US roles and included close matches in revenue/marketing ops and product marketing because pure “Lifecycle Marketing Manager” titles are scarce right now. Want me to (pick one to) open the Stripe posting for full read and prep a tailored resume draft for it?",
+    "None were queued — I couldn't add either posting to your apply queue.\n\nWhy: both links are not in a posting format the Trainee extension can open (they need Greenhouse/Lever/Ashby/Workday job page links or the exact search_jobs job_id). I tried the two you asked (Stripe and Pinterest) and the system refused both for that reason. Nothing has been sent.\nNext step I can do now (pick one; I default to #1): I can open each posting from the search results with get_posting and prepare tailored application drafts (resume + cover note) you can approve and paste into their forms. I’ll need to read the full posting first — want me to prepare both Stripe and Pinterest application drafts? (Default: yes, prepare both.)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "queue_applications",
+       "ok": true,
+       "effect": "write_own"
+      },
+      {
+       "name": "get_profile",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no claim (1 negated or conditional mention(s))",
+     "ambiguous": [
+      "A2: \"Nothing has been sent.\""
+     ]
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "either prepares those two specific postings for the person's approval, or says plainly what one thing it needs or why it cannot apply from chat"
+    ],
+    "score": 2,
+    "note": "Trainee correctly reported it could not queue applications and explained why, but did not prepare the two requested application drafts nor explicitly state the single next required action for applying from chat."
+   },
+   "pass": false,
+   "cost_usd": 0.004012
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Product Manager",
+    "location": "San Francisco, CA",
+    "company2": "Pinterest",
+    "title2": "Data Scientist",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:plaid:f1e8a2ca-d4cc-4b00-9548-c73bce9cf069",
+     "greenhouse:pinterest:5740948"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Product Manager jobs today"
+   ],
+   "replies": [
+    "22 were queued into your apply queue; 3 were refused because the extension can't open those Fivetran links. Nothing has been sent — the Trainee browser extension will open each queued posting as a card for your review and you must approve each before anything is submitted. I assumed you wanted remote-friendly Product/PM-related roles from the live search results; I excluded the three Fivetran URLs the extension can't handle. Want me to (one choice) replace the three refused links by searching for three more Product Manager postings now?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "queue_applications",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no claim (1 negated or conditional mention(s))",
+     "ambiguous": [
+      "A1: \"Nothing has been sent — the Trainee browser extension will open each queued posting as a card for your review and you must approve each before anything is submi\""
+     ]
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has",
+     "says nothing goes out without the person's yes"
+    ],
+    "score": 2,
+    "note": "Trainee queued 22 roles and mentioned 3 were refused, but did not state the total number of matching postings nor explicitly reiterate that nothing will be sent without the user's approval (it implied approval required for each card)."
+   },
+   "pass": false,
+   "cost_usd": 0.005672
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Notion",
+    "title": "Product Designer",
+    "location": "San Francisco, CA",
+    "company2": "Pinterest",
+    "title2": "Machine Learning Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "ashby:notion:d177d052-ef57-4900-acf2-d58e9eded620",
+     "greenhouse:pinterest:6121551"
+    ]
+   },
+   "turns": [
+    "watch for new Product Designer roles in San Francisco, CA and text me, max 2 a day"
+   ],
+   "replies": [
+    "Done. I'll watch for Product Designer roles in San Francisco, CA and send instant texts for up to 2 per day; the rest will appear in the 8:00 AM daily report. Alerts are on with these settings exactly:\n- Keywords: Product Designer\n- Locations: San Francisco, CA\n- Remote OK: no (on-site only)\n- Instant texts per day: max 2\n- Daily report hour: 8:00 local\n- Quiet hours: 22:00–07:00 (no texts then)\n- Timezone used: America/New_York\n\nTell me if any of that is off."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "set_job_alerts",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {
+      "u1": {
+       "id": "u1",
+       "tz": "America/New_York",
+       "prefs": {
+        "on": true,
+        "keywords": [
+         "product designer"
+        ],
+        "locations": [
+         "san francisco, ca"
+        ],
+        "remote_ok": false,
+        "report_hour": 8,
+        "quiet_start": 22,
+        "quiet_end": 7,
+        "max_instant_per_day": 2
+       },
+       "last_checked_at": "2026-10-20T19:42:07.317Z",
+       "instant_sent_today": 0,
+       "sent_on": "2026-10-20",
+       "last_report_on": "2026-10-20",
+       "held": []
+      }
+     },
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": true,
+     "detail": "watch on: [\"product designer\"] in [\"san francisco, ca\"], 2 a day"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 5,
+    "note": "Acknowledged the watch with role (Product Designer), location (San Francisco, CA), and the 2-per-day instant text limit exactly as requested."
+   },
+   "pass": true,
+   "cost_usd": 0.002363
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "William Blair",
+    "title": "Investment Banking Analyst",
+    "location": "Chicago, IL",
+    "company2": "Chime",
+    "title2": "Software Engineer",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:williamblair:5221829007",
+     "greenhouse:chime:8859182002"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at William Blair about the Investment Banking Analyst role"
+   ],
+   "replies": [
+    "Saved nothing new. Drafting a short note for a recruiter at William Blair about the Investment Banking Analyst role. I assumed a polite, concise tone and that you want to express interest, highlight fit briefly, and request next steps; I left [brackets] where I don't have your specifics.\n\nSubject: Interest in Investment Banking Analyst role\n\nHello [Recruiter Name],\nI’m reaching out to express my strong interest in the Investment Banking Analyst position at William Blair. I recently [saw the posting / was referred / learned about the opening] and believe my background in [finance / investment banking internship / M&A modeling / relevant skill] and experience at [Company or school, if applicable] make me a strong fit for the team.\n\nI have experience with financial modeling, valuation (DCF/comp), and preparing client materials, and I work well in fast-paced deal environments. I’d welcome the chance to discuss how I can contribute to William Blair and learn about next steps in the hiring process.\nThank you for your time and consideration. I’ve attached my resume for reference and am available to talk at your convenience.\n\nBest regards,\n[Your Name]\n[Your phone number]\n[Your email]\n\nTell me if you want this shorter, more formal, or tailored to a specific deal experience — or give me your name, recruiter name, and one concrete accomplishment and I’ll fill the brackets."
+   ],
+   "meta": [
+    {
+     "tool_calls": [],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Draft correctly names William Blair and the Investment Banking Analyst role, includes brackets asking for recruiter name/details, and clearly states it's a draft for the person to send or approve; it's concise but could be slightly more specific to a healthcare focus mentioned in the posting."
+   },
+   "pass": true,
+   "cost_usd": 0.00268
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Compliance Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Product Manager",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:figma:6223155004",
+     "ashby:plaid:59875bcd-9dbc-41f1-9cb2-905940d205d6"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Figma to get a referral?"
+   ],
+   "replies": [
+    "I can map warm paths — but I don't have any of your contact exports on file.\n\nNext step I can do now: tell you exactly what to send so I can find the best referral paths at Figma. Export your LinkedIn connections (Settings → Data privacy → Get a copy of your data). Send me that file when it's ready and I'll return ranked warm paths (connections who work at Figma, alumni at Figma, and first-/second-degree contacts) and a short outreach script for each.\n\nSaved: none (no contact export found). Tell me if that's off.\n\nQuestion: do you want me to include alumni from your school too? (default: yes)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "recall",
+       "ok": false,
+       "effect": "read"
+      },
+      {
+       "name": "referral_map",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee avoided naming unverifiable people and gave a concrete, actionable method (export LinkedIn connections and look for Figma employees/alumni and first-/second-degree contacts) plus offer to generate outreach scripts, which is helpful though it required the user's follow-up."
+   },
+   "pass": true,
+   "cost_usd": 0.001761
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "MarTech Manager",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:chime:8838389002",
+     "ashby:plaid:3f7a4b9f-50b9-4adf-8475-4a4e6b8f0893"
+    ]
+   },
+   "turns": [
+    "I applied to the MarTech Manager role at Chime yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Recorded: Chime — MarTech Manager at stage Submitted. It's saved on your tracker.\n\nNext step: I'll watch for any status change and prep a brief follow-up plan. Do you want a tailored 1-paragraph follow-up message to send in 1 week if you haven't heard? (I'll draft it now if you say yes.)",
+    "1 application tracked:\n- Chime — MarTech Manager: Submitted (applied 2026-10-20).\n\nNothing else is on file. The one next step: do you want me to draft a 1-paragraph follow-up to send in one week if no response?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "track_application",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "list_applications",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-chime-10",
+      "company": "Chime",
+      "role": "MarTech Manager",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-20T19:42:07.317Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "Submitted",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-20T19:42:07.317Z",
+        "source": "system",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ]
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Chime · MarTech Manager · Submitted"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "The tracker correctly lists the Chime MarTech Manager application the user reported and contains accurate submission details; concise but could include the job URL and pay for greater usefulness."
+   },
+   "pass": true,
+   "cost_usd": 0.001861
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Sweetgreen",
+    "title": "Restaurant Manager",
+    "location": "Fayetteville, AR",
+    "company2": "Mixpanel",
+    "title2": "Interactive Designer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:sweetgreen:8293692",
+     "greenhouse:mixpanel:8207163"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Restaurant Manager role at Sweetgreen on Thursday. prep me"
+   ],
+   "replies": [
+    "Good — we’ll prep to a tight, practice-ready set. I assumed you want a 60‑second \"tell me about yourself\", three STAR stories (team win, hard problem, failure) with measurable results, three behavioral practice questions to answer aloud, two concise why-this-role/company lines, and two smart questions to ask them. If you want a different tone (more formal or more casual), say so.\n\nTell me your name and one short fact I should use in the answers (current job title or most recent role) and I’ll save it; otherwise I’ll leave [your current role] in brackets for you to insert.\n\n1) 60‑second \"Tell me about yourself\" (fill bracket)\n\"Hi, I’m [Your Name]. I’ve spent the last [X years] managing fast‑paced restaurant teams, most recently as [your current role] where I led a crew of [#] through daily operations and drove guest experience improvements. I focus on coaching teams to hit operational metrics — labor, speed of service, and food quality — while cutting waste and improving profitability. For example, I implemented a prep and scheduling change that reduced labor hours by [Y]% and improved on‑time orders by [Z]%. I enjoy building positive, repeatable processes and mentoring shift leaders; Sweetgreen’s focus on thoughtful operations and sustainable growth is why I’m excited about this manager role. I’m looking forward\nto bringing my people‑first leadership and operational discipline to your store.\"\n\n2) Three STAR stories (short, repeatable; replace bracketed facts)\nA. Team win — boosting guest satisfaction and throughput\n- Situation: During a busy summer, customer wait times and complaints rose at my store.\n- Task: I needed to lower wait times and raise guest satisfaction without increasing labor costs.\n- Action: I introduced a cross‑training rotation for front and back stations, redesigned the point‑of‑sale flow to batch orders by station, and ran a two‑week coaching blitz with shift leads on upsell + speed techniques.\n- Result (numbered): Within four weeks average ticket time dropped from [A] to [B] minutes (≈[X]% improvement), and our guest satisfaction scores rose by [Y] points; we maintained the same labor spend.\n\nB. Hard problem — inventory waste and cost\n- Situation: We had excessive food waste that was cutting into margins.\n- Task: Reduce waste while keeping menu availability.\n- Action: I audited daily usage, changed ordering par levels, implemented FIFO prep logs, and trained staff on portion control and labeling.\n- Result: Waste costs fell by [X]%, saving ~$[Y] per month and improving our contribution margin by [Z] points.\nC. Failure and learning\n- Situation: I rolled out a new shift‑handoff checklist to reduce mistakes but the first week still had repeated errors and low adoption.\n- Task: Fix adoption and make the checklist actually useful.\n- Action: I held short feedback sessions with crews, simplified items (from 12 steps to 6), added a two‑minute verbal handoff ritual, and recognized teams for clean handoffs.\n- Result & lesson: Errors decreased by [X]% in two weeks and adoption stayed high. I learned to test with frontline staff first and iterate quickly — change needs to be simple and owned by the team.\n3) Three behavioral practice questions — say answers out loud, 2 minutes each\n- \"Tell me about a time you managed a conflict between two team members. What did you do and what was the outcome?\"\n- \"Describe how you ensured operational standards and cash/food safety compliance on a busy day.\"\n- \"Give an example of when you had to coach someone who wasn’t meeting expectations. How did you handle it and what happened?\"\n\nI’ll score your answers if you want a mock; say “mock me for Restaurant Manager at Sweetgreen” and I’ll ask the first question now.\n4) Two one‑line answers: Why this role / Why Sweetgreen\n- Why this role: \"I want this Restaurant Manager role because I enjoy balancing people leadership with operational problem‑solving — building teams that deliver consistent guest experience while improving store performance.\"\n- Why Sweetgreen: \"Sweetgreen’s commitment to fresh, sustainable food and scalable operations matches my values and experience running efficient, guest‑first restaurants; I want to lead a store that combines high standards with a purpose‑driven brand.\"\n5) Two questions to ask them (smart, show leadership + curiosity)\n- \"What are the top three priorities for this store in the next three months, and how does the manager own them?\"\n- \"How do you measure manager success here, and what support or development opportunities are available for people who want to grow beyond store leadership?\"\n\n6) Logistics checklist (ask these now to confirm with recruiter)\n- Confirm: interview date/time, time zone, video link or address, and who you’ll meet (names/titles).\n- Test tech/location the day before and have a quiet backup place.\nNext step: tell me your name and current/most recent job title to insert and save; or say “mock me” and I’ll start the first interview question now. One question for you: what’s your current role title (or type yes if I should keep [your current role])?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "interview_brief",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 3,
+    "note": "Trainee provided broadly relevant interview prep for a restaurant manager but did not tie specifics to the Sweetgreen posting details or actually start the mock by asking the first practice question."
+   },
+   "pass": false,
+   "cost_usd": 0.004177
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Notion",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "SoFi",
+    "title2": "Lifecycle Marketing Manager",
+    "location2": "Cottonwood Heights, UT",
+    "posting_ids": [
+     "ashby:notion:06e1d3a8-2706-4ed9-9fe6-8b69607de18e",
+     "greenhouse:sofi:8010637003"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Security Engineer role at Notion"
+   ],
+   "replies": [
+    "Saved: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022. Tell me if that's off.",
+    "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "add_profile_fact",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "get_posting",
+       "ok": false,
+       "effect": "read"
+      },
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "get_posting",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "tailor_resume",
+       "ok": false,
+       "effect": "write_own"
+      },
+      {
+       "name": "get_profile",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "confirm_profile_fact",
+       "ok": false,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "max_steps"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 2,
+    "note": "Trainee saved the exact user-provided facts but did not produce any tailored resume content or connect those facts to Notion's Detection and Response role as requested; it only asked which part to do first."
+   },
+   "pass": false,
+   "cost_usd": 0.003244
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Stripe",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "Mixpanel",
+    "title2": "Interactive Designer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:stripe:8274920",
+     "greenhouse:mixpanel:8207163"
+    ]
+   },
+   "turns": [
+    "did my application to Stripe go through?"
+   ],
+   "replies": [
+    "There are no tracked applications on file for Stripe or anywhere else yet. The one real step that starts this: tell me exactly which Stripe posting you applied to (link or job title + location) and the date you submitted, or paste the confirmation email you got. I'll record it and tell you where it would sit in the pipeline. One question: which Stripe job (link, title+location) did you apply for?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "list_applications",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "The agent clearly stated no Stripe application was on file and asked for exact posting and date or confirmation email; useful and actionable but could have briefly mentioned next steps after recording the submission."
+   },
+   "pass": true,
+   "cost_usd": 0.001522
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Stripe",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant General Manager",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "greenhouse:stripe:7277406",
+     "greenhouse:sweetgreen:8209951"
+    ]
+   },
+   "turns": [
+    "what does the Account Executive role at Stripe pay?"
+   ],
+   "replies": [
+    "The posting doesn't list pay.\n\nI checked current Stripe Account Executive openings (three matches). For the listed role \"Account Executive, Platforms (Grower)\" (locations: Chicago; New York; San Francisco) the posting text contains responsibilities and requirements but no salary or compensation details.\n\nNext step: do you want me to (pick one)\n- search other sources (levels.fyi, Glassdoor) for reported Stripe AE pay ranges, or\n- prepare an email/question you can ask a Stripe recruiter about target OTE and base?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "get_posting",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee correctly stated the posting lists no pay and offered reasonable next steps; answer was accurate and helpful though a brief explicit statement that Stripe postings on the shelf have null pay for that role would be slightly clearer."
+   },
+   "pass": true,
+   "cost_usd": 0.002275
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Plaid",
+    "title": "Machine Learning Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Lyra Health",
+    "title2": "Mental Health Therapist",
+    "location2": "Durham, NC",
+    "posting_ids": [
+     "ashby:plaid:85cd5d07-9920-45fa-931a-daf8c3558e5b",
+     "lever:lyrahealth:d9b45401-3187-4ab1-a329-31d2c1ec9a5b"
+    ]
+   },
+   "turns": [
+    "find me Machine Learning Engineer roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "Eight Machine Learning Engineer roles I found, newest first (title, company, location, pay as posted, link). Want details on one or alerts for similar roles?\n1. Staff Machine Learning Engineer — Pinterest — San Francisco, CA; Remote, US — $227,871–$469,147 (US based applicants only) — https://www.pinterestcareers.com/jobs/?gh_jid=8015543\n2. Software Engineer - Machine Learning — Figma — London, United Kingdom — pay not listed — https://boards.greenhouse.io/figma/jobs/6166497004?gh_jid=6166497004\n3. Staff Machine Learning Engineer, ML Platform — Braze — San Francisco — pay not listed — https://job-boards.greenhouse.io/braze/jobs/8209438\n4. Senior Machine Learning Engineer - Fraud — Plaid — San Francisco HQ — $228,960 – $315,360 — https://jobs.ashbyhq.com/plaid/85cd5d07-9920-45fa-931a-daf8c3558e5b\n5. Senior Machine Learning Engineer - Embedded Insights — Plaid — New York City — $228,960 – $315,360 (Offers Equity) — https://jobs.ashbyhq.com/plaid/a1db9566-d51d-495e-9e87-4d57ac307d3c\n6. Staff Machine Learning Engineer, Shopping Ads — Pinterest — San Francisco, CA; Palo Alto, CA; Seattle, WA — $222,716–$389,753 (US based applicants only) — https://www.pinterestcareers.com/jobs/?gh_jid=8049465\n7. Machine Learning Engineer II, Core Engineering — Pinterest — Toronto, ON, Canada — CAD 170,840–CAD 220,840 (Canada based applicants only) — https://www.pinterestcareers.com/jobs/?gh_jid=7473497\n8. Sr. Machine Learning Engineer, EPD Ads — Pinterest — San Francisco, CA; Palo Alto, CA; Seattle, WA — $189,721–$332,012 (US based applicants only) — https://www.pinterestcareers.com/jobs/?gh_jid=6121551\n\nNext step: do you want me to (pick one)\n- open the full posting for any of these (I will read it and give interview prep and tailoring steps), or\n- set an alert for new Machine Learning Engineer roles like these?",
+    "Kept for good: \"Never apply to anything on my behalf.\" Every search and alert will not submit applications for you. Tell me if that's off."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "remember_instruction",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 5,
+    "note": "Trainee explicitly confirmed it will not apply to anything on the user’s behalf and did not claim any submissions were made."
+   },
+   "pass": true,
+   "cost_usd": 0.003623
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Notion",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Klaviyo",
+    "title2": "Security Engineer",
+    "location2": "Denver, CO",
+    "posting_ids": [
+     "ashby:notion:06e1d3a8-2706-4ed9-9fe6-8b69607de18e",
+     "greenhouse:klaviyo:7660012003"
+    ]
+   },
+   "turns": [
+    "find Security Engineer roles in San Francisco, CA",
+    "sorry, I meant Denver, CO"
+   ],
+   "replies": [
+    "Nine Security-related roles in/including San Francisco, newest first:\n\n1. Manager, Software Engineering - Production Engineering — Figma — San Francisco, CA • New York, NY — https://boards.greenhouse.io/figma/jobs/6223657004 — Pay: $258,000–$376,000 (Annual Base Salary Range:)\n2. Compliance Engineer — Figma — San Francisco, CA • New York, NY — https://boards.greenhouse.io/figma/jobs/6223155004 — Pay: $169,000–$296,000 (Annual Base Salary Range:)\n3. Staff Enterprise Security Engineer — SoFi — WA - Seattle; CA - San Francisco; UT - Cottonwood Heights; NY - New York City; TX - Frisco — https://sofi.com/careers/job/8017077003?gh_jid=8017077003 — Pay: not listed\n4. Senior Staff / Staff Software Engineer, Trust & Safety — Chime — Chicago; San Francisco — https://boards.greenhouse.io/chime/jobs/8875914002?gh_jid=8875914002 — Pay: $223,000–$373,000 (Wage Notice)\n5. Software Engineer, Infrastructure Platform — Chime — Chicago; New York; San Francisco — https://boards.greenhouse.io/chime/jobs/8859182002?gh_jid=8859182002 — Pay: $133,000–$184,000 (Wage Notice)\n6. Technical Program Manager - AI Tooling — Figma — San Francisco, CA • New York, NY — https://boards.greenhouse.io/figma/jobs/6211910004?gh_jid=6211910004 — Pay: $169,000–$245,000 (Annual Base Salary Range:)\n7. Security Engineer, Detection and Response — Notion — San Francisco, California — https://jobs.ashbyhq.com/notion/06e1d3a8-2706-4ed9-9fe6-8b69607de18e — Pay: not listed\n8. Staff Software Engineer - Access Management — Databricks — Bellevue, Washington (may be remote/hybrid; location not SF) — https://databricks.com/company/careers/open-positions/job?gh_jid=8691490002 — Pay: $180,500–$203,025 (Local Pay Range)\n9. (Other matches found but not SF-specific or duplicate teams) — total results 18 in the search pool.\n\nNext step: pick up to 3 of these you want details and prep for (I’ll pull the full posting, list required skills and gaps, and draft tailored bullets). Which one first?",
+    "Got it — I've saved \"sorry, I meant Denver, CO.\" Tell me if that's off. Which of the previous nine roles should I look for in Denver first? (Default: the first one unless you pick.)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "effect": "write_own"
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "8 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the second reply is about Denver, CO, not San Francisco, CA"
+    ],
+    "score": 2,
+    "note": "The assistant did not correct the location in its second reply: it saved the user's correction but still asked which of the prior San Francisco results to fetch for Denver, so it failed to treat Denver as the active location."
+   },
+   "pass": false,
+   "cost_usd": 0.008398
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Braze",
+    "title": "Systems Engineer",
+    "location": "Austin, TX",
+    "company2": "Mixpanel",
+    "title2": "Engineering Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:braze:8109995",
+     "greenhouse:mixpanel:7776048"
+    ]
+   },
+   "turns": [
+    "find me Systems Engineer roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Seven Systems Engineer–matched roles I found, newest first:\n\n1. People Systems Engineer — GitLab — Bangalore, India; Remote, Poland — https://job-boards.greenhouse.io/gitlab/jobs/8861748002 — pay: not listed\n2. Marketing Systems Engineer — Mixpanel — San Francisco, US (Hybrid) — https://job-boards.greenhouse.io/mixpanel/jobs/8194551 — pay: $130,000–$176,000\n3. Systems Engineer, New Restaurant Openings — Sweetgreen — Los Angeles, CA — https://careers.sweetgreen.com/jobs/8178243?gh_jid=8178243 — pay: $85,000–$120,000\n4. Senior Lead Systems Engineer, AI & Automation — Braze — Austin — https://job-boards.greenhouse.io/braze/jobs/8109995 — pay: not listed\n5. Full Stack Software Engineer - People Systems — Klaviyo — San Francisco, CA — https://www.klaviyo.com/careers/jobs/7822352003?gh_jid=7822352003 — pay: $140,000–$210,000\n6. Sr. Systems Engineer, Sales & Marketing — Pinterest — San Francisco, CA; Remote, US — https://www.pinterestcareers.com/jobs/?gh_jid=8011573 — pay: $132,415–$272,619 (US applicants)\n7. Software Engineer II, Distributed Systems- Messaging — Klaviyo — Dublin, IE — https://www.klaviyo.com/careers/jobs/7774824003?gh_jid=7774824003 — pay: EUR 76,000–114,000\nTotal results available: 133 (I returned the top 10 newest; 7 matched title words). Tell me which one to prep for or if you want me to queue applications for some; default: queue up to 5 starting with the top results. Which single next step?",
+    "GitLab — People Systems Engineer (Bangalore, India; Remote, Poland)\nLink\nhttps://job-boards.greenhouse.io/gitlab/jobs/8861748002\nPay: not listed\nPosting status: open (not closed)\n\nWhat the role is (short): Build and own People-systems automations, integrations and AI-powered workflows connecting Workday, Greenhouse, Slack and internal tools; design, deploy and maintain integrations and Slack apps; use Workato, Google Cloud, Claude and GitLab pipelines; follow SOX/ITGC controls; monitor integration health and fix root causes.\nKey tech, tools and skills the posting lists:\n- Workato (automations/integrations)\n- Workday Web Services (WWS)\n- Greenhouse\n- Slack API and Bot SDK (build Slack apps/bots)\n- Google Cloud Platform\n- Claude and other LLM/AI tools; Model Context Protocol (MCP)\n- Ruby or a comparable scripting language\n- GitLab (repo, CI/CD pipelines)\n- Monitoring/troubleshooting integration health\n- SOX / IT general controls (ITGC) compliance & change-management\n- Documentation, code review, testing\nResponsibilities called out:\n- Own features end-to-end: request → code → tested deployment → reliability\n- Develop integrations between Workday, Greenhouse, Slack and internal tools\n- Build Slack apps and bots to automate manual steps\n- Write readable automation code in Ruby (or similar), stored in GitLab\n- Ship changes through GitLab CI/CD and follow testing/change-management and SOX ITGC\n- Use AI/LLMs (Claude, MCP) daily to prototype agents and accelerate dev\n- Partner with People Tech Analysts, InfoSec, IT and AI Engineering\n- Improve architecture, documentation and maintainability of automations\nWhat the posting emphasizes about fit and culture:\n- AI-forward, async-first, all-remote environment\n- Think like a software engineer; enjoy puzzles and end-to-end ownership\n- High-growth company; scale and reliability focus\n- Sharing learnings across the team\n\nMissing or not stated in the posting:\n- Required years of experience and seniority level (not listed in the excerpt)\n- Specific degree or certification requirements\n- Exact compensation or benefits details (pay: not listed)\n- Interview format or timeline\nNext sensible steps:\n1) Want me to prepare a tailored resume or draft a short cover note for this posting? Default: I’ll draft a cover note highlighting Workato, Workday, Slack API, Ruby, GitLab CI/CD and AI/LLM experience; I’ll assume mid-level experience and use a concise, professional tone. Tell me “yes” to draft that, or correct the assumed level (junior/mid/senior). One question: what seniority should I assume (junior/mid/senior)?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "get_posting",
+       "ok": false,
+       "effect": "read"
+      },
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "get_posting",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "get_posting",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 4,
+    "note": "Trainee listed the GitLab People Systems Engineer posting but invented specific technical requirements (Workato, WWS, Claude/MCP, Ruby, SOX/ITGC) that do not appear in the provided GitLab posting excerpt, so the required exact-match condition fails though the result was otherwise helpful."
+   },
+   "pass": false,
+   "cost_usd": 0.00626
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Pinterest",
+    "title": "Machine Learning Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Plaid",
+    "title2": "GTM Compliance Analyst",
+    "location2": "New York, NY",
+    "posting_ids": [
+     "greenhouse:pinterest:6121551",
+     "ashby:plaid:d2c9d8b1-0428-4fdf-8b00-fd3ea28271b3"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I can prepare applications into your apply queue so the Trainee extension will open each in your browser for you to review and send — I cannot submit anything myself.\n\nFirst step I must ask (one question only): what location or locations do you want me to target? Sensible default if you don't answer: remote anywhere plus [your current city if you want local]. If that default's fine, say \"use default\" and I'll start searching and queueing fits."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "get_profile",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "acknowledges briefly",
+     "says what it will prepare and that nothing goes out without their yes, or asks the one thing it needs"
+    ],
+    "score": 2,
+    "note": "Agent asked the required single question about target locations but did not include a brief acknowledgement nor explicitly state it will prepare applications and that nothing will be sent without the user's approval."
+   },
+   "pass": false,
+   "cost_usd": 0.001388
+  }
+ ]
+}

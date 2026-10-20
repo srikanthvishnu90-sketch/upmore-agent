@@ -29,18 +29,19 @@
        * profileMaster: the 122 master from the freshest
          agent_flow_state snapshot (state.career.stores.profile)
          that carries one, exactly as the chat restores it;
-       * profile (module 149's shape): derived from that master by
-         the same rule the in-turn path uses (142's
-         batchPortalProfile: identity fields only, the resume only
-         when the record carries one with its sha256) PLUS the
-         answers the stored record itself carries, verbatim — a
-         fully-onboarded user's confirmed screening answers are
-         profile data and ride along; nothing is derived from
-         anything the user did not store;
-       * attestations: the stored record's own attestations,
-         verbatim, or {} — no stored source invents one, and a
-         required attestation then stops that application named
-         inside 149, exactly as in-turn today.
+       * profile (module 149's shape): identity fields from that
+         master's basics (142's batchPortalProfile rule; the resume
+         only when the record carries one with its sha256) PLUS the
+         screening answers module 149's deriveAnswers derives from the
+         master's CONFIRMED facts, each traced to its fact id (WO-094 —
+         until then deriveAnswers had no caller here and the stored
+         `answers` block, which nothing writes, was copied verbatim, so
+         every prepare stopped UNCOVERED_QUESTION). Nothing is derived
+         from an unconfirmed fact, and nothing defaults;
+       * attestations: always {} — the approval card is the
+         attestation act, per application, bound into that
+         application's payload hash (WO-094); a stored standing
+         attestation is never read.
      A user with NO stored profile produces the named stop
      BATCH_PROFILE_NOT_FOUND: profileFor throws it, the executor
      finishes the intent blocked with that code, and no profile is
@@ -54,26 +55,40 @@ const path = require("node:path");
 
 const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "functions", "_shared", "career_pool.js"));
 const CareerJobs = require(path.join(__dirname, "..", "..", "packages", "domain", "121-career-jobs.js"));
+const Portal = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
 
 const coded = (code, message) => Object.assign(new Error(message || code), { code });
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-// The 149-shaped profile from the 122 master — 142's
-// batchPortalProfile derivation (identity only; the resume only
-// with its sha256), plus the stored record's own answers verbatim.
-// 142's function is not exported, so the rule is mirrored here with
-// its source named; the answers addition is the one deliberate
-// extension, and it carries only what the record already holds.
-function portalProfileFromMaster(master) {
-  const b = (master && master.basics) || {};
+// The 149-shaped profile from the 122 master (WO-094, loop input).
+// Identity: 142's batchPortalProfile rule (identity fields from the
+// stored basics; the resume only with its sha256) — 142's function is
+// not exported, so the rule is mirrored here with its source named. A
+// basics block marked unconfirmed contributes no identity field.
+// Answers: DERIVED by module 149's deriveAnswers from the person's
+// CONFIRMED facts only (status "confirmed", never needs_confirmation),
+// each traced to its fact id; an absent or unconfirmed fact derives
+// nothing and the question stays an ask. The stored `answers` block is
+// NOT copied (it carries no fact trace — the old verbatim copy was how
+// a stored note or answer could ride without a confirmed fact), and a
+// cover note comes only from a note drafted onto this application's
+// payload (155 coverNoteFor), never from the master.
+function portalProfileFromMaster(master, now) {
+  const m = master || {};
+  const b = m.basics || {};
+  const basicsConfirmed = !(b.needs_confirmation === true || b.status === "draft");
+  const id = (v) => (basicsConfirmed && v ? v : null);
   const p = {
-    name: b.name || b.full_name || (master && master.name) || null,
-    email: b.email || (master && master.email) || null,
-    phone: b.phone || null,
-    location: b.location || null,
-    answers: master && master.answers && typeof master.answers === "object" ? clone(master.answers) : {},
+    name: id(b.name || b.full_name || m.name),
+    email: id(b.email || m.email),
+    phone: id(b.phone),
+    location: id(b.location),
+    answers: {},
   };
-  const r = (master && master.resume) || b.resume || null;
+  const derived = Portal.deriveAnswers({ basics: basicsConfirmed ? b : {}, facts: Array.isArray(m.facts) ? m.facts : [], defaults: m.defaults || {} }, now != null ? now : Date.now());
+  p.answers = clone(derived.answers);
+  for (const [k, v] of Object.entries(derived.profileFields)) if (p[k] == null) p[k] = clone(v);
+  const r = m.resume || b.resume || null;
   if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
   return p;
 }
@@ -85,6 +100,7 @@ function createProductionSources(deps) {
     throw coded("BATCH_SOURCES_NOT_WIRED", "createProductionSources: a worker transport with readRows is required — the sources never invent a data path");
   }
   const jobs = d.jobs || CareerJobs;
+  const nowOf = typeof d.now === "function" ? d.now : () => Date.now();
   const loader = CareerPool.createKbPoolLoader({
     readRows: (spec) => transport.readRows(spec),
     jobs,
@@ -119,10 +135,13 @@ function createProductionSources(deps) {
   async function profileFor(userId) {
     const master = await readStoredMaster(userId);
     if (!master) throw coded("BATCH_PROFILE_NOT_FOUND", "no stored career profile for this user — the chat has not produced one; the batch stops named and nothing is fabricated");
+    // No standing attestation (WO-094): a stored `attestations` block is
+    // never read — the approval card is the attestation act, per
+    // application, bound into that application's payload hash.
     return {
-      profile: portalProfileFromMaster(master),
+      profile: portalProfileFromMaster(master, nowOf()),
       profileMaster: master,
-      attestations: master.attestations && typeof master.attestations === "object" ? clone(master.attestations) : {},
+      attestations: {},
     };
   }
 

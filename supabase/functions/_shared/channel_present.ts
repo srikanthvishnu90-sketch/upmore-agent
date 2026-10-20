@@ -75,6 +75,8 @@ import type { ChannelDeps } from "./channel_bridge.ts";
 export const VOICE = {
   empty: "(I didn't get a reply — try again.)",
   error: "Something went wrong on my side — nothing was changed. Give me a moment and send that again.",
+  rateLimited:
+    "You've reached the limit of 60 messages an hour, so I didn't read that message and nothing was changed. The limit resets within the hour; send it again then.",
   dismiss: "Okay — nothing was approved. The batch stays right where it is.",
   approvalAck: "Got it ✓",
   approvalDeclined: "Not approved — nothing was sent.",
@@ -242,6 +244,24 @@ function renderBlock(b: Block, platform: "telegram" | "whatsapp"): string {
 
 export function renderTelegramBlocks(md: string): string[] {
   return parseBlocks(md).map((b) => renderBlock(b, "telegram")).filter((s) => s.trim());
+}
+
+// The plain-text shape of a rendered Telegram part, used only when
+// Telegram rejects the HTML and the same content must go out again
+// without markup. Link destinations survive: a labelled link degrades
+// to "label (url)", never to the label alone — a fallback that drops
+// the URL drops the answer the user asked for. Entities decode back
+// to the characters the author wrote.
+export function plainFromTelegramHtml(html: string): string {
+  const decode = (s: string) => s
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+  const withLinks = String(html ?? "").replace(/<a href="([^"]+)">([\s\S]*?)<\/a>/g, (_m, href, text) => {
+    const label = decode(String(text).replace(/<[^>]+>/g, ""));
+    const url = decode(String(href));
+    return label === url ? url : `${label} (${url})`;
+  });
+  return decode(withLinks.replace(/<[^>]+>/g, ""));
 }
 export function renderWhatsappBlocks(md: string): string[] {
   return parseBlocks(md).map((b) => renderBlock(b, "whatsapp")).filter((s) => s.trim());

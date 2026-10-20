@@ -86,7 +86,10 @@ const CareerHost = (() => {
   // thread's own (fresher) statement; multi-value kinds union
   // without duplicates. The account is the base — a brand-new
   // thread starts from everything the user has ever stated.
-  const ACCOUNT_SINGLE_FACT_KINDS = ["year", "geography", "target_firm", "level", "tone", "school", "majors"];
+  // WO-095: the polarity kinds (sponsorship, citizenship) are single-
+  // value too — a corrected answer replaces the old one across threads,
+  // never sits beside it as a contradiction.
+  const ACCOUNT_SINGLE_FACT_KINDS = ["year", "geography", "target_firm", "level", "tone", "school", "majors", "sponsorship", "citizenship"];
   function mergeStatedFacts(accountFacts, threadFacts) {
     const out = [];
     const seen = new Set();
@@ -328,7 +331,11 @@ const CareerHost = (() => {
           // two-list shape on its first changing turn.
           const acctAll = [...(Array.isArray(acctFacts.facts) ? acctFacts.facts : []), ...(Array.isArray(acctFacts.keyed) ? acctFacts.keyed : [])];
           const merged = mergeStatedFacts(acctAll, threadFacts);
-          if (merged.length) ctx.statedFacts = { facts: merged, updatedAt: (ctx.statedFacts && ctx.statedFacts.updatedAt) || acctFacts.updated_at || null };
+          // WO-095: the thread's lastTurn marker (what the previous turn
+          // recorded — the target of a "sorry, I meant X" correction)
+          // is thread state and survives the account seed.
+          const lastTurn = ctx.statedFacts && ctx.statedFacts.lastTurn ? ctx.statedFacts.lastTurn : null;
+          if (merged.length) ctx.statedFacts = Object.assign({ facts: merged, updatedAt: (ctx.statedFacts && ctx.statedFacts.updatedAt) || acctFacts.updated_at || null }, lastTurn ? { lastTurn } : {});
           const offer = acctFacts.offer && typeof acctFacts.offer === "object" ? acctFacts.offer : null;
           if (offer && (offer.firm || offer.amount || offer.deadline)) {
             const mirrorNeg = ctx.trackStore && ctx.trackStore._careerThread && typeof ctx.trackStore._careerThread === "object" ? ctx.trackStore._careerThread.negotiation : null;

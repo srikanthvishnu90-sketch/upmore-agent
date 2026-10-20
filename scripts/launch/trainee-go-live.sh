@@ -25,8 +25,8 @@
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
-#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret)
+#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp, trainee-agent-api
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram, Meta and agent tokens carry no JWT; each checks its own)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
@@ -94,6 +94,7 @@ MIGRATIONS=(
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
   20261022150000_career_apply_authority.sql
+  20261023090700_trainee_agent_api.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -132,6 +133,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_wanted') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
+  "to_regclass('public.trainee_agent_grants') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -302,7 +304,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/trainee-agent-api/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -428,7 +430,8 @@ else
     (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
+  # trainee-agent-api (WO-097) authorizes each call with the agent token the person minted (hashed, checked in the database).
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" trainee-agent-api; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
   done
   ok

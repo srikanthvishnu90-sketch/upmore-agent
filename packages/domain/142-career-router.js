@@ -526,7 +526,9 @@ const CareerRouter = (() => {
     const prev = ctx.discovery && ctx.discovery.lastParams;
     if (!prev) return null;
     const t = lc(text);
-    if (!/\b(i meant|ones too|is fine too|are fine too|either is fine|show me both|what did you find|back to jobs|back to the jobs|anywhere|abt|about|are in too|is in too|in too|also in)\b/.test(t) && !/\bactually\b/.test(t) && !(t.split(/\s+/).length <= 8 && /\b(remote|anywhere|both)\b/.test(t))) return null;
+    // BRUTAL c38 (BL-624): "ok also New York" widened nothing — "also" took only "also in".
+    const alsoM = s(text).match(/\b(?:also|and|plus)\s+(?:in\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*[.!?]*\s*$/);
+    if (!/\b(i meant|ones too|is fine too|are fine too|either is fine|show me both|what did you find|back to jobs|back to the jobs|back to (?:the |my )?(?:internships|roles|search|list)|anywhere|abt|about|are in too|is in too|in too|also in)\b/.test(t) && !/\bactually\b/.test(t) && !alsoM && !(t.split(/\s+/).length <= 8 && /\b(remote|anywhere|both)\b/.test(t))) return null;
     const changes = [];
     let fams = (prev.families || []).slice();
     let roleText = prev.roleText || null;
@@ -540,6 +542,19 @@ const CareerRouter = (() => {
       roleText = `${meantM[1].trim()} roles`;
       changes.push(`the role is ${roleText} now — the earlier wording is replaced, not added`);
     }
+    // BRUTAL c12 (BL-602): "actually data science" — a short role correction without "i meant" re-ran nothing.
+    // Only a short statement (no question) that names a role family counts.
+    const actuallyM = !meantM && t.split(/\s+/).length <= 7 && !/\?|\b(what|how|why|when|where|who|which)\b/.test(t)
+      ? t.match(/\bactually,?\s+(?:i want\s+|make it\s+|switch to\s+|just\s+)?([a-z][a-z /&-]{2,34}?)(?:\s+(?:roles?|jobs?|positions?))?\s*[.!]*$/) : null;
+    if (actuallyM) {
+      const nf = discoveryFamilies(text);
+      if (nf.length) { fams = nf; roleText = `${actuallyM[1].trim()} roles`; changes.push(`the role is ${roleText} now — the earlier wording is replaced, not added`); }
+    }
+    if (alsoM) {
+      const place = alsoM[1].trim();
+      whereText = whereText && lc(whereText) !== lc(place) ? `${whereText} and ${place}` : place;
+      changes.push(`the map widened to include ${place}`);
+    }
     if (/\bboth\b/.test(t) && prev.altRoleText && prev.altRoleText !== roleText) {
       const af = discoveryFamilies(prev.altRoleText + " roles");
       for (const f of af) if (!fams.includes(f)) fams.push(f);
@@ -550,7 +565,7 @@ const CareerRouter = (() => {
     const anyM = t.match(/\banywhere in\s+([a-z ]{3,24}?)(?:\s+works|\s+is fine|[.!?]|$)/) || t.match(/\banywhere in\s+([a-z ]{3,24})/);
     if (anyM) { whereText = anyM[1].trim().replace(/\b\w/g, (ch) => ch.toUpperCase()); changes.push(`the map widened to anywhere in ${whereText}`); }
     if (/\binternships?\b[^.]*\bfine too\b|\binternships are fine\b/.test(t) && !bands.includes("intern")) { bands = bands.concat(["intern"]); changes.push("internships that convert are in alongside the new-grad roles"); }
-    const recapOnly = /\bwhat did you find\b|\bback to (the )?jobs\b/.test(t) && !changes.length;
+    const recapOnly = /\bwhat did you find\b|\bback to (the |my )?(jobs|internships|roles|search|list)\b/.test(t) && !changes.length;
     if (!changes.length && !recapOnly) return null;
     const scopeLine = `Search as it now stands: ${roleText || (fams.length ? fams.map(familyLabel).join(" + ") + " roles" : "your earlier ask")}${whereText ? ` in ${whereText}` : ""}${remote ? ", remote included" : ""}${bands.includes("intern") ? ", internships included" : ""}.`;
     const res = handleDiscovery(text, ctx, { families: fams, bands: bands.length ? new Set(bands) : undefined });
@@ -1017,6 +1032,35 @@ const CareerRouter = (() => {
     const rec = { kind: "ghost_assessment", days_open: days, reposts, verdict: stale ? "low_odds_ghost_flag" : "no_ghost_signals", excluded_from_apply_counts: stale };
     const reply = compose({ headline: stale ? "Ghost-job label: this one reads low-odds, and the odds are stated before you spend an application." : "No ghost signals in what you described.", facts: [`The signals: open ${days != null ? `${days} days` : "an unstated stretch"}${reposts != null ? ` and reposted ${reposts} times` : ""} — a role that stays open that long and keeps reposting is usually a pipeline posting, an already-filled requisition, or a team that cannot close.`, "It is flagged and excluded from the apply count: your applications go to roles with a live decision behind them."], nextStep: "Want the live roles that replaced it in the queue shown instead?" });
     return { intent: "career_assessment", reply, resultStatus: "prepared", sends: 0, payload: rec, artifact: rec };
+  }
+  // BRUTAL c04 (BL-594): a market-pay question ("what's a good salary for a data analyst in Chicago?", "how much do
+  // data analysts make?") fell to the generic fallback. It is answered ONLY from postings on the list that state pay —
+  // the count and the range are the postings' own numbers; with none, it says so and quotes no figure (D-007).
+  function handleMarketPay(text, ctx) {
+    const raw = s(text), t = lc(raw);
+    const m = t.match(/\b(?:what'?s|what is|whats)\s+(?:a\s+)?(?:good|typical|normal|fair|the|average)?\s*(?:salary|pay|comp(?:ensation)?|wage)\s+(?:for|of)\s+(?:an?\s+)?(.+?)(?:\s+in\s+([a-z .]+?))?\s*\??$/)
+      || t.match(/\bhow\s+much\s+(?:do|does|can|would)\s+(?:an?\s+)?(.+?)\s+(?:make|earn|get paid|pay)(?:\s+in\s+([a-z .]+?))?\s*\??$/)
+      || t.match(/\bwhat\s+(?:does|do)\s+(?:an?\s+)?(.+?)\s+(?:make|earn)(?:\s+in\s+([a-z .]+?))?\s*\??$/)
+      || t.match(/\b(?:salary|pay)\s+range\s+for\s+(?:an?\s+)?(.+?)(?:\s+in\s+([a-z .]+?))?\s*\??$/);
+    if (!m) return null;
+    const role = m[1].replace(/^(actually|ok|so)\s+/, "").replace(/\s+(roles?|jobs?|positions?)$/, "").trim();
+    const place = m[2] ? m[2].trim() : null;
+    if (!role || role.split(/\s+/).length > 6) return null;
+    const words = role.split(/\s+/).map((w) => w.replace(/s$/, "")).filter((w) => w.length > 2);
+    const priced = postingsFromCtx(ctx).filter((p) => {
+      const title = lc(p.title || "");
+      const lo = p.salary_min ?? p.comp_min ?? null, hi = p.salary_max ?? p.comp_max ?? null;
+      return (lo != null || hi != null) && words.every((w) => title.includes(w)) && (!place || lc(p.location || "").includes(place));
+    });
+    const label = `${role}${place ? ` in ${place.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""}`;
+    if (!priced.length) {
+      const reply = compose({ headline: `I don't have a sourced pay figure for ${label}.`, facts: ["Pay here comes only from postings that state it, and none on the current list match — so I won't quote a number I can't point to.", "When you have an offer or a posting with a range, paste it and I'll work from its own numbers."], nextStep: "Want me to find roles with posted pay instead, or keep going with your search?" });
+      return { intent: "market_pay", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const los = priced.map((p) => p.salary_min ?? p.comp_min ?? p.salary_max ?? p.comp_max), his = priced.map((p) => p.salary_max ?? p.comp_max ?? p.salary_min ?? p.comp_min);
+    const fmt = (n) => `$${Math.round(n).toLocaleString()}`;
+    const reply = compose({ headline: `Posted pay for ${label}: ${fmt(Math.min(...los))} to ${fmt(Math.max(...his))}.`, facts: [`From ${priced.length} posting${priced.length === 1 ? "" : "s"} on the current list that state pay — e.g. ${priced.slice(0, 2).map((p) => `${p.title} at ${p.company}`).join("; ")}. That is what those postings say, not a market survey.`], nextStep: "Want those roles listed, or back to your search?" });
+    return { intent: "market_pay", reply, resultStatus: "completed", sends: 0 };
   }
   function handleSalaryFilter(text, ctx) {
     const profile = ctx.profile;
@@ -4642,8 +4686,9 @@ const CareerRouter = (() => {
     const now = nowOf(ctx);
     const DAY = 86400000;
     if (/\byesterday\b/.test(t)) return new Date(now - DAY).toISOString();
-    const ago = t.match(/\b(\d+)\s+days? ago\b/);
-    if (ago) return new Date(now - Number(ago[1]) * DAY).toISOString();
+    // BRUTAL c17: number words count too ("two days ago" fell through to today).
+    const ago = t.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+days? ago\b/);
+    if (ago) { const n = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }[ago[1]] || Number(ago[1]); return new Date(now - n * DAY).toISOString(); }
     const wago = t.match(/\b(\d+|one|two|three|four)\s+weeks? ago\b/);
     if (wago) { const n = { one: 1, two: 2, three: 3, four: 4 }[wago[1]] || Number(wago[1]); if (n) return new Date(now - n * 7 * DAY).toISOString(); }
     if (/\blast week\b/.test(t)) return new Date(now - 7 * DAY).toISOString();
@@ -4709,6 +4754,22 @@ const CareerRouter = (() => {
     const store = trackStoreOf(ctx);
     if (!store || !Track || !Track.findByCompany) return null;
     const raw = s(text);
+    // BRUTAL c17 (BL-633): correcting WHEN — "actually it was two days ago" right after a row was logged fell to the
+    // fallback and the row kept the wrong date. A correction cue plus a date phrase, with no company named, moves the
+    // date on the thread's most recent row; the old date stays on the row's history, in the user's words.
+    const cue = /\b(actually|sorry|wait|correction|i meant|my bad|no,?\s+it was)\b/i.test(raw);
+    const datePhrase = /\b(yesterday|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+days? ago|(?:\d+|one|two|three|four)\s+weeks? ago|last week|last (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i.test(raw);
+    const rows = Array.isArray(store.rows) ? store.rows : [];
+    if (cue && datePhrase && rows.length && !/\b(applied|apply)\s+to\s+[A-Z]/.test(raw)) {
+      const row = rows[rows.length - 1];
+      const from = String(row.applied_at || "").slice(0, 10);
+      const at = appliedDateOf(raw, ctx);
+      row.applied_at = at;
+      if (Array.isArray(row.events) && row.events[0] && row.events[0].type === "applied") row.events[0].at = at;
+      row.events = [...(row.events || []), { type: "correction", at: new Date(nowOf(ctx)).toISOString(), source: "user-reported", detail: `applied date corrected from ${from} to ${at.slice(0, 10)} — the user's words: "${raw.slice(0, 120)}"` }];
+      const reply = compose({ headline: `Fixed — ${row.company} now reads applied ${at.slice(0, 10)}.`, facts: [`The date was ${from}; the correction sits on the row's history, in your words.`], nextStep: "Anything else on that record to change?" });
+      return emitTrack(ctx, { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, application: row }, { company: row.company, stage: row.stage, event_type: "manual_update", note: "user correction of the applied date" });
+    }
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
     let newCo = null, oldCo = null;
     let m = raw.match(new RegExp(`\\b(?:it was|that was|i meant|actually it'?s|actually it is)\\s+${cap}\\s*,?\\s+not\\s+${cap}`, "i"));
@@ -5904,7 +5965,8 @@ const CareerRouter = (() => {
     if (/\bhours a week\b|\btime budget\b|\bhow much time\b/.test(t)) return "time_budget_plan";
     if (/\bmentor\b/.test(t)) return "mentor_source";
     if (/\bsuspicious\b|\bscam\b|\btoo good to be true\b|\blegit\b/.test(t)) return "suspicious_posting";
-    if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers|to)\b|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
+    // BRUTAL c21 (BL-610): "switch to market sizing" in a prep thread is a drill switch, not a career switch.
+    if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers)\b|\bswitch(ing)? to\b(?!\s+(?:an?\s+|the\s+)?(?:market[- ]sizing|sizing|estimation|fermi|dcf|lbo|behaviou?ral|case|cases|technicals?|coding|brain ?teasers?|probability|mental math|another question|a different question|questions?)\b)|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
     if (/\btake my job\b|\bai\b[^.]*\btrend\b|\btrend\b/.test(t)) return "trend_scope";
     if (/\bhow few\b|\bthin\b|\bsmall sample\b|\bvc seats\b/.test(t)) return "thin_sample";
     if (/\bskill gap\b|\bprereqs?\b|\bmcat\b|\bclearance\b|\bwhat (skills|do i need)\b/.test(t)) return "skill_gap_plan";
@@ -7763,7 +7825,13 @@ const CareerRouter = (() => {
       || s(text).match(/\bnever\s+(?:email|contact|message)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/i)
       || s(text).match(/\b(?:don'?t|do not)\s+(?:email|contact|message)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+again\b/i)
       || s(text).match(/\bremove\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+from\b[^.]*\b(list|outreach)\b/i);
-    if (m) name = m[1];
+    // BRUTAL BL-632: the name patterns are case-insensitive (for "Never …"), so "never email her again" captured
+    // "her again" as a name. A captured name is cut at its first word that is not a name; none left = a pronoun.
+    if (m) {
+      const words = m[1].split(/\s+/);
+      const cut = words.findIndex((w) => /^(her|him|them|me|us|you|it|anyone|anybody|everyone|everybody|someone|somebody|nobody|people|again|ever|anymore|please|now)$/i.test(w));
+      name = (cut === -1 ? words : words.slice(0, cut)).join(" ") || null;
+    }
     const pronoun = !name && (/\b(take|remove|drop|pull)\s+(her|him|them)\s+off\b/.test(t)
       || /\bnever\s+(email|contact|message)\s+(her|him|them)\b/.test(t)
       || /\bnobody\b[^.]*\b(emails?|contacts?|messages?)\s+(her|him|them)\b/.test(t)
@@ -8366,7 +8434,13 @@ const CareerRouter = (() => {
     if (!t) return null;
     const profile = c.profile || null;
     syncThreadIn(c);
-    capturePastedPosting(text, c);
+    const staged = capturePastedPosting(rawText, c);
+    if (staged && staged.explicit && !/\b(tailor|fit|apply|eligib|qualif|cover letter|resume|draft)\b/.test(t)) {
+      const what = staged.title ? `${staged.title}${staged.company ? ` at ${staged.company}` : ""}` : "the role you pasted";
+      const facts = [staged.requirements && staged.requirements.length ? `Its requirements, as written: ${staged.requirements.join(", ")}.` : "I have its text as you pasted it.", "Nothing is applied for or sent from a pasted posting — it is on hand for a fit check or a tailored resume."];
+      const reply = compose({ headline: `Got the posting: ${what}.`, facts, nextStep: "Want me to check your fit against it, or tailor your resume to it?" });
+      return { intent: "posting_staged", reply, resultStatus: "awaiting_user", sends: 0, posting: staged };
+    }
     // LANE A v2: the stated-facts capture is a RECORD, so it reads the
     // user's original words — detypo's routing copy rewrites any word
     // within one edit of the route vocabulary ("Networks" is one edit
@@ -9135,7 +9209,8 @@ const CareerRouter = (() => {
     }
     // COMPLEXITY WAVE (BUG-173): single-question and night-before
     // prep asks route on their own shapes, ahead of the extras gate.
-    if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
+    // BRUTAL c21 (BL-610): "switch to market sizing" / "let's do a case" — a drill switch is a prep ask too.
+    if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b|\b(?:switch(?:ing)? to|let'?s do|let'?s try|try|now|next)\s+(?:an?\s+)?(?:market[- ]sizing|sizing|estimation|fermi|dcf|lbo|behaviou?ral|case|technical)\b/.test(t)) {
       const ps = handlePrepSession(text, c);
       if (ps) return ps;
       const pq = handlePrepQuestion(text, c);
@@ -9434,6 +9509,8 @@ const CareerRouter = (() => {
       // the stored search before any fresh-ask route can misread it.
       const dd = handleDiscoveryDelta(text, c);
       if (dd) return dd;
+      const mp = handleMarketPay(text, c);
+      if (mp) return mp;
     }
     if (/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t)) {
       // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — a
@@ -9511,7 +9588,7 @@ const CareerRouter = (() => {
   // by a later statement or an explicit correction ("make it Chicago
   // not New York"), never accumulated into a contradiction.
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role"]);
+  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "target_field"]);
   // LANE A (conversation depth, battery memory class 0/60 on v238):
   // KEYED conversation facts — a fact ABOUT one company (the recruiter
   // contact there, the hiring manager, the interview day, a role
@@ -9685,7 +9762,14 @@ const CareerRouter = (() => {
       // (BUG-169), so a one-token value slot is safe here.
       const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})";
       const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
-      const cleanCo = (v) => s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+      // BRUTAL BL-673: the frames below are case-insensitive for their keywords, which let CO run on into lowercase
+      // words ("my target firm is Northwind Ledger and my recruiter contact there is Dana" keyed the contact to
+      // "northwind ledger and"). A company name is its leading run of capitalised words.
+      const cleanCo = (v) => {
+        const words = s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim().split(/\s+/);
+        const cut = words.findIndex((w) => !/^[A-Z0-9&]/.test(w));
+        return (cut === -1 ? words : words.slice(0, cut)).join(" ");
+      };
       const turnCompany = () => {
         const pats = [
           new RegExp(`\\btarget\\s+(?:company|firm|bank|shop|employer)\\s+is\\s+${CO}`, "i"),
@@ -9736,6 +9820,13 @@ const CareerRouter = (() => {
       if ((m = u.match(new RegExp(`\\bmy\\s+dream\\s+role\\s+is\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+at\\s+${CO}`, "i"))) && asserted(m.index)) {
         push("target_role", m[1].trim(), m[0]);
         push("target_firm", cleanCo(m[2]), m[0]);
+      }
+      // BRUTAL c41 (BL-627): the field the person wants — "I want investment banking", "I'm interested in consulting" —
+      // had no frame, so a profile-building thread fell to the fallback on its most important fact. A statement only:
+      // a turn that also asks for something (find, show, apply, help…) keeps its own route.
+      if ((m = u.match(/\b(?:i\s+(?:want|wanna|would like)|i'?m\s+(?:interested in|into|aiming for|going for)|i\s+am\s+(?:interested in|aiming for))\s+(?:to\s+(?:do|go into|get into|work in|break into)\s+)?(investment banking|private equity|venture capital|management consulting|consulting|software engineering|data science|data analytics|data analysis|product management|product design|marketing|finance|accounting|tech|quant(?:itative)? (?:trading|research)|trading|sales and trading|equity research|law|medicine|nursing|teaching|real estate|healthcare)\b/i))
+        && asserted(m.index) && !/\?|\b(find|show|search|apply|get me|help me|list|send|draft|prep|tailor|where|how|what|should)\b/i.test(u)) {
+        push("target_field", m[1].toLowerCase(), m[0]);
       }
       // Per-company preference: "for <Co> I only want <Role> roles
       // in <City>".
@@ -10021,7 +10112,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, target_field: `you want ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -10243,6 +10334,35 @@ const CareerRouter = (() => {
       const reply = compose({ headline: company ? `Here is what I have on record about your ${company} plans — your words, as stated.` : "Here is what I have on record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
       return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
     }
+    // (e) BRUTAL BL-669 (Telegram battery): "What firm did I say I'm targeting, and who is my contact there?" — a
+    // question about the person's OWN earlier words, asking for one or more fact kinds. It claims the turn only as a
+    // "did I say / did I tell you" question or a "my contact there" question; every kind it names is answered from
+    // the record, and a kind with nothing on record is said to be empty, never guessed.
+    const ownWords = /\b(what|which|who|where|when)\b[^?]*\bdid\s+i\s+(say|tell\s+you|mention|give\s+you|say\s+i'?m)\b/.test(t)
+      || /\bwho\s+is\s+my\s+(contact|recruiter(?:\s+contact)?)\s+there\b/.test(t);
+    if (ownWords) {
+      const wanted = [];
+      if (/\b(firm|company|bank|employer|targeting|target)\b/.test(t)) wanted.push("target_firm");
+      if (/\b(contact|recruiter)\b/.test(t)) wanted.push("recruiter_contact");
+      if (/\bhiring\s+manager\b/.test(t)) wanted.push("hiring_manager");
+      if (/\binterview\b/.test(t)) wanted.push("interview_day");
+      if (/\b(school|college|university)\b/.test(t)) wanted.push("school");
+      if (/\b(major|study|studying)\b/.test(t)) wanted.push("majors");
+      if (/\b(city|where|location)\b/.test(t)) wanted.push("geography");
+      if (!wanted.length) return null;
+      const lines = [], missing = [];
+      for (const kind of wanted) {
+        const hits = all.filter((f) => f.kind === kind);
+        // Keys are stored lowercased for matching; read back with the casing the person used for that firm.
+        const firmCase = (k) => { const tf = all.find((x) => x.kind === "target_firm" && lc(x.value) === lc(k || "")); return tf ? tf.value : k; };
+        if (hits.length) for (const f of hits) lines.push(`${factLine(f.key ? Object.assign({}, f, { key: firmCase(f.key) }) : f).replace(/^./, (c) => c.toUpperCase())}.`);
+        else missing.push({ target_firm: "a target firm", recruiter_contact: "a recruiter contact", hiring_manager: "a hiring manager", interview_day: "an interview day", school: "a school", majors: "a major", geography: "a city" }[kind]);
+      }
+      if (!lines.length && early) return null;
+      if (missing.length) lines.push(`Not on your record in this conversation: ${missing.join(", ")} — nothing is assumed to fill it.`);
+      const reply = compose({ headline: "From your record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: lines.length > missing.length ? "completed" : "awaiting_user", sends: 0 };
+    }
     return null;
   }
   // LANE A (conversation depth): a BARE ACKNOWLEDGMENT ("ok thanks")
@@ -10334,8 +10454,10 @@ const CareerRouter = (() => {
   // is never invented to fill the gap.
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
-    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t)) return null;
-    if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
+    // BRUTAL c09: "do I fit?" about a staged posting is the same grading ask.
+    const fitAsk = /\b(do i fit|am i a (good )?fit|good fit for (me|it|this)|do i match|how do i match|check my fit)\b/.test(t) && !!ctx.posting;
+    if (!fitAsk && !/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t)) return null;
+    if (!fitAsk && !/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null; // someone else's eligibility is not graded from this record
@@ -10359,6 +10481,12 @@ const CareerRouter = (() => {
     // empty, the synthesis rebuilds the text FROM that array and
     // silently drops the real JD (the license sentence with it).
     const jdText = s(ctx.jdText || (posting ? (posting.jd_text || jdTextForPosting(posting)) : "") || ctx.jd || (s(text).length > 500 ? s(text) : ""));
+    // BRUTAL c09: the posting is in hand but the person's record is not — say exactly that, never "no posting".
+    if (jdText && !profile && posting) {
+      const what = posting.title ? `${posting.title}${posting.company ? ` at ${posting.company}` : ""}` : "the posting you gave me";
+      const reply = compose({ headline: `I have ${what} — what I don't have yet is your record to grade against it.`, facts: [`Fit is graded requirement by requirement against your confirmed experience, education and skills${posting.requirements && posting.requirements.length ? ` (this one asks for ${posting.requirements.join(", ")})` : ""}, and none are on file yet — so no verdict is guessed.`], nextStep: "Paste your resume, or tell me your experience in your own words, and I'll grade it right away." });
+      return { intent: "eligibility_check", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
     if (jdText && profile && Tailor) {
       try {
         const jd = Tailor.parseJD(jdText);
@@ -10979,7 +11107,7 @@ const CareerRouter = (() => {
           }
         }
       }
-      const reply = compose({ headline: `Noted — a ${ev === "oa" ? "assessment" : ev} landed. Which application is it for?`, facts: facts0, nextStep: "Name the company and the row moves in the same turn, from your words." });
+      const reply = compose({ headline: `Noted — ${({ offer: "an offer", interview: "an interview", rejected: "a rejection", oa: "an assessment", confirmed: "a confirmation" })[ev] || "an update"} landed. Which application is it for?`, facts: facts0, nextStep: "Name the company and the row moves in the same turn, from your words." });
       return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, stage: ev };
     }
     // Read-back before the claim: the stage spoken is the row's own.
@@ -11172,6 +11300,21 @@ const CareerRouter = (() => {
     const c = ctx || {};
     if (c.posting && c.posting.source === "user_pasted") return;
     const raw = s(text);
+    // BRUTAL c09 (BL-599): an unquoted paste — "here's the posting: Data Analyst Intern, Acme Analytics.
+    // Requirements: …" — was never staged, and the outreach route read it as a list of "interns" to email.
+    const explicitM = raw.match(/^\s*(?:ok\s+|so\s+)?(?:here'?s|here is|this is)\s+(?:the|a|my)?\s*(?:posting|job description|jd|job post|listing|role)\s*[:\-—]\s*([\s\S]{20,4000})$/i);
+    if (explicitM && /\b(requirements?|responsibilities|you will|qualifications|must have|nice to have)\b/i.test(explicitM[1])) {
+      const body = explicitM[1].trim();
+      const head = body.split(/\.\s|\n/)[0];
+      const hm = head.match(/^\s*(.{3,70}?)\s*(?:,|\s+at\s+|\s+[—–-]\s+)\s*([A-Z][A-Za-z0-9&. ]{1,40}?)\s*$/);
+      const posting = { source: "user_pasted", jd_text: body.slice(0, 4000), pasted_at: new Date(nowOf(c)).toISOString(), explicit: true };
+      if (hm) { posting.title = hm[1].trim(); posting.company = hm[2].trim(); }
+      const req = body.match(/\brequirements?\s*:\s*([^.\n]+)/i);
+      if (req) posting.requirements = req[1].split(/,|;|\band\b/).map((x) => x.trim()).filter(Boolean);
+      c.posting = posting;
+      c.pastedText = body.slice(0, 4000);
+      return posting;
+    }
     const qm = raw.match(/['"]([\s\S]{80,4000}?)['"]/);
     if (!qm) return;
     const quoted = qm[1];

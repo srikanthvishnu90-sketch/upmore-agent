@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trainee apply</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header><h1>Trainee apply</h1><span id="who"></span></header>
+
+  <section id="signin" hidden>
+    <p>Sign in to Upmore. The extension keeps only your session, in memory, until the browser closes. It never asks for or keeps a password.</p>
+    <button id="use-app">Use my Upmore sign-in</button>
+    <p class="small">Open the Upmore app in a tab and sign in there first. Or get a sign-in link by email:</p>
+    <div class="row"><input id="email" type="email" placeholder="you@example.com" autocomplete="email"><button id="magic">Email me a link</button></div>
+    <p id="signin-msg" class="msg"></p>
+  </section>
+
+  <section id="setup" hidden>
+    <div class="row"><span>Resume: <b id="resume-name">none yet</b></span><label class="file">Choose file<input id="resume" type="file" accept=".pdf,.doc,.docx,.txt"></label></div>
+    <div class="row"><span class="small">Your confirmed answers come from what you told Trainee. <span id="facts-count"></span></span><label class="file small">Import facts file<input id="facts" type="file" accept=".json"></label></div>
+  </section>
+
+  <section id="page" hidden>
+    <div class="row"><b>This page</b><button id="fill">Fill this application</button></div>
+    <p id="status" class="msg"></p>
+    <ol id="card"></ol>
+    <button id="approve" class="primary" disabled>Approve and submit</button>
+    <p id="result" class="msg"></p>
+  </section>
+
+  <section id="queue-box" hidden>
+    <div class="row"><b>Queue</b><span id="queue-progress" class="small"></span></div>
+    <textarea id="links" rows="4" placeholder="Paste posting links, one a line"></textarea>
+    <div class="row wrap">
+      <button id="q-add">Add links</button><button id="q-tabs">Add open tabs</button><button id="q-matches">Add Trainee's matches</button>
+    </div>
+    <div class="row wrap"><button id="q-start" class="primary">Start</button><button id="q-skip">Skip this one</button><button id="q-stop">Stop</button><button id="q-clear">Clear</button></div>
+    <ol id="queue" class="small"></ol>
+    <p id="q-msg" class="msg"></p>
+  </section>
+
+  <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button></footer>
+  <script src="config.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>

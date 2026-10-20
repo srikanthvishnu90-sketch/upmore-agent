@@ -164,6 +164,10 @@ const SPLIT = /\s*[;,\n]\s*/;
 function byMeaning(f: FormField, company: string, answers: Record<string, Answer>): Answer | null {
   const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
   if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+  // The person's own contact and identity facts never answer a question about someone else, by meaning either
+  // ("Phone number of the person referring you"; WO-031, tests/fixtures/extension/answer-key.json).
+  // (The person's own answer about their references is theirs to give: the references fact is exempt.)
+  if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
   let a: Answer | undefined;
   if (m.fact === "worked_here_before" && answers.former_employers) {
     const co = normCompany(company);
@@ -187,6 +191,10 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
   return { value: String(a.value), factId: a.factId };
 }
 
+// A follow-up ("If no, please describe...", "If you selected Other...") depends on another answer on the form: a fact never
+// answers it ("If no, describe your work authorization" is not the authorization itself). Only an answer the person gave
+// for that wording fills it; otherwise it is left (optional) or asked (required). WO-031.
+const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
   const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[] }>();
@@ -200,14 +208,15 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       const key = classifyField(f.label, f.type);
+      const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).
       const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
-        (key !== "unknown" && key !== "eeo" ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+        (key !== "unknown" && key !== "eeo" && !followUp ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
-      if (value === null && !direct) {
+      if (value === null && !direct && !followUp) {
         const m = byMeaning(f, p.company, o.answers);
         if (m) { a = m; value = m.value; }
       }

@@ -7,7 +7,7 @@
 // answers are rebuilt from the approved payload itself, so the engine reproduces the same application or stops it
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
-import { answerKey, mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
+import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -115,43 +115,9 @@ export function factsFromPayload(payload: any) {
   return { user_id: payload.user_id, answers: {}, saved };
 }
 
-// Ask once: the answers the person texted, as the engine's confirmed facts for the next preparation. A fact for every
-// employer goes under the fact's name (their own facts file wins when it states the same fact); an answer for one wording
-// or one posting goes under its key, which planBatch reads for that question only. Each is marked as a texted answer.
-export interface TextAnswer { id: string; key: string; kind: string; answer: string }
-export function factsWithTextAnswers(facts: any, rows: TextAnswer[]) {
-  const answers = { ...(facts?.answers || {}) }, saved = { ...(facts?.saved || {}) };
-  for (const r of rows || []) {
-    if (!r || typeof r.answer !== "string" || !r.answer.trim() || typeof r.key !== "string") continue;
-    const a = { value: r.answer, factId: `text-answer:${r.id}`, confirmed: true };
-    if (r.key.startsWith("fact:")) {
-      const f = r.key.slice(5);
-      if (!Object.hasOwn(answers, f)) answers[f] = a;
-    } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key)) saved[r.key] = a;
-  }
-  return { ...facts, answers, saved };
-}
-
-// The questions that stopped one preparation, as rows to ask by text: keyed by how far an answer may travel (a stated fact
-// that did not fit this form is asked for this posting only), never one asking for an identity, bank or card number or a
-// password, and marked misfit when a question already answered came back because this form's options do not fit.
-export function questionsToStore(result: any, o: { facts: Record<string, unknown>; answered: Set<string> }) {
-  const posting = String(result?.posting || "");
-  const out = new Map<string, Record<string, unknown>>();
-  if (!posting) return { posting, questions: [] as Record<string, unknown>[] };
-  for (const q of Array.isArray(result?.questions) ? result.questions : []) {
-    const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
-    if (!label || NEVER_BY_TEXT.test(label)) continue;
-    const options = (Array.isArray(q.options) ? q.options : []).map((x: unknown) => String(x).slice(0, 300)).slice(0, 60);
-    const type = String(q.type || "input_text").slice(0, 40);
-    const shape = { label, type, options: options.map((l: string) => ({ label: l })) };
-    const m = mapQuestion(shape);
-    const key = answerKey(shape, posting, { haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact) });
-    if (out.has(key)) continue;
-    out.set(key, { key, kind: m.kind, label, type, options, company: result?.company ? String(result.company).slice(0, 200) : null, misfit: o.answered.has(key) });
-  }
-  return { posting, questions: [...out.values()] };
-}
+// Ask once and the service-key check live in ask-once.ts, shared with the browser extension (WO-031).
+import { factsWithTextAnswers, jwtRole, questionsToStore, type TextAnswer } from "./ask-once.ts";
+export { factsWithTextAnswers, jwtRole, questionsToStore, type TextAnswer };
 
 export async function runApproved(d: {
   claim: () => Promise<Job[]>;
@@ -440,17 +406,6 @@ async function signedInClient(cmd: string): Promise<any> {
     Deno.exit(2);
   }
   return client;
-}
-
-// The role a Supabase key or session token claims, read from its payload without verifying it: used only to refuse a
-// service key on a person's computer. Anything unreadable has no role.
-export function jwtRole(token: string): string | null {
-  try {
-    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(part + "=".repeat((4 - part.length % 4) % 4))).role ?? null;
-  } catch {
-    return null;
-  }
 }
 
 // Command line, for the owner's own machine (the first cohort): prepare one posting, or run one approved payload.

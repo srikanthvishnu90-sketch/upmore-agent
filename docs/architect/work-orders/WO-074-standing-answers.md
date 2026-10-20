@@ -54,7 +54,7 @@ like any saved answer under its class key.
 - Every input starts empty. The statement is composed only from the person's own picks, and refused unless complete.
 
 **Store.**
-- Migration `20261022120000_career_apply_standing_answers.sql` widens the key check and
+- Migration `20261022120200_career_apply_standing_answers.sql` widens the key check and
   `career_apply_questions_answer_from_form_own` to the four class keys. Nothing else changes.
 - `factsWithTextAnswers` reads `standing:` rows into `saved`.
 

@@ -10,7 +10,7 @@ import { factsWithTextAnswers } from "../../workers/career-browser/ask-once.ts";
 import { standingClass } from "../../supabase/functions/_shared/question_map.ts";
 import { parseStanding, postingCountryName, STANDING_INPUTS, standingSummary } from "../../supabase/functions/_shared/standing_answers.ts";
 import PANEL from "../../extension/panel.js" with { type: "text" };
-import MIGRATION from "../../supabase/migrations/20261022120000_career_apply_standing_answers.sql" with { type: "text" };
+import MIGRATION from "../../supabase/migrations/20261022120200_career_apply_standing_answers.sql" with { type: "text" };
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);

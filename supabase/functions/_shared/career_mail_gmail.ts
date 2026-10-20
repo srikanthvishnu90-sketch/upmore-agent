@@ -7,6 +7,9 @@ import type { MailIn } from "./career_mail.ts";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
 export const CAREER_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+// WO-032: the same career grant carries gmail.send (gmail-oauth start_career); it is used only to send an application the
+// person approved word for word (career_apply_email.ts), never anything else.
+export const CAREER_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 
 export type ReadResult =
   | { status: "ok"; mails: MailIn[]; readThrough: number; listed: number }
@@ -73,14 +76,16 @@ export async function readMailSince(
   const mails: MailIn[] = [];
   let through: number | null = null;
   for (const id of todo.slice(0, maxMessages)) {
-    const url = `${API}/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&fields=id,internalDate,snippet,payload/headers`;
+    const url = `${API}/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Authentication-Results&fields=id,internalDate,snippet,payload/headers`;
     const got = await get(d, url, token);
     if ("limited" in got) return { status: "RATE_LIMITED", mails, readThrough: through, listed: ids.length, retryAfterMs: got.limited };
     if (got.r.status === 404) continue; // deleted since it was listed
     if (!got.r.ok) return { status: "ERROR", detail: `read a message: HTTP ${got.r.status}`, mails, readThrough: through, listed: ids.length };
     const msg = await got.r.json().catch(() => null);
     const at = Number(msg?.internalDate) || Date.parse(header(msg, "Date")) || nowMs;
-    mails.push({ hash: await messageHash(userId, id), from: header(msg, "From"), subject: header(msg, "Subject"), snippet: String(msg?.snippet ?? ""), date: new Date(at).toISOString() });
+    // Every Authentication-Results header, in order: only the first (Gmail's own) is ever trusted (career_mail.ts).
+    const auth = (msg?.payload?.headers ?? []).filter((h: any) => String(h?.name ?? "").toLowerCase() === "authentication-results").map((h: any) => String(h?.value ?? "")).slice(0, 5);
+    mails.push({ hash: await messageHash(userId, id), from: header(msg, "From"), subject: header(msg, "Subject"), snippet: String(msg?.snippet ?? ""), date: new Date(at).toISOString(), auth });
     through = Math.max(through ?? 0, at);
   }
   const all = todo.length <= maxMessages;
@@ -89,8 +94,9 @@ export async function readMailSince(
 
 // ------------------------------------------------------------------------------------------------ the token
 // The career grant's access token, refreshed when it is about to expire and written back to the vault. Returns null (so
-// the read is NOT_WIRED) when the person has no career grant, it lacks gmail.readonly, there is no refresh token, the
-// OAuth client is not configured, or Google says the grant was revoked.
+// the read is NOT_WIRED) when the person has no career grant, it lacks the scope asked for (gmail.readonly unless the
+// caller asks for gmail.send), there is no refresh token, the OAuth client is not configured, or Google says the grant was
+// revoked.
 export interface TokenDeps {
   connection: (userId: string) => Promise<{ vault_name: string; scopes?: string | string[] | null } | null>;
   readVault: (name: string) => Promise<string | null>;
@@ -129,4 +135,60 @@ export function careerTokenFor(d: TokenDeps, scope: string): (userId: string) =>
     await d.writeVault(name, JSON.stringify({ ...tok, access_token: nt.access_token, refresh_token: nt.refresh_token || tok.refresh_token, expires_at: d.now() + (Number(nt.expires_in) || 3600) * 1000 }));
     return String(nt.access_token);
   };
+}
+
+// ------------------------------------------------------------------------------------------------ sending (WO-032)
+// One message, to one recipient, from the person's own Gmail (users.messages.send): To and Subject only, never Cc or Bcc,
+// the text and one attachment. The caller has the person's yes to exactly this payload; this only refuses what no
+// approved payload may hold (a second address, a header break). No token: NOT_WIRED and nothing is sent. Gmail's own 4xx
+// refusal means nothing went (REFUSED); a network failure or a 5xx may have sent it (UNKNOWN), and it is never retried.
+export type SendResult =
+  | { status: "sent"; idHash: string }
+  | { status: "NOT_WIRED"; reason: string }
+  | { status: "REFUSED"; detail: string }
+  | { status: "UNKNOWN"; detail: string };
+export interface OutMail { to: string; subject: string; body: string; attachment?: { filename: string; bytes: Uint8Array; mime?: string } | null }
+export const ONE_ADDRESS = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+const b64 = (bytes: Uint8Array) => {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+const lines76 = (s: string) => s.replace(/.{1,76}/g, "$&\r\n").replace(/\r\n$/, "");
+const utf8 = (s: string) => new TextEncoder().encode(s);
+const encodedWord = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(utf8(s))}?=`);
+// The only attachment types an application carries: a PDF or a Word document. Anything else (or a value carrying a line
+// break, which would start a MIME part of its own) is refused.
+export const ATTACHMENT_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+export function mimeOf(m: OutMail, boundary = "trainee-application-boundary"): string {
+  if (!ONE_ADDRESS.test(m.to)) throw new Error("one recipient only");
+  if (m.attachment && !ATTACHMENT_TYPES.includes(m.attachment.mime ?? "application/pdf")) throw new Error("an attachment is a PDF or a Word document");
+  if (/[\r\n]/.test(m.subject)) throw new Error("a header may not break a line");
+  const name = String(m.attachment?.filename ?? "").replace(/["\\\r\n]/g, "").slice(0, 120) || "resume.pdf";
+  const parts = [
+    `To: ${m.to}`, `Subject: ${encodedWord(m.subject)}`, "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`, "", `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", lines76(b64(utf8(m.body))),
+  ];
+  if (m.attachment) {
+    parts.push(`--${boundary}`, `Content-Type: ${m.attachment.mime ?? "application/pdf"}; name="${name}"`,
+      `Content-Disposition: attachment; filename="${name}"`, "Content-Transfer-Encoding: base64", "", lines76(b64(m.attachment.bytes)));
+  }
+  parts.push(`--${boundary}--`, "");
+  return parts.join("\r\n");
+}
+export async function sendMail(d: { fetch: typeof fetch; token: (userId: string) => Promise<string | null> }, userId: string, m: OutMail): Promise<SendResult> {
+  const raw = b64(utf8(mimeOf(m))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const token = await d.token(userId);
+  if (!token) return { status: "NOT_WIRED", reason: "no career Google grant that may send" };
+  let r: Response;
+  try {
+    r = await d.fetch(`${API}/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw }) });
+  } catch (e) {
+    return { status: "UNKNOWN", detail: `send: ${e instanceof Error ? e.message : String(e)}` };
+  }
+  if (r.status >= 400 && r.status < 500) return { status: "REFUSED", detail: `send: HTTP ${r.status}` };
+  if (!r.ok) return { status: "UNKNOWN", detail: `send: HTTP ${r.status}` };
+  const body = await r.json().catch(() => ({}));
+  return { status: "sent", idHash: await messageHash(userId, String((body as any)?.id ?? "")) };
 }

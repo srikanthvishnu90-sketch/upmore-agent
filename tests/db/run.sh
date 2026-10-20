@@ -159,9 +159,14 @@ done
 # WO-036: hired-candidate background aggregates and the PDL credit log. Idempotent: applied twice.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
+# WO-032 apply operations (source, email confirmation, the gate, apply by email, questions pushed, the card push's busy
+# check). After every migration it redefines or widens, the channel parity's card push and outbox lists included;
+# applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -221,6 +226,20 @@ echo "== career_brief_digest.test.sql (interviews and the weekly digest: own rea
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 echo "== channel_parity.test.sql (WhatsApp and Telegram beside iMessage: per channel, held, linked only on a yes or a one-time link)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_parity.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The latest migration re-applied last, as production ends (the channel parity re-run above set the outbox lists without
+# 'questions').
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
+echo "== career_apply_ops.test.sql (who drove it, confirmed only by email, the gate, apply by email, questions pushed)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_ops.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The test database is SQL_ASCII; production is UTF8. career_text_spaces (the questions push compares labels with it) is
+# checked in a UTF8 database of its own: a no-break and a narrow no-break space read as plain spaces.
+echo "== career_text_spaces in a UTF8 database"
+"${PSQL[@]}" -c "create database wo032_utf8 encoding 'UTF8' template template0 lc_collate 'C' lc_ctype 'C'"
+sed -n '/^create or replace function public.career_text_spaces/,/^end \$\$;/p' "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql" \
+  | "$PGBIN/psql" -X -q -v ON_ERROR_STOP=1 -h "$WORK" -p "$PORT" -U postgres -d wo032_utf8 -f -
+U8="$("$PGBIN/psql" -X -q -t -A -h "$WORK" -p "$PORT" -U postgres -d wo032_utf8 -c "select public.career_text_spaces(E'Are you 18\u00a0or\u202folder?  ') = 'Are you 18 or older?'")"
+[[ "$U8" == t ]] || { echo "FAIL career_text_spaces does not read Unicode spaces as plain spaces in UTF8"; exit 1; }
+echo "  ok   a no-break and a narrow no-break space read as plain spaces"
 # The mail erase trigger sits on career_watch_kv, so the ledger above applied it once; it must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021090000_career_mail_erase.sql"
 echo "== career_mail_erase.test.sql (an erase deletes the mail events and drafts; nobody else's)"

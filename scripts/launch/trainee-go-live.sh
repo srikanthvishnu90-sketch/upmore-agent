@@ -80,6 +80,7 @@ MIGRATIONS=(
   20261021030000_career_hired_backgrounds.sql
   20261021050000_career_brief_digest.sql
   20261021070000_channel_parity.sql
+  20261021075000_career_apply_ops.sql
   20261021090000_career_mail_erase.sql
 )
 MIGRATION_MARK=(
@@ -105,6 +106,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_pdl_calls') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
   "exists (select 1 from pg_proc where proname = 'channel_link_nonce_redeem')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_gate_status')"
   "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

@@ -54,6 +54,22 @@ For each run, send back:
 
 The architect pins each site's adapter from these. After 3 confirmed submissions per site, gate 4 starts for that site: the 20-application proof run.
 
+## How close is the gate
+The database counts it (WO-032). In the Supabase SQL editor, or `psql "$SUPABASE_DB_URL"`:
+```sql
+select * from career_apply_gate_status();
+```
+One row per site: `confirmed` of `needed` (3), `met`, and `awaiting_email` (sent, the employer's email not in yet).
+- It counts applications that went through Trainee's queue from your own computer (`approve-first.ts run`) or your browser
+  extension (`source` own_computer or extension). The worker pool's (`cloud`) never count toward this gate.
+- `confirmed` means the employer's own confirmation email was matched to that application by the mail run
+  (`CAREER_MAIL_TRACKING=on` and your career Gmail grant): same employer, from their domain or their ATS (Gmail must authenticate it as theirs), the role where
+  both name one, sent within the 14 days before the email. A page that said "thank you for applying" is evidence on the
+  row, not confirmation.
+- If two of your applications at one employer fit one email, nothing is confirmed and Trainee texts you once to ask which.
+- Runs of `scripts/apply.ts` alone (the dry runs and `--submit` above) do not go through the queue, so they are not in this
+  count: record those in the table below.
+
 ## Record
 | Site | Employer | Date | Result | Confirmation email (min) | Notes |
 |---|---|---|---|---|---|

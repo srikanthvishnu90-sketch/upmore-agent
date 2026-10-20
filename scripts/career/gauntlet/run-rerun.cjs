@@ -120,8 +120,8 @@ async function c03() {
   const profile = L.gauntletProfile("p4-experienced-product");
   const s = H.session("C03", "rerun-c03");
   const t1 = L.chatTurn(s, "use the new one, old resume's wrong", { profile });
-  s.tool("session-restart", { simulated: true, note: "profile reloaded fresh from the fixture file; any recorded correction must re-apply from the product's own correction store to count" });
-  const profile2 = L.gauntletProfile("p4-experienced-product");
+  s.tool("session-restart", { simulated: true, note: "JSON round trip of the saved profile, including corrections; this is not a database or process-restart proof (see correction-authority-postgres.test.cjs)" });
+  const profile2 = JSON.parse(JSON.stringify(profile));
   const t2 = L.chatTurn(s, "what's my graduation year?", { profile: profile2 });
   const text2 = allText(t2.delivered);
   const a = [

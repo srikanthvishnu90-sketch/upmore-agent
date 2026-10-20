@@ -1913,12 +1913,25 @@ const CareerRouter = (() => {
     if (target) {
       const askText = target.askText || "tailor my resume";
       let chained = null;
-      const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
-      if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
-      if (!chained || !chained.artifact) {
-        const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
-        if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
-      }
+      // V242 LIVE-FIX (probe j, third failure mode): the confirmation
+      // above has already COMMITTED — the flips and the marker
+      // consumption are this turn's state. The tailor leg is
+      // best-effort on top of it: a leg that returns no artifact
+      // already falls through to the plain Confirmed reply below,
+      // but a leg that THREW escaped the handler, contained the
+      // whole turn, and the contained copy ("nothing changed on
+      // your side") falsely denied the commit (live thread
+      // f0a12430: 15 facts confirmed in SQL, contained reply).
+      // Hold the leg to its own contract: a throw degrades exactly
+      // like an artifact-less result — the confirmation ships.
+      try {
+        const named = ctx.posting || postingByCompanyTitle(ctx, target.company, askText);
+        if (named) chained = handleTailor(askText, Object.assign({}, ctx, { posting: named }));
+        if (!chained || !chained.artifact) {
+          const { ranked } = rankedShortlist(profile, ctx, { company: lc(target.company) });
+          if (ranked.length) chained = handleTailor(askText, Object.assign({}, ctx, { posting: ranked[0].posting }));
+        }
+      } catch { chained = null; }
       if (chained && chained.artifact) {
         chained.reply = `Confirmed — ${confirmed} fact${confirmed === 1 ? "" : "s"} from your resume are on your record now.\n\n${chained.reply}`;
         return chained;
@@ -4591,7 +4604,11 @@ const CareerRouter = (() => {
       || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
     if (!m) return null;
     const role = m[1].replace(/[\s,]+$/, "").trim();
-    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    // The "i" flag lets the capitalized-words group run on into lowercase words ("at Klaviyo yesterday" was recorded as
+    // the company "Klaviyo yesterday", WO-065 live task battery): the first word is kept as typed, then the name stops
+    // at the first word that does not start like a name.
+    const coWords = m[2].replace(/[?.!,]+$/, "").trim().split(/\s+/);
+    const company = coWords.slice(0, 1).concat(coWords.slice(1).filter((w, i, a) => a.slice(0, i + 1).every((x) => /^[A-Z0-9&(]/.test(x)))).join(" ");
     if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
     return { role, company };
   }

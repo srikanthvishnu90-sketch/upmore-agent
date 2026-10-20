@@ -138,8 +138,18 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   if (!label && toggle && opts.length >= 50) {
     // A list that does not change once 600 ms have passed with no loading notice is final: it is a list that filters in place
     // or ignores the typing (the offline Greenhouse stand-in waited the full 2.4 s on every long list and timed out).
+    // This select's own menu, found through the input's own listbox (aria-controls), else beside the control. Live run 17:
+    // the notice was not under the control's parent on Greenhouse, so School waited the full 2.4 s again.
     const before = opts.map(optionText).join("\n");
-    const own = control?.parentElement;
+    const menu = () => {
+      const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+      const box = id ? doc().getElementById(id) : null;
+      // The menu itself (a class ending in "__menu" or "-menu"), not its list ("select__menu-list"): the notice may sit beside it.
+      let m: any = box;
+      while (m && !Array.from(m.classList ?? []).some((c: any) => /(__|-)menu$/.test(String(c)))) m = m.parentElement;
+      return m ?? box ?? control?.parentElement ?? null;
+    };
+    const own = { querySelector: (s: string) => menu()?.querySelector(s) ?? null };
     const typedAt = Date.now();
     el.focus();
     setNative(el, String(wanted));

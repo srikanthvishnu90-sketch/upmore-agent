@@ -2804,7 +2804,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     let label = pick(opts2.map(optionText));
     if (!label && toggle && opts2.length >= 50) {
       const before = opts2.map(optionText).join("\n");
-      const own = control?.parentElement;
+      const menu = () => {
+        const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+        const box = id ? doc().getElementById(id) : null;
+        let m = box;
+        while (m && !Array.from(m.classList ?? []).some((c) => /(__|-)menu$/.test(String(c)))) m = m.parentElement;
+        return m ?? box ?? control?.parentElement ?? null;
+      };
+      const own = {
+        querySelector: (s) => menu()?.querySelector(s) ?? null
+      };
       const typedAt = Date.now();
       el.focus();
       setNative(el, String(wanted));

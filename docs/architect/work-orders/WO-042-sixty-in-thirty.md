@@ -400,6 +400,15 @@ What changed:
     inside the select's own container only (WO-042/12). Live run 17 checks that Discipline is back and School stays
     fast.
 
+### Live run 17 (VERIFIED-LIVE, CI run of 52ba4649, never sent)
+
+- **Precision 100% (195/195), coverage 96.1%, widgets 37/42.** Anduril's Discipline is filled again.
+- **School is slow again: 2.5 s on each of the 3 forms.** The no-options notice is not under the control's parent on
+  Greenhouse, so the select's own notice was never found and the wait ran to its end.
+- **The menu is now found through the input's own listbox** (`aria-controls`, then up to the element whose class ends
+  in `__menu` or `-menu`), with the control's parent kept as a fallback. Live run 18 checks both at once: School fast
+  and Discipline filled.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a

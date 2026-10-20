@@ -176,6 +176,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021000000_career_apply_extension.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
+# WO-066: the postings the person asked Trainee to apply to, waiting for the extension (applied twice: idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022100000_career_apply_wanted.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022100000_career_apply_wanted.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" ]]; then continue; fi

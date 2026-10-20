@@ -89,7 +89,7 @@ It needs `OPENAI_API_KEY` (OpenAI only, owner rule). Results go to `evals/career
 - **B4. What is needed.**
   - The questions that stopped a preparation are stored with the posting (from `prepare-batch`).
   - The agent asks for them in one text, once.
-  - The person's answer is saved as a confirmed fact the next preparation reads (WO-020's answer bank, keyed by meaning
+  - The person's answer is saved as a confirmed fact the next preparation reads (WO-020's saved answers, keyed by meaning
     where the planner understands the question, by the question's own words otherwise).
 - **B5. Past the window.**
   - The last 40 messages, then a rolling summary written in code from what the thread did: searches, alerts set,

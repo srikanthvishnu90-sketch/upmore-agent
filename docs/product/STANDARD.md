@@ -109,7 +109,7 @@ tested end to end on real phones; onboarding asks only what each feature needs, 
 
 Stage 1 Discover: every relevant posting found within minutes, deduplicated, matched with a reason. Gaps: long-tail
 pages, refresh cadence, dead-posting detection, match-quality measurement.
-Stage 2 Answer (ask-once): a per-user answer bank; ask only what is genuinely missing, once, remembered forever. Gate:
+Stage 2 Answer (ask-once): each user's saved answers; ask only what is genuinely missing, once, remembered forever. Gate:
 WO-020 acceptance must hold on both independent samples.
 Stage 3 Fill: readback-verified fill on the 17 real captured forms, including rendered readback for dynamic widgets;
 the captcha detector's empty-container defect fixed.

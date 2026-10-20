@@ -1,0 +1,4414 @@
+{
+ "synthetic": true,
+ "note": "SYNTHETIC. Written by hand by the WO-046 builder (2026-10-20), after reading WO-043/WO-045 in full and the architect's blind200 misses (so it echoes those shapes: status mail in Spanish, Portuguese, French, German, Italian and Dutch; calendar and scheduling-tool notices, Accepted/Declined responses; forwarded mail with and without the original sender). No real person's mail is in it; company names make sender shapes realistic and none of these messages was sent by those companies. Every label was written and committed before any WO-046 classifier change. Labels say what the message is, not what a rule would allow: a calendar notice of an interview is labeled interview even when it names no role. Fields as in mail-labels.json, plus lang (en, es, pt, fr, de, it, nl) and shape (calendar, forward). Splits: 'dev6' (read for misses) and 'dev6check' (FNV-1a of id + 'wo-046-seed-20261020', mod 4 == 0; never read item by item before its one-time score).",
+ "mails": [
+  {
+   "id": "L001",
+   "from": "\"Twilio\" <no-reply@us.greenhouse-mail.io>",
+   "subject": "Thanks for your interest in Twilio",
+   "snippet": "Hi Maya, thank you for applying for the Solutions Engineer position. Our team has your application and will be reviewing it over the coming days.",
+   "date": "2026-11-08T05:13:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Twilio"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L002",
+   "from": "\"Brex\" <no-reply@hire.lever.co>",
+   "subject": "Brex | Application confirmation",
+   "snippet": "Hey Omar, this note confirms that your application for Senior Accountant landed safely. A recruiter will reach out if there's a match.",
+   "date": "2026-10-15T10:26:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Brex"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L003",
+   "from": "\"Kroger\" <kroger@myworkday.com>",
+   "subject": "Your application has been submitted",
+   "snippet": "Thank you for your interest in Kroger. Your application for Pharmacy Technician (Req 77812) was submitted on Nov 3.",
+   "date": "2026-11-22T15:39:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Kroger"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L004",
+   "from": "\"Humana\" <humana+autoreply@talent.icims.com>",
+   "subject": "We received your application",
+   "snippet": "Dear Applicant, Humana confirms receipt of your application for Care Coordinator RN. If your skills match the requirements, a recruiter will contact you.",
+   "date": "2026-10-01T20:52:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Humana"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L005",
+   "from": "\"Wipro Careers\" <careers@wipro.com>",
+   "subject": "Application Acknowledgement - Project Engineer",
+   "snippet": "Dear Candidate, we acknowledge the receipt of your application for the Project Engineer role. Your candidate ID is WIP26-88213. Please quote it in future correspondence.",
+   "date": "2026-11-08T01:05:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Wipro"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L006",
+   "from": "\"Tesco Careers\" <noreply@tesco.taleo.net>",
+   "subject": "Thanks for applying to Tesco",
+   "snippet": "Hi Jamie, thanks for applying for Customer Assistant at Tesco Extra Leeds. We've got your application and will be in touch within 10 working days.",
+   "date": "2026-10-15T06:18:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Tesco"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L007",
+   "from": "\"Vercel\" <no-reply@ashbyhq.com>",
+   "subject": "We got your application!",
+   "snippet": "Hey Lena, quick note to say your application for Developer Advocate made it to us. We read every application personally, so hang tight.",
+   "date": "2026-11-22T11:31:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Vercel"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L008",
+   "from": "\"RBC\" <rbc@myworkday.com>",
+   "subject": "RBC - Application Received",
+   "snippet": "Thank you for applying to the Client Advisor role at Royal Bank of Canada. Your application is now under review.",
+   "date": "2026-10-01T16:44:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "RBC"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L009",
+   "from": "\"Visa\" <noreply@visa.smartrecruiters.com>",
+   "subject": "Your Visa application",
+   "snippet": "Thank you for your interest in Visa. We have successfully received your application for Staff Software Engineer.",
+   "date": "2026-11-08T21:57:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Visa"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L010",
+   "from": "\"Ravi Iyer\" <ravi@stackfold.dev>",
+   "subject": "got it - thanks!",
+   "snippet": "Hi Jess, got your application for the founding designer role, thanks for sending the portfolio. I'll go through it this weekend.",
+   "date": "2026-10-15T02:10:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Stackfold"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L011",
+   "from": "\"Atlassian\" <no-reply@atlassian.lever.co>",
+   "subject": "Application received – Graduate Developer",
+   "snippet": "G'day Tom, thanks for applying to the 2027 Graduate Developer program. We've received your application and will update you after applications close on 30 Nov.",
+   "date": "2026-11-22T07:23:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Atlassian"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L012",
+   "from": "\"Lockheed Martin\" <lmco@taleo.net>",
+   "subject": "Lockheed Martin Application Confirmation",
+   "snippet": "Thank you for submitting your application for Software Engineer Associate (Req 683920). You may track the status in your candidate profile.",
+   "date": "2026-10-01T12:36:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Lockheed Martin"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L013",
+   "from": "\"Deel\" <no-reply@ats.rippling.com>",
+   "subject": "Thanks for applying to Deel",
+   "snippet": "Hi Ahmed, we're confirming that your application for Payroll Specialist (EMEA) has been submitted. Our talent team reviews applications on a rolling basis.",
+   "date": "2026-11-08T17:49:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Deel"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L014",
+   "from": "\"Canopy Health\" <notifications@app.bamboohr.com>",
+   "subject": "Application Received",
+   "snippet": "Thanks for applying for the Medical Assistant position at Canopy Health! We've received your resume and will contact you if your qualifications match our needs.",
+   "date": "2026-10-15T22:02:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Canopy Health"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L015",
+   "from": "\"Infosys\" <careers@infosys.com>",
+   "subject": "Infosys: Profile registered successfully",
+   "snippet": "Dear Ankit, thank you for registering. Your application for Systems Engineer (InfyTQ 2027) has been submitted successfully. Your application ID is INF-2026-55128.",
+   "date": "2026-11-22T03:15:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Infosys"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L016",
+   "from": "\"Hyatt Careers\" <notification@jobvite.com>",
+   "subject": "Thank you for applying at Hyatt",
+   "snippet": "Dear Carla, we have received your application for Front Desk Agent at Hyatt Regency Austin. Our hiring team will review it shortly.",
+   "date": "2026-10-01T08:28:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Hyatt"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L017",
+   "from": "\"Unilever\" <noreply@successfactors.eu>",
+   "subject": "Application received - Future Leaders Programme",
+   "snippet": "Hi Priya, thanks for applying to the Unilever Future Leaders Programme. Your application is complete and next steps will follow by email.",
+   "date": "2026-11-08T13:41:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Unilever"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L018",
+   "from": "\"Indeed Apply\" <indeedapply@indeed.com>",
+   "subject": "Indeed Application: Barista",
+   "snippet": "Your application was sent to Blue Bottle Coffee. Good luck! The employer may contact you directly.",
+   "date": "2026-10-15T18:54:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Blue Bottle Coffee"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L019",
+   "from": "\"Coinbase\" <no-reply@us.greenhouse-mail.io>",
+   "subject": "Your Coinbase application",
+   "snippet": "Hi Dev, thanks for your interest in Coinbase. After reviewing your application, we won't be progressing it for the Security Engineer role at this time.",
+   "date": "2026-11-22T23:07:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Coinbase"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L020",
+   "from": "\"Webflow\" <no-reply@hire.lever.co>",
+   "subject": "Following up from Webflow",
+   "snippet": "Hi Lina, we really appreciated the time you spent with our team. We've decided to go with someone whose experience lines up more closely with this role. All the best.",
+   "date": "2026-10-01T04:20:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Webflow"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L021",
+   "from": "\"Target\" <target@myworkday.com>",
+   "subject": "Regarding your application",
+   "snippet": "Thank you for applying for the Merchandise Planner role. We have chosen not to advance your application. We encourage you to apply for future opportunities at Target.",
+   "date": "2026-11-08T09:33:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Target"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L022",
+   "from": "\"Jenna Park\" <jenna.park@duolingo.com>",
+   "subject": "Duolingo - Content Designer",
+   "snippet": "Hi Alex, thanks so much for doing the take-home and the panel. This one was close, but we're going to pass. I'd genuinely love to stay in touch for future roles.",
+   "date": "2026-10-15T14:46:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Duolingo"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L023",
+   "from": "\"HCLTech Careers\" <careers@hcltech.com>",
+   "subject": "Status of your application",
+   "snippet": "Dear Rahul, thank you for attending the interview. We regret to inform you that you have not been shortlisted for the next round for the role of Network Engineer.",
+   "date": "2026-11-22T19:59:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "HCLTech"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L024",
+   "from": "\"Barclays\" <barclays@myworkday.com>",
+   "subject": "Your Barclays application",
+   "snippet": "Hi Olivia, thanks for your patience. Unfortunately, on this occasion your application for the Graduate Analyst Programme has not been successful.",
+   "date": "2026-10-01T00:12:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Barclays"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L025",
+   "from": "\"Wayfair Talent\" <talent@wayfair.com>",
+   "subject": "Update: Senior Data Analyst",
+   "snippet": "Hi Kim, a quick update: the Senior Data Analyst requisition you applied to has been filled internally. We'll keep your profile in mind as new roles open.",
+   "date": "2026-11-08T05:25:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Wayfair"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L026",
+   "from": "\"Peloton Recruiting\" <recruiting@onepeloton.com>",
+   "subject": "An update on the Marketing Manager search",
+   "snippet": "Hi Nora, I wanted to let you know that the Marketing Manager role has been put on hold due to a budget freeze, so we're closing out all candidates in process.",
+   "date": "2026-10-15T10:38:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Peloton"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L027",
+   "from": "\"Ben Ortiz\" <ben@tidepool.dev>",
+   "subject": "re: backend role",
+   "snippet": "hey Kai - appreciate you chatting with us. we've decided not to move ahead for now, mostly because we need someone with more Rust. good luck out there!",
+   "date": "2026-11-22T15:51:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Tidepool"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L028",
+   "from": "\"Retool\" <no-reply@ashbyhq.com>",
+   "subject": "Retool update",
+   "snippet": "Hi Sasha, thank you for your interest in Retool. We have reviewed your background and are unable to offer you an interview for the Frontend Engineer role.",
+   "date": "2026-10-01T20:04:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Retool"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L029",
+   "from": "\"CVS Health\" <cvshealth+autoreply@talent.icims.com>",
+   "subject": "Your application status",
+   "snippet": "Dear Applicant, thank you for applying for Retail Store Manager. You are no longer under consideration for this position.",
+   "date": "2026-11-08T01:17:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "CVS Health"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L030",
+   "from": "\"Shopify\" <no-reply@shopify.greenhouse.io>",
+   "subject": "Your Shopify application",
+   "snippet": "Hi Marc, after taking a careful look, we've made the call to move ahead with other applicants for the Data Engineer role. Thank you for thinking of Shopify.",
+   "date": "2026-10-15T06:30:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Shopify"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L031",
+   "from": "\"Monzo Talent\" <talent@monzo.com>",
+   "subject": "Your Monzo application – Backend Engineer",
+   "snippet": "Hi Ellie, thanks for completing the onsite. Sadly we won't be offering you the role this time. If useful, I'm happy to set up a 15-minute call to share feedback.",
+   "date": "2026-11-22T11:43:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Monzo"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L032",
+   "from": "\"Notion Recruiting\" <recruiting@makenotion.com>",
+   "subject": "Notion application",
+   "snippet": "Thanks for applying. We will not be proceeding with your application.",
+   "date": "2026-10-01T16:56:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Notion"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L033",
+   "from": "\"Boeing Talent Acquisition\" <noreply@boeing.com>",
+   "subject": "Application Update - Requisition 00184522",
+   "snippet": "Dear Applicant, the requisition you applied for has been cancelled and is no longer accepting applications. Thank you for your interest in Boeing.",
+   "date": "2026-11-08T21:09:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Boeing"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L034",
+   "from": "\"Mayo Clinic\" <mayoclinic@myworkday.com>",
+   "subject": "Mayo Clinic: Application Update",
+   "snippet": "Thank you for your interest in the Clinical Nurse Specialist position. Another candidate has been selected for this position.",
+   "date": "2026-10-15T02:22:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Mayo Clinic"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L035",
+   "from": "\"Okta Recruiting\" <recruiting@okta.com>",
+   "subject": "Your candidacy for Product Manager",
+   "snippet": "Hi Rina, I'm writing to let you know the team has decided to keep searching for a profile with deeper identity experience. Thank you for the thoughtful conversations.",
+   "date": "2026-11-22T07:35:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Okta"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L036",
+   "from": "\"Booz Allen Hamilton\" <bah@myworkday.com>",
+   "subject": "Booz Allen application update",
+   "snippet": "Thank you for interviewing for the Data Scientist position. After careful consideration, you were not selected to move forward.",
+   "date": "2026-10-01T12:48:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Booz Allen Hamilton"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L037",
+   "from": "\"Zoho Recruitment\" <recruitment@zohocorp.com>",
+   "subject": "Zoho Interview Result",
+   "snippet": "Dear Karthik, thank you for participating in the written round. We regret to let you know that you have not cleared the round, so we will not be able to proceed further.",
+   "date": "2026-11-08T17:01:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Zoho"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L038",
+   "from": "\"Grammarly\" <no-reply@grammarly.greenhouse-mail.io>",
+   "subject": "Grammarly: Applied Research Scientist",
+   "snippet": "Hi Jae, thanks for your application. We've had an unusually high volume and have decided to focus on candidates with more NLP publication experience.",
+   "date": "2026-10-15T22:14:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Grammarly"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L039",
+   "from": "\"Block\" <no-reply@block.xyz>",
+   "subject": "Update on Block - Risk Analyst",
+   "snippet": "Hi Sam, we've extended an offer to another candidate for the Risk Analyst role and they have accepted. We appreciate your time with the team.",
+   "date": "2026-11-22T03:27:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Block"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L040",
+   "from": "\"Deloitte\" <deloitte@myworkday.com>",
+   "subject": "Your Deloitte application",
+   "snippet": "Dear Jordan, thank you for your interest in the Audit Assistant role. We have reviewed your application and it will not be considered further.",
+   "date": "2026-10-01T08:40:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Deloitte"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L041",
+   "from": "\"Instacart\" <no-reply@hire.lever.co>",
+   "subject": "Next steps: Instacart Software Engineer",
+   "snippet": "Hi Chen, great news - we'd love to move you to the technical phone screen. Please use the link below to grab a 60-minute slot next week.",
+   "date": "2026-11-08T13:53:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Instacart"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L042",
+   "from": "\"Megan Shaw\" <megan.shaw@hubspot.com>",
+   "subject": "HubSpot - Sales Development Rep",
+   "snippet": "Hi Tyler, thanks for applying! Are you free for a 20 minute intro call Thursday or Friday afternoon? Here's my calendar link.",
+   "date": "2026-10-15T18:06:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "HubSpot"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L043",
+   "from": "\"Infosys BPM\" <recruitment@infosysbpm.com>",
+   "subject": "Walk-in Interview - Process Executive",
+   "snippet": "Dear Pooja, you are invited for a walk-in interview on 14 Nov 2026, 10 AM at Infosys BPM, Phase 1 Electronic City, Bangalore. Carry 2 copies of your resume.",
+   "date": "2026-11-22T23:19:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Infosys BPM"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L044",
+   "from": "\"KPMG UK Graduate Recruitment\" <graduaterecruitment@kpmg.co.uk>",
+   "subject": "Invitation to your Assessment Centre",
+   "snippet": "Dear Hannah, congratulations, we'd like to invite you to a virtual Assessment Centre on 18 November, including a group exercise and a partner interview.",
+   "date": "2026-10-01T04:32:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "KPMG"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L045",
+   "from": "\"Rivian Recruiting\" <recruiting@rivian.com>",
+   "subject": "Change of time: your Rivian interview",
+   "snippet": "Hi Jess, our hiring manager had a conflict, so we've moved your interview to Thursday, Nov 12 at 1:00 PM PT. Same Zoom link.",
+   "date": "2026-11-08T09:45:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Rivian"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L046",
+   "from": "\"Nina Alvarez\" <nina@harborloop.co>",
+   "subject": "coffee next week?",
+   "snippet": "Hi Ola, loved your application for the ops lead role. Want to grab a coffee next week and talk through what we're building? Tues or Weds work for me.",
+   "date": "2026-10-15T14:58:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Harborloop"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L047",
+   "from": "\"Morgan Stanley Campus Recruiting\" <campusrecruiting@morganstanley.com>",
+   "subject": "Morgan Stanley Superday Invitation",
+   "snippet": "Dear Arjun, we are excited to invite you to our Superday for the 2027 Sales & Trading Summer Analyst program on December 4.",
+   "date": "2026-11-22T19:11:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Morgan Stanley"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L048",
+   "from": "\"Cleveland Clinic\" <clevelandclinic@myworkday.com>",
+   "subject": "Interview Request - Registered Nurse, ICU",
+   "snippet": "Hi Grace, the nurse manager of the Medical ICU would like to interview you. Please reply with your availability for a 30-minute virtual meeting this week.",
+   "date": "2026-10-01T00:24:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Cleveland Clinic"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L049",
+   "from": "\"Starbucks Careers\" <careers@starbucks.com>",
+   "subject": "Let's meet! Barista interview",
+   "snippet": "Hi Luis, the store manager at 5th & Pike would like to meet you for an interview. Please pick a time using the scheduling link within 48 hours.",
+   "date": "2026-11-08T05:37:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Starbucks"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L050",
+   "from": "\"Airtable\" <no-reply@ashbyhq.com>",
+   "subject": "Airtable - Onsite loop details",
+   "snippet": "Hi Grace, here are the details for your virtual onsite on Nov 18: four 45-minute sessions with the product, design and engineering teams. Calendar invites will follow.",
+   "date": "2026-10-15T10:50:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Airtable"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L051",
+   "from": "\"Karat\" <scheduling@karat.com>",
+   "subject": "Schedule your Karat interview for Pinterest",
+   "snippet": "Pinterest has partnered with Karat for the first technical interview. Please choose a time for your 60-minute live interview with a Karat Interview Engineer.",
+   "date": "2026-11-22T15:03:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Pinterest"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L052",
+   "from": "\"Fiona Grant\" <fiona.grant@databricks.com>",
+   "subject": "Databricks: recruiter screen",
+   "snippet": "Hi Leo, thanks for applying to the Field Engineer role. I'd like to set up a 30 min recruiter screen to learn more about you. What does your week look like?",
+   "date": "2026-10-01T20:16:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Databricks"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L053",
+   "from": "\"City of Austin HR\" <hr@austintexas.gov>",
+   "subject": "Interview Notice - Planner II",
+   "snippet": "You have been selected for an oral board interview for the position of Planner II. Your interview is scheduled for November 16 at 9:00 AM at One Texas Center.",
+   "date": "2026-11-08T01:29:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "City of Austin"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L054",
+   "from": "\"Klaviyo Recruiting\" <recruiting@klaviyo.com>",
+   "subject": "Klaviyo - Final round",
+   "snippet": "Hi Ana, congrats on making it to the final round for Product Analyst! You'll meet our VP of Data and two team leads. Please share three windows that work next week.",
+   "date": "2026-10-15T06:42:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Klaviyo"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L055",
+   "from": "\"Gong\" <no-reply@gong.greenhouse.io>",
+   "subject": "Gong - Interview Confirmation",
+   "snippet": "Your interview with Gong is confirmed: Wed, Nov 11, 11:30 AM PT with Leah Cho (Hiring Manager). Zoom details below.",
+   "date": "2026-11-22T11:55:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Gong"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L056",
+   "from": "\"Tech Mahindra HR\" <hr@techmahindra.com>",
+   "subject": "Telephonic interview scheduled",
+   "snippet": "Dear Vikram, your telephonic interview for Java Developer is scheduled on 13-Nov-2026 at 3:30 PM IST. Kindly be available on your registered mobile number.",
+   "date": "2026-10-01T16:08:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Tech Mahindra"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L057",
+   "from": "\"Owen Brooks\" <owen.brooks@asana.com>",
+   "subject": "Asana — Customer Success Manager",
+   "snippet": "Hi Priyanka, the team loved your application and wants to chat. Could you hop on a call with me tomorrow or Friday? Any 30-min window works.",
+   "date": "2026-11-08T21:21:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Asana"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L058",
+   "from": "\"The Home Depot\" <thehomedepot@myworkday.com>",
+   "subject": "Your interview at The Home Depot",
+   "snippet": "Hi Dana, we'd like to interview you for Freight Associate at store #6512. Your interview is set for Saturday at 10:00 AM. Ask for the hiring manager at the service desk.",
+   "date": "2026-10-15T02:34:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "The Home Depot"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L059",
+   "from": "\"Siemens Energy Talent\" <talent@siemens-energy.com>",
+   "subject": "Interview invitation - Electrical Engineer",
+   "snippet": "Dear Mr. Okafor, we would like to invite you to a video interview via Microsoft Teams on 17 November at 14:00 CET with the hiring manager.",
+   "date": "2026-11-22T07:47:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Siemens Energy"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L060",
+   "from": "\"Paula Diaz\" <paula.diaz@chime.com>",
+   "subject": "Re: Chime - Risk Analyst",
+   "snippet": "Perfect, Tuesday at 3pm works! I've sent over the calendar invite for your interview with Mark and Sophie. Talk soon.",
+   "date": "2026-10-01T12:00:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Chime"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L061",
+   "from": "\"Discord\" <no-reply@ashbyhq.com>",
+   "subject": "Discord - next steps for Community Manager",
+   "snippet": "Hi Mo, we enjoyed reviewing your application and want to move forward with a hiring manager conversation. Please book a time with Ellie using this link.",
+   "date": "2026-11-08T17:13:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Discord"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L062",
+   "from": "\"Flipkart Hiring\" <hiring@flipkart.com>",
+   "subject": "Shortlisted: Flipkart SDE-1 interview",
+   "snippet": "Hi Sneha, your profile has been shortlisted for SDE-1. Your first technical interview is on Saturday, 14 Nov at 11 AM on Google Meet.",
+   "date": "2026-10-15T22:26:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Flipkart"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L063",
+   "from": "\"HackerRank\" <support@hackerrankforwork.com>",
+   "subject": "DoorDash Hiring Team has invited you to a HackerRank test",
+   "snippet": "Hi Raj, you've been invited to the DoorDash Software Engineer assessment. It has 3 questions and must be completed in one sitting of 90 minutes within 7 days.",
+   "date": "2026-11-22T03:39:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "DoorDash"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L064",
+   "from": "\"CodeSignal\" <noreply@codesignal.com>",
+   "subject": "Your Robinhood General Coding Assessment",
+   "snippet": "Robinhood has requested that you take the General Coding Assessment. You have 70 minutes once you start; the link expires in 10 days.",
+   "date": "2026-10-01T08:52:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Robinhood"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L065",
+   "from": "\"Jake Morris\" <jake@lumenhq.io>",
+   "subject": "take-home for the frontend role",
+   "snippet": "Hey Sara, as promised here's the take-home: build a small dashboard with the attached API. Should take ~3 hours; send it back by Monday.",
+   "date": "2026-11-08T13:05:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Lumen"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L066",
+   "from": "\"HireVue\" <noreply@hirevue.com>",
+   "subject": "Your digital interview for Citi",
+   "snippet": "Citi has invited you to complete a one-way video interview. Record your answers to 5 questions within 5 days.",
+   "date": "2026-10-15T18:18:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Citi"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L067",
+   "from": "\"SHL\" <noreply@shl.com>",
+   "subject": "Online assessment for Nestlé Graduate Programme",
+   "snippet": "Dear Candidate, please complete the numerical and verbal reasoning assessments for the Nestlé Graduate Programme by 20 November.",
+   "date": "2026-11-22T23:31:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Nestlé"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L068",
+   "from": "\"BCG Recruiting\" <recruiting@bcg.com>",
+   "subject": "BCG Online Case",
+   "snippet": "Hi Tara, as the next step for the Associate role, please complete the BCG online case (Casey) within 5 days of receiving this email.",
+   "date": "2026-10-01T04:44:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "BCG"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L069",
+   "from": "\"Accenture India Campus\" <campus.india@accenture.com>",
+   "subject": "Cognitive and technical assessment - Associate Software Engineer",
+   "snippet": "Dear Rohit, you are invited to take the cognitive and technical assessment on 15 Nov 2026. Login link and credentials are below; the test window is 2 hours.",
+   "date": "2026-11-08T09:57:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Accenture"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L070",
+   "from": "\"The Atlantic Editorial\" <editorial-hiring@theatlantic.com>",
+   "subject": "Editing test for the Associate Editor role",
+   "snippet": "Hi June, as a next step we'd like you to complete a short editing test. Please return your edits within 48 hours of opening the document.",
+   "date": "2026-10-15T14:10:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "The Atlantic"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L071",
+   "from": "\"TestGorilla\" <no-reply@testgorilla.com>",
+   "subject": "Bellhop Logistics invites you to an assessment",
+   "snippet": "Bellhop Logistics would like you to take a 40-minute skills assessment (Excel, attention to detail) for the Operations Coordinator role.",
+   "date": "2026-11-22T19:23:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Bellhop Logistics"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L072",
+   "from": "\"Codility\" <no-reply@codility.com>",
+   "subject": "adidas: Java coding challenge",
+   "snippet": "You have been invited by adidas to solve a coding task. Time limit: 120 minutes. The invitation is valid until Nov 25.",
+   "date": "2026-10-01T00:36:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "adidas"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L073",
+   "from": "\"pymetrics\" <no-reply@pymetrics.ai>",
+   "subject": "Kraft Heinz invites you to play the pymetrics games",
+   "snippet": "As part of your application to Kraft Heinz, please play 12 short games (about 25 minutes).",
+   "date": "2026-11-08T05:49:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Kraft Heinz"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L074",
+   "from": "\"Dana Wu\" <dana.wu@gopuff.com>",
+   "subject": "Gopuff - SQL exercise",
+   "snippet": "Hi Liam, next step for the Data Analyst role is a short SQL exercise. You'll have 60 minutes once you open the link; please finish by Friday.",
+   "date": "2026-10-15T10:02:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Gopuff"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L075",
+   "from": "\"Criteria Corp\" <noreply@criteriacorp.com>",
+   "subject": "Complete your CCAT for Zillow",
+   "snippet": "Zillow has invited you to complete the Criteria Cognitive Aptitude Test (15 minutes) for the Sales Consultant role.",
+   "date": "2026-11-22T15:15:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Zillow"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L076",
+   "from": "\"Plaid\" <no-reply@us.greenhouse-mail.io>",
+   "subject": "Your offer from Plaid",
+   "snippet": "Hi Kiara, we're thrilled to extend you an offer for the Data Engineer role! Your offer letter is ready for review and e-signature.",
+   "date": "2026-10-01T20:28:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Plaid"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L077",
+   "from": "\"Ian Hughes\" <ian.hughes@squarespace.com>",
+   "subject": "Great news!",
+   "snippet": "Hi Rosa, I'm so happy to share that the team wants to make you an offer for the Product Designer position! Can we jump on a call tomorrow to walk through the details?",
+   "date": "2026-11-08T01:41:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Squarespace"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L078",
+   "from": "\"Cognizant HR\" <hr.offers@cognizant.com>",
+   "subject": "Offer Letter - Programmer Analyst Trainee",
+   "snippet": "Dear Divya, congratulations! We are pleased to offer you the position of Programmer Analyst Trainee. Please find your offer letter attached and accept it within 5 days.",
+   "date": "2026-10-15T06:54:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Cognizant"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L079",
+   "from": "\"Kaiser Permanente\" <kp@myworkday.com>",
+   "subject": "Your offer: Registered Nurse",
+   "snippet": "Congratulations, Maria! We're pleased to offer you the Registered Nurse position in the Medical-Surgical unit. Please review and accept your offer in the candidate portal.",
+   "date": "2026-11-22T11:07:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Kaiser Permanente"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L080",
+   "from": "\"RTX\" <rtx@myworkday.com>",
+   "subject": "Contingent Offer of Employment",
+   "snippet": "Dear Kevin, RTX is pleased to extend a contingent offer of employment for the Systems Engineer II position, subject to a background check and drug screen.",
+   "date": "2026-10-01T16:20:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "RTX"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L081",
+   "from": "\"Microsoft University Recruiting\" <msuniversity@microsoft.com>",
+   "subject": "Your Microsoft internship offer",
+   "snippet": "Hi Ana, congratulations! We're excited to offer you a Software Engineering Internship for Summer 2027 in Redmond. Your offer details are in the careers portal.",
+   "date": "2026-11-08T21:33:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Microsoft"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L082",
+   "from": "\"Lena Fox\" <lena.fox@brightwheel.com>",
+   "subject": "Welcome to brightwheel!",
+   "snippet": "Hi Sam, it's official - we'd love to have you join as Customer Support Lead. Attached is your offer letter with salary and start date; let me know if you have questions.",
+   "date": "2026-10-15T02:46:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "brightwheel"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L083",
+   "from": "\"Octopus Energy People Team\" <people@octopus.energy>",
+   "subject": "Your Octopus offer",
+   "snippet": "Hi Freya, we're delighted to offer you the role of Energy Specialist in our Brighton team. The contract and offer details are attached.",
+   "date": "2026-11-22T07:59:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Octopus Energy"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L084",
+   "from": "\"Dana Ruiz\" <dana.ruiz@kellyservices.com>",
+   "subject": "Offer - Lab Technician contract",
+   "snippet": "Hi Mike, great news: the client approved you for the 6-month Lab Technician contract at $32/hr. I'm sending the offer paperwork now; please sign by Thursday.",
+   "date": "2026-10-01T12:12:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Kelly Services"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L085",
+   "from": "\"Hopper\" <no-reply@ats.rippling.com>",
+   "subject": "Offer - Hopper",
+   "snippet": "Hi Raj, please find attached your offer letter for the Mobile Engineer role. We're excited to have you on board!",
+   "date": "2026-11-08T17:25:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Hopper"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L086",
+   "from": "\"Theo Lang\" <theo@quarry.so>",
+   "subject": "you're in!",
+   "snippet": "Theo here - the team is unanimous and we'd love for you to join as our first data hire. Formal offer coming tomorrow; salary is $165k plus equity as discussed.",
+   "date": "2026-10-15T22:38:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Quarry"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L087",
+   "from": "\"Kayla Brooks\" <kayla.brooks@lululemon.com>",
+   "subject": "Re: Application status - Store Manager",
+   "snippet": "Hi Chloe, thanks for checking in! The hiring team is still reviewing applications and I expect an update by the end of next week.",
+   "date": "2026-11-22T03:51:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "lululemon"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L088",
+   "from": "\"Sean Patel\" <sean.patel@roberthalf.com>",
+   "subject": "Re: Staff Accountant",
+   "snippet": "Hi Mia, I sent your resume to the client this morning. They're interviewing this week; I'll circle back as soon as I hear anything.",
+   "date": "2026-10-01T08:04:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Robert Half"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L089",
+   "from": "\"Grace Lin\" <grace.lin@pinterest.com>",
+   "subject": "Quick update",
+   "snippet": "Hi Omar, sorry for the radio silence! The team is finishing the last onsites for the Data Scientist role, so a decision is taking a bit longer than planned.",
+   "date": "2026-11-08T13:17:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Pinterest"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L090",
+   "from": "\"Hannah Reed\" <hannah.reed@lyft.com>",
+   "subject": "Lyft - Operations Analyst",
+   "snippet": "Hi Jose, thanks for applying! Before I pass your profile to the hiring manager, could you share your salary expectations and earliest start date?",
+   "date": "2026-10-15T18:30:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Lyft"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L091",
+   "from": "\"Neha Kapoor\" <neha.kapoor@zomato.com>",
+   "subject": "RE: Product Analyst application",
+   "snippet": "Hi Aman, received your updated resume, thanks. The HM is travelling this week; I will update you on next steps by Monday.",
+   "date": "2026-11-22T23:43:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Zomato"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L092",
+   "from": "\"Chris Dunn\" <chris.dunn@etsy.com>",
+   "subject": "Re: following up",
+   "snippet": "Hey Ivy, you're still very much in the running for the Senior UX Researcher role. We're aligning on the final slate and I'll keep you posted.",
+   "date": "2026-10-01T04:56:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Etsy"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L093",
+   "from": "\"Erik Lund\" <erik.lund@spotify.com>",
+   "subject": "SV: Ansökan Data Engineer",
+   "snippet": "Hi Alex, thanks for your note. We have not made a decision yet; the panel meets on Thursday and I'll reach out after that.",
+   "date": "2026-11-08T09:09:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Spotify"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L094",
+   "from": "\"Mira Shah\" <mira.shah@ideo.com>",
+   "subject": "Re: Design Researcher application",
+   "snippet": "Hi Noah, thanks for your patience. Could you send a PDF of your portfolio with two case studies? The team wants to review it before next steps.",
+   "date": "2026-10-15T14:22:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "IDEO"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L095",
+   "from": "\"Jordan Wells\" <jordan.wells@twitch.tv>",
+   "subject": "Re: Partner Manager role",
+   "snippet": "Thanks for following up, Sam. We're still collecting applications through the 20th, so it'll be a couple of weeks before we have news. Appreciate your patience!",
+   "date": "2026-11-22T19:35:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Twitch"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L096",
+   "from": "\"Tom Becker\" <tom.becker@hays.com>",
+   "subject": "Re: Payroll Specialist - Leeds",
+   "snippet": "Hi Ellie, the client liked your CV. They're shortlisting this week and should come back to me by Friday. I'll ring you then.",
+   "date": "2026-10-01T00:48:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Hays"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L097",
+   "from": "\"Ana Silva\" <ana.silva@gitlab.com>",
+   "subject": "Re: checking in",
+   "snippet": "Hi Sam, no news just yet on the Support Engineer role. The hiring manager is out until Wednesday; I'll ping you as soon as she's back.",
+   "date": "2026-11-08T05:01:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "GitLab"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L098",
+   "from": "\"Ryan Cole\" <ryan.cole@bestbuy.com>",
+   "subject": "Re: Geek Squad Agent application",
+   "snippet": "Hi Marcus, I've passed your application along to the store's hiring manager. They'll reach out directly if they'd like to set up a time.",
+   "date": "2026-10-15T10:14:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Best Buy"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L099",
+   "from": "\"Priya Menon\" <priya.menon@swiggy.in>",
+   "subject": "Re: Business Analyst position",
+   "snippet": "Hi Rohan, thank you for your email. Your profile is under review with the business team and we should have feedback within 3-4 working days.",
+   "date": "2026-11-22T15:27:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Swiggy"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L100",
+   "from": "\"Glassdoor Jobs\" <noreply@glassdoor.com>",
+   "subject": "18 new jobs for Product Manager",
+   "snippet": "Jobs you might like: Product Manager at Intuit, Senior PM at Expedia. Apply now.",
+   "date": "2026-10-01T20:40:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L101",
+   "from": "\"American Express\" <americanexpress@welcome.americanexpress.com>",
+   "subject": "Your Card application is approved",
+   "snippet": "Congratulations, Lee! Your application for the Gold Card has been approved. Your Card will arrive in 7-10 business days.",
+   "date": "2026-11-08T01:53:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L102",
+   "from": "\"Upstart\" <no-reply@upstart.com>",
+   "subject": "An update on your loan application",
+   "snippet": "Thank you for applying. Unfortunately, we are unable to approve your loan request at this time. You'll receive a notice explaining why.",
+   "date": "2026-10-15T06:06:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L103",
+   "from": "\"Rhodes Trust\" <admissions@rhodeshouse.ox.ac.uk>",
+   "subject": "Rhodes Scholarship – Interview Invitation",
+   "snippet": "Dear Taylor, we are pleased to invite you to interview for the Rhodes Scholarship for the United States district. Interviews take place on Nov 20.",
+   "date": "2026-11-22T11:19:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L104",
+   "from": "\"Greystar\" <leasing@greystar.com>",
+   "subject": "Your application for The Palms #304",
+   "snippet": "Hi Jordan, we've received your rental application and $45 fee. Our leasing team will review it within 48 hours.",
+   "date": "2026-10-01T16:32:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L105",
+   "from": "\"Habitat for Humanity\" <volunteer@habitat.org>",
+   "subject": "Thanks for applying to volunteer!",
+   "snippet": "Hi Sam, we got your volunteer application for the Saturday build crew. A coordinator will call to schedule your orientation.",
+   "date": "2026-11-08T21:45:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L106",
+   "from": "\"Ask a Manager\" <newsletter@askamanager.org>",
+   "subject": "how to answer 'why are you leaving?' in an interview",
+   "snippet": "This week's letters: an interviewer who ghosted, negotiating an offer, and more.",
+   "date": "2026-10-15T02:58:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L107",
+   "from": "\"Greenhouse\" <no-reply@greenhouse.io>",
+   "subject": "How did we do? Share your Asana interview experience",
+   "snippet": "Thanks for interviewing with Asana. Please take our 2-minute candidate survey; your answers won't affect your application.",
+   "date": "2026-11-22T07:11:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L108",
+   "from": "\"Pramp\" <team@pramp.com>",
+   "subject": "Your mock interview is booked",
+   "snippet": "Your peer mock interview (Data Structures) is set for Thursday 7pm. Practice makes perfect!",
+   "date": "2026-10-01T12:24:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L109",
+   "from": "\"Coursera\" <no-reply@coursera.org>",
+   "subject": "Offer ends tonight: 50% off Coursera Plus",
+   "snippet": "Get unlimited access to 7,000+ courses. Your exclusive offer expires at midnight.",
+   "date": "2026-11-08T17:37:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L110",
+   "from": "\"Recruitment Team\" <talent.dept.hiring@gmail.com>",
+   "subject": "Job offer - Remote Assistant",
+   "snippet": "You have been selected for a remote assistant role paying $900/week. No interview needed. Reply with your full name and address to receive your starter kit.",
+   "date": "2026-10-15T22:50:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L111",
+   "from": "\"Rachel Kim via LinkedIn\" <inmail-hit-reply@linkedin.com>",
+   "subject": "Exciting opportunity at a Series B fintech",
+   "snippet": "Hi Dev, I came across your profile and think you'd be a great fit for a Staff Engineer role with my client. Open to a quick chat?",
+   "date": "2026-11-22T03:03:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L112",
+   "from": "\"Tom Rivera\" <tom@talentbridge-partners.com>",
+   "subject": "Senior Data Engineer opportunity",
+   "snippet": "Hi Lina, your background caught my eye. Would you be interested in a contract role with one of my clients? Happy to set up a call.",
+   "date": "2026-10-01T08:16:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L113",
+   "from": "\"Mark Liu\" <mark.liu@acmecorp.com>",
+   "subject": "Interview loop tomorrow - can you cover?",
+   "snippet": "Hey, can you take the system design slot in tomorrow's interview loop for the backend candidate? 2pm, room 4B.",
+   "date": "2026-11-08T13:29:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L114",
+   "from": "\"Amazon.com\" <shipment-tracking@amazon.com>",
+   "subject": "Delivered: Your package with 'Cracking the PM Interview'",
+   "snippet": "Your package was delivered to the front door. Cracking the PM Interview: How to Land a Product Manager Job in Technology.",
+   "date": "2026-10-15T18:42:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L115",
+   "from": "\"ZipRecruiter\" <noreply@ziprecruiter.com>",
+   "subject": "A company wants you to apply",
+   "snippet": "Pacific Dental Services viewed your profile and invited you to apply for Dental Assistant. Apply in one click.",
+   "date": "2026-11-22T23:55:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L116",
+   "from": "\"Handshake\" <noreply@joinhandshake.com>",
+   "subject": "Employer info session: Meet Deloitte",
+   "snippet": "Join Deloitte recruiters for a virtual info session on Thursday at 6pm. RSVP to save your spot.",
+   "date": "2026-10-01T04:08:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L117",
+   "from": "\"Maya\" <maya.r.92@gmail.com>",
+   "subject": "congrats!!",
+   "snippet": "omg just heard about your offer from Google!! so proud of you, dinner on me this weekend",
+   "date": "2026-11-08T09:21:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L118",
+   "from": "\"State Farm\" <statefarm@email.statefarm.com>",
+   "subject": "We've received your claim",
+   "snippet": "Thank you for submitting your claim. An adjuster will contact you within 2 business days.",
+   "date": "2026-10-15T14:34:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L119",
+   "from": "\"NYU Stern Admissions\" <stern.admissions@nyu.edu>",
+   "subject": "Interview invitation - Full-time MBA",
+   "snippet": "Congratulations! The Admissions Committee invites you to interview for the Full-time MBA program.",
+   "date": "2026-11-22T19:47:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L120",
+   "from": "\"Workday\" <noreply@myworkday.com>",
+   "subject": "Verify your candidate account",
+   "snippet": "Please verify your email address to finish creating your candidate account.",
+   "date": "2026-10-01T00:00:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L121",
+   "from": "\"Nordstrom\" <nordstrom@myworkday.com>",
+   "subject": "Finish your application",
+   "snippet": "You started an application for Sales Associate but haven't submitted it yet. Pick up where you left off.",
+   "date": "2026-11-08T05:13:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L122",
+   "from": "\"Checkr\" <no-reply@checkr.com>",
+   "subject": "Your background check is complete",
+   "snippet": "Your background check for Uber has been completed. Log in to view your report.",
+   "date": "2026-10-15T10:26:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L123",
+   "from": "\"Lauren Hall\" <lauren.hall@stripe.com>",
+   "subject": "Automatic reply: Following up on my application",
+   "snippet": "I'm out of office until Nov 16 with limited email access. For urgent matters contact recruiting@stripe.com.",
+   "date": "2026-11-22T15:39:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L124",
+   "from": "\"Acme Corp Internal Comms\" <comms@acmecorp.com>",
+   "subject": "We're hiring! Refer a friend",
+   "snippet": "We have 40 open roles this quarter. Refer a friend and earn a $2,000 bonus.",
+   "date": "2026-10-01T20:52:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L125",
+   "from": "\"Better.com\" <hello@better.com>",
+   "subject": "You're pre-approved!",
+   "snippet": "Great news! You've been pre-approved for a mortgage up to $480,000.",
+   "date": "2026-11-08T01:05:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L126",
+   "from": "\"U.S. Embassy\" <support-india@usvisascheduling.com>",
+   "subject": "Visa interview appointment confirmed",
+   "snippet": "Your visa interview at the U.S. Consulate Mumbai is confirmed for Nov 20 at 8:30 AM.",
+   "date": "2026-10-15T06:18:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L127",
+   "from": "\"Built In\" <events@builtin.com>",
+   "subject": "Webinar: Ace your technical interview",
+   "snippet": "Join us Tuesday for a live webinar with hiring managers from Stripe and Datadog.",
+   "date": "2026-11-22T11:31:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L128",
+   "from": "\"Leah Moss\" <leah@devchatter.fm>",
+   "subject": "Interview request for our podcast",
+   "snippet": "Hi Sam, we'd love to interview you on DevChatter about your open-source work. Are you free next week?",
+   "date": "2026-10-01T16:44:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L129",
+   "from": "\"Kim Nguyen\" <kim.nguyen@zillow.com>",
+   "subject": "Re: lunch Thursday?",
+   "snippet": "Sounds great - noon at the taco place works. See you then!",
+   "date": "2026-11-08T21:57:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L130",
+   "from": "\"DMV\" <noreply@dmv.ny.gov>",
+   "subject": "Your road test is scheduled",
+   "snippet": "Your road test is scheduled for Nov 18 at 10:15 AM. Bring your learner permit.",
+   "date": "2026-10-15T02:10:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L131",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Stripe Interview – Backend Engineer (Payments) @ Tue Nov 10, 2026 1pm - 2pm (PST)",
+   "snippet": "You have been invited to the following event. Stripe Interview – Backend Engineer (Payments) with Alan Wu and Rosa Kim. Join with Google Meet.",
+   "date": "2026-11-22T07:23:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Stripe"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L132",
+   "from": "\"Outlook Calendar\" <no-reply@outlook.office365.com>",
+   "subject": "Invitation: Deloitte – Senior Consultant, Risk Advisory – Partner Interview",
+   "snippet": "Deloitte – Senior Consultant, Risk Advisory – Partner Interview. When: Thursday, November 12, 2026 3:00 PM-3:45 PM (UTC-05:00). Microsoft Teams meeting.",
+   "date": "2026-10-01T12:36:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Deloitte"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L133",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "New Event: Phone Screen – Plaid Data Analyst",
+   "snippet": "A new event has been scheduled. Event Type: Phone Screen – Plaid Data Analyst. Invitee: Sam Ortiz. Monday, November 9, 2026 11:00am - 11:30am (Pacific Time).",
+   "date": "2026-11-08T17:49:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Plaid"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L134",
+   "from": "\"Zoom\" <no-reply@zoom.us>",
+   "subject": "Zoom meeting invitation – Shopify Technical Interview: Staff Developer",
+   "snippet": "Priya Natarajan is inviting you to a scheduled Zoom meeting. Topic: Shopify Technical Interview – Staff Developer. Time: Nov 13, 2026 10:00 AM Eastern Time.",
+   "date": "2026-10-15T22:02:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Shopify"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L135",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Interview - Airbnb @ Wed Nov 11, 2026 9am - 10am (PST)",
+   "snippet": "Airbnb Recruiting has invited you to Interview - Airbnb. Join with Google Meet.",
+   "date": "2026-11-22T03:15:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Airbnb"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L136",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "Confirmed: Recruiter Call – Figma",
+   "snippet": "Hi Jordan, your event Recruiter Call – Figma is confirmed for Friday, November 13 at 10:00am PT. A calendar invitation has been sent to your email address.",
+   "date": "2026-10-01T08:28:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Figma"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L137",
+   "from": "\"Coinbase Interviews\" <no-reply@goodtime.io>",
+   "subject": "Your interview with Coinbase is confirmed",
+   "snippet": "Your Coinbase interview for Senior Software Engineer, Platform is confirmed for Tuesday, Nov 17 at 11:00 AM PT. Interviewers: Dev Patel, Mia Chen.",
+   "date": "2026-11-08T13:41:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Coinbase"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L138",
+   "from": "\"Snowflake Recruiting Calendar\" <calendar@snowflake.com>",
+   "subject": "Invitation: Snowflake Onsite – Sales Engineer @ Thu Nov 19",
+   "snippet": "Snowflake Onsite – Sales Engineer. 4 sessions with the Solutions team. Join Zoom: snowflake.zoom.us/j/558. Going? Yes - Maybe - No",
+   "date": "2026-10-15T18:54:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Snowflake"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L139",
+   "from": "\"Datadog Recruiting\" <recruiting@datadoghq.com>",
+   "subject": "Updated invitation: Interview – Datadog Final Round @ Fri Nov 20, 2026 10am - 1pm (EST)",
+   "snippet": "This event has been changed. Your final round for Product Manager, APM now starts at 10am. Interviewers and agenda are attached.",
+   "date": "2026-11-22T23:07:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Datadog"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L140",
+   "from": "\"Microsoft Teams\" <noreply@email.teams.microsoft.com>",
+   "subject": "Hiring Manager Interview – Accenture – Cloud Architect",
+   "snippet": "Rachel Moore has invited you to a Teams meeting: Hiring Manager Interview – Accenture – Cloud Architect. Tuesday, November 24, 2026 2:00 PM.",
+   "date": "2026-10-01T04:20:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Accenture"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L141",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "Nuevo evento: Entrevista – Globant – Desarrollador Python",
+   "snippet": "Se ha programado un nuevo evento. Evento: Entrevista – Globant – Desarrollador Python. Fecha: jueves 12 de noviembre, 16:00 (hora de Buenos Aires).",
+   "date": "2026-11-08T09:33:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Globant"
+   },
+   "lang": "es",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L142",
+   "from": "\"Google Kalender\" <calendar-notification@google.com>",
+   "subject": "Einladung: Vorstellungsgespräch Siemens – Projektingenieur @ Mi 18. Nov. 2026 10:00 - 11:00 (MEZ)",
+   "snippet": "Sie wurden zu folgendem Termin eingeladen: Vorstellungsgespräch Siemens – Projektingenieur. Mit Google Meet teilnehmen.",
+   "date": "2026-10-15T14:46:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Siemens"
+   },
+   "lang": "de",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L143",
+   "from": "\"Outlook Calendar\" <no-reply@outlook.office365.com>",
+   "subject": "Invitation: Interview – Wells Fargo @ Mon Nov 16",
+   "snippet": "Interview – Wells Fargo. When: Monday, November 16, 2026 1:00 PM-1:30 PM. Microsoft Teams meeting.",
+   "date": "2026-11-22T19:59:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Wells Fargo"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L144",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "Confirmed: Technical Screen – Robinhood (Software Engineer, Brokerage)",
+   "snippet": "Hi Alex, a new event has been scheduled: Technical Screen – Robinhood (Software Engineer, Brokerage). Wednesday, November 18, 2026 9:00am - 10:00am (Pacific Time).",
+   "date": "2026-10-01T00:12:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Robinhood"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L145",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Coffee with Priya @ Sat Nov 14, 2026 10am - 11am (PST)",
+   "snippet": "Priya Shah has invited you to Coffee with Priya. Where: Blue Bottle, Hayes Valley. Going? Yes - Maybe - No",
+   "date": "2026-11-08T05:25:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L146",
+   "from": "\"Dana Lee\" <dana.lee@gmail.com>",
+   "subject": "Accepted: Interview prep with Dana @ Thu Nov 12, 2026 7pm - 8pm",
+   "snippet": "Dana Lee has accepted this invitation.",
+   "date": "2026-10-15T10:38:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L147",
+   "from": "\"Marcus Hill\" <marcus.hill@rivian.com>",
+   "subject": "Accepted: Intro call – Sam / Rivian @ Wed Nov 11, 2026 2pm - 2:30pm (PST)",
+   "snippet": "Marcus Hill has accepted this invitation. Intro call – Sam / Rivian.",
+   "date": "2026-11-22T15:51:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L148",
+   "from": "\"Tina Brooks\" <tina.brooks@chime.com>",
+   "subject": "Declined: Coffee chat re: Analyst role @ Tue Nov 17, 2026 4pm",
+   "snippet": "Tina Brooks has declined this invitation. Note: Sorry, traveling that week!",
+   "date": "2026-10-01T20:04:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L149",
+   "from": "\"Zoom\" <no-reply@zoom.us>",
+   "subject": "Meeting reminder: Mock Interview Practice – Career Center",
+   "snippet": "Your meeting Mock Interview Practice – Career Center starts in 1 hour. Join Zoom Meeting using the link below.",
+   "date": "2026-11-08T01:17:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L150",
+   "from": "\"Calendly\" <notifications@calendly.com>",
+   "subject": "New Event: 30 Minute Meeting – Resume Review with Coach Kim",
+   "snippet": "A new event has been scheduled. Event Type: 30 Minute Meeting – Resume Review with Coach Kim. Tuesday, November 10 at 6:00pm.",
+   "date": "2026-10-15T06:30:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L151",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Invitation: Team offsite planning @ Fri Nov 20, 2026",
+   "snippet": "Jordan Blake has invited you to Team offsite planning. Agenda: Q1 hiring plan, budget, team building.",
+   "date": "2026-11-22T11:43:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L152",
+   "from": "\"Google Calendar\" <calendar-notification@google.com>",
+   "subject": "Updated invitation: Dentist – Dr. Patel @ Tue Nov 17, 2026 8am",
+   "snippet": "This event has been changed. Dentist – Dr. Patel moved to 8am.",
+   "date": "2026-10-01T16:56:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L153",
+   "from": "\"Laura Kim\" <laura.kim@acmecorp.com>",
+   "subject": "Interview panel debrief – Backend hire",
+   "snippet": "Laura Kim has invited you to a Teams meeting: Interview panel debrief for the Backend Engineer hire. Please bring your scorecards.",
+   "date": "2026-11-08T21:09:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L154",
+   "from": "\"Owen Price\" <owen.price@lyft.com>",
+   "subject": "Tentatively accepted: Phone screen – Lyft Data Scientist",
+   "snippet": "Owen Price has tentatively accepted this invitation.",
+   "date": "2026-10-15T02:22:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "calendar",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L155",
+   "from": "\"Priya Raman\" <priya.raman.dev@gmail.com>",
+   "subject": "Fwd: Thank you for applying to Notion",
+   "snippet": "---------- Forwarded message --------- From: Notion <no-reply@ashbyhq.com> Date: Mon, Nov 2, 2026 Subject: Thank you for applying to Notion To: priya.raman.dev@gmail.com Hi Priya, we've received your application for Solutions Engineer and will review it soon.",
+   "date": "2026-11-22T07:35:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Notion"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L156",
+   "from": "\"Chris Ng\" <chris.ng.88@gmail.com>",
+   "subject": "Fwd: Interview invitation – Data Analyst",
+   "snippet": "---------- Forwarded message --------- From: Talent Team <talent@cloudflare.com> Subject: Interview invitation – Data Analyst. Hi Chris, we'd like to invite you to a 45-minute video interview with the hiring manager. Please pick a time.",
+   "date": "2026-10-01T12:48:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Cloudflare"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L157",
+   "from": "\"Kevin Doyle\" <kdoyle@outlook.com>",
+   "subject": "FW: Next steps with Atlassian",
+   "snippet": "FYI - see below. -----Original Message----- Hi Kevin, congratulations on moving to the next round! We'd like to schedule your technical interview for the Senior Backend Engineer role next week.",
+   "date": "2026-11-08T17:01:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Atlassian"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L158",
+   "from": "\"Elena Ruiz\" <elena.ruiz.p@gmail.com>",
+   "subject": "Fwd: Your application to Spotify",
+   "snippet": "Begin forwarded message: From: Spotify <no-reply@smartrecruiters.com> Subject: Your application to Spotify Hi Elena, thank you for your interest. Unfortunately we have decided not to move forward with your application for Data Scientist.",
+   "date": "2026-10-15T22:14:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Spotify"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L159",
+   "from": "\"Sam Cho\" <samcho@icloud.com>",
+   "subject": "Fwd: Update on your candidacy - Workday",
+   "snippet": "ugh :( ---------- Forwarded message --------- Hi Sam, after careful consideration we will not be moving forward with your candidacy for the Product Analyst position at Workday.",
+   "date": "2026-11-22T03:27:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Workday"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L160",
+   "from": "\"Aisha Bello\" <aisha.bello@yahoo.com>",
+   "subject": "Fwd: Offer letter – Northrop Grumman",
+   "snippet": "---------- Forwarded message --------- From: Northrop Grumman Talent Acquisition <ngcareers@ngc.com> Subject: Offer letter. Dear Aisha, we are pleased to extend you an offer for the Systems Engineer 2 position. Your offer letter is attached.",
+   "date": "2026-10-01T08:40:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Northrop Grumman"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L161",
+   "from": "\"Leo Park\" <leo.park.dev@gmail.com>",
+   "subject": "Fwd: Ramp has invited you to a coding assessment",
+   "snippet": "---------- Forwarded message --------- From: CodeSignal <noreply@codesignal.com> Subject: Ramp has invited you to a coding assessment. Complete the 70-minute General Coding Assessment within 7 days.",
+   "date": "2026-11-08T13:53:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Ramp"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L162",
+   "from": "\"Camila Torres\" <camila.torres93@gmail.com>",
+   "subject": "RV: Invitación a entrevista – Rappi",
+   "snippet": "---------- Mensaje reenviado --------- De: Rappi Talent <talent@rappi.com> Asunto: Invitación a entrevista. Hola Camila, nos gustaría invitarte a una entrevista por videollamada el martes 10 a las 15:00 h para Product Analyst.",
+   "date": "2026-10-15T18:06:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Rappi"
+   },
+   "lang": "es",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L163",
+   "from": "\"Markus Wolf\" <markus.wolf@gmail.com>",
+   "subject": "WG: Eingangsbestätigung Ihrer Bewerbung",
+   "snippet": "---------- Weitergeleitete Nachricht --------- Von: SAP SE <noreply@sap.successfactors.eu> Betreff: Eingangsbestätigung. Sehr geehrter Herr Wolf, vielen Dank für Ihre Bewerbung. Wir haben Ihre Unterlagen erhalten.",
+   "date": "2026-11-22T23:19:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "SAP"
+   },
+   "lang": "de",
+   "shape": "forward",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L164",
+   "from": "\"Jen Alvarez\" <jen.alvarez@gmail.com>",
+   "subject": "Fwd: dinner Saturday?",
+   "snippet": "---------- Forwarded message --------- From: Kate <kate.m@gmail.com> Hey! Are you free Saturday for dinner at 7? Bring your sister.",
+   "date": "2026-10-01T04:32:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L165",
+   "from": "\"Jen Alvarez\" <jen.alvarez@gmail.com>",
+   "subject": "Fwd: Job alert – 25 new jobs",
+   "snippet": "---------- Forwarded message --------- From: LinkedIn Job Alerts <jobalerts-noreply@linkedin.com> 25 new jobs for 'data analyst' in Denver. Apply with your profile.",
+   "date": "2026-11-08T09:45:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L166",
+   "from": "\"Nadia Hassan\" <nadia.hassan@outlook.com>",
+   "subject": "Fwd: Interview confirmation – PwC",
+   "snippet": "---------- Forwarded message --------- From: PwC Recruiting <pwc.recruiting@pwc.com> Subject: Interview confirmation. Your interview for Audit Associate is confirmed for Thursday, Nov 19 at 2pm at our Boston office.",
+   "date": "2026-10-15T14:58:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "PwC"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L167",
+   "from": "\"Tom Reyes\" <tomreyes@gmail.com>",
+   "subject": "Fwd: Application received",
+   "snippet": "fwd for my records. Thank you for applying to the Registered Nurse - ICU position at Kaiser Permanente. We have received your application.",
+   "date": "2026-11-22T19:11:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Kaiser Permanente"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L168",
+   "from": "\"Léa Bernard\" <lea.bernard@gmail.com>",
+   "subject": "TR: Votre candidature chez Carrefour",
+   "snippet": "-------- Message transféré -------- De : Carrefour Recrutement <noreply@carrefour.smartrecruiters.com> Objet : Votre candidature. Bonjour Léa, malheureusement votre candidature n'a pas été retenue pour le poste de Chef de rayon.",
+   "date": "2026-10-01T00:24:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Carrefour"
+   },
+   "lang": "fr",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L169",
+   "from": "\"Jess Kim\" <jesskim@gmail.com>",
+   "subject": "Fwd: Congrats!! offer from Peloton",
+   "snippet": "fyi!! ---------- Forwarded message --------- Hi Jess, we are thrilled to offer you the Product Designer role at Peloton. Your offer letter is attached.",
+   "date": "2026-11-08T05:37:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Peloton"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L170",
+   "from": "\"Rob Diaz\" <rob.diaz@gmail.com>",
+   "subject": "Fwd: Remote Data Entry Job Offer",
+   "snippet": "---------- Forwarded message --------- From: HR Manager <hr.manager.jobs@outlook.com> You have been selected for remote data entry, $45/hr. Purchase equipment from our approved vendor; we will send a check.",
+   "date": "2026-10-15T10:50:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "en",
+   "shape": "forward",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L171",
+   "from": "\"Iberdrola Empleo\" <noreply@iberdrola.successfactors.eu>",
+   "subject": "Confirmación de tu candidatura – Técnico/a de Mantenimiento Eólico",
+   "snippet": "Hola Andrés, te confirmamos que tu candidatura para Técnico/a de Mantenimiento Eólico se ha registrado correctamente. El equipo de Selección revisará tu perfil y te contactaremos si encaja con la posición.",
+   "date": "2026-11-22T15:03:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Iberdrola"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L172",
+   "from": "\"Inditex Careers\" <no-reply@inditex.myworkdayjobs.com>",
+   "subject": "Gracias por tu postulación",
+   "snippet": "Hola Marta: muchas gracias por postularte a Visual Merchandiser en A Coruña. Hemos recibido tu solicitud y la estamos revisando. Te escribiremos en cuanto haya novedades.",
+   "date": "2026-10-01T20:16:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Inditex"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L173",
+   "from": "\"Glovo Talent\" <no-reply@glovo.recruitee.com>",
+   "subject": "Tu candidatura ha llegado ✔",
+   "snippet": "¡Hola, Pau! Tu candidatura a Data Analyst – Ops ya está en nuestras manos. Nuestro equipo de Talent la revisará en las próximas dos semanas.",
+   "date": "2026-11-08T01:29:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Glovo"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L174",
+   "from": "\"Bancolombia Selección\" <seleccion@bancolombia.com.co>",
+   "subject": "Recibimos tu hoja de vida",
+   "snippet": "Hola Daniela, recibimos tu hoja de vida para la vacante de Analista de Riesgo de Crédito. Si tu perfil avanza en el proceso, te contactaremos por este medio.",
+   "date": "2026-10-15T06:42:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Bancolombia"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L175",
+   "from": "\"Repsol Selección\" <noreply@repsol.successfactors.eu>",
+   "subject": "Tu proceso de selección en Repsol",
+   "snippet": "Hola Iván, gracias por el tiempo dedicado. Lamentablemente no podemos seguir adelante con tu candidatura para Ingeniero/a de Procesos. Guardaremos tu CV para futuras vacantes.",
+   "date": "2026-11-22T11:55:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Repsol"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L176",
+   "from": "\"CaixaBank Talento\" <talento@caixabank.com>",
+   "subject": "Respuesta a tu candidatura",
+   "snippet": "Estimada Lucía: tras valorar tu perfil, hemos decidido continuar el proceso con otros candidatos cuyo perfil se ajusta más a los requisitos del puesto. Te deseamos mucha suerte.",
+   "date": "2026-10-01T16:08:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "CaixaBank"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L177",
+   "from": "\"Falabella Talento\" <notificaciones@falabella.cl>",
+   "subject": "Actualización de tu postulación – Product Owner",
+   "snippet": "Hola Tomás, agradecemos tu interés. En esta oportunidad tu postulación no fue seleccionada para continuar a la siguiente etapa. Te invitamos a postular a otras vacantes.",
+   "date": "2026-11-08T21:21:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Falabella"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L178",
+   "from": "\"Laura Méndez\" <laura.mendez@cabify.com>",
+   "subject": "Re: Entrevista Backend Engineer",
+   "snippet": "Hola Sergio, gracias de nuevo por la entrevista del jueves. Desafortunadamente el equipo ha decidido no avanzar con tu candidatura en esta ocasión. Un abrazo y mucho éxito.",
+   "date": "2026-10-15T02:34:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Cabify"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L179",
+   "from": "\"Mapfre RRHH\" <rrhh@mapfre.com>",
+   "subject": "Proceso de selección: Actuario Junior",
+   "snippet": "Estimado Carlos, le informamos que la vacante de Actuario Junior ha sido cubierta. Agradecemos sinceramente su participación en el proceso.",
+   "date": "2026-11-22T07:47:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Mapfre"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L180",
+   "from": "\"Indra Talent Acquisition\" <talent@indracompany.com>",
+   "subject": "Entrevista – Desarrollador/a .NET",
+   "snippet": "Hola Raúl, nos gustaría tener una entrevista contigo por Teams para la posición de Desarrollador/a .NET. ¿Te encaja el miércoles 14 a las 10:30 h? Si no, indícanos tu disponibilidad.",
+   "date": "2026-10-01T12:00:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Indra"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L181",
+   "from": "\"Kavak Reclutamiento\" <reclutamiento@kavak.com>",
+   "subject": "Agenda tu entrevista con Kavak",
+   "snippet": "¡Hola Fernanda! Pasaste el primer filtro para Analista de Pricing. Agenda tu entrevista con el hiring manager eligiendo un horario en el siguiente enlace.",
+   "date": "2026-11-08T17:13:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Kavak"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L182",
+   "from": "\"Accenture España\" <no-reply@accenture.avature.net>",
+   "subject": "Convocatoria a entrevista – Consultor/a SAP",
+   "snippet": "Buenos días Alba, te convocamos a una entrevista presencial en nuestras oficinas de Madrid el viernes 23 a las 9:00. Por favor confirma tu asistencia respondiendo a este correo.",
+   "date": "2026-10-15T22:26:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Accenture"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L183",
+   "from": "\"Rodrigo Ortega\" <rodrigo.ortega@clip.mx>",
+   "subject": "Plática sobre la vacante de QA",
+   "snippet": "Hola Diana, vi tu postulación para QA Engineer y me gustaría platicar contigo 30 minutos esta semana. ¿Te queda bien el jueves por la tarde? Saludos, Rodrigo",
+   "date": "2026-11-22T03:39:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Clip"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L184",
+   "from": "\"Ferrovial Selección\" <seleccion@ferrovial.com>",
+   "subject": "Segunda entrevista – Jefe/a de Obra",
+   "snippet": "Hola Jorge, has superado la primera fase. Te esperamos para la segunda entrevista con el director de proyecto el lunes 9 de noviembre a las 12:00.",
+   "date": "2026-10-01T08:52:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Ferrovial"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L185",
+   "from": "\"NTT DATA Selección\" <seleccion@nttdata.com>",
+   "subject": "Prueba online – Programador/a Java",
+   "snippet": "Hola Elena, como siguiente paso del proceso te enviamos una prueba online de lógica y Java. Dispones de 48 horas para completarla desde el enlace.",
+   "date": "2026-11-08T13:05:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "NTT Data"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L186",
+   "from": "\"Despegar Talent\" <talent@despegar.com>",
+   "subject": "Desafío técnico – Frontend Developer",
+   "snippet": "Hola Nicolás, te compartimos el desafío técnico. Tienes una semana para resolverlo y subir tu solución a un repositorio público. Ante cualquier duda, escríbenos.",
+   "date": "2026-10-15T18:18:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Despegar"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L187",
+   "from": "\"Cemex Talento\" <talento@cemex.com>",
+   "subject": "Propuesta laboral – Ingeniero de Planta",
+   "snippet": "Hola Ricardo, ¡felicidades! Nos da mucho gusto ofrecerte la posición de Ingeniero de Planta en Monterrey. Adjuntamos la propuesta económica con salario y prestaciones. Quedamos atentos.",
+   "date": "2026-11-22T23:31:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Cemex"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L188",
+   "from": "\"Beatriz Lozano\" <beatriz.lozano@sngular.com>",
+   "subject": "Oferta – Data Engineer",
+   "snippet": "Hola Álvaro, enhorabuena: queremos que te unas a Sngular como Data Engineer. Te envío la oferta formal con el salario y la fecha de incorporación para que la revises y firmes.",
+   "date": "2026-10-01T04:44:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Sngular"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L189",
+   "from": "\"Pilar Ruiz\" <pilar.ruiz@mercadona.es>",
+   "subject": "RE: Candidatura Gerente de Tienda",
+   "snippet": "Hola Óscar, gracias por tu correo. Seguimos revisando las candidaturas y todavía no tenemos una decisión. Te escribo en cuanto sepa algo más. Un saludo.",
+   "date": "2026-11-08T09:57:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Mercadona"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L190",
+   "from": "\"Alejandra Cruz\" <alejandra.cruz@grupobimbo.com>",
+   "subject": "Re: Vacante Analista de Compras",
+   "snippet": "Hola Luis, gracias por tu interés. ¿Me podrías compartir tu CV actualizado y tu expectativa salarial? Con eso lo paso al gerente del área. Saludos.",
+   "date": "2026-10-15T14:10:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Grupo Bimbo"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L191",
+   "from": "\"InfoJobs\" <alertas@infojobs.net>",
+   "subject": "Nuevas ofertas de empleo para ti: Analista de Datos",
+   "snippet": "Tenemos 18 nuevas ofertas que encajan con tu perfil: Analista de Datos – Madrid, Data Scientist – Barcelona. Inscríbete con un clic.",
+   "date": "2026-11-22T19:23:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L192",
+   "from": "\"Santander\" <avisos@santander.es>",
+   "subject": "Tu solicitud de préstamo personal",
+   "snippet": "Hola Marta, hemos recibido tu solicitud de préstamo personal por 6.000 €. Te comunicaremos la resolución en un plazo de 48 horas.",
+   "date": "2026-10-01T00:36:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "es",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L193",
+   "from": "\"Blog de Empleo\" <boletin@tecnoempleo.com>",
+   "subject": "5 consejos para tu próxima entrevista",
+   "snippet": "En el boletín de esta semana: cómo preparar una entrevista por competencias, qué responder sobre el salario y las empresas que más contratan.",
+   "date": "2026-11-08T05:49:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L194",
+   "from": "\"Idealista\" <noreply@idealista.com>",
+   "subject": "Respuesta a tu solicitud de alquiler",
+   "snippet": "Lamentablemente el propietario ha elegido a otro inquilino para el piso de la calle Alcalá. Sigue buscando en idealista.",
+   "date": "2026-10-15T10:02:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L195",
+   "from": "\"Carmen\" <carmen.rv88@gmail.com>",
+   "subject": "¿Qué tal la entrevista?",
+   "snippet": "¡Hola guapa! ¿Cómo te fue la entrevista de ayer? Cuéntame todo cuando puedas. Besos.",
+   "date": "2026-11-22T15:15:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "es",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L196",
+   "from": "\"Natura &Co Carreiras\" <naoresponda@natura.gupy.io>",
+   "subject": "Candidatura recebida – Analista de Marketing",
+   "snippet": "Olá, Juliana! Recebemos a sua candidatura para Analista de Marketing. Agora é com a gente: vamos analisar seu perfil e você receberá atualizações por e-mail.",
+   "date": "2026-10-01T20:28:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Natura"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L197",
+   "from": "\"Magazine Luiza\" <naoresponda@magazineluiza.gupy.io>",
+   "subject": "Recebemos sua inscrição!",
+   "snippet": "Oi, Pedro! Obrigado por se inscrever na vaga de Desenvolvedor Mobile. Sua candidatura foi registrada com sucesso e está em análise pelo nosso time.",
+   "date": "2026-11-08T01:41:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Magazine Luiza"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L198",
+   "from": "\"Sonae Recrutamento\" <recrutamento@sonae.pt>",
+   "subject": "Confirmação de candidatura",
+   "snippet": "Caro Miguel, confirmamos a receção da sua candidatura à função de Gestor de Loja. Iremos analisá-la e entraremos em contacto caso o seu perfil seja selecionado.",
+   "date": "2026-10-15T06:54:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Sonae"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L199",
+   "from": "\"XP Inc.\" <no-reply@xpinc.greenhouse-mail.io>",
+   "subject": "Recebemos seu currículo",
+   "snippet": "Olá, Carla! Seu currículo chegou direitinho para a vaga de Assessor de Investimentos. Em breve nosso time de Gente vai avaliar.",
+   "date": "2026-11-22T11:07:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "XP Inc"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L200",
+   "from": "\"Ambev Gente\" <naoresponda@ambev.gupy.io>",
+   "subject": "Atualização do processo seletivo",
+   "snippet": "Oi, Renata! Infelizmente não poderemos seguir com a sua candidatura para Analista de Supply nesta etapa. Agradecemos muito sua participação e torcemos pelo seu sucesso.",
+   "date": "2026-10-01T16:20:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Ambev"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L201",
+   "from": "\"Itaú Carreiras\" <carreiras@itau.com.br>",
+   "subject": "Retorno da sua candidatura",
+   "snippet": "Olá, Felipe. Após análise cuidadosa, optamos por seguir com outros candidatos para a vaga de Cientista de Dados. Seu currículo ficará em nosso banco de talentos.",
+   "date": "2026-11-08T21:33:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Itaú"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L202",
+   "from": "\"Camila Rocha\" <camila.rocha@ifood.com.br>",
+   "subject": "Re: Entrevista Product Designer",
+   "snippet": "Oi Bruno, obrigada pela conversa de ontem! Infelizmente decidimos não avançar com o seu perfil neste momento. Desejo muito sucesso e vamos manter contato.",
+   "date": "2026-10-15T02:46:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "iFood"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L203",
+   "from": "\"EDP Recrutamento\" <recrutamento@edp.com>",
+   "subject": "Processo de recrutamento – Engenheiro Eletrotécnico",
+   "snippet": "Exmo. Sr. Rui Costa, informamos que a sua candidatura não foi selecionada para a fase seguinte. Agradecemos o interesse demonstrado na EDP.",
+   "date": "2026-11-22T07:59:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "EDP"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L204",
+   "from": "\"PicPay\" <naoresponda@picpay.gupy.io>",
+   "subject": "Vaga encerrada – Analista de Fraude",
+   "snippet": "Olá, Larissa! A vaga de Analista de Fraude foi encerrada e o processo seletivo foi finalizado. Agradecemos sua candidatura e esperamos te ver em outras oportunidades.",
+   "date": "2026-10-01T12:12:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "PicPay"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L205",
+   "from": "\"Grupo Boticário\" <naoresponda@boticario.gupy.io>",
+   "subject": "Obrigado por participar",
+   "snippet": "Olá, Aline. Agradecemos sua participação no processo para Coordenadora de Trade. Infelizmente, você não seguirá para a próxima fase. Seu currículo continuará em nossa base para futuras oportunidades.",
+   "date": "2026-11-08T17:25:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Grupo Boticário"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L206",
+   "from": "\"Vale Recrutamento\" <recrutamento@vale.com>",
+   "subject": "Convite para entrevista – Engenheiro de Minas",
+   "snippet": "Prezado Thiago, gostaríamos de convidá-lo para uma entrevista com a gestora da área na quinta-feira, 12/11, às 14h, por Microsoft Teams. Por favor, confirme sua disponibilidade.",
+   "date": "2026-10-15T22:38:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Vale"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L207",
+   "from": "\"QuintoAndar\" <naoresponda@quintoandar.gupy.io>",
+   "subject": "Você avançou! Agende sua entrevista",
+   "snippet": "Oi, Gabriela! Parabéns, você foi aprovada para a etapa de entrevista técnica da vaga de Engenheira de Dados. Escolha o melhor horário na agenda até quarta.",
+   "date": "2026-11-22T03:51:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "QuintoAndar"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L208",
+   "from": "\"Marcelo Dias\" <marcelo.dias@creditas.com>",
+   "subject": "Bate-papo sobre a vaga de Tech Lead",
+   "snippet": "Oi Rafael, tudo bem? Vi sua candidatura para Tech Lead e queria marcar um bate-papo de 30 min com você essa semana. Qual horário fica melhor?",
+   "date": "2026-10-01T08:04:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Creditas"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L209",
+   "from": "\"Farfetch Talent\" <talent@farfetch.com>",
+   "subject": "Entrevista – Software Engineer",
+   "snippet": "Olá Inês, obrigado pela sua candidatura. Gostaríamos de a convidar para uma primeira entrevista por videochamada. Pode indicar-nos a sua disponibilidade para a próxima semana?",
+   "date": "2026-11-08T13:17:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Farfetch"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L210",
+   "from": "\"Banco BV\" <recrutamento@bv.com.br>",
+   "subject": "Entrevista confirmada – Analista de Crédito",
+   "snippet": "Olá, Henrique! Sua entrevista com a gestora está confirmada para terça-feira, 17/11, às 10h, no nosso escritório da Av. Paulista. Leve um documento com foto.",
+   "date": "2026-10-15T18:30:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Banco BV"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L211",
+   "from": "\"TOTVS Carreiras\" <naoresponda@totvs.gupy.io>",
+   "subject": "Teste online – Desenvolvedor Protheus",
+   "snippet": "Olá, André! A próxima etapa do processo é um teste online de lógica de programação. Você tem 3 dias para realizá-lo pelo link abaixo. Boa sorte!",
+   "date": "2026-11-22T23:43:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "TOTVS"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L212",
+   "from": "\"Ana Paula Melo\" <ana.melo@movile.com>",
+   "subject": "Case para a vaga de Product Manager",
+   "snippet": "Oi Diego, como próxima etapa queremos que você resolva um case de produto. Envie a apresentação até segunda-feira às 18h. Qualquer dúvida, me chama!",
+   "date": "2026-10-01T04:56:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Movile"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L213",
+   "from": "\"Embraer Talentos\" <talentos@embraer.com.br>",
+   "subject": "Proposta de trabalho – Engenheiro de Sistemas",
+   "snippet": "Olá, Vinícius! Parabéns! Temos o prazer de oferecer a você a vaga de Engenheiro de Sistemas em São José dos Campos. A carta-proposta com salário e benefícios segue em anexo.",
+   "date": "2026-11-08T09:09:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Embraer"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L214",
+   "from": "\"Patrícia Nunes\" <patricia.nunes@hotmart.com>",
+   "subject": "Sua proposta Hotmart 🎉",
+   "snippet": "Oi Lucas! Que alegria: queremos você no time como Engenheiro de Software Sênior. Te mandei a proposta formal com remuneração e data de início para assinatura.",
+   "date": "2026-10-15T14:22:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Hotmart"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L215",
+   "from": "\"Fernanda Alves\" <fernanda.alves@localiza.com>",
+   "subject": "RES: Candidatura Analista Financeiro",
+   "snippet": "Oi Marcos, obrigada pelo retorno! Seu perfil ainda está em análise com a gestora e devo ter novidades até o fim da semana. Abraços.",
+   "date": "2026-11-22T19:35:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Localiza"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L216",
+   "from": "\"Sofia Pereira\" <sofia.pereira@jeronimo-martins.com>",
+   "subject": "Re: Candidatura – Analista de Pricing",
+   "snippet": "Olá Tiago, obrigada pelo contacto. Pode enviar-me o seu CV atualizado e a sua pretensão salarial? Assim que tiver feedback da equipa, aviso.",
+   "date": "2026-10-01T00:48:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Jerónimo Martins"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L217",
+   "from": "\"Catho\" <alertas@catho.com.br>",
+   "subject": "Novas vagas para você: Analista de Dados",
+   "snippet": "Encontramos 23 vagas que combinam com seu perfil: Analista de Dados Pleno – São Paulo, Analista de BI – Remoto. Candidate-se agora.",
+   "date": "2026-11-08T05:01:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L218",
+   "from": "\"Banco Inter\" <noreply@bancointer.com.br>",
+   "subject": "Seu cartão foi aprovado!",
+   "snippet": "Olá, Paula! Boa notícia: sua solicitação de cartão de crédito foi aprovada. Em até 7 dias úteis ele chega no seu endereço.",
+   "date": "2026-10-15T10:14:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "pt",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L219",
+   "from": "\"Gupy\" <pesquisa@gupy.io>",
+   "subject": "Como foi sua experiência no processo seletivo?",
+   "snippet": "Conte para a gente como foi sua experiência como candidato na Natura. A pesquisa leva 2 minutos e é anônima.",
+   "date": "2026-11-22T15:27:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L220",
+   "from": "\"Mãe\" <mariaclara.santos@hotmail.com>",
+   "subject": "Boa sorte na entrevista!",
+   "snippet": "Filho, boa sorte amanhã na entrevista! Depois me liga para contar como foi. Beijos.",
+   "date": "2026-10-01T20:40:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "pt",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L221",
+   "from": "\"Decathlon Recrutement\" <noreply@decathlon.smartrecruiters.com>",
+   "subject": "Votre candidature a bien été reçue",
+   "snippet": "Bonjour Hugo, merci pour votre candidature au poste de Vendeur Sport Montagne. Nous l'étudierons avec attention et reviendrons vers vous rapidement.",
+   "date": "2026-11-08T01:53:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Decathlon"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L222",
+   "from": "\"Orange Recrutement\" <ne-pas-repondre@orange.com>",
+   "subject": "Accusé de réception de votre candidature",
+   "snippet": "Madame, nous accusons réception de votre candidature pour le poste de Chef de projet réseau (réf. 2026-1187). Elle sera examinée par nos équipes dans les meilleurs délais.",
+   "date": "2026-10-15T06:06:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Orange"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L223",
+   "from": "\"Doctolib Talent\" <no-reply@hire.lever.co>",
+   "subject": "Merci d'avoir postulé chez Doctolib !",
+   "snippet": "Bonjour Chloé, nous avons bien reçu votre candidature pour le poste de Product Designer. L'équipe la regarde et vous tient au courant d'ici deux semaines.",
+   "date": "2026-11-22T11:19:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Doctolib"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L224",
+   "from": "\"Nestlé Careers\" <noreply@nestle.successfactors.eu>",
+   "subject": "Confirmation de votre candidature",
+   "snippet": "Bonjour Mathieu, votre candidature pour le poste de Responsable Qualité à Vevey a été enregistrée avec succès. Vous pouvez suivre son statut depuis votre espace candidat.",
+   "date": "2026-10-01T16:32:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Nestlé"
+   },
+   "lang": "fr",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L225",
+   "from": "\"Air France Recrutement\" <recrutement@airfrance.fr>",
+   "subject": "Votre candidature – Chargé(e) de clientèle",
+   "snippet": "Madame Lefèvre, nous vous remercions de l'intérêt que vous portez à Air France. Malheureusement, nous ne pouvons pas donner une suite favorable à votre candidature. Nous vous souhaitons pleine réussite.",
+   "date": "2026-11-08T21:45:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Air France"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L226",
+   "from": "\"AXA Talent\" <noreply@axa.avature.net>",
+   "subject": "Suite à votre candidature",
+   "snippet": "Bonjour Antoine, après étude attentive de votre dossier, nous avons retenu un autre profil pour le poste d'Actuaire Junior. Nous conserverons votre CV dans notre vivier.",
+   "date": "2026-10-15T02:58:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "AXA"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L227",
+   "from": "\"Sarah Benali\" <sarah.benali@alan.com>",
+   "subject": "RE: Entretien Data Analyst",
+   "snippet": "Bonjour Julien, merci encore pour l'entretien de mardi. Après réflexion, l'équipe a décidé de ne pas poursuivre avec ta candidature. Je te souhaite le meilleur pour la suite.",
+   "date": "2026-11-22T07:11:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Alan"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L228",
+   "from": "\"Desjardins Carrières\" <carrieres@desjardins.com>",
+   "subject": "Mise à jour de votre candidature",
+   "snippet": "Bonjour Émilie, le poste de Conseillère en finances personnelles pour lequel vous avez postulé a été pourvu. Nous vous remercions de votre intérêt pour Desjardins.",
+   "date": "2026-10-01T12:24:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Desjardins"
+   },
+   "lang": "fr",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L229",
+   "from": "\"Thales Recrutement\" <noreply@thales.successfactors.eu>",
+   "subject": "Votre candidature chez Thales",
+   "snippet": "Bonjour Paul, nous sommes au regret de vous informer que votre profil n'a pas été retenu pour la suite du processus de recrutement. Bonne continuation.",
+   "date": "2026-11-08T17:37:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Thales"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L230",
+   "from": "\"Renault Group\" <noreply@renault.successfactors.eu>",
+   "subject": "Réponse à votre candidature",
+   "snippet": "Bonjour Camille, malheureusement, nous ne sommes pas en mesure de poursuivre votre candidature pour le poste d'Ingénieure Batterie. Nous vous remercions pour le temps consacré.",
+   "date": "2026-10-15T22:50:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Renault Group"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L231",
+   "from": "\"Sopra Steria Recrutement\" <recrutement@soprasteria.com>",
+   "subject": "Invitation à un entretien – Ingénieur DevOps",
+   "snippet": "Bonjour Karim, votre profil a retenu notre attention et nous souhaiterions vous rencontrer lors d'un entretien en visio le lundi 16 novembre à 10h. Merci de nous confirmer votre présence.",
+   "date": "2026-11-22T03:03:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Sopra Steria"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L232",
+   "from": "\"Claire Dubois\" <claire.dubois@backmarket.com>",
+   "subject": "Échange pour le poste de Product Manager",
+   "snippet": "Bonjour Lucas, merci pour votre candidature ! J'aimerais organiser un premier échange téléphonique de 30 minutes cette semaine. Quelles sont vos disponibilités ?",
+   "date": "2026-10-01T08:16:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Back Market"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L233",
+   "from": "\"LVMH Talent\" <noreply@lvmh.myworkdayjobs.com>",
+   "subject": "Convocation – entretien final",
+   "snippet": "Bonjour Inès, nous avons le plaisir de vous convier à un entretien final avec la directrice marketing le jeudi 19 novembre à 15h30, au 22 avenue Montaigne.",
+   "date": "2026-11-08T13:29:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "LVMH"
+   },
+   "lang": "fr",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L234",
+   "from": "\"Proximus Jobs\" <jobs@proximus.com>",
+   "subject": "Planifiez votre entretien",
+   "snippet": "Bonjour Thomas, félicitations, vous passez à l'étape suivante ! Choisissez un créneau pour votre entretien avec le recruteur via le lien ci-dessous.",
+   "date": "2026-10-15T18:42:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Proximus"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L235",
+   "from": "\"BNP Paribas Recrutement\" <noreply@bnpparibas.avature.net>",
+   "subject": "Évaluation en ligne – Analyste Risques",
+   "snippet": "Bonjour Marie, pour poursuivre votre candidature, merci de réaliser l'évaluation en ligne (raisonnement logique, 25 minutes) avant le 20 novembre.",
+   "date": "2026-11-22T23:55:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "BNP Paribas"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L236",
+   "from": "\"Maxime Roux\" <maxime.roux@qonto.com>",
+   "subject": "Cas pratique – Backend Engineer",
+   "snippet": "Salut Nathan, voici le cas pratique pour la prochaine étape : une petite API à développer. Tu as 5 jours pour me le rendre, prends le temps qu'il faut.",
+   "date": "2026-10-01T04:08:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Qonto"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L237",
+   "from": "\"Ubisoft Talent\" <talent@ubisoft.com>",
+   "subject": "Proposition d'embauche – Game Designer",
+   "snippet": "Bonjour Léo, félicitations ! Nous avons le plaisir de vous proposer le poste de Game Designer au studio de Montpellier. Vous trouverez la promesse d'embauche en pièce jointe.",
+   "date": "2026-11-08T09:21:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Ubisoft"
+   },
+   "lang": "fr",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L238",
+   "from": "\"Julie Martin\" <julie.martin@mirakl.com>",
+   "subject": "Ta proposition chez Mirakl",
+   "snippet": "Hello Romain, bonne nouvelle : on souhaite t'accueillir comme Data Engineer ! Je t'envoie la proposition de contrat avec le salaire et la date de démarrage pour signature.",
+   "date": "2026-10-15T14:34:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Mirakl"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L239",
+   "from": "\"Nicolas Petit\" <nicolas.petit@michelin.com>",
+   "subject": "RE: Candidature Ingénieur Méthodes",
+   "snippet": "Bonjour Adrien, merci pour votre relance. Le manager est en congés cette semaine, je reviens vers vous dès que j'ai un retour de sa part. Bien cordialement.",
+   "date": "2026-11-22T19:47:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Michelin"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L240",
+   "from": "\"Amélie Girard\" <amelie.girard@danone.com>",
+   "subject": "Re: Poste Chef de Produit",
+   "snippet": "Bonjour Sophie, merci pour votre candidature. Pourriez-vous me transmettre vos prétentions salariales et votre date de disponibilité ? Je transmets ensuite au manager.",
+   "date": "2026-10-01T00:00:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Danone"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L241",
+   "from": "\"Welcome to the Jungle\" <alerts@welcometothejungle.com>",
+   "subject": "12 nouvelles offres d'emploi pour vous",
+   "snippet": "Data Analyst chez Doctolib, Product Designer chez Alan, Backend Developer chez Qonto... Postulez avant qu'il ne soit trop tard.",
+   "date": "2026-11-08T05:13:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L242",
+   "from": "\"SeLoger\" <noreply@seloger.com>",
+   "subject": "Votre dossier de location",
+   "snippet": "Bonjour, malheureusement le propriétaire n'a pas retenu votre dossier pour l'appartement rue Oberkampf. Consultez nos autres annonces.",
+   "date": "2026-10-15T10:26:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "fr",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L243",
+   "from": "\"France Travail\" <ne-pas-repondre@francetravail.fr>",
+   "subject": "Atelier : réussir son entretien d'embauche",
+   "snippet": "Inscrivez-vous à notre atelier gratuit du 24 novembre : préparer son entretien, se présenter en 2 minutes, répondre aux questions difficiles.",
+   "date": "2026-11-22T15:39:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L244",
+   "from": "\"Indeed\" <no-reply@indeed.com>",
+   "subject": "Donnez votre avis sur votre entretien chez Carrefour",
+   "snippet": "Comment s'est passé votre entretien ? Partagez votre expérience de manière anonyme pour aider d'autres candidats.",
+   "date": "2026-10-01T20:52:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "fr",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L245",
+   "from": "\"BMW Group Recruiting\" <noreply@bmwgroup.successfactors.eu>",
+   "subject": "Ihre Bewerbung ist bei uns eingegangen",
+   "snippet": "Sehr geehrte Frau Schulz, vielen Dank für Ihre Bewerbung als Data Scientist (Job-ID 104732). Wir prüfen Ihre Unterlagen und melden uns in Kürze bei Ihnen.",
+   "date": "2026-11-08T01:05:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "BMW Group"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L246",
+   "from": "\"N26 Talent\" <no-reply@n26.greenhouse.io>",
+   "subject": "Danke für deine Bewerbung bei N26",
+   "snippet": "Hi Jonas, danke für deine Bewerbung als Backend Engineer! Wir haben sie erhalten und schauen sie uns in den nächsten Tagen genau an.",
+   "date": "2026-10-15T06:18:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "N26"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L247",
+   "from": "\"Red Bull Recruiting\" <noreply@redbull.avature.net>",
+   "subject": "Eingangsbestätigung Ihrer Bewerbung",
+   "snippet": "Liebe Frau Gruber, hiermit bestätigen wir den Eingang Ihrer Bewerbung für die Position Brand Manager in Salzburg.",
+   "date": "2026-11-22T11:31:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Red Bull"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L248",
+   "from": "\"Roche Careers\" <noreply@roche.myworkdayjobs.com>",
+   "subject": "Bewerbung erfolgreich übermittelt",
+   "snippet": "Guten Tag Herr Meier, Ihre Bewerbung für die Stelle Laborant/in Analytik wurde erfolgreich übermittelt. Den Status können Sie jederzeit in Ihrem Kandidatenprofil einsehen.",
+   "date": "2026-10-01T16:44:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Roche"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L249",
+   "from": "\"Daimler Truck Recruiting\" <noreply@daimlertruck.successfactors.eu>",
+   "subject": "Ihre Bewerbung als Ingenieur Fahrzeugsicherheit",
+   "snippet": "Sehr geehrter Herr Lange, leider können wir Ihre Bewerbung nicht weiter berücksichtigen. Wir bedanken uns für Ihr Interesse und wünschen Ihnen für Ihre Zukunft alles Gute.",
+   "date": "2026-11-08T21:57:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Daimler Truck"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L250",
+   "from": "\"Katrin Vogel\" <katrin.vogel@deliveryhero.com>",
+   "subject": "AW: Interview Product Analyst",
+   "snippet": "Hallo Tim, danke nochmal für deine Zeit im Interview. Nach langer Abwägung haben wir uns leider für eine andere Kandidatin entschieden. Ich wünsche dir viel Erfolg!",
+   "date": "2026-10-15T02:10:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Delivery Hero"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L251",
+   "from": "\"Lufthansa Group Recruiting\" <noreply@lufthansa.avature.net>",
+   "subject": "Ihre Bewerbung – Absage",
+   "snippet": "Sehr geehrte Frau Krämer, nach sorgfältiger Prüfung müssen wir Ihnen leider mitteilen, dass wir Ihnen keine Zusage für die Position Flugbegleiterin geben können.",
+   "date": "2026-11-22T07:23:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Lufthansa"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L252",
+   "from": "\"Siemens Healthineers Talent\" <noreply@healthineers.successfactors.eu>",
+   "subject": "Update zu Ihrer Bewerbung",
+   "snippet": "Guten Tag Herr Yilmaz, die Position Service-Techniker, auf die Sie sich beworben haben, wurde inzwischen besetzt. Vielen Dank für Ihr Vertrauen.",
+   "date": "2026-10-01T12:36:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Siemens Healthineers"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L253",
+   "from": "\"Erste Group Karriere\" <karriere@erstegroup.com>",
+   "subject": "Rückmeldung zu Ihrer Bewerbung",
+   "snippet": "Sehr geehrte Frau Huber, wir bedauern, Ihnen mitteilen zu müssen, dass Sie nicht in die engere Auswahl gekommen sind. Wir behalten Ihre Unterlagen gerne in Evidenz.",
+   "date": "2026-11-08T17:49:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Erste Group"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L254",
+   "from": "\"OTTO\" <karriere@otto.de>",
+   "subject": "Ihre Bewerbung bei OTTO",
+   "snippet": "Hallo Frau Peters, vielen Dank für Ihr Interesse. Leider passt Ihr Profil aktuell nicht zu unseren Anforderungen für die Position Category Managerin. Wir wünschen Ihnen viel Erfolg.",
+   "date": "2026-10-15T22:02:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "OTTO"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L255",
+   "from": "\"Porsche Recruiting\" <recruiting@porsche.de>",
+   "subject": "Einladung zum Vorstellungsgespräch – Projektleiter E-Mobilität",
+   "snippet": "Sehr geehrter Herr Becker, wir möchten Sie gerne zu einem persönlichen Vorstellungsgespräch am Dienstag, 17.11.2026, um 10:00 Uhr in Zuffenhausen einladen.",
+   "date": "2026-11-22T03:15:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Porsche"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L256",
+   "from": "\"Miriam Koch\" <miriam.koch@celonis.com>",
+   "subject": "Kennenlerngespräch Customer Success Manager",
+   "snippet": "Hallo Lukas, vielen Dank für deine Bewerbung! Ich würde dich gerne in einem 30-minütigen Videocall kennenlernen. Hier kannst du dir einen passenden Termin aussuchen.",
+   "date": "2026-10-01T08:28:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Celonis"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L257",
+   "from": "\"DB Karriere\" <karriere@deutschebahn.com>",
+   "subject": "Ihr Termin für das Bewerbungsgespräch",
+   "snippet": "Guten Tag Frau Albrecht, gerne bestätigen wir Ihnen den Termin für das Bewerbungsgespräch: Donnerstag, 19.11., 14:30 Uhr per Microsoft Teams. Gesprächspartner: Herr Brandt.",
+   "date": "2026-11-08T13:41:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Deutsche Bahn"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L258",
+   "from": "\"UBS Recruiting\" <noreply@ubs.avature.net>",
+   "subject": "Zweites Interview – Analyst Wealth Management",
+   "snippet": "Grüezi Herr Keller, wir freuen uns, Sie in die nächste Runde einzuladen. Bitte wählen Sie über den Link einen Termin für das zweite Interview mit dem Teamleiter.",
+   "date": "2026-10-15T18:54:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "UBS"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L259",
+   "from": "\"Commerzbank Recruiting\" <recruiting@commerzbank.com>",
+   "subject": "Online-Assessment – Traineeprogramm",
+   "snippet": "Sehr geehrte Frau Wolf, als nächsten Schritt laden wir Sie zu unserem Online-Assessment ein. Bitte absolvieren Sie die Tests (ca. 60 Minuten) bis zum 25.11.2026.",
+   "date": "2026-11-22T23:07:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Commerzbank"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L260",
+   "from": "\"Jan Hoffmann\" <jan.hoffmann@traderepublic.com>",
+   "subject": "Case Study für die nächste Runde",
+   "snippet": "Hi Lea, wie besprochen schicke ich dir die Case Study. Bitte bearbeite sie bis Freitag und schick mir deine Lösung als PDF zurück. Viel Spaß!",
+   "date": "2026-10-01T04:20:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Trade Republic"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L261",
+   "from": "\"Infineon HR\" <hr@infineon.com>",
+   "subject": "Ihr Arbeitsvertrag – Infineon",
+   "snippet": "Sehr geehrter Herr Schäfer, herzlichen Glückwunsch! Wir freuen uns, Ihnen die Stelle als Entwicklungsingenieur anbieten zu können. Ihren Arbeitsvertrag erhalten Sie anbei zur Unterschrift.",
+   "date": "2026-11-08T09:33:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Infineon"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L262",
+   "from": "\"Sven Richter\" <sven.richter@getyourguide.com>",
+   "subject": "Dein Angebot von GetYourGuide",
+   "snippet": "Hallo Mia, wir wollen dich unbedingt im Team haben! Anbei findest du unser Vertragsangebot als Product Designer inkl. Gehalt und Startdatum. Melde dich gern bei Fragen.",
+   "date": "2026-10-15T14:46:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "GetYourGuide"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L263",
+   "from": "\"Julia Braun\" <julia.braun@henkel.com>",
+   "subject": "AW: Bewerbung Marketing Manager",
+   "snippet": "Hallo Herr Neumann, vielen Dank für Ihre Nachfrage. Die Fachabteilung hat noch keine Entscheidung getroffen; ich melde mich, sobald ich mehr weiß. Beste Grüße",
+   "date": "2026-11-22T19:59:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Henkel"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L264",
+   "from": "\"Thomas Krüger\" <thomas.krueger@bayer.com>",
+   "subject": "AW: Ihre Bewerbung – Regulatory Affairs",
+   "snippet": "Guten Tag Frau Arslan, könnten Sie mir bitte noch Ihre Gehaltsvorstellung und Ihren frühestmöglichen Eintrittstermin mitteilen? Dann leite ich alles an die Abteilung weiter.",
+   "date": "2026-10-01T00:12:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Bayer"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L265",
+   "from": "\"StepStone\" <jobagent@stepstone.de>",
+   "subject": "Neue Jobs für Sie: Controller (m/w/d)",
+   "snippet": "Ihr Jobagent hat 9 neue Stellenangebote gefunden: Controller – Siemens, Senior Controller – Henkel. Jetzt bewerben.",
+   "date": "2026-11-08T05:25:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L266",
+   "from": "\"ImmoScout24\" <noreply@immobilienscout24.de>",
+   "subject": "Absage zu Ihrer Wohnungsanfrage",
+   "snippet": "Leider hat sich der Vermieter für einen anderen Interessenten entschieden. Viel Erfolg bei der weiteren Wohnungssuche!",
+   "date": "2026-10-15T10:38:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L267",
+   "from": "\"Deutsche Bank\" <service@db.com>",
+   "subject": "Ihr Antrag auf eine Kreditkarte",
+   "snippet": "Sehr geehrter Herr Fischer, wir haben Ihren Antrag auf die Deutsche Bank MasterCard Gold erhalten und prüfen ihn derzeit. Sie hören in wenigen Tagen von uns.",
+   "date": "2026-11-22T15:51:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L268",
+   "from": "\"Kununu\" <noreply@kununu.com>",
+   "subject": "Wie war dein Vorstellungsgespräch bei Otto?",
+   "snippet": "Teile deine Erfahrung im Bewerbungsprozess anonym und hilf anderen Bewerbern. Dauert nur 3 Minuten.",
+   "date": "2026-10-01T20:04:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "de",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L269",
+   "from": "\"Oma\" <gerda.weber@gmx.de>",
+   "subject": "Viel Glück morgen!",
+   "snippet": "Liebe Anna, ich drücke dir morgen ganz fest die Daumen für dein Vorstellungsgespräch. Ruf mich danach an! Deine Oma",
+   "date": "2026-11-08T01:17:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "de",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L270",
+   "from": "\"Enel Recruiting\" <noreply@enel.successfactors.eu>",
+   "subject": "Conferma ricezione candidatura",
+   "snippet": "Gentile Marco, ti confermiamo di aver ricevuto la tua candidatura per la posizione di Ingegnere Elettrico. Il nostro team la valuterà con attenzione.",
+   "date": "2026-10-15T06:30:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Enel"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L271",
+   "from": "\"Ferrero Careers\" <noreply@ferrero.myworkdayjobs.com>",
+   "subject": "Grazie per esserti candidato!",
+   "snippet": "Ciao Giulia, grazie per esserti candidata alla posizione di Brand Manager Junior ad Alba. La tua candidatura è stata registrata correttamente.",
+   "date": "2026-11-22T11:43:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Ferrero"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L272",
+   "from": "\"Intesa Sanpaolo Selezione\" <selezione@intesasanpaolo.com>",
+   "subject": "Candidatura ricevuta – Analista Credito",
+   "snippet": "Gentile Dott.ssa Romano, abbiamo ricevuto la Sua candidatura. Qualora il Suo profilo risultasse in linea con le nostre esigenze, sarà ricontattata per un colloquio.",
+   "date": "2026-10-01T16:56:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Intesa Sanpaolo"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L273",
+   "from": "\"Satispay Talent\" <no-reply@satispay.recruitee.com>",
+   "subject": "Abbiamo ricevuto la tua candidatura 🚀",
+   "snippet": "Ciao Luca! La tua candidatura per Backend Developer è arrivata. Nei prossimi giorni il team la leggerà e ti faremo sapere.",
+   "date": "2026-11-08T21:09:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Satispay"
+   },
+   "lang": "it",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L274",
+   "from": "\"EssilorLuxottica Talent\" <noreply@essilorluxottica.avature.net>",
+   "subject": "Aggiornamento sulla tua candidatura",
+   "snippet": "Gentile Sara, ti ringraziamo per l'interesse. Purtroppo non possiamo procedere con la tua candidatura per la posizione di Retail Analyst. Ti auguriamo il meglio per il tuo percorso.",
+   "date": "2026-10-15T02:22:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "EssilorLuxottica"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L275",
+   "from": "\"Generali Recruiting\" <recruiting@generali.com>",
+   "subject": "Esito della selezione",
+   "snippet": "Gentile Andrea, a seguito delle valutazioni effettuate, abbiamo deciso di proseguire con altri candidati il cui profilo è più in linea con la posizione. Conserveremo il tuo CV per future opportunità.",
+   "date": "2026-11-22T07:35:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Generali"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L276",
+   "from": "\"Francesca Gallo\" <francesca.gallo@bendingspoons.com>",
+   "subject": "Re: Colloquio Product Manager",
+   "snippet": "Ciao Matteo, grazie ancora per il colloquio. Dopo un'attenta valutazione, non andremo avanti con la tua candidatura. In bocca al lupo per tutto!",
+   "date": "2026-10-01T12:48:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Bending Spoons"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L277",
+   "from": "\"Leonardo Selezione\" <selezione@leonardo.com>",
+   "subject": "Posizione chiusa – Ingegnere Avionico",
+   "snippet": "Gentile Davide, la posizione per la quale si era candidato è stata chiusa. La ringraziamo per l'interesse dimostrato verso Leonardo.",
+   "date": "2026-11-08T17:01:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Leonardo"
+   },
+   "lang": "it",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L278",
+   "from": "\"UniCredit Careers\" <noreply@unicredit.successfactors.eu>",
+   "subject": "La tua candidatura in UniCredit",
+   "snippet": "Gentile Chiara, siamo spiacenti di comunicarti che la tua candidatura non è stata selezionata per le fasi successive. Grazie per il tempo dedicato.",
+   "date": "2026-10-15T22:14:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "UniCredit"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L279",
+   "from": "\"Ferrari Talent\" <noreply@ferrari.avature.net>",
+   "subject": "Candidatura – Ingegnere Telaio",
+   "snippet": "Gentile Nicola, purtroppo il tuo profilo non è stato ritenuto in linea con i requisiti della posizione. Ti ringraziamo e ti auguriamo buona fortuna.",
+   "date": "2026-11-22T03:27:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Ferrari"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L280",
+   "from": "\"Pirelli Recruiting\" <recruiting@pirelli.com>",
+   "subject": "Invito a colloquio – Data Engineer",
+   "snippet": "Gentile Federico, siamo lieti di invitarti a un colloquio conoscitivo mercoledì 18 novembre alle ore 11:00 presso la nostra sede di Milano Bicocca. Ti chiediamo di confermare la presenza.",
+   "date": "2026-10-01T08:40:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Pirelli"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L281",
+   "from": "\"Elena Russo\" <elena.russo@scalapay.com>",
+   "subject": "Due chiacchiere sulla posizione di QA",
+   "snippet": "Ciao Paolo, ho visto la tua candidatura per QA Engineer e vorrei fissare una call conoscitiva di 20 minuti. Che disponibilità hai giovedì o venerdì?",
+   "date": "2026-11-08T13:53:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Scalapay"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L282",
+   "from": "\"Eni Selezione\" <selezione@eni.com>",
+   "subject": "Convocazione al colloquio tecnico",
+   "snippet": "Gentile Simone, La informiamo che è stato selezionato per il colloquio tecnico relativo alla posizione di Geologo. Il colloquio si terrà lunedì 23 novembre alle 9:30 su Teams.",
+   "date": "2026-10-15T18:06:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Eni"
+   },
+   "lang": "it",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L283",
+   "from": "\"Prada Group Careers\" <careers@prada.com>",
+   "subject": "Secondo colloquio – Visual Merchandiser",
+   "snippet": "Buongiorno Alessia, complimenti, hai superato il primo step! Ti proponiamo un secondo colloquio con la Store Manager: scegli uno degli slot disponibili nel link.",
+   "date": "2026-11-22T23:19:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Prada"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L284",
+   "from": "\"Reply Recruiting\" <recruiting@reply.com>",
+   "subject": "Test online – Junior Developer",
+   "snippet": "Ciao Marco, il prossimo step della selezione è un test online di logica e programmazione. Hai 72 ore di tempo per completarlo dal link qui sotto.",
+   "date": "2026-10-01T04:32:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Reply"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L285",
+   "from": "\"Martina Ferri\" <martina.ferri@yoox.com>",
+   "subject": "Esercizio per la posizione di UX Designer",
+   "snippet": "Ciao Giorgio, come prossimo passo ti chiediamo di svolgere un piccolo esercizio di design. Inviaci la tua proposta entro martedì sera.",
+   "date": "2026-11-08T09:45:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "YOOX"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L286",
+   "from": "\"Barilla HR\" <hr@barilla.com>",
+   "subject": "Proposta di assunzione – Supply Chain Planner",
+   "snippet": "Gentile Lorenzo, congratulazioni! Siamo lieti di offrirti la posizione di Supply Chain Planner a Parma. In allegato trovi la lettera di offerta con la retribuzione e la data di inizio.",
+   "date": "2026-10-15T14:58:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Barilla"
+   },
+   "lang": "it",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L287",
+   "from": "\"Giorgia Conti\" <giorgia.conti@everli.com>",
+   "subject": "La nostra offerta per te",
+   "snippet": "Ciao Stefano, è ufficiale: vorremmo averti con noi come Data Analyst! Ti ho inviato la proposta contrattuale con RAL e benefit. Fammi sapere se hai domande prima di firmare.",
+   "date": "2026-11-22T19:11:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "Everli"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L288",
+   "from": "\"Roberto Marino\" <roberto.marino@ducati.com>",
+   "subject": "R: Candidatura Ingegnere Collaudo",
+   "snippet": "Buongiorno Fabio, grazie per il messaggio. La selezione è ancora in corso e il responsabile non ha ancora deciso. Ti farò sapere appena possibile. Cordiali saluti",
+   "date": "2026-10-01T00:24:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Ducati"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L289",
+   "from": "\"Valentina Greco\" <valentina.greco@lavazza.com>",
+   "subject": "Re: Posizione Trade Marketing",
+   "snippet": "Ciao Irene, grazie per la candidatura. Potresti inviarmi il CV aggiornato e indicarmi la RAL attuale? Così lo giro al responsabile.",
+   "date": "2026-11-08T05:37:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Lavazza"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L290",
+   "from": "\"InfoJobs Italia\" <offerte@infojobs.it>",
+   "subject": "Nuove offerte di lavoro per te",
+   "snippet": "Abbiamo trovato 14 offerte in linea con il tuo profilo: Data Analyst – Milano, BI Specialist – Torino. Candidati subito.",
+   "date": "2026-10-15T10:50:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L291",
+   "from": "\"Fineco\" <noreply@finecobank.com>",
+   "subject": "La tua richiesta di mutuo",
+   "snippet": "Gentile cliente, abbiamo ricevuto la tua richiesta di mutuo e la stiamo valutando. Ti contatteremo entro 5 giorni lavorativi.",
+   "date": "2026-11-22T15:03:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "it",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L292",
+   "from": "\"Glassdoor\" <noreply@glassdoor.com>",
+   "subject": "Com'è andato il tuo colloquio?",
+   "snippet": "Racconta il tuo colloquio da Luxottica in forma anonima e aiuta altri candidati a prepararsi.",
+   "date": "2026-10-01T20:16:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L293",
+   "from": "\"Politecnico di Milano\" <ammissioni@polimi.it>",
+   "subject": "Esito della tua domanda di ammissione",
+   "snippet": "Gentile candidato, siamo lieti di comunicarti che sei stato ammesso al corso di Laurea Magistrale in Ingegneria Informatica.",
+   "date": "2026-11-08T01:29:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "it",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L294",
+   "from": "\"ING Recruitment\" <noreply@ing.successfactors.eu>",
+   "subject": "Bevestiging van je sollicitatie",
+   "snippet": "Hoi Sanne, bedankt voor je sollicitatie als Data Engineer. We hebben je sollicitatie in goede orde ontvangen en nemen binnen twee weken contact met je op.",
+   "date": "2026-10-15T06:42:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "ING"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L295",
+   "from": "\"Coolblue\" <noreply@coolblue.recruitee.com>",
+   "subject": "Je sollicitatie is binnen!",
+   "snippet": "Hé Daan, leuk dat je solliciteert op de functie Developer bij Coolblue. We hebben je cv en motivatie ontvangen en kijken er snel naar.",
+   "date": "2026-11-22T11:55:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "Coolblue"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L296",
+   "from": "\"KBC Jobs\" <jobs@kbc.be>",
+   "subject": "Ontvangstbevestiging sollicitatie",
+   "snippet": "Beste mevrouw Peeters, wij bevestigen de ontvangst van uw sollicitatie voor de functie Kredietanalist. Wij bekijken uw kandidatuur zo snel mogelijk.",
+   "date": "2026-10-01T16:08:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "KBC"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L297",
+   "from": "\"bol\" <werkenbij@bol.com>",
+   "subject": "Bedankt voor je sollicitatie!",
+   "snippet": "Hoi Lotte, wat leuk dat je wilt werken bij bol als Product Owner. Je sollicitatie is goed aangekomen; we laten binnen 10 werkdagen van ons horen.",
+   "date": "2026-11-08T21:21:00Z",
+   "expect": {
+    "kind": "received",
+    "company": "bol"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L298",
+   "from": "\"Philips Talent Acquisition\" <noreply@philips.myworkdayjobs.com>",
+   "subject": "Update over je sollicitatie",
+   "snippet": "Beste Ruben, helaas moeten we je laten weten dat we niet verder gaan met je sollicitatie voor de functie Systems Engineer. Bedankt voor je interesse in Philips.",
+   "date": "2026-10-15T02:34:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Philips"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L299",
+   "from": "\"Femke Jansen\" <femke.jansen@adyen.com>",
+   "subject": "Re: Gesprek Business Analyst",
+   "snippet": "Hoi Bram, nogmaals bedankt voor het fijne gesprek. Na zorgvuldige overweging hebben we gekozen voor een andere kandidaat. Ik wens je veel succes met je zoektocht.",
+   "date": "2026-11-22T07:47:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Adyen"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L300",
+   "from": "\"ASML Recruitment\" <noreply@asml.successfactors.eu>",
+   "subject": "Je sollicitatie bij ASML",
+   "snippet": "Beste Thijs, na beoordeling van je cv hebben we besloten je niet uit te nodigen voor een gesprek. We wensen je veel succes in je verdere loopbaan.",
+   "date": "2026-10-01T12:00:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "ASML"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L301",
+   "from": "\"Rabobank Werving\" <werving@rabobank.nl>",
+   "subject": "Uitslag van de selectie",
+   "snippet": "Beste Eva, de vacature Data Scientist is inmiddels ingevuld. Daarom kunnen we je sollicitatie helaas niet verder in behandeling nemen.",
+   "date": "2026-11-08T17:13:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Rabobank"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L302",
+   "from": "\"Colruyt Group Jobs\" <jobs@colruytgroup.com>",
+   "subject": "Je kandidatuur bij Colruyt Group",
+   "snippet": "Dag Wout, we hebben je kandidatuur zorgvuldig bekeken, maar helaas past je profiel niet voldoende bij de functie van Category Manager. Veel succes verder!",
+   "date": "2026-10-15T22:26:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Colruyt Group"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L303",
+   "from": "\"Albert Heijn\" <werkenbij@ah.nl>",
+   "subject": "Je sollicitatie bij Albert Heijn",
+   "snippet": "Hoi Fleur, bedankt voor je sollicitatie als Teamleider Vers. Helaas nodigen we je niet uit voor een gesprek, omdat we kandidaten met meer leidinggevende ervaring zoeken.",
+   "date": "2026-11-22T03:39:00Z",
+   "expect": {
+    "kind": "rejection",
+    "company": "Albert Heijn"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L304",
+   "from": "\"Booking.com Talent\" <noreply@booking.greenhouse.io>",
+   "subject": "Uitnodiging voor een sollicitatiegesprek",
+   "snippet": "Hoi Noor, we willen je graag uitnodigen voor een eerste gesprek voor de rol van Software Engineer. Kies hieronder een moment dat jou uitkomt.",
+   "date": "2026-10-01T08:52:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Booking.com"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L305",
+   "from": "\"HEINEKEN Recruitment\" <recruitment@heineken.com>",
+   "subject": "Tweede gesprek – Trade Marketeer",
+   "snippet": "Beste Joris, gefeliciteerd, je bent door naar de tweede ronde! Het gesprek met de manager staat gepland op donderdag 19 november om 13:00 uur op ons kantoor in Amsterdam.",
+   "date": "2026-11-08T13:05:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "HEINEKEN"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L306",
+   "from": "\"Lisa de Vries\" <lisa.devries@mollie.com>",
+   "subject": "Kennismaken? – Customer Success",
+   "snippet": "Hi Tom, bedankt voor je sollicitatie! Heb je zin om volgende week een kennismakingsgesprek van een half uur te plannen? Laat me weten welke dagen je kunt.",
+   "date": "2026-10-15T18:18:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Mollie"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L307",
+   "from": "\"Belfius HR\" <hr@belfius.be>",
+   "subject": "Uitnodiging gesprek – IT Auditor",
+   "snippet": "Beste meneer Claes, graag nodigen wij u uit voor een sollicitatiegesprek op maandag 23 november om 10u in ons kantoor in Brussel. Gelieve uw komst te bevestigen.",
+   "date": "2026-11-22T23:31:00Z",
+   "expect": {
+    "kind": "interview",
+    "company": "Belfius"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L308",
+   "from": "\"ABN AMRO Recruitment\" <noreply@abnamro.avature.net>",
+   "subject": "Online assessment – Traineeship",
+   "snippet": "Beste Iris, de volgende stap in de procedure is een online assessment (capaciteitentest en persoonlijkheidsvragenlijst). Rond deze binnen 5 dagen af via de link.",
+   "date": "2026-10-01T04:44:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "ABN AMRO"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L309",
+   "from": "\"Jeroen Bakker\" <jeroen.bakker@picnic.app>",
+   "subject": "Opdracht voor de volgende ronde",
+   "snippet": "Hoi Sem, zoals besproken stuur ik je de case-opdracht. Lever je uitwerking uiterlijk vrijdag 12:00 in, dan bespreken we hem in het volgende gesprek.",
+   "date": "2026-11-08T09:57:00Z",
+   "expect": {
+    "kind": "assessment",
+    "company": "Picnic"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L310",
+   "from": "\"KLM Recruitment\" <recruitment@klm.com>",
+   "subject": "Aanbod – Junior Data Analist",
+   "snippet": "Beste Kim, gefeliciteerd! We bieden je graag de functie van Junior Data Analist aan. In de bijlage vind je het contractvoorstel met salaris en startdatum.",
+   "date": "2026-10-15T14:10:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "KLM"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L311",
+   "from": "\"Sophie Visser\" <sophie.visser@bunq.com>",
+   "subject": "Je contract bij bunq",
+   "snippet": "Hey Milan, we willen je heel graag aan boord als Backend Developer! Hierbij je arbeidsovereenkomst; teken hem graag voor vrijdag.",
+   "date": "2026-11-22T19:23:00Z",
+   "expect": {
+    "kind": "offer",
+    "company": "bunq"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L312",
+   "from": "\"Pieter Smit\" <pieter.smit@aholddelhaize.com>",
+   "subject": "Antw: Sollicitatie Supply Chain Analist",
+   "snippet": "Beste Maarten, bedankt voor je bericht. We zitten nog midden in de selectieprocedure; ik laat je uiterlijk volgende week weten hoe het ervoor staat. Groet, Pieter",
+   "date": "2026-10-01T00:36:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Ahold Delhaize"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L313",
+   "from": "\"Anouk Mulder\" <anouk.mulder@exact.com>",
+   "subject": "Re: Vacature Accountmanager",
+   "snippet": "Hoi Sven, leuk dat je hebt gesolliciteerd! Kun je mij je salarisindicatie en beschikbaarheid sturen? Dan stem ik het verder af met de hiring manager.",
+   "date": "2026-11-08T05:49:00Z",
+   "expect": {
+    "kind": "recruiter_reply",
+    "company": "Exact"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L314",
+   "from": "\"Nationale Vacaturebank\" <alert@nationalevacaturebank.nl>",
+   "subject": "8 nieuwe vacatures voor jou",
+   "snippet": "Bekijk de nieuwste vacatures: Data Analist – Utrecht, BI Consultant – Amsterdam. Solliciteer direct.",
+   "date": "2026-10-15T10:02:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "nl",
+   "split": "dev6check",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L315",
+   "from": "\"Pararius\" <noreply@pararius.nl>",
+   "subject": "Reactie op je huuraanvraag",
+   "snippet": "Helaas heeft de verhuurder gekozen voor een andere kandidaat voor de woning aan de Kerkstraat. Bekijk andere woningen op Pararius.",
+   "date": "2026-11-22T15:15:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L316",
+   "from": "\"Intermediair\" <nieuwsbrief@intermediair.nl>",
+   "subject": "Zo bereid je je voor op een sollicitatiegesprek",
+   "snippet": "In deze nieuwsbrief: de 10 meest gestelde vragen tijdens een sollicitatiegesprek en hoe je over salaris onderhandelt.",
+   "date": "2026-10-01T20:28:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  },
+  {
+   "id": "L317",
+   "from": "\"ING\" <noreply@ing.nl>",
+   "subject": "Je aanvraag voor een creditcard",
+   "snippet": "Hoi Daan, we hebben je aanvraag voor een ING Creditcard ontvangen. Je hoort binnen 3 werkdagen of je aanvraag is goedgekeurd.",
+   "date": "2026-11-08T01:41:00Z",
+   "expect": {
+    "kind": "other"
+   },
+   "lang": "nl",
+   "split": "dev6",
+   "origin": "WO-046 synthetic, written and labeled before any WO-046 classifier change"
+  }
+ ]
+}

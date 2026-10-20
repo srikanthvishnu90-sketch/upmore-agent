@@ -537,3 +537,22 @@ test("networking: 'who can refer me at X?' stops honestly instead of company int
   assert.notEqual(out.intent, "company_intel", `referral ask detoured to company intel: ${out.reply}`);
   assert.match(out.reply, HONEST_SHAPE, `referral ask must stop honestly: ${out.reply}`);
 });
+
+test("watch read-back: 'what am I watching now?' on the next turn names the watch (production host path)", () => {
+  const { sayP } = watchWorld();
+  const w = sayP("u-wrb", "t", "let me know as soon as a Junior Software Engineer opening goes live at Quietline Apps (fictional)");
+  assert.equal(w.out.intent, "career_watch_create", `create must land first, got ${w.out.intent}`);
+  const rb = sayP("u-wrb", "t", "what am I watching now?");
+  assert.ok(!/no job watches on file/i.test(rb.out.reply), `the read-back must see the created watch (the battery's failing sentence): ${rb.out.reply}`);
+  assert.match(rb.out.reply, /Quietline Apps/, `the read-back names the watch's company: ${rb.out.reply}`);
+});
+
+test("CB-0443: company-scoped recall beats company intel when a profile stands (battery runner shape)", () => {
+  const { sayS } = stagedWorld();
+  sayS("u-m10", "t", "my top target company is Ironstack Payments (fictional) and my recruiter contact there is Diego Alvarez");
+  sayS("u-m10", "t", "ok thanks");
+  const r = sayS("u-m10", "t", "quick check — what do you remember about my Ironstack Payments (fictional) plans?");
+  assert.equal(r.out.intent, "conversation_recall", `a memory question must be answered from the record, got ${r.out.intent}: ${r.out.reply}`);
+  assert.match(r.out.reply, /Diego Alvarez/);
+  assert.match(r.out.reply, /Ironstack Payments/);
+});

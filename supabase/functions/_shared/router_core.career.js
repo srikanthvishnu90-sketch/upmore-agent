@@ -23835,6 +23835,14 @@ const CareerRouter = (() => {
     // stop here, before recommendations/fallback can claim them.
     const pmStop = handlePeopleMatchingStop(text, c);
     if (pmStop) return pmStop;
+    // LANE A v2 ITEM 1 (CB-0443): a memory question that resolves
+    // against the stated record is claimed HERE — with a profile
+    // standing, the company-intel branch otherwise reads "what do
+    // you remember about my <Co> plans?" as a company question and
+    // the record is never read back. The early claim stands down
+    // unless the ask resolves to a recorded company/fact.
+    const earlyRecall = handleConversationRecall(text, c, { early: true });
+    if (earlyRecall) return earlyRecall;
     // LANE A v2 (LF-02 routing repair): three claim families run
     // BEFORE the recommendations block, because 154's intentFor reads
     // all three as discovery asks and the state write never landed
@@ -25526,9 +25534,10 @@ const CareerRouter = (() => {
     return { intent: "application_packet_walkthrough", reply, resultStatus: "answered", sends: 0 };
   }
 
-  function handleConversationRecall(text, ctx) {
+  function handleConversationRecall(text, ctx, opts) {
     const t = lc(text);
     const all = statedFactsOf(ctx);
+    const early = !!(opts && opts.early);
     const coKey = (v) => s(v || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").trim();
     // (a) First thing told today: the earliest fact on the record.
     if (/\bfirst thing\b/.test(t) && /\b(told|said|mentioned|gave|shared)\b/.test(t)) {
@@ -25561,6 +25570,11 @@ const CareerRouter = (() => {
         .map((f) => coKey(f.value));
       const keyed = all.map((f) => f.key).filter(Boolean);
       const company = named[0] || keyed.find((k) => t.includes(k)) || null;
+      // Early-claim discipline (CB-0443): ahead of the intel branch,
+      // only a recall that actually RESOLVES against the record may
+      // claim the turn — a company-less "what do you know about X"
+      // is an intel ask, not a memory ask, and falls through.
+      if (early && !company) return null;
       const pool = company
         ? all.filter((f) => coKey(f.key) === company || coKey(f.value) === company || (f.evidence && lc(f.evidence).includes(company)))
         : all;

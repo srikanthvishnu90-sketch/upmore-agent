@@ -391,7 +391,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
           // goes only on its card's tap.
-          wants: supabaseWantStore(admin), limits: { daily },
+          wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });

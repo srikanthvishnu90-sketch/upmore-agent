@@ -28,6 +28,7 @@ import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
 import { queueWants, type WantStore } from "../career_apply_want.ts";
+import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
@@ -80,6 +81,7 @@ export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
   wants?: WantStore | null; limits?: Limits;
+  posting?: ((jobId: string) => Promise<any | null>) | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -184,6 +186,20 @@ export function careerTools(deps: {
         const r = await queueWants(deps.wants, c.userId, picks, c.now, { limits: deps.limits, tz: deps.tz });
         await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: r.refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
         return { ...r, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card." };
+      },
+    },
+    {
+      name: "get_posting", effect: "read",
+      description: "Read one posting in full by its job_id from search_jobs: title, company, place, link, the pay it states (or null: then say pay is not listed) and its text with the requirements. Use it before prepping, tailoring or answering questions about a posting.",
+      input_schema: obj({ job_id: str("The job_id search_jobs returned") }, ["job_id"]),
+      run: async (i) => {
+        const get = deps.posting ?? (deps.tailor ? deps.tailor.posting : null);
+        if (!get) throw new Error("posting details are not connected here; say so, and use only what search_jobs returned");
+        const p = await get(String(i.job_id));
+        if (!p) throw new Error(`no posting ${String(i.job_id)} on file; it may have closed. Search again`);
+        const text = String(p.description ?? "").replace(/\s+/g, " ").trim();
+        return { job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, closed: !!p.closed_at,
+          pay: p.pay ?? payFrom(text), text: text.length > 4000 ? `${text.slice(0, 4000)}… [cut]` : text };
       },
     },
     {

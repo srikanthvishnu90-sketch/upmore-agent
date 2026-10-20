@@ -15,7 +15,7 @@
 --                         company start as a text mock in the thread, its first question the thread's last word
 alter table public.career_outbox drop constraint if exists career_outbox_key_check;
 alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|mock):.+$' and length(key) <= 310);
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock):.+$' and length(key) <= 310);
 alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
 alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock'));
 

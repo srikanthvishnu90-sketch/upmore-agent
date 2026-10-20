@@ -19,6 +19,7 @@ MATCHERS = {
     "bcg": ["BOSTON CONSULTING GROUP"],
     "blackstone": ["BLACKSTONE"],
     "citadel-securities": ["CITADEL SECURITIES"],
+    "citadel": ["CITADEL ENTERPRISE AMERICAS", "CITADEL AMERICAS"],  # WO-036: the fund; after Citadel Securities
     "coinbase": ["COINBASE"],
     "datadog": ["DATADOG"],
     "de-shaw": ["D E SHAW"],
@@ -34,6 +35,7 @@ MATCHERS = {
     "kkr": ["KKR "],
     "lazard": ["LAZARD"],
     "mckinsey": ["MCKINSEY"],
+    "meta": ["META PLATFORMS"],  # WO-036
     "microsoft": ["MICROSOFT"],
     "millennium": ["MILLENNIUM MANAGEMENT", "MILLENNIUM ADVISORS"],
     "morgan-stanley-ibd": ["MORGAN STANLEY"],
@@ -130,6 +132,8 @@ def rows_from_xlsx(path):
     import xml.etree.ElementTree as ET
     NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
     need = ["EMPLOYER_NAME", "SOC_TITLE", "JOB_TITLE", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY", "CASE_STATUS"]
+    # WO-036: the wage cells also read these; a file without them still gives the per-company aggregate.
+    optional = ["SOC_CODE", "WORKSITE_CITY", "WORKSITE_STATE", "BEGIN_DATE", "RECEIVED_DATE"]
     z = zipfile.ZipFile(path)
     shared = []
     if "xl/sharedStrings.xml" in z.namelist():
@@ -164,11 +168,65 @@ def rows_from_xlsx(path):
             if not header:
                 header = {name: i for i, name in cells.items()}
                 cols = {k: header[k] for k in need}
+                cols.update({k: header[k] for k in optional if k in header})
             else:
                 yield {k: cells.get(i) for k, i in cols.items()}
             row.clear()
 
+MAPS = __import__("pathlib").Path(__file__).resolve().parents[3] / "packages/career-data/datasets/pay-maps.json"
+CERTIFIED = {"CERTIFIED", "CERTIFIED - WITHDRAWN"}
+
+def metro_index(maps):
+    """(CITY, STATE) -> metro key, from pay-maps.json."""
+    return {(c.upper(), s.upper()): m["key"] for m in maps["metros"] for c, s in m["lca_cities"]}
+
+def soc_code(v):
+    m = re.match(r"\s*(\d{2}-\d{4})", str(v or ""))
+    return m.group(1) if m else None
+
+def wage_cells(rows, maps, period):
+    """WO-036: the employer's own filed wages per (company, SOC code, metro), certified cases only, for the offer
+    benchmark. Every cell keeps its n; the reader never shows a median from fewer than 5 cases. Aggregate only."""
+    metros = metro_index(maps)
+    cells, scanned, used = {}, 0, 0
+    for r in rows:
+        scanned += 1
+        cid = match_company(r.get("EMPLOYER_NAME"))
+        if not cid or str(r.get("CASE_STATUS") or "").strip().upper() not in CERTIFIED:
+            continue
+        soc = soc_code(r.get("SOC_CODE"))
+        metro = metros.get((str(r.get("WORKSITE_CITY") or "").strip().upper(), str(r.get("WORKSITE_STATE") or "").strip().upper()))
+        w = annualize(r.get("WAGE_RATE_OF_PAY_FROM"), r.get("WAGE_UNIT_OF_PAY"))
+        if not soc or not metro or not w:
+            continue
+        used += 1
+        c = cells.setdefault((cid, soc, metro), {"soc_title": str(r.get("SOC_TITLE") or "").strip(), "wages": [], "titles": Counter()})
+        c["wages"].append(w)
+        if r.get("JOB_TITLE"):
+            c["titles"][str(r["JOB_TITLE"]).strip()] += 1
+    out = []
+    for (cid, soc, metro) in sorted(cells):
+        c = cells[(cid, soc, metro)]
+        w = sorted(c["wages"])
+        out.append({"company_id": cid, "soc": soc, "soc_title": c["soc_title"], "metro": metro, "n": len(w),
+                    "median": round(statistics.median(w)), "p25": round(w[len(w) // 4]), "p75": round(w[3 * len(w) // 4]),
+                    "top_job_titles": [{"job_title": k, "cases": v} for k, v in c["titles"].most_common(3)]})
+    return {"period": period, "rows_scanned": scanned, "rows_used": used, "cells": out}
+
 def main():
+    if sys.argv[1] == "--wages":
+        # python3 scripts/career/datasets/aggregate-lca.py --wages <LCA file .xlsx|.csv> <out.json> "<period, e.g. FY2025 Q4>"
+        src, out, period = sys.argv[2], sys.argv[3], sys.argv[4]
+        rows = rows_from_csv(src) if src.endswith(".csv") else rows_from_xlsx(src)
+        cells = wage_cells(rows, json.loads(MAPS.read_text()), period)
+        with open(out) as f:
+            doc = json.load(f)
+        doc.update({"status": "imported", "period": period, "source_file": src.split("/")[-1], "rows_scanned": cells["rows_scanned"],
+                    "rows_used": cells["rows_used"], "cells": cells["cells"]})
+        with open(out, "w") as f:
+            json.dump(doc, f, indent=1)
+        print(json.dumps({"cells": len(cells["cells"]), "rows_used": cells["rows_used"]}))
+        return
     src, out = sys.argv[1], sys.argv[2]
     rows = rows_from_csv(src) if src.endswith(".csv") else rows_from_xlsx(src)
     agg = aggregate(rows)

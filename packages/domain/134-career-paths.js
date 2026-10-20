@@ -425,5 +425,19 @@ function majorPopulationRead(postings, lca, opts) {
   return { as_of: now, text, claims, allowed_numbers: [], totals: t, known_vs_anecdotal: { known: "posting population (all live postings, counted) + LCA filing population (aggregate)", anecdotal_claims_made: 0, unknown_named: "majors of actual hires — licensed population dataset not held" } };
 }
 
-const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, listPaths, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
+// WO-036: the target-firm guide (packages/career-data/firm-guide.json): each firm's own programs, timelines and stated
+// requirements with URLs and checked dates, and the few base rates a firm has published. Node reads it from disk; the
+// Deno bundle embeds it as CAREER_FIRM_GUIDE_JSON (BUG-174 pattern). File-scope name kept unique for the bundle.
+let _careerFirmGuide = null;
+function careerFirmGuide() {
+  if (_careerFirmGuide) return _careerFirmGuide;
+  try {
+    const fs = require("fs"); const path = require("path");
+    _careerFirmGuide = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "career-data", "firm-guide.json"), "utf8"));
+  } catch { _careerFirmGuide = null; }
+  if (!_careerFirmGuide) { try { if (typeof CAREER_FIRM_GUIDE_JSON !== "undefined" && CAREER_FIRM_GUIDE_JSON) _careerFirmGuide = CAREER_FIRM_GUIDE_JSON; } catch { _careerFirmGuide = null; } }
+  return _careerFirmGuide;
+}
+
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, listPaths, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead, firmGuide: careerFirmGuide };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;

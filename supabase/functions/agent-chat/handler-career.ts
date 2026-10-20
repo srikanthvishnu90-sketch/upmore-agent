@@ -30,9 +30,10 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply } from "../_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs } from "../_shared/router_core.career.js";
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
+import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 
@@ -206,10 +207,39 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask ?? (careerBatch ? { batch: careerBatch } : null));
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const persistence = createCareerPersistence(admin);
+    // POOL LOADER (Lane E, Feature Depth Program v2 — closes the gap
+    // diagnosed in the Lane D operator checklist §8): ctx.postings is
+    // the discovery pool, a per-turn host input. Until this wiring
+    // the handler never passed it, so the host defaulted the pool to
+    // [] for every user on every turn and discovery answered its
+    // honest-empty reply forever ("today it holds no roles at all")
+    // while career_kb_postings held 21,688 real postings one read
+    // away. The loader (_shared/career_pool.js) reads the KB through
+    // this request's service-role client — bounded, recency-ordered,
+    // mapped to the corpus shape 142 consumes, every posting
+    // carrying its snapshot fetched_on (the KB is an Oct 2026
+    // snapshot, not a live feed; freshness of content is the watcher
+    // lane's remainder, never implied here). The loader never
+    // throws: a failed read degrades to the empty pool and the
+    // product's designed honest-empty reply — never a crashed turn,
+    // never an invented role. The worker's postingsFor reads through
+    // the same loader, so the two pools cannot disagree.
+    const poolLoader = CareerPool.createKbPoolLoader({
+      readRows: async (spec: any) => {
+        const { data, error } = await admin.from(spec.table).select(spec.select)
+          .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst })
+          .limit(spec.limit);
+        if (error) throw new Error(`career_kb_postings read failed: ${error.message}`);
+        return data ?? [];
+      },
+      jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
+    });
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState });
+      const pool = await poolLoader.loadPool();
+      if (pool.error) console.error("career pool load failed:", pool.error);
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: pool.postings });
       let out = host.runTurn(message, ctx);
       let taskIntent = null;
       let batchIntent = null;

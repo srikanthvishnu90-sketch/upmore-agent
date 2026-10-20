@@ -105,17 +105,17 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
 # Idempotent: the OAuth vault cascade must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000001_career_postings.sql"
 # Idempotent: the career postings migration must apply cleanly a second time.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000001_career_postings.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010001_career_alerts.sql"
 # Idempotent: the career alerts migration must apply cleanly a second time.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010001_career_alerts.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
 # The table is part of export coverage; its account-authority RPCs run only
 # after the complete career migration ledger below has created career_watch_kv.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000001_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000001_career_apply_jobs.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
 # Idempotent: the channel delivery migration must apply cleanly a second time.

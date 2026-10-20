@@ -50,9 +50,9 @@ Function secrets are project-wide in Supabase: every function sees every one.
 1. **preflight**: tools, inputs, a clean tree, `deno check` of the seven entry points. Changes nothing.
 2. **migrations**: applies, in order and each once, every migration from the Trainee set on (the `MIGRATIONS` list in
    `scripts/launch/trainee-go-live.sh`; `tests/trainee-go-live.test.cjs` fails if a migration file from `20261019` on is
-   missing from it). Today: `20261019000000_career_postings.sql`, `20261019010000_career_alerts.sql`,
+   missing from it). Today: `20261019000001_career_postings.sql`, `20261019010001_career_alerts.sql`,
    `20261019020000_channel_delivery.sql`, `20261019030000_channel_inbound.sql` (postings, alerts, the outbox, delivery
-   and inbound), and the apply pipeline `20261020000000_career_apply_jobs.sql`, `20261020010000_career_apply_own_worker.sql`,
+   and inbound), and the apply pipeline `20261020000001_career_apply_jobs.sql`, `20261020010000_career_apply_own_worker.sql`,
    `20261020020000_career_apply_receipts.sql`, `20261020030000_career_apply_cards.sql`,
    `20261020040000_career_apply_card_push.sql`, `20261020050000_career_apply_daily_limit.sql` (the approved-application
    queue, the person's own computer claiming its own applications, receipts, prepared applications and their card, the

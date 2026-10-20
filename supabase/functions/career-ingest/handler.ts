@@ -10,7 +10,7 @@
 // sends each board's last ETag / Last-Modified, and records every attempt in career_board_state.
 import { equalSecret } from "../_shared/message_service.ts";
 import { ingestBoards, type Board, type BoardOutcome, type FetchFeed, type IngestStats, type PostingsDb } from "../_shared/career_ingest.ts";
-import { boardKey, type BoardState, type BoardStateDb, capacityPer, laneBuckets } from "../_shared/career_shards.ts";
+import { boardKey, type BoardState, type BoardStateDb, bucketOf, capacityPer, laneBuckets } from "../_shared/career_shards.ts";
 
 export interface IngestDeps {
   env: { get(k: string): string | undefined };
@@ -40,7 +40,12 @@ export async function handleIngest(req: Request, d: IngestDeps): Promise<Respons
       const st = d.state();
       const lanes = int(d.env.get("INGEST_LANES"), 1, 1, 64), lane = Math.min(lanes - 1, int(new URL(req.url).searchParams.get("lane") ?? undefined, 0, 0, 63));
       const intervalMs = int(d.env.get("INGEST_EVERY_MIN"), 5, 1, 60) * 60000, windowMs = int(d.env.get("INGEST_WINDOW_HOURS"), 6, 1, 48) * 3600000;
-      const cap = Math.min(int(d.env.get("INGEST_MAX_BOARDS"), 400, 1, 2000), capacityPer({ boards: d.boards.length, windowMs, intervalMs, lanes }));
+      // WO-044: the lane's own share, not an even split. The 64 buckets are uneven (the heaviest of 4 lanes held 24% more
+      // than a quarter in the WO-044/R1 simulation, enough to miss the 6 hours), so a lane takes enough for its own boards.
+      const mine = new Set(laneBuckets(lane, lanes));
+      const laneBoards = d.boards.reduce((n, b) => n + (mine.has(bucketOf(b)) ? 1 : 0), 0);
+      const cap = Math.min(int(d.env.get("INGEST_MAX_BOARDS"), 400, 1, 2000),
+        Math.max(capacityPer({ boards: d.boards.length, windowMs, intervalMs, lanes }), capacityPer({ boards: laneBoards, windowMs, intervalMs, lanes: 1 })));
       if ((await st.count()) < d.boards.length) await st.seed(d.boards);
       const byKey = new Map(d.boards.map((b) => [boardKey(b), b]));
       const due = (await st.due(laneBuckets(lane, lanes), cap)).filter((s) => byKey.has(boardKey(s))); // a board left the directory: skip it

@@ -73,6 +73,10 @@ Deno.test("WO-044/I2 Workday: its read-only search, paged 20 at a time to the bo
   const big = fakeFetch((_u, init) => { const q = JSON.parse(String(init?.body)); return body({ total: q.offset === 0 ? 5000 : 0, jobPostings: Array.from({ length: 20 }, (_, i) => job(q.offset + i)) }); });
   const r = await boardFetchFeed(big.f, { timeoutMs: 60000 })({ company: "Big", provider: "workday", board: "big.wd1/Careers" }) as any;
   eq([r.complete, r.postings.length, big.calls.length], [false, 1000, 50]);
+  // Out of time after page 1 (each page takes 40 ms, the board 100 ms): what was read is partial, not a failed board.
+  const slow = fakeFetch(async (_u, init) => { await new Promise((r) => setTimeout(r, 40)); const q = JSON.parse(String(init?.body)); return body({ total: q.offset === 0 ? 500 : 0, jobPostings: Array.from({ length: 20 }, (_, i) => job(q.offset + i)) }); });
+  const s = await boardFetchFeed(slow.f, { timeoutMs: 100 })({ company: "Slow", provider: "workday", board: "slow.wd1/Careers" }) as any;
+  assert(s.complete === false && s.postings.length >= 20 && s.postings.length < 500, `partial: ${s.postings?.length}`);
   eq(workdayParts("nvidia.wd5/NVIDIAExternalCareerSite"), { tenant: "nvidia", wd: "wd5", site: "NVIDIAExternalCareerSite", host: "nvidia.wd5.myworkdayjobs.com" });
   eq(workdayParts("not a token"), null);
 });

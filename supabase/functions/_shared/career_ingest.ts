@@ -296,6 +296,8 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     for (let page = 0; page < spec.maxPages; page++) {
       const rq = spec.request(b.board, page);
       const left = deadline - Date.now();
+      // Out of time after the first page of a paged board: what was read is a partial read (it closes nothing).
+      if (left <= 0 && page > 0) { complete = false; break; }
       if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
       const h: Record<string, string> = { ...headers, accept: rq.accept };
       const cond = spec.maxPages === 1 && rq.method === "GET";
@@ -304,7 +306,9 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
       if (rq.body) h["content-type"] = "application/json";
       let res: Response;
       try { res = await fetchFn(rq.url, { method: rq.method, headers: h, body: rq.body, signal: AbortSignal.timeout(left) }); }
-      catch (e) { throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+      catch (e) {
+        if (page > 0) { complete = false; break; }
+        throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
       if (res.status === 304 && cond && (b.etag || b.last_modified)) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
       if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
       if (cond) validators = { etag: res.headers.get("etag"), last_modified: res.headers.get("last-modified") };

@@ -180,6 +180,8 @@ Deno.test("WO-048/6 the Workday flow uses the whole planner; an unrecognised Wor
   const p = planForm({ ...base, workdayFlow: true, schema: personal, answers: { ...PERSONA, full_name: fact("Test Person"), eeo: fact("decline") } });
   eq(p.fill, [], "the disability form is never filled");
   eq(p.needs, [], "and never asked by text: it is filled by the person on the page");
+  // The planner itself holds the line too, for any caller that does not go through planForm.
+  eq(plan(personal, { ...PERSONA, full_name: fact("Test Person"), languages: fact("English") }), [], "planBatch never plans a personal field");
 });
 
 Deno.test("WO-048/7 one posting across every step; the employer named from the tenant", () => {

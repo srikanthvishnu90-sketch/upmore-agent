@@ -3521,7 +3521,7 @@
    "date": "2026-12-01T04:08:00Z",
    "expect": {
     "kind": "assessment",
-    "company": "Vervoe"
+    "company": "Atlassian"
    },
    "lang": "en",
    "family": "vendor",

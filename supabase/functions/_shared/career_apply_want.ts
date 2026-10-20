@@ -2,7 +2,7 @@
 // own apply queue (career_apply_wanted); the Trainee extension takes them, prepares each in the person's browser and
 // shows a card; nothing reaches an employer before they approve that card. A posting is keyed exactly as the extension
 // keys it (posting_key.ts), so the same posting is queued once and the extension's own queue never holds it twice.
-import { applyUrl, detectPortal, postingKey } from "./posting_key.ts";
+import { applyUrl, detectPortal, formUrlFor, postingKey } from "./posting_key.ts";
 import { dailyLimit, type Limits } from "./career_apply.ts";
 
 export interface Want { posting_key: string; url: string; company: string; title: string; queued_at: string }
@@ -17,10 +17,11 @@ const NEVER = /(^|\.)(linkedin\.com|indeed\.com)$/i;
 const host = (url: string) => { try { return new URL(url).hostname; } catch { return ""; } };
 
 // The postings the brain picked, kept when each is a real application link the extension can open; refused with why.
-export function wantsFrom(picks: { url: string; company?: string; title?: string }[], now: number): { ok: Want[]; refused: { url: string; why: string }[] } {
+export function wantsFrom(picks: { url: string; job_id?: string; company?: string; title?: string }[], now: number): { ok: Want[]; refused: { url: string; why: string }[] } {
   const ok: Want[] = [], refused: { url: string; why: string }[] = [], seen = new Set<string>();
   for (const p of picks) {
-    const url = String(p?.url ?? "").trim();
+    // WO-078: a shelf posting is queued at its board's own form, whatever its public link (an employer's careers page).
+    const url = formUrlFor(String(p?.job_id ?? "")) ?? String(p?.url ?? "").trim();
     if (NEVER.test(host(url))) { refused.push({ url, why: "LinkedIn and Indeed are never automated; the person applies there themselves" }); continue; }
     const key = detectPortal(url) ? postingKey(url) : null;
     if (!key) { refused.push({ url, why: "not a Greenhouse, Lever, Ashby or Workday posting link the extension can open" }); continue; }
@@ -44,7 +45,7 @@ export function dayStart(now: number, tz = "UTC"): string {
 }
 
 // Queue what fits under today's limit; what is over is refused with the limit named.
-export async function queueWants(store: WantStore, userId: string, picks: { url: string; company?: string; title?: string }[], now: number, o: { limits?: Limits; tz?: string } = {}) {
+export async function queueWants(store: WantStore, userId: string, picks: { url: string; job_id?: string; company?: string; title?: string }[], now: number, o: { limits?: Limits; tz?: string } = {}) {
   const { ok, refused } = wantsFrom(picks, now);
   const cap = dailyLimit(o.limits);
   const used = await store.queuedSince(userId, dayStart(now, o.tz));

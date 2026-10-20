@@ -56,3 +56,15 @@ export function applyUrl(href: string): string {
   return u.href;
 }
 export const tenantOf = (key: string) => key.split(":")[1] || "";
+
+// WO-078: a shelf posting's own form, from its id (provider:board:ats_id). An employer often shows a Greenhouse posting
+// on its own careers page (www.fivetran.com/careers/job?gh_jid=…); the board's form still lives at the board's address,
+// the same one the form captures and the live fills use (scripts/career/pick-form-sources.cjs). Null for anything else.
+export function formUrlFor(jobId: string): string | null {
+  const m = /^(greenhouse|lever|ashby):([A-Za-z0-9._-]+):([A-Za-z0-9-]+)$/.exec(String(jobId ?? ""));
+  if (!m) return null;
+  const [, family, board, id] = m;
+  if (family === "greenhouse") return /^\d+$/.test(id) ? `https://job-boards.greenhouse.io/${board}/jobs/${id}` : null;
+  if (!/^[0-9a-f-]{8,}$/i.test(id)) return null;
+  return family === "lever" ? `https://jobs.lever.co/${board}/${id.toLowerCase()}` : `https://jobs.ashbyhq.com/${board}/${id.toLowerCase()}`;
+}

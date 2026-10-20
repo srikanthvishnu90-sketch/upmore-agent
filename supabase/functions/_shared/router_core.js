@@ -30281,7 +30281,7 @@ const CareerOnboarding = (() => {
     if (key === "goals") prefs.goals = raw;
     else if (key === "roles") prefs.roles = splitList(raw);
     else if (key === "locations") { prefs.locations = splitList(raw); if (/\bremote\b/i.test(raw)) prefs.remote = true; }
-    else if (key === "visa") { cons.workAuthorization = raw; cons.needsSponsorship = /require sponsorship|need sponsorship|will need sponsorship|f-1|h-1b/i.test(raw) && !/no sponsorship|never need/i.test(raw); }
+    else if (key === "visa") { cons.workAuthorization = raw; cons.needsSponsorship = /require sponsorship|need sponsorship|will need sponsorship|f-1|h-1b/i.test(raw) && !/no sponsorship|never need|(?:don'?t|do not|no longer|won'?t|will not|never|not)\s+(?:going to\s+)?(?:need|require)/i.test(raw); }
     else if (key === "comp_floor") prefs.compFloor = /^(none|no)$/i.test(raw) ? "none stated" : raw;
     else if (key === "deal_breakers") { prefs.dealBreakers = splitList(raw); profile._onboarding_deal_breakers_answered = true; }
     else if (key === "timeline") prefs.timeline = raw;
@@ -37414,7 +37414,26 @@ const CareerRouter = (() => {
       // "network into healthcare consulting" was planned at Meridian
       // Capital). Anchoring a universe-less ask (probe (b)) stays.
       const askedUniverse = (q.firms_named && q.firms.length) || q.firms_source === "set" || (q.proposed_default && q.proposed_default.kind === "category");
-      if (firmF && !askedUniverse) {
+      // WO-095 (B-MEM-1): the ask's own named firm and geography are
+      // the ASK's filters, never the user's facts. This handler used
+      // to record them as target_firm / geography (gated only by "not
+      // a question"), so "Find 55 people at Google who…" REPLACED the
+      // user's stated target firm and "…at fintechs in SF…" replaced
+      // their home city — and the account merge carried both into
+      // every later thread. The stated-facts record is never written
+      // here. A follow-up that points back at the previous ask
+      // ("find analysts there first") is anchored to the standing
+      // PLAN's own target (ctx.plan, the previous ask's filters) —
+      // the deictic names the plan, not the record.
+      const prior = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
+      const pointsBack = !!prior && /\b(?:there|that firm|same firm|same place)\b/i.test(s(text));
+      let anchored = false;
+      if (pointsBack && !askedUniverse && prior.firms_named && Array.isArray(prior.firms) && prior.firms.length === 1) {
+        q.firms = [prior.firms[0]]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
+        anchored = true;
+      }
+      if (pointsBack && !q.geography && prior.target && prior.target.geography) q.geography = prior.target.geography;
+      if (firmF && !askedUniverse && !anchored) {
         q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
       }
       const geoF = facts.find((f) => f.kind === "geography");
@@ -37424,12 +37443,6 @@ const CareerRouter = (() => {
         if (/analyst/i.test(lvlF.value)) q.seniority_band = "analyst";
         else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
         if (!q.role_phrase) q.role_phrase = lvlF.value;
-      }
-      // And this ask's own named target joins the thread record (a
-      // declarative plan ask is the user's own statement of target).
-      if (!interrogativeTurn(text)) {
-        if (q.firms_named && q.firms.length === 1) recordThreadFact(ctx, "target_firm", q.firms[0], text);
-        if (q.geography) recordThreadFact(ctx, "geography", q.geography, text);
       }
     }
     const count = (q && q.count) || Number((lc(text).match(/\b(\d+)\b/) || [])[1]) || 40;
@@ -43555,7 +43568,12 @@ const CareerRouter = (() => {
     // a question — the old matcher read the direction straight out of
     // the question frame and wrote a profile correction from it.
     const statementText = s(text).split(/(?<=[.?!])\s+/).filter((sent) => !/\?\s*$/.test(sent) && !/^\s*(will|would|do|does|did|is|are|can|could|should|what|how|when)\b/i.test(sent)).join(" ");
-    const clauseM = statementText.match(/\b(i will need sponsorship[^,;.]*|i need sponsorship[^,;.]*|need sponsorship in the future[^,;.]*|i no longer need sponsorship[^,;.]*|no longer need sponsorship[^,;.]*|i (?:don'?t|do not) need sponsorship[^,;.]*)/i);
+    // WO-095 (B-MEM-1) polarity: the negated clause shapes come first
+    // and cover "require" as well as "need" — "I do not require
+    // sponsorship" was stored as needsSponsorship=true because only
+    // the need-verb negations were listed and "require sponsorship"
+    // then matched the positive direction below.
+    const clauseM = statementText.match(/\b(i (?:don'?t|do not|no longer|won'?t|will not|never) (?:need|require) (?:any |visa |work )*sponsorship[^,;.]*|i'?m not (?:going to )?(?:need|require|needing|requiring) (?:any |visa |work )*sponsorship[^,;.]*|no longer (?:need|require) sponsorship[^,;.]*|i will (?:need|require) sponsorship[^,;.]*|i (?:need|require) sponsorship[^,;.]*|(?:need|require) sponsorship in the future[^,;.]*)/i);
     const clause = clauseM ? clauseM[1].trim() : null;
     // BUG-169: a QUESTION about the fact ("will I need sponsorship?")
     // states no direction — the bare keyword hit used to write a
@@ -43565,7 +43583,7 @@ const CareerRouter = (() => {
     // Direction is read from the statement sentences only, and a
     // direction with NO statement clause behind it is no direction.
     const st = lc(statementText);
-    const noNeed = /no longer need|don'?t need sponsorship|do not need sponsorship|never need sponsorship|no sponsorship (needed|required)|without sponsorship/.test(st);
+    const noNeed = /no longer (?:need|require)|(?:don'?t|do not|won'?t|will not|never) (?:need|require) (?:any |visa |work )*sponsorship|i'?m not (?:going to )?(?:need|require|needing|requiring) (?:any |visa |work )*sponsorship|no sponsorship (needed|required)|without sponsorship/.test(st);
     if (noNeed) return { kind: "no_longer_needed", needsSponsorship: false, clause: clause || "No longer needs sponsorship" };
     const futureNeed = /will need sponsorship|need sponsorship|require sponsorship|needs sponsorship/.test(st);
     if (futureNeed) return { kind: "future_need", needsSponsorship: true, clause: clause || "Will need sponsorship in the future" };
@@ -45059,7 +45077,10 @@ const CareerRouter = (() => {
     // networking list and the prep capability never saw it.
     // Interview-prep shapes stand this gate down the same way;
     // handlePrepPlan, in the prep zone, owns them.
-    if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
+    // WO-095: "line up analysts there first" is a people ask too — it
+    // used to be answered by the fact capture (which recorded the ask's
+    // level as a fact); with the assertion gate the plan owns it.
+    if (/\b(find|get|email|reach|build|list|draft|source|gather|network|line up)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
@@ -45784,7 +45805,7 @@ const CareerRouter = (() => {
   // by a later statement or an explicit correction ("make it Chicago
   // not New York"), never accumulated into a contradiction.
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role"]);
+  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship"]);
   // LANE A (conversation depth, battery memory class 0/60 on v238):
   // KEYED conversation facts — a fact ABOUT one company (the recruiter
   // contact there, the hiring manager, the interview day, a role
@@ -45845,11 +45866,79 @@ const CareerRouter = (() => {
     // while the question itself never does.
     return unquotedText(text).split(/(?<=[.!?])\s+|[,;]\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean);
   }
-  function clauseIsAssertion(cl) {
+  // The legacy speech-act test: not a question, not a conditional.
+  // The offer-thread capture (2) still reads it — the negotiation
+  // record is its own store, and an offer is routinely reported inside
+  // an ask ("help me counter: Acme offered me $120k").
+  function clauseIsNotQuestion(cl) {
     const l = lc(cl);
     if (/\?\s*$/.test(cl)) return false;
     if (/^(what|why|how|when|who|whom|which|should|would|could|can|will|do|does|did|is|are|am|was|were|if|suppose|let's say|say i|imagine)\b/.test(l)) return false;
     return true;
+  }
+  // WO-095 (B-MEM-1): THE ASSERTION GATE on memory's write path. The
+  // capture ran on every turn's raw text and rejected only questions,
+  // so an ask passed as an assertion: "Find 55 people at Google who
+  // interned at startups first" wrote target_firm=Google and "Find 75
+  // data scientists at fintechs in SF who share my major" wrote
+  // geography=SF — each REPLACING the user's true single-value fact,
+  // and the account merge carried the false fact into every later
+  // thread. A request is the ask's parameters, never a fact about the
+  // user. A clause is a request when, after discourse fillers and a
+  // memory wrapper ("remember that …", whose payload IS the user's own
+  // statement), it opens with a request verb, an ask frame ("I want
+  // you to", "I'd like to find", "let's"), or a politeness marker.
+  const REQUEST_VERBS = "find|show|get|give|help|build|email|e-?mail|draft|apply|list|search|send|network|tailor|write|pull|look|line up|reach out|connect|introduce|message|dm|text|contact|ping|compile|gather|source|scrape|locate|identify|map|prep|prepare|track|watch|queue|schedule|book|create|generate|research|scout|recommend|suggest|rank|compare|sort|filter|start|plan|grab|fetch|bring|run|check|review|rewrite|edit|polish|fix|tell|explain|teach|walk|outline|summari[sz]e|set up|sign|submit|fill|reply|respond|follow up|cold email|target|focus|hunt|pick|choose|narrow|expand|add|save|remind|keep|go|do|try|use|make me|turn";
+  const REQUEST_LEAD_RE = new RegExp(`^(?:${REQUEST_VERBS})\\b`, "i");
+  // A GOAL statement is not a request: "I want to network into
+  // Northbeam in Boston, that's the one I care about" states the
+  // user's own target (the goal frame in the capture loop records
+  // it), while "I want to find 30 people at Citadel" is the ask.
+  // GOAL_VERB carves the goal verbs out of the ask frames.
+  const GOAL_VERB = "(?:network\\s+into|break\\s+into|get\\s+into|work\\s+at)\\b";
+  const ASK_FRAME_RE = new RegExp(`^(?:(?:i|we)\\s+(?:want|need|would like|'?d like|wanna)\\s+(?:you\\s+to|to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS}))\\b|i'?d\\s+like\\s+(?:you\\s+to|to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS}))\\b|(?:let'?s|lets|lemme|let me)\\b|(?:please|pls|plz|kindly)\\b|(?:i|we)\\s+(?:want|need)\\s+\\d+\\b|(?:i'?m|i am|im)\\s+(?:looking|trying|hoping)\\s+to\\s+(?!${GOAL_VERB})(?:${REQUEST_VERBS})\\b)`, "i");
+  const FILLER_RE = /^(?:(?:ok(?:ay)?|so|and|also|then|now|hey|hi|hello|yo|great|cool|nice|thanks|thank you|thx|alright|all right|right|well|ah|oh|um|uh|btw|fyi|quick note|one more thing|next|first|next up|for the record|just so you know|heads up|note|noted)\b[\s,:;!.\-—–]*)+/i;
+  const MEMORY_WRAP_RE = /^(?:(?:please|pls|plz|kindly)\s+)?(?:remember|note|save|record|add|keep in mind|log|store|let me tell you(?:\s+(?:a\s+bit\s+)?about\s+(?:me|myself))?|for context|(?:a\s+bit\s+|some\s+)?about me)(?:\s+(?:that|this))?\s*(?::|—|–|-)?\s*(?=(?:i|i'm|i'?ve|im|my|we|we're)\b)/i;
+  function stripLead(cl) {
+    let x = s(cl).trim();
+    for (let i = 0; i < 4; i++) {
+      const y = x.replace(FILLER_RE, "").replace(MEMORY_WRAP_RE, "").trim();
+      if (y === x) break;
+      x = y;
+    }
+    return x;
+  }
+  function clauseIsRequest(cl) {
+    const x = stripLead(cl);
+    if (!x) return false;
+    return REQUEST_LEAD_RE.test(x) || ASK_FRAME_RE.test(x);
+  }
+  // A clause opens with the user as its own subject ("I'm a junior",
+  // "my target firm is …") — the only clause shape that may assert a
+  // fact inside a sentence that is otherwise a request.
+  const firstPersonLead = (cl) => /^(?:(?:and|but|also|plus)\s+)?(?:i|i'm|i'?ve|i'?ll|im|my|me)\b/i.test(stripLead(cl));
+  function clauseIsAssertion(cl) {
+    if (!clauseIsNotQuestion(cl)) return false;
+    if (!clauseIsNotQuestion(stripLead(cl))) return false;
+    if (clauseIsRequest(cl)) return false;
+    return true;
+  }
+  // The capture's clause list with sentence context: a comma clause
+  // inside a REQUEST sentence ("Find 75 data scientists at fintechs,
+  // in SF, who share my major") is the request's own parameter, so it
+  // may assert only when it opens with the user as subject ("Find me
+  // banks, I'm a junior"). Same clause boundaries as factClausesOf.
+  function gatedFactClausesOf(text) {
+    const out = [];
+    for (const sent of unquotedText(text).split(/(?<=[.!?])\s+|;\s*|\s+[—–]\s+/).map((x) => x.trim()).filter(Boolean)) {
+      const parts = sent.split(/,\s*/).map((x) => x.trim()).filter(Boolean);
+      const requestSentence = parts.length && clauseIsRequest(parts[0]);
+      for (let i = 0; i < parts.length; i++) {
+        if (requestSentence && i > 0 && !firstPersonLead(parts[i])) continue;
+        out.push(parts[i]);
+      }
+    }
+    return out;
   }
   const _cleanFactVal = (v) => s(v).replace(/\b(btw|though|now|mostly|please|thx|thanks)\b.*$/i, "").replace(/[\s,;.]+$/, "").trim();
   // FIX LANE T3 (live 2026-10-20, same store as FACT-KEY-GARBLE-DUP):
@@ -45948,6 +46037,107 @@ const CareerRouter = (() => {
         }
       }
     }
+    // (0d) WO-095 (B-MEM-1): explicit correction shapes for EVERY
+    // single-value kind. A single-value fact is replaced only by an
+    // assertion or an explicit correction; these are the correction
+    // shapes users actually type:
+    //   "change my major to economics" / "update my city to Denver"
+    //   "my school is actually Northeastern University"
+    //   "not Boston, Denver" / "Denver, not Boston" (the old value must
+    //     be the one on record — a correction never invents a target)
+    //   "sorry, I meant Denver" — corrects what the PREVIOUS turn
+    //     recorded (statedFacts.lastTurn), and only that: after an ask
+    //     ("find bankers in Boston") the previous turn recorded nothing,
+    //     so the same words re-aim the ask and write no fact.
+    if (!ctx._geoCorrectionThisTurn && !ctx._firmCorrectionThisTurn) {
+      const u = unquotedText(raw);
+      const prevTurn = ctx.statedFacts && ctx.statedFacts.lastTurn && typeof ctx.statedFacts.lastTurn === "object" ? ctx.statedFacts.lastTurn : null;
+      const isCity = (v) => FACT_CITIES.find((ct) => lc(ct) === lc(s(v).trim())) || null;
+      const STOP = /^(?:i|it|its|it's|that|this|the|a|an|but|and|or|me|my|you|to|so|just|not|no|yes|yeah|ok|okay|sorry|actually|instead)$/i;
+      const sentenceAt = (idx) => {
+        const before = u.slice(0, idx);
+        const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf(";")) + 1;
+        const endM = u.slice(idx).match(/[.!?;]/);
+        return u.slice(start, endM ? idx + endM.index + 1 : u.length).trim();
+      };
+      const correctionSpeech = (idx) => {
+        const sent = sentenceAt(idx);
+        if (!clauseIsNotQuestion(sent) || !clauseIsNotQuestion(stripLead(sent))) return false;
+        const x = stripLead(sent).replace(/^(?:please|pls|plz|kindly)\s+/i, "");
+        return /^(?:change|update|switch|set|correct)\s+my\b/i.test(x) || !clauseIsRequest(sent);
+      };
+      // The value a kind may take: proper names for firm / school /
+      // city (a known city in any case), a short lowercase phrase for
+      // a field of study, the year words for year.
+      const valueFor = (kind, v0) => {
+        const v = s(v0).replace(/\b(?:now|instead|then|please|thanks|thx|btw)\b.*$/i, "").replace(/[\s,;.!?]+$/, "").trim();
+        if (!v || STOP.test(v) || v.length > 60) return null;
+        if (kind === "geography") return isCity(v) || (/^[A-Z][A-Za-z.]+(?:\s[A-Z][A-Za-z.]+){0,2}$/.test(v) ? v : null);
+        if (kind === "target_firm" || kind === "school") return /^[A-Z][A-Za-z0-9&.]*(?:\s+[A-Z(][A-Za-z0-9&.)]*){0,4}$/.test(v) && !isCity(v) ? v : null;
+        if (kind === "majors") return /^[a-z][a-z &]{1,40}$/i.test(v) && !_spanIsFragment(v) && !isCity(v) ? lc(v) : null;
+        if (kind === "year") { const y = lc(v).match(/^(?:a\s+)?(freshman|sophomore|junior|senior|grad student|graduate student)$/); return y ? y[1] : null; }
+        if (kind === "target_role") return /^[A-Za-z][A-Za-z /&-]{2,40}$/.test(v) ? v : null;
+        return null;
+      };
+      const KIND_WORDS = [
+        [/^(?:target\s+(?:firm|company|bank|shop|employer)|top\s+target|target|firm)$/i, "target_firm"],
+        [/^(?:city|location|geography|home\s+city|home\s+base|base|home)$/i, "geography"],
+        [/^(?:majors?|field(?:\s+of\s+study)?|concentration)$/i, "majors"],
+        [/^(?:school|university|college)$/i, "school"],
+        [/^(?:year|class\s+year|class)$/i, "year"],
+        [/^(?:target\s+role|dream\s+role|role)$/i, "target_role"],
+      ];
+      const kindOfWord = (w) => { const hit = KIND_WORDS.find(([re]) => re.test(s(w).trim())); return hit ? hit[1] : null; };
+      const current = (kind) => statedFactsOf(ctx).find((f) => f.kind === kind) || null;
+      const applyCorrection = (kind, to, ev) => {
+        const cur = current(kind);
+        if (!to || (cur && lc(cur.value) === lc(to))) return false;
+        const from = cur ? cur.value : null; // read before push: the replace mutates the fact in place
+        push(kind, to, ev);
+        if (kind === "geography" && from) ctx._geoCorrectionThisTurn = { from, to };
+        if (kind === "target_firm" && from) ctx._firmCorrectionThisTurn = { from, to };
+        return true;
+      };
+      let done = false;
+      // (i) "change / update my <kind> to <value>", "my <kind> is
+      // actually <value>", "actually, my <kind> is <value>".
+      const named = u.match(/\b(?:change|update|switch|set|correct)\s+my\s+([a-z][a-z ]{1,24}?)\s+to\s+([^.!?;,]{2,60})/i)
+        || u.match(/\bmy\s+([a-z][a-z ]{1,24}?)\s+is\s+actually\s+([^.!?;,]{2,60})/i)
+        || u.match(/\bactually,?\s+my\s+([a-z][a-z ]{1,24}?)\s+is\s+([^.!?;,]{2,60})/i);
+      if (named && correctionSpeech(named.index)) {
+        const kind = kindOfWord(named[1]);
+        const to = kind ? valueFor(kind, named[2]) : null;
+        if (to) done = applyCorrection(kind, to, named[0]);
+      }
+      // (ii) "not <old>, <new>" / "<new>, not <old>" — <old> is a
+      // value on record, matched literally, so the kind is the kind it
+      // is recorded under.
+      if (!done) {
+        for (const f of statedFactsOf(ctx)) {
+          if (!FACT_SINGLE_KINDS.has(f.kind) || f.key) continue;
+          const esc = s(f.value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const NEW = f.kind === "majors" ? "([a-z][a-z &]{1,40}?)" : "([A-Za-z][A-Za-z0-9&.]*(?:\\s+[A-Z][A-Za-z0-9&.]*){0,2})";
+          const a = u.match(new RegExp(`\\bnot\\s+${esc}\\s*(?:,|;|—|–|-)\\s*(?:but\\s+|i\\s+meant\\s+|i\\s+mean\\s+|it'?s\\s+|rather\\s+)?${NEW}(?=\\s*(?:[.!?;,—–]|$|\\s+(?:instead|now)\\b))`, "i"));
+          const b = a ? null : u.match(new RegExp(`${NEW}\\s*,?\\s+not\\s+${esc}\\b`, "i"));
+          const mm = a || b;
+          if (!mm || !correctionSpeech(mm.index)) continue;
+          let cand = mm[1];
+          if (b) cand = cand.replace(/^(?:(?:actually|sorry|no|oops|wait|i meant|i mean|it'?s|make it|meant|correction)\b[\s,:]*)+/i, "").replace(/^(?:i\s+(?:study|live in|go to)|(?:i'?m|i am|im)\s+(?:studying|majoring in|based in|in|at|a)|studying|majoring in|my\s+[a-z ]+?\s+(?:is|are))\s+/i, "");
+          const to = valueFor(f.kind, cand);
+          if (to && applyCorrection(f.kind, to, mm[0])) { done = true; break; }
+        }
+      }
+      // (iii) "sorry, I meant <value>" — the kind is the one the
+      // previous turn recorded that this value can be.
+      if (!done && prevTurn && Array.isArray(prevTurn.kinds) && prevTurn.kinds.length) {
+        const mm = u.match(/\bi\s+mean[t]?\s+(?:to\s+say\s+)?([^.!?;,—–]{2,60})/i);
+        if (mm && !/^to\s+(?!say\b)/i.test(mm[1]) && correctionSpeech(mm.index)) {
+          const v = mm[1].replace(/\s+not\s+.*$/i, "");
+          const fits = prevTurn.kinds.filter((k) => FACT_SINGLE_KINDS.has(k) && current(k) && valueFor(k, v));
+          if (fits.length === 1) done = applyCorrection(fits[0], valueFor(fits[0], v), mm[0]);
+        }
+      }
+    }
     // (0c) LANE A (conversation depth): facts ABOUT a company or an
     // interview — the recruiter contact, the hiring manager, the
     // interview day, a dream role, a per-company role preference.
@@ -45970,7 +46160,19 @@ const CareerRouter = (() => {
         const end = endM ? idx + endM.index : u.length;
         return u.slice(start, end).trim();
       };
-      const asserted = (idx) => clauseIsAssertion(segOf(idx));
+      // WO-095: inside a REQUEST sentence only the comma clause that
+      // opens with the user as subject may assert ("Find me roles,
+      // my recruiter there is Dana" — the contact clause still counts).
+      const asserted = (idx) => {
+        const seg = segOf(idx);
+        if (clauseIsAssertion(seg)) return true;
+        if (!clauseIsNotQuestion(seg) || !clauseIsRequest(seg)) return false;
+        const before = u.slice(0, idx);
+        const start = Math.max(before.lastIndexOf(","), before.lastIndexOf(";"), before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?"), before.lastIndexOf("—"), before.lastIndexOf("–")) + 1;
+        const endM = u.slice(idx).match(/[,;.!?—–]/);
+        const sub = u.slice(start, endM ? idx + endM.index : u.length).trim();
+        return firstPersonLead(sub) && clauseIsAssertion(sub);
+      };
       const CO = "([A-Z][A-Za-z0-9&.]+(?:\\s+[A-Z][A-Za-z0-9&.]+){0,2})";
       // V240 LIVE-FIX (probe i): a contact is often stated by first
       // name only ("My recruiter contact at Northwind Ledger is
@@ -46057,8 +46259,10 @@ const CareerRouter = (() => {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
       }
     }
-    // (1) Per-clause declarative capture.
-    for (const cl of factClausesOf(raw)) {
+    // (1) Per-clause declarative capture. WO-095: gated — a request
+    // clause (and a request sentence's non-first-person parameter
+    // clauses) never reaches a frame.
+    for (const cl of gatedFactClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
       // DEPTH LANE A (floor): a clause whose SUBJECT is a third person
       // ("my roommate is a junior at Yale studying art history") states
@@ -46128,15 +46332,28 @@ const CareerRouter = (() => {
       // chain at all; the geography chain's ungated targeting frame
       // took the name instead (see above). Same discipline as
       // network-into: a known city is never a firm.
-      if ((m = cl.match(/\btargeting\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
+      // WO-095: the first-person GOAL frame — "I want to network into
+      // <Firm> (in <City>)", "I'm trying to break into <Firm>" — is the
+      // user's own statement of target (the bare imperative "network
+      // into <Firm>" is a request and never reaches this loop). The
+      // city rides as the target geography only when it is a known
+      // city named in the same goal clause.
+      const goal = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?[Ii]\s*(?:'m|'d|\s+am|\s+would|\s+really)?\s*(?:want|wanna|like|need|hope|plan|aim|trying|hoping|planning|aiming)\s+to\s+(?:network\s+into|break\s+into|get\s+into|work\s+at)\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})(?:\s+in\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?))?/);
+      if (goal) {
+        const firm = goal[1].trim();
+        if (!FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, goal[0]);
+        const city = goal[2] && FACT_CITIES.find((ct) => lc(ct) === lc(goal[2]));
+        if (city) push("geography", city, goal[0]);
+      }
+      else if ((m = cl.match(/\btargeting\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
       else if ((m = cl.match(/\bnetwork into\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) { const firm = m[1].split(/\s+\bin\b/i)[0].trim(); if (firm && !FACT_CITIES.some((ct) => lc(ct) === lc(firm)) && !/^(the|my|a|an)$/i.test(firm)) push("target_firm", firm, m[0]); }
       else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/)) && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("target_firm", m[1], m[0]);
-      else if ((m = cl.match(/\bmy\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
       // DEPTH LANE A: the plain frame — "my target firm is X" — is the
       // most natural way to state it and had no pattern at all.
       // LANE A v2: "my TOP target company is X" (the battery's plant
       // shape) missed every frame — the qualifier belongs in the frame.
-      else if ((m = cl.match(/\bmy\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       // DEPTH LANE A: exclusivity and too-senior frames ("analysts
@@ -46156,6 +46373,16 @@ const CareerRouter = (() => {
       // job-noun frame carries the experience without an "at".
       else if ((m = cl.match(/\bi\s+worked\s+(?:a|an|the)\s+([a-z][a-z ]{1,36}?\b(?:job|role|gig|position|shift)\b)/i))) push("experience", m[1].trim(), m[0]);
       if ((m = cl.match(/\bmake the tone\s+(casual|formal|warmer)\b/i)) || (m = cl.match(/\btone\s+(casual|formal|warmer)\s+from here\b/i))) push("tone", m[1].toLowerCase(), m[0]);
+      // WO-095 (B-MEM-1) polarity: a negated statement is stored as
+      // the negation. "I do not require sponsorship" used to be read
+      // as a need (the bare "require sponsorship" words inside it);
+      // the negative frame is tested FIRST and wins the clause.
+      if ((m = cl.match(/\b(?:i|we)\s+(?:do\s+not|don'?t|dont|no\s+longer|won'?t|will\s+not|never|shouldn'?t|should\s+not)\s+(?:(?:ever|actually|really)\s+)?(?:need|require)\s+(?:any\s+|visa\s+|work\s+|employer\s+)*sponsorship\b/i))
+        || (m = cl.match(/\b(?:i'?m|i am|im)\s+not\s+(?:going\s+to\s+)?(?:need|require|needing|requiring)\s+(?:any\s+|visa\s+|work\s+)*sponsorship\b/i))
+        || (m = cl.match(/\bno\s+(?:visa\s+)?sponsorship\s+(?:is\s+)?(?:needed|required)\b|\b(?:i|we)\s+(?:do\s+not|don'?t)\s+need\s+(?:a\s+)?visa\b/i))) push("sponsorship", "does not need sponsorship", m[0]);
+      else if ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i))) push("sponsorship", "needs sponsorship", m[0]);
+      if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:not|no\s+longer)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "not a US citizen", m[0]);
+      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
     }
     // (2) Offer-thread capture: an offer the user STATES (firm,
     // amount, deadline, role — any subset) becomes the thread's
@@ -46214,7 +46441,7 @@ const CareerRouter = (() => {
       // new offer REPORT rather than a detail about a standing one.
       let sawOfferEvent = false;
       for (const cl of offerClauses) {
-        if (!clauseIsAssertion(cl)) continue;
+        if (!clauseIsNotQuestion(cl)) continue;
         if (/\bgot an offer\b|\bgot the offer\b|\boffered me\b|\boffer came\b|\boffer'?s here\b|\bi have an offer\b|\breceived an offer\b/i.test(cl)) sawOfferEvent = true;
         let m;
         const cln = typoNorm(cl);
@@ -46327,6 +46554,9 @@ const CareerRouter = (() => {
         }
       }
     }
+    // WO-095: what THIS turn recorded — the next turn's "sorry, I
+    // meant X" corrects exactly these kinds and nothing older.
+    if (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ctx.statedFacts.lastTurn = { at: new Date(nowOf(ctx)).toISOString(), kinds: [...new Set(added.map((a) => a.kind))] };
     if (added.length) ctx._factsAddedThisTurn = added;
     else delete ctx._factsAddedThisTurn;
     if (restated.length) ctx._factsRestatedThisTurn = restated;
@@ -46335,7 +46565,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen" }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -46355,11 +46585,13 @@ const CareerRouter = (() => {
     if (!facts.length) return null;
     const geo = facts.find((f) => f.kind === "geography");
     const firm = facts.find((f) => f.kind === "target_firm");
+    // WO-095: the sponsorship fact carries its polarity into the bridge.
+    const spons = facts.find((f) => f.kind === "sponsorship");
     return {
       _fromStatedFacts: true,
       basics: { name: null, email: null, phone: null, location: geo ? geo.value : null, links: {} },
       preferences: { roles: [], industries: [], locations: geo ? [geo.value] : [], remote: null, companySize: null, compFloor: null, dealBreakers: [], targetCompanies: firm ? [firm.value] : [], excludedCompanies: [] },
-      constraints: { graduationDate: null, startDate: null, workAuthorization: null, needsSponsorship: null, relocation: null, securityClearance: null },
+      constraints: { graduationDate: null, startDate: null, workAuthorization: spons ? spons.evidence || null : null, needsSponsorship: spons ? spons.value === "needs sponsorship" : null, relocation: null, securityClearance: null },
       defaults: {},
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],

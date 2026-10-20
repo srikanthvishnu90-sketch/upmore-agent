@@ -234,3 +234,40 @@ one; asked, as round 1 decided). s2's other 11 non-Trainee rows are Workday's ow
   two or more links gets no Websites row. The affiliate rule asks whenever a listed employer shares a name word with the
   tenant (by design: more asks, no guesses).
 - The prompt fill still sets the search box's value and fires synthetic events; real Workday may need typed keys.
+
+## Architect review: round 2 on 4 new sealed tenants, scored once (2026-10-20)
+A second writer, who never read the extension or the planner, wrote 4 new Workday-shaped TEST tenants (sealed-wd2, sha256
+of `tar --sort=name --mtime=@0 --owner=0 --group=0 -cf - t1 t2 t3 t4` = `dbb34180cbc5c4a5...`, checked before the run).
+Their key uses a second schema; the first run on round 2's head graded nothing (the harness read no rows), so it measured
+nothing and spent nothing. A separate agent then taught the harness the second schema (`wo/048c-harness-schema`,
+83c96d0e) from a written description only, never the sealed files; dev-a and dev-b score row for row as before. The
+product was not changed between the two runs. Then the 4 tenants were run once. They are now spent.
+
+| Tenant | Pages reached | Coverage (graded rows) | Trainee's precision | Wrong | Never-violations | Why it stopped |
+|---|---|---|---|---|---|---|
+| t1 | sign-in only | none graded | - | 0 | 0 | the harness timed out waiting for the page after the test person's sign-in |
+| t2 | 1 of 6 | 75.0% (12/16) | 9/9 | 0 | 0 | "How Did You Hear About Us?" was asked and the harness did not answer it as the person |
+| t3 | 3 of 6 | 47.4% (18/38) | 14/14 | 0 | 1 (harness, see below) | a travel answer the page set itself blocks approval, by design (rule 3); the harness does not clear it as the person |
+| t4 | 3 of 6 | 45.7% (16/35) | 12/14 | 2 | 0 | Resume/CV required; the harness did not upload as the person |
+
+What is true, read row by row:
+- **One wrong fill is the product's**: on t4 a past job's **Location** took the person's home "Chicago, IL". The key says
+  that part is the person's to state (rule 4: a part they never stated is asked). The field's id
+  (`workExperience-31--location`) was not read as part of the work-experience section, so the keyword reader filled it
+  as the person's own location. Round 3 must make a field inside a repeating section never take a person-level fact.
+- **One wrong is unresolved**: t4's how-heard multiselect is graded "Lucerne Careers Website" expected, empty found,
+  with Trainee as the source: either the pick did not stick or the new "set" reader misread the pills.
+- **The never-violation is the harness's**: the key allows one Websites row (nth 2 is "never"); the adapter computed
+  "at most 0" because no nth was marked "fill". Not a product defect.
+- **Most "missed" rows are on unreached or unmatched sections**: the key names sections `workExperience`, `education`,
+  `languages`, `websites` (no "Section" suffix), which the adapter does not map, and the runs stopped before the person
+  could finish each page. These misses are not a measured product coverage; they are unmeasured.
+- Product misses that are real: t2's "Have you ever been employed by Proseware Test Inc or one of its subsidiaries?"
+  (asked; the person's complete employer list settles it), t3's salary range ($80,000-$99,999 from 95000) and English
+  "Native or Bilingual" (the persona gives no level: asked is right by WO-052's rule, the key disagrees).
+
+**Verdict: the 70% Workday target is not shown on independent tenants.** Round 2's numbers stand on dev and spent tenants
+only. Round 3: (1) a field inside a repeating section never takes a person-level fact; (2) the harness completes a tenant
+as the person (answers what Trainee asks, clears a page-set value, uploads the resume, waits out sign-in) and maps the
+section ids above; (3) a new sealed set (sealed-wd3) from a third writer, scored once. Real Workday stays NOT_RUN until a
+person is signed in to a real tenant.

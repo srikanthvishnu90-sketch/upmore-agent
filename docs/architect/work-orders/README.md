@@ -30,7 +30,7 @@ real texting channel is last (D-009).
 | [042](WO-042-sixty-in-thirty.md) | 60 reviewed applications in 30 minutes, 90%+ fields, zero wrong-answer submissions; live fill on 17 real pages | done (PR #62, 2026-10-20) | 031 | M4 | Claude |
 | 043 | Mail tracking generalises (blind160) | done (PR #69, 2026-10-20) | 040 | M4 | Claude |
 | 044 | Discovery toward 50,000 boards every 6 h | building (wo/044-discovery-scale) | 037 | M2 | Claude (builder) |
-| 045 | Mail: interviews, terse replies, employer names (blind200) | in review (PR #70) | 043 | M4 | Claude (builder) |
+| 045 | Mail: interviews, terse replies, employer names (blind200) | done (PR #70, 2026-10-20) | 043 | M4 | Claude (builder) |
 | 046 | Mail in other languages (scored once on a sealed 240-message set) | building (wo/046-mail-languages) | 045 | M4 | Claude (builder) |
 | 047 | Answer bank: residence by country, lists without a yes, the country among its territories | in review (PR #71) | 020 | M4 | Claude |
 | [048](WO-048-workday.md) | Workday fill in the extension (70%+ target): fixtures from public sources by a separate writer, 4 tenants sealed; the person signs in (D-013 b); every page's "Save and Continue" and the final Submit each need the person's tap | fixtures being written | 031 | M4 | Claude |

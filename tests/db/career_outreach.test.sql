@@ -104,12 +104,12 @@ select t.ok((select count(*)=0 from career_outreach_dnc where user_id='00000000-
 -- One recipient, all Trainee users (architect review, 2026-10-20): at most 3 Trainee-drafted emails reach an address in 30
 -- days from everyone together, and a "stop" to any user stops every user's drafts to that address.
 reset role;
-insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000333','outreach-c@example.test'),('00000000-0000-4000-8000-000000000334','outreach-d@example.test');
-insert into profiles(id) values('00000000-0000-4000-8000-000000000333'),('00000000-0000-4000-8000-000000000334');
+insert into auth.users(id,email) select ('00000000-0000-4000-8000-00000000033'||k)::uuid, 'outreach-'||k||'@example.test' from generate_series(3,6) k;
+insert into profiles(id) select ('00000000-0000-4000-8000-00000000033'||k)::uuid from generate_series(3,6) k;
 set role service_role;
 insert into career_outreach_drafts(user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,sent_at)
- select u::uuid, gen_random_uuid(), 1, '{"name":"Shared"}', 'Shared.Banker@example.test', 'S', 'B', 'F', repeat('c',64), 'sent', '2026-10-20T12:00:00Z'::timestamptz - (k*interval '1 day')
- from (values ('00000000-0000-4000-8000-000000000331',1),('00000000-0000-4000-8000-000000000332',2),('00000000-0000-4000-8000-000000000333',3)) v(u,k);
+ select u::uuid, gen_random_uuid(), 1, '{"name":"Shared"}', 'shared.banker@example.test', 'S', 'B', 'F', repeat('c',64), 'sent', '2026-10-20T12:00:00Z'::timestamptz - (k*interval '1 day')
+ from (values ('00000000-0000-4000-8000-000000000335',1),('00000000-0000-4000-8000-000000000336',2),('00000000-0000-4000-8000-000000000333',3)) v(u,k);
 insert into career_outreach_drafts(user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,approved_hash,approved_at)
  values('00000000-0000-4000-8000-000000000334',gen_random_uuid(),1,'{"name":"Shared"}','shared.banker@example.test','S','B','F',repeat('d',64),'approved',repeat('d',64),now()),
        ('00000000-0000-4000-8000-000000000334',gen_random_uuid(),2,'{"name":"Stopped"}','stopped@example.test','S','B','F',repeat('e',64),'approved',repeat('e',64),now());

@@ -1,6 +1,6 @@
 /* LANE A guards (Feature Depth Program v2 — conversation depth).
    Every test replays a defect measured in the 2026-10-19 channel
-   battery (~/workspace/your_files/channel-tests/2026-10-19-battery-1000,
+   battery (the owner's channel-tests folder: 2026-10-19-battery-1000,
    scoreboard.md + transcripts/) or in the 2026-10-20 live Gusto run
    (channel-tests/2026-10-20-live-loop-gusto/). Each was red on the
    base tree (75ccf5f5 = live v238) and must stay green.

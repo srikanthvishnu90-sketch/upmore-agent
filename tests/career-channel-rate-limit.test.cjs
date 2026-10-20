@@ -1,6 +1,7 @@
 'use strict';
 // Real channel handlers, synthetic transport only. The live Case 2 failed
 // because an account429 was turned into a generic internal-error reply.
+// All phone numbers below use the reserved example range; no real recipient.
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {spawnSync}=require('node:child_process');
 if(!process.execArgv.includes('--experimental-transform-types')){
@@ -11,7 +12,7 @@ if(!process.execArgv.includes('--experimental-transform-types')){
   const {handleTelegramWebhook}=await import('../supabase/functions/_shared/telegram_bridge.ts');
   const {handleWhatsappWebhook,twilioSignature}=await import('../supabase/functions/_shared/whatsapp_twilio.ts');
   const admin=new F.FakeAdmin(),calls=[];let upstreamStatus=status;
-  const env=F.envOf({SUPABASE_URL:F.SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:F.SERVICE_KEY,CHANNEL_TEST_USER_ID:F.TEST_USER,TELEGRAM_BOT_TOKEN:'fixture-token',TELEGRAM_WEBHOOK_SECRET:'fixture-secret',TELEGRAM_ALLOWED_CHAT_IDS:'424242',TWILIO_ACCOUNT_SID:'ACfixture',TWILIO_AUTH_TOKEN:'fixture-auth',TWILIO_WHATSAPP_FROM:'whatsapp:+14155238886',WHATSAPP_ALLOWED_NUMBERS:'+12246029341'});
+  const env=F.envOf({SUPABASE_URL:F.SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:F.SERVICE_KEY,CHANNEL_TEST_USER_ID:F.TEST_USER,TELEGRAM_BOT_TOKEN:'fixture-token',TELEGRAM_WEBHOOK_SECRET:'fixture-secret',TELEGRAM_ALLOWED_CHAT_IDS:'424242',TWILIO_ACCOUNT_SID:'ACfixture',TWILIO_AUTH_TOKEN:'fixture-auth',TWILIO_WHATSAPP_FROM:'whatsapp:+12025550100',WHATSAPP_ALLOWED_NUMBERS:'+12025550101'});
   const deps={env,createAdmin:()=>admin,paceMs:0,fetchFn:async(url,init)=>{
    calls.push({url:String(url),init});if(String(url).includes('/functions/v1/agent-chat'))return new Response(JSON.stringify(upstreamStatus===200?{reply:'Hello from fixture.'}:{error:upstreamStatus===429?'rate_limited':'internal',message:'upstream detail must not be exposed'}),{status:upstreamStatus,headers:retry===null?{}:{'retry-after':retry}});
    if(String(url).includes('api.telegram.org'))return new Response(JSON.stringify({ok:true,result:{message_id:1}}));
@@ -22,7 +23,7 @@ if(!process.execArgv.includes('--experimental-transform-types')){
   if(channel==='telegram')request=(id)=>new Request(F.SUPABASE_URL+'/functions/v1/telegram-inbound'+(dry?'?dry_run=1':''),{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':'fixture-secret'},body:JSON.stringify({update_id:id,message:{message_id:id,text:'/start',chat:{id:424242,type:'private'}}})});
   else{
    const url=F.SUPABASE_URL+'/functions/v1/whatsapp-inbound'+(dry?'?dry_run=1':'');
-   request=async(id)=>{const params={From:'whatsapp:+12246029341',To:'whatsapp:+14155238886',Body:'/start',MessageSid:'SM'+id,NumMedia:'0'};
+   request=async(id)=>{const params={From:'whatsapp:+12025550101',To:'whatsapp:+12025550100',Body:'/start',MessageSid:'SM'+id,NumMedia:'0'};
     const sig=await twilioSignature('fixture-auth',url,params);
     return new Request(url,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded','x-twilio-signature':sig},body:new URLSearchParams(params)});};
   }

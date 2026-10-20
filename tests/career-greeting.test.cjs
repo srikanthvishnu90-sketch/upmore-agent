@@ -33,6 +33,21 @@ test('account pause remains authoritative for greetings',()=>{
  const ctx=host.createTurnCtx(options({account:{paused:true}}));
  assert.equal(host.runTurn('/start',ctx).intent,'career_paused');assert.equal(ctx._hostPatch,undefined);
 });
+test('greeting preserves the supported explicit profile input',()=>{
+ const profile=F.profile(),before=F.copy(profile),ctx=host.createTurnCtx(options({profile}));
+ assert.equal(host.runTurn('/start',ctx).intent,'career_greeting');
+ assert.deepEqual(host.extractSnapshot(ctx).stores.profile,before);assert.equal(ctx._hostPatch,undefined);
+});
+test('greeting on a reused context preserves a prior correction',()=>{
+ const ctx=host.createTurnCtx(options({snapshot:F.snapshot(F.OWNERS[0])}));
+ host.runTurn(F.CORRECT,ctx);const corrected=host.extractSnapshot(ctx);
+ host.runTurn('/start',ctx);assert.deepEqual(host.extractSnapshot(ctx),corrected);
+});
+test('greeting after erase and resume cannot restore an old profile on a reused context',()=>{
+ const ctx=host.createTurnCtx(options({snapshot:F.snapshot(F.OWNERS[0])}));
+ for(const text of ['forget my career profile','resume career work','/start']){host.runTurn(text,ctx);host.extractSnapshot(ctx);}
+ assert.equal(host.extractSnapshot(ctx).stores.profile,undefined);
+});
 test('a later substantive turn on a reused context retains its normal write path',()=>{
  const ctx=host.createTurnCtx(options({snapshot:F.snapshot(F.OWNERS[0])}));
  host.runTurn('/start',ctx);

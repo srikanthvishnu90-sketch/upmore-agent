@@ -302,7 +302,11 @@ const CareerHost = (() => {
           }
         }
       }
-      if (o.profile !== undefined) ctx.profile = o.profile;
+      if (o.profile !== undefined) {
+        ctx.profile = o.profile;
+        const original = initialSnapshots.get(ctx);
+        initialSnapshots.set(ctx, { ...original, stores: { ...original.stores, profile: cloneJson(o.profile) } });
+      }
       if (o.account) {
         if (o.account.preferred_locations && ctx.profile) {
           ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: o.account.preferred_locations.slice() });
@@ -371,6 +375,9 @@ const CareerHost = (() => {
     // ctx.containmentRecords for the handler to log.
     function runTurn(text, ctx) {
       readOnlyTurns.delete(ctx);
+      // Once this context has run substantive work, a later greeting must
+      // preserve its current stores rather than restore the initial load.
+      if (!isGreeting(text)) initialSnapshots.delete(ctx);
       let handler = null;
       const controls = applyHostControl(text, ctx);
       if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };

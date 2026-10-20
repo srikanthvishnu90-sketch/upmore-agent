@@ -7,6 +7,8 @@
 //                  hours move an alert to the end of quiet hours in the person's zone; one report per local day at or
 //                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
+//   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
+//                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
 import { freshWhenSeen } from "./career_ingest.ts";
 import { type Floor, relevanceFloor } from "./career_floor.ts";
 
@@ -14,11 +16,13 @@ export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
   floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
+  max_per_week?: number; // WO-037: alerts in any rolling 7 days; absent means WEEKLY_DEFAULT
 }
 export interface PlanUser {
   id: string; tz: string; prefs: AlertPrefs; last_checked_at: string; instant_sent_today: number;
   last_report_on: string | null; // YYYY-MM-DD in the person's zone
   held?: string[]; // job_ids the daily cap held back
+  sent_this_week?: number; // WO-037: alerts queued for delivery in the last 7 days (the run counts them from the outbox)
 }
 export type Planned =
   | { userId: string; kind: "alert"; key: string; at: number; job_id: string; text: string }
@@ -27,6 +31,8 @@ export type Planned =
 
 export const DEFAULT_PREFS: AlertPrefs = { on: true, keywords: [], locations: [], remote_ok: true, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 };
 export const MAX_INSTANT_PER_DAY = 10, REPORT_LIMIT = 10;
+export const WEEKLY_DEFAULT = 15, WEEKLY_MAX = 25;
+export const weeklyCap = (p: AlertPrefs) => Math.max(0, Math.min(WEEKLY_MAX, Math.floor(p.max_per_week ?? WEEKLY_DEFAULT)));
 const DAY = 86400000;
 
 const words = (s: unknown) => String(s ?? "").toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean);
@@ -80,7 +86,9 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     const fresh = o.postings
       .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs))
       .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
-    let room = Math.max(0, Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0));
+    const dayRoom = Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0);
+    const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
+    let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
     const at = isQuiet(l.hour, prefs) ? nextLocal(o.now, u.tz, prefs.quiet_end) : o.now;
     for (const p of fresh) {
       if (room <= 0) { out.push({ userId: u.id, kind: "held", job_id: p.job_id }); continue; }

@@ -10,13 +10,20 @@
 // Network and storage are injected; nothing here deploys, schedules or spends.
 import { CareerJobs } from "./router_core.career.js";
 
-export interface Board { company: string; provider: string; board: string }
+// etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
+// request; absent on the cursor path.
+export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null }
 export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
 }
-// A feed returns its postings; `complete: false` says the board has more than was read (closes nothing).
-export type FetchFeed = (b: Board) => Promise<FeedPosting[] | { postings: FeedPosting[]; complete: boolean }>;
+// A feed returns its postings; `complete: false` says the board has more than was read (closes nothing). WO-037:
+// `not_modified` says the board answered 304 to a conditional request (nothing changed since the last read); etag and
+// last_modified are the validators a full read answered with, kept for the next conditional request.
+export interface FeedRead { postings: FeedPosting[]; complete: boolean; not_modified?: boolean; etag?: string | null; last_modified?: string | null }
+export type FetchFeed = (b: Board) => Promise<FeedPosting[] | FeedRead>;
+// What happened to one board in a run (WO-037: the sharded scheduler records it in career_board_state).
+export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null }
 export interface Posting extends FeedPosting {
   provider: string; board: string; first_seen_at: string; last_seen_at: string; closed_at: string | null;
 }
@@ -31,6 +38,7 @@ export interface PostingsDb {
 }
 export interface IngestStats {
   boards_ok: number; boards_failed: number; boards_partial: number; new: number; seen: number; reopened: number; closed: number;
+  boards_not_modified?: number; // WO-037: answered 304 to a conditional request
   failures: { board: string; provider: string; error: string }[];
   large_closes: { board: string; provider: string; closed: number; was_open: number }[]; // a board that lost half or more at once
 }
@@ -50,26 +58,37 @@ const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
 // from, so a deadline and its check never come from two different clocks.
 // `touchAfterMs`: an unchanged posting's last_seen_at is rewritten only once it is this old (0 = every run). The scheduled
 // run uses hours, so tens of thousands of unchanged postings are not rewritten every few minutes.
-export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number }): Promise<IngestStats & { attempted: number }> {
+// `useCursor: false` (WO-037, the sharded scheduler): read `boards` in the order given, from the first, and leave the
+// cursor alone; `onBoard` hears each attempted board's outcome.
+export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number; useCursor?: boolean; onBoard?: (b: Board, r: BoardOutcome) => void }): Promise<IngestStats & { attempted: number }> {
   const now = new Date(o.now).toISOString(), n = o.boards.length, clock = o.clock || Date.now;
   const st = { boards_ok: 0, boards_failed: 0, boards_partial: 0, new: 0, seen: 0, reopened: 0, closed: 0, failures: [], large_closes: [], attempted: 0 } as IngestStats & { attempted: number };
   if (!n) return st;
   const take = Math.max(1, Math.min(o.maxBoards ?? n, n));
-  const start = ((await o.db.getCursor()) % n + n) % n;
+  const useCursor = o.useCursor !== false;
+  const start = useCursor ? ((await o.db.getCursor()) % n + n) % n : 0;
   const pick = Array.from({ length: take }, (_, i) => o.boards[(start + i) % n]);
 
   async function one(b: Board) {
-    let list: FeedPosting[], complete = true;
+    let list: FeedPosting[], complete = true, validators: { etag?: string | null; last_modified?: string | null } = {};
     try {
       const r = await o.fetchFeed(b);
-      if (Array.isArray(r)) list = r; else { list = r.postings; complete = r.complete; }
+      if (Array.isArray(r)) list = r;
+      else {
+        list = r.postings; complete = r.complete; validators = { etag: r.etag ?? null, last_modified: r.last_modified ?? null };
+        // Nothing changed since the last full read: nothing to write, nothing to close.
+        if (r.not_modified) { st.boards_ok++; st.boards_not_modified = (st.boards_not_modified ?? 0) + 1; o.onBoard?.(b, { status: "not_modified", ...validators }); return; }
+      }
     } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
       st.boards_failed++;
-      st.failures.push({ board: b.board, provider: b.provider, error: e instanceof Error ? e.message : String(e) });
+      st.failures.push({ board: b.board, provider: b.provider, error });
+      o.onBoard?.(b, { status: "failed", error });
       return;
     }
     st.boards_ok++;
     if (!complete) st.boards_partial++;
+    o.onBoard?.(b, { status: complete ? "ok" : "partial", ...validators });
     const fresh = new Map<string, FeedPosting>();
     for (const p of list) if (p && p.job_id && !fresh.has(p.job_id)) fresh.set(p.job_id, p);
     const known = new Map((await o.db.getMany([...fresh.keys()])).map((p) => [p.job_id, p]));
@@ -98,7 +117,7 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   await Promise.all(Array.from({ length: width }, async () => {
     while (next < pick.length && !(o.deadline && clock() >= o.deadline)) { st.attempted++; await one(pick[next++]); }
   }));
-  await o.db.setCursor((start + st.attempted) % n);
+  if (useCursor) await o.db.setCursor((start + st.attempted) % n);
   return st;
 }
 
@@ -245,12 +264,18 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
   const headers: Record<string, string> = { accept: "application/json" };
   if (opts.userAgent) headers["user-agent"] = opts.userAgent;
   const timeoutMs = opts.timeoutMs ?? 15000;
-  async function getJson(url: string, deadline: number) {
+  // WO-037: `cond` sends the board's last validators (If-None-Match / If-Modified-Since); a 304 comes back as null.
+  async function getJson(url: string, deadline: number, cond?: Board, seen?: { etag?: string | null; last_modified?: string | null }) {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
+    const h: Record<string, string> = { ...headers };
+    if (cond?.etag) h["if-none-match"] = cond.etag;
+    if (cond?.last_modified) h["if-modified-since"] = cond.last_modified;
     let res: Response;
-    try { res = await fetchFn(url, { headers, signal: AbortSignal.timeout(left) }); }
+    try { res = await fetchFn(url, { headers: h, signal: AbortSignal.timeout(left) }); }
     catch (e) { throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+    if (seen) { seen.etag = res.headers.get("etag"); seen.last_modified = res.headers.get("last-modified"); }
+    if (res.status === 304 && cond) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
     if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
     return await res.json();
   }
@@ -260,7 +285,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     if (!feed || !normalize) throw new Error(`provider ${b.provider} is not supported`);
     const deadline = Date.now() + timeoutMs;
     const base = feed(b.board).url as string;
-    let raw: any[] = [], complete = true, json: any;
+    let raw: any[] = [], complete = true, json: any, validators: { etag: string | null; last_modified: string | null } | null = null;
     if (b.provider === "smartrecruiters") {
       for (let page = 0; ; page++) {
         const j = await getJson(`${base}?limit=${SR_PAGE}&offset=${page * SR_PAGE}`, deadline);
@@ -272,8 +297,12 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         if (page + 1 >= SR_MAX_PAGES) { complete = false; break; }
       }
     } else {
-      json = await getJson(base, deadline);
+      // One request per board: the conditional request applies (SmartRecruiters pages, so it reads in full).
+      const seen: { etag?: string | null; last_modified?: string | null } = {};
+      json = await getJson(base, deadline, b, seen);
+      if (json === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? seen.etag ?? null, last_modified: b.last_modified ?? seen.last_modified ?? null };
       raw = rawJobs[b.provider](json);
+      validators = { etag: seen.etag ?? null, last_modified: seen.last_modified ?? null };
     }
     const normalized: any[] = normalize(json, b.board, b.company);
     const token = b.board.toLowerCase();
@@ -290,6 +319,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         department: clip(p.department, 300), posted_at: p.posted_at || null, remote: p.remote, role_family: p.role_family, seniority_band: p.seniority_band,
       });
     });
+    if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
     return complete ? postings : { postings, complete };
   };
 }

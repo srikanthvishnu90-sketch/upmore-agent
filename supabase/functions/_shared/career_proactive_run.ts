@@ -3,13 +3,18 @@
 // from career_alerts.ts, the outbox written once per key, and each person's counters saved. Counters: alerts sent count
 // against the person's local day (reset when their date changes); held postings are kept until a report carries them;
 // last_checked_at moves to this run, so a posting is alerted at most once.
-import { DEFAULT_PREFS, planProactive, quietAt } from "./career_alerts.ts";
+// WO-037, enforced here rather than trusted from the plan: an alert is queued only if its posting passes the person's
+// own gate again at the moment of queuing (matchPosting: their keywords, place and relevance floor; and news, not
+// backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
+// that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
+import { DEFAULT_PREFS, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { freshWhenSeen } from "./career_ingest.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 import { cardFor, type Prepared } from "./career_apply_cards.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; below_threshold?: number }
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
@@ -26,8 +31,12 @@ export async function runAlerts(o: {
   const heldIds = [...new Set(rows.flatMap((r) => r.held || []))].filter((id) => !have.has(id));
   const postings = heldIds.length ? [...recent, ...(await o.postingsById(heldIds.slice(0, 2000)))] : recent;
   stats.postings = postings.length;
-  // A new local day starts the person's count over.
-  const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0 }));
+  // A new local day starts the person's count over. The last 7 days' alerts count against the weekly cap; a store that
+  // cannot say how many were sent leaves no room (Infinity), so a counting failure never turns into a flood.
+  const week = o.store.alertsSince ? await o.store.alertsSince(new Date(o.now - 7 * 86400000).toISOString()) : null;
+  const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0,
+    sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
+  const byId = new Map(postings.map((p) => [p.job_id, p]));
   const plan = planProactive({ users, postings, now: o.now });
   for (const u of users) {
     const mine = plan.filter((p) => p.userId === u.id);
@@ -36,13 +45,21 @@ export async function runAlerts(o: {
     let reported = false;
     for (const p of mine) {
       if (p.kind === "held") { held.add(p.job_id); stats.held++; continue; }
-      const fresh = await o.outbox.enqueue(u.id, { key: p.key, kind: p.kind, text: p.text, at: p.at });
+      let firstSeen: string | undefined;
+      if (p.kind === "alert") {
+        const posting = byId.get(p.job_id);
+        if (!posting || !freshWhenSeen(posting) || !matchPosting(posting, u.prefs)) { stats.below_threshold = (stats.below_threshold ?? 0) + 1; continue; }
+        const seen = Date.parse(String(posting.first_seen_at ?? ""));
+        if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
+      }
+      const fresh = await o.outbox.enqueue(u.id, { key: p.key, kind: p.kind, text: p.text, at: p.at, ...(firstSeen ? { first_seen_at: firstSeen } : {}) });
       if (!fresh) { stats.duplicates++; continue; }
       if (p.kind === "alert") { sent++; stats.alerts++; } else { reported = true; stats.reports++; }
     }
     const today = localDate(o.now, u.tz);
+    const { sent_this_week: _week, ...row } = u;
     await o.store.save({
-      ...u, last_checked_at: new Date(o.now).toISOString(),
+      ...row, last_checked_at: new Date(o.now).toISOString(),
       instant_sent_today: u.instant_sent_today + sent, sent_on: today,
       held: reported ? [] : [...held], // a report lists what was held; after it, nothing is held
       last_report_on: reported ? today : u.last_report_on,

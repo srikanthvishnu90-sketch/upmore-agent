@@ -142,6 +142,9 @@ done
 # (20261020120100) needs career_watch_kv, so the ledger below applies it.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
+# WO-037: board read state, the alert latency report and the weekly count (idempotent: applied twice).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021060000_career_board_state.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021060000_career_board_state.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi

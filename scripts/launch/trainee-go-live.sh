@@ -66,6 +66,7 @@ MIGRATIONS=(
   20261020110000_career_connector.sql
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
+  20261021060000_career_board_state.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -82,6 +83,7 @@ MIGRATION_MARK=(
   "to_regclass('public.connector_intros') is not null"
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
+  "to_regclass('public.career_board_state') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

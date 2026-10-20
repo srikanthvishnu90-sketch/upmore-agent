@@ -56,6 +56,11 @@
     <div class="row wrap"><button id="q-start" class="primary">Start</button><button id="q-skip">Skip this one</button><button id="q-stop">Stop</button><button id="q-clear">Clear</button></div>
     <ol id="queue" class="small"></ol>
     <p id="q-msg" class="msg"></p>
+    <div class="row"><b>Answer once</b><button id="q-prepare">Prepare</button></div>
+    <p class="small">Reads the next postings first (nothing is filled or sent) and asks here, once, what only you can answer. Each answer fills every posting that offers it; you still approve each card.</p>
+    <p id="ao-msg" class="msg"></p>
+    <ol id="ao-list"></ol>
+    <button id="ao-save" class="primary" hidden>Save my answers</button>
   </section>
 
   <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button>

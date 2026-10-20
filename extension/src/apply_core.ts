@@ -216,6 +216,96 @@ export function formAnswersToKeep(o: {
   return { posting: q.posting, answers: out };
 }
 
+// ------------------------------------------------------------------------------------------------ answer once (WO-054)
+// Before the session the queue's postings are read in hidden tabs (planForm, strict; nothing filled or clicked) and the
+// questions only the person can answer are asked once in the panel. They are grouped by the key the planner reads saved
+// answers by (answerKey, through questionsToStore, so a fact the person stated that did not fit a form is that posting's):
+// a fact or a wording is one entry for every posting that asks it; a question about one job (job:) stays that posting's
+// and is shown with its company. Never listed (left for the card): an identity number, a self-identification (EEO, the
+// disability form), a written answer (drafted on the card, WO-049), a file, and an agreement (an agreement is given to one
+// employer: formAnswersToKeep's rule). The panel starts every choice empty; only the person's own pick is ever stored.
+export interface OpenQuestion { label: string; type: string; options: string[]; personal?: boolean }
+export interface PreparedPosting { jobId: string; company: string; url?: string; needs: OpenQuestion[] }
+export interface AskedAt { jobId: string; company: string; label: string; type: string; options: string[]; misfit: boolean }
+export interface PanelQuestion {
+  key: string; kind: string; label: string; type: string; options: string[]; similar: number; postings: AskedAt[]; perPosting: boolean; selected: null;
+}
+export type LeftReason = "identity" | "personal" | "essay" | "file" | "agreement";
+function leftForCard(n: OpenQuestion): LeftReason | null {
+  const q = { label: n.label, type: n.type, options: (n.options || []).map((l) => ({ label: l })) };
+  if (isIdentityField({ label: n.label }) || NEVER_BY_TEXT.test(n.label)) return "identity";
+  const m = mapQuestion(q);
+  if (n.personal || m.fact === "eeo" || classifyField(n.label, n.type) === "eeo") return "personal";
+  if (/file/.test(String(n.type)) || m.kind === "file") return "file";
+  if (m.kind === "essay") return "essay";
+  // A statement whose only answers accept it ("Agreement to Arbitrate" over "I understand and agree ...") is an agreement.
+  if (n.options?.length && n.options.every((l) => /^\s*(i\s+)?(will read|accept|agree|acknowledge|understand|consent|confirm|certify|attest)\b/i.test(l))) return "agreement";
+  return null;
+}
+export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: Record<string, unknown>; answered: Set<string> }) {
+  const by = new Map<string, Omit<PanelQuestion, "label" | "type" | "options" | "similar" | "selected">>();
+  const left: { jobId: string; label: string; why: LeftReason }[] = [];
+  for (const p of o.postings) {
+    const keep: OpenQuestion[] = [];
+    for (const n of p.needs) {
+      const why = leftForCard(n);
+      if (why) left.push({ jobId: p.jobId, label: n.label, why });
+      else keep.push(n);
+    }
+    for (const r of questionsForTrainee({ jobId: p.jobId, company: p.company, needs: keep, answers: o.answers, answered: o.answered }).questions as any[]) {
+      if (staysWithPosting(r)) {
+        left.push({ jobId: p.jobId, label: r.label, why: "agreement" });
+        continue;
+      }
+      const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [], perPosting: String(r.key).startsWith("job:") };
+      g.postings.push({ jobId: p.jobId, company: p.company, label: r.label, type: r.type, options: r.options, misfit: !!r.misfit });
+      by.set(r.key, g);
+    }
+  }
+  const questions: PanelQuestion[] = [...by.values()].map((g) => {
+    // The wording most postings use (the first seen on a tie), and that posting's own options; it goes first.
+    const count = new Map<string, number>();
+    for (const a of g.postings) count.set(shortLabel(a.label), (count.get(shortLabel(a.label)) ?? 0) + 1);
+    const top = [...count].reduce((b, x) => (x[1] > b[1] ? x : b))[0];
+    const rep = g.postings.find((a) => shortLabel(a.label) === top)!;
+    const postings = [rep, ...g.postings.filter((a) => a !== rep)];
+    return { ...g, postings, label: rep.label, type: rep.type, options: rep.options, similar: count.size - 1, selected: null };
+  });
+  // Asked by the most postings first; otherwise in queue order (sort is stable).
+  questions.sort((a, b) => b.postings.length - a.postings.length);
+  return { questions, left };
+}
+// The person's picks as the rows the store already takes: per posting, the questions (career_apply_questions_put_own, so
+// the row names that posting) and the answers (career_apply_questions_answer_from_form_own, under the same key the text
+// path uses). An empty pick is a skip, left for the card. A pick that is not one of the shown options, an identity-shaped
+// number, or (beyond one posting) an answer naming an employer or a how-heard that names no channel is refused, never kept.
+export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: string; answer: string }[] }) {
+  const groups = new Map<string, { posting: string; questions: Record<string, unknown>[]; answers: { key: string; kind: string; label: string; type: string; options: string[]; company: string; answer: string }[] }>();
+  const refused: { key: string; why: string }[] = [];
+  for (const pick of o.picks) {
+    const q = o.questions.find((x) => x.key === pick.key);
+    const answer = String(pick.answer ?? "").replace(/\s+/g, " ").trim();
+    if (!q || !answer) continue;
+    const why = answer.length > 2000 || answer === MASKED || looksLikeIdNumber(answer) ? "not an answer Trainee keeps"
+      : q.options.length && !q.options.includes(answer) ? "not one of the employer's options"
+      : !q.perPosting && (q.postings.some((a) => namesEmployer(answer, a.company)) || (q.key === "fact:how_heard" && !howHeardChannel(answer)))
+      ? "it names one employer, so it is answered on that card" : null;
+    if (why) {
+      refused.push({ key: q.key, why });
+      continue;
+    }
+    const at = q.postings[0];
+    const g = groups.get(at.jobId) ?? { posting: at.jobId, questions: [], answers: [] };
+    g.questions.push({ key: q.key, kind: q.kind, label: at.label, type: at.type, options: at.options, company: at.company, misfit: at.misfit });
+    g.answers.push({ key: q.key, kind: q.kind, label: at.label, type: at.type, options: at.options, company: at.company, answer });
+    groups.set(at.jobId, g);
+  }
+  return { groups: [...groups.values()], refused };
+}
+// The fields on a card Trainee filled from an answer the person gave in the panel before the session (its stored row).
+export const beforeSession = (fields: SnapField[], factIds: string[]) =>
+  fields.filter((f) => f.source === "trainee" && !!f.factId && factIds.includes(f.factId)).map((f) => f.name);
+
 // ------------------------------------------------------------------------------------------------ the reviewed payload
 // Every answer the form will send, read back from the page, with where it came from:
 //   trainee  filled by the extension from a confirmed fact (its fact id), unchanged since
@@ -318,7 +408,7 @@ export interface WorkdayCard {
 }
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
-  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard;
+  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[];
 }) {
   if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
@@ -326,7 +416,8 @@ export function cardLines(o: {
   lines.push("Every answer exactly as it will be sent:");
   for (const f of o.payload.fields) {
     const ids = draftFactIds(f.factId);
-    const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
+    // WO-054: an answer the person gave in the panel before the session says so, so they check it here.
+    const from = f.source === "trainee" ? (o.before?.includes(f.name) ? " (your answer, answered before the session)" : "") : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
       : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }

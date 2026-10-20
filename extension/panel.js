@@ -72,7 +72,79 @@ async function render() {
   });
   const done = q.items.filter((x) => !["waiting", "open"].includes(x.state)).length;
   text($("queue-progress"), q.items.length ? `${done} of ${q.items.length} done${st.timing.avg_ms ? `; average ${(st.timing.avg_ms / 1000).toFixed(1)} s from card to confirmed` : ""}` : "");
+  renderAnswerOnce(st.answerOnce);
 }
+
+// ------------------------------------------------------------------------------------------------ answer once (WO-054)
+// The questions only the person can answer, gathered from the queue's next postings, most asked first, each at the
+// employer's own wording and with the employer's own options. Every choice starts empty: Trainee never picks one. Skip
+// leaves a question for its card; only the person's own tap on Save stores anything.
+const LEFT = { essay: "written answers (drafted on their card)", personal: "self-identification questions (yours, on the form)", identity: "identity numbers (typed by you)",
+  file: "file uploads", agreement: "agreements (each is one employer's)" };
+function aoItem(q) {
+  const li = document.createElement("li");
+  li.dataset.key = q.key;
+  li.innerHTML = '<b class="ao-label"></b><p class="ao-where small"></p><span class="ao-input"></span> <button class="link ao-skip">Skip</button>';
+  li.querySelector(".ao-label").textContent = q.label.replace(/\s*[*✱]+\s*$/, "") + (q.similar ? ` (and ${q.similar} similar)` : "");
+  const n = q.postings.length, names = [...new Set(q.postings.map((p) => p.company))];
+  li.querySelector(".ao-where").textContent = q.perPosting ? `Only for ${names[0]}` : `Asked by ${n} posting${n === 1 ? "" : "s"}: ${names.join(", ")}`;
+  let input;
+  if (q.options.length) {
+    input = document.createElement("select");
+    input.append(new Option("Choose your answer", ""));
+    for (const o of q.options) input.append(new Option(o, o));
+    input.value = q.selected ?? "";
+  } else {
+    input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Type your answer";
+    input.value = q.selected ?? "";
+  }
+  input.className = "ao-answer";
+  li.querySelector(".ao-input").append(input);
+  li.querySelector(".ao-skip").onclick = async (e) => {
+    if (!e.isTrusted) return;
+    await send({ type: "answer-once-skip", key: q.key });
+    render();
+  };
+  return li;
+}
+function renderAnswerOnce(ao) {
+  const ol = $("ao-list");
+  const live = ao?.status === "ready" ? ao.questions.filter((q) => !ao.skipped.includes(q.key) && !ao.saved.includes(q.key)) : [];
+  // The person's own unsaved choices stay as they are across renders.
+  for (const el of [...ol.children]) if (!live.some((q) => q.key === el.dataset.key)) el.remove();
+  live.forEach((q, i) => {
+    const el = [...ol.children].find((x) => x.dataset.key === q.key) || aoItem(q);
+    if (ol.children[i] !== el) ol.insertBefore(el, ol.children[i] || null);
+  });
+  $("ao-save").hidden = !live.length;
+  if (!ao) return text($("ao-msg"), "");
+  if (ao.status === "reading") return text($("ao-msg"), `Reading posting ${ao.read} of ${ao.total} in the background. Nothing is filled or sent.`);
+  const left = Object.entries(ao.left || {}).map(([k, v]) => `${v} ${LEFT[k] || k}`);
+  text($("ao-msg"), [
+    `Read ${ao.postings} of ${ao.total} postings: ${ao.questions.length} question${ao.questions.length === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
+    ...(ao.notes || []), ...(ao.failed || []).map((f) => `Not read: ${f.url} (${f.why}); its questions are asked on its card.`),
+    left.length ? `Left for the cards: ${left.join(", ")}.` : "",
+    ao.saved.length ? `${ao.saved.length} answer${ao.saved.length === 1 ? "" : "s"} saved. Each fills every posting whose own options fit it; you approve each card as always.` : "",
+    ...(ao.refused || []).map((r) => `Not saved (${r.why}): asked again on its card.`),
+  ].filter(Boolean).join(" "));
+}
+$("q-prepare").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  text($("ao-msg"), "Reading the queue's next postings in the background...");
+  const r = await send({ type: "answer-once-prepare" });
+  if (r && r.ok === false && r.message) text($("ao-msg"), r.message, true);
+  render();
+};
+$("ao-save").onclick = async (e) => {
+  if (!e.isTrusted) return; // only the person's own tap stores an answer
+  const answers = [...$("ao-list").children].map((li) => ({ key: li.dataset.key, answer: li.querySelector(".ao-answer").value })).filter((a) => a.answer.trim());
+  if (!answers.length) return text($("ao-msg"), "Nothing chosen yet; skipped questions stay for their cards.");
+  const r = await send({ type: "answer-once-save", answers });
+  if (r && r.ok === false && r.message) text($("ao-msg"), r.message, true);
+  render();
+};
 
 // ------------------------------------------------------------------------------------------------ written answers (WO-049)
 // Each written question the form still needs gets "Draft from my facts". Nothing is drafted until the person taps it (no

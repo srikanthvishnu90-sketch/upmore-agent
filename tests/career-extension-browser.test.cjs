@@ -1377,4 +1377,97 @@ test("essay card: a form that asks for answers without AI shows the refusal and 
   world.state.essayReply = null;
 });
 
+// ------------------------------------------------------------------------------------------------ answer once (WO-054)
+// Three captured forms that each ask about sponsorship in their own words, for a TEST person who has not said. Prepare
+// reads them in hidden tabs (the "watch" variant reports anything done to a page), the panel asks the merged questions
+// once, the TEST person answers them there, and the queue's cards then carry those answers, marked, with nothing sent.
+test("answer once: Prepare reads 3 forms without touching them; the panel asks each question once; the cards carry the answers, marked; nothing is sent", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const saved = world.state.answers;
+  world.state.answers = saved.filter((a) => a.key !== "fact:sponsorship");
+  const ids = ["lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027", "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d", "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03"];
+  const urls = ids.map((id, k) => world.cloneUrl(id, 54 + k) + "?trainee_test=watch");
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?answer-once=1");
+  const tabId = await tabIdOf(page.url());
+  const panel = await openPanel(tabId);
+  const tabCount = async () => (await sw.evaluate(() => chrome.tabs.query({}))).length;
+  try {
+    await panel.fill("#links", urls.join("\n"));
+    await panel.click("#q-add");
+    const tabsBefore = await tabCount();
+    const trailBefore = (await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length;
+    await panel.click("#q-prepare");
+    await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length > 0, null, { timeout: 60000 });
+    const ao = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.equal(ao.status, "ready");
+    assert.equal(ao.postings, 3, JSON.stringify(ao.failed));
+    // Read only: nothing was set, clicked or submitted on any posting, no card was made, and every hidden tab is closed.
+    await sleep(500); // a beacon from the page arrives a moment later
+    assert.deepEqual(world.state.touched, [], "Prepare never fills or clicks");
+    assert.equal(world.state.submits.length, 0);
+    assert.equal((await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length, trailBefore, "no card during Prepare");
+    for (let i = 0; i < 50 && (await tabCount()) !== tabsBefore; i++) await sleep(100);
+    assert.equal(await tabCount(), tabsBefore, "the hidden tabs are closed");
+    // One entry for sponsorship, asked by all three; nothing pre-selected; never an essay, EEO, identity or file question.
+    const spons = ao.questions.find((q) => q.key === "fact:sponsorship");
+    assert.ok(spons, JSON.stringify(ao.questions.map((q) => q.key + " " + q.label)));
+    assert.equal(spons.postings.length, 3);
+    assert.equal(spons.similar, 2, "three wordings: one shown, and 2 similar");
+    assert.equal(ao.questions[0].key, "fact:sponsorship", "the most asked first");
+    for (const q of ao.questions) assert.ok(!/gender|race|veteran|disabilit|resume|cover letter|social security/i.test(q.label), q.label);
+    const items = await panel.$$eval("#ao-list li", (lis) => lis.map((li) => ({ key: li.dataset.key, text: li.textContent, value: li.querySelector(".ao-answer").value,
+      tag: li.querySelector(".ao-answer").tagName, options: [...li.querySelectorAll("option")].map((o) => o.value) })));
+    assert.equal(items.length, ao.questions.length);
+    console.log(`answer once: ${ao.open} open questions on 3 forms; the panel asks ${ao.questions.length}: ` +
+      ao.questions.map((q) => `"${q.label.slice(0, 60)}" x${q.postings.length}${q.perPosting ? " (one posting)" : ""}`).join("; ") + `; left for the cards ${JSON.stringify(ao.left)}`);
+    for (const it of items) assert.equal(it.value, "", `${it.text}: nothing pre-selected`);
+    assert.match(items[0].text, /Asked by 3 postings/);
+    assert.match(items[0].text, /and 2 similar/);
+    // The TEST person answers every question in the panel: No to sponsorship, the last option elsewhere, a typed answer.
+    for (const it of items) {
+      const el = panel.locator(`#ao-list li[data-key="${it.key}"] .ao-answer`);
+      if (it.key === "fact:sponsorship") await el.selectOption("No");
+      else if (it.tag === "SELECT") await el.selectOption(it.options.at(-1));
+      else await el.fill("TEST answer given in the panel");
+    }
+    const calls = (world.state.formAnswerCalls || []).length;
+    await panel.click("#ao-save");
+    await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length === 0, null, { timeout: 10000 });
+    const after = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.equal(after.saved.length + after.refused.length, items.length, JSON.stringify(after.refused));
+    assert.ok(after.saved.includes("fact:sponsorship"));
+    assert.ok(world.state.formAnswerCalls.length > calls, "stored through career_apply_questions_answer_from_form_own");
+    assert.ok(world.state.answers.some((a) => a.key === "fact:sponsorship" && a.answer === "No"));
+    // The queue fills each posting: sponsorship on every card from the panel's answer, marked; nothing goes without a tap.
+    await panel.click("#q-start");
+    for (const url of urls) {
+      await waitFor(() => page.url() === url, 15000);
+      const card = await waitCard(tabId, (c) => c.url === url && ["ready", "blocked"].includes(c.status), 20000);
+      const f = card.payload.fields.find((x) => /sponsorship/i.test(x.label));
+      assert.ok(f, `${url}: ${JSON.stringify(card.lines)}`);
+      assert.equal(f.source, "trainee");
+      assert.match(f.factId, /^text-answer:/);
+      assert.ok(card.before.includes(f.name), `${url}: marked`);
+      assert.ok(card.lines.some((l) => l.includes(C_label(f.label)) && l.includes("answered before the session")), JSON.stringify(card.lines));
+      assert.equal(card.lines.filter((l) => l.includes("answered before the session")).length, card.before.length, "only those answers are marked");
+      await panel.click("#q-skip");
+    }
+    assert.equal(world.state.submits.length, 0, "nothing was sent");
+    assert.equal(world.state.begins.length, 0, "nothing was recorded as an application");
+  } finally {
+    world.state.answers = saved;
+    await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await sw.evaluate(() => chrome.storage.session.remove(["answer_once", "answered_before"]));
+    await panel.close();
+    await page.close();
+  }
+});
+// A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
+const C_label = (l) => {
+  const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();
+  return t.length > 160 ? t.slice(0, 157) + "..." : t;
+};
+
 module.exports = { expectedValue };

@@ -2,7 +2,9 @@
 // until START (an answer to a message the person sends is still delivered); every queued message goes out at most once, is retried on a provider's temporary failure, and is never dropped
 // silently; a provider's daily contact cap holds (LoopMessage plans: 300 or 1,000 contacts a day). The provider is a
 // `Send` function (LoopMessage in WO-013b); the store is memory here and Supabase in 013b.
+// WO-038: or one adapter per channel (channel_adapters.ts): iMessage, WhatsApp, Telegram.
 import { toBubbles } from "./conversation.ts";
+import { addressOf, type Channel, channelOf, type DeliveryAdapter, type SendResult } from "./channel_adapters.ts";
 
 export type ChannelCommand = "stop" | "start" | "help";
 const COMMANDS: Record<string, ChannelCommand> = {
@@ -21,15 +23,23 @@ export const CHANNEL_REPLIES: Record<ChannelCommand, string> = {
   help: "Trainee is a job-search agent you text: real postings, alerts, applications you approve, interview practice. Text STOP to stop all messages.",
 };
 
-export interface OutboxRow { id: string; userId: string; contact: string; key: string; text: string; deliver_at: number; attempts: number }
-export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out"; at: number; error?: string; providerId?: string; retryAt?: number };
+export interface OutboxRow {
+  id: string; userId: string; contact: string; key: string; text: string; deliver_at: number; attempts: number;
+  // WO-038, for a channel with a service window (WhatsApp): the person's last message there and the last template nudge.
+  lastInboundAt?: number | null; nudgedAt?: number | null;
+}
+export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" | "held"; at: number; error?: string; providerId?: string; providerIds?: string[]; retryAt?: number };
 export interface ChannelStore {
   due(now: number, limit: number): Promise<OutboxRow[]>; // undelivered, deliver_at <= now, oldest first
   optedOut(contact: string): Promise<boolean>;
   setOptOut(contact: string, out: boolean, at: number): Promise<void>;
-  contactsSentOn(day: string): Promise<number>; // distinct contacts sent to on a UTC day
+  contactsSentOn(day: string, channel?: Channel): Promise<number>; // distinct contacts sent to on a UTC day (on one channel, if named)
   sentTo(contact: string, day: string): Promise<boolean>;
   mark(id: string, r: DeliveryMark): Promise<void>; // a retry is status "failed" with retryAt set and attempts + 1
+  // WO-038, for a windowed channel: how many messages wait for the person, templates sent on a day, a nudge recorded.
+  heldFor?(userId: string): Promise<number>;
+  nudgesOn?(day: string): Promise<number>;
+  setNudged?(contact: string, at: number): Promise<void>;
 }
 export type Send = (contact: string, bubbles: string[]) => Promise<{ ok: true; id: string | null } | { ok: false; error: string; retryable: boolean }>;
 
@@ -38,49 +48,112 @@ export const isReply = (key: string) => String(key ?? "").startsWith("reply:");
 export const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [60000, 5 * 60000, 30 * 60000]; // after attempt 1, 2, 3
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
-export async function deliverDue(o: { store: ChannelStore; send: Send; now: number; limit?: number; dailyContactCap?: number; clock?: () => number; budgetMs?: number }) {
-  const r = { delivered: 0, failed: 0, retried: 0, skipped_opt_out: 0, capped: 0, deferred: 0 };
-  const day = utcDay(o.now), cap = o.dailyContactCap ?? Infinity;
-  let contacts = await o.store.contactsSentOn(day);
+//
+// WO-038: `adapters` gives each channel its adapter, and each row goes out on the channel of the contact it was claimed
+// for (the claim resolved it: a reply's own channel, otherwise the person's home channel). Without `adapters`, `send` is
+// iMessage's, exactly as before. A row whose channel has no adapter (that provider is not wired) stays queued. On a
+// channel with a window (WhatsApp), a row outside it is held: never sent, never lost. The person gets one short template
+// saying updates are waiting (when one is configured), and their next message puts the held rows back in the queue.
+export async function deliverDue(o: {
+  store: ChannelStore; send?: Send; adapters?: Partial<Record<Channel, DeliveryAdapter>>; now: number; limit?: number;
+  dailyContactCap?: number; clock?: () => number; budgetMs?: number;
+}) {
+  const r = { delivered: 0, failed: 0, retried: 0, skipped_opt_out: 0, capped: 0, deferred: 0, held: 0, nudged: 0, not_wired: 0 };
+  const day = utcDay(o.now);
+  const legacy: DeliveryAdapter | undefined = o.send ? { channel: "imessage", limits: { dailyContacts: o.dailyContactCap ?? null }, render: toBubbles, send: o.send } : undefined;
+  const adapterFor = (ch: Channel) => (o.adapters ? o.adapters[ch] : ch === "imessage" ? legacy : undefined);
+  // A plan's cap counts people per provider (LoopMessage counts every contact it texts in a day).
+  const contacts = new Map<Channel, number>();
+  const counted = async (ch: Channel) => {
+    if (!contacts.has(ch)) contacts.set(ch, o.adapters ? await o.store.contactsSentOn(day, ch) : await o.store.contactsSentOn(day));
+    return contacts.get(ch)!;
+  };
+  const toNudge = new Map<string, { row: OutboxRow; adapter: DeliveryAdapter }>();
+  const hold = async (m: OutboxRow, adapter: DeliveryAdapter, error: string) => {
+    await o.store.mark(m.id, { status: "held", at: o.now, error: error.slice(0, 500) });
+    r.held++;
+    // One nudge per silence: none when a template already went after the person's last message.
+    const since = m.nudgedAt ?? null;
+    if (since !== null && (m.lastInboundAt == null || since >= m.lastInboundAt)) return;
+    if (adapter.sendTemplate && !toNudge.has(m.contact)) toNudge.set(m.contact, { row: m, adapter });
+  };
+  // Answers keep their order: once one of a person's replies (or one part of a reply in parts) did not go out in this run,
+  // their later replies wait for the next run instead of overtaking it.
+  const stalled = new Set<string>();
   for (const m of await o.store.due(o.now, o.limit ?? 100)) {
     if (o.clock && o.budgetMs !== undefined && o.clock() - o.now >= o.budgetMs) { r.deferred++; continue; }
+    if (isReply(m.key) && stalled.has(m.userId)) { r.deferred++; continue; }
+    const channel = channelOf(m.contact), adapter = adapterFor(channel);
+    if (!adapter) { r.not_wired++; continue; } // claimed but untouched: the run's release puts it back, queued
     // STOP holds what Trainee starts (alerts, reports, cards, receipts); the answer to a message the person sent after STOP
     // still goes out, as the STOP reply promises.
     if (!isReply(m.key) && await o.store.optedOut(m.contact)) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
+    const window = adapter.limits.windowMs ?? null;
+    const stall = () => { if (isReply(m.key)) stalled.add(m.userId); };
+    if (window !== null && (m.lastInboundAt == null || o.now - m.lastInboundAt >= window)) { stall(); await hold(m, adapter, HELD_NOTE); continue; }
+    const cap = adapter.limits.dailyContacts ?? Infinity;
     const known = await o.store.sentTo(m.contact, day);
-    if (!known && contacts >= cap) { r.capped++; continue; } // stays queued for tomorrow's allowance
-    let res: Awaited<ReturnType<Send>>;
-    try { res = await o.send(m.contact, toBubbles(m.text)); }
+    if (!known && cap !== Infinity && await counted(channel) >= cap) { stall(); r.capped++; continue; } // stays queued for tomorrow's allowance
+    let res: SendResult;
+    try { res = await adapter.send(addressOf(m.contact), adapter.render(m.text)); }
     catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e), retryable: true }; }
     if (res.ok) {
-      await o.store.mark(m.id, { status: "delivered", at: o.now, providerId: res.id ?? undefined });
+      await o.store.mark(m.id, { status: "delivered", at: o.now, providerId: res.id ?? undefined, ...(res.ids && res.ids.length > 1 ? { providerIds: res.ids } : {}) });
       r.delivered++;
-      if (!known) contacts++;
+      if (!known && contacts.has(channel)) contacts.set(channel, contacts.get(channel)! + 1);
+      continue;
+    }
+    // WhatsApp refused it for the window or the per-user limit: nothing went out, so it waits whole for the next message.
+    stall();
+    if (res.hold) { await hold(m, adapter, res.error); continue; }
+    if (res.optOut) {
+      // The person blocked Trainee on this channel (Telegram's 403): that is their STOP; recorded, not retried.
+      await o.store.setOptOut(m.contact, true, o.now);
+      await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: res.error });
+      r.skipped_opt_out++;
       continue;
     }
     const attempt = m.attempts + 1;
     if (res.retryable && attempt < MAX_ATTEMPTS) { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, retryAt: o.now + BACKOFF_MS[attempt - 1] }); r.retried++; }
     else { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error }); r.failed++; }
   }
+  // After every row of the run is held, so the count is whole ("Trainee has 3 new update(s) for you").
+  let templates: number | null = null;
+  for (const [contact, { row, adapter }] of toNudge) {
+    const cap = adapter.limits.dailyTemplates ?? null;
+    if (cap !== null) {
+      templates ??= o.store.nudgesOn ? await o.store.nudgesOn(day) : 0;
+      if (templates >= cap) continue; // the held rows wait for the person's next message either way
+    }
+    const n = o.store.heldFor ? await o.store.heldFor(row.userId) : 1;
+    let res: SendResult | null;
+    try { res = await adapter.sendTemplate!(addressOf(contact), Math.max(1, n)); }
+    catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e), retryable: true }; }
+    if (res === null) continue; // no template configured: the messages wait and nothing is said
+    if (res.ok) { await o.store.setNudged?.(contact, o.now); r.nudged++; if (templates !== null) templates++; }
+    else console.error("deliver: the waiting-updates template failed:", res.error);
+  }
   return r;
 }
 
 // ------------------------------------------------------------------------------------------------ memory
-type MemRow = OutboxRow & { status: "queued" | "delivered" | "failed" | "skipped_opt_out"; retryAt: number | null; sentAt: number | null; error: string | null };
-export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): MemRow[]; queue(row: OutboxRow): void; optOuts(): string[] } {
+type MemRow = OutboxRow & { status: "queued" | "delivered" | "failed" | "skipped_opt_out" | "held"; retryAt: number | null; sentAt: number | null; error: string | null };
+export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): MemRow[]; queue(row: OutboxRow): void; optOuts(): string[]; unhold(userId: string): number } {
   const st: MemRow[] = rows.map((x) => ({ ...x, status: "queued", retryAt: null, sentAt: null, error: null }));
-  const optOut = new Map<string, boolean>();
+  const optOut = new Map<string, boolean>(), nudged = new Map<string, number>();
   return {
     async due(now, limit) {
       return st.filter((x) => (x.status === "queued" || (x.status === "failed" && x.retryAt !== null && x.retryAt <= now)) && x.deliver_at <= now)
-        .sort((a, b) => a.deliver_at - b.deliver_at).slice(0, limit).map((x) => ({ id: x.id, userId: x.userId, contact: x.contact, key: x.key, text: x.text, deliver_at: x.deliver_at, attempts: x.attempts }));
+        .sort((a, b) => a.deliver_at - b.deliver_at).slice(0, limit).map((x) => ({ id: x.id, userId: x.userId, contact: x.contact, key: x.key, text: x.text, deliver_at: x.deliver_at, attempts: x.attempts,
+          ...(x.lastInboundAt !== undefined || nudged.has(x.contact) ? { lastInboundAt: x.lastInboundAt ?? null, nudgedAt: nudged.get(x.contact) ?? null } : {}) }));
     },
     async optedOut(c) { return optOut.get(c) === true; },
     async setOptOut(c, out) { optOut.set(c, out); },
-    async contactsSentOn(day) { return new Set(st.filter((x) => x.status === "delivered" && x.sentAt !== null && utcDay(x.sentAt) === day).map((x) => x.contact)).size; },
+    async contactsSentOn(day, channel) { return new Set(st.filter((x) => x.status === "delivered" && x.sentAt !== null && utcDay(x.sentAt) === day && (!channel || channelOf(x.contact) === channel)).map((x) => x.contact)).size; },
     async sentTo(c, day) { return st.some((x) => x.contact === c && x.status === "delivered" && x.sentAt !== null && utcDay(x.sentAt) === day); },
     async mark(id, m) {
       const x = st.find((y) => y.id === id); if (!x) return;
@@ -88,8 +161,12 @@ export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): 
       if (m.status === "delivered") x.sentAt = m.at;
       if (m.status === "failed") { x.attempts++; x.retryAt = m.retryAt ?? null; }
     },
+    async heldFor(userId) { return st.filter((x) => x.userId === userId && x.status === "held").length; },
+    async nudgesOn(day) { return [...nudged.values()].filter((t) => utcDay(t) === day).length; },
+    async setNudged(c, at) { nudged.set(c, at); },
     rows() { return st.map((x) => ({ ...x })); },
     queue(row) { st.push({ ...row, status: "queued", retryAt: null, sentAt: null, error: null }); },
     optOuts() { return [...optOut].filter(([, v]) => v).map(([k]) => k); },
+    unhold(userId) { let n = 0; for (const x of st) if (x.userId === userId && x.status === "held") { x.status = "queued"; n++; } return n; },
   };
 }

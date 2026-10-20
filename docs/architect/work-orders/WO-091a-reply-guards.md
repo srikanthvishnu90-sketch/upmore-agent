@@ -53,9 +53,13 @@ Why-chain:
   - "As I noted";
   - questions.
 
-  A negation anywhere in the sentence clears a claim ("I queued none of them"). So does a condition before the claim,
-  or in the claim's own clause ("live only once you approve"). What a "Saved:" label saves, and anything quoted, are the
-  person's words, so they negate nothing ("Saved: you never want agencies" is still a claim). Typographic apostrophes
+  A negation clears a claim only inside the claim's own clause, either before the claim ("Nothing was queued") or
+  directly on it ("I queued none of them"). Clauses split at commas, semicolons, dashes and the coordinators and, but,
+  or, so, yet, although, though, while and whereas. A negation in another clause leaves the claim standing: "I've
+  saved your preference, but nothing was sent" is still a claim. This was changed in the PR #123 review; the order first
+  said "negation anywhere in the sentence", and that let this sentence through. A condition before the claim, or in the
+  claim's own clause, also clears it ("live only once you approve"). What a "Saved:" label saves, and anything quoted,
+  are the person's words, so they negate nothing ("Saved: you never want agencies" is still a claim). Typographic apostrophes
   are read as plain ones. A new kind, "something sent or applied for", is never backed inside the turn, because external
   effects never run there.
 - **The rewrite.** One check per turn, in one message, covers an unbacked claim, internal words and untraced facts. The
@@ -109,15 +113,25 @@ Code's own text is never filtered: a shown batch (`turn.show`), the step-limit a
 They stay green and unedited. WO-077/2 and /4 assert `reply === CLAIM_UNBACKED_REPLY` for a reply whose only sentence is
 an unbacked claim. Under this order that is exactly the "nothing remains" case, so they now assert the neutral line.
 The guarantee they protect still holds: a reply never says something was saved, queued, set or tracked when no tool did
-it this turn. WO-077/1, /3, /5 and /6 run as before. WO-080's 14 tests, merged into trunk while this was built, pass
-too.
+it this turn. WO-077/1, /3, /5 and /6 run as before. Trunk moved twice while this was built, and both sets of tests
+pass here: WO-080's 14 tests (rebased onto 5f7efe45 before the PR opened), and WO-091b's tests (trunk 30b8b305, taken
+in with a merge commit after review).
 
-## Tests: `tests/architect/wo-091a-reply-guards.test.ts` (18 tests, scripted models, no provider)
+## Tests: `tests/architect/wo-091a-reply-guards.test.ts` (20 tests, scripted models, no provider)
 - **F5.1–F5.7:**
   - BR-062 advice returned unchanged with no extra call;
   - imperatives, "as I noted", negations and conditions are not claims;
   - first-person past action language is a claim (typographic apostrophes; "sent" never backed; one sentence with a
     backed and an unbacked claim);
+  - F5.3b and F5.3c, added in the review: a negation in another clause does not clear a claim. These still claim:
+    - "I've saved your preference, but nothing was sent."
+    - "Nothing was queued, and I've set an alert for Stripe."
+    - "Not yet; I've set an alert…"
+    - "…preference — no email went out."
+
+    Negations in the claim's own clause still clear it: "I haven't saved anything yet.", "I didn't queue them.",
+    "Nothing was queued.", "I queued none of them." In a whole turn, the saved-preference sentence is put to the model
+    once, then dropped, and the rest of the reply stays;
   - sentence-level drop keeps a draft;
   - BR-036's shorter draft survives its failed save;
   - BR-042's refusal stays with no promise;
@@ -140,10 +154,11 @@ too.
   - a shown batch is never filtered.
 
 ## Evidence
-- **Fail first:** against trunk's `loop.ts`, 16 of the 18 fail. The 2 that pass guard against over-reach (traced facts
-  untouched; code's own text untouched).
-- **Architect suite** (`deno test -A --no-check --ignore=tests/architect/pending tests/architect/`): trunk 5f7efe45 has
-  646 passed; this branch has 664 passed and 0 failed.
+- **Fail first:** against trunk's `loop.ts`, 18 of the 20 fail. The 2 that pass guard against over-reach (traced facts
+  untouched; code's own text untouched). The review's 2 new tests, F5.3b and F5.3c, also failed against this PR's first
+  version and pass now.
+- **Architect suite** (`deno test -A --no-check --ignore=tests/architect/pending tests/architect/`): trunk 30b8b305 has
+  658 passed; this branch, merged with that trunk, has 678 passed and 0 failed.
 - **Edge suite** (`deno test -A --no-check tests/edge/`): 869 passed on trunk and 869 passed on this branch. No new
   failures.
 - **`deno check`:**
@@ -159,7 +174,8 @@ too.
 
   Nothing correct was dropped. A first draft of the classifier also bracketed "your Trainee extension", "your LinkedIn
   connections", "your password manager" and "24–48 hours". Those false alarms led to the attribution cues above, and
-  none remain.
+  none remain. After the clause-scoped negation change, the replay was run again, on the code merged with trunk
+  30b8b305. The same 8 replies changed, with byte-identical diffs, and there were no new false positives.
 
 ## Demo
 `deno test -A --no-check tests/architect/wo-091a-reply-guards.test.ts tests/architect/wo-077-claims.test.ts`
@@ -175,8 +191,8 @@ At most one extra model call per turn, shared by all three guards, and only when
 - **The history side of F10.** Keeping the turn's listed postings in `agentMeta` and allowing picks by number is not
   done here, and neither is rewording tool errors in `career_tools.ts` (T:197, 377, 380). The filter catches what still
   leaks.
-- **Negation anywhere is literal, as ordered.** "I've set an alert for data roles, but nothing was sent" is no longer
-  read as a claim. A clause-scoped negation would catch it; that is a follow-up if the battery shows it.
+- **Clause splitting is lexical.** A negation before the claim with no comma or coordinator between them still counts
+  as the claim's own clause. For example, in "No worries I've saved your preference", the "No" clears the claim.
 - **Promises in the future tense** ("I'll watch for new roles") are not claims here. Only "I'll keep/remember that"
   stays a claim (WO-077/5).
 - **Code's plain-word replacements are blunt.** `get_posting` becomes "get posting". The model's one rewrite is the

@@ -57,10 +57,14 @@ const CLAIMS: { kind: string; said: RegExp; by: string[] | "any_write" }[] = [
   // Nothing external runs inside the turn (it waits for the person's yes on its card), so a reply never sent anything.
   { kind: "something sent or applied for", by: [], said: new RegExp(`${I_HAVE}(?:sent|submitted|emailed|messaged|shared|forwarded) (?:it|this|that|them|your (?:application|email|message|note|resume|cover letter)s?|the (?:application|email|message|note|resume|cover letter)s?|\\d+ (?:applications?|emails?|messages?|notes?))\\b|${I_HAVE}applied (?:you |for you )?(?:to|for) (?:it|this|that|them|these|those|all|\\d+)\\b|${I_HAVE}applied you\\b|\\b(?:has|have) been (?:sent|submitted)\\b|^(?:sent|submitted)\\b`, "i") },
 ];
-// A negation anywhere in the sentence ("I queued none of them"); a condition or offer before the claim ("If you say
-// yes, I'll queue") or in its own clause ("live only once you approve"). What a "Saved:" label saves ("Saved: you never
-// want agencies") and anything quoted are the person's words, not the sentence's, so they negate nothing.
+// A negation in the claim's own clause, before it or directly on it ("Nothing was queued", "I queued none of them"); a
+// condition or offer before the claim ("If you say yes, I'll queue") or in its own clause ("live only once you
+// approve"). What a "Saved:" label saves ("Saved: you never want agencies") and anything quoted are the person's words,
+// not the sentence's, so they negate nothing. (PR #123 review: a negation in another clause — "I've saved your
+// preference, but nothing was sent" — does not clear the claim.)
 const NEGATION = /\b(?:nothing|not|never|none|no|neither|nor|unable|cannot)\b|n't\b/i;
+const CLAUSE_BREAK = /,\s*|;\s*|\s*[—–]\s*|\s+(?:and|but|or|so|yet|although|though|while|whereas)\s+/gi;
+const NEGATES_NEXT = /^\s*(?:none|nothing|no|not|zero)\b/i;
 const CONDITION = /\b(?:if|unless|want me|should i|shall i|do you want|would you like|i can|i could|will|going to|tell you|once|when|after|until|as soon as)\b|'ll\b/i;
 // What follows a claim can undo it too: "Saved: none.", "I'll keep it in this conversation" (kept nowhere else).
 const UNDONE = /^\s*:?\s*(?:none|nothing)\b|^[^.!?]{0,40}\b(?:in this (?:conversation|chat)|for (?:this|the rest of this) (?:conversation|chat)|for now)\b/i;
@@ -74,10 +78,13 @@ function claimsIn(sentence: string): string[] {
     if (!m) continue;
     const end = m.index + m[0].length, after = x.slice(end);
     if (UNDONE.test(after)) continue;
-    const label = /:\s*$/.test(m[0]) || /^\s*:/.test(after);
-    const scope = (label ? x.slice(0, end) : x).replace(/"[^"]*"/g, (q) => " ".repeat(q.length));
-    const without = scope.slice(0, m.index) + " ".repeat(m[0].length) + scope.slice(end);
-    if (NEGATION.test(without)) continue;
+    // A negation counts only in the claim's own clause: before the claim ("Nothing was queued") or directly on it ("I
+    // queued none"). One in another clause ("I've saved your preference, but nothing was sent") leaves it standing.
+    const unquoted = x.replace(/"[^"]*"/g, (q) => " ".repeat(q.length));
+    const lead = unquoted.slice(0, m.index);
+    const opens = [...lead.matchAll(CLAUSE_BREAK)].map((b) => (b.index ?? 0) + b[0].length);
+    if (NEGATION.test(lead.slice(opens.length ? opens[opens.length - 1] : 0))) continue;
+    if (!/^\s*:/.test(after) && NEGATES_NEXT.test(after)) continue;
     if (CONDITION.test(x.slice(0, m.index)) || CONDITION.test(after.split(/[,;—–]|\b(?:and|but|so)\b/)[0])) continue;
     kinds.push(c.kind);
   }

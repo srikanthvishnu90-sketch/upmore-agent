@@ -93,6 +93,26 @@ Deno.test("WO-091a/F5.3 first-person past and present-perfect action language is
   eq(unbackedClaim("Alerts are now on and I sent the email to the recruiter.", ok("set_job_alerts")), "something sent or applied for");
 });
 
+// Review of PR #123: a negation clears a claim only in the claim's own clause, before it or directly on it. A negation
+// in another clause ("…, but nothing was sent") leaves the claim standing.
+Deno.test("WO-091a/F5.3b a negation in another clause does not clear a claim; one in its own clause does", () => {
+  const read = [{ name: "get_memory", ok: true, effect: "read" as const }];
+  eq(unbackedClaim("I've saved your preference, but nothing was sent.", read), "something saved");
+  eq(unbackedClaim("Nothing was queued, and I've set an alert for Stripe.", read), "an alert set");
+  eq(unbackedClaim("Not yet; I've set an alert for Stripe.", read), "an alert set");
+  eq(unbackedClaim("I've saved your preference — no email went out.", read), "something saved");
+  for (const s of ["I haven't saved anything yet.", "I didn't queue them.", "Nothing was queued.", "Nothing has been saved to your profile.", "I queued none of them."]) eq(unbackedClaim(s, read), null, s);
+});
+
+Deno.test("WO-091a/F5.3c 'I've saved your preference, but nothing was sent.' with no save: the claim does not stand", async () => {
+  const reply = "Remote roles only, then. I've saved your preference, but nothing was sent.";
+  const m = scripted([use("get_memory"), text(reply), text(reply)]);
+  const r = await run(m, "only remote roles please");
+  eq(m.calls(), 3, "the model is asked once");
+  assert(/something saved/.test(lastTold(m)), lastTold(m));
+  eq(r.reply, "Remote roles only, then.");
+});
+
 Deno.test("WO-091a/F5.4 a claim that stands after the rewrite loses only its own sentence; the draft stays", async () => {
   const draft = "Here's a shorter one.\n\nHi [Recruiter Name] — I'm a senior at Lakeview State and I'd love a quick chat about the backend role.\n\nSaved: you prefer a casual tone.";
   const m = scripted([text(draft), text(draft)]);

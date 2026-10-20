@@ -16,6 +16,35 @@ and blind160 **100.0% / 99.2%** (was 94.9 / 93.3). blind160 is now a tuned numbe
 rejection was read as an interview on any split, before or after. **The target is not shown to be met on unseen wording:**
 dev5check is the only unseen number and it misses; real inboxes are NOT_RUN.
 
+
+## Architect's blind check: blind200 (review, 2026-10-20; VERIFIED, SYNTHETIC, scored once)
+
+200 emails (160 status) written by a separate agent that never read the classifier, any labeled mail or any eval file.
+27 are in Spanish, Portuguese, French or German. The set was sealed (sha256 0b5f8fed…) and scored once on 22d0ccf3. It is
+now `evals/career/mail-blind200.json`, a floor that prints only when named (WO-045/E9).
+
+| Status kinds | trunk 55e5a61f | this branch |
+|---|---|---|
+| All 200 | 98.4% (124/126) / 77.5% (124/160) | **99.2% (129/130) / 80.6% (129/160)** |
+| English (173 emails, 135 status) | 98.4% / 89.6% | **100.0% / 91.9%** |
+| The 27 others (25 status) | 100% / 12.0% | 83.3% / 20.0% |
+| Rejection read as an interview | 0 | 0 |
+
+This is the honest number on wording nobody tuned against. **It is far below the 97/95 target.**
+- **The largest gap is language.** The classifier is English-only, and 20 of its 31 status misses are in other
+  languages: "Ihre Bewerbung bei Siemens – Eingangsbestätigung", "Convite para entrevista", "Hemos recibido tu
+  candidatura", and so on.
+- **In English, the misses are:**
+  - calendar invitations: "Invitation: Google Interview - Technical Phone Screen @ Tue…" and "Updated invitation: Interview:
+    Final Round…". WO-040's rule says a calendar sender is never the employer;
+  - forwarded mail ("Fwd: Interview Invitation - Cognizant");
+  - a scheduling confirmation ("Confirmed: 30 Minute Recruiter Screen with …");
+  - a few terse lines ("Interview call - Relationship Manager", "help desk role").
+- **Real inboxes are NOT_RUN.**
+- **Next (WO-046):** status phrases in Spanish, Portuguese, French and German; calendar invitations whose event names an
+  interview and an employer, as evidence that never moves a stage alone; forwarded mail read on its forwarded part. A fresh
+  set written by an independent agent will be scored once.
+
 ## 2. Why
 
 WO-043's blind160 misses (architect review) fell into four groups: interview invitations that do not look like the

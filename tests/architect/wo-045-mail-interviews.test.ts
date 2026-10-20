@@ -10,6 +10,7 @@ import { dev4Splits, dev5Splits, evaluate, SEALED, splitsOf } from "../../evals/
 import { tuningMails } from "../../evals/career/mail-fit.ts";
 import labels from "../../evals/career/mail-labels.json" with { type: "json" };
 import dev4 from "../../evals/career/mail-dev4.json" with { type: "json" };
+import blind200 from "../../evals/career/mail-blind200.json" with { type: "json" };
 import dev5 from "../../evals/career/mail-dev5.json" with { type: "json" };
 import blind160 from "../../evals/career/mail-blind160.json" with { type: "json" };
 
@@ -185,4 +186,14 @@ Deno.test("WO-045/S7 a calendar tool's interview notice moves no application", (
   const plan = planUpdates([mail], [{ ref: "q:1", company: "Duolingo", role: "Data Scientist", stage: "Submitted", source: "queue", applied_at: "2026-02-01T00:00:00Z" }], Date.parse("2026-03-02T00:00:00Z"));
   eq(plan.events.length, 0, "no event from a calendar notice");
   eq(plan.apps[0].stage, "Submitted");
+});
+
+Deno.test("WO-045/E9 blind200, written by an agent that never read the classifier, is a floor at its one-time score", () => {
+  // Architect review, 2026-10-20: 200 SYNTHETIC emails (160 status; 27 in Spanish, Portuguese, French or German), sealed
+  // (sha256 0b5f8fed...) and scored once. Trunk 55e5a61f: 98.4% / 77.5%. This branch (22d0ccf3): 99.2% (129/130)
+  // precision, 80.6% (129/160) recall; English 100.0% / 91.9%, the 27 others 83.3% / 20.0%. Far below 97/95.
+  assert(SEALED.includes("blind200"), "blind200 prints only when named");
+  const r = evaluate(blind200.mails as any);
+  assert(r.status.precision >= 0.992 && r.status.recall >= 0.806, `blind200 ${JSON.stringify(r.status)}`);
+  assert(r.confusions.rejection_as_interview === 0, "blind200: a rejection read as an interview");
 });

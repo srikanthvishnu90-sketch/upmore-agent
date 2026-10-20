@@ -5,6 +5,7 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
+import { mailModelWiring } from "../_shared/career_mail_model.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
@@ -71,6 +72,8 @@ serve((req) => {
       store: () => supabaseMailStore(admin),
       confirm: () => supabaseConfirmStore(admin),
       read: (userId, since, now) => readMailSince({ fetch, token: careerToken(grant(admin)) }, userId, since, now),
+      // WO-040: the model's second look at ambiguous mail (OpenAI, CAREER_MODEL), only once the owner turns it on.
+      model: Deno.env.get("CAREER_MAIL_MODEL") === "on" ? () => mailModelWiring(Deno.env, admin) : undefined,
     } : undefined,
     // Outreach (WO-033) sends from people's own Gmail, so it runs only once the owner turns it on (CAREER_OUTREACH_SEND=on):
     // one approved send per person per run, then the replies on threads already sent ("stop", bounces, answers).

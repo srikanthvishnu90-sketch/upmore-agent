@@ -17,6 +17,24 @@ shows it fits the emails it was tuned on). The live number on real inboxes is **
 plumbing works end to end on fakes (VERIFIED): it reads mail, records each message once, sends one text per real change,
 drafts follow-ups, never sends email, and answers "where do I stand". The gap is classification recall.
 
+## WO-040 update (2026-10-20)
+
+WO-040 (`docs/architect/work-orders/WO-040-mail-accuracy.md`) took the holdout to **100.0% (40/40) precision, 97.6% (40/41)
+recall**. That number is optimistic: its misses were read for their causes. On mail in new wordings, scored once, the rules
+do far worse (VERIFIED, synthetic):
+
+- blind40: **83.3% (10/12) / 33.3% (10/30)**;
+- the reviewer's fresh20: **83.3% (10/12) / 50.0% (10/20)**.
+
+The target is not met on unseen wording. WO-040 also added:
+
+- guards: an offer, or anything the model decided, moves a stage only from the employer's own authenticated mail
+  (WO-032's `fromEmployer`); calendar notices, auto-replies, sales reps and shop "regrets" are never a status;
+- an optional OpenAI second pass (`CAREER_MAIL_MODEL=on`, off by default), which needs a Limited Use disclosure and consent
+  first.
+
+The numbers below are WO-024's, kept as they were measured.
+
 ## What was built
 
 | Piece | File | Status |
@@ -115,4 +133,5 @@ recall.
 
 Apply `20261020100000_career_mail_tracking.sql`, deploy `career-proactive` and `agent-chat`, set
 `CAREER_MAIL_TRACKING=on`. Needs `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, already used by `gmail-oauth`.
-All NOT_RUN here.
+Optional (WO-040): `CAREER_MAIL_MODEL=on` on career-proactive, with `OPENAI_API_KEY` set, turns on the second pass. Without
+the key the run reports `mail_model: NOT_WIRED` and the rules alone decide. All NOT_RUN here.

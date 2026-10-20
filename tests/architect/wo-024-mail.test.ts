@@ -133,7 +133,7 @@ Deno.test("WO-024/M6 stages move forward only; a rejection after an offer is fla
   const p = planUpdates([
     m("a", NOW - 3 * DAY, "Target <target@myworkday.com>", "Thank you for applying!", "Thank you for applying to Target. We have received your application."),
     m("b", NOW - 2 * DAY, "Ramp <no-reply@ashbyhq.com>", "Your application at Ramp", "We have decided to pursue other candidates."),
-    m("c", NOW - DAY, "Target <target@myworkday.com>", "Your job offer from Target", "We are excited to offer you the position."),
+    { ...m("c", NOW - DAY, "Target <target@myworkday.com>", "Your job offer from Target", "We are excited to offer you the position."), auth: ["mx.google.com; dkim=pass header.i=@myworkday.com; dmarc=pass header.from=myworkday.com"] }, // WO-040: an offer moves a stage only from authenticated employer mail
   ], apps, NOW);
   eq(p.events.map((e) => [e.kind, e.stage, e.flagged]), [["received", null, false], ["rejection", null, true], ["offer", "Offer", false]]);
   eq(p.apps.find((a) => a.ref === "job:2")?.stage, "Offer", "the offer stands");

@@ -2208,6 +2208,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var apply_core_exports = {};
   __export(apply_core_exports, {
     BEFORE_CLICK: () => BEFORE_CLICK,
+    DRAFT_PREFIX: () => DRAFT_PREFIX,
     EVIDENCE_LIMIT: () => EVIDENCE_LIMIT,
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
@@ -2221,6 +2222,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
     detectPortal: () => detectPortal,
+    draftFactId: () => draftFactId,
+    draftFactIds: () => draftFactIds,
+    draftProvenance: () => draftProvenance,
+    essayQuestions: () => essayQuestions,
     evidenceRecord: () => evidenceRecord,
     formAnswersToKeep: () => formAnswersToKeep,
     isIdentityField: () => isIdentityField,
@@ -2235,6 +2240,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
     shortLabel: () => shortLabel,
+    showableDraft: () => showableDraft,
     tenantOf: () => tenantOf
   });
   var GREENHOUSE = /^(job-boards|boards)(\.eu)?\.greenhouse\.io$/;
@@ -2451,9 +2457,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const out = [];
     for (const row of q.questions) {
       if (/file/.test(String(row.type))) continue;
-      const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
+      const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
       const answer = norm3(f?.value ?? "");
       if (!f || !answer || answer === MASKED || answer.length > 2e3 || staysWithPosting(row)) continue;
+      if ((row.kind === "essay" || f.source === "drafted") && !String(row.key).startsWith("job:")) continue;
       if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || row.key === "fact:how_heard" && !howHeardChannel(answer))) continue;
       out.push({
         key: row.key,
@@ -2557,7 +2564,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (o.family === "workday") lines.push(WORKDAY_NOTICE);
     lines.push("Every answer exactly as it will be sent:");
     for (const f of o.payload.fields) {
-      const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : " (set by the page)";
+      const ids = draftFactIds(f.factId);
+      const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
       lines.push(`${MARK[mapQuestion({
         label: f.label
       }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
@@ -2581,17 +2589,26 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var EVIDENCE_LIMIT = 6e4;
   async function evidenceRecord(o) {
     const answers = [];
+    const drafted = draftProvenance(o.payload.fields, o.drafts ?? {});
     for (const f of o.payload.fields) {
+      const d = drafted[f.name];
+      const prov = d ? {
+        fact_ids: d.fact_ids,
+        edited: d.edited,
+        provenance: d.said
+      } : {};
       answers.push(f.value.length > 500 ? {
         label: f.label.slice(0, 300),
         value: f.value.slice(0, 500),
         value_length: f.value.length,
         value_sha256: await sha256Text(f.value),
-        source: f.source
+        source: f.source,
+        ...prov
       } : {
         label: f.label.slice(0, 300),
         value: f.value,
-        source: f.source
+        source: f.source,
+        ...prov
       });
     }
     const iso = (t) => new Date(t).toISOString();
@@ -2621,7 +2638,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (JSON.stringify(rec).length > EVIDENCE_LIMIT) {
       rec.answers = await Promise.all(o.payload.fields.map(async (f) => ({
         value_sha256: await sha256Text(f.label + "\n" + f.value),
-        source: f.source
+        source: f.source,
+        ...drafted[f.name] ? {
+          fact_ids: drafted[f.name].fact_ids,
+          edited: drafted[f.name].edited
+        } : {}
       })));
     }
     return rec;
@@ -2657,6 +2678,56 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       seen.add(key);
       out.push(applyUrl(url));
       if (out.length >= max) break;
+    }
+    return out;
+  }
+  var DRAFT_PREFIX = "essay-draft:";
+  function draftFactId(ids) {
+    let out = DRAFT_PREFIX;
+    for (const id of ids.map((x) => String(x).replace(/[,\s]+/g, "")).filter(Boolean)) {
+      const next = out === DRAFT_PREFIX ? out + id : `${out},${id}`;
+      if (next.length > 200) break;
+      out = next;
+    }
+    return out;
+  }
+  var draftFactIds = (factId) => typeof factId === "string" && factId.startsWith(DRAFT_PREFIX) ? factId.slice(DRAFT_PREFIX.length).split(",").filter(Boolean) : [];
+  function essayQuestions(o) {
+    const by = new Map(o.fields.map((f) => [
+      f.name,
+      f
+    ]));
+    return o.schema.filter((f) => f.required && !isIdentityField(f) && mapQuestion({
+      label: f.label,
+      type: f.type,
+      options: f.options || []
+    }).kind === "essay").filter((f) => !by.has(f.name) || by.get(f.name).source === "drafted").map((f) => {
+      const n = Number(o.maxLength?.[f.name]);
+      return {
+        name: f.name,
+        label: String(f.label),
+        type: String(f.type || "textarea"),
+        chars: Number.isInteger(n) && n > 0 ? n : null
+      };
+    });
+  }
+  function showableDraft(r) {
+    const x = r;
+    return !!x && x.ok === true && typeof x.text === "string" && x.text.trim().length > 0 && x.text.length <= 2e3 && /[.!?]["”')\]]?$/.test(x.text.trim()) && Array.isArray(x.fact_ids) && x.fact_ids.every((i) => typeof i === "string");
+  }
+  function draftProvenance(fields, drafts) {
+    const out = {};
+    const flat = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+    for (const f of fields) {
+      if (f.source !== "drafted") continue;
+      const d = drafts[f.name];
+      const ids = draftFactIds(f.factId).length ? draftFactIds(f.factId) : d?.factIds ?? [];
+      const edited = !d || flat(f.value) !== flat(d.original);
+      out[f.name] = {
+        fact_ids: ids,
+        edited,
+        said: `drafted by Trainee from your facts${ids.length ? ` (${ids.join(", ")})` : ""}, ${edited ? "edited and used by you" : "used by you as drafted"}`
+      };
     }
     return out;
   }

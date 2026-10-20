@@ -182,6 +182,10 @@ function variantOne(name) {
   if (name === "banner") return `<div role="alert" style="display:block;padding:4px">TEST: we use cookies on this site.</div>`;
   if (name === "sin") return `<script>/* TEST: a Canadian identity number */ ${insertField('<label for="sin_test">SIN (Social Insurance Number) *</label><input id="sin_test" name="sin_test" type="text" required>')}</script>`;
   if (name === "freefield") return `<script>/* TEST: a free field */ ${insertField('<label for="ref_free">Anything else we should know?</label><input id="ref_free" name="ref_free" type="text">')}</script>`;
+  // WO-049: a required written question (an essay, by the question map) with the field's own limit, and an employer's
+  // statement that answers must be written without AI.
+  if (name === "essay") return `<script>/* TEST: a written question */ ${insertField('<label for="why_test">Why do you want to work here? *</label><textarea id="why_test" name="why_test" rows="4" maxlength="1500" required></textarea>')}</script>`;
+  if (name === "aiban") return `<script>/* TEST: an employer that asks for answers without AI */ ${insertField('<label><input type="checkbox" name="own_words_test" value="yes">During this application process I agree to use only my own words. I understand that the use of AI or other generated content will disqualify my application.</label>')}</script>`;
   if (name === "readonly") return `<script>/* TEST: a read-only field the page sets */ ${insertField('<label for="ref_test">Posting reference</label><input id="ref_test" name="ref_test" readonly value="TEST-REF-42">')}</script>`;
   if (name === "race") {
     // TEST attacker: when the screenshot's covers come off, wait and rewrite the email (WO-031 review, item 1).
@@ -282,6 +286,8 @@ async function startWorld(o = {}) {
     otp: [],
     outbox: [],
     rpcCalls: [],
+    essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
+    essayReply: null,
     serviceKeySession: false,
   };
   // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
@@ -324,6 +330,23 @@ async function startWorld(o = {}) {
     }
     if (req.headers.authorization !== "Bearer " + state.access) return json(res, 401, { message: "JWT expired" });
     if (u.pathname === "/rest/v1/career_outbox") return json(res, 200, state.outbox);
+    // WO-049: the TEST stand-in for supabase/functions/career-essay-draft (its real logic is tested with a stub model in
+    // tests/architect/wo-049-essay-card.test.ts). Each call is recorded; the reply is state.essayReply(body, n) when a test
+    // sets one, else a TEST draft, or the employer's AI-policy refusal when the form's own words ask for answers without AI.
+    if (u.pathname === "/functions/v1/career-essay-draft" && req.method === "POST") {
+      state.essayCalls.push(args);
+      const n = state.essayCalls.length;
+      if (state.essayReply) return json(res, 200, state.essayReply(args, n));
+      const words = [args.label, ...(Array.isArray(args.siblings) ? args.siblings : [])].join("\n");
+      if (/only my own words|use of AI|without AI/i.test(words)) {
+        return json(res, 200, { ok: false, why: "policy", message: `${args.company} asks for answers written without AI, so Trainee won't draft this one: it needs your own words.`, used: null, cap: 60 });
+      }
+      const facts = [{ id: "TEST-F1", label: "experience: Data Analyst at Example Analytics" }, { id: "TEST-F2", label: "education: Statistics, Example State University" }];
+      return json(res, 200, {
+        ok: true, text: `TEST draft ${n}: as a Data Analyst at Example Analytics for 3 years I built the weekly reporting, and I studied Statistics at Example State University.`,
+        facts, fact_ids: facts.map((f) => f.id), message: "Drafted by Trainee only from your confirmed facts. TEST: this is a stand-in draft.", used: n, cap: 60,
+      });
+    }
     const m = /^\/rest\/v1\/rpc\/([a-z_]+)$/.exec(u.pathname);
     if (!m) return json(res, 404, { message: "not found" });
     state.rpcCalls.push(m[1]);

@@ -296,10 +296,11 @@ const formNow = (tabId) => sw.evaluate(async (id) => {
   return result;
 }, tabId);
 // The person answers what is still open, on the page, with real input (trusted events): what a person does by hand.
-async function personAnswers(form, values = {}) {
+// skip: fields the person leaves for later (WO-049: the written question Trainee drafts on the card).
+async function personAnswers(form, values = {}, skip = new Set()) {
   const loc = (sel) => (/^upmore-idx-/.test(sel) ? form.page.locator("input,select,textarea").nth(Number(sel.slice(11))) : form.page.locator(sel).first());
   for (const f of await formNow(form.tabId)) {
-    if (!f.required || f.value) continue;
+    if (!f.required || f.value || skip.has(f.name)) continue;
     const b = f.b;
     if (b.widget) continue;
     if (b.inputType === "text") await loc(b.selector).fill(values[f.name] ?? "TEST answer typed by the person");
@@ -1149,6 +1150,228 @@ test("queue: after a posting that stops (already applied), Skip moves on and eve
     await panel.close();
     await page.close();
   }
+});
+
+// ------------------------------------------------------------------------------------------------ written answers (WO-049)
+// A required written question ("Why do you want to work here?", the TEST "essay" variant) on a real captured form. The
+// draft comes from the world's TEST stand-in for career-essay-draft; its real logic is tested with a stub model in
+// tests/architect/wo-049-essay-card.test.ts.
+const ESSAY_FORM = "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d";
+const WHY_NAME = "why_test";
+const essayEl = (sel) => `.essay[data-name="${WHY_NAME}"] ${sel}`;
+const fieldOf = (card, name = WHY_NAME) => (card.payload?.fields || []).find((f) => f.name === name) || null;
+async function essayForm(k, variant = "essay") {
+  const form = await openForm(world.cloneUrl(ESSAY_FORM, k) + "?trainee_test=" + variant);
+  await fill(form);
+  // The person answers everything else themselves and leaves the written question for the card.
+  await personAnswers(form, {}, new Set([WHY_NAME]));
+  const card = await waitCard(form.tabId, (c) => (c.essays || []).some((e) => e.name === WHY_NAME) && c.status === "blocked" &&
+    c.openRequired.length === 1, 10000);
+  await form.panel.waitForSelector(essayEl(".essay-draft:not([hidden])"), { timeout: 10000 });
+  return { form, card };
+}
+const pageValue = async (form) => (await formNow(form.tabId)).find((f) => f.name === WHY_NAME)?.value ?? null;
+
+test("essay card: nothing is drafted without the person's tap; the draft is shown whole and goes on the form only by Use this; the approved payload carries it", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.essayCalls = [];
+  world.state.essayReply = null;
+  const before = (world.state.formAnswerCalls || []).length;
+  const { form, card } = await essayForm(811);
+  try {
+    assert.equal(card.essays.find((e) => e.name === WHY_NAME).chars, 1500, "the field's own limit rides along");
+    // No tap, no draft: not on Fill, not while the card waits, not on a click a script makes.
+    await sleep(1500);
+    assert.equal(world.state.essayCalls.length, 0, "no draft without the tap");
+    await form.panel.evaluate((s) => document.querySelector(s).click(), essayEl(".essay-draft"));
+    await sleep(800);
+    assert.equal(world.state.essayCalls.length, 0, "a click a script makes drafts nothing");
+    assert.equal(await form.panel.isHidden(essayEl(".essay-text")), true);
+    // The person's tap.
+    await form.panel.click(essayEl(".essay-draft"));
+    await form.panel.waitForSelector(essayEl(".essay-text:not([hidden])"), { timeout: 10000 });
+    assert.equal(world.state.essayCalls.length, 1);
+    const asked = world.state.essayCalls[0];
+    assert.equal(asked.posting, card.jobId);
+    assert.match(asked.label, /^Why do you want to work here\?/);
+    assert.equal(asked.limit.chars, 1500);
+    assert.ok(asked.siblings.length >= 3 && !asked.siblings.includes(asked.label), "the form's other labels, for the employer's AI policy");
+    assert.ok(!("facts" in asked) && !("fact_ids" in asked) && !/Test Person|test\.person@/.test(JSON.stringify(asked)), "no fact and no answer leaves the extension");
+    const draft = await form.panel.inputValue(essayEl(".essay-text"));
+    assert.match(draft, /^TEST draft 1: .*\.$/, "shown whole");
+    assert.match(await form.panel.textContent(essayEl(".essay-facts")), /From your confirmed facts: experience: Data Analyst at Example Analytics; education: Statistics/);
+    assert.equal(await form.panel.isVisible(essayEl(".essay-use")), true);
+    assert.equal(await form.panel.isVisible(essayEl(".essay-redo")), true);
+    // Shown is not used: the form and the card do not have it yet, and the tap is not offered.
+    await sleep(500);
+    assert.equal(await pageValue(form), "", "not on the form before Use this");
+    let c = await cardOf(form.tabId);
+    assert.equal(fieldOf(c), null, "not in the payload before Use this");
+    assert.equal(c.status, "blocked");
+    // Use this.
+    await form.panel.click(essayEl(".essay-use"));
+    c = await waitCard(form.tabId, (x) => fieldOf(x)?.value === draft && x.status === "ready", 10000);
+    const f = fieldOf(c);
+    assert.equal(f.source, "drafted");
+    assert.equal(f.factId, "essay-draft:TEST-F1,TEST-F2");
+    assert.equal(await pageValue(form), draft, "on the form");
+    assert.ok(c.lines.some((l) => l.includes(draft) && /drafted by Trainee from your confirmed facts TEST-F1, TEST-F2; put on the form by you/.test(l)), "the card says whose it is");
+    await form.panel.waitForFunction((h) => document.getElementById("approve").dataset.hash === h && !document.getElementById("approve").disabled, c.hash, { timeout: 10000 });
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (x) => x.status === "done", 20000);
+    assert.equal(done.result, "confirmed", done.message);
+    // The approval bound exactly this text, and exactly this text reached the employer.
+    const begin = world.state.begins.at(-1);
+    assert.equal(begin.p_approval, c.hash);
+    assert.equal(begin.p_payload.fields.find((x) => x.name === WHY_NAME).value, draft);
+    const sent = world.state.submits.at(-1);
+    assert.equal(sent.fields[WHY_NAME], draft, "the employer got the used draft");
+    // The proof: drafted by Trainee from the person's facts, used by them, with the fact ids.
+    const proof = (await evidenceLocal())[0];
+    const a = proof.approved_answers.find((x) => x.name === WHY_NAME);
+    assert.equal(a.provenance, "drafted by Trainee from your facts (TEST-F1, TEST-F2), used by you as drafted");
+    assert.deepEqual(a.fact_ids, ["TEST-F1", "TEST-F2"]);
+    const rec = world.state.finishes.at(-1).p_evidence.answers.find((x) => x.value === draft);
+    assert.deepEqual([rec.source, rec.fact_ids, rec.edited], ["drafted", ["TEST-F1", "TEST-F2"], false]);
+    // Kept for this posting only (job:), never as a fact or a wording.
+    assert.equal((world.state.formAnswerCalls || []).length, before + 1);
+    const kept = world.state.formAnswerCalls.at(-1).p_answers.filter((x) => x.answer === draft);
+    assert.equal(kept.length, 1, "the used essay is kept once");
+    assert.match(kept[0].key, /^job:[0-9a-f]{16}$/);
+    assert.equal(world.state.answers.filter((x) => x.answer === draft && !x.key.startsWith("job:")).length, 0, "never fact: or label:");
+  } finally {
+    await closeForm(form);
+  }
+  // The same question at another employer is asked again, not filled from that essay.
+  const other = await essayForm(812);
+  try {
+    assert.equal(fieldOf(other.card), null, "another employer's form never gets it");
+    assert.equal(await pageValue(other.form), "");
+  } finally {
+    await closeForm(other.form);
+  }
+});
+
+test("essay card: Redo replaces the draft (and takes a used one back off the form); an edit after Use this re-binds the approval to the edited text", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.essayCalls = [];
+  world.state.essayReply = null;
+  const { form } = await essayForm(821);
+  try {
+    await form.panel.click(essayEl(".essay-draft"));
+    await form.panel.waitForSelector(essayEl(".essay-text:not([hidden])"), { timeout: 10000 });
+    const first = await form.panel.inputValue(essayEl(".essay-text"));
+    await form.panel.click(essayEl(".essay-use"));
+    const used = await waitCard(form.tabId, (x) => fieldOf(x)?.value === first && x.status === "ready", 10000);
+    // Redo: a new draft, written to differ from the first; the first comes off the form until Use this.
+    await form.panel.click(essayEl(".essay-redo"));
+    await form.panel.waitForFunction(([s, v]) => document.querySelector(s).value !== v && !document.querySelector(s).hidden, [essayEl(".essay-text"), first], { timeout: 10000 });
+    assert.equal(world.state.essayCalls.length, 2);
+    assert.equal(world.state.essayCalls[1].previous, first, "the model is asked for a different version");
+    const second = await form.panel.inputValue(essayEl(".essay-text"));
+    assert.match(second, /^TEST draft 2: /, "replaced");
+    const cleared = await waitCard(form.tabId, (x) => !fieldOf(x) && x.status === "blocked", 10000);
+    assert.notEqual(cleared.hash, used.hash);
+    assert.equal(await pageValue(form), "", "the old draft is off the form");
+    await form.panel.click(essayEl(".essay-use"));
+    const c2 = await waitCard(form.tabId, (x) => fieldOf(x)?.value === second && x.status === "ready", 10000);
+    // The person edits the used text on the card: the form and the payload follow, and the approval binds the edit.
+    const extra = " I also mentor new analysts.";
+    await form.panel.focus(essayEl(".essay-text"));
+    await form.panel.press(essayEl(".essay-text"), "End");
+    await form.panel.type(essayEl(".essay-text"), extra);
+    const edited = second + extra;
+    const c3 = await waitCard(form.tabId, (x) => fieldOf(x)?.value === edited && x.status === "ready", 10000);
+    assert.equal(fieldOf(c3).source, "drafted");
+    assert.notEqual(c3.hash, c2.hash, "a new approval for the edited text");
+    assert.equal(await pageValue(form), edited);
+    // The approval of the text before the edit is refused.
+    const old = await form.panel.evaluate((h) => chrome.runtime.sendMessage({ type: "approve", tabId: Number(new URLSearchParams(location.search).get("tab")), hash: h }), c2.hash);
+    assert.equal(old.ok, false, "the card before the edit cannot be approved");
+    await form.panel.waitForFunction((h) => document.getElementById("approve").dataset.hash === h && !document.getElementById("approve").disabled, c3.hash, { timeout: 10000 });
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (x) => x.status === "done", 20000);
+    assert.equal(done.result, "confirmed", done.message);
+    assert.equal(world.state.begins.at(-1).p_approval, c3.hash);
+    assert.equal(world.state.submits.at(-1).fields[WHY_NAME], edited, "the employer got the edited text");
+    const a = (await evidenceLocal())[0].approved_answers.find((x) => x.name === WHY_NAME);
+    assert.equal(a.provenance, "drafted by Trainee from your facts (TEST-F1, TEST-F2), edited and used by you");
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("essay card: the form changed after Use this (a page script rewrote the essay): nothing is sent", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.essayReply = null;
+  const { form } = await essayForm(831);
+  try {
+    await form.panel.click(essayEl(".essay-draft"));
+    await form.panel.waitForSelector(essayEl(".essay-text:not([hidden])"), { timeout: 10000 });
+    const draft = await form.panel.inputValue(essayEl(".essay-text"));
+    await form.panel.click(essayEl(".essay-use"));
+    await waitCard(form.tabId, (x) => fieldOf(x)?.value === draft && x.status === "ready", 10000);
+    await form.page.evaluate((n) => {
+      const el = document.querySelector(`[name='${n}']`);
+      el.value = "TEST planted by the page.";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }, WHY_NAME);
+    await form.panel.click("#approve");
+    const stopped = await waitCard(form.tabId, (c) => ["stopped", "done", "blocked"].includes(c.status));
+    assert.notEqual(stopped.status, "done");
+    assert.match(String(stopped.message), /changed after you reviewed|set by the page|Not ready/);
+    await sleep(800);
+    assert.equal(world.state.submits.length, 0, "nothing sent");
+    assert.equal(world.state.begins.length, 0, "nothing recorded");
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("essay card: a form that asks for answers without AI shows the refusal and no draft; thin facts, a cut-off draft and a failure each say so in one line and leave the question asked", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.essayCalls = [];
+  world.state.essayReply = null;
+  let { form } = await essayForm(841, "essay,aiban");
+  try {
+    await form.panel.click(essayEl(".essay-draft"));
+    await form.panel.waitForFunction((s) => /without AI/.test(document.querySelector(s).textContent), essayEl(".essay-msg"), { timeout: 10000 });
+    assert.ok(world.state.essayCalls[0].siblings.some((l) => /only my own words/.test(l)), "the employer's statement went with the question");
+    assert.match(await form.panel.textContent(essayEl(".essay-msg")), /^\S+ asks for answers written without AI, so Trainee won't draft this one: it needs your own words\.$/);
+    assert.equal(await form.panel.isHidden(essayEl(".essay-text")), true, "no draft shown");
+    assert.equal(await form.panel.isHidden(essayEl(".essay-use")), true, "nothing to use");
+    assert.equal(await form.panel.isHidden(essayEl(".essay-draft")), true, "and no button to try again");
+    const c = await cardOf(form.tabId);
+    assert.equal(fieldOf(c), null);
+    assert.equal(c.status, "blocked", "the question stays asked");
+  } finally {
+    await closeForm(form);
+  }
+  const cases = [
+    { reply: { ok: false, why: "thin", message: "Only 1 of your confirmed facts fit this question and Trainee needs 2, so nothing was drafted. Tell Trainee a job or project you're proud of, confirm it, then tap Draft again." }, says: /^Only 1 of your confirmed facts fit this question/ },
+    { reply: { ok: true, text: "TEST draft cut off at the token limit and", facts: [], fact_ids: [], message: "Drafted." }, says: /couldn't draft this right now/ },
+    { reply: { ok: false, why: "unverified", message: "No draft shown: it kept naming things you haven't confirmed (Stripe). The question is still yours to answer." }, says: /^No draft shown: it kept naming/ },
+  ];
+  for (const [i, x] of cases.entries()) {
+    world.state.essayReply = () => x.reply;
+    ({ form } = await essayForm(842 + i));
+    try {
+      await form.panel.click(essayEl(".essay-draft"));
+      await form.panel.waitForFunction(([s, src]) => new RegExp(src).test(document.querySelector(s).textContent), [essayEl(".essay-msg"), x.says.source], { timeout: 10000 });
+      assert.equal(await form.panel.isHidden(essayEl(".essay-text")), true, "nothing shown");
+      assert.equal(await form.panel.isHidden(essayEl(".essay-use")), true);
+      assert.equal(await form.panel.isVisible(essayEl(".essay-draft")), true, "the question stays asked, and can be drafted again");
+      assert.equal(fieldOf(await cardOf(form.tabId)), null);
+      assert.ok(!(await form.panel.textContent(essayEl(".essay-msg"))).includes("\n"), "one line");
+    } finally {
+      await closeForm(form);
+    }
+  }
+  world.state.essayReply = null;
 });
 
 module.exports = { expectedValue };

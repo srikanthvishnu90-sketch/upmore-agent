@@ -29,6 +29,10 @@
   const factIds = new Map(); // name -> the confirmed fact it came from
   const chosen = new Map(); // name -> the employer's option text a widget fill clicked, shown while the widget still shows it
   const edited = new Set(); // names the person changed themselves (trusted events only)
+  // WO-049: written answers Trainee drafted on the card that the person put on the form with "Use this": name -> the value
+  // as the page showed it right after, and the confirmed facts it came from. Only the background, on the person's own tap
+  // in the panel, ever asks for one (essay-fill); nothing here drafts or asks for a draft.
+  const drafted = new Map();
 
   // The person's own edits: a trusted input or change on a field (Trainee's own fills dispatch untrusted events). A radio
   // or checkbox Trainee clicks gets a trusted change from the browser itself, so nothing that happens while Trainee is
@@ -76,11 +80,17 @@
       if (!v && filled.get(s.name) === NO_UNCHECKED && b.inputType === "checkbox") v = NO_UNCHECKED;
       if (!v) continue;
       const identity = C.isIdentityField(s);
-      const source = !identity && filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you" : "page";
+      // A used draft stays "drafted" while the page shows it as used, or as the person edited it themselves; a value a
+      // script put there instead is the page's and blocks the tap like any other.
+      const d = drafted.get(s.name);
+      const asDrafted = !identity && !!d && d.value === v;
+      const source = !identity && filled.has(s.name) && filled.get(s.name) === v ? "trainee"
+        : asDrafted || (!identity && d && edited.has(s.name)) ? "drafted" : edited.has(s.name) ? "you" : "page";
       // The employer's own option text a widget fill clicked ("United States +1"), while the widget still shows it (WO-042).
       if (source === "trainee" && chosen.has(s.name)) v = chosen.get(s.name);
-      out.push({ name: s.name, label: s.label, value: v, source, factId: source === "trainee" ? factIds.get(s.name) ?? null : null,
-        masked: identity || (source !== "trainee" && C.looksLikeIdNumber(v)), detail: D.readDetail(b), selector: b.selector });
+      out.push({ name: s.name, label: s.label, value: v, source,
+        factId: source === "trainee" ? factIds.get(s.name) ?? null : source === "drafted" ? C.draftFactId(d.factIds) : null,
+        masked: identity || (source !== "trainee" && !asDrafted && C.looksLikeIdNumber(v)), detail: D.readDetail(b), selector: b.selector });
     }
     // Read-only fields the page set are sent too: shown and bound to the approval (WO-031 review).
     for (const f of D.readFixed()) {
@@ -123,7 +133,16 @@
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;
-    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing },
+    // WO-049: the written questions the card offers to draft (each still needed, or holding a draft the person used), with
+    // the field's own length limit, and the form's other labels for the employer's AI policy. Not on Workday.
+    const maxLength = {};
+    for (const s of form.schema) {
+      const el = D.element(form.bindings[s.name]?.selector || "");
+      if (el && Number(el.maxLength) > 0) maxLength[s.name] = Number(el.maxLength);
+    }
+    const essays = portal.family === "workday" ? [] : C.essayQuestions({ schema: form.schema, fields, maxLength });
+    const formLabels = [...new Set(form.schema.map((s) => String(s.label || "")).filter(Boolean))].slice(0, 200);
+    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels,
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
 
@@ -302,8 +321,37 @@
     submitting = false;
   }
 
+  // WO-049: the person tapped "Use this" (or edited the used text) on the card: the text goes on the form as theirs, from
+  // the draft, and the card is read again, so the approval binds exactly this text. An empty text takes a used draft back
+  // off the form (Redo). Never while the application is being sent or after.
+  async function useDraft(name, text, ids) {
+    if (submitting || sent) return { ok: false, message: "This application is being sent or was sent, so nothing changed." };
+    if (busy || !ctx) return { ok: false, message: "Trainee is still reading this form. Try again in a moment." };
+    const b = form.bindings[name], s = form.schema.find((x) => x.name === name);
+    if (!b || !s || !C.essayQuestions({ schema: [s], fields: [] }).length) return { ok: false, message: "That question is not on this form any more." };
+    busy = true;
+    try {
+      const ok = await D.fill(b, String(text), null);
+      const v = D.readValue(b);
+      if (String(text) === "") drafted.delete(name);
+      else if (ok && v) drafted.set(name, { value: v, factIds: Array.isArray(ids) ? ids.map(String) : [] });
+      else return { ok: false, message: "The form did not take the text, so nothing changed." };
+      edited.delete(name);
+    } finally {
+      busy = false;
+    }
+    await refresh();
+    return { ok: true, value: drafted.get(name)?.value ?? "", hash: reviewed?.hash ?? null };
+  }
+
   chrome.runtime.onMessage.addListener((m, sender, reply) => {
     if (sender.id !== chrome.runtime.id || sender.tab) return false;
+    if (m?.type === "essay-fill") {
+      // Only the frame that holds this form answers.
+      if (!form || !form.bindings[m.name]) return false;
+      useDraft(m.name, m.text, m.factIds).then(reply, (e) => reply({ ok: false, message: String(e?.message || e) }));
+      return true;
+    }
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;

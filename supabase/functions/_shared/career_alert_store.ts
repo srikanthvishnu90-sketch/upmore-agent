@@ -3,7 +3,7 @@
 // with career_alerts.ts, writes the outbox (one row per person and key, ever) and saves the counters. Delivery from the
 // outbox is the texting channel's job (WO-013); the simulator drains its own in-memory queue.
 // Tables: supabase/migrations/20261019010000_career_alerts.sql.
-import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
+import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, WEEKLY_MAX, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
 import { validFloor } from "./career_floor.ts";
 
 export interface AlertRow extends PlanUser { sent_on: string | null } // sent_on: the local day instant_sent_today counts
@@ -11,8 +11,13 @@ export interface AlertStore {
   get(userId: string): Promise<AlertRow | null>;
   save(row: AlertRow): Promise<void>;
   active(): Promise<AlertRow[]>; // everyone with alerts on
+  // WO-037: alerts per person whose delivery time is at or after `sinceIso` (the weekly cap's count). A store without it
+  // sends no alerts (the run fails closed).
+  alertsSince?(sinceIso: string): Promise<Map<string, number>>;
 }
-export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt" | "status" | "followup" | "brief" | "digest"; text: string; at: number }): Promise<boolean> } // false: that key was already queued or sent
+// first_seen_at (WO-037, alerts only): when Trainee first saw the posting, kept with the alert so the latency from
+// first seen to delivered can be reported (career_alert_latency).
+export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt" | "status" | "followup" | "brief" | "digest"; text: string; at: number; first_seen_at?: string }): Promise<boolean> } // false: that key was already queued or sent
 
 // The person's words, checked: what the tools accept and what the table's constraint accepts are the same rules.
 export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DEFAULT_PREFS): { ok: true; prefs: AlertPrefs } | { ok: false; error: string } {
@@ -36,12 +41,14 @@ export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DE
   if (Number.isNaN(quiet_start) || Number.isNaN(quiet_end)) return { ok: false, error: "quiet_start and quiet_end must be whole hours from 0 to 23" };
   const cap = input.max_instant_per_day === undefined ? base.max_instant_per_day : Number(input.max_instant_per_day);
   if (!Number.isInteger(cap) || cap < 0 || cap > MAX_INSTANT_PER_DAY) return { ok: false, error: `max_instant_per_day must be 0 to ${MAX_INSTANT_PER_DAY}` };
+  const week = input.max_per_week === undefined ? base.max_per_week : Number(input.max_per_week);
+  if (week !== undefined && (!Number.isInteger(week) || week < 0 || week > WEEKLY_MAX)) return { ok: false, error: `max_per_week must be 0 to ${WEEKLY_MAX}` };
   if (input.remote_ok !== undefined && typeof input.remote_ok !== "boolean") return { ok: false, error: "remote_ok must be true or false" };
   // The relevance floor (C-04): only what the person stated; a floor not given keeps the one already saved.
   const fl = input.floor === undefined ? { ok: true as const, floor: base.floor } : validFloor(input.floor);
   if (!fl.ok) return { ok: false, error: fl.error };
   const floor = fl.floor && Object.keys(fl.floor).length ? fl.floor : undefined;
-  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, quiet_start, quiet_end, max_instant_per_day: cap, floor } };
+  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, quiet_start, quiet_end, max_instant_per_day: cap, floor, ...(week !== undefined ? { max_per_week: week } : {}) } };
 }
 export function validZone(tz: unknown): string | null {
   if (typeof tz !== "string" || !tz || tz.length > 64) return null;
@@ -60,13 +67,18 @@ export function startWatching(prev: AlertRow | null, o: { userId: string; prefs:
 }
 
 // ------------------------------------------------------------------------------------------------ memory
-export interface MemoryAlerts { rows: Record<string, AlertRow>; outbox: { userId: string; key: string; kind: string; text: string; at: number }[] }
+export interface MemoryAlerts { rows: Record<string, AlertRow>; outbox: { userId: string; key: string; kind: string; text: string; at: number; first_seen_at?: string }[] }
 export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & { dump(): MemoryAlerts } {
   const st: MemoryAlerts = initial ? JSON.parse(JSON.stringify(initial)) : { rows: {}, outbox: [] };
   return {
     async get(id) { return st.rows[id] ? JSON.parse(JSON.stringify(st.rows[id])) : null; },
     async save(row) { st.rows[row.id] = JSON.parse(JSON.stringify(row)); },
     async active() { return Object.values(st.rows).filter((r) => r.prefs.on).map((r) => JSON.parse(JSON.stringify(r))); },
+    async alertsSince(since) {
+      const t = Date.parse(since), out = new Map<string, number>();
+      for (const o of st.outbox) if (o.kind === "alert" && o.at >= t) out.set(o.userId, (out.get(o.userId) ?? 0) + 1);
+      return out;
+    },
     async enqueue(userId, m) {
       if (st.outbox.some((o) => o.userId === userId && o.key === m.key)) return false;
       st.outbox.push({ userId, ...m });
@@ -100,8 +112,15 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
         if (got.length < PAGE) return out;
       }
     },
+    // career_alerts_sent_since (20261021110000_career_board_state.sql): one row per person, counted in the database.
+    async alertsSince(since) {
+      const out = new Map<string, number>();
+      for (const r of must<any[]>(await admin.rpc("career_alerts_sent_since", { p_since: since }), "count this week's alerts") || []) out.set(r.user_id, Number(r.n) || 0);
+      return out;
+    },
     async enqueue(userId, m) {
-      const r = await admin.from("career_outbox").insert({ user_id: userId, key: m.key, kind: m.kind, text: m.text, deliver_at: new Date(m.at).toISOString() });
+      const r = await admin.from("career_outbox").insert({ user_id: userId, key: m.key, kind: m.kind, text: m.text, deliver_at: new Date(m.at).toISOString(),
+        ...(m.first_seen_at ? { posting_first_seen_at: m.first_seen_at } : {}) });
       if (r.error && (r.error.code === "23505" || /duplicate key/i.test(r.error.message))) return false; // queued or sent before: once per key, ever
       must(r, "queue an alert");
       return true;

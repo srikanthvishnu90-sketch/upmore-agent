@@ -326,6 +326,30 @@ What changed:
 - **Pinned:** architect test WO-042/8.
 - **Live run 11** will show whether it holds on the 6 real Lever pages.
 
+### Live run 11 (VERIFIED-LIVE, CI run of 003b615c, never sent): Lever's location 6/6
+
+- **Precision 100% (193/193), coverage 95.1% (193/203)**, up from 92.1%.
+  - Lever: 96.1% (73/76), from 88.2%. Location is correct on all 6 forms ("Chicago, IL, USA").
+  - Ashby: 100% (51/51).
+  - Greenhouse: 90.8% (69/76); widgets 35/42.
+- **Lever's fill time** went from 8.2–8.5 s to 0.8–1.5 s per form, because the 8 s wait no longer runs out. The lookup
+  answers 200 at about 0.7 s.
+- **The 10 fields still missed:**
+
+  | Family | Field | Count | Why |
+  |---|---|---|---|
+  | Greenhouse | Location (City), an async search | 2 | The places load (React's props hold 10, "Chicago, Illinois, United States" first), but the menu never shows, so nothing can be clicked |
+  | Greenhouse | School | 3 | The TEST persona's "Example State University" is not in Greenhouse's school list, so a miss is the right outcome; a real person's school would be. Not a product gap |
+  | Greenhouse | "based in … right to work from" | 1 | Open |
+  | Greenhouse | certifications (multi-select) | 1 | Open |
+  | Lever | ShieldAI "How did you hear about us?" and its detail | 2 | The planner asks; the key's "Other" / "Company website" are the persona's choices, not facts |
+  | Lever | Welo "worked on a Welocalize project before?" | 1 | The worked-here guard asks: Welocalize is not the posting's company name |
+
+- **For run 12:** the Lever experiment is retired (its data stays in this doc and at 675e80ca). The bench now types
+  "Chicago" into Greenhouse's Location 3 ways: the driver's events, key by key (both in the extension's world), and a
+  trusted typing as the control. For each it samples the select's own React state (`menuIsOpen`, `isFocused`,
+  `inputValue`, options) and what is shown, at 0.5, 1.5 and 3 s.
+
 ### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
 
 WO-031's fix round brings:
@@ -385,8 +409,8 @@ content.js `steps.begun`.
 3. **Postings that are not fully ready.** Every required field Trainee cannot answer costs the person 2.5–6 s, and
    WO-032 measured only 45% of postings fully ready. The lever is answering once (ask-once) before the session, plus
    coverage.
-4. **Greenhouse widgets on live pages:** 32/42 now (from 0/51), and the phone-country default is resolved from the
-   person's country.
+4. **Greenhouse widgets on live pages:** 35/42 now (live runs 8–11; from 0/51), and the phone-country default is
+   resolved from the person's country.
    - **Greenhouse's location is a place search that no page script can open.** It has no toggle button, and typing or
      ArrowDown as untrusted events opens nothing (live probe). The places do load: React's own props hold "Chicago,
      Illinois, United States".

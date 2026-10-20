@@ -106,11 +106,30 @@ async function main() {
       allowed.push({ host: u.hostname, op: u.searchParams.get("op") || "" });
       return route.continue();
     }
+    // Cloudflare's bot-check beacon on the employer's own host (POST /cdn-cgi/challenge-platform/...), sent by the page as it
+    // loads, in every person's browser. It submits nothing. Live run 7: with it aborted, Lever's place lookups got no answer
+    // (a first lookup listed nothing in 12 s), which a person's browser never sees. It is let through, and counted.
+    if (req.method() === "POST" && /^\/cdn-cgi\/challenge-platform\//.test(u.pathname) && !NEVER.test(u.hostname)) {
+      allowed.push({ host: u.hostname, op: "cloudflare-challenge-beacon" });
+      return route.continue();
+    }
     if (NEVER.test(u.hostname) || (!local && !["GET", "HEAD", "OPTIONS"].includes(req.method()))) {
       aborted.push({ method: req.method(), host: u.hostname, path: u.pathname.slice(0, 80), ...(ashbyGraphql(req, u) ? { ops: graphqlOps(req).map((o) => o.name) } : {}) });
       return route.abort("blockedbyclient");
     }
     return route.continue();
+  });
+  // Every place lookup the employer's page makes (Lever's searchLocations, Ashby's geo autocomplete), with its status and
+  // time, so a missing list is told apart: no request, a slow answer, or a refusal.
+  const lookups = [];
+  ctx.on("requestfinished", async (req) => {
+    if (!/searchLocations|AutocompleteGeoLocation/i.test(req.url() + " " + (req.postData() || "").slice(0, 200))) return;
+    const res = await req.response().catch(() => null), t = req.timing();
+    lookups.push({ at: Date.now(), host: new URL(req.url()).hostname, path: new URL(req.url()).pathname + new URL(req.url()).search.slice(0, 60), status: res ? res.status() : null, ms: t && t.responseEnd >= 0 ? Math.round(t.responseEnd) : null });
+  });
+  ctx.on("requestfailed", (req) => {
+    if (!/searchLocations|AutocompleteGeoLocation/i.test(req.url() + " " + (req.postData() || "").slice(0, 200))) return;
+    lookups.push({ at: Date.now(), host: new URL(req.url()).hostname, path: new URL(req.url()).pathname, failed: req.failure()?.errorText || "failed" });
   });
   const sw = ctx.serviceWorkers()[0] || await ctx.waitForEvent("serviceworker", { timeout: 15000 });
   const extHost = new URL(sw.url()).host;
@@ -327,6 +346,7 @@ async function main() {
       r.message = String(e.message || e).slice(0, 300);
     }
     await page.close().catch(() => {});
+    r.place_lookups = lookups.splice(0);
     rows.push(r);
     console.log(`${r.form}: HTTP ${r.http_status} ${r.status} load ${r.ms_goto_load}ms fill-to-card ${r.ms_fill_click_to_card}ms ${JSON.stringify(r.verdicts || {})}`);
   }

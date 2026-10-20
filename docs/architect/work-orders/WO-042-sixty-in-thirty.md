@@ -245,6 +245,22 @@ What changed:
   - Change for run 7: the city is typed once and the list awaited up to 8 s. The probe also times a first lookup of a
     place the page has not been asked for before (`fresh_lookup_ms`).
 
+### Live run 7 (VERIFIED-LIVE, CI run of f790f536, never sent)
+
+- **Precision 100% (185/185), coverage 91.1%.**
+- **Lever's location: still 0/6.** Each fill waited the full 8 s for a list, and none came.
+- **The probe says a lookup this bench makes gets no answer.**
+  - A first lookup of "Evanston" listed nothing in 12 s.
+  - The "Chicago" places the probe shows are the extension's own lookup, answered after its 8 s wait ran out.
+- **Likely cause: the bench itself.** It aborts every POST, including Cloudflare's bot-check beacon on jobs.lever.co
+  (`/cdn-cgi/challenge-platform/...`), which the page sends as it loads, in every person's browser. Without it, the
+  host's later requests can be held or refused.
+- **For run 8:**
+  - The beacon is let through. It submits nothing, and it is counted in `allowed_graphql_reads` as
+    `cloudflare-challenge-beacon`.
+  - Every place lookup is recorded with its status and time (`place_lookups`), so a missing list is told apart: no
+    request, a slow answer, or a refusal.
+
 ### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
 
 WO-031's fix round brings:
@@ -356,7 +372,8 @@ content.js `steps.begun`.
 - **No stealth anywhere:** no captcha solving, no proxies, and the person finishes any verification check themselves.
 - **Live benchmark guard:**
   - Approve is never pressed;
-  - every non-GET request is aborted, except GraphQL *queries* on Ashby's own read endpoint;
+  - every non-GET request is aborted, except GraphQL *queries* on Ashby's own read endpoint and the employer host's
+    Cloudflare bot-check beacon (`/cdn-cgi/challenge-platform/`, sent by the page as it loads; it submits nothing);
   - LinkedIn and Indeed are never opened;
   - the resume is a TEST file.
 - **Permissions (WO-031):** `host_permissions: <all_urls>` is needed only for the screenshot. Content scripts run on

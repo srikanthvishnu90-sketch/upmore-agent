@@ -99,7 +99,7 @@ const VENDOR = [
 const CAPTCHA = ["recaptcha", "hcaptcha", "turnstile", "arkose"];
 const EMAIL_CODE = [
   ["verification_code", /verification code/i],
-  ["security_code", /security code/i],
+  ["security_code", /security code (was |has been |we )?sen[dt]|sent .{0,40}security code|enter the .{0,30}security code/i],
   ["code_sent", /(we('ve| have)? sent (you )?(a|an|the) ([\w-]+ )?code|code (was |has been )?sent to)/i],
   ["verify_email", /verify your email/i],
   ["one_time_code", /one[- ]time (pass)?code/i],
@@ -115,6 +115,17 @@ const snippet = (s, re) => {
   const m = re.exec(s);
   return m ? s.slice(Math.max(0, m.index - 50), m.index + m[0].length + 50).replace(/\s+/g, " ") : null;
 };
+// The first match whose surroundings are not a payment-card field list (autofill vocabularies name "security code").
+const CARD = /card|cvc|cvv|credit|cc-/i;
+function wording(s, re) {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+  let m, n = 0;
+  while ((m = g.exec(s)) && n++ < 200) {
+    const at = s.slice(Math.max(0, m.index - 60), m.index + m[0].length + 60);
+    if (!CARD.test(at)) return at.replace(/\s+/g, " ");
+  }
+  return null;
+}
 
 // Read in every frame: inputs, file inputs (and whether the resume one is required), captcha widgets, globals.
 function frameProbe() {
@@ -131,7 +142,13 @@ function frameProbe() {
     }
     const lab = e.id && doc.querySelector(`label[for="${CSS.escape(e.id)}"]`);
     if (lab && text(lab)) label = text(lab);
-    return { name: e.name || e.id || "", label: label.slice(0, 120), required: !!(e.required || e.getAttribute("aria-required") === "true" || /[*✱]|\(required\)/i.test(label)) };
+    let group = "";
+    for (let a = e.parentElement, i = 0; a && i < 6; a = a.parentElement, i++) {
+      const t = text(a);
+      if (t && t.length <= 200 && /resume|cv\b|curriculum|cover letter|attach/i.test(t)) { group = t; if (/[*✱]|required/i.test(t)) break; }
+    }
+    return { name: e.name || e.id || "", label: label.slice(0, 120), group: group.slice(0, 160),
+      required: !!(e.required || e.getAttribute("aria-required") === "true" || /[*✱]|\(required\)/i.test(label) || /[*✱]|\brequired\b/i.test(group)) };
   });
   const attrs = (sel) => Array.from(doc.querySelectorAll(sel)).slice(0, 5).map((e) => ({ tag: e.tagName.toLowerCase(), cls: String(e.className || "").slice(0, 60),
     size: e.getAttribute("data-size") || null, sitekey: !!e.getAttribute("data-sitekey"), src: (e.getAttribute("src") || "").slice(0, 200) }));
@@ -225,7 +242,11 @@ async function probeOne(browser, s, opts) {
       if (bundleBytes > 25e6 || t.length > 8e6) return;
       bundleBytes += t.length;
       for (const [k, re] of BUNDLE_CAPTCHA) if (!bundle.captcha[k] && re.test(t)) bundle.captcha[k] = { in: type, url: res.url().slice(0, 200), at: snippet(t, re) };
-      for (const [k, re] of EMAIL_CODE) if (!bundle.email_code[k] && re.test(t)) bundle.email_code[k] = { in: type, url: res.url().slice(0, 200), at: snippet(t, re) };
+      for (const [k, re] of EMAIL_CODE) {
+        if (bundle.email_code[k]) continue;
+        const at = wording(t, re);
+        if (at) bundle.email_code[k] = { in: type, url: res.url().slice(0, 200), at };
+      }
     }).catch(() => {}));
   });
   await hostTurn(u0.hostname, opts.gapMs);
@@ -252,7 +273,7 @@ async function probeOne(browser, s, opts) {
     r.forms = best.forms || 0;
     r.form_frame = best.url && best.url !== main.url ? best.url.slice(0, 200) : null;
     r.file_inputs = (best.files || []).length;
-    r.resume_required = (best.files || []).some((f) => f.required && /resume|cv|curriculum/i.test(f.label + " " + f.name));
+    r.resume_required = (best.files || []).some((f) => f.required && /resume|\bcv\b|curriculum/i.test(f.label + " " + f.name + " " + (f.group || "").split(/cover letter/i)[0]));
     r.files = best.files || [];
     r.form_found = r.file_inputs > 0 || r.inputs >= 3;
     // Gates.
@@ -264,8 +285,9 @@ async function probeOne(browser, s, opts) {
     const rc = vendorHits.recaptcha || [];
     const anchorSizes = rc.filter((x) => /\/anchor\?/.test(x)).map((x) => (new URL(x).searchParams.get("size") || "").toLowerCase());
     const renderParam = rc.map((x) => { try { return new URL(x).searchParams.get("render"); } catch { return null; } }).find((x) => x && !/^(explicit|onload)$/i.test(x));
-    const rcWidgets = (widgets.recaptcha || []).concat(widgets.sitekey || []).filter((w) => /recaptcha/i.test(w.cls + w.src) || w.sitekey);
-    const recaptcha = rc.length > 0 || globals.grecaptcha || rcWidgets.length > 0;
+    const rcWidgets = (widgets.recaptcha || []).concat(widgets.sitekey || []).filter((w) => /recaptcha/i.test(w.cls + w.src));
+    const hcLoaded = (vendorHits.hcaptcha || []).length > 0 || globals.hcaptcha;
+    const recaptcha = rc.length > 0 || (globals.grecaptcha && !hcLoaded) || rcWidgets.length > 0;
     const rcMode = !recaptcha ? null
       : anchorSizes.some((z) => z === "normal" || z === "compact") || rcWidgets.some((w) => /g-recaptcha/.test(w.cls) && w.size && w.size !== "invisible") ? "v2_visible"
       : renderParam ? "v3_score"
@@ -290,7 +312,7 @@ async function probeOne(browser, s, opts) {
     await Promise.race([Promise.allSettled(reads), sleep(5000)]);
     const pageText = html.slice(0, 3e6);
     r.email_code_hint = {
-      page: Object.fromEntries(EMAIL_CODE.filter(([, re]) => re.test(pageText)).map(([k, re]) => [k, snippet(pageText, re)])),
+      page: Object.fromEntries(EMAIL_CODE.map(([k, re]) => [k, wording(pageText, re)]).filter(([, v]) => v)),
       bundle: bundle.email_code,
     };
     r.bundle_captcha_mentions = bundle.captcha;

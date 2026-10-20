@@ -3,7 +3,7 @@
 // knocked out of (a license, a clearance, a degree their confirmed facts don't show) is not hidden: it ranks last and
 // carries the reason, so the agent can say what is missing instead of pretending the job doesn't exist.
 import { CareerJobs, CareerProfile, CareerRouter } from "./router_core.career.js";
-import { matchesWords, searchWords } from "./career_ingest.ts";
+import { matchesWords, searchWords, titleTier } from "./career_ingest.ts";
 import { payFrom } from "./posting_pay.ts";
 
 export interface Fit { score: number | null; bucket: string | null; excluded: boolean; reasons: string[]; gaps: string[] }
@@ -32,13 +32,18 @@ export function fitOf(p: any, sp: any): Fit {
   return { score: f.score, bucket: f.bucket, excluded: !!f.excluded, reasons: (f.reasons || []).slice(0, 4), gaps: (f.gaps || []).slice(0, 3) };
 }
 
-export function searchPostings(pool: any[], query: unknown, profile: any, limit = 10): { postings: SearchHit[]; total: number; ranked_by: "fit" | "newest" } {
+export function searchPostings(pool: any[], query: unknown, profile: any, limit = 10): { postings: SearchHit[]; total: number; title_matches: number; ranked_by: "fit" | "newest" } {
   const words = searchWords(query);
-  const hits = pool.filter((p) => p && !p.closed_at && matchesWords(p, words));
+  const matched = pool.filter((p) => p && !p.closed_at && matchesWords(p, words));
+  // WO-073: the role first. While any title carries a query word, a posting that only mentions the words elsewhere is not
+  // offered; every word in the title ranks above some of them; fit and then newest order postings within a tier.
+  const anyTitle = matched.some((p) => titleTier(p, words) < 2);
+  const hits = anyTitle ? matched.filter((p) => titleTier(p, words) < 2) : matched;
   const sp = scoringProfileFor(profile);
-  const scored = hits.map((p) => ({ p, fit: sp ? fitOf(p, sp) : null }));
+  const scored = hits.map((p) => ({ p, tier: titleTier(p, words), fit: sp ? fitOf(p, sp) : null }));
   const newest = (a: any, b: any) => String(b.p.first_seen_at || "").localeCompare(String(a.p.first_seen_at || ""));
   scored.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
     if (a.fit && b.fit) {
       if (a.fit.excluded !== b.fit.excluded) return a.fit.excluded ? 1 : -1;
       const d = (b.fit.score ?? -1) - (a.fit.score ?? -1);
@@ -50,6 +55,6 @@ export function searchPostings(pool: any[], query: unknown, profile: any, limit 
   return {
     // WO-068: the pay the posting itself states (posting_pay.ts), or null: never an estimate.
     postings: scored.slice(0, n).map(({ p, fit }) => ({ job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, first_seen_at: p.first_seen_at ?? null, fit, pay: p.pay ?? payFrom(p.description) })),
-    total: hits.length, ranked_by: sp ? "fit" : "newest",
+    total: hits.length, title_matches: scored.filter((x) => x.tier === 0).length, ranked_by: sp ? "fit" : "newest",
   };
 }

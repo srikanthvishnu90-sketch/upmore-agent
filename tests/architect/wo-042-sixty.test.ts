@@ -94,9 +94,10 @@ Deno.test("WO-042/6 the grader: a place picked from the employer's list is the p
   assertEquals(yn("I am a former SpaceX employee"), null);
 });
 
-Deno.test("WO-042/7 a place search waits for the page's load and types again when no list came (Lever, live run 5)", () => {
+Deno.test("WO-042/7 a place search waits for the page's load, types once and awaits a slow first lookup (Lever, live runs 5 and 6)", () => {
   const body = DOM.slice(DOM.indexOf("async function drivePlace"), DOM.indexOf("export interface Resume"));
   assert(/readyState === "complete"/.test(body), "the load is awaited before typing");
-  assert((body.match(/\btype\(\);/g) || []).length === 2, "typed once more when nothing listed");
+  assert((body.match(/\btype\(\);/g) || []).length === 1, "typed once: a second typing cancels a slow first lookup");
+  assert(/until\(listed, 8000\)/.test(body), "the list is awaited up to 8 s");
   assert(/press\(hit\)/.test(body) && /if \(!hit\)/.test(body), "a place is clicked only when the planner names one");
 });

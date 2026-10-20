@@ -233,6 +233,18 @@ What changed:
   - Crusoe's text-message consent;
   - Lever's card questions also missed offline.
 
+### Live run 6 (VERIFIED-LIVE, CI run of 8818029f, never sent)
+
+- **Precision 100% (186/186), coverage 91.6% (186/203).** The grader's literal "No" is gone (WO-042/6).
+- **Greenhouse widgets:** 35/42.
+- **Lever's location: still 0/6.**
+  - The fill waited for the load event, typed, waited 2.5 s, typed again and waited 2.5 s more (5.4 s per form). No
+    list came.
+  - Cause, unconfirmed: a slow first lookup, which the second typing cancelled. Run 6 cannot tell this apart from
+    something else.
+  - Change for run 7: the city is typed once and the list awaited up to 8 s. The probe also times a first lookup of a
+    place the page has not been asked for before (`fresh_lookup_ms`).
+
 ### Session run: 60 postings, model person (VERIFIED-S: simulated person, reading model ASSUMED; offline)
 
 `node evals/apply/sixty-in-thirty.cjs --n 60 --person model --families lever,ashby --label run1-model-lever-ashby`, on

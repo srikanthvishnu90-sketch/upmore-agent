@@ -170,18 +170,13 @@ async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<bo
     el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
     el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
   };
-  // Lever wires its place search when the page finishes loading (live run 5: typed during the load, nothing listed in
-  // 3 s on 6 of 6 forms; the same typing after the card listed "Chicago, IL, USA"). So the load is awaited, and the
-  // city typed once more if no list came.
+  // Lever (live runs 5 and 6): typing during the page load listed nothing in 3 s; after the load, two tries of 2.5 s
+  // each listed nothing either, while the same typing a few seconds later did. A first place lookup can be slow, and a
+  // second typing cancels it. So the load is awaited, the city typed once, and the list awaited up to 8 s. The wait
+  // happens while the person reads the card before; it is never a fixed sleep.
   await until(() => (doc().readyState === "complete" ? true : null), 5000);
   type();
-  let opts = await until(listed, 2500);
-  if (!opts) {
-    setNative(el, "");
-    fire(el, "input");
-    type();
-    opts = await until(listed, 2500);
-  }
+  const opts = await until(listed, 8000);
   const label = opts ? pick(opts.map(optionText)) : null;
   const hit = label ? opts!.find((o) => optionText(o) === label) : null;
   if (!hit) {

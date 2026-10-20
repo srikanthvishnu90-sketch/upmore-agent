@@ -2638,13 +2638,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     await until(() => doc().readyState === "complete" ? true : null, 5e3);
     type();
-    let opts2 = await until(listed, 2500);
-    if (!opts2) {
-      setNative(el, "");
-      fire(el, "input");
-      type();
-      opts2 = await until(listed, 2500);
-    }
+    const opts2 = await until(listed, 8e3);
     const label = opts2 ? pick(opts2.map(optionText)) : null;
     const hit = label ? opts2.find((o) => optionText(o) === label) : null;
     if (!hit) {

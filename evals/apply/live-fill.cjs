@@ -286,6 +286,19 @@ async function main() {
           inp.blur(); inp.dispatchEvent(new Event("blur"));
           await sleep(800);
           out.typed_kept_after_blur = inp.value;
+          // A first lookup of a place not asked before on this page: how long until the list shows.
+          inp.focus(); set("Evanston");
+          inp.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: "Evanston" }));
+          inp.dispatchEvent(new KeyboardEvent("keyup", { key: "n", bubbles: true }));
+          const t0 = Date.now();
+          let fresh = null;
+          while (Date.now() - t0 < 12000) {
+            const l = lists();
+            if (l.lever.length || l.options.length) { fresh = l; break; }
+            await sleep(100);
+          }
+          out.fresh_lookup_ms = fresh ? Date.now() - t0 : null;
+          out.fresh_lookup_first = fresh ? (fresh.lever[0] || fresh.options[0]) : null;
           out.hidden_after_blur = hidden ? hidden.value.slice(0, 120) : null;
           set(""); inp.dispatchEvent(new Event("input", { bubbles: true }));
           return out;

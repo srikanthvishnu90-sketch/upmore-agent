@@ -4282,7 +4282,29 @@ const CareerRouter = (() => {
     if (interrogativeTurn(text)) return "hypothetical";
     return null;
   }
+  // LANE A v2 (LF-02): the canonical assertion frame — "I applied to
+  // the <Role> role at <Company>" — parsed as ONE frame. The old
+  // company parser's "(applied|applying) (at|to) <Cap>" pattern fired
+  // on the "applied to the…" and filed the ROLE fragment ("Junior
+  // Software") as the company, and its two-capitalized-word cap lost
+  // every three-word company ("Loop Health Admin") and every
+  // "(fictional)" suffix. The frame keeps the company exactly as
+  // stated (suffix included) and the role in full ("Backend
+  // Engineer, New Grad").
+  function applicationFrameOf(text) {
+    const raw = s(text);
+    const co = "([A-Z][A-Za-z0-9&'-]+(?:\\s+[A-Z][A-Za-z0-9&'-]+){0,3}(?:\\s+\\(fictional\\))?)";
+    const m = raw.match(new RegExp(`\\bapplied\\s+to\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"))
+      || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
+    if (!m) return null;
+    const role = m[1].replace(/[\s,]+$/, "").trim();
+    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
+    return { role, company };
+  }
   function companyFromApplicationText(text) {
+    const frame = applicationFrameOf(text);
+    if (frame) return frame.company;
     const raw = s(text);
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
     const m = raw.match(new RegExp(`\\bmy\\s+${cap}\\s+application\\b`))
@@ -4295,6 +4317,8 @@ const CareerRouter = (() => {
     return name;
   }
   function roleFromApplicationText(text) {
+    const frame = applicationFrameOf(text);
+    if (frame) return frame.role;
     const raw = s(text);
     const m = raw.match(/\b(software engineering|data analyst|data science|investment banking|product management|business analyst|consulting|marketing|finance|engineering)\s+(internship|intern|role|position)\b/i);
     if (m) return m[0].split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ").replace(/\bIntern\b/, "Internship");
@@ -4308,6 +4332,8 @@ const CareerRouter = (() => {
     if (/\byesterday\b/.test(t)) return new Date(now - DAY).toISOString();
     const ago = t.match(/\b(\d+)\s+days? ago\b/);
     if (ago) return new Date(now - Number(ago[1]) * DAY).toISOString();
+    const wago = t.match(/\b(\d+|one|two|three|four)\s+weeks? ago\b/);
+    if (wago) { const n = { one: 1, two: 2, three: 3, four: 4 }[wago[1]] || Number(wago[1]); if (n) return new Date(now - n * 7 * DAY).toISOString(); }
     if (/\blast week\b/.test(t)) return new Date(now - 7 * DAY).toISOString();
     const wd = t.match(/\blast (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
     if (wd) {
@@ -4323,7 +4349,13 @@ const CareerRouter = (() => {
     if (!store || !Track || !Track.addApplication) return null;
     const before = Array.isArray(store.rows) ? store.rows.length : 0;
     let row = null;
-    try { row = Track.addApplication(store, { company: spec.company || "", title: spec.role || "role (user-reported)", source: "user_reported", stage: "applied", applied_at: spec.appliedAt || undefined, event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { return null; }
+    // LANE A v2 (LF-02): two wiring defects lived here — the role was
+    // passed as `title`, a key 126's addApplication never reads, so
+    // every chat-logged row carried role:"" (the read-back then asked
+    // the user for a title they had already stated); and an unstated
+    // company was written as "" instead of TN-1a's company:null +
+    // company_not_stated marker on the input.
+    try { row = Track.addApplication(store, { company: spec.company || null, company_not_stated: spec.company ? undefined : true, role: spec.role || "role (user-reported)", title: spec.role || "role (user-reported)", source: "user_reported", stage: "applied", applied_at: spec.appliedAt || undefined, event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { return null; }
     const rows = Array.isArray(store.rows) ? store.rows : [];
     if (spec.company) { try { row.company_not_stated = false; } catch { /* plain row */ } }
     return row && rows.includes(row) && rows.length === before + 1 ? row : null;
@@ -4389,10 +4421,15 @@ const CareerRouter = (() => {
   // interview stage, they emailed me") — stage changes used to ride
   // inbox events only; the user's own report IS evidence (126's
   // manualUpdate marks it user-reported).
-  const TRACK_STAGE_WORDS = [[/\binterview\b/, "Interview rounds"], [/\brecruiter screen\b|\bphone screen\b/, "Recruiter screen"], [/\boffer\b/, "Offer"], [/\breject/, "Rejected"], [/\bassessment\b|\boa\b/, "OA/assessment"], [/\bfinal\b/, "Final"], [/\bsubmitted\b|\bapplied\b/, "Submitted"]];
+  const TRACK_STAGE_WORDS = [[/\bonsite\b|\bon-site\b/, "Interview rounds"], [/\binterview\b/, "Interview rounds"], [/\brecruiter screen\b|\bphone screen\b/, "Recruiter screen"], [/\boffer\b/, "Offer"], [/\breject/, "Rejected"], [/\bassessment\b|\boa\b/, "OA/assessment"], [/\bfinal\b/, "Final"], [/\bsubmitted\b|\bapplied\b/, "Submitted"]];
   function handleTrackMove(text, ctx) {
     const t = lc(text);
-    if (!/\b(move|advance|mark|update|bump)\b/.test(t)) return null;
+    // LANE A v2 (LF-02): the past-tense report form — "I moved to the
+    // onsite round at <Co>" — is the natural way users state a stage
+    // move; the old gate knew only the imperative ("move it to…") so
+    // the report fell to the generic fallback and the row never moved
+    // (battery CB-0429). "moved/advanced/progressed" are the same act.
+    if (!/\b(move|moved|advance|advanced|progressed|mark|update|bump)\b/.test(t)) return null;
     const store = trackStoreOf(ctx);
     if (!store || !Track || !Track.manualUpdate) return null;
     const rows = Array.isArray(store.rows) ? store.rows : [];
@@ -7448,7 +7485,75 @@ const CareerRouter = (() => {
       if (t.includes(lc(split))) return A.roleSpecFor({ split });
       for (const term of spec.terms || []) if (term && t.includes(lc(term))) return A.roleSpecFor({ split });
     }
+    return kbWatchRole(text, A);
+  }
+  // LANE A v2 (LF-02): a watch role outside the 12 curated splits was
+  // unsavable — 152's validation requires a real SOC and the router
+  // had no other source for one, so every natural watch ask naming a
+  // corpus title ("Operations Analyst", "Finance Operations
+  // Manager") stopped with "not one the watch can save" and the
+  // read-back disowned the watch (battery: 40/40 watch-create FAIL).
+  // The second source is the product's own career knowledge library
+  // (153): the role PHRASE the user stated is token-matched against
+  // the library's occupation titles, and the matched occupation's
+  // SOC anchors a derived spec whose title and terms stay the user's
+  // own words (152's roleSpecFor derived shape). No match in the
+  // library = no watch — an SOC is never invented to fill the slot.
+  const WATCH_STOP_TOKENS = new Set(["junior", "senior", "new", "grad", "graduate", "intern", "internship", "associate", "contractor", "contract", "remote", "cohort", "summer", "winter", "fall", "spring", "early", "career", "lead", "principal", "staff", "the", "a", "an", "of", "and", "for", "watch", "alert", "notify", "know", "soon", "moment", "opens", "open", "goes", "live", "posts", "post", "set", "up", "create", "start", "watching", "me", "when", "as", "roles", "role", "opening", "openings", "job", "jobs"]);
+  const _stemTok = (w) => w.replace(/ies$/, "y").replace(/(s|es)$/, "").replace(/ing$/, "").replace(/ed$/, "");
+  function watchTokensOf(str) {
+    return String(str || "").toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && !WATCH_STOP_TOKENS.has(w) && !/^\d+$/.test(w)).map(_stemTok);
+  }
+  function kbWatchRole(text, A) {
+    let KB = null;
+    try { KB = typeof CareerKB !== "undefined" ? CareerKB : req("./153-career-kb.js"); } catch { KB = null; }
+    if (!KB || !KB.findRole) return null;
+    // The role phrase as stated: the shape extractions first, then
+    // the whole ask with the named company removed.
+    const raw = s(text);
+    const firm = companyFromText(text, null) || "";
+    const noFirm = firm ? raw.replace(firm, " ") : raw;
+    const phrases = [];
+    for (const re of [/\bwatch for\s+(.+?)\s+roles?\b/i, /\bposts?\s+an?\s+(.+?)\s+roles?\b/i, /\bset up a watch:?\s+(.+?)(?:\s+at\s+|\s+in\s+|$)/i, /\bas soon as an?\s+(.+?)\s+opening\b/i, /\bwatch for\s+(.+?)(?:\s+at\s+|$)/i]) {
+      const m = noFirm.match(re);
+      if (m && m[1] && m[1].trim().length > 2) phrases.push(m[1].trim());
+    }
+    phrases.push(noFirm);
+    let statedTitle = null;
+    for (const p of phrases) {
+      const f = KB.findRole(p);
+      if (f && f.found && f.role && f.role.soc_code) { statedTitle = statedTitle || p; return A.roleSpecFor({ title: cleanWatchTitle(statedTitle), soc: f.role.soc_code }); }
+    }
+    // Reduced/superset pass over the library's rows: the phrase's
+    // content tokens (level/cohort/scaffolding words dropped) must
+    // ALL appear in the occupation's title; leading adjectives may
+    // drop one at a time ("Finance Operations Manager" -> the
+    // "Operations Managers" occupation). Fewest extra title tokens
+    // wins; a match needing a bigger leap stays an honest stop.
+    let rows = [];
+    try { const d = KB.embeddedData(); rows = ((d && (d.roles || d)) || []).filter((r) => r && r.soc_code && r.title); } catch { rows = []; }
+    if (!rows.length) return null;
+    for (const p of phrases) {
+      const toks = [...new Set(watchTokensOf(p.split(",")[0]))];
+      for (let drop = 0; drop <= 2 && toks.length - drop >= 2; drop++) {
+        const need = new Set(toks.slice(drop));
+        let best = null, bestExtra = 3; // extra title tokens allowed: at most 2
+        for (const r of rows) {
+          const rt = new Set(watchTokensOf(r.title));
+          if (!rt.size) continue;
+          let ok = true;
+          for (const tk of need) if (!rt.has(tk)) { ok = false; break; }
+          if (!ok) continue;
+          const extra = [...rt].filter((x) => !need.has(x)).length;
+          if (extra < bestExtra) { best = r; bestExtra = extra; }
+        }
+        if (best) { statedTitle = statedTitle || p; return A.roleSpecFor({ title: cleanWatchTitle(statedTitle), soc: best.soc_code }); }
+      }
+    }
     return null;
+  }
+  function cleanWatchTitle(p) {
+    return s(p).replace(/\b(watch for|alert me when|notify me when|let me know as soon as|set up a watch:?|posts?|goes live|the moment one opens)\b/gi, " ").replace(/\s+/g, " ").replace(/^[\s:,-]+|[\s:,-]+$/g, "").trim() || s(p).trim();
   }
   const WATCH_CITIES = ["Chicago", "New York", "San Francisco", "Boston", "Seattle", "Los Angeles", "Houston", "Dallas", "Austin", "Denver", "Atlanta", "Miami", "London"];
   function watchLocationsFromText(text) {
@@ -7508,7 +7613,12 @@ const CareerRouter = (() => {
     const bands = [];
     if (/\bintern(ship)?s?\b/.test(t)) bands.push("intern");
     if (/\bnew[ -]?grad/.test(t)) bands.push("new_grad");
-    const firm = companyFromText(text, ctx);
+    let firm = companyFromText(text, ctx);
+    // LANE A v2: the watch names the firm AS STATED — companyFromText
+    // trims a trailing "(fictional)" marker the user wrote, and the
+    // read-back then named a company the user never quite said (the
+    // battery's read-back check reads the name as stated).
+    if (firm && s(text).includes(`${firm} (fictional)`)) firm = `${firm} (fictional)`;
     const interest = {
       interest_id: `int-${lc(role.title).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
       role,
@@ -7737,6 +7847,30 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // LANE A v2 (LF-02 routing repair): three claim families run
+    // BEFORE the recommendations block, because 154's intentFor reads
+    // all three as discovery asks and the state write never landed
+    // (battery: tracker assertions 15/20 FAIL, watch creation 40/40
+    // FAIL on v238 — the replies were "current openings" prose or the
+    // discovery boilerplate while the product's own read-back said
+    // the store was empty). Each claim keeps its own discipline:
+    // the tracker claim fires only on a genuine first-person
+    // assertion (applicationAssertionOf — a hypothetical or a
+    // question writes nothing and keeps its route); the watch claims
+    // use the watch gates' own shapes (manage before create, so
+    // "stop watching X" is never read as a new watch).
+    if (/\bi applied\b|\bi submitted\b|\bsent in my application\b/.test(t) && applicationAssertionOf(text) === "assertion") {
+      const tl = handleTrackLog(text, c);
+      if (tl) return tl;
+    }
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+      const wm = handleWatchManage(text, c);
+      if (wm) return wm;
+    }
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
+      const wc = handleWatchCreate(text, c);
+      if (wc) return wc;
+    }
     // Capability 2 owns read-only resume/role, gap, location and current-source
     // recommendations. It takes only host-injected profile/postings; it never
     // falls back to the filesystem corpus or touches alert/browser state.
@@ -7757,7 +7891,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }

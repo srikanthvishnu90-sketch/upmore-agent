@@ -134,3 +134,120 @@ test("memory discipline: a question or a quote about a recruiter records NOTHING
   const q2 = say("u-m7", "t", "my friend said \"my recruiter contact there is Omar Farouk\" — wild, right?");
   assert.ok(!factsOf(q2).some((f) => f.kind === "recruiter_contact"), `quoted speech must not record a recruiter fact: ${JSON.stringify(factsOf(q2))}`);
 });
+
+// =====================================================================
+// ITEM 2 — LF-02 ROUTING REPAIR (tracker assertions + watch creation)
+// =====================================================================
+
+test("CB-0401: 'I applied to the X role at Y today' WRITES the tracker row the same turn", () => {
+  const { say } = makeWorld();
+  const w = say("u-t1", "t", "I applied to the Operations Analyst role at Meridian Fulfillment (fictional) today");
+  assert.notEqual(w.out.intent, "career_recommendations", `assertion stolen by recommendations: ${w.out.reply}`);
+  assert.equal(w.out.intent, "tracking_log", `expected tracking_log, got ${w.out.intent}: ${w.out.reply}`);
+  const rows = rowsOf(w);
+  assert.equal(rows.length, 1, `exactly one tracker row must be written, got ${JSON.stringify(rows)}`);
+  assert.equal(rows[0].company, "Meridian Fulfillment (fictional)");
+  assert.equal(rows[0].role, "Operations Analyst");
+  const r = say("u-t1", "t", "what's on my tracker?");
+  assert.ok(!/no applications|nothing on file|tracker is empty/i.test(r.out.reply), `read-back must not disown the row: ${r.out.reply}`);
+  assert.match(r.out.reply, /Meridian Fulfillment/);
+});
+
+test("CB-0429: assertion 'two weeks ago' parses role+company fully; an onsite move lands on the row", () => {
+  const { say } = makeWorld();
+  const w = say("u-t2", "t", "I applied to the Junior Software Engineer role at Quietline Apps (fictional) two weeks ago");
+  assert.equal(w.out.intent, "tracking_log", `expected tracking_log, got ${w.out.intent}`);
+  const rows = rowsOf(w);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].company, "Quietline Apps (fictional)", `company misparsed: ${JSON.stringify(rows[0])}`);
+  assert.equal(rows[0].role, "Junior Software Engineer", `role truncated: ${JSON.stringify(rows[0])}`);
+  const applied = Date.parse(rows[0].applied_at || rows[0].appliedAt || "");
+  assert.ok(Number.isFinite(applied) && Math.abs(applied - (NOW - 14 * 86400000)) < 3 * 86400000, `applied date should be ~two weeks back, got ${rows[0].applied_at}`);
+  const mv = say("u-t2", "t", "I moved to the onsite round at Quietline Apps (fictional) for the Junior Software Engineer role");
+  assert.ok(!isFallback(mv.out), `stage move must not fall back, got: ${mv.out && mv.out.reply}`);
+  const after = rowsOf(mv);
+  assert.equal(after.length, 1);
+  assert.equal(after[0].stage, "Interview rounds", `stage must move to Interview rounds, got ${after[0].stage}`);
+  const r = say("u-t2", "t", "show me my tracker");
+  assert.match(r.out.reply, /Interview rounds/);
+});
+
+test("TN-1a: an application with NO company stated still writes — company blank + company_not_stated, never invented", () => {
+  const { say } = makeWorld();
+  const w = say("u-t3", "t", "I applied to a role today");
+  assert.equal(w.out.intent, "tracking_log", `expected tracking_log, got ${w.out.intent}: ${w.out.reply}`);
+  const rows = rowsOf(w);
+  assert.equal(rows.length, 1, `the write is never refused for a missing company: ${JSON.stringify(rows)}`);
+  assert.ok(!rows[0].company, `company must stay blank, got ${JSON.stringify(rows[0].company)}`);
+  assert.equal(rows[0].company_not_stated, true, `company_not_stated flag required: ${JSON.stringify(rows[0])}`);
+});
+
+test("tracker discipline: a hypothetical application writes NOTHING", () => {
+  const { say } = makeWorld();
+  const w = say("u-t4", "t", "if I applied to the Data Analyst role at Stripe tomorrow, would that be a good move?");
+  assert.equal(rowsOf(w).length, 0, `a hypothetical must not write a row: ${JSON.stringify(rowsOf(w))}`);
+});
+
+const PILOT = require(path.join(ROOT, "scripts/career/gauntlet/pilot-lib.cjs"));
+const CORPUS = JSON.parse(require("node:fs").readFileSync(path.join(ROOT, "packages/career-data/fixtures/gauntlet/jobs/scored-corpus.json"), "utf8")).postings;
+function watchWorld() {
+  const w = makeWorld();
+  const profile = PILOT.gauntletProfile("p1-early-career-swe");
+  const sayP = (uid, tid, text) => w.say(uid, tid, text, { postings: CORPUS, profile });
+  return { sayP, store: w.store };
+}
+const watchInterests = (r, uid) => {
+  const aws = (r.snap.stores || {}).alertWatchState || {};
+  const wp = aws[`career:watch-profile:${uid}`];
+  return wp ? (wp.interests || []) : [];
+};
+
+test("watch create: all four natural phrasings create a REAL watch (SWE pair)", () => {
+  const shapes = [
+    "watch for Junior Software Engineer roles at Quietline Apps (fictional) and alert me the moment one opens",
+    "alert me when Quietline Apps (fictional) posts a Junior Software Engineer role",
+    "set up a watch: Junior Software Engineer at Quietline Apps (fictional)",
+    "let me know as soon as a Junior Software Engineer opening goes live at Quietline Apps (fictional)",
+  ];
+  shapes.forEach((shape, i) => {
+    const { sayP } = watchWorld();
+    const uid = `u-w${i}`;
+    const w = sayP(uid, "t", shape);
+    const interests = watchInterests(w, uid);
+    assert.equal(interests.length, 1, `phrasing ${i} created no watch: ${w.out.reply}`);
+    assert.ok((interests[0].filters.firms_include || []).some((f) => /Quietline Apps/.test(f)), `watch must name the firm: ${JSON.stringify(interests[0])}`);
+    assert.ok(/^\d{2}-\d{4}$/.test(interests[0].role.soc), `watch role must carry a real SOC: ${JSON.stringify(interests[0].role)}`);
+    const r = sayP(uid, "t", "what am I watching now?");
+    assert.ok(!/no job watches on file/i.test(r.out.reply), `read-back disowns the watch: ${r.out.reply}`);
+    assert.match(r.out.reply, /Quietline Apps/);
+  });
+});
+
+test("watch create: an operations title outside the curated splits still resolves a taxonomy SOC", () => {
+  const { sayP } = watchWorld();
+  const w = sayP("u-wops", "t", "watch for Operations Analyst roles at Meridian Fulfillment (fictional) and alert me the moment one opens");
+  const interests = watchInterests(w, "u-wops");
+  assert.equal(interests.length, 1, `operations watch not created: ${w.out.reply}`);
+  assert.ok(/^\d{2}-\d{4}$/.test(interests[0].role.soc));
+  const r = sayP("u-wops", "t", "what am I watching now?");
+  assert.match(r.out.reply, /Meridian Fulfillment/);
+});
+
+test("watch manage chain: create → list → stop → list again all answer from the record", () => {
+  const { sayP } = watchWorld();
+  sayP("u-wm", "t", "watch for Junior Software Engineer roles at Quietline Apps (fictional)");
+  const l1 = sayP("u-wm", "t", "list my watches");
+  assert.match(l1.out.reply, /Quietline Apps/);
+  const stop = sayP("u-wm", "t", "stop watching the Quietline Apps (fictional) one");
+  assert.ok(!isFallback(stop.out), `stop turn fell back: ${stop.out.reply}`);
+  const l2 = sayP("u-wm", "t", "list my watches again");
+  assert.ok(!isFallback(l2.out), `second list fell back: ${l2.out.reply}`);
+  assert.ok(!/Quietline Apps/.test(l2.out.reply.split("\n")[0] || "") || /empty|no watches|holds no/i.test(l2.out.reply), `stopped watch must be off the list: ${l2.out.reply}`);
+});
+
+test("watch discipline: a role with NO taxonomy occupation gets the honest stop, never an invented SOC", () => {
+  const { sayP } = watchWorld();
+  const w = sayP("u-wx", "t", "watch for Chief Vibes Officer roles at Quietline Apps (fictional)");
+  assert.equal(watchInterests(w, "u-wx").length, 0, "an unresolvable role must not produce a watch");
+  assert.ok(!isFallback(w.out), `the honest stop is a real answer, not the fallback: ${w.out.reply}`);
+});

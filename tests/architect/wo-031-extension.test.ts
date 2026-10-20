@@ -268,3 +268,15 @@ Deno.test("WO-031/14 the accuracy key keeps a held-out split and covers every fa
     assert(ids.filter((x) => x.startsWith(fam) && !k.split.heldout.includes(x)).length >= 3);
   }
 });
+
+// WO-063 (2026-10-20): the host permission stays "<all_urls>". Measured: narrowing it to the job sites, the app and
+// Supabase failed 18 of 70 browser tests, every one at the proof screenshot ("The picture of the filled form could not be
+// taken"): chrome.tabs.captureVisibleTab needs <all_urls> (or activeTab, which only a click on the toolbar icon grants).
+// The proof of each application is the product's promise, so the store listing justifies the permission instead.
+Deno.test("WO-063/1 the proof screenshot keeps its permission: host_permissions is <all_urls> while captureVisibleTab is used", async () => {
+  const bg = await Deno.readTextFile("extension/background.js");
+  if (bg.includes("captureVisibleTab")) {
+    const hp = (MANIFEST as any).host_permissions || [];
+    if (!hp.includes("<all_urls>")) throw new Error("captureVisibleTab needs <all_urls>: narrowing breaks every application's proof screenshot");
+  }
+});

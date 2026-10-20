@@ -18,6 +18,7 @@ export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
   apply_email?: string | null; // WO-032: the address the posting asks applications to be emailed to (apply_email.ts)
+  pay?: string | null; // WO-069: the pay the board states in its own structured fields (boardPay), or null
 }
 // A feed returns its postings; `complete: false` says the board has more than was read (closes nothing). WO-037:
 // `not_modified` says the board answered 304 to a conditional request (nothing changed since the last read); etag and
@@ -50,7 +51,7 @@ const TEXT_DEFAULTS = new Set(["location", "description", "department"]); // nev
 
 // ------------------------------------------------------------------------------------------------ the run
 // The fields that, when a board changes them, rewrite the stored posting; anything else seen again is only touched.
-const CONTENT = ["company", "title", "location", "url", "description", "department", "posted_at", "ats_id", "remote", "role_family", "seniority_band", "apply_email"] as const;
+const CONTENT = ["company", "title", "location", "url", "description", "department", "posted_at", "ats_id", "remote", "role_family", "seniority_band", "apply_email", "pay"] as const;
 // Postgres hands timestamps back in its own format ("+00:00"), so a time compares as a time.
 const sameValue = (k: string, x: any, y: any) => k === "posted_at" ? (x ? Date.parse(x) : null) === (y ? Date.parse(y) : null) : (x ?? (TEXT_DEFAULTS.has(k) ? "" : null)) === (y ?? (TEXT_DEFAULTS.has(k) ? "" : null));
 const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
@@ -187,9 +188,9 @@ export function memoryPostingsDb(): PostingsDb {
 }
 
 // ------------------------------------------------------------------------------------------------ Supabase store
-// The tables: supabase/migrations/20261019000001_career_postings.sql. `admin` is a service-role client.
+// The tables: supabase/migrations/20261019000001_career_postings.sql (pay: 20261022110000). `admin` is a service-role client.
 const COLUMNS = ["job_id", "provider", "board", "ats_id", "company", "title", "location", "url", "description", "department",
-  "posted_at", "remote", "role_family", "seniority_band", "apply_email", "first_seen_at", "last_seen_at", "closed_at"] as const;
+  "posted_at", "remote", "role_family", "seniority_band", "apply_email", "pay", "first_seen_at", "last_seen_at", "closed_at"] as const;
 const LIST_COLUMNS = COLUMNS.filter((c) => c !== "description").join(",");
 // Requests stay small: 100 ids keep an in() list well inside gateway URL limits; 100 rows of up to 20 KB of text keep a
 // write body around 2 MB at worst.
@@ -285,6 +286,67 @@ const rawJobs: Record<string, (json: any) => any[]> = {
   greenhouse: (j) => (j && j.jobs) || [], lever: (j) => (Array.isArray(j) ? j : []), ashby: (j) => (j && j.jobs) || [], smartrecruiters: (j) => (j && j.content) || [],
 };
 
+// ------------------------------------------------------------------------------------------------ the pay a board states
+// WO-069: the pay a board's public API states in its own structured fields, as text written from the API's own numbers,
+// currency and period; null when it states none. Never estimated, never read from prose (posting_pay.ts reads the text).
+//   greenhouse       pay_input_ranges[] {min_cents, max_cents, currency_type, title} (the list read with pay_transparency=true)
+//   lever            salaryRange {min, max, currency, interval}
+//   ashby            compensation.compensationTierSummary / scrapeableCompensationSalarySummary (includeCompensation=true)
+//   smartrecruiters  its postings list carries no structured pay: null
+export const PAY_MAX = 200; // the column's limit (20261022110000_career_postings_pay.sql)
+const oneLine = (v: unknown) => String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+function money(v: unknown, currency: unknown): string | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  if (!Number.isFinite(n) || Math.round(n) < 1) return null; // a 0 or a missing figure is no figure
+  const cur = oneLine(currency).toUpperCase() || "USD";
+  if (!/^[A-Z]{3}$/.test(cur)) return null;
+  return `${cur === "USD" ? "$" : `${cur} `}${Math.round(n).toLocaleString("en-US")}`;
+}
+function span(lo: string | null, hi: string | null, loN: number, hiN: number): string | null {
+  if (lo && hi) return hiN < loN ? null : lo === hi ? lo : `${lo}–${hi}`;
+  return lo ? `from ${lo}` : hi ? `up to ${hi}` : null;
+}
+// Lever's intervals ("per-year-salary", "per-hour-wage") read as "per year", "per hour".
+const LEVER_PER: Record<string, string> = { year: "per year", month: "per month", week: "per week", day: "per day", hour: "per hour" };
+export function boardPay(provider: string, raw: any): string | null {
+  try {
+    if (provider === "greenhouse") {
+      const parts: string[] = [];
+      for (const r of Array.isArray(raw?.pay_input_ranges) ? raw.pay_input_ranges : []) {
+        const loN = Number(r?.min_cents) / 100, hiN = Number(r?.max_cents) / 100;
+        const s = span(money(loN, r?.currency_type), money(hiN, r?.currency_type), loN, hiN);
+        if (!s) continue;
+        const title = oneLine(r?.title).replace(/[\s:;,.-]+$/, "").slice(0, 80).trim();
+        const part = title ? `${s} (${title})` : s;
+        if (parts.includes(part)) continue;
+        if ([...parts, part].join("; ").length > PAY_MAX) break; // whole ranges only, never one cut in half
+        parts.push(part);
+      }
+      return parts.length ? parts.join("; ") : null;
+    }
+    if (provider === "lever") {
+      const r = raw?.salaryRange;
+      if (!r || typeof r !== "object") return null;
+      const loN = Number(r.min), hiN = Number(r.max);
+      const s = span(money(r.min, r.currency), money(r.max, r.currency), loN, hiN);
+      if (!s) return null;
+      const iv = oneLine(r.interval).toLowerCase();
+      const unit = /^per-(year|month|week|day|hour)\b/.exec(iv)?.[1];
+      const per = unit ? LEVER_PER[unit] : iv.replace(/-/g, " ");
+      return `${s}${per ? ` ${per}` : ""}`.slice(0, PAY_MAX);
+    }
+    if (provider === "ashby") {
+      const c = raw?.compensation;
+      const s = oneLine(c?.compensationTierSummary) || oneLine(c?.scrapeableCompensationSalarySummary);
+      return s ? s.slice(0, PAY_MAX).trim() : null;
+    }
+  } catch { /* a malformed pay field is no pay field */ }
+  return null;
+}
+// The list request each provider answers with its structured pay (Lever always includes salaryRange).
+const PAY_QUERY: Record<string, string> = { greenhouse: "pay_transparency=true", ashby: "includeCompensation=true" };
+const withPay = (provider: string, url: string) => PAY_QUERY[provider] ? `${url}${url.includes("?") ? "&" : "?"}${PAY_QUERY[provider]}` : url;
+
 export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?: string; timeoutMs?: number } = {}): FetchFeed {
   const headers: Record<string, string> = { accept: "application/json" };
   if (opts.userAgent) headers["user-agent"] = opts.userAgent;
@@ -309,7 +371,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     const normalize = ({ greenhouse: CareerJobs.normalizeGreenhouse, lever: CareerJobs.normalizeLever, ashby: CareerJobs.normalizeAshby, smartrecruiters: CareerJobs.normalizeSmartRecruiters } as any)[b.provider];
     if (!feed || !normalize) throw new Error(`provider ${b.provider} is not supported`);
     const deadline = Date.now() + timeoutMs;
-    const base = feed(b.board).url as string;
+    const base = withPay(b.provider, feed(b.board).url as string);
     let raw: any[] = [], complete = true, json: any, validators: { etag: string | null; last_modified: string | null } | null = null;
     if (b.provider === "smartrecruiters") {
       for (let page = 0; ; page++) {
@@ -343,7 +405,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         job_id: `${b.provider}:${token}:${atsId}`, ats_id: atsId, company: clip(p.company || b.company, 300) || b.board, title,
         location: clip(p.location, 1000), url, description,
         department: clip(p.department, 300), posted_at: p.posted_at || null, remote: p.remote, role_family: p.role_family, seniority_band: p.seniority_band,
-        apply_email: applyEmailOf({ description, url }),
+        apply_email: applyEmailOf({ description, url }), pay: boardPay(b.provider, raw[i]),
       });
     });
     if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };

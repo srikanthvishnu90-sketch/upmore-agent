@@ -7692,6 +7692,146 @@ const CareerRouter = (() => {
     return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
   }
 
+  // LANE A v2 (LF-02 family, live evidence 2026-10-20): SINGLE
+  // NAMED-ROLE APPLY. The batch seam owns counted family asks
+  // ("apply to 15 X roles"); a user naming ONE exact role — by name,
+  // by posting link, by pasted posting, or in count-1 batch shape —
+  // fell to internship discovery, company intel, or the generic
+  // fallback, and no batch intent was ever written (the live Gusto
+  // run: 10 asks, 0 intents, 0 cards). This handler resolves the
+  // named posting from the served list or the user's own staged
+  // posting and runs the SAME batch machinery on a pool of one —
+  // producing the approval card where the composition supports it,
+  // or the product's true named stop (role not in the served list /
+  // worker not wired), stated as itself, never discovery boilerplate.
+  function namedRoleTargetOf(text, ctx) {
+    const raw = s(text);
+    const CO = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+(?:[A-Z][A-Za-z0-9&.'-]+|\\d+)){0,3}(?:\\s+\\(fictional\\))?)";
+    let m = raw.match(new RegExp(`\\bapply\\s+to\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${CO}`, "i"))
+      || raw.match(new RegExp(`\\bposting:\\s*${CO}\\s*,\\s*(.+?),\\s*on\\b`, "i"))
+      || raw.match(new RegExp(`^\\s*(?:here is the posting[^:]*|the posting)\\s*:\\s*(.+?)\\s+at\\s+${CO}\\s*[,\\n]`, "i"));
+    if (m) {
+      const a = m[1].replace(/[\s,]+$/, "").trim(), b = m[2].replace(/[?.!,]+$/, "").trim();
+      const looksCompany = (v) => /^[A-Z]/.test(v) && !/\b(intern|analyst|engineer|manager|developer|scientist|designer|associate|consultant|summer|graduate)\b/i.test(v);
+      if (/\bposting:\s*/i.test(raw) && looksCompany(a) && !looksCompany(b)) return { company: a, role: b };
+      return { role: a, company: b };
+    }
+    m = raw.match(new RegExp(`^\\s*(?:the role is|that role is|it'?s|it is)\\s*:?\\s*(.+?)\\s+at\\s+${CO}\\.?\\s*$`, "i"));
+    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: m[2].replace(/[?.!,]+$/, "").trim() };
+    m = raw.match(new RegExp(`\\b(?:the|that|this)\\s+(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${CO}`, "i"));
+    if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: m[2].replace(/[?.!,]+$/, "").trim() };
+    return null;
+  }
+  function stagePostingFromLink(text, ctx) {
+    const m = s(text).match(/https?:\/\/[^\s)]+/);
+    if (!m) return null;
+    const url = m[0].replace(/[.,;]+$/, "");
+    let company = null, jobId = null;
+    const gh = url.match(/boards\.greenhouse\.io\/([^/]+)\/jobs\/(\d+)/i) || url.match(/jobs\.lever\.co\/([^/]+)\/([0-9a-f-]{6,})/i) || url.match(/jobs\.ashbyhq\.com\/([^/]+)\/([0-9a-f-]{6,})/i);
+    if (gh) { company = gh[1].replace(/[-_]+/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase()); jobId = gh[2]; }
+    const existing = ctx.posting && ctx.posting.url === url ? ctx.posting : null;
+    const staged = Object.assign({}, existing || {}, { source: "user_pasted_link", url, company: company || (existing && existing.company) || null, job_id: jobId || (existing && existing.job_id) || null, title: (existing && existing.title) || null });
+    ctx.posting = staged;
+    return staged;
+  }
+  function resolveNamedPosting(target, ctx) {
+    const pool = [].concat(ctx.postings || [], (ctx.discovery && ctx.discovery.postings) || []);
+    const coLc = (v) => lc(s(v || "").replace(/\s*\(fictional\)\s*/gi, "").trim());
+    const toks = (v) => new Set(lc(v).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean));
+    if (target && target.company) {
+      const want = toks(target.role || "");
+      let best = null, bestScore = 0;
+      for (const p of pool) {
+        if (coLc(p.company) !== coLc(target.company)) continue;
+        const pt = toks(p.title || p.role || "");
+        let hit = 0; for (const w of want) if (pt.has(w)) hit++;
+        const score = want.size ? hit / want.size : 0.5;
+        if (score > bestScore) { best = p; bestScore = score; }
+      }
+      if (best && bestScore >= 0.5) return best;
+    }
+    const staged = ctx.posting || null;
+    if (staged && (!target || !target.company || coLc(staged.company) === coLc(target.company))) return staged;
+    return null;
+  }
+  function namedApplyContextOf(ctx) {
+    const m = threadMirrorOf(ctx);
+    return (m && m.namedApply && typeof m.namedApply === "object") ? m.namedApply : null;
+  }
+  function handleNamedRoleApply(text, ctx) {
+    const BatchApply = getBatchApply();
+    const t = lc(text);
+    const raw = s(text);
+    // A pasted posting link stages the posting in every case — the
+    // user's own record of the role, whatever route answers.
+    const linked = /https?:\/\//.test(raw) ? stagePostingFromLink(text, ctx) : null;
+    const target = namedRoleTargetOf(text, ctx);
+    const applyVerb = /\bapply\b|\bsubmit\b|\bhandle the application\b|\bprepare my application\b|\bstart the batch\b/.test(t);
+    const stagedRef = /\b(that|this|the)\s+(exact\s+)?role\b|\bthe posting i (just )?(pasted|gave|shared|linked)\b|\bposting i just pasted\b/.test(t);
+    // (T8) The direct capability question gets the honest answer
+    // about THIS role and this handler's wiring — never the fallback.
+    if (/\bcan you (actually |really )?(submit|apply)\b/.test(t) || (/\bwhat (exactly )?can you do\b/.test(t) && /\b(apply|submit|application)\b/.test(t))) {
+      const aboutCo = raw.match(/\babout the ([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,2})\s+(?:role|posting|job)\b/);
+      const nctx = namedApplyContextOf(ctx);
+      const co = (target && target.company) || (aboutCo && aboutCo[1]) || (nctx && nctx.company) || (ctx.posting && ctx.posting.company) || null;
+      const role = (target && target.role) || (nctx && nctx.role) || (ctx.posting && ctx.posting.title) || null;
+      const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
+      const facts = ["What I can do: prepare the full application for a named role — the tailored resume and the complete packet — run it to an approval card in this conversation, and submit only after your tap on that card, through the browser worker."];
+      if (worker && worker.status === "NOT_WIRED") facts.push("What I can't do from this handler today: actually submit — the browser worker is not connected here, so a prepared application stops at your approval card until that wiring exists.");
+      if (co) {
+        const found = resolveNamedPosting(target || { company: co, role }, ctx);
+        facts.push(found ? `The ${role || "role"} at ${co} is on record as a posting I can prepare from.` : `The ${role || "role you named"} at ${co} is not in the served board list I can prepare from — paste the posting or its link and I will prepare it from that instead.`);
+      }
+      const reply = compose({ headline: "Plainly, about submitting applications:", facts, nextStep: co ? "Paste the posting or say \"apply\" with the role named and the preparation starts in this turn." : "Name the role and company — or paste the posting — and the preparation starts in this turn." });
+      return { intent: "named_role_apply", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (!applyVerb && !linked && !(target && /^\s*(the role is|that role is)/i.test(raw))) return null;
+    if (!target && !linked && !(stagedRef && ctx.posting)) return null;
+    if (!target && linked && !applyVerb) return null;
+    const tgt = target || (linked ? { company: linked.company, role: linked.title } : { company: ctx.posting && ctx.posting.company, role: ctx.posting && ctx.posting.title });
+    // A long pasted posting in THIS turn stages as the target posting.
+    let posting = resolveNamedPosting(tgt, ctx);
+    if (!posting && raw.length > 160 && tgt && tgt.company && tgt.role) {
+      posting = { source: "user_pasted", company: tgt.company, title: tgt.role, jd_text: raw, url: null };
+      ctx.posting = posting;
+    }
+    if (!posting) {
+      // The true named stop: the role is not in the served list and
+      // no posting was pasted — stated as itself. The named target is
+      // recorded as thread CONTEXT (the _careerThread mirror, never
+      // ctx.posting — a phantom posting would poison the packet and
+      // tailor routes), so the follow-ups the live run showed dying
+      // — restating the posting, "the role is: …", "what can you do
+      // about the <Co> role?" — bind to it.
+      if (tgt.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.namedApply = { company: tgt.company, role: tgt.role || null }; }
+      const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
+      const facts = [`The apply path runs on postings in the served board list or on a posting you paste; the ${tgt.role || "role"} posting at ${tgt.company || "that company"} is in neither right now, and no role will be invented to fill the gap.`];
+      if (worker && worker.status === "NOT_WIRED") facts.push("The browser worker that executes applications is also not wired in this handler — even a listed role would stop at preparation here.");
+      const reply = compose({ headline: `I can't apply to the ${tgt.role || "role"} at ${tgt.company || "that company"} yet — that posting is not in the list I can work from.`, facts, nextStep: "Paste the posting or its link and I will prepare the application from it in this turn." });
+      return { intent: "named_role_apply", reply, resultStatus: "blocked", sends: 0 };
+    }
+    if (tgt.role && !posting.title) posting.title = tgt.role;
+    if (tgt.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.namedApply = { company: tgt.company, role: tgt.role || posting.title || null }; }
+    if (!BatchApply) return null;
+    const depsIn = ctx.batchDeps || {};
+    const log = depsIn.log || ctx.batchLog || { records: [] };
+    const familyText = posting.title || tgt.role || "role";
+    const run = BatchApply.createRun({ userId: ctx.userId || (ctx.profile && (ctx.profile.user_id || ctx.profile.userId)) || "user", familyText, count: 1, now: nowOf(ctx) });
+    if (depsIn.delegateBatch === true) {
+      run.status = "queued_prepare";
+      ctx.batchApplyState = BatchApply.serializeRun(run);
+      return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
+        reply: `I've handed this application to the browser worker to prepare: the ${familyText} role at ${posting.company}, tailored and brought back here at the final review screen. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    BatchApply.prepareRun(run, batchDepsFor(ctx, log, [posting]));
+    ctx.batchApplyState = BatchApply.serializeRun(run);
+    const summary = BatchApply.speakSummary(run);
+    // The batch summary speaks family counts; for a NAMED role the
+    // confirmation names the exact posting it prepared.
+    if (posting.company && !summary.join("\n").includes(posting.company)) summary.unshift(`The ${posting.title || familyText} role at ${posting.company} — prepared from the posting you named.`);
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: summary.join("\n") };
+  }
+
   // ---------- LOOP ACCEPTANCE: the batch-apply seam (155) ----------
   // The owner's done-test as a chat route: "apply to 15 <family> roles"
   // runs the whole loop in-product — 155 orchestrates 121/132/123/149
@@ -7847,6 +7987,12 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // LANE A v2: a SINGLE named-role apply (by name / link / pasted
+    // posting / count-1 shape) reaches the apply machinery here —
+    // ahead of recommendations and the discovery tail, which read
+    // every one of its shapes as a search ask on v238.
+    const namedApply = handleNamedRoleApply(text, c);
+    if (namedApply) return namedApply;
     // LANE A v2 (LF-02 routing repair): three claim families run
     // BEFORE the recommendations block, because 154's intentFor reads
     // all three as discovery asks and the state write never landed

@@ -33,7 +33,7 @@ export const TOOLS: Tool[] = [
   { name: "list_approved_applications", scope: "read_approved_applications", input_schema: obj(),
     description: "Applications the person approved whose approval is still current, each with the exact approved payload and its payload_hash. Submit only that payload; anything else needs the person's approval in Trainee first." },
   { name: "begin_submission", scope: "report_submission", input_schema: obj({ application_id: uuid, payload_hash: hex64 }, ["application_id", "payload_hash"]),
-    description: "Claim one approved application right before you submit it, with its payload_hash. Refused unless the hash is the approved one and the approval is still current. Returns a lease for report_submission." },
+    description: "Claim one approved application right before you submit it, with its payload_hash. Refused unless the hash is the approved one and the approval is still current. Never on LinkedIn or Indeed: Trainee never automates them (refused 403 forbidden_host; the person applies there themselves). Returns a lease for report_submission." },
   { name: "report_submission", scope: "report_submission",
     input_schema: obj({ application_id: uuid, lease: uuid, payload_hash: hex64, outcome: { type: "string", enum: ["submitted", "blocked"] },
       evidence: obj({ reason: { type: "string", maxLength: 300 }, confirmation_id: { type: "string", maxLength: 200 }, page_confirmation: { type: "boolean" } }) },
@@ -82,7 +82,7 @@ export async function linkKeyFrom(env: { get(k: string): string | undefined }): 
 }
 
 const STATUS: Record<string, number> = { unauthorized: 401, revoked: 401, scope: 403, rate_limited: 429, invalid: 400, not_found: 404,
-  hash_mismatch: 409, not_ready: 409, stale: 409, unknown_tool: 400, bad_request: 400, method: 405, not_wired: 503, internal: 500 };
+  hash_mismatch: 409, not_ready: 409, stale: 409, forbidden_host: 403, unknown_tool: 400, bad_request: 400, method: 405, not_wired: 503, internal: 500 };
 const MESSAGE: Record<string, string> = {
   unauthorized: "No valid agent token. The person mints one in Trainee and gives it to you.",
   revoked: "The person revoked this agent token.",
@@ -93,6 +93,7 @@ const MESSAGE: Record<string, string> = {
   hash_mismatch: "That payload hash is not the one the person approved. Submit only the approved payload.",
   not_ready: "That application is not waiting for you: it was claimed, already recorded, or not claimed with this lease.",
   stale: "That approval is no longer current. The person must approve it again in Trainee.",
+  forbidden_host: "Trainee never automates LinkedIn or Indeed; apply there yourself.",
   unknown_tool: "No such operation. GET /tools lists them; none creates an approval.",
   bad_request: "Send JSON: {\"tool\": \"<name>\", \"input\": {...}}.",
   method: "Method not allowed.",

@@ -25,6 +25,9 @@
 --    person's own act, on their card.
 --  - career_apply_jobs.source learns 'agent' (who sent it). The hand-submission gate (career_apply_gate_status) counts
 --    own_computer and extension only, so an agent's submission never opens the cloud gate.
+--  - Never LinkedIn or Indeed (owner rule): an approved application whose link, or the address its payload submits to, is
+--    on LinkedIn or Indeed is never listed to an agent and never claimed by one (trainee_agent_host_forbidden, on the
+--    parsed host). The person applies there themselves.
 --  - An erase ("forget my career profile" raises the privacy epoch) revokes every grant the person made.
 -- Additive and idempotent: new tables and functions, a widened check, one trigger.
 
@@ -52,7 +55,7 @@ create table if not exists public.trainee_agent_calls (
   op text not null check (op in ('get_profile', 'get_saved_answers', 'get_resume', 'download_resume', 'list_approved_applications',
     'begin_submission', 'report_submission')),
   outcome text not null check (outcome in ('ok', 'revoked', 'scope', 'rate_limited', 'invalid', 'not_found', 'hash_mismatch',
-    'not_ready', 'stale')),
+    'not_ready', 'stale', 'forbidden_host')),
   application_id uuid,
   at timestamptz not null default now()
 );
@@ -69,6 +72,24 @@ revoke all on sequence public.trainee_agent_calls_id_seq from public, anon, auth
 alter table public.career_apply_jobs drop constraint if exists career_apply_jobs_source_check;
 alter table public.career_apply_jobs add constraint career_apply_jobs_source_check
   check (source is null or source in ('own_computer', 'extension', 'cloud', 'email', 'agent'));
+
+-- ------------------------------------------------------------------------------------------------ never LinkedIn or Indeed
+-- The host of a link, parsed (scheme, then the authority up to the first / ? # or backslash, without a user part, port or
+-- trailing dot, lower case), is forbidden when one of its labels is "linkedin" or "indeed" followed by more labels
+-- (www.linkedin.com, uk.indeed.com, indeed.co.uk, www.linkedin.com.evil.com), or it is lnkd.in or under it. A host that
+-- only contains the word (notlinkedin.com) or a query string naming them is not. No readable host fails closed.
+create or replace function public.trainee_agent_host_forbidden(p_url text) returns boolean
+language sql immutable set search_path = pg_catalog as $$
+ select coalesce(h = '' or h ~ '(^|\.)(linkedin|indeed)\.' or h ~ '(^|\.)lnkd\.in$', true)
+ from (select rtrim(lower(regexp_replace(regexp_replace(substring(p_url from '^[A-Za-z][A-Za-z0-9+.-]*://([^/?#\\]*)'), '^.*@', ''),
+   ':[0-9]*$', '')), '.') as h) x
+$$;
+-- An application is forbidden when its link or any address its payload names (url, destination, apply_url, posting_url) is.
+create or replace function public.trainee_agent_job_forbidden(p_url text, p_payload jsonb) returns boolean
+language sql immutable set search_path = public, pg_catalog as $$
+ select public.trainee_agent_host_forbidden(p_url) or exists (select from unnest(array[p_payload->>'url', p_payload->>'destination',
+  p_payload->>'apply_url', p_payload->>'posting_url']) u where u is not null and public.trainee_agent_host_forbidden(u))
+$$;
 
 -- ------------------------------------------------------------------------------------------------ the person's doors
 -- Mint: the raw token is made here (three gen_random_uuid() values, about 366 random bits; pgcrypto is not assumed),
@@ -273,13 +294,14 @@ begin
   from (select * from public.career_apply_jobs x where x.user_id = u and x.state = 'queued' and x.source is null and x.attempts = 0
    and x.approval_hash = x.payload_hash
    and x.payload_hash = encode(sha256(convert_to(public.career_apply_canonical(x.payload), 'UTF8')), 'hex')
-   and public.career_apply_current(u, x.payload) order by x.created_at, x.id limit 50) j;
+   and public.career_apply_current(u, x.payload) and not public.trainee_agent_job_forbidden(x.url, x.payload)
+   order by x.created_at, x.id limit 50) j;
  return jsonb_build_object('ok', true, 'grant_id', e->'grant_id', 'applications', rows_);
 end $$;
 
 -- The agent claims one approved application before it submits (as the extension's begin): only with the approved
--- payload's exact hash, only while the approval is current, only a row no worker holds. One attempt; a drive the agent
--- never reports is marked unknown after 15 minutes and never re-driven.
+-- payload's exact hash, only while the approval is current, only a row no worker holds, never on LinkedIn or Indeed. One
+-- attempt; a drive the agent never reports is marked unknown after 15 minutes and never re-driven.
 create or replace function public.trainee_agent_begin_submission(p_token_hash text, p_application uuid, p_payload_hash text)
 returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare e jsonb; u uuid; j public.career_apply_jobs; n timestamptz := clock_timestamp();
@@ -295,6 +317,7 @@ begin
   where user_id = u and state = 'driving' and source = 'agent' and claimed_at < n - interval '15 minutes';
  select * into j from public.career_apply_jobs where id = p_application and user_id = u for update;
  if not found then return public.trainee_agent_refuse(e, 'not_found'); end if;
+ if public.trainee_agent_job_forbidden(j.url, j.payload) then return public.trainee_agent_refuse(e, 'forbidden_host'); end if;
  if p_payload_hash is distinct from j.payload_hash or j.approval_hash is distinct from j.payload_hash
   or p_payload_hash is distinct from encode(sha256(convert_to(public.career_apply_canonical(j.payload), 'UTF8')), 'hex') then
   return public.trainee_agent_refuse(e, 'hash_mismatch'); end if;
@@ -361,7 +384,7 @@ revoke all on function public.trainee_agent_grant_mint_own(text, text[]), public
  public.trainee_agent_refuse(jsonb, text), public.trainee_agent_get_profile(text), public.trainee_agent_get_saved_answers(text),
  public.trainee_agent_get_resume(text, text), public.trainee_agent_resume_download(uuid, text), public.trainee_agent_list_approved(text),
  public.trainee_agent_begin_submission(text, uuid, text), public.trainee_agent_report_submission(text, uuid, uuid, text, text, jsonb),
- public.trainee_agent_on_erase()
+ public.trainee_agent_on_erase(), public.trainee_agent_host_forbidden(text), public.trainee_agent_job_forbidden(text, jsonb)
  from public, anon, authenticated, service_role;
 grant execute on function public.trainee_agent_grant_mint_own(text, text[]), public.trainee_agent_grant_revoke_own(uuid),
  public.trainee_agent_grants_own(), public.trainee_agent_calls_own(integer) to authenticated;

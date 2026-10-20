@@ -14,7 +14,7 @@ const MIG = "supabase/migrations/20261023090700_trainee_agent_api.sql";
 const sql = read(MIG);
 // Each function's text, from its create to its end $$.
 const fns = new Map<string, { args: string; body: string }>();
-for (const m of sql.matchAll(/create or replace function public\.(\w+)\(([^)]*)\)([\s\S]*?)\nend \$\$;/g)) fns.set(m[1], { args: m[2], body: m[3] });
+for (const m of sql.matchAll(/create or replace function public\.(\w+)\(([^)]*)\)([\s\S]*?)\n(?:end )?\$\$;/g)) fns.set(m[1], { args: m[2], body: m[3] });
 const DOORS = ["trainee_agent_get_profile", "trainee_agent_get_saved_answers", "trainee_agent_get_resume", "trainee_agent_resume_download",
   "trainee_agent_list_approved", "trainee_agent_begin_submission", "trainee_agent_report_submission"];
 
@@ -37,6 +37,10 @@ Deno.test("WO-097/B no agent door approves, enqueues, prepares, answers or write
   ok(/career_apply_current\(/.test(fns.get("trainee_agent_begin_submission")!.body), "begin needs a current approval");
   ok(/career_apply_current\(/.test(fns.get("trainee_agent_list_approved")!.body), "the list shows current approvals only");
   ok(/needs_confirmation/.test(fns.get("trainee_agent_get_profile")!.body), "the profile filters out facts waiting for confirmation");
+  // Never LinkedIn or Indeed (owner rule): one host rule, applied to the list and to the claim.
+  ok(fns.has("trainee_agent_host_forbidden"), "the host rule is defined once, in SQL");
+  ok(/trainee_agent_job_forbidden\(/.test(fns.get("trainee_agent_list_approved")!.body), "the list leaves out LinkedIn and Indeed");
+  ok(/trainee_agent_job_forbidden\([\s\S]*'forbidden_host'/.test(fns.get("trainee_agent_begin_submission")!.body), "the claim refuses them");
 });
 
 Deno.test("WO-097/C only the hash is stored; the person mints and revokes; the agent doors are the service role's only", () => {

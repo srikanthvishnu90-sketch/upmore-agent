@@ -27,7 +27,18 @@ person's approvals. This order lets another agent use the data and send what the
    lease, using only the grant that claimed it. The outcome is recorded on the same queue row, the way the extension
    records one (`career_apply_finish`, `source = 'agent'`). A page's confirmation is evidence only: the row stays
    `submitted_unconfirmed` until the employer's email arrives. `blocked` becomes `needs_user`.
-4. **No operation creates an approval or changes a fact (D-007).** Approving stays the person's act, on their card.
+4. **Never LinkedIn or Indeed (owner rule).** Trainee never automates them, so it never hands an agent an application
+   that would. The rule lives in SQL, once: `trainee_agent_host_forbidden(url)`. It parses the host: the scheme, then
+   the authority up to the first `/ ? #` or backslash, with any user part, port or trailing dot removed, in lower case.
+   A host is forbidden when one of its labels is `linkedin` or `indeed` with more labels after it, or when it is
+   `lnkd.in` or a subdomain of it. That covers www.linkedin.com, uk.indeed.com, indeed.co.uk and
+   www.linkedin.com.evil.com. A host that only contains the word (notlinkedin.com) is allowed, and so is a query string
+   that names them. A link with no readable host fails closed.
+   `trainee_agent_job_forbidden` applies the rule to the row's link and to every address in its payload (`url`,
+   `destination`, `apply_url`, `posting_url`). Such an application is left out of `list_approved_applications`.
+   `begin_submission` refuses it with `forbidden_host` (403: "Trainee never automates LinkedIn or Indeed; apply there
+   yourself."). The row stays the person's, untouched.
+5. **No operation creates an approval or changes a fact (D-007).** Approving stays the person's act, on their card.
 
 ## What shipped
 | File | What |
@@ -56,7 +67,7 @@ POST /functions/v1/trainee-agent-api/call     Authorization: Bearer tra_<64 char
 | `report_submission` | report_submission | application_id, lease, payload_hash, outcome (`submitted` or `blocked`), evidence {reason, confirmation_id, page_confirmation} | `state` |
 
 Refusals: 401 `unauthorized`/`revoked`, 403 `scope`, 429 `rate_limited`, 400 `invalid`, 404 `not_found`, 409
-`hash_mismatch`/`not_ready`/`stale`. The log line and the audit row hold ids, the tool and the outcome, never data.
+`hash_mismatch`/`not_ready`/`stale`, 403 `forbidden_host` (LinkedIn or Indeed). The log line and the audit row hold ids, the tool and the outcome, never data.
 
 ## How Codex (or any agent) uses it
 1. The person mints a token in their session: `supabase.rpc('trainee_agent_grant_mint_own', {p_label: 'Codex', p_scopes: [...]})`.

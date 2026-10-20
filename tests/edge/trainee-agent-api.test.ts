@@ -15,6 +15,7 @@ const ALL = ["read_profile", "read_answers", "read_resume", "read_approved_appli
 const GRANT_A = "00000000-0000-4000-8000-0000000000a1", GRANT_READ = "00000000-0000-4000-8000-0000000000a2";
 const GRANT_REVOKED = "00000000-0000-4000-8000-0000000000a3", GRANT_B = "00000000-0000-4000-8000-0000000000b1";
 const APP = "00000000-0000-4000-8000-0000000000c1", APP_BAD = "00000000-0000-4000-8000-0000000000c2", APP_B = "00000000-0000-4000-8000-0000000000c3";
+const APP_LI = "00000000-0000-4000-8000-0000000000c4";
 const RESUME = new TextEncoder().encode("TEST resume A");
 
 // A store with the doors' contract: the person comes from the token hash only; refusals are returned, not thrown.
@@ -31,6 +32,8 @@ async function world() {
     [APP, { id: APP, user: "A", payload, payload_hash: await hashApplyPayload(payload), state: "queued", lease: null as string | null }],
     // A row whose stored hash does not match its payload: a store gone wrong must still never list it.
     [APP_BAD, { id: APP_BAD, user: "A", payload: { ...payload, job_id: "bad:1" }, payload_hash: "e".repeat(64), state: "queued", lease: null }],
+    [APP_LI, { id: APP_LI, user: "A", payload: { ...payload, job_id: "li:1", url: "https://www.linkedin.com/jobs/view/1" },
+      payload_hash: await hashApplyPayload({ ...payload, job_id: "li:1", url: "https://www.linkedin.com/jobs/view/1" }), state: "queued", lease: null }],
     [APP_B, { id: APP_B, user: "B", payload: { ...payload, user_id: "B" }, payload_hash: await hashApplyPayload({ ...payload, user_id: "B" }), state: "queued", lease: null }],
   ]);
   const resumeSha = await sha256Hex(RESUME);
@@ -75,12 +78,13 @@ async function world() {
         return { ok: true, grant_id: e.grant_id, resume: { source: "kept", sha256: resumeSha, filename: "a resume.pdf", bytes: RESUME.length } };
       }
       if (fn === "trainee_agent_list_approved") {
-        return { ok: true, grant_id: e.grant_id, applications: [...jobs.values()].filter((j) => j.user === e.user && j.state === "queued")
+        return { ok: true, grant_id: e.grant_id, applications: [...jobs.values()].filter((j) => j.user === e.user && j.state === "queued" && j.id !== APP_LI)
           .map((j) => ({ id: j.id, payload: j.payload, payload_hash: j.payload_hash })) };
       }
       if (fn === "trainee_agent_begin_submission") {
         const j = mine(args.p_application);
         if (!j) return { ok: false, refusal: "not_found", grant_id: e.grant_id };
+        if (j.id === APP_LI) return { ok: false, refusal: "forbidden_host", grant_id: e.grant_id };
         if (args.p_payload_hash !== j.payload_hash) return { ok: false, refusal: "hash_mismatch", grant_id: e.grant_id };
         if (j.state !== "queued") return { ok: false, refusal: "not_ready", grant_id: e.grant_id };
         j.state = "driving"; j.lease = "00000000-0000-4000-8000-0000000000d1"; j.grant = e.grant_id;
@@ -216,6 +220,13 @@ Deno.test("WO-097/7 begin and report: the approved hash only; a mismatch is refu
     evidence: { confirmation_id: "TEST-97", page_confirmation: true } }));
   eq([done.status, done.state], [200, "submitted_unconfirmed"]);
   ok(w.lines.some((l) => l.tool === "report_submission" && l.outcome === "ok" && l.application_id === APP && l.grant_id === GRANT_A), "the report is logged by ids");
+});
+
+Deno.test("WO-097/7b never LinkedIn or Indeed: the claim is refused 403 with the plain rule; GET /tools says so", async () => {
+  const w = await world();
+  const r = await body(await call(w.deps, TOKEN_A, "begin_submission", { application_id: APP_LI, payload_hash: w.jobs.get(APP_LI).payload_hash }));
+  eq([r.status, r.error, r.message], [403, "forbidden_host", "Trainee never automates LinkedIn or Indeed; apply there yourself."]);
+  ok(/Never on LinkedIn or Indeed/.test(TOOLS.find((t) => t.name === "begin_submission")!.description), "the tool's description states the rule");
 });
 
 Deno.test("WO-097/8 nothing else: an unknown operation, another method or path, a bad body", async () => {

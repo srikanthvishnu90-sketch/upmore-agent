@@ -190,6 +190,42 @@ select t.ok((select count(*) = 0 from information_schema.columns where table_sch
 select t.ok((select last_used_at is not null from trainee_agent_grants g, tok where g.id = tok.id1),'last used is kept');
 reset role;
 
+-- ------------------------------------------------------------------------------------------------ never LinkedIn or Indeed
+-- The owner's rule: Trainee never automates LinkedIn or Indeed. Matched on the parsed host, never a substring.
+select t.ok(trainee_agent_host_forbidden('https://www.linkedin.com/jobs/view/1'),'www.linkedin.com is forbidden');
+select t.ok(trainee_agent_host_forbidden('https://uk.indeed.com/viewjob?jk=1'),'uk.indeed.com is forbidden');
+select t.ok(trainee_agent_host_forbidden('https://www.indeed.co.uk/viewjob?jk=1') and trainee_agent_host_forbidden('https://ca.indeed.com/x')
+ and trainee_agent_host_forbidden('https://indeed.ca/x') and trainee_agent_host_forbidden('https://de.indeed.com/x'),'Indeed''s country domains are forbidden');
+select t.ok(trainee_agent_host_forbidden('https://lnkd.in/abc') and trainee_agent_host_forbidden('https://LinkedIn.COM:443/jobs'),'lnkd.in and a capitalised host with a port are forbidden');
+select t.ok(trainee_agent_host_forbidden('https://www.linkedin.com.evil.com/x'),'www.linkedin.com.evil.com is forbidden (a LinkedIn label in the host)');
+select t.ok(trainee_agent_host_forbidden('https://user@www.linkedin.com/x') and trainee_agent_host_forbidden('https://www.linkedin.com\@evil.com/x'),
+ 'a user part or a backslash does not hide the host');
+select t.ok(not trainee_agent_host_forbidden('https://notlinkedin.com/x') and not trainee_agent_host_forbidden('https://myindeedjobs.com/x'),
+ 'a host that only contains the word is not forbidden');
+select t.ok(not trainee_agent_host_forbidden('https://boards.greenhouse.io/acme/jobs/1?gh_src=linkedin&utm=indeed.com'),'a query string naming them is not forbidden');
+select t.ok(trainee_agent_host_forbidden(null) and trainee_agent_host_forbidden('not a url'),'a missing or unreadable host fails closed');
+create temp table fb as select
+ pg_temp.q('00000000-0000-4000-8000-000000000971','li:1','Li Co','{"url":"https://www.linkedin.com/jobs/view/1"}') as li,
+ pg_temp.q('00000000-0000-4000-8000-000000000971','in:1','In Co','{"url":"https://uk.indeed.com/viewjob?jk=1"}') as ind,
+ pg_temp.q('00000000-0000-4000-8000-000000000971','gh:1','Gh Co','{"url":"https://boards.greenhouse.io/acme/jobs/1?gh_src=linkedin"}') as gh,
+ pg_temp.q('00000000-0000-4000-8000-000000000971','dest:1','Dest Co','{"destination":"https://www.linkedin.com/jobs/view/2"}') as dest;
+grant select on fb to service_role;
+set role service_role;
+create temp table fbl as select trainee_agent_list_approved((select h1 from tok)) as r;
+select t.ok((select array_agg((a->>'id')::uuid) from fbl, jsonb_array_elements(r->'applications') a) = array[(select gh from fb)],
+ 'the list leaves out applications on LinkedIn or Indeed (by its url or the payload''s destination); the Greenhouse one is listed');
+select t.ok((trainee_agent_begin_submission((select h1 from tok), (select li from fb), (select payload_hash from career_apply_jobs where id = (select li from fb)))->>'refusal') = 'forbidden_host',
+ 'begin_submission refuses an approved application on LinkedIn');
+select t.ok((trainee_agent_begin_submission((select h1 from tok), (select ind from fb), (select payload_hash from career_apply_jobs where id = (select ind from fb)))->>'refusal') = 'forbidden_host',
+ 'and one on Indeed');
+select t.ok((trainee_agent_begin_submission((select h1 from tok), (select dest from fb), (select payload_hash from career_apply_jobs where id = (select dest from fb)))->>'refusal') = 'forbidden_host',
+ 'and one whose payload submits to LinkedIn');
+select t.ok((select state = 'queued' and source is null from career_apply_jobs where id = (select li from fb)),'a refused one stays the person''s, untouched');
+select t.ok((trainee_agent_begin_submission((select h1 from tok), (select gh from fb), (select payload_hash from career_apply_jobs where id = (select gh from fb)))->>'ok')::boolean,
+ 'the Greenhouse one whose query string names LinkedIn can be begun');
+select t.ok((select count(*) = 3 from trainee_agent_calls where outcome = 'forbidden_host'),'each refusal is audited as forbidden_host');
+reset role;
+
 -- ------------------------------------------------------------------------------------------------ the rate limit
 set role service_role;
 do $$ declare i int; r jsonb; n int := 0; begin

@@ -59,6 +59,7 @@ shared_tests=(
   tests/career-bundle-data.test.cjs
   tests/capability2-followup-bundle.test.cjs
   tests/capability2-independent-boundaries.test.cjs
+  tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.

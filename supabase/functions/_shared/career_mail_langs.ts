@@ -65,8 +65,15 @@ const ES: LangWords = {
       "(agenda|programa|reserva) (tu|su|una) entrevista",
       "(segunda|primera|tercera|próxima|siguiente) entrevista",
       "(nos gustaría|queremos|quisiéramos) (tener una entrevista|entrevistarte|entrevistarle)",
+      // WO-050: an interview moved or confirmed ("hemos tenido que mover tu entrevista", "cambio de hora de tu entrevista").
+      "(mover|cambiar|reprogramar|reagendar|aplazar|posponer|movido|cambiado|reprogramado) (tu|su|la) entrevista",
+      "cambio de (hora|fecha|horario) de (tu|su|la) entrevista",
+      "(te |le )?confirmamos (tu|su|la) entrevista",
     ],
     assessment: [
+      // WO-050: a one-way video interview is a test, as in English.
+      "entrevista (en |por )?v[íi]deo (diferida|grabada|asíncrona)",
+      "graba(r)? (tus|sus) respuestas",
       "prueba (técnica|online|en línea|de conocimientos|psicotécnica|práctica)",
       "test (online|en línea|técnico|psicotécnico|de lógica|de personalidad|de inglés|de aptitud)",
       "(desafío|reto) técnico",
@@ -179,6 +186,10 @@ const PT: LangWords = {
       "(aprovad[oa]|selecionad[oa]) para (a )?(etapa de |fase de )?entrevista",
       "agende (a )?sua entrevista",
       "(primeira|segunda) entrevista",
+      // WO-050: moved, and the formal "temos o prazer de o convidar para uma entrevista".
+      "(remarcar|reagendar|alterar|adiar) (a )?(sua )?entrevista",
+      "remarcação da (sua )?entrevista",
+      "(prazer de|vimos) (o |a |te |lhe )?(convidar|convidá-l[oa])[^.]{0,30}entrevista",
     ],
     assessment: ["teste (online|técnico|de lógica|de inglês|de perfil)", "prova (técnica|online|prática)", "desafio técnico", "case (técnico|prático|de produto)"],
     offer: ["carta[- ]proposta", "proposta (de trabalho|de emprego|formal|salarial)", "(temos o prazer de|gostaríamos de) (te |lhe )?(oferecer|fazer uma proposta|propor)", "oferecer a você a vaga"],
@@ -265,8 +276,14 @@ const FR: LangWords = {
       "(convier|inviter|rencontrer)[^.]{0,30}entretien",
       "entretien (confirmé|planifié|programmé|final)",
       "planifiez votre entretien",
+      // WO-050: moved or confirmed ("nous devons décaler votre entretien", "nous vous confirmons votre entretien").
+      "(décaler|reporter|déplacer|reprogrammer|décalé|reporté|déplacé) (votre|l')\\s?entretien",
+      "report de (votre|l')\\s?entretien",
+      "(vous )?confirm(ons|ation de) (votre|l')\\s?entretien",
     ],
-    assessment: ["test (en ligne|technique|de personnalité|de logique|d'aptitude|psychométrique)", "étude de cas", "cas pratique", "exercice technique", "évaluation en ligne"],
+    assessment: ["test (en ligne|technique|de personnalité|de logique|d'aptitude|psychométrique)", "étude de cas", "cas pratique", "exercice technique", "évaluation en ligne",
+      // WO-050: a one-way video interview is a test.
+      "entretien (vidéo )?différé", "enregistrer vos réponses"],
     offer: ["promesse d'embauche", "proposition (d'embauche|de contrat|de poste)", "lettre d'offre", "(avons le plaisir|sommes heureux|sommes ravis) de vous (proposer|offrir) le poste"],
   },
   families: {
@@ -339,6 +356,8 @@ const DE: LangWords = {
       "absage",
       "(stelle|position)[^.]{0,60}? (ist|wurde) (bereits |inzwischen |leider )?(besetzt|vergeben|gestrichen)",
       "keine zusage",
+      // WO-050: the post will not be filled after all ("die Stelle wird leider nicht mehr besetzt").
+      "(stelle|position)[^.]{0,60}? (wird|ist) (leider )?nicht (mehr )?besetzt",
     ],
     interview: [
       "einladung zum (vorstellungsgespräch|bewerbungsgespräch|interview|gespräch|kennenlerngespräch)",
@@ -346,6 +365,9 @@ const DE: LangWords = {
       "(vorstellungsgespräch|bewerbungsgespräch|interview) (ist )?(bestätigt|vereinbart)",
       "termin für das (vorstellungsgespräch|bewerbungsgespräch|interview|gespräch)",
       "(zweites|erstes) (interview|gespräch)",
+      // WO-050: moved ("wir müssen Ihr Vorstellungsgespräch ... verschieben", "neuer Termin für Ihr Vorstellungsgespräch").
+      "(vorstellungsgespräch|bewerbungsgespräch|interview|gespräch)[^.]{0,60}(verschieben|verlegen|verschoben|verlegt)",
+      "neuer termin für (ihr|dein) (vorstellungsgespräch|bewerbungsgespräch|interview|gespräch)",
     ],
     assessment: ["online-?test", "online-?assessment", "einstufungstest|eignungstest", "fallstudie", "case study", "probeaufgabe|testaufgabe|probearbeit"],
     offer: ["vertragsangebot", "arbeitsvertrag", "(stelle|position)[^.]{0,40}anbieten (zu können|möchten)", "anbieten zu können", "zusage für (die|eine) (stelle|position)"],
@@ -431,6 +453,10 @@ const IT: LangWords = {
       "(siamo lieti|vorremmo|ci piacerebbe) (di )?(invitarti|invitarla)[^.]{0,30}colloquio",
       "(secondo|primo) colloquio",
       "selezionat[oa] per (il |un )?colloquio",
+      // WO-050: moved or confirmed ("dobbiamo spostare il tuo colloquio", "ti confermiamo il colloquio").
+      "(spostare|rinviare|posticipare|spostato|rinviato) (il tuo |il suo |il )?colloquio",
+      "spostamento (del )?colloquio",
+      "(ti |le )?confermiamo il (tuo |suo )?colloquio",
     ],
     assessment: ["test (online|tecnico|attitudinale|di logica)", "prova (tecnica|scritta|online|pratica)", "caso studio", "esercizio (tecnico|di design|pratico)"],
     offer: ["lettera di offerta", "proposta (di assunzione|contrattuale)", "(siamo lieti|abbiamo il piacere) di (offrirti|offrirle|proporti|proporle)"],
@@ -506,9 +532,13 @@ const NL: LangWords = {
       "(tweede|eerste) gesprek",
       "gesprek[^.]{0,30}(staat gepland|is gepland|bevestigd)",
       "door naar de (tweede|volgende) ronde",
+      // WO-050: moved ("we moeten je gesprek ... verplaatsen", "nieuwe tijd voor je gesprek").
+      "(sollicitatie)?gesprek[^.]{0,60}(verplaatsen|verzetten|verplaatst|verzet)",
+      "nieuwe (tijd|datum) voor (je|uw) (sollicitatie)?gesprek",
     ],
     assessment: ["online (test|assessment)", "capaciteitentest", "persoonlijkheids(test|vragenlijst)", "case-?opdracht", "praktijkopdracht", "casusopdracht"],
-    offer: ["arbeidsovereenkomst", "contractvoorstel", "aanbodsbrief", "(bieden|bied) (je|u) [^.]{0,40}aan"],
+    // WO-050: "we willen je graag de functie van Backend Engineer aanbieden".
+    offer: ["arbeidsovereenkomst", "contractvoorstel", "aanbodsbrief", "(bieden|bied) (je|u) [^.]{0,40}aan", "(willen|wil) (je|u) [^.]{0,60}aanbieden"],
   },
   families: {
     "rc:got": ["(sollicitatie|cv|motivatie|kandidatuur)[^.]{0,40}? (in goede orde )?ontvangen", "(bevestigen|bevestiging van) de ontvangst", "(sollicitatie|kandidatuur) is (goed |in goede orde )?(binnen|aangekomen|ontvangen)", "ontvangstbevestiging"],

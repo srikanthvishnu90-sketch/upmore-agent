@@ -21,6 +21,10 @@ on:
       label_pool: { description: "Also collect the labeled-set pool (yes / no)", default: "yes" }
   schedule:
     - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  # TEMPORARY (WO-044): the MCP integration cannot dispatch (403); removed in the final commit, as WO-037 did.
+  push:
+    branches: [wo/044-discovery-scale]
+    paths: [.github/workflows/board-discovery.yml]
 permissions:
   contents: write
 concurrency: { group: board-discovery, cancel-in-progress: false }
@@ -31,11 +35,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
-      GATHER_MINUTES: ${{ inputs.gather_minutes || '90' }}
+      GATHER_MINUTES: ${{ inputs.gather_minutes || '20' }}
       CC_CRAWLS: ${{ inputs.cc_crawls || 'CC-MAIN-2026-39,CC-MAIN-2026-34' }}
-      CRAWLS: ${{ inputs.crawls || '2' }}
-      CC_BLOCKS: ${{ inputs.cc_blocks || '1500' }}
-      DOMAINS_LIMIT: ${{ inputs.domains_limit || '3000' }}
+      CRAWLS: ${{ inputs.crawls || '1' }}
+      CC_BLOCKS: ${{ inputs.cc_blocks || '15' }}
+      DOMAINS_LIMIT: ${{ inputs.domains_limit || '40' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -68,7 +72,7 @@ jobs:
     env:
       PROVIDER: ${{ matrix.provider }}
       PROVIDERS: ${{ inputs.providers || 'all' }}
-      MAX_MINUTES: ${{ inputs.max_minutes || '270' }}
+      MAX_MINUTES: ${{ inputs.max_minutes || '12' }}
       RESUME_BRANCH: ${{ inputs.resume_branch || '' }}
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +145,7 @@ jobs:
           echo "::notice title=BRANCH::$branch"
 
   label-pool:
-    if: inputs.label_pool != 'no'
+    if: inputs.label_pool != 'no' && github.event_name != 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

@@ -144,6 +144,7 @@ The first version of this order removed 7 more fills; checking every removal cau
 | D (spent, tuned on: not a measure) | 636 / 846 (75.2%), ready 27 | 599 / 846 (70.8%), ready 24 |
 | Fully ready, A+B (email-apply-coverage) | 62 / 199 (31.2%) | 59 / 199 (29.6%) |
 | 17 live forms, corrected key (browser suite) | 0 wrong | 0 wrong; Lever 71/74, Ashby 62/63, Greenhouse 38/38 outside widgets |
+| 17 real pages, live, never sent (CI apply-bench-live, this PR's first head) | 190 correct, 0 wrong, 96.0% | **187 correct, 0 wrong, 95.4% (VERIFIED-LIVE)** |
 
 Coverage fell because fills that were wrong at jobs abroad are no longer counted. A Chicago person's 95000 is not their
 expectation in London, and their US work rights are not their UK work rights. 29 of A's 99 postings and 18 of B's 100

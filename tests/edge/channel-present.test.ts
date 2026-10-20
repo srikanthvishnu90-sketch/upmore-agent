@@ -6,6 +6,7 @@
 import {
   detectBatchCard,
   extractArtifacts,
+  plainFromTelegramHtml,
   presentReply,
   renderTelegramBlocks,
   renderWhatsappBlocks,
@@ -92,6 +93,15 @@ Deno.test("short replies are a single chunk, structure intact", () => {
   const chunks = presentReply("telegram", "Found **3** roles.\n\n- One\n- Two", 4096);
   assertEq(chunks.length, 1);
   assert(chunks[0].includes("<b>3</b>") && chunks[0].includes("• One"), chunks[0]);
+});
+
+Deno.test("plainFromTelegramHtml keeps link destinations and decodes entities", () => {
+  const html = renderTelegramBlocks("Details: [the card](https://example.com/card?a=1&b=2) and R&D <notes>, **bold** claim.").join("\n");
+  const plain = plainFromTelegramHtml(html);
+  assert(plain.includes("the card (https://example.com/card?a=1&b=2)"), "labelled link degrades to label + destination: " + plain);
+  assert(plain.includes("R&D <notes>"), "entities decode back to the author's characters: " + plain);
+  assert(plain.includes("bold"), "emphasis text survives");
+  assert(!plain.includes("<a ") && !plain.includes("<b>"), "no markup left behind: " + plain);
 });
 
 Deno.test("detectBatchCard reads only the awaiting-approval batch_run payload", () => {

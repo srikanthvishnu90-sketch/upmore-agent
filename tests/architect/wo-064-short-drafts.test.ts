@@ -128,16 +128,16 @@ Deno.test("WO-064/6 a cited id that is not a confirmed fact is no_fact", () => {
   eq((vetoDraft(recent, { answer: "Example Analytics", fact_ids: "F-1" }, FACTS) as any).why, "no_fact");
 });
 
-Deno.test("WO-064/7 one model call per 25 questions; a failing call fails its own batch only; nothing throws", async () => {
+Deno.test("WO-064/7 one model call per 25 questions; a call failing twice fails its own batch only; nothing throws", async () => {
   eq(BATCH, 25);
   const qs = Array.from({ length: 60 }, (_, i) => q(`k${i}`, `What is your most recent company? (${i})`));
   const s = stub((p, n) => {
-    if (n === 2) return new Error("timeout");
+    if (/\bk30\b/.test(payloadText(p))) return new Error("timeout");
     const keys = [...payloadText(p).matchAll(/k(\d+)/g)].map((m) => `k${m[1]}`);
     return reply([...new Set(keys)].map((key) => ({ key, answer: "Example Analytics", fact_ids: ["F-1"] })));
   });
   const out = await draftShortAnswers(qs, { model: s.model, facts: () => FACTS });
-  eq(s.calls.length, 3);
+  eq(s.calls.length, 4, "the second batch is tried twice");
   eq(out.length, 60);
   eq(out.filter((d) => d.ok).length, 35);
   eq(out.filter((d) => !d.ok && d.why === "model").length, 25);
@@ -169,4 +169,89 @@ Deno.test("WO-064/8 the edge: own session only; facts in the body ignored; past 
   eq(s.calls.length, before, "the model was called past the cap");
   const r = readShortRequest({ questions: Array.from({ length: 201 }, (_, i) => q(`k${i}`, "x")) });
   eq(r.ok, false, "more than 200 questions is refused");
+});
+
+// Found reading the first real-model run's drafts (CI run 39470452339, samples A-H): each of these was drafted and passed
+// the veto, and each is wrong or rests on a fact that does not say it. Every one must now be refused.
+const P = [
+  { id: "P-onsite", kind: "other", text: "onsite ok: Yes", status: "confirmed" },
+  { id: "P-loc", kind: "other", text: "location: Chicago, IL", status: "confirmed" },
+  { id: "P-reloc", kind: "other", text: "relocation: No", status: "confirmed" },
+  { id: "P-li", kind: "other", text: "linkedin: https://www.linkedin.com/in/test-person", status: "confirmed" },
+  { id: "P-heard", kind: "other", text: "how heard: Company website", status: "confirmed" },
+  { id: "P-bg", kind: "other", text: "background check ok: Yes", status: "confirmed" },
+  { id: "P-name", kind: "other", text: "full name: Test Person", status: "confirmed" },
+  { id: "P-pay", kind: "other", text: "salary expectation: 95000", status: "confirmed" },
+  { id: "P-major", kind: "other", text: "major: Statistics", status: "confirmed" },
+  { id: "P-auth", kind: "other", text: "work authorization: Yes", status: "confirmed" },
+  { id: "P-cit", kind: "other", text: "citizenship: United States", status: "confirmed" },
+  { id: "P-sal", kind: "other", text: "salary expectation: 95000; salary currency: USD ($)", status: "confirmed" },
+  ...FACTS,
+];
+Deno.test("WO-064/9 a posting's office, place or relocation is never drafted (WO-074 is the person's standing answer)", () => {
+  for (const l of [
+    "Are you able to meet the 3 days in office per week (Monday and Wednesday) requirements for this role?",
+    "Are you willing to work in the office 5-days a week?",
+    "Do you have relocation limitations?",
+    "If not located in the greater Seattle area, are you willing to relocate?",
+    "This position is on-site at Kitware’s Clifton Park, NY, headquarters.",
+    "Which location are you applying for?",
+    "Are you currently located within 25 miles from of our offices in Boston, MA?",
+    "We operate hybrid, with 3 days per week in our office. Can you commute?",
+  ]) assert(neverDraft(l), `should never draft: ${l}`);
+});
+Deno.test("WO-064/10 a consent, acknowledgement or disclosure is never drafted, by its label or by the answer chosen", () => {
+  for (const l of ["Voluntary Disclosures", "Authorization and Acknowledgement", "Please acknowledge our privacy notice", "Do you consent to a background check?"]) {
+    assert(neverDraft(l), `should never draft: ${l}`);
+  }
+  const q1 = q("v", "Additional information", ["Yes, I have read and consent to the terms and conditions"]);
+  eq((vetoDraft(q1, { answer: "Yes, I have read and consent to the terms and conditions", fact_ids: ["P-bg"] }, P) as any).why, "never");
+});
+Deno.test("WO-064/11 an answer must rest on a cited fact about the question; a named option must be named in it", () => {
+  const heard = q("h", "How did you hear about us?", ["Campus visit", "LinkedIn Post", "Company website"]);
+  eq((vetoDraft(heard, { answer: "LinkedIn Post", fact_ids: ["P-li"] }, P) as any).why, "unverified", "a LinkedIn URL is not hearing of the job on LinkedIn");
+  assert(vetoDraft(heard, { answer: "Company website", fact_ids: ["P-heard"] }, P).ok);
+  const subj = q("s", "Subject Area Preference #2", ["Bilingual", "Science", "English Language Arts"]);
+  eq((vetoDraft(subj, { answer: "Science", fact_ids: ["P-major"] }, P) as any).why, "unverified");
+  const rate = q("r", "If successful in receiving an offer, are you willing to accept the hourly rate stated in the job posting?", ["Yes", "No"]);
+  eq((vetoDraft(rate, { answer: "Yes", fact_ids: ["P-pay"] }, P) as any).why, "unverified", "a salary figure says nothing about accepting this rate");
+  const auth = q("a", "Are you legally authorized to work in the country for which you are applying?", ["Yes", "No"]);
+  assert(vetoDraft(auth, { answer: "Yes", fact_ids: ["P-auth"] }, P).ok, "authorized ~ authorization");
+  const sg = q("g", "Are you a Singapore citizen?", ["Yes", "No"]);
+  assert(vetoDraft(sg, { answer: "No", fact_ids: ["P-cit"] }, P).ok, "citizen ~ citizenship");
+  const pay = q("p", "Expected Salary");
+  assert(vetoDraft(pay, { answer: "95000", fact_ids: ["P-sal"] }, P).ok);
+});
+Deno.test("WO-064/12 'have you built / developed / led' is an experience question: a no is never drafted from absence", () => {
+  const game = q("g", "Have you developed your own game projects?", ["Yes", "No"]);
+  eq((vetoDraft(game, { answer: "No", fact_ids: ["F-1"] }, P) as any).why, "negative_from_absence");
+  const api = q("i", "Have you built or consumed an API that connects your application to another system?", ["Yes", "No"]);
+  eq((vetoDraft(api, { answer: "Yes", fact_ids: ["F-1"] }, P) as any).why, "unverified");
+});
+Deno.test("WO-064/13 a failed model call is tried once more before its batch is refused", async () => {
+  const s = stub((p, n) => n === 1 ? new Error("timeout") : reply([...new Set([...payloadText(p).matchAll(/\bk(\d+)\b/g)].map((m) => `k${m[1]}`))].map((key) => ({ key, answer: "Example Analytics", fact_ids: ["F-1"] }))));
+  const out = await draftShortAnswers([q("k1", "What is your most recent company?")], { model: s.model, facts: () => FACTS });
+  eq(s.calls.length, 2);
+  assert(out[0].ok, JSON.stringify(out));
+});
+
+// The second reading of the same run, after the rules above: the drafts that still passed and are still wrong.
+Deno.test("WO-064/14 never drafted: a human check, a pronunciation, dismissal history, past employment with this employer, the posting's own terms, opt-ins, opinions", () => {
+  for (const l of [
+    "To prove you are a real person, please type Real below",
+    "How do you pronounce your name? (e.g., 'An-na' or 'Ah-na')",
+    "Have you ever been discharged by an employer?",
+    "To avoid actual or perceived impairment of our auditor's independence, please confirm whether you are a current/an ex-employee of Deloitte",
+    "Have you previously worked for Mastery? If so, what was your role?",
+    "The salary for this position is listed in the description. Is this salary within your expectations?",
+    "Would you like to get an email notification whenever we find a role that meets your requirements?",
+    "If yes, is Babel Street considered a competitor to your most recent employer?",
+  ]) assert(neverDraft(l), `should never draft: ${l}`);
+  for (const l of ["Are you currently a Speechmatics employee?", "What is your expected compensation?", "Your current job title"]) eq(neverDraft(l), null, l);
+});
+Deno.test("WO-064/15 an answer that copies the question back is refused; a language is an experience question", () => {
+  const url = q("u", "Please fill out the technical assessment here: https://docs.google.com/forms/d/e/abc");
+  eq((vetoDraft(url, { answer: "Please fill out the technical assessment here: https://docs.google.com/forms/d/e/abc", fact_ids: ["F-1"] }, FACTS) as any).why, "unverified");
+  const lang = q("l", "Are you bilingual in German/English?", ["Yes", "No"]);
+  eq((vetoDraft(lang, { answer: "No", fact_ids: ["F-1"] }, FACTS) as any).why, "negative_from_absence");
 });

@@ -2,7 +2,7 @@
 // evals/career/messages.json. Each item runs in a fresh thread through the same conversation interface the product uses;
 // a model judge grades the last reply (and the end state, where the item names one) against must / must_not.
 //
-//   deno run -A evals/career/run.ts --brain router|agent --label <label> [--only E001,E002]
+//   deno run -A evals/career/run.ts --brain router|agent --label <label> [--set official|heldout] [--only E001,E002]
 //
 // Needs OPENAI_API_KEY (the judge; and the agent brain). Without it: NOT RUN, exit 2. A score is never faked.
 // Results: evals/career/results/<label>.json, plus the pass rate and failing ids on stdout.
@@ -100,13 +100,15 @@ if (import.meta.main) {
     const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
     return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));
   };
-  const set = JSON.parse(await Deno.readTextFile(new URL("./messages.json", import.meta.url)));
+  // --set heldout: the held-out live phrasings (WO-059), reported beside the official set; D-008's bar is the official set's.
+  const setName = opt("--set") || "official";
+  const set = JSON.parse(await Deno.readTextFile(new URL(setName === "heldout" ? "./heldout-live.json" : "./messages.json", import.meta.url)));
   const only = opt("--only");
   const items: EvalItem[] = set.items.filter((i: EvalItem) => !only || only.split(",").includes(i.id));
   const r = await runEval(items, brain, judge);
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
-  const result = { label, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
+  const result = { label, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });
   await Deno.writeTextFile(new URL(`./results/${label}.json`, import.meta.url), JSON.stringify(result, null, 1));

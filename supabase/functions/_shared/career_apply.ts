@@ -133,6 +133,10 @@ export function classifyField(label: string, type: string): string {
     // WO-058 (sample G): "Where are you located? Are you able to relocate or commute?" asks more than where they live; "the
     // best phone number and email" asks for two; a number given as consent to texts is a consent the person declined.
     if (key === "location" && /relocat|commut/i.test(l)) continue;
+    // WO-059 (sample H): authorization bundled with an at-will statement; another name the person studied under; an
+    // academic program's or a company's website.
+    if (key === "work_authorization" && /\bat[- ]will\b|\bpermanent\b/i.test(l)) continue;
+    if (key === "website" && /\b(academic|program|department|school|university|college|company|employer|organi[sz]ation)\b/i.test(l)) continue;
     if ((key === "email" || key === "phone") && /e-?mail/i.test(l) && /phone|mobile|number/i.test(l)) continue;
     if (key === "phone" && /\b(sms|text messages?|texts)\b/i.test(l)) continue;
     if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
@@ -365,8 +369,16 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
   let a: Answer | undefined;
   if (m.fact === "worked_here_before" && answers.former_employers) {
     const co = normCompany(company);
+    // WO-059 (sample H, Perr&Knight): "Have you previously worked with Microsoft SQL Server?" asks about a tool. "Worked
+    // with" is about this employer only when the question names it or speaks as it ("us", "our").
+    if (/\bworked with\b/i.test(f.label) && !(co && normCompany(f.label).includes(co)) && !/\b(us|our|we)\b/i.test(f.label)) return null;
     const listed = String(answers.former_employers.value).split(SPLIT).map(normCompany).filter(Boolean);
-    const here = !!co && listed.some((x) => x === co || co.includes(x) || x.includes(co));
+    // WO-059: the same employer by name, never by letters inside another name ("Meta" is not "Metabase"). One name that is
+    // the other with more words ("Example" and "Example Analytics", "Stripe" and "Stripe Payments") may or may not be the
+    // same company: the person answers.
+    const words = (x: string) => ` ${x} `;
+    if (co && listed.some((x) => x !== co && (words(x).includes(words(co)) || words(co).includes(words(x))))) return null;
+    const here = !!co && listed.some((x) => x === co);
     // WO-042 (live, SpaceX): a "No" covers only the company checked, yet a question or its options may name others ("I have
     // never worked for SpaceX, SpaceXAI, xAI, X, or Twitter"). When one of the person's own former employers is named
     // there, the answer is theirs to give.
@@ -386,6 +398,16 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     // period, by its span alone (bySpan): the one span it falls in, else asked. Never a date, never a yes or no.
     const choice = chooseOption("notice_period", String(answers.notice_period.value), f.options);
     return choice === null ? null : { value: choice, factId: answers.notice_period.factId };
+  } else if (m.fact === "employment_status" && !answers.employment_status && answers.current_employer?.value) {
+    // WO-058 (sealed-wd3 t4): a stated current employer answers "Are you currently employed?" yes, on a yes/no question only
+    // (a list of kinds of employment, full-time or part-time, is the person's to pick).
+    if (f.options.length ? !f.options.every((o) => yesNoOf(o.label)) : f.type !== "checkbox" && !/^(radio|boolean)$/.test(f.type)) return null;
+    a = { value: "Yes", factId: answers.current_employer.factId };
+  } else if (m.fact === "work_authorization" && /\bpermanent\b/i.test(askedPart(f.label))) {
+    // WO-059 (sample H, Viget): a permanent right to work in the US is a citizen's or a permanent resident's; a stated
+    // authorization does not say it is permanent. Only a stated US citizenship answers it here.
+    if (!(answers.citizenship && NAMES_US.test(String(answers.citizenship.value))) || postingCountry(posting) === "abroad") return null;
+    a = { value: "Yes", factId: answers.citizenship.factId };
   } else if (m.kind === "screen") {
     const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
     // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
@@ -604,8 +626,16 @@ function statedDate(value: string, format = "MM/YYYY"): string | null {
 }
 // A row field with options takes only the option that is the stated value itself (a field of study or a language is never
 // the nearest-sounding option).
-const pick = (_fact: string, value: string, f: FormField) =>
-  f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
+// A list is answered by the stated value exactly as an option, or as the one leaf of that name under a category
+// ("Mathematics & Statistics > Statistics", Workday's prompt; WO-058, sealed-wd3 t2).
+const pick = (_fact: string, value: string, f: FormField) => {
+  if (!f.options.length) return value || null;
+  const v = value.toLowerCase(), say = (o: { label: string }) => o.label.replace(/\s+/g, " ").trim().toLowerCase();
+  const exact = f.options.find((o) => say(o) === v);
+  if (exact) return exact.value;
+  const leaf = f.options.filter((o) => / > /.test(o.label) && say(o).split(/\s+>\s+/).pop() === v);
+  return leaf.length === 1 ? leaf[0].value : null;
+};
 const FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
 function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<string, Answer>, fields: FormField[]): Answer | null {
   const s = f.section!;
@@ -714,7 +744,9 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         needs.set(k, n);
         continue;
       }
-      const key = classifyField(f.label, f.type);
+      // WO-059 (sample H, Upvest): "Name" beside the form's own "Last name" box asks for the first name.
+      const keyed = classifyField(f.label, f.type);
+      const key = keyed === "full_name" && /^\s*name\s*[*:]?\s*$/i.test(f.label) && p.fields.some((x) => x !== f && classifyField(x.label, x.type) === "last_name") ? "first_name" : keyed;
       const followUp = FOLLOW_UP.test(f.label);
       // An answer the person texted for this question (ask once) comes first, under the key that says how far it may go:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).

@@ -1,0 +1,57 @@
+# D-008 (architect, WO-059): the brain-versus-router eval on the architect-owned set (evals/career/messages.json, 50 items),
+# run where the model is reachable. Both brains are scored by the same model judge; the agent brain switches on only if it
+# passes 95% or more AND at least 40 points above the router (owner, 2026-10-20). Needs the repository secret
+# OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it the run prints NOT RUN and fails: a score is never faked.
+# On a push to ci/brain-eval (or by hand): the results land in evals/career/results/ on ci/brain-eval only.
+name: brain-eval
+on:
+  push:
+    branches: [ci/brain-eval]
+    paths:
+      - .github/workflows/brain-eval.yml
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: brain-eval, cancel-in-progress: false }
+jobs:
+  eval:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Router (the live brain today)
+        run: deno run -A evals/career/run.ts --brain router --label "router-${{ github.run_id }}" | tee "$RUNNER_TEMP/router.txt"
+      - name: Agent (WO-002)
+        run: deno run -A evals/career/run.ts --brain agent --label "agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/agent.txt"
+      - name: Held-out live phrasings (reported beside the official set; not the bar)
+        run: |
+          deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
+          deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
+      - name: The D-008 verdict
+        run: |
+          deno eval '
+            const r = JSON.parse(Deno.readTextFileSync("evals/career/results/router-${{ github.run_id }}.json"));
+            const a = JSON.parse(Deno.readTextFileSync("evals/career/results/agent-${{ github.run_id }}.json"));
+            const gap = (a.pass_rate - r.pass_rate) * 100;
+            const pass = a.pass_rate >= 0.95 && gap >= 40;
+            const cost = (x) => x.cost_usd.brain + x.cost_usd.judge;
+            console.log(`router ${r.passed}/${r.total} · agent ${a.passed}/${a.total} · gap ${gap.toFixed(1)} points · cost $${(cost(r) + cost(a)).toFixed(2)}`);
+            console.log(pass ? "D-008: PASS (agent >= 95% and >= 40 points above the router)" : "D-008: NOT MET (the agent stays off)");
+          ' | tee "$RUNNER_TEMP/verdict.txt"
+      - name: Commit the results to ci/brain-eval
+        if: always()
+        run: |
+          git config user.name "brain-eval[ci]"
+          git config user.email "brain-eval@users.noreply.github.com"
+          git add evals/career/results/ || true
+          git commit -m "D-008 data: brain-versus-router eval, run ${{ github.run_id }} ($(cat "$RUNNER_TEMP/verdict.txt" 2>/dev/null | tail -1))" || exit 0
+          git push origin HEAD:ci/brain-eval

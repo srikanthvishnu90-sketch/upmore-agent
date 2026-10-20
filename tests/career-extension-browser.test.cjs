@@ -654,6 +654,9 @@ test("queue: postings open one after another, each fills and waits for its tap; 
   try {
     await panel.fill("#links", ids.map((id) => world.urlOf(id)).join("\n") + "\nhttps://www.linkedin.com/jobs/view/123 (never queued)");
     await panel.click("#q-add");
+    // A click resolves when it is dispatched, before the panel's handler has the background store the queue: wait for the
+    // panel's own "N postings added." before reading the store (WO-059: the read raced the write on slow runners).
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
     const q = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
     assert.equal(q.items.length, ids.length, "only Greenhouse, Lever and Ashby postings are queued");
     const wall = Date.now();

@@ -39,7 +39,7 @@ const DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|prov
 // sponsorship. Are you legally authorized to work for ANY employer in the United States?" asks the authorization).
 function authorizationAsked(t: string): boolean {
   const asked = t.replace(/\b(?:[a-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024")).split(/(?<=[.?!])\s+/).filter((x) => x.includes("?")).pop() ?? "";
-  return /\b(authori[sz]ed|eligible) to work\b/.test(asked) && !/sponsor|visa/.test(asked);
+  return /\b(authori[sz]ed|eligible|entitled) to work\b|\bright to work\b|\bwork authori[sz]ation\b|\bauthori[sz]ation to work\b/.test(asked) && !/sponsor|visa/.test(asked);
 }
 const BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)|credit (check|report|histor)|reference check|in consideration of (my|your|the) employment/;
 const ackOpt = (x: string) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
@@ -117,10 +117,12 @@ const RULES: Rule[] = [
   // Links.
   ["linkedin", /\blinked ?in\b|\blinkedln\b/],
   ["github", /\bgithub\b/],
-  ["website", /\b(portfolio|personal (web)?site|website)\b(?!.*\b(upload|file)\b)/, (q) => !LONG_TYPES.has(String(q.type))],
+  ["website", /\b(portfolio|personal (web)?site|website)\b(?!.*\b(upload|file)\b)/, (q, t) => !LONG_TYPES.has(String(q.type)) && !/\b(academic|program|department|school|university|college|company|employer|organi[sz]ation)\b/.test(t)],
 
   // Work history.
   // WO-052 (sample C): "Current job title & company" asks for two things; the title alone is half an answer: asked.
+  // WO-059 (sample H, Latitude AI): "Title Held at Most Recent Employer" is the title, not the employer.
+  ["current_title", /\b(job )?title( held)?\b.{0,15}\b(at|with|for) (your )?(current|most recent|last|present) (employer|company|job)\b/],
   ["current_title", /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/, (q, t) => !/\b(and|&)\s*(company|employer)\b|\b(company|employer)\b/.test(t)],
   ["unknown", /\bmay we contact your current employer\b/],
   ["notice_period", /\bnotice (period )?(to|would you need to provide to) your current employer\b|\bhow much notice\b/],
@@ -149,10 +151,12 @@ const RULES: Rule[] = [
   // Greenhouse's education block names its fields with one word ("Degree", "School", "Discipline"): exact labels only,
   // never "degree in" or "school district" (WO-042, live Greenhouse forms).
   ["education_level", /^degree[\s*:]*$/],
+  ["unknown", /\b(another|other|different|previous|former|maiden) name\b|\bunder (a |any )?(different|other) name\b/],
   ["school", /^(school|college|university)[\s*:]*$/],
   ["major", /^(discipline|field of study)[\s*:]*$/],
   ["education_level", /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/],
   ["major", /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
+  ["unknown", /\b(currently enrolled|enrolled in|current (degree )?program)\b/],
   ["graduation_date", /\bgraduation (date|year)\b|\bgraduat(e|ed|ion) date\b|\bexpected graduation\b|\bdiplôme\b|\bhave you graduated\b/],
   ["school", /\b(college|university|school)( name)?\b.*\b(attend\w*|name)\b|^school name\b|\bwhat (college|university|school)\b|\bwhich university\b|\bdans quelle école\b|\bpost-secondary education\b/, (q, t) => !/\bdegree\b|high school performance/.test(t)],
 
@@ -180,6 +184,9 @@ const RULES: Rule[] = [
   // Eligibility to obtain a clearance is not holding one: "None held" never answers "eligible?" (WO-042, Anduril).
   // Willing to apply for a clearance is the person's to say; holding none does not answer it (WO-052, Kitware).
   ["clearance_eligibility", /\b(willing|able) (and able )?to (apply for|obtain|get)\b.*\bclearance\b/],
+  // WO-059 (sample H): "are you able obtain", "do you meet the requirements to obtain and maintain a clearance": whether the
+  // person could get one is theirs to say; holding none does not answer it.
+  ["clearance_eligibility", /\b(able|ability|requirements?|qualify|qualified)\b.{0,12}\b(obtain|get|apply for)\b.{0,80}\bclearance\b/],
   ["clearance_eligibility", /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/],
   ["security_clearance", /\bsecurity clearance|\bclearance\b(?!.*\bbackground\b)|\bts\/sci\b|\bdod\b.*\bclearance/, (q, t) => !/\bare you (currently |now )?(a )?(u\. ?s\.?|united states) citizen\b/.test(t)],
   // When the person's authorization ends is theirs to state; a "yes" to being authorized is not "no expiry".
@@ -187,6 +194,7 @@ const RULES: Rule[] = [
   // WO-056: "Are you currently authorized to work in the US? We DO assist with visa sponsorship" asks the authorization.
   ["sponsorship", /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/, (q, t) => (!/^(are|is) you (currently |now )?(legally )?authori[sz]ed to work\b[^?]*\?/.test(t) || /^[^?]*\bsponsor/.test(t)) && !authorizationAsked(t)],
   ["citizenship", /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/, (q, t) => !/renounced|\bwhen\b|obtained|\bdates?\b/.test(t)],
+  ["unknown", /\bat[- ]will\b/],
   ["work_authorization", /\b(legally )?(authori[sz]ed|eligible|entitled) (to work|for employment)\b|\bright to work\b|\bunrestricted right\b|\bproof of authorization\b|\beligibility to work\b|\bpermiso de trabajo\b|\bwork authori[sz]ation\b|\blegal right to work\b|\bverify (your|both your) identity and|\bauthori[sz]ation to work\b/],
   ["over_18", /\b(at least |over (the age of )?|)18( years)?( of age| or older| jaar)\b|\b18 jaar\b|\bunder 18\b|\bover the age of 18\b|\bat least 18\b/],
 
@@ -219,15 +227,15 @@ const RULES: Rule[] = [
   ["unknown", /\b(personal data|your data|data from your application)\b/],
 
   // The application and this employer.
-  ["referral", /\breferr(ed|al|ing)\b/, (q, t) => !/government official|public official|politically exposed|public function/.test(t)],
+  ["referral", /\breferr(ed|al|ing)\b/, (q, t) => !/government official|public official|politically exposed|public function|personally know|know (anyone|someone|a current)|acquainted/.test(t)],
   ["relative_here", /\b(relatives?|family members?|spouses?|related to|in-laws|anyone you live with)\b/, (q, t) => !/friend|household|supplier|vendor|partner|personal (or social )?relationship|social relationship|\bcontacts?\b|practic|profession|occupation|health ?care|purchase|customer|official/.test(t)],
   ["applied_before", /\b(applied|interviewed) (to|for|at|with)?\b.*\b(before|past|previously|within the past)\b|\bhave you (ever )?(previously )?(applied|interviewed)\b|\bpast or existing job application\b/],
   // WO-052: "Are you currently or have you ever been a One Medical Employee?", "Are you now or have you ever been a Penumbra
   // employee?", "Are you a current IEM employee?". A temporary, agency or contract role is not on an employer list: asked.
   ["worked_here_before", /\b(currently|now) or have you ever been (a |an )?[^?]{1,60}\bemployee\b|\bare you (a |an )?current [^?]{1,60}\bemployee\b/, (q, t) => !/temporar|\btemp\b|agency|vendor|contract|consult|intern|government|relative|family/.test(t)],
-  ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client|agency|vendor|third[- ]party/.test(t + " " + opts(q))],
+  ["worked_here_before", /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/, (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client|agency|vendor|third[- ]party|partner|reseller|customer/.test(t + " " + opts(q))],
   // WO-058: work through an agency, a vendor or a third party for this employer is not on the person's employer list.
-  ["unknown", /\b(employed|worked|work|services)\b.*\b(by|for|with|through|to)\b.*\b(staffing|agency|vendor|third[- ]party|contractor)\b/],
+  ["unknown", /\b(employed|worked|work|services)\b.*\b(by|for|with|through|to)\b.*\b(staffing|agency|vendor|third[- ]party|contractor|partner|reseller|customer)\b/],
   ["how_heard", /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|^(applicant |candidate |job |application )?source\b(?!.*referral)|\b(applicant|candidate|application|job|referral) source\b/, (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)],
   // "Available on request" answers only a question about references, never a request to list them (WO-052).
   ["references", /\breferences?\b(?!.*\b(cv|resume)\b)/, (q, t) => !/\b(list|enter|provide|names?|emails?|phone|contact|rationale|evidence|make reference|reference check)\b/.test(t)],

@@ -192,7 +192,7 @@ const RULES: Rule[] = [
   ["unknown", /\bunlawful user\b|\baddicted\b|\bmental (defective|institution)\b|\bdishonorabl\w*\b|\bdischarged\b|\basked to resign\b|\bcourt order\b|\brenounced\b|\bprohibited possessor\b|\bfirearms licensee\b|\bprohibited or restricted\b/],
   ["criminal_history", /\bconvicted\b|\bfelony\b|\bcrime\b|\bindictment\b|\bfugitive\b|\billegally or unlawfully\b/],
   ["government_employment", /\b(u\.?s\.? )?government (\(|employee|employment|or military)|\bgovernment employee\b|\barmed forces\b|\breserves or the national guard\b|\bstate-owned\b|\bus government employment\b|\bprior us government\b/],
-  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|conflict of interest/.test(t)],
+  ["non_compete", /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/, (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory/.test(t)],
   // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
   ["background_check_ok", /\bbackground (check|investigation)\b/, (q, t) => !/drug|substance|reference check|monitor/.test(t)],
 

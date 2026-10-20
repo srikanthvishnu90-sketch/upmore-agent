@@ -1246,7 +1246,7 @@
     [
       "non_compete",
       /\btype of obligation\b|\bnon-?compete\b|\bnon-?solicit|\brestrictive covenant|\bpost-employment obligation|\boutside (employment|business)|\bcontractual obligations\b|\bobligations, if any\b|\bemployment agreement\b|\bconflict of interest\b/,
-      (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory|conflict of interest/.test(t)
+      (q, t) => !/non-?disclosure|confidentiality agreement|confidential (information|agreement)|outside (employment|business)|consult|side business|board roles?|advisory/.test(t)
     ],
     // A yes to a background check is not a yes to a drug test, a reference check or being monitored at work (WO-052).
     [
@@ -2500,11 +2500,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
   }
   function fitsField(f, value) {
-    if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
+    if (f.options.length || f.widget || f.type === "checkbox" || /file/.test(f.type)) return true;
     const t = norm(f.label), v = String(value).trim();
     if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
     if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
-    if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b/.test(t)) && !DATE_VALUE.test(v)) return false;
+    if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t)) && !DATE_VALUE.test(v)) return false;
     if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
     return true;
   }
@@ -2538,7 +2538,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       factId: g.factId
     } : null;
   }
-  var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said|are|were|have|had|do|did|will|would))\b/i;
+  var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said)|you\s+(are|were)\s+(under|over|younger|older|a minor|not)\b)/i;
   var str = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
   function workEntries(answers) {
     const a = answers.work_history;
@@ -3103,6 +3103,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         selector: r.selector,
         ref: r.ref
       })) : f.options || [];
+      const widget = /select__input/.test(f.cls || "") ? "react-select" : null;
       schema.push({
         name,
         label: label || name,
@@ -3111,7 +3112,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         options: opts2.map((r) => ({
           label: r.label,
           value: r.value
-        }))
+        })),
+        // WO-052: a dropdown whose options load only when its menu opens is answered later, on the employer's own options
+        // (chooseWidgetOption); the planner must not read it as a typed box.
+        ...widget ? {
+          widget
+        } : {}
       });
       bindings[name] = {
         field_id: name,
@@ -3119,7 +3125,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         selector: f.selector,
         elementRefs: rows.map((r) => r.ref),
         options: opts2,
-        widget: /select__input/.test(f.cls || "") ? "react-select" : null,
+        widget,
         profile_key: classifyField(label, type)
       };
     }

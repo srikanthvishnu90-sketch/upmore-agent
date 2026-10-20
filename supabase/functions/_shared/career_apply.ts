@@ -71,7 +71,7 @@ export function admitApplication(log: LogRow[], a: { user_id: string; job_id: st
 export interface FormSection { kind: string; row: number; part: string; anchor?: string; format?: string }
 export interface FormField {
   name: string; label: string; required: boolean; type: string; options: { label: string; value: string }[];
-  section?: FormSection; dial?: string; personal?: boolean;
+  section?: FormSection; dial?: string; personal?: boolean; widget?: string;
 }
 export function greenhouseQuestions(job: any): FormField[] {
   const out: FormField[] = [];
@@ -353,11 +353,12 @@ function asksYesNo(t: string): boolean {
   return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
 }
 export function fitsField(f: FormField, value: string): boolean {
-  if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
+  // A dropdown widget's value is chosen later among its own options (chooseWidgetOption), never typed (WO-052, live run).
+  if (f.options.length || f.widget || f.type === "checkbox" || /file/.test(f.type)) return true;
   const t = normQuestion(f.label), v = String(value).trim();
   if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
   if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
-  if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b/.test(t))) && !DATE_VALUE.test(v)) return false;
+  if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t))) && !DATE_VALUE.test(v)) return false;
   if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
   return true;
 }
@@ -382,7 +383,7 @@ function educationEnd(f: FormField, fields: FormField[], answers: Record<string,
 
 // WO-052: and a question that holds only under a condition on the person ("If you are under 18 years of age, can you
 // provide proof...?"): its answer is not the person's general one.
-const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said|are|were|have|had|do|did|will|would))\b/i;
+const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said)|you\s+(are|were)\s+(under|over|younger|older|a minor|not)\b)/i;
 
 // ------------------------------------------------------------------------------------------------ repeating sections
 // WO-048: a repeating section's rows (Workday's work experience, education, languages) are filled only from the person's

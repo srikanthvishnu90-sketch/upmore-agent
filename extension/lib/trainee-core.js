@@ -2064,6 +2064,28 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return out.slice(0, 4);
   }
+  function readAiPolicy(texts) {
+    const order = [
+      "prohibited",
+      "unread",
+      "allowed"
+    ];
+    const found = (texts || []).flatMap((t) => String(t ?? "").split(/\n+/)).map((t) => ({
+      t: plain(t),
+      k: readOne(t)
+    }));
+    for (const k of order) {
+      const hit = found.find((f) => f.k === k);
+      if (hit) return {
+        policy: k,
+        said: hit.t
+      };
+    }
+    return {
+      policy: "unknown",
+      said: null
+    };
+  }
 
   // workers/career-browser/ask-once.ts
   function factsWithTextAnswers(facts, rows) {
@@ -2213,6 +2235,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
     NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
+    OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
+    OWN_WORDS_UNREAD: () => OWN_WORDS_UNREAD,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     applyUrl: () => applyUrl,
     approvalHash: () => approvalHash,
@@ -2692,6 +2716,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return out;
   }
   var draftFactIds = (factId) => typeof factId === "string" && factId.startsWith(DRAFT_PREFIX) ? factId.slice(DRAFT_PREFIX.length).split(",").filter(Boolean) : [];
+  var OWN_WORDS_BANNED = "This form asks for answers written without AI, so Trainee won't draft this one: it needs your own words.";
+  var OWN_WORDS_UNREAD = "This form names its own AI policy without saying what it allows, so Trainee won't draft this one: it needs your own words.";
   function essayQuestions(o) {
     const by = new Map(o.fields.map((f) => [
       f.name,
@@ -2703,11 +2729,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       options: f.options || []
     }).kind === "essay").filter((f) => !by.has(f.name) || by.get(f.name).source === "drafted").map((f) => {
       const n = Number(o.maxLength?.[f.name]);
+      const policy = readAiPolicy([
+        f.label,
+        ...o.schema.map((x) => x.label).filter((l) => l !== f.label)
+      ]).policy;
+      const own = policy === "prohibited" ? OWN_WORDS_BANNED : policy === "unread" ? OWN_WORDS_UNREAD : null;
       return {
         name: f.name,
         label: String(f.label),
         type: String(f.type || "textarea"),
-        chars: Number.isInteger(n) && n > 0 ? n : null
+        chars: Number.isInteger(n) && n > 0 ? n : null,
+        own
       };
     });
   }

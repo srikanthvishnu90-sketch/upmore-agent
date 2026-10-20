@@ -21,7 +21,7 @@ employer confirms. Those numbers decide what we build next; without them every c
   with evidence, and the person is told.
 - Reuse `packages/domain/149-career-portal-apply.js`, `150-career-portal-browser.js`, `scripts/career/portal-browser-helper.cjs`,
   `workers/career-browser/` and `supabase/functions/_shared/career_apply.ts`. Do not rewrite them; extend at their seams.
-- Copy the delivery queue's pattern for the job queue (`supabase/migrations/20261019020000_channel_delivery.sql`,
+- Copy the delivery queue's pattern for the job queue (`supabase/migrations/20261019020001_channel_delivery.sql`,
   `supabase/functions/_shared/channel_store.ts`): claim with `FOR UPDATE SKIP LOCKED`, release only after a clean run,
   sweep a dead claim to a final state, never resend.
 - Every sub-order adds its tests to `scripts/gate.sh` (its explicit lists) and passes `bash scripts/gate.sh`.

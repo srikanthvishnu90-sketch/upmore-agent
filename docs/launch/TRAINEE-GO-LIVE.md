@@ -51,7 +51,9 @@ Function secrets are project-wide in Supabase: every function sees every one.
 2. **migrations**: applies, in order and each once, every migration from the Trainee set on (the `MIGRATIONS` list in
    `scripts/launch/trainee-go-live.sh`; `tests/trainee-go-live.test.cjs` fails if a migration file from `20261019` on is
    missing from it). Today: `20261019000001_career_postings.sql`, `20261019010001_career_alerts.sql`,
-   `20261019020000_channel_delivery.sql`, `20261019030000_channel_inbound.sql` (postings, alerts, the outbox, delivery
+   `20261019020000_site_capture.sql` (the landing page's waitlist and careers capture, ported from `main` by WO-081 and
+   already live, so its live-schema mark skips it), `20261019020001_channel_delivery.sql` (re-versioned from 20261019020000
+   by WO-081 so it never shares a version with the live site capture), `20261019030000_channel_inbound.sql` (postings, alerts, the outbox, delivery
    and inbound), and the apply pipeline `20261020000001_career_apply_jobs.sql`, `20261020010000_career_apply_own_worker.sql`,
    `20261020020000_career_apply_receipts.sql`, `20261020030000_career_apply_cards.sql`,
    `20261020040000_career_apply_card_push.sql`, `20261020050000_career_apply_daily_limit.sql` (the approved-application

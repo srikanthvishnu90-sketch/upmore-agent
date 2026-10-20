@@ -1,4 +1,4 @@
--- Channel delivery (20261019020000_channel_delivery.sql, WO-013b-1): a claim takes only due rows of people with a texting
+-- Channel delivery (20261019020001_channel_delivery.sql, WO-013b-1): a claim takes only due rows of people with a texting
 -- contact and never the same row twice; a failed row is due again only at its retry time; the day's contact count counts
 -- people; a person reads only their own contact and runs nothing; a deleted account leaves no contact behind.
 begin;

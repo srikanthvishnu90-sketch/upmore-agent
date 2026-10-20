@@ -383,6 +383,15 @@ export function careerTools(deps: {
         const persona = name ? st.items.find((p) => p.name === name) ?? null : null;
         if (i.persona && !persona) throw new Error(`no persona named ${String(i.persona)}; saved: ${st.items.map((p) => p.name).join(", ") || "none"}`);
         const r = await tailorForPosting({ userId: c.userId, profile: profileOf(c), posting: { text, job_id, company }, persona, deps: { render: t.render, resumes: t.resumes }, now: c.now });
+        // WO-079: facts waiting for the person's yes are named, with the one question to ask (battery T09 ran out of steps
+        // trying other tools); with none, ask what to build from. A confirmation can only come from their next message.
+        if (!r.ok && r.refused === "no_confirmed_facts") {
+          const drafts = (profileOf(c).facts || []).filter((f: any) => f.needs_confirmation && ["experience", "education", "project"].includes(String(f.kind)))
+            .slice(0, 6).map((f: any) => `- ${String(f.text || f.title || "").slice(0, 160)}`);
+          throw new Error(drafts.length
+            ? `not made yet: there are no confirmed experience, project or education facts on file (a resume uses confirmed facts only). Nothing was stored or sent. Drafts waiting for their yes:\n${drafts.join("\n")}\nAsk them to check these and reply yes (or correct them), then make it after that yes. Do not call another tool this turn.`
+            : `not made: there are no confirmed experience, project or education facts on file. Ask them for their work experience and education in their own words; nothing is invented. Do not call another tool this turn. Nothing was stored or sent.`);
+        }
         if (!r.ok) throw new Error(`not made: ${r.reason}. ${r.refused === "link" ? "The file stays private; no link was given." : "Nothing was stored or sent."}`);
         const { detail: _detail, ...out } = r;
         return out;

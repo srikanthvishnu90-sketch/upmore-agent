@@ -8,7 +8,7 @@ import { receiptText } from "../../supabase/functions/_shared/career_apply_recei
 import { type QuestionRow, runAsks, runMail, runQuestions } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { memoryMailStore } from "../../supabase/functions/_shared/career_mail_store.ts";
 import { memoryAlertStore } from "../../supabase/functions/_shared/career_alert_store.ts";
-import { type MailIn } from "../../supabase/functions/_shared/career_mail.ts";
+import { type MailIn, onEmployerDomain, parseFrom } from "../../supabase/functions/_shared/career_mail.ts";
 import { mimeOf, sendMail } from "../../supabase/functions/_shared/career_mail_gmail.ts";
 import { applyEmailOf } from "../../supabase/functions/_shared/apply_email.ts";
 import { EMAIL_INTENT, type EmailCard, type EmailPayload, type EmailPosting, type EmailStore, emailTurn, type Resume } from "../../supabase/functions/_shared/career_apply_email.ts";
@@ -32,10 +32,19 @@ const row = (o: Partial<QueueRow> & { id: string }): QueueRow => ({
   company: "Stripe", title: "Data Analyst", url: "https://job-boards.greenhouse.io/stripe/jobs/1", state: "submitted_unconfirmed",
   submitted_at: iso(NOW - 2 * DAY), confirmation_hash: null, ...o,
 });
-const received = (hash: string, at: number, o: Partial<MailIn> = {}): MailIn => ({
-  hash, date: iso(at), from: "Stripe <no-reply@us.greenhouse-mail.io>", subject: "Thank you for applying to Stripe",
-  snippet: "We have received your application for the Data Analyst role and will review it shortly.", ...o,
-});
+// Gmail's own Authentication-Results for a message really sent by its From domain (dkim and dmarc pass for it). A scam
+// domain passes for itself too: the domain rules are what refuse it.
+const authFor = (from: string) => {
+  const d = parseFrom(from).domain;
+  return [`mx.google.com; dkim=pass header.i=@${d} header.s=s1 header.b=AbC; spf=pass (google.com: domain of bounce@${d} designates 192.0.2.1 as permitted sender) smtp.mailfrom=bounce@${d}; dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=${d}`];
+};
+const received = (hash: string, at: number, o: Partial<MailIn> = {}): MailIn => {
+  const from = o.from ?? "Stripe <no-reply@us.greenhouse-mail.io>";
+  return {
+    hash, date: iso(at), from, subject: "Thank you for applying to Stripe",
+    snippet: "We have received your application for the Data Analyst role and will review it shortly.", auth: authFor(from), ...o,
+  };
+};
 
 Deno.test("WO-032/C1 the employer's 'we received your application' confirms the one application it matches", () => {
   const plan = planConfirmations([received(H("a"), NOW)], [row({ id: "J1" }), row({ id: "J2", company: "Plaid", url: "https://jobs.lever.co/plaid/2" })]);
@@ -54,9 +63,23 @@ Deno.test("WO-032/C2 a 'received' from another domain (a scam using the employer
     "Stripe <jobs@stripe.xyz>", "Stripe <jobs@lever.xyz>", "Stripe <jobs@ashbyhq.net>", "Stripe <jobs@myworkdayjobs.xyz>",
     // Scheduling and e-signature senders never confirm receipt.
     "Stripe via DocuSign <dse@docusign.net>", "Stripe <no-reply@gem.com>", "Stripe <scheduling@goodtime.io>",
+    // Verification of 0942fd06 (S2): the employer's name on any TLD but .com, when the posting names no site of its own.
+    "Stripe <no-reply@stripe.io>", "Stripe <no-reply@stripe.co>", "Stripe <no-reply@stripe.ai>", "Stripe <no-reply@stripe.us>",
+    "Stripe <no-reply@stripe.co.in>",
   ]) {
     eq(planConfirmations([received(H("c"), NOW, { from })], [row({ id: "J1" })]), [], from);
   }
+  // S2 through an alias: chase.io is not JPMorgan Chase's.
+  eq(planConfirmations([received(H("c"), NOW, { from: "Chase <no-reply@chase.io>" })], [row({ id: "J1", company: "JPMorgan Chase" })]), [], "chase.io");
+  // S3: a shared platform is nobody's own domain, and a platform's receipt is never the employer's confirmation.
+  eq(planConfirmations([received(H("c"), NOW, { from: "Acme <jobs@attacker.github.io>" })], [row({ id: "J1", company: "Acme", url: "https://acme.github.io/careers/1" })]), [], "github.io");
+  eq(planConfirmations([received(H("c"), NOW, { from: "Google Forms <forms-receipts-noreply@google.com>" })], [row({ id: "J1", company: "Acme", url: "https://docs.google.com/forms/d/e/1/viewform" })]), [], "google forms");
+  // Even for an employer whose name is the platform's: a Google Form's receipt is the form's, not a confirmation.
+  eq(planConfirmations([received(H("c"), NOW, { from: "Google Forms <forms-receipts-noreply@google.com>" })], [row({ id: "J1", company: "Google", url: "https://docs.google.com/forms/d/e/1/viewform", title: null })]), [], "google forms, Google");
+  eq(planConfirmations([received(H("c"), NOW, { from: "Acme <notifications@acme.typeform.com>" })], [row({ id: "J1", company: "Acme", url: "https://acme.typeform.com/to/x" })]), [], "typeform");
+  eq(planConfirmations([received(H("c"), NOW, { from: "Acme <jobs@acme.herokuapp.com>" })], [row({ id: "J1", company: "Acme", url: "https://acme.herokuapp.com/jobs/1" })]), [], "herokuapp");
+  // S4: an ATS sender naming a longer, different employer ("Block Party" is not Block).
+  eq(planConfirmations([received(H("c"), NOW, { from: "Block Party <no-reply@us.greenhouse-mail.io>", subject: "Thank you for applying to Block Party" })], [row({ id: "J1", company: "Block", url: "https://job-boards.greenhouse.io/block/jobs/1" })]), [], "Block Party");
   // A Lever application is never confirmed by a stranger on a Lever-looking domain either.
   eq(planConfirmations([received(H("c"), NOW, { from: "Plaid <jobs@lever.com>" })], [row({ id: "J1", company: "Plaid", url: "https://jobs.lever.co/plaid/1" })]), [], "lever.com");
 });
@@ -70,6 +93,12 @@ Deno.test("WO-032/C7 what must still confirm: the real ATS naming the employer, 
   eq(ok("Acme Recruiting <jobs@acme.co.uk>", { company: "Acme", url: "https://careers.acme.co.uk/jobs/1" }), ["J1"], "the employer's own site");
   // When the employer's own site is known, only that registrable domain is theirs.
   eq(ok("Acme Recruiting <jobs@acme.com>", { company: "Acme", url: "https://careers.acme.co.uk/jobs/1" }), [], "acme.com is not acme.co.uk");
+  // A careers word after the name is still the employer; the embed form's ?for= is the board's slug.
+  eq(ok("Block <no-reply@us.greenhouse-mail.io>", { company: "Block", url: "https://job-boards.greenhouse.io/block/jobs/1" }), ["J1"], "Block itself");
+  eq(ok("Acme Payments <jobs@acme.com>", { company: "Acme Payments", url: "https://boards.greenhouse.io/embed/job_app?for=acme&token=1", title: null }), ["J1"], "the embed form's slug");
+  // N3: the comment form of a From line is read properly.
+  eq(parseFrom("no-reply@stripe.com (Stripe)").domain, "stripe.com");
+  eq(ok("no-reply@stripe.com (Stripe Recruiting)"), ["J1"], "the comment form");
   // An ATS sender must name this employer; Greenhouse naming Plaid is not Stripe's.
   eq(ok("Plaid <no-reply@us.greenhouse-mail.io>"), [], "the ATS names another employer");
 });
@@ -470,4 +499,70 @@ Deno.test("WO-032/E12 the card warns when the address is not on the employer's d
   assert(!/not on Acme Retail's domain/.test(ok!.reply), ok!.reply);
   const g = await w.say("apply by email to Gamma Foods");
   assert(g!.reply.includes("This address is not on Gamma Foods's domain; check it against the posting."), g!.reply);
+});
+
+Deno.test("WO-032/C8 a From line proves nothing alone: only Gmail's own Authentication-Results, passing for the sender's domain, let a message confirm", () => {
+  const plan = (auth: string[] | undefined, from = "Stripe Recruiting <careers@stripe.com>") =>
+    planConfirmations([received(H("a"), NOW, { from, auth })], [row({ id: "J1" })]).map((p) => (p as any).id);
+  eq(plan(authFor("careers@stripe.com")), ["J1"], "dmarc and dkim pass for stripe.com");
+  eq(plan(undefined), [], "no Authentication-Results");
+  eq(plan([]), [], "none at all");
+  eq(plan(["mx.google.com; dkim=fail header.i=@stripe.com; spf=softfail smtp.mailfrom=x@evil.example; dmarc=fail (p=REJECT) header.from=stripe.com"]), [], "spoofed: dmarc and dkim fail");
+  eq(plan(["mx.google.com; dkim=pass header.i=@evil.example header.s=s1; dmarc=fail header.from=stripe.com"]), [], "signed, but by another domain");
+  eq(plan(["mx.google.com; dkim=pass header.d=mail.stripe.com header.s=s1"]), ["J1"], "dkim by a subdomain of the sender's registrable domain");
+  // A header the sender wrote below Gmail's own is never read.
+  eq(plan(["mx.google.com; dkim=none; spf=none; dmarc=none header.from=stripe.com", "mx.google.com; dkim=pass header.i=@stripe.com; dmarc=pass header.from=stripe.com"]), [], "only the first (Gmail's) counts");
+  eq(plan(["evil.example; dkim=pass header.i=@stripe.com; dmarc=pass header.from=stripe.com"]), [], "an authserv-id that is not Gmail's");
+  eq(plan(authFor("no-reply@us.greenhouse-mail.io"), "Stripe <no-reply@us.greenhouse-mail.io>"), ["J1"], "Greenhouse, signed by Greenhouse");
+});
+
+Deno.test("WO-032/E13 the card's off-domain warning uses the same domain rules as a confirmation", () => {
+  eq(onEmployerDomain("jobs@acme.co.uk", "Acme", "https://careers.acme.co.uk/jobs/1"), true, "the posting's own site");
+  eq(onEmployerDomain("jobs@evil.co.uk", "Acme", "https://careers.acme.co.uk/jobs/1"), false, "another co.uk");
+  eq(onEmployerDomain("jobs@anything.com.au", "Acme", "https://careers.acme.co.uk/jobs/1"), false, "any com.au");
+  eq(onEmployerDomain("jobs@acme.xyz", "Acme", "https://job-boards.greenhouse.io/acme/jobs/1"), false, "acme.xyz for a Greenhouse posting");
+  eq(onEmployerDomain("jobs@acme.com", "Acme", "https://job-boards.greenhouse.io/acme/jobs/1"), true, "acme.com");
+  eq(onEmployerDomain("jobs@general.com", "General Motors", "https://job-boards.greenhouse.io/gm/jobs/1"), false, "the first word of the name is not the name");
+  eq(onEmployerDomain("jobs@acme.github.io", "Acme", "https://acme.github.io/careers"), false, "a shared platform");
+});
+
+Deno.test("WO-032/E14 the attachment is a PDF or a Word document, and its type can never start a MIME part", () => {
+  const m = (mime: string) => () => mimeOf({ to: "jobs@acme.example", subject: "s", body: "b", attachment: { filename: "r.pdf", bytes: RESUME_BYTES, mime } });
+  for (const ok of ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]) m(ok)();
+  for (const bad of ["text/html", "application/pdf\r\n\r\n--trainee-application-boundary\r\nContent-Type: text/html", "application/x-msdownload"]) {
+    let threw = false;
+    try { m(bad)(); } catch { threw = true; }
+    assert(threw, bad);
+  }
+});
+
+Deno.test("WO-032/E15 sent by Gmail but not recorded: marked unknown, never sent again, and the person is told plainly", async () => {
+  const finishes: string[] = [];
+  let card: EmailCard | null = null, last: any = null;
+  const store: EmailStore = {
+    async postings() { return [POSTING]; },
+    async card() { return card ? JSON.parse(JSON.stringify(card)) : null; },
+    async setCard(_u, c) { card = JSON.parse(JSON.stringify(c)); },
+    async lastAssistant() { return last; },
+    async reserve() { card = { ...card!, state: "sending" }; return { id: "E1", lease_token: "L" }; },
+    async finish(_u, _id, _l, state) { finishes.push(state); if (state === "submitted_unconfirmed") throw new Error("database unavailable"); },
+  };
+  let sends = 0;
+  const say = async (message: string) => {
+    const r = await emailTurn({ message, userId: "U1", threadId: "T1", now: NOW, deps: {
+      store, profile: () => ({ facts: FACTS, basics: { name: "Test Person" } }), draft: { model: stub(CLEAN).model, facts: () => FACTS },
+      resume: async () => ({ filename: "resume.pdf", bytes: RESUME_BYTES, sha256: await resumeSha(), tailored: false }),
+      attachment: async (_u, sha) => ({ filename: "resume.pdf", bytes: RESUME_BYTES, sha256: sha, tailored: false }),
+      canSend: async () => true, send: async () => { sends++; return { status: "sent", idHash: H("7") }; },
+    } });
+    last = r?.waiting ? { intent: EMAIL_INTENT, meta: { email_card: r.card_id } } : { intent: "x", meta: {} };
+    return r;
+  };
+  await say("apply by email to Acme Retail");
+  const r = await say("yes");
+  eq(r?.status, "unknown", JSON.stringify(r));
+  eq(finishes, ["submitted_unconfirmed", "unknown_outcome"]);
+  assert(/will not be sent again/.test(r!.reply) && !r!.waiting, r!.reply);
+  eq(await say("yes"), null, "nothing is waiting to be sent again");
+  eq(sends, 1);
 });

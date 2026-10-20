@@ -76,14 +76,16 @@ export async function readMailSince(
   const mails: MailIn[] = [];
   let through: number | null = null;
   for (const id of todo.slice(0, maxMessages)) {
-    const url = `${API}/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&fields=id,internalDate,snippet,payload/headers`;
+    const url = `${API}/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Authentication-Results&fields=id,internalDate,snippet,payload/headers`;
     const got = await get(d, url, token);
     if ("limited" in got) return { status: "RATE_LIMITED", mails, readThrough: through, listed: ids.length, retryAfterMs: got.limited };
     if (got.r.status === 404) continue; // deleted since it was listed
     if (!got.r.ok) return { status: "ERROR", detail: `read a message: HTTP ${got.r.status}`, mails, readThrough: through, listed: ids.length };
     const msg = await got.r.json().catch(() => null);
     const at = Number(msg?.internalDate) || Date.parse(header(msg, "Date")) || nowMs;
-    mails.push({ hash: await messageHash(userId, id), from: header(msg, "From"), subject: header(msg, "Subject"), snippet: String(msg?.snippet ?? ""), date: new Date(at).toISOString() });
+    // Every Authentication-Results header, in order: only the first (Gmail's own) is ever trusted (career_mail.ts).
+    const auth = (msg?.payload?.headers ?? []).filter((h: any) => String(h?.name ?? "").toLowerCase() === "authentication-results").map((h: any) => String(h?.value ?? "")).slice(0, 5);
+    mails.push({ hash: await messageHash(userId, id), from: header(msg, "From"), subject: header(msg, "Subject"), snippet: String(msg?.snippet ?? ""), date: new Date(at).toISOString(), auth });
     through = Math.max(through ?? 0, at);
   }
   const all = todo.length <= maxMessages;
@@ -155,8 +157,12 @@ const b64 = (bytes: Uint8Array) => {
 const lines76 = (s: string) => s.replace(/.{1,76}/g, "$&\r\n").replace(/\r\n$/, "");
 const utf8 = (s: string) => new TextEncoder().encode(s);
 const encodedWord = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(utf8(s))}?=`);
+// The only attachment types an application carries: a PDF or a Word document. Anything else (or a value carrying a line
+// break, which would start a MIME part of its own) is refused.
+export const ATTACHMENT_TYPES = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 export function mimeOf(m: OutMail, boundary = "trainee-application-boundary"): string {
   if (!ONE_ADDRESS.test(m.to)) throw new Error("one recipient only");
+  if (m.attachment && !ATTACHMENT_TYPES.includes(m.attachment.mime ?? "application/pdf")) throw new Error("an attachment is a PDF or a Word document");
   if (/[\r\n]/.test(m.subject)) throw new Error("a header may not break a line");
   const name = String(m.attachment?.filename ?? "").replace(/["\\\r\n]/g, "").slice(0, 120) || "resume.pdf";
   const parts = [

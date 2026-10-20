@@ -2,8 +2,9 @@
 // (career_proactive_run.ts runMail) reads each new message once; here code decides whether it confirms one of the
 // person's applications in the queue (career_apply_jobs). Nothing is guessed:
 //   - the message says it was received (or is a rejection, an interview or an offer, which also prove receipt);
-//   - it comes from that employer or the applicant tracking system it applies through, naming it (fromEmployer): a
-//     "we received your application" from any other domain confirms nothing;
+//   - it comes from that employer or the applicant tracking system it applies through, naming it (fromEmployer), and Gmail
+//     authenticated it as that domain's (dmarc, or dkim signed by it): a "we received your application" from any other
+//     domain, or one whose From line nothing vouches for, confirms nothing;
 //   - the posting title, where both the message and the application have one, shares words;
 //   - the application went (or may have gone) within the 14 days before the message.
 // Exactly one application fits: it is confirmed (career_apply_confirm_as sets 'confirmed', email_confirmed_at and the evidence:
@@ -46,7 +47,7 @@ export function planConfirmations(mails: MailIn[], queue: QueueRow[]): ConfirmPl
     if (!Number.isFinite(at)) continue;
     const hits = rows.filter((r) => {
       const sent = Date.parse(r.submitted_at);
-      return OPEN.has(r.state) && !r.confirmation_hash && fromEmployer(c, { company: r.company, url: r.url ?? undefined }, m.from) &&
+      return OPEN.has(r.state) && !r.confirmation_hash && fromEmployer(c, { company: r.company, url: r.url ?? undefined }, m.from, m.auth) &&
         Number.isFinite(sent) && sent <= at && at - sent <= CONFIRM_WINDOW_DAYS * DAY &&
         (!c.role || !r.title || roleOverlap(r.title, c.role) >= 0.5);
     });

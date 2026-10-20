@@ -2,7 +2,7 @@
 
 Status: built (branch `wo/032-apply-ops`) · Depends on: WO-021 (the queue and own worker), WO-022 (cards, the last-word
 rule), WO-024 (mail tracking), WO-028 (tailored resumes, PR #49, merged), WO-030 (essay drafts and the fact-lock), ask once
-· Migration: `20261021040000_career_apply_ops.sql`
+· Migration: `20261021075000_career_apply_ops.sql`
 
 ## What it is
 1. **The employer's email confirms an application, and nothing else does.** The scheduled mail run matches an employer email
@@ -13,7 +13,7 @@ rule), WO-024 (mail tracking), WO-028 (tailored resumes, PR #49, merged), WO-030
    (source own_computer or extension) the employer's email confirmed, out of 3. The owner doc says how to read it.
 3. **Apply by email.** Postings that say "email your resume to X" are found in ingestion. "apply by email to Acme" shows the
    whole email: to, subject, a body drafted only from confirmed facts through WO-030's fact-lock, and the resume attached
-   (WO-028's, tailored to the posting, else the person's own file).
+   (WO-028's, tailored to the posting from confirmed facts).
    "yes" sends exactly that email once, from the person's Gmail. It is tracked as an application (source `email`) and
    counted in the D-011 daily limit.
 4. **The open questions are pushed.** The scheduled run texts the questions a preparation left open:
@@ -61,21 +61,29 @@ WO-039's `career_apply_cloud.test.sql` included, with no change on either side. 
 - the count is `state = 'confirmed'`, `source in ('own_computer', 'extension')`, `email_confirmed_at` set, and the
   message's `received` event (not flagged) filed under the application.
 
-**The outbox lists, in file order.** Two trunk migrations come after this file and redefined the kind and key lists
-without `questions`: `20261021050000_career_brief_digest.sql` (WO-034) and `20261021070000_channel_parity.sql` (WO-038,
-#57). In production they would have dropped `questions`, and `tests/outbox-kinds.test.cjs` failed.
-- This migration keeps every kind on trunk: `alert`, `report`, `reply`, `receipt`, `card`, `status`, `followup`, `mock`,
-  `brief`, `digest`, plus its own `questions`.
-- I added `questions` to both later files' two lists, each with a one-line comment. Those are the only lines of
-  another order's migrations this branch touches. It is safe while those migrations are not yet live; I applied nothing
-  anywhere.
-- `link` (#57) is added by the 070000 file itself. Adding it here, in an earlier file, would make the 050000 file "drop"
-  it.
-- **One contact per channel (WO-038).** The questions push and the ask push now:
-  - stop on a STOP on any of the person's channels;
-  - take the thread of the most recent channel.
+**The outbox lists, and why this file is 20261021075000.** The migration was first `20261021040000`. Trunk's
+`20261021050000_career_brief_digest.sql` and `20261021070000_channel_parity.sql` come after that and redefine the kind
+and key lists without `questions`. The first fix edited those two merged files. The architect's verification of
+`0942fd06` showed that cannot work: go-live skips a file already in the ledger, or whose mark is live, and never
+compares its contents. On a database that already ran them:
+- the edits never run;
+- the old `040000` then runs last, with lists that lack `link`;
+- with any `link` row it fails on `career_outbox_key_check` and go-live stops; with none, every Telegram link text is
+  refused from then on.
 
-  This reads `last_inbound_at` through `to_jsonb`, so it also runs on the one-contact schema.
+The fix, and the rule from now on (**never edit a merged migration; a new file always**):
+- Trunk's exact bytes are restored for `050000` and `070000`.
+- This migration is now `20261021075000`, after `070000`. Its lists are 070000's full list plus `questions`.
+- go-live (`MIGRATIONS`/`MIGRATION_MARK` after 070000), `TRAINEE-GO-LIVE.md` and `tests/db/run.sh` (applied after 070000;
+  re-applied before its own test, after the channel parity re-run) follow.
+- A DB check proves a `link` and a `questions` text are both allowed.
+
+**One contact per channel (WO-038).** The questions push and the ask push stop on a STOP on any of the person's
+channels, and take the thread of the most recent channel, as 070000's card push does.
+
+**The card push (S5).** `career_apply_card_push_for` is 070000's, with one addition: it refuses while another prompt is
+the thread's last word (an email card, questions, an ask, in the last 24 hours). A "yes" meant for that prompt would
+otherwise approve the card. A card's own last word stays the open-card rule, so a day-old card is still replaced.
 
 Two existing DB assertions changed for this contract, and only these two:
 - `tests/db/career_apply_jobs.test.sql`, "all six final states persist": a reported `confirmed` now persists as
@@ -100,6 +108,20 @@ No `tests/architect` file was edited.
       `stripejobs.net` are the scam pattern), and no other TLD (`stripe.xyz`).
     - **The application link** counts only for its ATS path slug or Workday tenant, never the ATS host's own name.
     - A personal address, a job board or an assessment vendor never confirms, whatever the display name says;
+    - **Verification of `0942fd06`:**
+      - **S1, authentication.** A message confirms only when Gmail's own Authentication-Results (the first header,
+        authserv-id `mx.google.com`; one the sender wrote lower down is never read) says `dmarc=pass` for the sender's
+        domain, or `dkim=pass` signed by it (`header.d`, or `header.i`'s domain, under the sender's registrable domain).
+        The reader now asks Gmail for that header. A message without it can still be tracked as seen.
+      - **S2, TLDs.** Without a site the posting names, only `.com` counts, and aliases too (`stripe.io`, `stripe.co.in`
+        and `chase.io` are refused).
+      - **S3, shared platforms.** Hosting and form platforms (`google.com`, `typeform.com`, `github.io`,
+        `herokuapp.com`, `notion.site` and the rest of the list in `career_mail.ts`) are public suffixes. A subdomain
+        there is nobody's own site, and a platform's receipt is evidence, never confirmation.
+      - **S4, names.** An ATS sender's name must be the employer's exactly, an alias, or the name plus only careers
+        words ("Block Recruiting" is Block; "Block Party" is not).
+      - **N3, parsing.** The comment form `no-reply@stripe.com (Stripe)` is parsed properly. The embed link's `?for=`
+        is the board slug.
   - the posting title, where both the message and the row have one, shares words (`roleOverlap >= 0.5`);
   - the row was submitted (`claimed_at`, else `created_at`) within the 14 days before the email;
   - the row is `submitted_unconfirmed`, `unknown_outcome`, or a pre-WO-032 `confirmed` without email evidence.
@@ -159,13 +181,18 @@ No `tests/architect` file was edited.
   a fresh yes sends it under the same tracked application: the reserve reuses that one row, keeps the refused attempt in
   its evidence, and it still counts in the daily limit. An unknown outcome is never sent again.
 - **The card warns in one line** when the address is not on the employer's domain ("This address is not on X's domain;
-  check it against the posting.").
+  check it against the posting."). It uses the same rules as a confirming sender (`onEmployerDomain` in
+  `career_mail.ts`, S6): the posting's own site's registrable domain, else the exact name or alias on `.com`, never a
+  platform.
+- **The attachment's type** is a PDF or a Word document, never anything else (N2): a type value can no longer start a
+  MIME part.
+- **Sent, but the record failed** (N4). The application is marked `unknown_outcome`, never sent again, and the person is
+  told plainly to check their Gmail's Sent folder.
 - **One recipient, no Cc, no Bcc.** Both the MIME builder and the reserve enforce it.
 - **The attachment.** PR #49 (WO-028) merged during this order, so the resume is WO-028's, tailored to the posting:
   - `tailorForPosting` builds it from confirmed facts, checks it (truth audit and ATS parse) and stores it privately at
     `career-resumes/<user>/<sha256>.pdf`;
-  - if that refuses, the person's own file is attached (`career:resume-file` names an object in the same bucket);
-  - neither: NOT_WIRED.
+  - if that refuses, NOT_WIRED with what to confirm. The `career:resume-file` fallback was removed: nothing wrote it.
 
   At the yes, the file on the card is read back by its hash and checked byte for byte. The payload carries
   `resume_sha256` and `resume_tailored`, so WO-028's trigger tags the tracked application tailored or not.
@@ -191,7 +218,7 @@ No `tests/architect` file was edited.
   and PR #52's `mock`) and adds `questions`.
 
 ## Tests
-- `tests/architect/wo-032-apply-ops.test.ts`, 23 tests:
+- `tests/architect/wo-032-apply-ops.test.ts`, 27 tests:
   - C1: a match;
   - C2: a scam "received" from another domain, including every lookalike from the review: `greenhouse.xyz`,
     `greenhouse.com`, `stripecareers.com`, `stripejobs.net`, `stripe.xyz`, `lever.xyz`, `ashbyhq.net`,
@@ -219,7 +246,7 @@ No `tests/architect` file was edited.
   - Q2: nothing answered re-asked;
   - Q3: the intent is set, and the numbered answer routes;
   - Q4: quiet hours.
-- `tests/db/career_apply_ops.test.sql`, 48 checks. The migration is applied twice in `tests/db/run.sh`. It covers:
+- `tests/db/career_apply_ops.test.sql`, 50 checks (plus the UTF8 check in `run.sh`). The migration is applied twice in `tests/db/run.sh`. It covers:
   - sources and the trigger;
   - the window and idempotence;
   - the evidence filed in `career_mail_events`;
@@ -263,8 +290,26 @@ No `tests/architect` file was edited.
 | D26 | no warning when the address is off the employer's domain | WO-032/E12 |
 | D27 | SQL: a STOP on another channel is ignored by the pushes | career_apply_ops.test.sql "a STOP on another channel stops the push" |
 
-All of D1 to D27 were re-run against the final code; each fails its test. D4 needed one more assertion in E3: a last
-word that names the card but is not the email's own intent sends nothing.
+| D28 | (S1) a From line alone confirms: no authentication check | WO-032/C8 |
+| D29 | (S1) any Authentication-Results header is trusted, not only Gmail's first | WO-032/C8 |
+| D30 | (S2) any TLD counts when the posting names no site | WO-032/C2, E13 |
+| D31 | (S3) shared platforms count as own domains | WO-032/C2 (a Google Form's receipt for Google) |
+| D32 | (S4) a name prefix counts (`sameCompany` for the ATS sender's name) | WO-032/C2 (Block Party) |
+| D33 | (S6) the posting's site matched by TLD only | WO-032/E13 |
+| D34 | (N2) any attachment type is written raw | WO-032/E14 |
+| D35 | (N3) the comment form of a From line is not parsed | WO-032/C7 |
+| D36 | (N3) the embed form's slug is "embed" | WO-032/C7 |
+| D37 | (N4) a failed record after a sent email throws to the person | WO-032/E15 |
+| D38 | (B1) this migration's outbox lists lack `link` | career_apply_ops.test.sql (the `link` text refused), and `tests/outbox-kinds.test.cjs` |
+| D39 | (S5) the card push ignores a waiting email card | career_apply_ops.test.sql "no card is pushed over an email card waiting as the thread's last word" |
+| D40 | (N1) Unicode spaces not translated in a UTF8 database | `tests/db/run.sh` "career_text_spaces in a UTF8 database" |
+
+D23 (the push compares labels without normalizing) no longer fails in `tests/db/run.sh`, and that is expected. The
+test database is SQL_ASCII, where the push-level no-break-space check now honestly skips (N1). D40 proves the function
+in a UTF8 database instead.
+
+All of D1 to D40 were re-run against the final code; each fails its test. D4 needed one more assertion in E3: a last
+word that names the card but is not the email's own intent sends nothing. D16 (any TLD) is superseded by D30.
 
 ## Measured
 `deno run --allow-read evals/apply/email-apply-coverage.ts` (VERIFIED, offline, 2026-10-20):
@@ -283,9 +328,9 @@ Apply-by-email helps postings outside those boards, and ingestion reads none of 
 The model's draft of the email body is NOT_RUN here (stubbed in tests).
 
 ## Not built
-- **Uploading the person's own resume file.** The tailored resume (WO-028) covers anyone with confirmed facts and a name
-  and email. The fallback file (`career:resume-file`) has no uploader yet, so without a tailored resume the card answers
-  NOT_WIRED with the one-line ask.
+- **Attaching the person's own uploaded file.** Only WO-028's tailored resume is attached; it covers anyone with
+  confirmed facts and a name and email. Without one, the card answers NOT_WIRED with the one-line ask. The unwired
+  `career:resume-file` fallback was removed.
 - **A brain tool or a proactive push for email cards.** The person asks ("apply by email to Acme"). Search results do
   not flag email postings yet.
 - **Live sends.** Gmail send was run only against a fake Gmail. The first live send is the owner's, with his career

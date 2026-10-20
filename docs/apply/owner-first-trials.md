@@ -63,7 +63,7 @@ One row per site: `confirmed` of `needed` (3), `met`, and `awaiting_email` (sent
 - It counts applications that went through Trainee's queue from your own computer (`approve-first.ts run`) or your browser
   extension (`source` own_computer or extension). The worker pool's (`cloud`) never count toward this gate.
 - `confirmed` means the employer's own confirmation email was matched to that application by the mail run
-  (`CAREER_MAIL_TRACKING=on` and your career Gmail grant): same employer, from their domain or their ATS, the role where
+  (`CAREER_MAIL_TRACKING=on` and your career Gmail grant): same employer, from their domain or their ATS (Gmail must authenticate it as theirs), the role where
   both name one, sent within the 14 days before the email. A page that said "thank you for applying" is evidence on the
   row, not confirmation.
 - If two of your applications at one employer fit one email, nothing is confirmed and Trainee texts you once to ask which.

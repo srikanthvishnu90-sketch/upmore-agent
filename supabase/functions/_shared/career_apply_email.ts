@@ -4,24 +4,23 @@
 //   the posting gives, a subject from the posting's title, a body drafted ONLY from the person's confirmed facts through
 //   WO-030's drafting and fact-lock (essay_draft.ts: the employer's AI policy first, every name and number traced to a
 //   confirmed fact or the posting, the length met by rewriting, never by cutting), and the resume attached: the one
-//   WO-028 tailors to this posting from confirmed facts (career_tailor.ts), else the person's own file.
+//   WO-028 tailors to this posting from confirmed facts (career_tailor.ts).
 //   The whole email is shown; nothing is sent.
 //   "yes", while that card is the thread's last word, sends exactly that payload, once, from the person's own Gmail
 //   (users.messages.send through the career grant): one recipient, no Cc, no Bcc. The database takes the yes only for the
 //   payload hash on the card, within a day, under the daily limit, one per posting and one per company per 30 days
 //   (career_apply_email_reserve_as), and the send is recorded on a tracked application (source 'email').
 //   "subject: ..." or "body: ..." changes the email and shows it again; the change needs its own yes. "no" drops it.
-// No career grant that may send: NOT_WIRED, with the one thing to do, and nothing is reserved. No resume file on Trainee's
-// side: NOT_WIRED the same way. The model writes sentences only; code decides everything that matters.
+// No career grant that may send: NOT_WIRED, with the one thing to do, and nothing is reserved. No resume Trainee can
+// attach: NOT_WIRED the same way. The model writes sentences only; code decides everything that matters.
 import { type DraftDeps, draftEssay, MIN_FACTS, whatWouldHelp } from "./essay_draft.ts";
 import { hashApplyPayload } from "./career_apply_store.ts";
-import { roleOverlap, sameCompany } from "./career_mail.ts";
+import { onEmployerDomain, roleOverlap, sameCompany } from "./career_mail.ts";
 import { ONE_ADDRESS, type OutMail, type SendResult } from "./career_mail_gmail.ts";
 import { RESUME_BUCKET, resumePath, type TailorDeps, tailorForPosting } from "./career_tailor.ts";
 
 export const EMAIL_INTENT = "career_apply_email";
 export const EMAIL_CARD_KEY = "career:email-card";
-export const RESUME_FILE_KEY = "career:resume-file";
 export const BODY_WORDS = 150;
 const DAY = 86400000;
 
@@ -98,7 +97,7 @@ export async function prepareEmail(o: { userId: string; posting: EmailPosting; p
   const name = clip(o.profile.basics?.name, 120);
   if (!name) return { ok: false, status: "no_name", reply: `I need your name to sign the email. Tell me your full name, then say "apply by email to ${co}" again.` };
   if (!o.resume) {
-    return { ok: false, status: "NOT_WIRED", reply: `NOT_WIRED: Trainee doesn't have your resume file to attach yet. Add your resume file to Trainee, then say "apply by email to ${co}" again.` };
+    return { ok: false, status: "NOT_WIRED", reply: `NOT_WIRED: Trainee couldn't make a resume to attach from your confirmed facts. Confirm your name, email and at least one job, project or school with me, then say "apply by email to ${co}" again.` };
   }
   if ((await sha(o.resume.bytes)) !== o.resume.sha256) return { ok: false, status: "resume_changed", reply: "Your resume file doesn't match its record, so I won't attach it. Add it again, then ask me again." };
   if (!o.draft) return { ok: false, status: "draft_off", reply: `I can't draft the email here. Write it yourself and send it to ${to}.` };
@@ -131,25 +130,14 @@ export async function prepareEmail(o: { userId: string; posting: EmailPosting; p
 }
 
 // The whole email, as it will go. Plain text; nothing on the card that the email does not carry.
-// Whether the address is on the employer's own domain: the registrable domain of the posting's own site (when the link is
-// not an ATS page), or the employer's name as the domain. When it is not, the card says so in one line; the person checks.
-const regOf = (host: string) => host.toLowerCase().split(".").filter(Boolean).slice(-2).join(".");
-const ATS_LINK = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|myworkdayjobs\.com|workable\.com|icims\.com|jobvite\.com|bamboohr\.com)$/;
-export function onEmployerDomain(p: { to: string; company: string; url: string }): boolean {
-  const toReg = regOf(p.to.split("@")[1] ?? "");
-  let site = "";
-  try { const h = new URL(p.url).hostname; site = ATS_LINK.test(h) ? "" : regOf(h); } catch { /* no site */ }
-  const key = String(p.company).toLowerCase().replace(/&/g, " ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t) => t && !/^(inc|llc|ltd|corp|co|the)$/.test(t));
-  const label = toReg.split(".")[0] ?? "";
-  return (!!site && toReg === site) || (!!label && (label === key.join("") || label === key[0]));
-}
 export function emailCardText(p: EmailPayload, changed = false): string {
   return [
     changed
       ? `Changed. Here is the whole email again; nothing is sent until you say yes to this version.`
       : `${clip(p.company, 80)}'s posting asks for applications by email. Here is the whole email; nothing is sent until you say yes.`,
     `To: ${p.to}`,
-    ...(onEmployerDomain(p) ? [] : [`This address is not on ${clip(p.company, 80)}'s domain; check it against the posting.`]),
+    // The same rules as a confirming sender (career_mail.ts): the posting's own site, else the exact name on .com.
+    ...(onEmployerDomain(p.to, p.company, p.url) ? [] : [`This address is not on ${clip(p.company, 80)}'s domain; check it against the posting.`]),
     `Subject: ${p.subject}`,
     `Attached: ${p.attachment.filename}${p.attachment.tailored ? " (tailored for this job)" : ""}`,
     "",
@@ -242,7 +230,16 @@ export async function emailTurn(o: { message: string; userId: string; threadId: 
   const res = await o.deps.send(o.userId, { to: p.to, subject: p.subject, body: p.body, attachment: { filename: p.attachment.filename, bytes: resume.bytes, mime: resume.mime } })
     .catch((e) => ({ status: "UNKNOWN" as const, detail: e instanceof Error ? e.message : String(e) }));
   if (res.status === "sent") {
-    await s.finish(o.userId, job.id, job.lease_token, "submitted_unconfirmed", { reason: "emailed from the person's Gmail", sent_at: at, message_hash: res.idHash, to: p.to, subject: p.subject });
+    try {
+      await s.finish(o.userId, job.id, job.lease_token, "submitted_unconfirmed", { reason: "emailed from the person's Gmail", sent_at: at, message_hash: res.idHash, to: p.to, subject: p.subject });
+    } catch (e) {
+      // Gmail took it, but the record failed: the application is marked unknown (never sent again) where it can be, and
+      // the person is told plainly. A row that cannot be written at all stays driving, which nothing ever resends.
+      console.error("email apply: sent but not recorded", e instanceof Error ? e.message : String(e));
+      await s.finish(o.userId, job.id, job.lease_token, "unknown_outcome", { reason: "sent from Gmail; the record failed", sent_at: at, message_hash: res.idHash })
+        .catch((e2) => console.error("email apply: unknown not recorded either", e2 instanceof Error ? e2.message : String(e2)));
+      return done(`Your Gmail sent it to ${p.to}, but Trainee couldn't record it, so it is marked unknown and will not be sent again. Check your Gmail's Sent folder.`, "unknown");
+    }
     return done(`Sent to ${p.to} from your Gmail. I'm tracking it, and I'll mark it confirmed when ${co} writes back.`, "sent");
   }
   if (res.status === "NOT_WIRED" || res.status === "REFUSED") {
@@ -290,25 +287,16 @@ export function supabaseEmailStore(admin: any): EmailStore {
     },
   };
 }
-// The resume to attach (WO-028 merged): first the one tailored to this posting from the person's confirmed facts, which
-// tailorForPosting renders, checks (truth audit, ATS parse) and stores privately at career-resumes/<user>/<sha256>.pdf;
-// if it refuses (too few confirmed facts, no contact line), the person's own file, named by the account's
-// career:resume-file record ({path, filename, sha256}) in the same private bucket. Neither: null (NOT_WIRED on the card).
-// At the yes, the file on the card is read back by its hash, so what goes is byte for byte what was shown.
+// The resume to attach (WO-028 merged): the one tailored to this posting from the person's confirmed facts, which
+// tailorForPosting renders, checks (truth audit, ATS parse) and stores privately at career-resumes/<user>/<sha256>.pdf.
+// When it refuses (too few confirmed facts, no contact line), null: NOT_WIRED on the card. At the yes, the file on the
+// card is read back by its hash, so what goes is byte for byte what was shown.
 // deno-lint-ignore no-explicit-any
 export function supabaseResumes(admin: any, o: { profile: () => any; tailor?: TailorDeps | null }) {
   const download = async (path: string): Promise<Uint8Array | null> => {
     const f = await admin.storage.from(RESUME_BUCKET).download(path);
     if (f?.error || !f?.data) return null;
     return new Uint8Array(await f.data.arrayBuffer());
-  };
-  const ownFile = async (u: string): Promise<Resume | null> => {
-    const r = await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", RESUME_FILE_KEY).maybeSingle();
-    const v = r?.data?.value;
-    if (r?.error || !v || typeof v.path !== "string" || !v.path.startsWith(`${u}/`) || !/^[a-f0-9]{64}$/.test(String(v.sha256 ?? ""))) return null;
-    const bytes = await download(v.path);
-    if (!bytes || (await sha(bytes)) !== v.sha256) return null;
-    return { filename: String(v.filename ?? "resume.pdf"), bytes, sha256: String(v.sha256), tailored: false, mime: typeof v.mime === "string" ? v.mime : "application/pdf" };
   };
   return {
     async resume(u: string, p: EmailPosting): Promise<Resume | null> {
@@ -320,14 +308,12 @@ export function supabaseResumes(admin: any, o: { profile: () => any; tailor?: Ta
           if (bytes && (await sha(bytes)) === t.sha256) return { filename: t.filename, bytes, sha256: t.sha256, tailored: true, mime: "application/pdf" };
         }
       }
-      return await ownFile(u);
+      return null;
     },
     async attachment(u: string, sha256: string): Promise<Resume | null> {
       if (!/^[a-f0-9]{64}$/.test(sha256)) return null;
       const tailored = await download(resumePath(u, sha256));
-      if (tailored && (await sha(tailored)) === sha256) return { filename: "resume.pdf", bytes: tailored, sha256, tailored: true, mime: "application/pdf" };
-      const own = await ownFile(u);
-      return own && own.sha256 === sha256 ? own : null;
+      return tailored && (await sha(tailored)) === sha256 ? { filename: "resume.pdf", bytes: tailored, sha256, tailored: true, mime: "application/pdf" } : null;
     },
   };
 }

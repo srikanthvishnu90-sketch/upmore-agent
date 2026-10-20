@@ -18,6 +18,13 @@ insert into channel_contacts(contact,user_id,thread_id,opted_out) values
  ('+15550009604','00000000-0000-4000-8000-000000000964','00000000-0000-4000-8000-0000000009c4',false);
 insert into career_watch_kv(user_id,key,value) select id,'career:account','{"epoch":1,"version":1,"paused":false}' from auth.users where email like 'ops-%@example.test';
 
+-- This file is the latest outbox list (after 20261021070000_channel_parity.sql): every kind before it stays, 'link'
+-- included, beside 'questions' (verification of 0942fd06, B1).
+insert into career_outbox(user_id,key,kind,text,deliver_at) values
+ ('00000000-0000-4000-8000-000000000964','link:wo032-test','link','Reply yes to link this chat.',now()),
+ ('00000000-0000-4000-8000-000000000964','questions:wo032-test','questions','1. A question?',now()-interval '2 days');
+select t.ok((select count(*)=2 from career_outbox where key in ('link:wo032-test','questions:wo032-test')),'link and questions texts are both allowed');
+
 -- Three of A's applications queued: one for the cloud, one for A's computer, one for A's extension.
 set role service_role;
 do $$declare p jsonb;h text;n int;begin
@@ -31,9 +38,10 @@ do $$declare p jsonb;h text;n int;begin
 end $$;
 reset role;
 update career_apply_jobs set created_at=now()-interval '10 minutes'*(4-right(job_id,1)::int) where job_id like 'TEST-OPS-%';
-set role service_role;
+-- The pool claim runs as the owner: WO-039 grants career_apply_claim to no one (its worker has its own claim), so this
+-- holds in either order of merge.
 create temp table cloud as select * from career_apply_claim(now(),1);
-reset role;
+grant select on cloud to service_role;
 select t.ok((select count(*)=1 and bool_and(source='cloud') from cloud),'the worker pool''s claim is the cloud''s');
 select t.as_user('00000000-0000-4000-8000-000000000961');set role authenticated;
 create temp table mine as select * from career_apply_claim_own(1);
@@ -138,12 +146,19 @@ set role service_role;
 select t.ok(not career_apply_questions_push_as('00000000-0000-4000-8000-000000000961',(select open_ids from qs),E'1. Will you require sponsorship?\n2. When can you start?'),'at most one questions text a day');
 reset role;
 
--- A label with a no-break space (U+00A0) is matched as the formatter writes it (one plain space), so it is pushed.
+-- A label with a no-break space (U+00A0) is matched as the formatter writes it (one plain space), so it is pushed. Only a
+-- UTF8 database has code points to translate (production is UTF8; this test database is SQL_ASCII, where chr(160) is a
+-- lone byte and proves nothing): here the push is checked only when the database is UTF8, and tests/db/run.sh checks
+-- career_text_spaces itself in a UTF8 database of its own.
 reset role;
 insert into career_apply_questions(user_id,key,kind,label,type) values
  ('00000000-0000-4000-8000-000000000964','fact:over_18','fact','Are you 18'||chr(160)||'or older?','select');
 set role service_role;
-select t.ok(career_apply_questions_push_as('00000000-0000-4000-8000-000000000964',(select array_agg(id) from career_apply_questions where user_id='00000000-0000-4000-8000-000000000964'),E'One question\n1. Are you 18 or older? (Yes / No)'),'a label with a no-break space is pushed (SQL and the formatter normalize spaces the same way)');
+do $$begin
+ if getdatabaseencoding() = 'UTF8' then
+  perform t.ok(career_apply_questions_push_as('00000000-0000-4000-8000-000000000964',(select array_agg(id) from career_apply_questions where user_id='00000000-0000-4000-8000-000000000964'),E'One question\n1. Are you 18 or older? (Yes / No)'),'a label with a no-break space is pushed (SQL and the formatter normalize spaces the same way)');
+ else raise notice 'skip a label with a no-break space: not a UTF8 database (checked in its own UTF8 database by run.sh)'; end if;
+end $$;
 reset role;
 
 -- An ambiguous email: asked once, answered by number.
@@ -158,6 +173,14 @@ select t.ok((select career_apply_confirm_answer_as('00000000-0000-4000-8000-0000
 select t.must_fail($$select career_apply_confirm_answer_as('00000000-0000-4000-8000-000000000963',repeat('9',64),1)$$,'no_open_ask','answered once');
 reset role;
 select t.ok((select meta->>'intent'='career_apply_confirm_which' from agent_messages where thread_id='00000000-0000-4000-8000-0000000009c3' order by id desc limit 1),'the ask is the thread''s last word');
+-- A card is never pushed while the thread waits on something else (here an email card shown as its last word): a "yes"
+-- meant for the email would otherwise approve the card (architect review, S5).
+insert into agent_messages(thread_id,role,content,meta) values('00000000-0000-4000-8000-0000000009c1','assistant','To: jobs@acme.example ... Reply "yes" to send it.','{"intent":"career_apply_email","email_card":"card-x"}');
+insert into career_apply_prepared(user_id,job_id,company,url,payload,payload_hash,card_lines)
+ values('00000000-0000-4000-8000-000000000961','TEST-OPS-CARD','Card Employer','https://jobs.lever.co/test/card','{}',repeat('7',64),array['Card Employer','Sends to https://jobs.lever.co/test/card']);
+set role service_role;
+select t.ok(career_apply_card_push_as('00000000-0000-4000-8000-000000000961',(select array_agg(id) from career_apply_prepared where job_id='TEST-OPS-CARD'),E'Card Employer\nSends to https://jobs.lever.co/test/card') is null,'no card is pushed over an email card waiting as the thread''s last word');
+reset role;
 -- One contact per channel (WO-038): a STOP on any of the person's channels stops every push.
 insert into channel_contacts(contact,user_id,thread_id,opted_out) values ('tg:96401','00000000-0000-4000-8000-000000000964','00000000-0000-4000-8000-0000000009c4',true);
 insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-000000000964','career:confirm-ask:'||repeat('8',64),

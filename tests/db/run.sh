@@ -231,4 +231,13 @@ echo "== channel_parity.test.sql (WhatsApp and Telegram beside iMessage: per cha
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql"
 echo "== career_apply_ops.test.sql (who drove it, confirmed only by email, the gate, apply by email, questions pushed)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_ops.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The test database is SQL_ASCII; production is UTF8. career_text_spaces (the questions push compares labels with it) is
+# checked in a UTF8 database of its own: a no-break and a narrow no-break space read as plain spaces.
+echo "== career_text_spaces in a UTF8 database"
+"${PSQL[@]}" -c "create database wo032_utf8 encoding 'UTF8' template template0 lc_collate 'C' lc_ctype 'C'"
+sed -n '/^create or replace function public.career_text_spaces/,/^end \$\$;/p' "$ROOT/supabase/migrations/20261021075000_career_apply_ops.sql" \
+  | "$PGBIN/psql" -X -q -v ON_ERROR_STOP=1 -h "$WORK" -p "$PORT" -U postgres -d wo032_utf8 -f -
+U8="$("$PGBIN/psql" -X -q -t -A -h "$WORK" -p "$PORT" -U postgres -d wo032_utf8 -c "select public.career_text_spaces(E'Are you 18\u00a0or\u202folder?  ') = 'Are you 18 or older?'")"
+[[ "$U8" == t ]] || { echo "FAIL career_text_spaces does not read Unicode spaces as plain spaces in UTF8"; exit 1; }
+echo "  ok   a no-break and a narrow no-break space read as plain spaces"
 echo "db tests passed"

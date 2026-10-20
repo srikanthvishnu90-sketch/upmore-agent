@@ -370,9 +370,9 @@ create or replace function public.career_apply_confirm_answer_as(p_user uuid, p_
 language sql security definer set search_path = public, pg_temp as $$ select public.career_apply_confirm_answer_for(p_user, p_hash, p_n, clock_timestamp()) $$;
 
 -- ------------------------------------------------------------------------------------------------ 6. the card push
--- As 20261021070000_channel_parity.sql, with one addition: nothing is pushed while career_thread_busy says the thread is
--- waiting on something else (an email card, questions or an ask shown as its last word in the last 24 hours). A "yes"
--- meant for that would otherwise approve this card.
+-- As 20261021070000_channel_parity.sql, with one addition: nothing is pushed while the thread is waiting on another
+-- prompt (an email card, questions or an ask shown as its last word in the last 24 hours, as career_thread_busy reads
+-- it). A "yes" meant for that would otherwise approve this card.
 create or replace function public.career_apply_card_push_for(p_user uuid, p_ids uuid[], p_text text, p_now timestamptz)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare thread uuid; c public.career_apply_cards; home_contact text; seen timestamptz;
@@ -390,7 +390,11 @@ begin
  end if;
  if exists (select from public.career_apply_cards where user_id = p_user and state = 'open' and shown_at >= p_now - interval '24 hours')
   or exists (select from public.career_outbox where user_id = p_user and kind = 'reply' and created_at >= p_now - interval '30 minutes')
-  or public.career_thread_busy(p_user, thread, p_now)
+  -- WO-032: another prompt still waiting as the thread's last word (an email card, questions, an ask); a card's own last
+  -- word is the open-card rule above, which lets a day-old card be replaced.
+  or coalesce((select m.meta->>'intent' in ('career_apply_questions', 'career_apply_confirm_which', 'career_apply_email')
+                and m.created_at >= p_now - interval '24 hours'
+               from public.agent_messages m where m.thread_id = thread and m.role = 'assistant' order by m.id desc limit 1), false)
   or (select count(*) from public.career_apply_prepared where user_id = p_user and state = 'ready' and id = any(p_ids)) <> cardinality(p_ids)
  then return null; end if;
  if exists (select from public.career_apply_prepared p, unnest(p.card_lines) l

@@ -60,6 +60,7 @@ shared_tests=(
   tests/correction-authority-privacy.test.cjs
   tests/resume-supersession.test.cjs
   tests/resume-supersession-entry.test.cjs
+  tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.

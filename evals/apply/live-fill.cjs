@@ -82,17 +82,22 @@ async function main() {
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, `--host-resolver-rules=${rules}`, "--ignore-certificate-errors", ...(off ? ["--no-sandbox"] : [])],
   });
   const aborted = [];
-  // Ashby's job board reads its own form through GraphQL over POST. A read (a GraphQL query) is let through; a mutation
-  // (submitting, uploading) never is, nor any other POST anywhere.
-  const graphqlRead = (req, u) => {
-    if (u.hostname !== "jobs.ashbyhq.com" || !/^\/api\/non-user-graphql$/.test(u.pathname) || req.method() !== "POST") return false;
+  // Ashby's job board reads its own form through GraphQL over POST. A read (a GraphQL query, fragments allowed before it)
+  // is let through; a document with a mutation or a subscription anywhere (submitting, uploading) never is, nor any other
+  // POST anywhere. Live run 4 aborted 46 Ashby GraphQL posts: their operation names are now recorded, to tell a read the
+  // guard refused from a write it should refuse.
+  const ashbyGraphql = (req, u) => u.hostname === "jobs.ashbyhq.com" && /^\/api\/non-user-graphql$/.test(u.pathname) && req.method() === "POST";
+  const graphqlOps = (req) => {
     try {
-      const body = JSON.parse(req.postData() || "{}");
-      return [].concat(body).every((b) => typeof b.query === "string" && /^\s*query\b/.test(b.query) && !/\bmutation\b/.test(b.query));
+      return [].concat(JSON.parse(req.postData() || "{}")).map((b) => ({
+        name: String(b.operationName || ""),
+        write: typeof b.query !== "string" || /(^|[}\s])(mutation|subscription)\b/.test(b.query) || !/(^|[}\s])query\b|^\s*\{/.test(b.query),
+      }));
     } catch {
-      return false;
+      return [{ name: "", write: true }];
     }
   };
+  const graphqlRead = (req, u) => ashbyGraphql(req, u) && graphqlOps(req).every((o) => !o.write);
   const allowed = [];
   await ctx.route("**/*", (route) => {
     const req = route.request(), u = new URL(req.url());
@@ -102,7 +107,7 @@ async function main() {
       return route.continue();
     }
     if (NEVER.test(u.hostname) || (!local && !["GET", "HEAD", "OPTIONS"].includes(req.method()))) {
-      aborted.push({ method: req.method(), host: u.hostname, path: u.pathname.slice(0, 80) });
+      aborted.push({ method: req.method(), host: u.hostname, path: u.pathname.slice(0, 80), ...(ashbyGraphql(req, u) ? { ops: graphqlOps(req).map((o) => o.name) } : {}) });
       return route.abort("blockedbyclient");
     }
     return route.continue();
@@ -254,6 +259,55 @@ async function main() {
           }
         }
       }
+      // Lever's and Ashby's place search, after the card (nothing is sent; the page closes after): what a page script's
+      // typing lists, whether typed text alone is kept after blur, and one trusted typing as the control. Nothing chosen.
+      if ((f.family === "lever" || f.family === "ashby") && r.fields) {
+        const sel = f.family === "lever" ? "input.location-input" : "[data-field-path='_systemfield_location'] input";
+        r.place_probe = await page.evaluate(async (s) => {
+          const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+          const inp = document.querySelector(s);
+          if (!inp) return { found: false };
+          const vis = (el) => !!el && el.getClientRects().length > 0;
+          const field = inp.closest(".application-field, [class*='fieldEntry']") || inp.parentElement;
+          const hidden = field.querySelector("input[type=hidden]");
+          const lists = () => ({
+            lever: Array.from(field.querySelectorAll(".dropdown-results > *")).filter(vis).map((x) => x.textContent.replace(/\s+/g, " ").trim()).slice(0, 6),
+            options: Array.from(document.querySelectorAll("[role='option']")).filter(vis).map((x) => x.textContent.replace(/\s+/g, " ").trim()).slice(0, 6),
+            expanded: inp.getAttribute("aria-expanded"), controls: inp.getAttribute("aria-controls"),
+          });
+          const set = (v) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(inp, v);
+          const out = { found: true, role: inp.getAttribute("role"), autocomplete: inp.getAttribute("aria-autocomplete"), cls: inp.className.slice(0, 80), value_after_fill: inp.value, hidden_after_fill: hidden ? hidden.value.slice(0, 120) : null };
+          inp.focus(); set(""); inp.dispatchEvent(new Event("input", { bubbles: true }));
+          set("Chicago");
+          inp.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: "Chicago" }));
+          inp.dispatchEvent(new KeyboardEvent("keyup", { key: "o", bubbles: true }));
+          await sleep(3000);
+          out.untrusted_typing = lists();
+          inp.blur(); inp.dispatchEvent(new Event("blur"));
+          await sleep(800);
+          out.typed_kept_after_blur = inp.value;
+          out.hidden_after_blur = hidden ? hidden.value.slice(0, 120) : null;
+          set(""); inp.dispatchEvent(new Event("input", { bubbles: true }));
+          return out;
+        }, sel).catch((e) => ({ error: String(e.message || e).slice(0, 200) }));
+        try {
+          const loc = page.locator(sel).first();
+          await loc.click({ timeout: 5000 });
+          await loc.pressSequentially("Chicago", { delay: 40 });
+          await page.waitForTimeout(3000);
+          r.place_probe_trusted = await page.evaluate((s) => {
+            const inp = document.querySelector(s), field = inp.closest(".application-field, [class*='fieldEntry']") || inp.parentElement;
+            const vis = (el) => !!el && el.getClientRects().length > 0;
+            return {
+              lever: Array.from(field.querySelectorAll(".dropdown-results > *")).filter(vis).map((x) => x.textContent.replace(/\s+/g, " ").trim()).slice(0, 6),
+              options: Array.from(document.querySelectorAll("[role='option']")).filter(vis).map((x) => x.textContent.replace(/\s+/g, " ").trim()).slice(0, 6),
+            };
+          }, sel);
+          await page.keyboard.press("Escape");
+        } catch (e) {
+          r.place_probe_trusted = { error: String(e.message || e).slice(0, 200) };
+        }
+      }
       await panel.close();
     } catch (e) {
       r.status = "error";
@@ -279,6 +333,7 @@ async function main() {
     all: agg(by()), greenhouse: agg(by("greenhouse")), lever: agg(by("lever")), ashby: agg(by("ashby")),
     aborted_requests: aborted.length, aborted_hosts: [...new Set(aborted.map((a) => a.host))],
     allowed_graphql_reads: [...new Set(allowed.map((a) => a.op))],
+    aborted_graphql_ops: [...new Set(aborted.flatMap((a) => a.ops || []))],
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ report, rows, aborted: aborted.slice(0, 200) }, null, 1) + "\n");

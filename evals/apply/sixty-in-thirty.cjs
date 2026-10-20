@@ -234,8 +234,11 @@ async function main() {
     fill: rows.map((r) => T(r, "plan", "fill")),
     card_build: rows.map((r) => T(r, "fill", "first_card")),
     nav_to_card: rows.map((r) => T(r, "nav", "first_card")),
-    approve_to_click: rows.map((r) => (r.times ? r.times.clicked - r.times.approved : null)),
-    click_to_confirmed: rows.map((r) => (r.times ? r.times.done - r.times.clicked : null)),
+    // The person's tap (the bench's trusted click) to the moment before the site's Submit is clicked (content.js
+    // steps.begun, after the re-read, the screenshot and the record), then on to the employer's answer. One machine, one
+    // clock.
+    approve_to_click: rows.map((r) => (r.approve_at && r.times?.steps?.begun ? r.times.steps.begun - r.approve_at : null)),
+    click_to_confirmed: rows.map((r) => (r.done_at && r.times?.steps?.begun ? r.done_at - r.times.steps.begun : null)),
     tap_to_next_card_visible: rows.slice(1).map((r, j) => (rows[j].approve_at && r.card_visible_at ? r.card_visible_at - rows[j].approve_at : null)),
   };
   const report = {

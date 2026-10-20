@@ -72,6 +72,57 @@ function employerScript(form) {
 })();</script>`;
 }
 
+// The TEST stand-in for Lever's and Ashby's place search (their scripts are stripped from the captures). WO-042 live run
+// 4 showed both pages keep no typed text: a place counts only when picked from the employer's own list. This stand-in
+// lists places for what is typed and keeps only a picked one; the live CI run (evals/apply/live-fill.cjs) checks the
+// real pages.
+function placeScript(form) {
+  if (form.family !== "lever" && form.family !== "ashby") return "";
+  return `<script>/* TEST stand-in for ${form.company}'s place search (stripped from the capture). */
+(function () {
+  var PLACES = ["Chicago, Illinois, United States", "Chicago Heights, Illinois, United States", "North Chicago, Illinois, United States", "East Chicago, Indiana, United States", "Chicago Ridge, Illinois, United States", "Illinois, United States", "Illinois City, Illinois, United States"];
+  function wire(input) {
+    var lever = input.classList.contains("location-input");
+    var field = input.closest(".application-field") || input.parentElement;
+    var hidden = lever ? field.querySelector("input[name=selectedLocation]") : null;
+    var picked = null, timer = null;
+    var list = lever ? field.querySelector(".dropdown-results") : null;
+    if (!lever) {
+      list = document.createElement("ul");
+      list.setAttribute("role", "listbox");
+      list.id = "trainee-test-places-" + Math.random().toString(36).slice(2);
+      input.setAttribute("aria-controls", list.id);
+      input.parentElement.appendChild(list);
+    }
+    function render(q) {
+      list.innerHTML = "";
+      if (!q) return;
+      PLACES.filter(function (p) { return p.toLowerCase().indexOf(q.toLowerCase()) >= 0; }).forEach(function (p) {
+        var item = document.createElement(lever ? "div" : "li");
+        if (lever) item.className = "dropdown-location"; else item.setAttribute("role", "option");
+        item.textContent = p;
+        item.addEventListener("mousedown", function (e) { e.preventDefault(); });
+        item.addEventListener("click", function () {
+          picked = p; input.value = p; if (hidden) hidden.value = JSON.stringify({ name: p }); list.innerHTML = "";
+        });
+        list.appendChild(item);
+      });
+    }
+    input.addEventListener("input", function () {
+      picked = null; if (hidden) hidden.value = "";
+      clearTimeout(timer); var q = input.value; timer = setTimeout(function () { render(q); }, 150);
+    });
+    input.addEventListener("blur", function () {
+      setTimeout(function () { if (!picked || input.value !== picked) { input.value = ""; if (hidden) hidden.value = ""; list.innerHTML = ""; } }, 200);
+    });
+  }
+  document.querySelectorAll("input.location-input, input[role=combobox][aria-autocomplete=list]").forEach(function (el) {
+    var entry = el.closest("[data-field-path]");
+    if (el.classList.contains("location-input") || (entry && /location/i.test(entry.getAttribute("data-field-path")))) wire(el);
+  });
+})();</script>`;
+}
+
 // TEST variants, by ?trainee_test=: a verification challenge, values the page sets itself, an identity number field.
 function variant(name) {
   if (name === "captcha") {
@@ -266,7 +317,7 @@ async function startWorld(o = {}) {
       const form = findForm(u);
       if (form && req.method === "GET") {
         const html = strip(fs.readFileSync(path.join(FORMS, form.html), "utf8"));
-        const extra = variant(u.searchParams.get("trainee_test")) + employerScript(form);
+        const extra = variant(u.searchParams.get("trainee_test")) + employerScript(form) + placeScript(form);
         const page = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, extra + "</body>") : html + extra;
         return res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(page);
       }

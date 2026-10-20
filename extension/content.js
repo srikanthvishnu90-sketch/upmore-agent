@@ -28,10 +28,13 @@
   const chosen = new Map(); // name -> the employer's option text a widget fill clicked, shown while the widget still shows it
   const edited = new Set(); // names the person changed themselves (trusted events only)
 
-  // The person's own edits: a trusted input or change on a field. Trainee's own fills dispatch untrusted events.
+  // The person's own edits: a trusted input or change on a field. Trainee's own fills dispatch untrusted events, but a
+  // radio or checkbox Trainee clicks gets a trusted change from the browser itself, so nothing that happens while Trainee
+  // is filling (busy) counts as the person's (WO-042: a fill longer than the refresh delay sent a half-filled card). A
+  // value the person changes meanwhile still differs from what Trainee filled, and the card blocks it as the page's.
   for (const t of ["input", "change"]) {
     document.addEventListener(t, (e) => {
-      if (!e.isTrusted || !form || submitting) return;
+      if (!e.isTrusted || !form || submitting || busy) return;
       const n = D.fieldNameFor(e.target, form);
       if (n) {
         edited.add(n);
@@ -41,7 +44,7 @@
   }
   // A choice picked in a widget menu (no input event on the field itself): the focused field's.
   document.addEventListener("mousedown", (e) => {
-    if (!e.isTrusted || !form || submitting) return;
+    if (!e.isTrusted || !form || submitting || busy) return;
     const n = document.activeElement && D.fieldNameFor(document.activeElement, form);
     if (n && form.bindings[n]?.widget) {
       edited.add(n);
@@ -52,7 +55,7 @@
   const scheduleRefresh = () => {
     if (!reviewed && !plan) return;
     clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => refresh().catch(() => {}), 350);
+    refreshTimer = setTimeout(() => (busy ? undefined : refresh().catch(() => {})), 350);
   };
 
   // Every non-empty answer on the form now, with where it came from (see apply_core.ts Source).
@@ -140,14 +143,16 @@
       for (const p of plan.fill) {
         const b = form.bindings[p.name];
         if (!b || edited.has(p.name)) continue; // never over what the person typed
-        // A dropdown widget: its options are read when its menu opens, and the planner chooses among them.
+        // A dropdown widget or a place search: its options are read when its list opens, and the planner chooses among
+        // them, with the whole form beside it (an education end date is one only beside its school).
         const s = form.schema.find((x) => x.name === p.name);
-        const choose = b.widget && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now() }) : undefined;
+        const listed = b.widget || D.isPlaceSearch(D.element(b.selector));
+        const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now() }) : undefined;
         const ok = await D.fill(b, p.value, resume, choose);
         await sleep(20);
         let v = D.readValue(b);
         if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = "No (left unchecked)";
-        const label = b.widget ? D.takeWidgetChoice() : null;
+        const label = D.takeWidgetChoice();
         if (ok && v) {
           if (label && label !== v) chosen.set(p.name, label);
           filled.set(p.name, v);

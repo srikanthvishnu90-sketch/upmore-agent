@@ -1371,6 +1371,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     wy: "wyoming"
   };
   var US = /^(us|u\.s\.?|usa|u\.s\.a\.?|united states( of america)?|america)$/;
+  function placeQuery(value) {
+    const v = String(value ?? "").trim();
+    const st = STATES[low(v)];
+    if (st) return st.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    return v.split(",")[0].trim();
+  }
   function span(label, unit) {
     const t = low(label).replace(/–|—/g, "-");
     if (/immediate|none\/immediate|no experience|^none$|^0$/.test(t)) return [
@@ -1494,11 +1500,18 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "education_level": {
         const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
-        return re ? only(options.filter((o) => re.test(low(o.label)))) : null;
+        if (!re) return null;
+        const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+        const core = (l) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
+        if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
+        return only(hits);
       }
       case "state": {
         const full = STATES[v] ?? v;
-        return only(options.filter((o) => low(o.label) === full || STATES[low(o.label)] === full));
+        return only(options.filter((o) => {
+          const l = low(o.label).replace(/\s*,\s*(united states( of america)?|usa|us)$/, "");
+          return l === full || STATES[l] === full;
+        }));
       }
       case "location":
       case "city": {
@@ -1778,8 +1791,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (m.fact === "worked_here_before" && answers.former_employers) {
       const co = normCompany(company);
       const listed = String(answers.former_employers.value).split(SPLIT).map(normCompany).filter(Boolean);
+      const here = !!co && listed.some((x) => x === co || co.includes(x) || x.includes(co));
+      const named = normCompany([
+        f.label,
+        ...f.options.map((o) => o.label)
+      ].join(" "));
+      if (!here && listed.some((x) => new RegExp(`(^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(named))) return null;
       a = {
-        value: co && listed.some((x) => x === co || co.includes(x) || x.includes(co)) ? "Yes" : "No",
+        value: here ? "Yes" : "No",
         factId: answers.former_employers.factId
       };
     } else if (m.kind === "screen") {
@@ -1820,6 +1839,36 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
     return true;
   }
+  var EDU_END = /^end-(month|year)--0$/;
+  var MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ];
+  function educationEnd(f, fields, answers) {
+    const m = EDU_END.exec(f.name);
+    const g = answers.graduation_date;
+    if (!m || !g || !fields.some((x) => x.name === "school--0")) return null;
+    const s = String(g.value).trim();
+    const year = /\b(19|20)\d{2}\b/.exec(s)?.[0] ?? null;
+    const num = /^(\d{1,2})[\/.-](19|20)\d{2}$/.exec(s)?.[1] ?? /^(19|20)\d{2}-(\d{1,2})\b/.exec(s)?.[2] ?? null;
+    const named = MONTHS.find((x) => new RegExp(`\\b${x.slice(0, 3)}`, "i").test(s)) ?? null;
+    const month = num && Number(num) >= 1 && Number(num) <= 12 ? MONTHS[Number(num) - 1] : named;
+    const value = m[1] === "year" ? year : month;
+    return value ? {
+      value,
+      factId: g.factId
+    } : null;
+  }
   var FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
   function planBatch(o) {
     const ready = [];
@@ -1854,6 +1903,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
+        if (value === null && !direct) {
+          const e = educationEnd(f, p.fields, o.answers);
+          if (e) {
+            a = e;
+            value = f.options.length ? matchOption(e.value, f.options) : e.value;
+          }
+        }
         if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
           const m = byMeaning(f, p.company, o.answers);
           if (m) {
@@ -2242,6 +2298,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l,
       value: l
     }));
+    const rest = (o.form ?? []).filter((f) => f.name !== o.field.name).map((f) => ({
+      ...f,
+      options: []
+    }));
     const r = planForm({
       userId: o.userId,
       jobId: o.jobId,
@@ -2251,7 +2311,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         {
           ...o.field,
           options
-        }
+        },
+        ...rest
       ],
       answers: o.answers,
       saved: o.saved,
@@ -2396,6 +2457,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     findSubmit: () => findSubmit,
     fnCaptchaTech: () => fnCaptchaTech,
     fnDetectChallenge: () => fnDetectChallenge,
+    isPlaceSearch: () => isPlaceSearch,
     maskFields: () => maskFields,
     observe: () => observe,
     readForm: () => readForm,
@@ -2545,10 +2607,52 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (shown) lastChoice = label;
     return !!shown;
   }
+  function isPlaceSearch(el) {
+    return !!el && el.tagName === "INPUT" && !!(el.classList?.contains("location-input") || el.getAttribute("role") === "combobox" || el.getAttribute("aria-autocomplete") === "list");
+  }
+  async function drivePlace(el, wanted, choose) {
+    const field = el.closest(".application-field, [class*='fieldEntry'], [class*='inputContainer']") || el.parentElement;
+    const hidden = field?.querySelector("input[type='hidden'][name='selectedLocation']") ?? null;
+    const listed = () => {
+      const lever = Array.from(field?.querySelectorAll(".dropdown-results > *") ?? []).filter(visible);
+      if (lever.length) return lever;
+      const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+      const box = id ? doc().getElementById(id) : null;
+      const opts3 = Array.from((box ?? doc()).querySelectorAll("[role='option']")).filter(visible);
+      return opts3.length ? opts3 : null;
+    };
+    const pick = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    const city = placeQuery(wanted);
+    el.focus();
+    setNative(el, city);
+    el.dispatchEvent(new W.InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: city
+    }));
+    el.dispatchEvent(new W.KeyboardEvent("keyup", {
+      key: city.slice(-1),
+      bubbles: true
+    }));
+    const opts2 = await until(listed, 3e3);
+    const label = opts2 ? pick(opts2.map(optionText)) : null;
+    const hit = label ? opts2.find((o) => optionText(o) === label) : null;
+    if (!hit) {
+      setNative(el, "");
+      fire(el, "input");
+      closeMenu(el);
+      return false;
+    }
+    press(hit);
+    const kept = await until(() => String(el.value || "").trim() && (!hidden || String(hidden.value || "").trim()) ? true : null, 1500);
+    if (kept) lastChoice = label;
+    return !!kept;
+  }
   async function fill(b, value, resume, choose) {
     const el = firstEl(b);
     if (!el) return false;
     if (b.widget === "react-select") return await driveWidget(el, value, choose);
+    if (isPlaceSearch(el)) return await drivePlace(el, value, choose);
     if (b.inputType === "file") {
       if (!resume) return false;
       const dt = new W.DataTransfer();

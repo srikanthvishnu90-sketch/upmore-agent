@@ -5,6 +5,7 @@
 // deno-lint-ignore-file no-explicit-any
 import pageFunctions from "../../scripts/career/page-functions.cjs";
 import { bindFields } from "../../scripts/career/form-bind.ts";
+import { placeQuery } from "../../supabase/functions/_shared/answer_options.ts";
 
 const { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech } = pageFunctions as any;
 export { fnCaptchaTech, fnDetectChallenge };
@@ -142,12 +143,53 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   return !!shown;
 }
 
+// A place search that is not a react-select: Lever's location (input.location-input, its results under .dropdown-results,
+// the place kept in a hidden selectedLocation) and Ashby's (an ARIA combobox listing places). WO-042, live run 4: typed
+// text alone leaves both empty on the card (11 of 11 missed), since each page keeps only a place picked from its own
+// list. So the city is typed, the employer's own places are read, and one is clicked only when the planner names it.
+export function isPlaceSearch(el: any): boolean {
+  return !!el && el.tagName === "INPUT" && !!(el.classList?.contains("location-input") || el.getAttribute("role") === "combobox" ||
+    el.getAttribute("aria-autocomplete") === "list");
+}
+async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<boolean> {
+  const field = el.closest(".application-field, [class*='fieldEntry'], [class*='inputContainer']") || el.parentElement;
+  const hidden = field?.querySelector("input[type='hidden'][name='selectedLocation']") ?? null;
+  const listed = () => {
+    const lever = (Array.from(field?.querySelectorAll(".dropdown-results > *") ?? []) as any[]).filter(visible);
+    if (lever.length) return lever;
+    const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+    const box = id ? doc().getElementById(id) : null;
+    const opts = (Array.from((box ?? doc()).querySelectorAll("[role='option']")) as any[]).filter(visible);
+    return opts.length ? opts : null;
+  };
+  const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
+  const city = placeQuery(wanted);
+  el.focus();
+  setNative(el, city);
+  el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
+  el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
+  const opts = await until(listed, 3000);
+  const label = opts ? pick(opts.map(optionText)) : null;
+  const hit = label ? opts!.find((o) => optionText(o) === label) : null;
+  if (!hit) {
+    setNative(el, "");
+    fire(el, "input");
+    closeMenu(el);
+    return false;
+  }
+  press(hit);
+  const kept = await until(() => (String(el.value || "").trim() && (!hidden || String(hidden.value || "").trim()) ? true : null), 1500);
+  if (kept) lastChoice = label;
+  return !!kept;
+}
+
 export interface Resume { name: string; type: string; bytes: Uint8Array; sha256: string }
 // Fill one bound field with the planner's value. Returns false when the page did not take it.
 export async function fill(b: any, value: string, resume: Resume | null, choose?: Chooser): Promise<boolean> {
   const el = firstEl(b);
   if (!el) return false;
   if (b.widget === "react-select") return await driveWidget(el, value, choose);
+  if (isPlaceSearch(el)) return await drivePlace(el, value, choose);
   if (b.inputType === "file") {
     if (!resume) return false;
     const dt = new W.DataTransfer();

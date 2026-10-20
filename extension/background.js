@@ -251,6 +251,9 @@ async function finish(tabId, observation, extra) {
     }
   }
   await keepEvidence({ ...evidence, state: outcome.state, job_id: p.payload.job_id, company: p.payload.company, screenshot: p.screenshot || null, recorded });
+  // The queue's own record first, then the card: a queue read the moment the card says done already shows the outcome
+  // (WO-042; the next posting still opens 900 ms later).
+  await queueAfter(tabId, outcome.state, evidence.ms_card_to_done);
   const card = await setCard(tabId, {
     status: "done", result: outcome.state, ms: evidence.ms_card_to_done,
     message: outcome.state === "confirmed"
@@ -264,7 +267,6 @@ async function finish(tabId, observation, extra) {
   const stats = await get(L, "timing", []);
   if (outcome.state === "confirmed") await put(L, "timing", [...stats, evidence.ms_card_to_done].slice(-500));
   await setPending(tabId, null);
-  await queueAfter(tabId, outcome.state, evidence.ms_card_to_done);
   return card;
 }
 

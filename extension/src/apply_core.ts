@@ -115,13 +115,15 @@ export function planForm(o: {
 // is ever picked: no answer, or one that is not on the list, leaves the widget for the person.
 export function chooseWidgetOption(o: {
   userId: string; jobId: string; company: string; family: Family; field: FormField; labels: string[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number;
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[];
 }): string | null {
   const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
   if (!labels.length) return null;
   const dial = labels.length > 20 && labels.filter((l) => /\s\+\d{1,4}$/.test(l)).length > labels.length * 0.8;
   const options = labels.map((l) => ({ label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l, value: l }));
-  const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }], answers: o.answers, saved: o.saved, now: o.now });
+  // The rest of the form rides along without options, for the rules that read a field beside its neighbours.
+  const rest = (o.form ?? []).filter((f) => f.name !== o.field.name).map((f) => ({ ...f, options: [] }));
+  const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }, ...rest], answers: o.answers, saved: o.saved, now: o.now });
   const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
   return v !== null && labels.includes(v) ? v : null;
 }

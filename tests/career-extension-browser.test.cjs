@@ -271,10 +271,10 @@ test("accuracy: report (precision and coverage per family; dev and held-out)", a
     console.log(`${fam}: precision ${pct(r.all.precision)} (${r.all.correct}/${r.all.filled}), coverage ${pct(r.all.coverage)} (${r.all.correct}/${r.all.should}); held-out precision ${pct(r.heldout.precision)}, coverage ${pct(r.heldout.coverage)}; without react-select widgets coverage ${pct(r.excluding_widgets.coverage)}`);
   }
   if (process.env.EXTENSION_ACCURACY_OUT) fs.writeFileSync(process.env.EXTENSION_ACCURACY_OUT, JSON.stringify({ report, results }, null, 1));
-  // Regression floors at what was measured on 2026-10-20 (docs/architect/work-orders/WO-031-extension.md), not the
-  // target: a reader or planner change that loses ground fails here. Every wrong fill is listed in the report and shown
-  // on the card, where the person reads it before the one tap.
-  const FLOOR = { greenhouse: [0.94, 0.94], lever: [0.97, 0.94], ashby: [0.93, 0.9] };
+  // Regression floors at what was measured (WO-042 Run 2, docs/architect/work-orders/WO-042-sixty-in-thirty.md): a
+  // reader or planner change that loses ground fails here. Precision is held at 100%: one wrong answer fails the suite.
+  // Every wrong fill is listed in the report and shown on the card, where the person reads it before the one tap.
+  const FLOOR = { greenhouse: [1, 1], lever: [1, 0.96], ashby: [1, 0.94] };
   for (const [fam, r] of Object.entries(report.families)) {
     assert.ok(r.all.precision >= FLOOR[fam][0], `${fam} precision ${r.all.precision} fell below ${FLOOR[fam][0]}: ${JSON.stringify(r.wrong)}`);
     assert.ok(r.excluding_widgets.coverage >= FLOOR[fam][1], `${fam} coverage ${r.excluding_widgets.coverage} fell below ${FLOOR[fam][1]}`);

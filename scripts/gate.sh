@@ -57,6 +57,7 @@ shared_tests=(
   tests/trainee-go-live.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
+  tests/depth-CAREER-WRITING.test.cjs
   tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not

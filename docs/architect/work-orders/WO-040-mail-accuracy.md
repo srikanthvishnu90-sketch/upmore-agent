@@ -270,5 +270,6 @@ mail, so the test's own contract changed with it. Disclosed rather than hidden.
 - **Persisting which messages were sent to the model** (no migration). The cursor rule means a message Gmail indexes late,
   after the next read, is never sent to the model.
 - **Within 1 hour:** unchanged from WO-024 (the 5-minute schedule); nothing more is claimed.
-- **DB suite:** NOT_RUN in this worktree. Its isolation guard refuses `su` and `runuser`, and `initdb` refuses root. No SQL
+- **DB suite:** the builder could not run it (its isolation guard refuses `su` and `runuser`, and `initdb` refuses root). The
+  architect ran it as a non-root user on 4e4fb4c3 (this branch merged with trunk at 516ac049): it passes (VERIFIED). No SQL
   changed.

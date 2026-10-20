@@ -6,6 +6,7 @@ import { type Answer, type FormField, planBatch } from "../../supabase/functions
 import { chooseOption, placeQuery } from "../../supabase/functions/_shared/answer_options.ts";
 import { chooseWidgetOption } from "../../extension/src/apply_core.ts";
 import CONTENT from "../../extension/content.js" with { type: "text" };
+import DOM from "../../extension/src/dom.ts" with { type: "text" };
 import BACKGROUND from "../../extension/background.js" with { type: "text" };
 import GRADE from "../fixtures/extension/grade.cjs" with { type: "text" };
 
@@ -87,6 +88,15 @@ Deno.test("WO-042/6 the grader: a place picked from the employer's list is the p
   assert(same("Illinois, United States", "IL"));
   assert(!same("North Chicago, Illinois, United States", "Chicago, IL"));
   assert(!same("Chicago, Indiana, United States", "Chicago, IL"));
+  assert(same("I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter", "No"), "an option that says no meets the key's No");
+  assert(!same("I am a former SpaceX, SpaceXAI, xAI, X, or Twitter employee", "No"));
   assertEquals(yn("I have never worked for SpaceX"), "no");
   assertEquals(yn("I am a former SpaceX employee"), null);
+});
+
+Deno.test("WO-042/7 a place search waits for the page's load and types again when no list came (Lever, live run 5)", () => {
+  const body = DOM.slice(DOM.indexOf("async function drivePlace"), DOM.indexOf("export interface Resume"));
+  assert(/readyState === "complete"/.test(body), "the load is awaited before typing");
+  assert((body.match(/\btype\(\);/g) || []).length === 2, "typed once more when nothing listed");
+  assert(/press\(hit\)/.test(body) && /if \(!hit\)/.test(body), "a place is clicked only when the planner names one");
 });

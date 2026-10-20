@@ -33,7 +33,8 @@ const same = (got, want) => {
   if (PHONE.test(String(want ?? "").trim()) && PHONE.test(String(got ?? "").trim())) return String(got).replace(/\D/g, "") === String(want).replace(/\D/g, "");
   // A phone-country option names the country and its dialing code ("United States +1").
   const g = norm(got).replace(/^no \(left unchecked\)$/, "no").replace(/^(.+?)\s\+\d{1,4}$/, "$1"), w = norm(want);
-  return g === w || (w === "yes (checked)" && g === "yes") || (w === "no" && g === "no") || samePlace(got, want);
+  // A yes or no the key states is met by an option that says it ("I have never worked for SpaceX, ..." is a no).
+  return g === w || (w === "yes (checked)" && g === "yes") || (w === "no" && yn(got) === "no") || (w === "yes" && yn(got) === "yes") || samePlace(got, want);
 };
 // A place picked from the employer's own list names the same place as the persona's short form: "Chicago, Illinois,
 // United States" is "Chicago, IL", and "Illinois, United States" is "IL" (WO-042, Lever's and Ashby's place search).

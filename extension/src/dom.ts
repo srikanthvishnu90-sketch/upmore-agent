@@ -164,11 +164,24 @@ async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<bo
   };
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   const city = placeQuery(wanted);
-  el.focus();
-  setNative(el, city);
-  el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
-  el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
-  const opts = await until(listed, 3000);
+  const type = () => {
+    el.focus();
+    setNative(el, city);
+    el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
+    el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
+  };
+  // Lever wires its place search when the page finishes loading (live run 5: typed during the load, nothing listed in
+  // 3 s on 6 of 6 forms; the same typing after the card listed "Chicago, IL, USA"). So the load is awaited, and the
+  // city typed once more if no list came.
+  await until(() => (doc().readyState === "complete" ? true : null), 5000);
+  type();
+  let opts = await until(listed, 2500);
+  if (!opts) {
+    setNative(el, "");
+    fire(el, "input");
+    type();
+    opts = await until(listed, 2500);
+  }
   const label = opts ? pick(opts.map(optionText)) : null;
   const hit = label ? opts!.find((o) => optionText(o) === label) : null;
   if (!hit) {

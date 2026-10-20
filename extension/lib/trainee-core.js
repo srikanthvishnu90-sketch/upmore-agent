@@ -2623,18 +2623,28 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     const pick = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
     const city = placeQuery(wanted);
-    el.focus();
-    setNative(el, city);
-    el.dispatchEvent(new W.InputEvent("input", {
-      bubbles: true,
-      inputType: "insertText",
-      data: city
-    }));
-    el.dispatchEvent(new W.KeyboardEvent("keyup", {
-      key: city.slice(-1),
-      bubbles: true
-    }));
-    const opts2 = await until(listed, 3e3);
+    const type = () => {
+      el.focus();
+      setNative(el, city);
+      el.dispatchEvent(new W.InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: city
+      }));
+      el.dispatchEvent(new W.KeyboardEvent("keyup", {
+        key: city.slice(-1),
+        bubbles: true
+      }));
+    };
+    await until(() => doc().readyState === "complete" ? true : null, 5e3);
+    type();
+    let opts2 = await until(listed, 2500);
+    if (!opts2) {
+      setNative(el, "");
+      fire(el, "input");
+      type();
+      opts2 = await until(listed, 2500);
+    }
     const label = opts2 ? pick(opts2.map(optionText)) : null;
     const hit = label ? opts2.find((o) => optionText(o) === label) : null;
     if (!hit) {

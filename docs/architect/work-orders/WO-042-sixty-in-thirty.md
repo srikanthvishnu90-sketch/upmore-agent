@@ -200,6 +200,39 @@ What changed:
 - **Planted defects D1–D6:** each new rule reverted in turn, and its test (`tests/architect/wo-042-sixty.test.ts`)
   fails.
 
+### Live run 5: after Run 2's fixes (VERIFIED-LIVE, CI run of 65b76893, never sent)
+
+| | Precision | Coverage |
+|---|---|---|
+| All | 99.5% (185/186) | 91.1% (185/203), from 86.2% |
+| Greenhouse | 98.6% (68/69); widgets 34/42 | 89.5%, from 82.9% |
+| Lever | 100% (67/67) | 88.2%, unchanged |
+| Ashby | 100% (50/50) | 98.0%, from 88.2% |
+
+- **Ashby's place search works live** on every form that has one (5/5), including Crusoe's state ("Illinois, United
+  States").
+- **Greenhouse.** The education end month and year, and Anduril's degree, are filled. SpaceX's first name is filled
+  too; it had been lost to the mid-fill card race.
+- **Lever's location: 0/6.**
+  - Every fill waited the full 3 s for a list, and none came.
+  - The probe after the card, with the same untrusted typing, got "Chicago, IL, USA" on 5 of 6.
+  - Lever wires its search when the page finishes loading, and the fill ran before that.
+  - **Fixed:** the driver now waits for the load event and types once more if no list comes (WO-042/7). Run 6 checks
+    it live.
+- **The one "wrong" verdict is the grader's.** The key states `No`, and the grader compared that text with the option
+  "I have never worked for SpaceX, ...". The grader now compares a yes or no by meaning (WO-042/6). The product-side fix
+  for this question is WO-042/1.
+- **The 46 aborted Ashby GraphQL posts** are `ApiSetFormValue` (Ashby saving each answer as it is typed) and
+  `ApiCreateFileUploadHandle` (the resume upload). Both are writes, so the bench refuses them, rightly. In the person's
+  own browser they go through as the employer intends.
+- **Left:**
+  - School: 3, the persona's fictitious school;
+  - Greenhouse location: 2, see §4;
+  - EōS's certifications multi-select;
+  - Prolific's "based in one of these countries";
+  - Crusoe's text-message consent;
+  - Lever's card questions also missed offline.
+
 ### Session run: 60 postings, model person (VERIFIED-S: simulated person, reading model ASSUMED; offline)
 
 `node evals/apply/sixty-in-thirty.cjs --n 60 --person model --families lever,ashby --label run1-model-lever-ashby`, on

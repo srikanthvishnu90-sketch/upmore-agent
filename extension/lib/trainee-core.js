@@ -2791,12 +2791,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     let label = pick(opts2.map(optionText));
     if (!label && toggle && opts2.length >= 50) {
+      const before = opts2.map(optionText).join("\n");
       el.focus();
       setNative(el, String(wanted));
       fire(el, "input");
-      await sleep(400);
-      opts2 = await until(() => optionEls().length ? optionEls() : null, 2e3);
-      label = opts2 ? pick(opts2.map(optionText)) : null;
+      opts2 = await until(() => {
+        const now = optionEls();
+        if (now.length && now.map(optionText).join("\n") !== before) return now;
+        return doc().querySelector("[class*='menu-notice--no-options']") ? [] : null;
+      }, 2400);
+      label = opts2?.length ? pick(opts2.map(optionText)) : null;
     }
     const hit = label ? (opts2 || []).find((o) => optionText(o) === label) : null;
     if (!hit) {

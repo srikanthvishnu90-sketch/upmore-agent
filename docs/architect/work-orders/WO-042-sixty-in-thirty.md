@@ -364,6 +364,29 @@ What changed:
   five are asks the standing rules require (D-007: never invent). The answer key marks them because a person would
   answer them, and the person does, once (ask-once).
 
+### Live run 14 (VERIFIED-LIVE, CI run of f9feddaf, never sent): the slow fields, timed
+
+- **Precision 100% (194/194), coverage 95.6% (194/203)**: Greenhouse 93.4% (71/76), Lever 94.7% (72/76), Ashby 100%
+  (51/51), widgets 37/42.
+- **One new miss: Veeva's Lever location.**
+  - Lever's own list said "No location found" after the full 8 s wait. The other five Lever forms listed Chicago in
+    0.67–0.71 s, and runs 11–13 had 6/6.
+  - So this was Lever's lookup answering nothing once, not the typing. It is watched in the next runs, not changed on a
+    guess: the page script that toggles its "no results" and "loading" rows was not read, and ending the wait early on
+    the wrong row would lose real places.
+- **The other eight misses are run 13's:** school ×3 (the TEST persona's school is not on the list), 4 planner asks, and
+  Prolific's country list.
+- **Per-field time over 300 ms (`timing.slow`, first measured here):**
+  - Greenhouse `school--0`: 2.5–2.6 s on each of 3 forms. That is a 400 ms sleep plus a 2 s wait for options that could
+    not come.
+  - Greenhouse `candidate-location`: 0.45–0.54 s.
+  - Greenhouse SpaceX's multi-select: 1.07 s.
+  - Lever `location`: 0.67–0.71 s, and 8.0 s on the miss.
+  - Ashby `_systemfield_location`: 0.41–0.47 s.
+- **Fixed in Run 5:** the school search now ends on the filtered list or on react-select's own no-options notice, never
+  a fixed sleep (WO-042/12). It saves up to 2.4 s per Greenhouse form whose school is not listed. Live run 15 measures
+  it.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a

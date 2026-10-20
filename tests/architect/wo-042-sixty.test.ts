@@ -182,3 +182,12 @@ Deno.test("WO-042/11 ask once, from the form: only the person's own answer to a 
   const finish = BACKGROUND.slice(BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") - 400, BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") + 300);
   assert(/observation && p\.form_answers/.test(finish) && /try \{/.test(finish) && /catch/.test(finish), "kept on a confirmed send, best effort");
 });
+
+Deno.test("WO-042/12 a searched long list (a school) reads the filtered list or the page's 'no options', never a fixed sleep", () => {
+  // Live run 14: a school not on Greenhouse's list cost 2.5 s on each of 3 forms (a 400 ms sleep, then 2 s waiting for
+  // options that could not come). The wait now ends on the filtered list or react-select's own no-options notice.
+  const widget = DOM.slice(DOM.indexOf("async function driveWidget"), DOM.indexOf("export function isPlaceSearch"));
+  assert(!/await sleep\(/.test(widget), "no fixed sleep in the widget driver");
+  assert(/menu-notice--no-options/.test(widget), "the page's 'no options' ends the wait");
+  assert(/!== before\) return now/.test(widget), "the list from before the typing is never read as the filtered one");
+});

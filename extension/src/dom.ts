@@ -131,13 +131,19 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   }
   let label = pick(opts.map(optionText));
   // A long list that is searched (a school): the menu filtered by what the planner would answer, then chosen again.
+  // Read the filtered list or the page's own "no options" notice, never the list from before the typing (live run 14: a
+  // school not on Greenhouse's list cost 2.5 s on each of 3 forms, waiting for options that could not come).
   if (!label && toggle && opts.length >= 50) {
+    const before = opts.map(optionText).join("\n");
     el.focus();
     setNative(el, String(wanted));
     fire(el, "input");
-    await sleep(400);
-    opts = await until(() => (optionEls().length ? optionEls() : null), 2000);
-    label = opts ? pick(opts.map(optionText)) : null;
+    opts = await until(() => {
+      const now = optionEls();
+      if (now.length && now.map(optionText).join("\n") !== before) return now;
+      return doc().querySelector("[class*='menu-notice--no-options']") ? [] : null;
+    }, 2400);
+    label = opts?.length ? pick(opts.map(optionText)) : null;
   }
   const hit = label ? (opts || []).find((o) => optionText(o) === label) : null;
   if (!hit) {

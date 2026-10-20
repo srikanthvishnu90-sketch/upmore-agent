@@ -1,21 +1,43 @@
 # Trainee go-live (owner only)
 
-One command, from the repo on your own machine, on the exact commit you want live. No agent runs it: agents never
-deploy, apply migrations to the live project or create credentials (AGENTS.md).
+One command, from the repo on your own machine, checked out at the exact commit you want live, named again with `--sha`.
+No agent runs it: agents never deploy, apply migrations to the live project or create credentials (AGENTS.md).
 
 ```bash
-supabase login                                            # once
-bash scripts/launch/trainee-go-live.sh --dry-run          # prints every command, secrets as ***, touches nothing
-bash scripts/launch/trainee-go-live.sh                    # the real run (asks for what is not in the environment)
+supabase login                                                 # once
+git fetch origin && git checkout --detach <sha>                # the full 40-character commit you worded
+git status --porcelain                                         # must print nothing
+bash scripts/launch/trainee-go-live.sh --sha <sha> --dry-run   # stages the commit, checks it, prints the manifest; nothing live
+bash scripts/launch/trainee-go-live.sh --sha <sha>             # the real run (asks for what is not in the environment)
+bash scripts/launch/trainee-go-live.sh --verify <sha>          # afterwards, any time: does the live project match <sha>?
 ```
 
-Needs `supabase`, `psql`, `node`, `deno`, `git` (`brew install supabase/tap/supabase libpq node deno`). Every value is
+**Provenance (WO-093).** The run ships exactly `<sha>` and nothing else. It refuses to start when the tree has any change
+or untracked file, when `--sha` is missing, short or not `HEAD`, or when the commit's router bundle is stale
+(`python3 scripts/build-router-core.py --check` and `--career-only --check`, run in the staged commit). It then stages
+only `git archive <sha>` (`supabase scripts packages corpus`) into a fresh temp dir and does everything from there:
+migrations, deploys, schedules and the smoke never read this checkout. It prints a **provenance manifest**: the sha, each
+function's entry and bundle sha256 (the sha256 of the sorted list of every file in its import graph with its own sha256,
+plus its remote imports; the same sha gives the same hashes on any machine), each migration with its sha256 and live
+mark, the time and the tool versions; a copy is kept in `~/trainee-provenance/manifest-<sha>-<UTC>.json`. Each migration
+mark read true and each function deployed gets a row in `public.career_deploy_ledger` (service role only, RLS on, no
+client access, append-only), labelled `--label <who>` (default `owner`). `--verify <sha>` reads only: it rebuilds the
+manifest of `<sha>`, reads the latest ledger row per function and per migration, every mark on the live schema and (with
+`SUPABASE_PROJECT_REF`) `supabase functions list`, prints one line per check and exits 1 listing each mismatch: a function
+last deployed from another commit or with another bundle, a function with no row (deployed outside go-live), a platform
+version other than the one the ledger recorded, a missing mark, a migration whose file changed after it was recorded.
+Why: `docs/architect/work-orders/WO-093-deploy-provenance.md`.
+
+Needs `supabase`, `psql`, `node`, `deno`, `git`, `python3`, `tar` (`brew install supabase/tap/supabase libpq node deno`). Every value is
 read from the environment or asked on a hidden prompt; none is echoed, written to a file or put in the log
 (`~/trainee-go-live-<UTC>.log`). The run stops at the first `STEP … FAILED`.
 
 | Flag | Effect |
 |---|---|
-| `--dry-run` | print the plan, run nothing |
+| `--sha <sha>` | **required** for every run but `--only-smoke`: the full 40-character commit, which must be `HEAD` |
+| `--verify <sha>` | read only: compare the deploy ledger and every live migration mark to the manifest of `<sha>`; exit 1 on any mismatch |
+| `--label <who>` | the ledger rows' `deployed_by_label` (letters, digits, space, `. _ @ : + -`; default `owner`; never a secret) |
+| `--dry-run` | print the plan, run nothing live (with `--sha` it still stages the commit, runs the two bundle checks and prints the manifest) |
 | `--skip-migrations` / `--skip-deploy` | skip step 2 / step 4 |
 | `--only-smoke` | only preflight and the smoke checks |
 | `--brain agent` | sets `CAREER_BRAIN=agent` (the agent brain answers career turns). Without it the brain is not touched; `--brain router` unsets it |
@@ -47,7 +69,9 @@ Function secrets are project-wide in Supabase: every function sees every one.
 
 ## The steps and what each changes
 
-1. **preflight**: tools, inputs, a clean tree, `deno check` of the seven entry points. Changes nothing.
+1. **preflight**: tools, inputs, a clean tree at `HEAD` = `--sha`, the commit staged from `git archive <sha>`, the two
+   router bundle checks and `deno check` of the seven entry points in the staged commit, the provenance manifest printed
+   and kept. Changes nothing live.
 2. **migrations**: applies, in order and each once, every migration from the Trainee set on (the `MIGRATIONS` list in
    `scripts/launch/trainee-go-live.sh`; `tests/trainee-go-live.test.cjs` fails if a migration file from `20261019` on is
    missing from it). Today: `20261019000001_career_postings.sql`, `20261019010001_career_alerts.sql`,
@@ -65,14 +89,20 @@ Function secrets are project-wide in Supabase: every function sees every one.
    career migrations (`20261015*`, `20261016*`) are only **checked**: they use plain `create table`, so a missing one stops
    the run and you apply it by hand after looking. Every applied one is additive (new tables, columns, constraints and
    functions; `create ... if not exists` and `create or replace`) and is applied twice in a row by `tests/db/run.sh` to
-   prove a second run changes nothing.
+   prove a second run changes nothing. Then **every mark is read again** (`MIGRATION_MARK` and the earlier ones), and a
+   single missing one fails the step, each named: a ledger row saying "applied" is never taken for the schema (a
+   packet's migrations once never landed). The marks read true get their rows in `public.career_deploy_ledger`
+   (`20261022120000_career_deploy_ledger.sql`, applied by this step). With `--skip-migrations` the same marks are read at
+   the start of step 4, and nothing is deployed on a schema without them.
 3. **secrets**: one `supabase secrets set --env-file` from a 0600 temp file that is removed at once.
 4. **deploy**: first downloads the live `agent-chat` to `~/trainee-rollback/agent-chat-<UTC>` (best effort), then deploys
    `agent-chat` from the career-only staged tree (`node scripts/career/stage-career.cjs`: `index-career.ts` as
    `agent-chat/index.ts`, JWT on; deploying it from the repo tree would ship the shelved finance entry), then
    `career-ingest`, `career-proactive`, `trainee-deliver`, `trainee-inbound`, `trainee-telegram`, `trainee-whatsapp`
    with `--no-verify-jwt` (pg_cron, LoopMessage, Telegram and Meta send no JWT; each function checks its own secret).
-   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`.
+   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`. Every deploy
+   runs from the staged commit, and right after each one its row goes into `public.career_deploy_ledger`: the sha, the
+   function, its bundle sha256 from the manifest, the platform's version number (`supabase functions list`), the label.
 5. **schedules**: runs `schedule-career-ingest.sql` (every 5 min), `schedule-career-proactive.sql` (every 5 min) and
    `schedule-trainee-deliver.sql` (every minute), each with its secret passed by env as the script's header says. Each
    stores the secret in Vault and replaces its pg_cron job. **From here texts go out** to people with a linked contact.
@@ -211,6 +241,9 @@ its rows is a separate decision of yours, never part of a rollback.
   alone: unset only its token.
 - **Stop the schedules**: `psql "$SUPABASE_DB_URL" -c "select cron.unschedule(j) from unnest(array['trainee-deliver','trainee-career-proactive','trainee-career-ingest']) j"`.
   Re-running step 5 brings them back. Their Vault secrets (`trainee_*_secret`) can stay.
+- **Everything back to an earlier commit that has WO-093**: `git checkout --detach <earlier sha>`, then
+  `bash scripts/launch/trainee-go-live.sh --sha <earlier sha> --skip-migrations`, then `--verify <earlier sha>`. The
+  ledger then names that commit for every function. A hand deploy (below) writes no row, so `--verify` reports it.
 - **agent-chat back to the previous version**: `cd ~/trainee-rollback/agent-chat-<UTC> && supabase functions deploy agent-chat --project-ref <ref>`.
   If the download failed: `git checkout <previous commit>`, `node scripts/career/stage-career.cjs /tmp/rb/supabase/functions`,
   write `[functions.agent-chat]` / `verify_jwt = true` to `/tmp/rb/supabase/config.toml`, then

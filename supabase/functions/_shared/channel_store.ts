@@ -1,5 +1,5 @@
 // The texting channel's store over Supabase (WO-013b-1): the ChannelStore of channel.ts over career_outbox and
-// channel_contacts (supabase/migrations/20261019020000_channel_delivery.sql). due() claims rows, so two overlapping runs
+// channel_contacts (supabase/migrations/20261019020001_channel_delivery.sql). due() claims rows, so two overlapping runs
 // never send the same one; release() puts back what a run claimed and did not finish (a capped row); sweep() fails a row
 // a dead run left "sending", never resending it (the provider may already have it: at most once beats twice).
 // WO-038 (20261021070000_channel_parity.sql): the claim resolves each row's channel (its own, or the person's home

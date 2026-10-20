@@ -202,9 +202,12 @@ export function formAnswersToKeep(o: {
   const out: { key: string; kind: string; label: string; type: string; options: string[]; company: string | null; answer: string }[] = [];
   for (const row of q.questions as any[]) {
     if (/file/.test(String(row.type))) continue;
-    const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm(x.label) === row.label);
+    const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm(x.label) === row.label);
     const answer = norm(f?.value ?? "");
     if (!f || !answer || answer === MASKED || answer.length > 2000 || staysWithPosting(row)) continue;
+    // WO-049: a written answer (and above all one Trainee drafted on the card) is kept for this posting only, never as a
+    // fact or a wording that would put it on another employer's form.
+    if ((row.kind === "essay" || f.source === "drafted") && !String(row.key).startsWith("job:")) continue;
     if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || (row.key === "fact:how_heard" && !howHeardChannel(answer)))) continue;
     out.push({ key: row.key, kind: row.kind, label: row.label, type: row.type, options: row.options, company: row.company, answer });
   }
@@ -217,12 +220,14 @@ export function formAnswersToKeep(o: {
 //   you      typed or picked by the person on the page (a trusted input event)
 //   page     set by the employer's page or changed by a script, not by the person: never approved (blocks the tap)
 //   fixed    a read-only field the employer's page set (a reference code): shown, bound to the approval, not blocking
+//   drafted  a written answer Trainee drafted on the card from the person's confirmed facts, put on the form by the
+//            person's own "Use this" (and edited by them, if they did); its factId names the facts (WO-049)
 // `detail` is what the browser actually sends for the field beyond its visible text: a select's option value, the checked
 // state and value of radios and checkboxes, the SHA-256 and size of an attached file's bytes (WO-031 review: the hash
 // covered what was shown, not what was sent).
 //   workday  (WO-048) a value Workday itself had set when Trainee first read the page (a tenant's default, a resume parse):
 //            shown under "Filled by Workday from your resume: check them", never counted as Trainee's, never overwritten
-export type Source = "trainee" | "you" | "page" | "fixed" | "workday";
+export type Source = "trainee" | "you" | "page" | "fixed" | "drafted" | "workday";
 export interface SnapField { name: string; label: string; value: string; source: Source; factId: string | null; masked: boolean; detail?: string }
 export const MASKED = "[typed by you on the form; never kept by Trainee]";
 
@@ -318,7 +323,9 @@ export function cardLines(o: {
   if (o.family === "workday") lines.push(WORKDAY_NOTICE);
   lines.push("Every answer exactly as it will be sent:");
   for (const f of o.payload.fields) {
-    const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : " (set by the page)";
+    const ids = draftFactIds(f.factId);
+    const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
+      : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }
   lines.push(`Resume: ${o.payload.resume_name ?? "none attached"}`);
@@ -379,13 +386,17 @@ export const EVIDENCE_LIMIT = 60_000;
 export async function evidenceRecord(o: {
   payload: ReviewPayload; hash: string; outcome: { state: string; reason: string; confirmation_id: string | null };
   pageText: string; urlAfter: string; screenshotSha256: string | null; screenshotAfterSha256: string | null;
-  times: { card: number; approved: number; clicked: number; done: number };
+  times: { card: number; approved: number; clicked: number; done: number }; drafts?: Record<string, { original: string; factIds: string[] }>;
 }) {
   const answers: Record<string, unknown>[] = [];
+  // WO-049 (D-024): a drafted answer says so in the record, with the facts it came from and whether the person edited it.
+  const drafted = draftProvenance(o.payload.fields, o.drafts ?? {});
   for (const f of o.payload.fields) {
+    const d = drafted[f.name];
+    const prov = d ? { fact_ids: d.fact_ids, edited: d.edited, provenance: d.said } : {};
     answers.push(f.value.length > 500
-      ? { label: f.label.slice(0, 300), value: f.value.slice(0, 500), value_length: f.value.length, value_sha256: await sha256Text(f.value), source: f.source }
-      : { label: f.label.slice(0, 300), value: f.value, source: f.source });
+      ? { label: f.label.slice(0, 300), value: f.value.slice(0, 500), value_length: f.value.length, value_sha256: await sha256Text(f.value), source: f.source, ...prov }
+      : { label: f.label.slice(0, 300), value: f.value, source: f.source, ...prov });
   }
   const iso = (t: number) => new Date(t).toISOString();
   const rec = {
@@ -407,7 +418,8 @@ export async function evidenceRecord(o: {
     ms_card_to_done: o.times.done - o.times.card,
   };
   if (JSON.stringify(rec).length > EVIDENCE_LIMIT) {
-    rec.answers = await Promise.all(o.payload.fields.map(async (f) => ({ value_sha256: await sha256Text(f.label + "\n" + f.value), source: f.source })));
+    rec.answers = await Promise.all(o.payload.fields.map(async (f) => ({ value_sha256: await sha256Text(f.label + "\n" + f.value), source: f.source,
+      ...(drafted[f.name] ? { fact_ids: drafted[f.name].fact_ids, edited: drafted[f.name].edited } : {}) })));
   }
   return rec;
 }
@@ -435,6 +447,61 @@ export function postingLinks(text: string, max = 100): string[] {
     seen.add(key);
     out.push(applyUrl(url));
     if (out.length >= max) break;
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ written answers (WO-049)
+// The card offers "Draft from my facts" on each written question the form still needs (question_map: kind essay). The
+// draft is the server's (supabase/functions/career-essay-draft): the employer's AI policy first, the person's confirmed
+// facts only, every item traced, the form's limit met by writing again. It reaches the form only by the person's "Use
+// this", as source "drafted", and the approval binds its exact text like any other answer.
+export const DRAFT_PREFIX = "essay-draft:";
+// The facts a drafted answer came from, carried in the payload field's factId (at most 200 characters, as a fact id).
+export function draftFactId(ids: string[]): string {
+  let out = DRAFT_PREFIX;
+  for (const id of ids.map((x) => String(x).replace(/[,\s]+/g, "")).filter(Boolean)) {
+    const next = out === DRAFT_PREFIX ? out + id : `${out},${id}`;
+    if (next.length > 200) break;
+    out = next;
+  }
+  return out;
+}
+export const draftFactIds = (factId: string | null | undefined): string[] =>
+  typeof factId === "string" && factId.startsWith(DRAFT_PREFIX) ? factId.slice(DRAFT_PREFIX.length).split(",").filter(Boolean) : [];
+
+export interface EssayAsk { name: string; label: string; type: string; chars: number | null }
+// The written questions the card offers to draft: required, not an identity number, a written answer by the question map,
+// and not answered yet, or answered with a draft the person used (so its text stays editable on the card). One the person
+// typed themselves, or that Trainee filled from a saved answer, is theirs and not offered.
+export function essayQuestions(o: { schema: FormField[]; fields: { name: string; source: string }[]; maxLength?: Record<string, number> }): EssayAsk[] {
+  const by = new Map(o.fields.map((f) => [f.name, f]));
+  return o.schema
+    .filter((f) => f.required && !isIdentityField(f) && mapQuestion({ label: f.label, type: f.type, options: f.options || [] }).kind === "essay")
+    .filter((f) => !by.has(f.name) || by.get(f.name)!.source === "drafted")
+    .map((f) => {
+      const n = Number(o.maxLength?.[f.name]);
+      return { name: f.name, label: String(f.label), type: String(f.type || "textarea"), chars: Number.isInteger(n) && n > 0 ? n : null };
+    });
+}
+// A draft the card may show: the server said ok, whole text that ends a sentence, within one answer's size. Anything else
+// (a refusal, an unverified or cut-off draft) is never shown; the card says why in one line.
+export function showableDraft(r: unknown): boolean {
+  const x = r as any;
+  return !!x && x.ok === true && typeof x.text === "string" && x.text.trim().length > 0 && x.text.length <= 2000 &&
+    /[.!?]["”')\]]?$/.test(x.text.trim()) && Array.isArray(x.fact_ids) && x.fact_ids.every((i: unknown) => typeof i === "string");
+}
+// For the proof (D-024): each drafted answer, the facts it came from and whether the person edited it before it went.
+export function draftProvenance(fields: { name: string; value: string; source: string; factId: string | null }[],
+  drafts: Record<string, { original: string; factIds: string[] }>) {
+  const out: Record<string, { fact_ids: string[]; edited: boolean; said: string }> = {};
+  const flat = (s: string) => String(s ?? "").replace(/\s+/g, " ").trim();
+  for (const f of fields) {
+    if (f.source !== "drafted") continue;
+    const d = drafts[f.name];
+    const ids = draftFactIds(f.factId).length ? draftFactIds(f.factId) : d?.factIds ?? [];
+    const edited = !d || flat(f.value) !== flat(d.original);
+    out[f.name] = { fact_ids: ids, edited, said: `drafted by Trainee from your facts${ids.length ? ` (${ids.join(", ")})` : ""}, ${edited ? "edited and used by you" : "used by you as drafted"}` };
   }
   return out;
 }

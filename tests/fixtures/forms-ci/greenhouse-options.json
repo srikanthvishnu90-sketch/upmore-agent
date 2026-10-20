@@ -1,7 +1,7 @@
 {
  "version": 1,
  "source": "https://boards-api.greenhouse.io/v1/boards/{board}/jobs/{id}?questions=true and https://boards-api.greenhouse.io/v1/boards/{board}/education/{degrees,disciplines}",
- "captured_at": "2026-10-20T07:00:09.939Z",
+ "captured_at": "2026-10-20T07:55:57.111Z",
  "forms": {
   "greenhouse-prolificacademicltd-4979452101": {
    "status": "live",

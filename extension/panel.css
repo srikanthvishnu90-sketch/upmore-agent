@@ -24,3 +24,8 @@ footer { border-top: 1px solid var(--line); padding-top: 8px; }
 .shots figure { margin: 0; }
 .shots img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
 blockquote { margin: 6px 0; padding-left: 8px; border-left: 3px solid var(--line); white-space: pre-wrap; }
+/* WO-049: a written question on the card, its draft shown whole, and the person's Use this / Redo. */
+.essay { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 8px 0; }
+.essay .essay-label { display: block; margin-bottom: 4px; word-break: break-word; }
+.essay textarea { min-height: 120px; resize: vertical; margin: 4px 0; }
+.essay .row { justify-content: flex-start; }

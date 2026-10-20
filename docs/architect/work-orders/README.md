@@ -27,3 +27,11 @@ real texting channel is last (D-009).
 | [016](WO-016-brain-to-the-bar.md) | The agent brain to the D-008 bar (≥ 80% and ≥ router + 40 on the eval set), measured on the real model, ≤ $25 a night | ready | 002, 003 | M1 | Codex |
 | [019](WO-019-conversation-memory.md) | A conversation that holds together: 20-conversation eval (part A, done), then person block, thread references and a longer window (part B) to ≥ 17/20 | A done, B after 016 | 002, 003, 016 | M1 | Architect (A), Codex (B) |
 | [020](WO-020-understand-any-question.md) | Understand any application question by meaning; ask the rest once, in the approval text (measured: median 3 left per posting today, target ≤ 2) | ready after 016 | 009a, 009b-6 data | M1 | Codex |
+| [042](WO-042-sixty-in-thirty.md) | 60 reviewed applications in 30 minutes, 90%+ fields, zero wrong-answer submissions; live fill on 17 real pages | done (PR #62, 2026-10-20) | 031 | M4 | Claude |
+| 043 | Mail tracking generalises (blind160) | done (PR #69, 2026-10-20) | 040 | M4 | Claude |
+| 044 | Discovery toward 50,000 boards every 6 h | building (wo/044-discovery-scale) | 037 | M2 | Claude (builder) |
+| 045 | Mail: interviews, terse replies, employer names (blind200) | done (PR #70, 2026-10-20) | 043 | M4 | Claude (builder) |
+| 046 | Mail in other languages (scored once on a sealed 240-message set: 99.4% / 89.1%) | done (PR #73, 2026-10-20) | 045 | M4 | Claude (builder) |
+| 047 | Answer bank: residence by country, lists without a yes, the country among its territories | done (PR #71, 2026-10-20) | 020 | M4 | Claude |
+| [048](WO-048-workday.md) | Workday fill in the extension (70%+ target): fixtures from public sources by a separate writer, 4 tenants sealed; the person signs in (D-013 b); every page's "Save and Continue" and the final Submit each need the person's tap | building (wo/048-workday); 2 dev tenants, 4 sealed | 031 | M4 | Claude |
+| 049 | Essays drafted on the extension card from confirmed facts, on the person's tap, shown in full, used only on "Use this" (job-scoped) | done (PR #72, 2026-10-20); deploy is the owner's | 030, 031 | M4 | Claude (builder) |

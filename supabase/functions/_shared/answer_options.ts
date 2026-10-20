@@ -131,7 +131,9 @@ export const howHeardChannel = (value: string) => HOW_HEARD.some(([v]) => v.test
 export function yesNoFromFact(fact: string, value: string, question: string): "yes" | "no" | null {
   const q = low(question), v = low(value);
   const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
-  if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v ? "no" : null;
+  // "In Canada or the U.S.?", "a U.S. citizen or permanent resident?": a yes from the person's country is right; a no is not
+  // known, since the other half may be true of them (WO-047).
+  if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
   if (fact === "education_level") {
     const order = ["high_school", "some_college", "associate", "bachelor", "master", "doctorate"];
     const have = order.indexOf(v.replace(/'s|s$/g, "").replace(/ degree$/, ""));
@@ -159,7 +161,12 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
   if (exact.length) return exact[0].value;
   if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
   const derived = question ? yesNoFromFact(fact, value, question) : null;
-  if (derived) return byYesNo(derived, options);
+  // A derived yes or no lands only on a yes or no option; a list with no yes ("Master's | Bachelor's | ... | Not
+  // applicable", "Canada | US | Other") is answered by the fact itself, below (WO-047).
+  if (derived) {
+    const yn = byYesNo(derived, options);
+    if (yn || options.some((o) => yesNoOf(o.label) === "yes")) return yn;
+  }
   switch (fact) {
     case "how_heard": {
       const rule = HOW_HEARD.find(([v2]) => v2.test(v));
@@ -205,8 +212,11 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     case "country":
     case "citizenship":
       if (US.test(v)) {
-        // WO-048: "United States of America" (or "... (+1)" on a phone code list) beside "United States Minor Outlying
-        // Islands": the one that names the country whole.
+        // A country list holds "United States" and "United States Minor Outlying Islands": the country itself, when it is
+        // there exactly once, is the answer (WO-047, Canonical).
+        const itself = options.filter((o) => US.test(low(o.label)));
+        if (itself.length === 1) return itself[0].value;
+        // WO-048: the same on a phone code list ("United States of America (+1)" beside "... Outlying Islands (+1)").
         const whole = options.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
         if (whole.length === 1 && options.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
         return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));

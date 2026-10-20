@@ -211,6 +211,51 @@ function setWorkdayNext(tabId, on) {
   nextQueue = run.catch(() => {});
   return run;
 }
+// WO-049: the written answers drafted on each tab's card, by posting and field: { [tabId]: { jobId, items: { [name]: item } } }.
+// An item is drafting, drafted (shown whole, not on the form), used (on the form by the person's own "Use this"),
+// refused (the employer's AI policy) or failed (thin facts, not verified, too long, the service, the daily limit).
+// Only the panel asks for a draft (essay-draft), only on the person's tap; nothing drafts on its own.
+const draftsAll = async () => await get(S, "essay_drafts", {});
+let draftQueue = Promise.resolve();
+function setDraft(tabId, jobId, name, item) {
+  const run = draftQueue.then(async () => {
+    const all = await draftsAll();
+    const mine = all[tabId] && all[tabId].jobId === jobId ? all[tabId] : { jobId, items: {} };
+    mine.items[name] = { ...item, updated_at: Date.now() };
+    all[tabId] = mine;
+    await put(S, "essay_drafts", all);
+    return mine.items[name];
+  });
+  draftQueue = run.catch(() => {});
+  return run;
+}
+async function draftsFor(tabId, jobId) {
+  const d = (await draftsAll())[tabId];
+  return d && jobId && d.jobId === jobId ? d.items : {};
+}
+const oneLine = (s, dflt) => String(s || dflt).replace(/\s+/g, " ").trim().slice(0, 600);
+// The question as the employer's form asks it, the posting, and the form's other labels (for its AI policy). Never a fact:
+// the function reads the person's confirmed facts from their account itself.
+async function requestDraft(card, q, previous) {
+  const a = await session();
+  if (!a) return { ok: false, why: "signed_out", message: say.signedOut };
+  const cfg = await config();
+  const body = {
+    posting: card.jobId, company: card.company, label: q.label, type: q.type,
+    siblings: (card.formLabels || []).filter((l) => l !== q.label).slice(0, 200), limit: { chars: q.chars ?? null }, previous: previous || null,
+  };
+  try {
+    const r = await fetch(cfg.supabaseUrl + "/functions/v1/career-essay-draft", {
+      method: "POST", headers: { apikey: cfg.anonKey, authorization: "Bearer " + a.access_token, "content-type": "application/json" }, body: JSON.stringify(body),
+    });
+    const j = await r.json().catch(() => null);
+    if (r.status === 401) return { ok: false, why: "signed_out", message: say.signedOut };
+    return j && typeof j === "object" ? j : { ok: false, why: "model", message: "" };
+  } catch {
+    return { ok: false, why: "model", message: "" };
+  }
+}
+const NO_DRAFT = "Trainee couldn't draft this right now, so nothing changed and the question is still open. Try again in a few minutes.";
 
 async function keepEvidence(rec) {
   const list = await get(L, "evidence", []);
@@ -271,8 +316,11 @@ async function finish(tabId, observation, extra = {}) {
   const evidence = await C.evidenceRecord({
     payload: p.payload, hash: p.hash, outcome, pageText: observation?.page_text || "", urlAfter: observation?.url_after || p.url_before,
     screenshotSha256: p.screenshot_sha256, screenshotAfterSha256: shotAfter?.sha256 ?? null,
-    times: { card: p.card_shown_at, approved: p.approved_at, clicked: p.clicked_at || done, done },
+    times: { card: p.card_shown_at, approved: p.approved_at, clicked: p.clicked_at || done, done }, drafts: p.drafts || {},
   });
+  // WO-049 (D-024): a drafted answer is shown in the proof as drafted by Trainee from the person's facts (their ids), and
+  // used as drafted or edited by them.
+  const provenance = C.draftProvenance(p.payload.fields, p.drafts || {});
   let recorded = false;
   for (let i = 0; i < 3 && !recorded; i++) {
     try {
@@ -286,7 +334,8 @@ async function finish(tabId, observation, extra = {}) {
   const proved = outcome.state === "confirmed" && !!shotAfter;
   await keepEvidence({
     ...evidence, id: p.id, state: outcome.state, proved, job_id: p.payload.job_id, company: p.payload.company, url: p.payload.url,
-    approved_answers: p.payload.fields, screenshot: p.screenshot || null, screenshot_after: shotAfter?.dataUrl || null, recorded,
+    approved_answers: p.payload.fields.map((f) => (provenance[f.name] ? { ...f, provenance: provenance[f.name].said, fact_ids: provenance[f.name].fact_ids, edited: provenance[f.name].edited } : f)),
+    screenshot: p.screenshot || null, screenshot_after: shotAfter?.dataUrl || null, recorded,
   });
   // Ask once, from the form: the person's own answers on the card they approved are kept for later forms, only once the
   // application went (never for a stop before the click). A failure here never touches the application's outcome.
@@ -454,8 +503,14 @@ async function handle(m, sender) {
       if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash || card.action === "draft") return { ok: false, message: "This application was not approved as it is now. Nothing was sent." };
       try {
         const row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
+        // The drafts behind each drafted answer, as Trainee wrote them, for the proof (edited or used as drafted).
+        const items = await draftsFor(tabId, card.jobId), drafts = {};
+        for (const f of m.payload.fields || []) {
+          const d = items[f.name];
+          if (f.source === "drafted" && d?.original) drafts[f.name] = { original: d.original, factIds: d.factIds || [] };
+        }
         await setPending(tabId, {
-          id: row.id, lease: row.lease, hash: m.hash, payload: m.payload, url_before: m.urlBefore, planned_names: m.plannedNames,
+          id: row.id, lease: row.lease, hash: m.hash, payload: m.payload, url_before: m.urlBefore, planned_names: m.plannedNames, drafts,
           form_answers: m.formAnswers?.answers?.length ? m.formAnswers : null,
           card_shown_at: card.shown_at, approved_at: card.approved_at, screenshot_sha256: m.screenshot?.sha256 || null, screenshot: m.screenshot?.dataUrl || null,
         });
@@ -508,9 +563,10 @@ async function handle(m, sender) {
       const a = await session();
       const resume = await get(L, "resume", null);
       const timing = await get(L, "timing", []);
+      const card = m.tabId !== undefined ? (await cards())[m.tabId] || null : null;
       return {
         signedIn: !!a, email: a?.email || "", resume: resume ? { name: resume.name, sha256: resume.sha256 } : null,
-        card: m.tabId !== undefined ? (await cards())[m.tabId] || null : null, queue: await queueState(),
+        card, drafts: card ? await draftsFor(m.tabId, card.jobId) : {}, queue: await queueState(),
         timing: { n: timing.length, avg_ms: timing.length ? Math.round(timing.reduce((x, y) => x + y, 0) / timing.length) : null },
         importedFacts: Object.keys((await get(S, "imported_facts", { answers: {} })).answers).length,
       };
@@ -558,6 +614,40 @@ async function handle(m, sender) {
         await setCard(m.tabId, { status: "stopped", message: "The page could not be reached, so nothing was sent.", approved: false }, "unreachable");
       });
       return { ok: true };
+    }
+    case "essay-draft": {
+      // WO-049: the person's tap on "Draft from my facts" (or "Redo") for one written question on the card in front of them.
+      const card = (await cards())[m.tabId];
+      const q = (card?.essays || []).find((e) => e.name === m.name);
+      if (!card || !q || !["ready", "blocked"].includes(card.status)) return { ok: false, message: "That question is not on this card now. Press Fill this application to read the form again." };
+      const prior = (await draftsFor(m.tabId, card.jobId))[m.name] || null;
+      if (prior?.state === "drafting") return { ok: false, message: "Already drafting this one." };
+      // Redo of a draft already on the form takes it off first: the new draft goes on only by Use this.
+      if (m.redo && prior?.state === "used") {
+        const r = await chrome.tabs.sendMessage(m.tabId, { type: "essay-fill", name: m.name, text: "" }).catch(() => null);
+        if (!r?.ok) return { ok: false, message: r?.message || "The page could not be reached, so nothing changed." };
+      }
+      await setDraft(m.tabId, card.jobId, m.name, { label: q.label, state: "drafting", message: "Drafting from your confirmed facts..." });
+      const r = await requestDraft(card, q, m.redo ? prior?.original || null : null);
+      const item = C.showableDraft(r)
+        ? { label: q.label, state: "drafted", text: r.text, original: r.text, factIds: r.fact_ids, facts: (r.facts || []).map((f) => ({ id: String(f.id), label: String(f.label) })), message: oneLine(r.message, "") }
+        : { label: q.label, state: r?.why === "policy" ? "refused" : "failed", why: r?.why || "model", message: oneLine(r?.ok ? "" : r?.message, NO_DRAFT) };
+      return { ok: true, item: await setDraft(m.tabId, card.jobId, m.name, item) };
+    }
+    case "essay-use": {
+      // WO-049: the person's "Use this" (or their edit of the used text): it goes on the form as theirs, and the card is
+      // read again, so their approval binds exactly this text.
+      const card = (await cards())[m.tabId];
+      const item = card ? (await draftsFor(m.tabId, card.jobId))[m.name] : null;
+      if (!card || !item || !["drafted", "used"].includes(item.state)) return { ok: false, message: "There is no draft for that question to use." };
+      if (!["ready", "blocked"].includes(card.status)) return { ok: false, message: "This application is being sent or was sent, so nothing changed." };
+      const text = String(m.text ?? "");
+      if (!text.trim()) return { ok: false, message: "The answer is empty. Type it, or tap Redo for another draft." };
+      if (text.length > 2000) return { ok: false, message: "That answer is over 2000 characters, more than one answer can hold. Shorten it first." };
+      const r = await chrome.tabs.sendMessage(m.tabId, { type: "essay-fill", name: m.name, text, factIds: item.factIds || [] }).catch(() => null);
+      if (!r?.ok) return { ok: false, message: r?.message || "The page could not be reached, so nothing changed." };
+      await setDraft(m.tabId, card.jobId, m.name, { ...item, state: "used", text: r.value });
+      return { ok: true, hash: r.hash };
     }
     case "queue-set": {
       const urls = C.postingLinks(m.text || "", 100);
@@ -613,7 +703,7 @@ async function handle(m, sender) {
 // Who may ask what (WO-031 review): what the person does (approve, sign in, set the resume, the queue, the proof) comes
 // only from the extension's own panel page, never from a content script running inside an employer's page; what a page
 // reports comes only from a content script in a tab.
-const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve",
+const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof"]);
 const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side

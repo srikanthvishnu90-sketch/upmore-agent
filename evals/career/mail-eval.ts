@@ -8,7 +8,9 @@ import blind from "./mail-blind.json" with { type: "json" };
 import dev4set from "./mail-dev4.json" with { type: "json" };
 import blind160 from "./mail-blind160.json" with { type: "json" };
 import blind200 from "./mail-blind200.json" with { type: "json" };
+import blind240 from "./mail-blind240.json" with { type: "json" };
 import dev5set from "./mail-dev5.json" with { type: "json" };
+import dev6set from "./mail-dev6.json" with { type: "json" };
 
 export const TARGET = { precision: 0.97, recall: 0.95 };
 const KINDS: MailKind[] = [...STATUS_KINDS, "other"];
@@ -69,7 +71,13 @@ export function evaluate(mails: typeof set.mails) {
 // "blind200" (WO-045 review, mail-blind200.json): 200 SYNTHETIC emails written by a separate agent that never read the
 // classifier, any labeled mail or any eval file; 27 in Spanish, Portuguese, French or German. Sealed (sha256 0b5f8fed...)
 // and scored once on 22d0ccf3. Spent; a floor, printed only when named.
-export const SEALED = ["blind40", "dev4check", "blind160", "dev5check", "blind200"];
+// WO-046: "dev6" (mail-dev6.json, 239 SYNTHETIC emails written by the WO-046 builder and committed before its classifier
+// change; 152 of the 317 in Spanish, Portuguese, French, German, Italian or Dutch, 40 calendar notices and forwards) is
+// read for misses; "dev6check" (78, a fixed-seed quarter) is printed only when named and was scored once.
+// "blind240" (WO-046 review, mail-blind240.json): 240 SYNTHETIC emails written by a separate agent that never read the
+// classifier, any labeled mail or any eval file; 60 in Spanish, Portuguese, French, German, Italian or Dutch (by the
+// writer's count). Sealed (sha256 62690765...) and scored once on cab14bda. Spent; a floor, printed only when named.
+export const SEALED = ["blind40", "dev4check", "blind160", "dev5check", "blind200", "dev6check", "blind240"];
 export function dev4Splits() {
   const mails = dev4set.mails as typeof set.mails;
   return { dev4: mails.filter((m) => m.split === "dev4"), dev4check: mails.filter((m) => m.split === "dev4check") };
@@ -78,12 +86,16 @@ export function dev5Splits() {
   const mails = dev5set.mails as typeof set.mails;
   return { dev5: mails.filter((m) => m.split === "dev5"), dev5check: mails.filter((m) => m.split === "dev5check") };
 }
+export function dev6Splits() {
+  const mails = dev6set.mails as unknown as typeof set.mails;
+  return { dev6: mails.filter((m) => m.split === "dev6"), dev6check: mails.filter((m) => m.split === "dev6check") };
+}
 export function splitsOf(mails: typeof set.mails) {
   const of = (...names: string[]) => mails.filter((m) => names.includes(m.split));
   return { all: mails, dev: of("tune", "tune2", "dev3"), tune: of("tune"), tune2: of("tune2"), dev3: of("dev3"), devcheck: of("devcheck"), holdout: of("holdout") };
 }
 if (import.meta.main) {
-  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits(), blind160: blind160.mails as typeof set.mails, ...dev5Splits(), blind200: blind200.mails as typeof set.mails };
+  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits(), blind160: blind160.mails as typeof set.mails, ...dev5Splits(), blind200: blind200.mails as typeof set.mails, ...dev6Splits(), blind240: blind240.mails as typeof set.mails };
   const at = Deno.args.indexOf("--only"), only = at >= 0 ? String(Deno.args[at + 1] ?? "").split(",") : null;
   const results = Object.fromEntries(Object.entries(splits).filter(([k]) => (only ? only.includes(k) : !SEALED.includes(k))).map(([k, v]) => [k, evaluate(v)]));
   if (Deno.args.includes("--json")) console.log(JSON.stringify(results, null, 2));

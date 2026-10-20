@@ -113,7 +113,8 @@ pair, the two coverage rows, and the career-extension-sync
 file-level line) — **zero regressions, zero flips**. The v241
 keyed-split suite and the 9-kind validator transcription inside it
 pass unchanged (they are in the sweep, and the targeted run of
-lane-a-depth + v240 + v241 + router-bundle suites was 195/195).
+lane-a-depth + v240 + v241 + router-bundle suites was 55/55 — the
+session's terminal summary: 55 tests, 55 pass, 0 fail).
 agent100 dry run: **103/103**.
 
 ## Already-stored garbles — characterization (cleanup NOT performed)

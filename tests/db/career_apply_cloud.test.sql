@@ -63,6 +63,8 @@ do $$declare j career_apply_jobs; begin
  perform career_apply_confirm_by_mail(j.user_id,j.id,repeat('9',64));
 end $$;
 select t.ok((select state='confirmed' and email_confirmed_at is not null from career_apply_jobs where job_id='TEST-C1'),'the cloud submission is confirmed by its email');
+select t.ok((select count(*)=1 from career_apply_cloud_events e join career_apply_jobs j on j.id=e.job_id where j.job_id='TEST-C1' and e.outcome='confirmed'),
+ 'a cloud submission''s email confirmation is in the telemetry once');
 select t.ok(not career_apply_cloud_open('lever'),'a cloud submission confirmed by email does not count toward the gate');
 select t.must_fail($$update career_apply_jobs set source='own_computer' where job_id='TEST-C1'$$,'source_fixed','a cloud submission cannot be relabelled as a hand one');
 -- Confirmed on the page only, without the employer's email, does not count either.
@@ -70,6 +72,8 @@ do $$begin
  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000a01',true);
  perform career_apply_record_own('TEST-P1','Page One','https://jobs.lever.co/pone/1','confirmed');
 end $$;
+select t.ok((select state='submitted_unconfirmed' and evidence->>'page_confirmation'='true' from career_apply_jobs where job_id='TEST-P1'),
+ 'a hand submission confirmed only by its page is recorded as sent, waiting for the employer''s email');
 select t.ok(not career_apply_cloud_open('lever'),'a page confirmation without the employer''s email does not count');
 -- Only a "received" mail for that application, for that person, confirms it.
 do $$declare id uuid := (select id from career_apply_jobs where job_id='TEST-P1'); begin
@@ -155,16 +159,17 @@ select t.must_fail($$select career_apply_cloud_finish(id,lease_token,'submitted_
 select t.must_fail($$select career_apply_cloud_finish(id,lease_token,'submitted_unconfirmed','"x"'::jsonb,'submitted') from claimed$$,'invalid apply evidence','evidence is an object');
 
 -- A bot check at Submit: back to the person, never sent, counted; one failure in the window pauses the portal for 6 hours.
+select t.must_fail($$select career_apply_cloud_finish(id,lease_token,'confirmed','{}','bot_check') from claimed$$,'invalid cloud outcome','a page confirmation is never a bot check');
 select t.ok((select state='needs_user' from career_apply_cloud_finish((select id from claimed),(select lease_token from claimed),'needs_user',
  '{"reason":"bot_check"}','bot_check','CAPTCHA_AT_SUBMIT')),'a bot check goes back to the person');
 select t.ok((select count(*)=1 and bool_and(outcome='bot_check') from career_apply_cloud_events where job_id=(select id from claimed)),'the bot check is in the telemetry');
 select t.ok((select count(*)=1 and bool_and(until between now()+interval '5 hours 59 minutes' and clock_timestamp()+interval '6 hours') from career_apply_cloud_pauses
  where scope='portal' and portal='lever'),'2% user-facing failures pause the portal for the cloud for 6 hours');
-select t.ok((select count(*)=1 from career_outbox where user_id='00000000-0000-4000-8000-000000000a02' and kind='cloud')
- and (select count(*)=1 from career_outbox where user_id='00000000-0000-4000-8000-000000000a01' and kind='cloud'),'the person and the owner are told, once each');
+select t.ok((select count(*)=1 from career_outbox where user_id='00000000-0000-4000-8000-000000000a02' and key like 'status:cloud-pause:%')
+ and (select count(*)=1 from career_outbox where user_id='00000000-0000-4000-8000-000000000a01' and key like 'status:cloud-pause:%'),'the person and the owner are told, once each');
 select career_apply_cloud_throttle('lever','00000000-0000-4000-8000-000000000a02',clock_timestamp());
-select t.ok((select count(*)=2 from career_outbox where kind='cloud') and (select count(*)=1 from career_apply_cloud_pauses where scope='portal'),'told once: a second look while paused adds nothing');
-select t.ok((select bool_and(length(text)<=1500 and text !~ '[*_`#]') from career_outbox where kind='cloud'),'the pause texts are plain and short');
+select t.ok((select count(*)=2 from career_outbox where key like 'status:cloud-pause:%') and (select count(*)=1 from career_apply_cloud_pauses where scope='portal'),'told once: a second look while paused adds nothing');
+select t.ok((select bool_and(length(text)<=1500 and text !~ '[*_`#]') from career_outbox where key like 'status:cloud-pause:%'),'the pause texts are plain and short');
 select t.ok(pg_temp.why((select id from jobs where name='l2'))='portal_paused','while paused the cloud claims nothing there');
 -- Their own computer is not paused.
 select t.as_user('00000000-0000-4000-8000-000000000a02');set role authenticated;
@@ -172,7 +177,7 @@ select t.ok((select count(*)>=1 and bool_and(source='own_computer') from career_
 reset role;
 
 -- ---------------------------------------------------------------------------------------------- the thresholds
-delete from career_apply_cloud_pauses; delete from career_outbox where kind='cloud'; delete from career_apply_cloud_events;
+delete from career_apply_cloud_pauses; delete from career_outbox where key like 'status:cloud-pause:%'; delete from career_apply_cloud_events;
 -- 50 clean attempts: no pause. One failure in the last 50 (2%): pause.
 insert into career_apply_cloud_events(user_id,portal,outcome,at) select '00000000-0000-4000-8000-000000000a02','ashby','submitted',now()-interval '1 minute' from generate_series(1,60);
 select career_apply_cloud_throttle('ashby',null,clock_timestamp());
@@ -180,7 +185,7 @@ select t.ok(not exists(select from career_apply_cloud_pauses),'0 failures in the
 insert into career_apply_cloud_events(user_id,portal,outcome,error_kind,at) values('00000000-0000-4000-8000-000000000a02','ashby','error','FORM_DID_NOT_SETTLE',now());
 select career_apply_cloud_throttle('ashby',null,clock_timestamp());
 select t.ok((select count(*)=1 and bool_and(reason like 'failure_rate: 1 of the last 50%') from career_apply_cloud_pauses where portal='ashby'),'1 failure in the last 50 attempts (2%) pauses the portal');
-select t.ok(not exists(select from career_outbox where kind='cloud' and user_id='00000000-0000-4000-8000-000000000a02'),'a pause with no one''s job behind it tells only the owner');
+select t.ok(not exists(select from career_outbox where key like 'status:cloud-pause:%' and user_id='00000000-0000-4000-8000-000000000a02'),'a pause with no one''s job behind it tells only the owner');
 -- Not_sent (stopped before sending, by design) is not a user-facing failure.
 delete from career_apply_cloud_pauses; delete from career_apply_cloud_events;
 insert into career_apply_cloud_events(user_id,portal,outcome,error_kind) select '00000000-0000-4000-8000-000000000a02','greenhouse','not_sent','APPROVED_APPLICATION_CHANGED' from generate_series(1,5);
@@ -201,7 +206,7 @@ select career_apply_cloud_throttle('greenhouse','00000000-0000-4000-8000-0000000
 select t.ok((select count(*)=1 and bool_and(until=(date_trunc('day',now() at time zone 'UTC')+interval '1 day') at time zone 'UTC') from career_apply_cloud_pauses
  where scope='person' and user_id='00000000-0000-4000-8000-000000000a03'),'2 bot checks in a day pause that person until tomorrow');
 select t.ok((select count(*)=1 from career_outbox where user_id='00000000-0000-4000-8000-000000000a03'
- and key='cloud:pause:'||(select id from career_apply_cloud_pauses where scope='person')),'that person is told once');
+ and key='status:cloud-pause:'||(select id from career_apply_cloud_pauses where scope='person')),'that person is told once');
 
 -- ---------------------------------------------------------------------------------------------- sweep and report
 delete from career_apply_cloud_pauses; delete from career_apply_cloud_events;

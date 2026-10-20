@@ -16,7 +16,11 @@
 --  - career_apply_cloud_resumes: the approved resume the cloud uploads, by its hash, fetched per claimed job only.
 --  - career_apply_cloud_events / career_apply_cloud_pauses: every outcome, per portal family and per person, and the
 --    auto-throttle (a portal pauses 6 hours at 2% user-facing failures or 2 bot checks in its last 20 attempts; a person
---    pauses until tomorrow, UTC, at 2 bot checks in a day). The person and the owner are told once per pause.
+--    pauses until tomorrow, UTC, at 2 bot checks in a day). The person and the owner are told once per pause, as a
+--    status text; the outbox's kinds are not touched.
+-- Aligned with WO-032 (20261021040000_career_apply_ops.sql), whichever applies first: the same columns and constraint,
+-- the same claims (career_apply_claim_own(integer[, text]) and career_apply_claim set the source), and a row is
+-- 'confirmed' only by the employer's email: a page's confirmation is evidence, and the row stays submitted_unconfirmed.
 --  - career_apply_cloud_claim / _finish / _resume / _report: the worker's only doors, service role only.
 -- Every new table is service-role only: nothing here is read by the app, so nothing is added to the export.
 
@@ -64,12 +68,14 @@ language sql immutable set search_path = pg_catalog as $$
   '\m(inc|llc|ltd|corp|corporation|co|company|the)\M', ' ', 'g'), '\s+', ' ', 'g'))
 $$;
 
--- The own-computer claim (WO-021 W4) now records who sends it. Otherwise unchanged from 20261020010000.
-create or replace function public.career_apply_claim_own(p_limit integer) returns setof public.career_apply_jobs
+-- The person's own claim records who sends it: their computer (own_computer) or their browser extension (extension).
+-- Identical to WO-032's definition (20261021040000), so the order the two apply in changes nothing.
+create or replace function public.career_apply_claim_own(p_limit integer, p_source text) returns setof public.career_apply_jobs
 language plpgsql security definer set search_path=public,pg_temp as $$
 declare u uuid:=auth.uid(); n timestamptz:=clock_timestamp();
 begin
  if u is null then raise exception 'not signed in'; end if;
+ if p_source is null or p_source not in ('own_computer', 'extension') then raise exception 'invalid apply source'; end if;
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  update public.career_apply_jobs set state='unknown_outcome',
   reason='application outcome unknown: the drive stopped before recording it; not retried',
@@ -79,8 +85,13 @@ begin
  with picked as (select id from public.career_apply_jobs where user_id=u and state='queued' and source is null
   and public.career_apply_current(user_id,payload) and approval_hash=payload_hash and attempts=0
   order by created_at,id limit greatest(0,least(6,coalesce(p_limit,0))) for update skip locked)
- update public.career_apply_jobs j set state='driving',attempts=1,claimed_at=n,lease_token=gen_random_uuid(),updated_at=n,source='own_computer'
+ update public.career_apply_jobs j set state='driving',attempts=1,claimed_at=n,lease_token=gen_random_uuid(),updated_at=n,source=p_source
   from picked where j.id=picked.id returning j.*;
+end $$;
+create or replace function public.career_apply_claim_own(p_limit integer) returns setof public.career_apply_jobs
+language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ return query select * from public.career_apply_claim_own(p_limit, 'own_computer');
 end $$;
 
 -- The 009b-1 pool claim has no caller and no gate. Anything it claims is the cloud's, so it can never open the gate.
@@ -124,12 +135,12 @@ begin
  if j.state not in ('submitted_unconfirmed', 'unknown_outcome', 'confirmed') then raise exception 'not_sent'; end if;
  update public.career_apply_jobs set state = 'confirmed', email_confirmed_at = e.mail_at, confirmation_mail_hash = e.message_hash,
   updated_at = now() where id = p_job returning * into j;
- if j.source = 'cloud' then perform public.career_apply_cloud_record(j, 'confirmed', null, now()); end if;
  return j;
 end $$;
 
 -- A hand submission, recorded by the person who made it (the owner's terminal runs: scripts/apply.ts --person-submits,
--- then `approve-first.ts record <evidence folder>`). It counts toward the gate only after the employer's email confirms it.
+-- then `approve-first.ts record <evidence folder>`). It counts toward the gate only after the employer's email confirms it:
+-- a run whose page said "confirmed" is recorded submitted_unconfirmed, with the page's word kept as evidence.
 create or replace function public.career_apply_record_own(p_job_id text, p_company text, p_url text, p_state text)
 returns public.career_apply_jobs language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare u uuid := auth.uid(); p jsonb; h text; j public.career_apply_jobs; n timestamptz := clock_timestamp();
@@ -145,8 +156,10 @@ begin
   'recorded', 'hand');
  h := encode(sha256(convert_to(public.career_apply_canonical(p), 'UTF8')), 'hex');
  insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, attempts, claimed_at,
-  reason, source, updated_at)
- values (u, p_job_id, p_company, p_url, p, h, h, p_state, 1, n, 'recorded by hand', 'own_computer', n) returning * into j;
+  reason, source, updated_at, evidence)
+ values (u, p_job_id, p_company, p_url, p, h, h, case when p_state = 'confirmed' then 'submitted_unconfirmed' else p_state end, 1, n,
+  'recorded by hand', 'own_computer', n, case when p_state = 'confirmed' then '{"page_confirmation":true}'::jsonb else '{}'::jsonb end)
+ returning * into j;
  return j;
 end $$;
 
@@ -260,20 +273,13 @@ create table if not exists public.career_apply_cloud_pauses (
 );
 create index if not exists career_apply_cloud_pauses_live on public.career_apply_cloud_pauses (scope, until);
 
--- The outbox learns "cloud" (a pause, said once: key cloud:pause:<pause id>). Every kind an earlier migration allows stays,
--- including "mock" (20261021020000, WO-035).
-alter table public.career_outbox drop constraint if exists career_outbox_key_check;
-alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock|cloud):.+$' and length(key) <= 310);
-alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
-alter table public.career_outbox add constraint career_outbox_kind_check
-  check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock', 'cloud'));
-
+-- A pause is said once, as a status text (kind "status", key status:cloud-pause:<pause id>): the outbox constraints are
+-- left as they are, so no kind any other migration allows is dropped.
 create or replace function public.career_apply_cloud_tell(p_user uuid, p_key text, p_text text, p_now timestamptz) returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
  if p_user is null or not exists (select from auth.users where id = p_user) then return; end if;
- insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, p_key, 'cloud', p_text, p_now)
+ insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, p_key, 'status', p_text, p_now)
  on conflict (user_id, key) do nothing;
 end $$;
 
@@ -301,11 +307,11 @@ begin
   if why is not null then
    insert into public.career_apply_cloud_pauses (scope, portal, reason, until, created_at)
    values ('portal', p_portal, why, p_now + interval '6 hours', p_now) returning id into pid;
-   perform public.career_apply_cloud_tell(p_user, 'cloud:pause:' || pid,
+   perform public.career_apply_cloud_tell(p_user, 'status:cloud-pause:' || pid,
     'Trainee paused sending applications from the cloud on ' || nice || ' for 6 hours: recent attempts there hit a verification '
     || 'check or an error, and pausing protects your name with employers. Nothing you approved is lost. It waits, and your own '
     || 'computer can still send it.', p_now);
-   perform public.career_apply_cloud_tell(owner, 'cloud:pause:' || pid,
+   perform public.career_apply_cloud_tell(owner, 'status:cloud-pause:' || pid,
     'Cloud apply paused on ' || nice || ' until ' || to_char((p_now + interval '6 hours') at time zone 'UTC', 'YYYY-MM-DD HH24:MI')
     || ' UTC (' || replace(why, '_', ' ') || '). The cloud report has the counts (docs/launch/CLOUD-WORKER.md).', p_now);
   end if;
@@ -317,11 +323,11 @@ begin
    insert into public.career_apply_cloud_pauses (scope, user_id, reason, until, created_at)
    values ('person', p_user, format('%s bot checks today', bots_today),
     (date_trunc('day', p_now at time zone 'UTC') + interval '1 day') at time zone 'UTC', p_now) returning id into pid;
-   perform public.career_apply_cloud_tell(p_user, 'cloud:pause:' || pid,
+   perform public.career_apply_cloud_tell(p_user, 'status:cloud-pause:' || pid,
     'Two employer sites showed a verification check to the cloud today, so Trainee stopped sending your applications from the '
     || 'cloud until tomorrow. That protects your name. Your own computer can still send them, and the ones that need you are '
     || 'waiting with their links.', p_now);
-   perform public.career_apply_cloud_tell(owner, 'cloud:pause:' || pid,
+   perform public.career_apply_cloud_tell(owner, 'status:cloud-pause:' || pid,
     'Cloud apply paused for one person until tomorrow UTC (' || bots_today || ' bot checks today). The cloud report has the counts (docs/launch/CLOUD-WORKER.md).', p_now);
   end if;
  end if;
@@ -336,6 +342,20 @@ begin
  values (j.id, j.user_id, fam, coalesce(j.source, 'cloud'), p_outcome, left(p_kind, 80), p_now) on conflict do nothing;
  perform public.career_apply_cloud_throttle(fam, j.user_id, p_now);
 end $$;
+
+-- A cloud application's employer email, whichever function set it (career_apply_confirm_by_mail here, WO-032's
+-- career_apply_confirm_as), is counted once as 'confirmed' in the telemetry.
+create or replace function public.career_apply_cloud_confirmed() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+ if new.source = 'cloud' and new.email_confirmed_at is not null and old.email_confirmed_at is null then
+  perform public.career_apply_cloud_record(new, 'confirmed', null, clock_timestamp());
+ end if;
+ return new;
+end $$;
+drop trigger if exists career_apply_cloud_confirmed on public.career_apply_jobs;
+create trigger career_apply_cloud_confirmed after update of email_confirmed_at on public.career_apply_jobs
+  for each row execute function public.career_apply_cloud_confirmed();
 
 -- ---------------------------------------------------------------------------------------------- the worker's doors
 -- Why the cloud may not claim this application now, or null when it may. Every limit is checked here, at claim time,
@@ -430,7 +450,9 @@ begin
   raise exception 'invalid apply claim'; end if;
  if p_outcome is null or p_outcome not in ('submitted', 'bot_check', 'error', 'not_sent') or (p_outcome = 'submitted') <> sent
   or (p_outcome = 'bot_check' and p_state not in ('needs_user', 'not_submitted')) then raise exception 'invalid cloud outcome'; end if;
- j := public.career_apply_finish(p_id, p_lease, p_state, p_evidence);
+ -- A page's "confirmed" is evidence; the row waits, submitted_unconfirmed, for the employer's email (as WO-032's finish).
+ j := public.career_apply_finish(p_id, p_lease, case when p_state = 'confirmed' then 'submitted_unconfirmed' else p_state end,
+  case when p_state = 'confirmed' then p_evidence || '{"page_confirmation":true}'::jsonb else p_evidence end);
  perform public.career_apply_cloud_record(j, p_outcome, p_error_kind, clock_timestamp());
  return j;
 end $$;
@@ -480,7 +502,8 @@ grant all on public.career_cloud_settings, public.career_apply_cloud_optin, publ
  public.career_apply_cloud_events, public.career_apply_cloud_pauses to service_role;
 grant usage, select on sequence public.career_apply_cloud_events_id_seq, public.career_apply_cloud_pauses_id_seq to service_role;
 
-revoke all on function public.career_apply_jobs_fixed(), public.career_apply_claim_own(integer), public.career_apply_claim(timestamptz, integer),
+revoke all on function public.career_apply_jobs_fixed(), public.career_apply_cloud_confirmed(), public.career_apply_claim_own(integer),
+ public.career_apply_claim_own(integer, text), public.career_apply_claim(timestamptz, integer),
  public.career_apply_cloud_open(text), public.career_apply_confirm_by_mail(uuid, uuid, text),
  public.career_apply_record_own(text, text, text, text), public.career_apply_cloud_enabled(), public.career_apply_cloud_optin_as(uuid, boolean, text),
  public.career_apply_cloud_optin_get(uuid), public.career_apply_cloud_resume_put_own(text, text),
@@ -490,7 +513,7 @@ revoke all on function public.career_apply_jobs_fixed(), public.career_apply_cla
  public.career_apply_cloud_finish(uuid, uuid, text, jsonb, text, text), public.career_apply_cloud_report(integer)
  from public, anon, authenticated, service_role;
 grant execute on function public.career_apply_portal(text), public.career_apply_company_key(text) to service_role;
-grant execute on function public.career_apply_claim_own(integer), public.career_apply_record_own(text, text, text, text),
+grant execute on function public.career_apply_claim_own(integer), public.career_apply_claim_own(integer, text), public.career_apply_record_own(text, text, text, text),
  public.career_apply_cloud_resume_put_own(text, text) to authenticated;
 grant execute on function public.career_apply_claim(timestamptz, integer), public.career_apply_cloud_open(text),
  public.career_apply_confirm_by_mail(uuid, uuid, text), public.career_apply_cloud_enabled(), public.career_apply_cloud_optin_as(uuid, boolean, text),

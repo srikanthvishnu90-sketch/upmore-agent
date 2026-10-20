@@ -33,6 +33,7 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 | `INGEST_CONTACT_EMAIL` | the contact job boards see in the User-Agent; career-ingest answers 503 without it | function secret |
 | `TRAINEE_ALLOWED_CONTACTS` | comma-separated numbers allowed to sign up (sign-up is closed by default: `TRAINEE_SIGNUP` is not touched) | function secret |
 | `LOOPMESSAGE_DAILY_CONTACTS` | your plan's contacts a day (unset means 300) | function secret |
+| `PDL_API_KEY` | optional: People Data Labs key for hired-candidate aggregates (WO-036, D-018); without it Trainee says it has no data | function secret, hidden prompt |
 | `UPMORE_TEST_JWT` (optional) | a test user's JWT for the agent-chat "hi" check | nowhere |
 
 Function secrets are project-wide in Supabase: every function sees every one.

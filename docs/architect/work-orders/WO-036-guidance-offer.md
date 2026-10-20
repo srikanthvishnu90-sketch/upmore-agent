@@ -279,20 +279,21 @@ After reverting: 19 passed, 0 failed.
 
 ## Not built, and why
 - **Real LCA title x city and OEWS metro numbers.** dol.gov and bls.gov were unreachable from the build environment. The
-  importers and fixtures are in. The data comes when CI or the owner runs the two commands above and rebuilds the
-  bundles.
+  importers and fixtures are in. `.github/workflows/import-pay-data.yml` downloads the newest public files in CI, runs
+  both importers and commits the two datasets back to the PR branch; the architect then rebuilds the bundles. Until
+  that commit lands, both datasets say `awaiting_import` and the benchmark says it has no filed or survey wage.
 - **Live PDL validation.** There is no key here. The first live call should confirm two things: the company phrases
   match PDL's canonical names, and the nested-clause behavior. If the phrases are wrong the result is fewer records,
   never wrong ones. Check `career_pdl_calls` (kept vs returned) after the first calls.
 - **The PDL terms, word for word.** See the terms check above: the owner reads the ToS and the Acceptable Data Use
   Policy before setting the key.
-- **PDL_API_KEY in `trainee-go-live.sh`.** The script's secret prompts were not changed. The owner sets the key with
-  `supabase secrets set`.
+- **PDL_API_KEY in `trainee-go-live.sh`.** Added after review: an optional hidden prompt, masked in output, set only
+  when given (Enter keeps the one already set).
 - **Firm guide freshness.** Many postings are for the 2027 cycle and several deadlines have passed. Nothing re-checks
   the data on a schedule yet. Re-collect with network access, and replace search-index extracts with page fetches.
 - **Probability for most firms.** Only Goldman and JPMorgan have published applicant counts. McKinsey's "about 1%" is a
   third-party estimate and is not used.
 - **Router path.** Both tools are on the agent brain only (`CAREER_BRAIN=agent`, D-008). The router keeps its own
   negotiation flow.
-- **Python tests in the gate.** `tests/pay-importers.test.py`, like the existing `tests/aggregate-lca.test.py`, is not
-  in `scripts/gate.sh`. Run it with `python3 tests/pay-importers.test.py`.
+- **Python tests in the gate.** Added after review: `scripts/gate.sh` step `pay-importers` runs
+  `tests/pay-importers.test.py` and `tests/aggregate-lca.test.py`.

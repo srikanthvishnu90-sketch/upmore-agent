@@ -1,0 +1,201 @@
+{
+ "label": "ah-39470452339",
+ "model": "gpt-5-mini",
+ "samples": [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h"
+ ],
+ "stopped": false,
+ "cost_usd": 0.131293,
+ "unpriced_calls": 0,
+ "at": "2026-10-20T18:05:37.147Z",
+ "by_sample": {
+  "a": {
+   "postings": 99,
+   "panel": 209,
+   "drafted": 97,
+   "refused_on_save": 2,
+   "why": {
+    "not_an_option": 3,
+    "negative_from_absence": 14,
+    "unverified": 12,
+    "no_fact": 40,
+    "never": 9,
+    "model": 25
+   },
+   "stops_before": {
+    "mean": 2.5757575757575757,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 1.6262626262626263,
+    "median": 1
+   },
+   "ready_before": 15,
+   "ready_after": 32
+  },
+  "b": {
+   "postings": 100,
+   "panel": 135,
+   "drafted": 70,
+   "refused_on_save": 1,
+   "why": {
+    "unverified": 12,
+    "no_fact": 36,
+    "negative_from_absence": 12,
+    "never": 5
+   },
+   "stops_before": {
+    "mean": 1.87,
+    "median": 1
+   },
+   "stops_after": {
+    "mean": 1.18,
+    "median": 0.5
+   },
+   "ready_before": 27,
+   "ready_after": 36
+  },
+  "c": {
+   "postings": 99,
+   "panel": 151,
+   "drafted": 109,
+   "refused_on_save": 0,
+   "why": {
+    "never": 4,
+    "no_fact": 17,
+    "unverified": 9,
+    "negative_from_absence": 12
+   },
+   "stops_before": {
+    "mean": 1.797979797979798,
+    "median": 1
+   },
+   "stops_after": {
+    "mean": 0.7070707070707071,
+    "median": 0
+   },
+   "ready_before": 26,
+   "ready_after": 38
+  },
+  "d": {
+   "postings": 100,
+   "panel": 202,
+   "drafted": 156,
+   "refused_on_save": 1,
+   "why": {
+    "never": 1,
+    "no_fact": 21,
+    "negative_from_absence": 9,
+    "unverified": 13
+   },
+   "stops_before": {
+    "mean": 2.41,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 0.86,
+    "median": 0
+   },
+   "ready_before": 17,
+   "ready_after": 34
+  },
+  "e": {
+   "postings": 100,
+   "panel": 198,
+   "drafted": 142,
+   "refused_on_save": 2,
+   "why": {
+    "unverified": 15,
+    "never": 3,
+    "negative_from_absence": 10,
+    "no_fact": 26,
+    "not_an_option": 2
+   },
+   "stops_before": {
+    "mean": 2.49,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 1.09,
+    "median": 0
+   },
+   "ready_before": 25,
+   "ready_after": 39
+  },
+  "f": {
+   "postings": 100,
+   "panel": 196,
+   "drafted": 110,
+   "refused_on_save": 1,
+   "why": {
+    "negative_from_absence": 10,
+    "no_fact": 30,
+    "never": 5,
+    "unverified": 16,
+    "model": 25
+   },
+   "stops_before": {
+    "mean": 2.54,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 1.47,
+    "median": 1
+   },
+   "ready_before": 25,
+   "ready_after": 36
+  },
+  "g": {
+   "postings": 99,
+   "panel": 199,
+   "drafted": 116,
+   "refused_on_save": 1,
+   "why": {
+    "never": 7,
+    "no_fact": 45,
+    "negative_from_absence": 19,
+    "unverified": 11,
+    "not_an_option": 1
+   },
+   "stops_before": {
+    "mean": 2.5555555555555554,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 1.404040404040404,
+    "median": 1
+   },
+   "ready_before": 18,
+   "ready_after": 30
+  },
+  "h": {
+   "postings": 100,
+   "panel": 182,
+   "drafted": 114,
+   "refused_on_save": 0,
+   "why": {
+    "never": 9,
+    "unverified": 20,
+    "negative_from_absence": 16,
+    "no_fact": 23
+   },
+   "stops_before": {
+    "mean": 2.36,
+    "median": 2
+   },
+   "stops_after": {
+    "mean": 1.23,
+    "median": 1
+   },
+   "ready_before": 21,
+   "ready_after": 33
+  }
+ }
+}

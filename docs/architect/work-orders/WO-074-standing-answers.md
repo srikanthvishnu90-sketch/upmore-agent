@@ -75,7 +75,8 @@ like any saved answer under its class key.
   - architect 643 passed;
   - edge list 135 passed;
   - extension bundle fresh;
-  - router core verified.
+  - router core verified;
+  - browser file 55/55 passed.
 
 ### Measured: `deno run -A evals/apply/standing-answers.ts` (VERIFIED-S)
 The synthetic standing answers (`STANDING` in the script) are consistent with PERSONA:

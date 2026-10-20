@@ -39,11 +39,34 @@ function claims(token) {
     return {};
   }
 }
+// WO-082 (cross-user): what belongs to one person. One browser can be used by two people; each one's resume file, proofs,
+// drafts, cards and queue are theirs only. On sign-out, or when another person signs in, the active ones are set aside
+// under their owner (never shown to anyone else) and cleared; the owner gets them back on their next sign-in.
+const PERSON_LOCAL = ["resume", "evidence", "timing", "workday_drafts"];
+const PERSON_SESSION = ["imported_facts", "answered_before", "answer_once", "asked", "card_trail", "cards", "essay_drafts", "pending", "queue", "workday_next"];
+async function setAsidePerson() {
+  const owner = await get(L, "owner", null);
+  const mine = await L.get(PERSON_LOCAL);
+  // Things kept before anyone was recorded as their owner go aside unowned: never given to whoever signs in next.
+  await put(L, "aside:" + (owner || "unowned"), mine);
+  await L.remove([...PERSON_LOCAL, "owner"]);
+  await S.remove(PERSON_SESSION);
+}
+async function takePerson(userId) {
+  const owner = await get(L, "owner", null);
+  if (owner === userId) return;
+  await setAsidePerson();
+  const back = await get(L, "aside:" + userId, null);
+  if (back && Object.keys(back).length) await L.set(back);
+  await L.remove("aside:" + userId);
+  await put(L, "owner", userId);
+}
 async function keepSession(s) {
   if (!s || typeof s.access_token !== "string" || typeof s.refresh_token !== "string" || !s.refresh_token) throw Error("NOT_A_SESSION");
   if (C.jwtRole(s.access_token) !== "authenticated") throw Error("SERVICE_KEY_REFUSED");
   const c = claims(s.access_token);
   if (!c.sub) throw Error("NOT_A_SESSION");
+  await takePerson(c.sub);
   await put(S, "auth", { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: Number(s.expires_at) || c.exp || 0, user_id: c.sub, email: c.email || s.user?.email || "" });
 }
 async function session() {
@@ -675,9 +698,12 @@ async function handle(m, sender) {
     case "signin-magic":
       return await magicLink(m.email);
     case "signout":
-      await S.remove(["auth", "imported_facts"]);
+      await S.remove("auth");
+      await setAsidePerson();
       return { ok: true };
     case "set-resume": {
+      // WO-082: a resume is always someone's: only a signed-in person sets one, and it is theirs.
+      if (!(await session())) return { ok: false, message: say.signedOut };
       const bytes = b64ToBytes(m.base64);
       if (!bytes.length || bytes.length > 10_000_000) return { ok: false, message: "Pick a resume file under 10 MB." };
       await put(L, "resume", { name: m.name, type: m.mime || "application/pdf", base64: m.base64, sha256: await sha256Hex(bytes) });

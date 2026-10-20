@@ -1,0 +1,1703 @@
+{
+  "dataset_id": "firm-guide",
+  "title": "Target firms: entry programs, timelines and stated requirements (WO-036)",
+  "built_at": "2026-10-20",
+  "method": "Collected 2026-10-19 and 2026-10-20 through a web search index restricted to each firm's own domains (firm careers pages and the firm's own job postings), plus the press for published applicant counts. The build environment could not open the pages themselves (every firm site, dol.gov and bls.gov were unreachable from it), so each statement is the search index's extract of the cited page, kept close to its words. checked_at is the date of that search, not a page fetch. Nothing here was written from memory.",
+  "known_limits": [
+    "Postings change every cycle: a requirement here is what the cited page said when it was indexed. Several indexed postings were more than a year old; their statements are kept only where the page is the firm's own and the program still runs.",
+    "Requirements are the ones a page states. A page that states none gives none here; nothing is filled in from general knowledge.",
+    "Base rates are only the firm's own published applicant counts (as reported by the press). A third-party estimate is never a base rate. Most firms publish none.",
+    "No firm here publishes who it hired (schools, majors, prior jobs). That population needs a licensed dataset (Revelio Labs, People Data Labs or Coresignal), which is the owner's spend decision. Until then the answer says so in one line and never describes hired candidates."
+  ],
+  "hired_candidate_data": {
+    "available": false,
+    "needs": "A licensed hiring dataset (Revelio Labs, People Data Labs or Coresignal). Owner's spend decision; not bought as of 2026-10-20."
+  },
+  "firms": [
+    {
+      "firm_id": "palantir",
+      "name": "Palantir",
+      "aliases": [
+        "palantir",
+        "palantir technologies",
+        "pltr"
+      ],
+      "sector": "tech",
+      "lca_company_id": "palantir",
+      "programs": [
+        {
+          "name": "Software Engineer, Internship",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Indexed posting: for students planning to graduate in 2028; should be your final internship before graduating.",
+          "source_url": "https://jobs.lever.co/palantir/e27af7ab-41fc-40c9-b31d-02c6cb1c505c",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Forward Deployed Software Engineer, New Grad",
+          "roles": [
+            "forward deployed",
+            "fdse",
+            "software engineer",
+            "swe",
+            "engineer",
+            "new grad",
+            "full time"
+          ],
+          "timeline": "Indexed posting: must be graduating in December 2026 or Spring 2027.",
+          "source_url": "https://jobs.lever.co/palantir/2e6b0ac8-83e9-4be5-a3aa-cf319f751728",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Forward Deployed Software Engineer, Internship (Intel)",
+          "roles": [
+            "forward deployed",
+            "fdse",
+            "intel",
+            "clearance",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Indexed posting: must be planning on graduating in Winter 2027 or Spring 2028; should be your final internship before graduating.",
+          "source_url": "https://jobs.lever.co/palantir/9e40d77f-b07c-437b-98e7-def9b0184d89",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Year at Palantir, Forward Deployed Software Engineer Internship",
+          "roles": [
+            "forward deployed",
+            "fdse",
+            "intern",
+            "internship",
+            "freshman",
+            "sophomore"
+          ],
+          "timeline": "Open to freshmen and sophomores, as well as juniors and seniors in college.",
+          "source_url": "https://jobs.lever.co/palantir/e6789b17-62fb-4226-a079-f8c17ff19e2d",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Students and early talent",
+          "roles": [],
+          "timeline": "Early talent opportunities are open to students who will graduate in Fall 2026 and Spring 2027, or individuals with less than six months of industry experience.",
+          "source_url": "https://www.palantir.com/careers/students-and-early-talent/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "palantir-r1",
+          "program": "Software Engineer, Internship",
+          "kind": "grad_window",
+          "from": "2028-01",
+          "to": "2028-12",
+          "text": "Must be planning on graduating in 2028; this should be your final internship before graduating",
+          "source_url": "https://jobs.lever.co/palantir/e27af7ab-41fc-40c9-b31d-02c6cb1c505c",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "palantir-r2",
+          "program": "Forward Deployed Software Engineer, New Grad",
+          "kind": "grad_window",
+          "from": "2026-12",
+          "to": "2027-06",
+          "text": "Must be graduating in December 2026 or Spring 2027",
+          "source_url": "https://jobs.lever.co/palantir/2e6b0ac8-83e9-4be5-a3aa-cf319f751728",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "palantir-r3",
+          "program": "Forward Deployed Software Engineer, New Grad",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "electrical",
+            "computer engineering",
+            "mathematics",
+            "math",
+            "software engineering",
+            "physics",
+            "data science",
+            "engineering"
+          ],
+          "text": "Prefers an engineering degree, preferably in Computer Science, Electrical and Computer Engineering, Mathematics, Software Engineering, Physics or Data Science",
+          "source_url": "https://jobs.lever.co/palantir/2e6b0ac8-83e9-4be5-a3aa-cf319f751728",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "palantir-r4",
+          "program": "Forward Deployed Software Engineer, Internship (Intel)",
+          "kind": "clearance",
+          "any": [
+            "full scope poly",
+            "ts/sci",
+            "clearance"
+          ],
+          "text": "The Intel FDSE internship requires an active Full Scope Poly clearance",
+          "source_url": "https://jobs.lever.co/palantir/9e40d77f-b07c-437b-98e7-def9b0184d89",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "goldman-sachs",
+      "name": "Goldman Sachs",
+      "aliases": [
+        "goldman",
+        "goldman sachs",
+        "gs"
+      ],
+      "sector": "finance",
+      "lca_company_id": "goldman-sachs-ibd",
+      "programs": [
+        {
+          "name": "2027 Summer Analyst Program (Americas)",
+          "roles": [
+            "summer analyst",
+            "analyst",
+            "intern",
+            "internship",
+            "investment banking",
+            "ib"
+          ],
+          "timeline": "A nine to ten week summer internship for summer 2027; applications are open for select businesses. A 2022 firm post said applications for its 2023 summer programs opened on July 1, 2022 (a past pattern, not a 2027 date).",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/americas/2027-summer-analyst-program",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "New Analyst Program (Americas)",
+          "roles": [
+            "new analyst",
+            "analyst",
+            "full time",
+            "new grad"
+          ],
+          "timeline": "For students graduating with an undergraduate or graduate degree between December 2026 and July 2027.",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/americas/new-analyst-program",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "2027 Summer Analyst Programme (EMEA)",
+          "roles": [
+            "summer analyst",
+            "analyst",
+            "intern",
+            "london",
+            "emea"
+          ],
+          "timeline": "Applications reviewed on a rolling basis; the firm encourages you to apply as soon as you are ready.",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "gs-r1",
+          "program": "2027 Summer Analyst Program (Americas)",
+          "kind": "year_of_study",
+          "any": [
+            "junior",
+            "third year",
+            "3rd year",
+            "penultimate"
+          ],
+          "text": "For candidates currently pursuing a college or university degree, usually undertaken during the third or penultimate year of study",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/americas/2027-summer-analyst-program",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "gs-r2",
+          "program": "New Analyst Program (Americas)",
+          "kind": "grad_window",
+          "from": "2026-12",
+          "to": "2027-07",
+          "text": "Graduating with an undergraduate or graduate degree between December 2026 and July 2027",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/americas/new-analyst-program",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "gs-r3",
+          "program": "2027 Summer Analyst Programme (EMEA)",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "master"
+          ],
+          "text": "Currently pursuing a Bachelors or Masters university degree and in the penultimate or final year of study",
+          "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": [
+        {
+          "id": "gs-b1",
+          "cohort": "2025 summer intern class (all divisions, worldwide)",
+          "statement": "Goldman received more than 360,000 applications for its 2025 summer intern class and accepted about 0.7%",
+          "applicants": 360000,
+          "rate_pct": 0.7,
+          "publisher": "Goldman Sachs figures, reported by Fortune",
+          "source_url": "https://fortune.com/2025/06/16/goldman-sachs-internship-summer-analysts-wall-street-tpg-olaplex-red-lobster",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "gs-b2",
+          "cohort": "2026 summer intern class",
+          "statement": "For 2026 Goldman declined to share its applicant count but said the acceptance rate was under 1% again",
+          "applicants": null,
+          "rate_pct": null,
+          "publisher": "Goldman Sachs, reported by Fortune",
+          "source_url": "https://www.fortune.com/2026/06/08/exclusive-goldman-sachs-intern-acceptance-rate-falls-below-1-for-third-straight-year/",
+          "checked_at": "2026-10-20"
+        }
+      ]
+    },
+    {
+      "firm_id": "jpmorgan",
+      "name": "JPMorganChase",
+      "aliases": [
+        "jpmorgan",
+        "jp morgan",
+        "j.p. morgan",
+        "jpm",
+        "jpmorgan chase",
+        "jpmorganchase",
+        "chase"
+      ],
+      "sector": "finance",
+      "lca_company_id": "jpmorgan-ibd",
+      "programs": [
+        {
+          "name": "Investment Banking Analyst Internship",
+          "roles": [
+            "investment banking",
+            "ib",
+            "summer analyst",
+            "analyst",
+            "intern",
+            "internship"
+          ],
+          "timeline": "You join one of the investment banking groups with direct exposure to deals; the page indexed gives no dates.",
+          "source_url": "https://www.jpmorganchase.com/careers/explore-opportunities/programs/investment-banking-summer-analyst",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Markets Summer Analyst Program",
+          "roles": [
+            "markets",
+            "sales and trading",
+            "trading",
+            "summer analyst",
+            "analyst",
+            "intern"
+          ],
+          "timeline": "A nine-week program.",
+          "source_url": "https://www.jpmorganchase.com/careers/explore-opportunities/programs/markets-summer-analyst",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Investment Banking Seasonal Analyst Program",
+          "roles": [
+            "seasonal",
+            "off-cycle",
+            "investment banking",
+            "analyst"
+          ],
+          "timeline": "Three to six months during the academic year in specific Asia Pacific or European locations; depending on performance you could be asked to join the summer internship program.",
+          "source_url": "https://www.jpmorganchase.com/careers/explore-opportunities/programs/investment-banking-seasonal-analyst",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "jpm-r1",
+          "program": "Investment Banking Analyst Internship",
+          "kind": "skill",
+          "any": [
+            "financial model",
+            "valuation",
+            "excel",
+            "accounting",
+            "finance",
+            "quantitative",
+            "analytical",
+            "statistics"
+          ],
+          "text": "Looks for excellent analytical, quantitative and interpretative skills",
+          "source_url": "https://www.jpmorganchase.com/careers/explore-opportunities/programs/investment-banking-summer-analyst",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": [
+        {
+          "id": "jpm-b1",
+          "cohort": "summer analyst and associate class reported at the May 2024 investor day (likely the 2023 cycle)",
+          "statement": "JPMorgan's asset and wealth management CEO said the bank received 493,000 applications for about 4,000 summer analyst and associate roles",
+          "applicants": 493000,
+          "places": 4000,
+          "rate_pct": null,
+          "publisher": "JPMorganChase (Mary Callahan Erdoes, investor day, May 2024), reported by eFinancialCareers",
+          "source_url": "https://www.efinancialcareers.co.uk/news/jpmorgan-acceptance-rate-interns-students",
+          "checked_at": "2026-10-20"
+        }
+      ]
+    },
+    {
+      "firm_id": "mckinsey",
+      "name": "McKinsey",
+      "aliases": [
+        "mckinsey",
+        "mckinsey & company",
+        "mckinsey and company"
+      ],
+      "sector": "consulting",
+      "lca_company_id": "mckinsey",
+      "programs": [
+        {
+          "name": "Business Analyst (US, full time)",
+          "roles": [
+            "business analyst",
+            "ba",
+            "consultant",
+            "consulting",
+            "full time",
+            "new grad"
+          ],
+          "timeline": "2026 cycle: applications opened July 1, 2026 and the deadline was August 11, 2026 (closed). Check the Applications Deadlines page for the next window.",
+          "source_url": "https://www.mckinsey.com/careers/students/undergraduate-degree",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Business Analyst summer intern (US)",
+          "roles": [
+            "business analyst",
+            "intern",
+            "internship",
+            "summer",
+            "consulting"
+          ],
+          "timeline": "The University of Pennsylvania page listed a March 29, 2026 deadline for the summer intern role, with rolling review after it.",
+          "source_url": "https://www.mckinsey.com/careers/students/undergraduate-degree-candidates/university-of-pennsylvania",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "mck-r1",
+          "program": "Business Analyst summer intern (US)",
+          "kind": "grad_window",
+          "from": "2027-12",
+          "to": "2028-08",
+          "text": "Undergraduate and non-MBA master's students graduating between December 2027 and August 2028 (summer intern cycle)",
+          "source_url": "https://www.mckinsey.com/Careers/Students/Undergraduate-Degree-Candidates/Other-Schools",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "mck-r2",
+          "program": "Business Analyst (US, full time)",
+          "kind": "grad_window",
+          "from": "2026-12",
+          "to": "2027-08",
+          "text": "Undergraduate and non-MBA master's students graduating between December 2026 and August 2027 (full-time BA cycle)",
+          "source_url": "https://www.mckinsey.com/Careers/Students/Undergraduate-Degree-Candidates/Other-Schools",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "mck-r3",
+          "program": "Business Analyst (US, full time)",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "master"
+          ],
+          "not": [
+            "mba"
+          ],
+          "text": "For students in undergraduate and non-MBA master's programs",
+          "source_url": "https://www.mckinsey.com/Careers/Students/Undergraduate-Degree-Candidates/Other-Schools",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "google",
+      "name": "Google",
+      "aliases": [
+        "google",
+        "alphabet"
+      ],
+      "sector": "tech",
+      "lca_company_id": "google",
+      "programs": [
+        {
+          "name": "Software Engineering Intern, BS, Summer 2027",
+          "roles": [
+            "software engineer",
+            "swe",
+            "software engineering",
+            "intern",
+            "internship",
+            "engineer"
+          ],
+          "timeline": "Summer 2027 posting.",
+          "source_url": "https://www.google.com/about/careers/applications/jobs/results/100648618540573382",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Software Engineering Intern, MS, Summer 2027",
+          "roles": [
+            "software engineer",
+            "swe",
+            "intern",
+            "masters",
+            "ms"
+          ],
+          "timeline": "Summer 2027 posting.",
+          "source_url": "https://www.google.com/about/careers/applications/jobs/results/94172495052972742-software-engineering-intern-ms-summer-2027",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "goog-r1",
+          "program": "Software Engineering Intern, BS, Summer 2027",
+          "kind": "degree_level",
+          "any": [
+            "bachelor"
+          ],
+          "text": "Pursuing a Bachelor's degree, or post-secondary or training experience, with a focus on software development or other technical fields",
+          "source_url": "https://www.google.com/about/careers/applications/jobs/results/100648618540573382",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "goog-r2",
+          "program": "Software Engineering Intern, BS, Summer 2027",
+          "kind": "skill",
+          "count": 2,
+          "any": [
+            "python",
+            "java",
+            "c++",
+            "javascript",
+            "typescript",
+            "go",
+            "rust",
+            "c#",
+            "kotlin",
+            "swift",
+            "ruby",
+            "scala"
+          ],
+          "text": "Experience in software development and coding in two or more general purpose programming languages",
+          "source_url": "https://www.google.com/about/careers/applications/jobs/results/100648618540573382",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "goog-r3",
+          "program": "Software Engineering Intern, BS, Summer 2027",
+          "kind": "skill",
+          "any": [
+            "data structures",
+            "algorithms",
+            "leetcode",
+            "competitive programming"
+          ],
+          "text": "Experience with data structures or algorithms, from inside or outside of school or work",
+          "source_url": "https://www.google.com/about/careers/applications/jobs/results/100648618540573382",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "jane-street",
+      "name": "Jane Street",
+      "aliases": [
+        "jane street",
+        "janestreet"
+      ],
+      "sector": "trading",
+      "lca_company_id": "jane-street",
+      "programs": [
+        {
+          "name": "Quantitative Trader Internship, New York",
+          "roles": [
+            "quantitative trader",
+            "trader",
+            "trading",
+            "quant",
+            "intern",
+            "internship"
+          ],
+          "timeline": "May to August; applications are reviewed on a rolling basis, so the firm recommends applying when you feel ready.",
+          "source_url": "https://www.janestreet.com/join-jane-street/position/8617344002/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Software Engineer Internship, New York",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "May to August; work is mostly in OCaml with some Python.",
+          "source_url": "https://www.janestreet.com/join-jane-street/position/8599644002/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Sales and Trading Internship, New York",
+          "roles": [
+            "sales and trading",
+            "sales",
+            "trading",
+            "intern"
+          ],
+          "timeline": "For students planning to graduate in 2028.",
+          "source_url": "https://www.janestreet.com/join-jane-street/position/8347385002/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "js-r1",
+          "program": "Quantitative Trader Internship, New York",
+          "kind": "skill",
+          "any": [
+            "math",
+            "mathematics",
+            "probability",
+            "statistics",
+            "physics",
+            "quantitative",
+            "olympiad",
+            "puzzle"
+          ],
+          "text": "A strong quantitative thinker; no specific degree or major is required and general programming experience is a plus, not required",
+          "source_url": "https://www.janestreet.com/join-jane-street/position/8617344002/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "js-r2",
+          "program": "Sales and Trading Internship, New York",
+          "kind": "grad_window",
+          "from": "2028-01",
+          "to": "2028-12",
+          "text": "Planning to graduate in 2028 and studying towards a Bachelor's or Master's degree",
+          "source_url": "https://www.janestreet.com/join-jane-street/position/8347385002/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "not_required": [
+        {
+          "text": "Jane Street says there are no real requirements to apply to its campus positions: you don't need to know OCaml or have finance experience, and it won't test finance or economics knowledge",
+          "source_url": "https://www.janestreet.com/join-jane-street/interviewing/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "citadel",
+      "name": "Citadel",
+      "aliases": [
+        "citadel",
+        "citadel llc"
+      ],
+      "sector": "trading",
+      "lca_company_id": "citadel",
+      "programs": [
+        {
+          "name": "Software Engineer, Intern (US)",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Locations listed include New York, Miami, Greenwich and Houston.",
+          "source_url": "https://www.citadel.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "name": "Quantitative Researcher, PhD Intern (US)",
+          "roles": [
+            "quantitative researcher",
+            "quant",
+            "research",
+            "phd",
+            "intern"
+          ],
+          "timeline": "An 11-week program; the signature internship takes place June through August.",
+          "source_url": "https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "cit-r1",
+          "program": "Software Engineer, Intern (US)",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "computer engineering",
+            "software engineering",
+            "electrical"
+          ],
+          "text": "A bachelor's, master's or PhD degree in computer science, computer engineering or related fields",
+          "source_url": "https://www.citadel.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "cit-r2",
+          "program": "Software Engineer, Intern (US)",
+          "kind": "skill",
+          "any": [
+            "probability",
+            "statistics"
+          ],
+          "text": "Familiarity with probability and statistics",
+          "source_url": "https://www.citadel.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "cit-r3",
+          "program": "Quantitative Researcher, PhD Intern (US)",
+          "kind": "degree_level",
+          "any": [
+            "phd",
+            "doctor"
+          ],
+          "text": "A PhD in mathematics, statistics, physics, computer science or another highly quantitative field",
+          "source_url": "https://www.citadel.com/careers/details/quantitative-researcher-phd-intern-us/",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "citadel-securities",
+      "name": "Citadel Securities",
+      "aliases": [
+        "citadel securities"
+      ],
+      "sector": "trading",
+      "lca_company_id": "citadel-securities",
+      "programs": [
+        {
+          "name": "Software Engineer, Intern (US)",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "An 11-week program in Miami and New York.",
+          "source_url": "https://www.citadelsecurities.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "cs-r1",
+          "program": "Software Engineer, Intern (US)",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "computer engineering",
+            "software engineering",
+            "electrical"
+          ],
+          "text": "A bachelor's, master's or PhD in computer science, computer engineering or related fields",
+          "source_url": "https://www.citadelsecurities.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "cs-r2",
+          "program": "Software Engineer, Intern (US)",
+          "kind": "skill",
+          "any": [
+            "probability",
+            "statistics"
+          ],
+          "text": "Strong analytical skills with probability and statistics",
+          "source_url": "https://www.citadelsecurities.com/careers/details/software-engineer-intern-us/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "cs-r3",
+          "program": "Software Engineer, Intern (US)",
+          "kind": "experience",
+          "any": [
+            "intern",
+            "internship",
+            "research"
+          ],
+          "text": "The firm's candidate FAQ names a previous internship at a tech or finance company, or research experience, as a trait of a strong candidate (not a formal requirement)",
+          "source_url": "https://www.citadelsecurities.com/careers/career-perspectives/candidate-faqs-engineering/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "morgan-stanley",
+      "name": "Morgan Stanley",
+      "aliases": [
+        "morgan stanley"
+      ],
+      "sector": "finance",
+      "lca_company_id": "morgan-stanley-ibd",
+      "programs": [
+        {
+          "name": "Summer Branch Analyst (US Wealth Management)",
+          "roles": [
+            "branch analyst",
+            "wealth management",
+            "analyst",
+            "intern",
+            "summer"
+          ],
+          "timeline": "A 10-week program starting in June at select US branch locations; apply online through the careers site.",
+          "source_url": "https://www.morganstanley.com/cs/pdf/Branch-Analyst-Recruit-Flyer-Summer.pdf",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "ms-r1",
+          "program": "Summer Branch Analyst (US Wealth Management)",
+          "kind": "year_of_study",
+          "any": [
+            "junior",
+            "third year",
+            "3rd year"
+          ],
+          "text": "In your junior year at an accredited 4-year college or university",
+          "source_url": "https://www.morganstanley.com/cs/pdf/Branch-Analyst-Recruit-Flyer-Summer.pdf",
+          "checked_at": "2026-10-19"
+        },
+        {
+          "id": "ms-r2",
+          "program": "Summer Branch Analyst (US Wealth Management)",
+          "kind": "gpa",
+          "min": 3.2,
+          "text": "A minimum 3.2 GPA",
+          "source_url": "https://www.morganstanley.com/cs/pdf/Branch-Analyst-Recruit-Flyer-Summer.pdf",
+          "checked_at": "2026-10-19"
+        }
+      ],
+      "notes": [
+        "The search index held no page stating eligibility for Morgan Stanley's investment banking or sales and trading summer analyst programs; only the wealth management program is here."
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "bcg",
+      "name": "BCG",
+      "aliases": [
+        "bcg",
+        "boston consulting group",
+        "the boston consulting group"
+      ],
+      "sector": "consulting",
+      "lca_company_id": "bcg",
+      "programs": [
+        {
+          "name": "Associate and Summer Associate (US)",
+          "roles": [
+            "associate",
+            "summer associate",
+            "consultant",
+            "consulting",
+            "intern"
+          ],
+          "timeline": "The US page says the Summer Associate and Full-Time Associate application deadlines have passed (summer 2027 recruiting closed).",
+          "source_url": "https://careers.bcg.com/global/en/on-campus/united-states-associate-job-opportunities",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "bcg-r1",
+          "program": "Associate and Summer Associate (US)",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "master"
+          ],
+          "not": [
+            "mba"
+          ],
+          "text": "Undergraduate and non-MBA master's students from all fields of study are welcome; current MBA students are not eligible for these deadlines",
+          "source_url": "https://careers.bcg.com/global/en/on-campus/united-states-associate-job-opportunities",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "not_required": [
+        {
+          "text": "BCG's US page welcomes students from all fields of study and backgrounds",
+          "source_url": "https://careers.bcg.com/global/en/on-campus/united-states-associate-job-opportunities",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "bain",
+      "name": "Bain & Company",
+      "aliases": [
+        "bain",
+        "bain & company",
+        "bain and company"
+      ],
+      "sector": "consulting",
+      "lca_company_id": "bain",
+      "programs": [
+        {
+          "name": "Associate Consultant Intern (ACI)",
+          "roles": [
+            "associate consultant",
+            "aci",
+            "consultant",
+            "consulting",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Deadlines vary by school and office; the Columbia ACI deadline (for students graduating December 2027 to June 2028) was August 31, 2026.",
+          "source_url": "https://www.bain.com/careers/work-with-us/students/columbia/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Associate Consultant (AC, full time)",
+          "roles": [
+            "associate consultant",
+            "consultant",
+            "full time",
+            "new grad"
+          ],
+          "timeline": "For final-year undergraduates, non-MBA master's students or early career professionals; most 2026 deadlines have passed.",
+          "source_url": "https://www.bain.com/careers/hiring-process/associate-consultant/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "bain-r1",
+          "program": "Associate Consultant Intern (ACI)",
+          "kind": "year_of_study",
+          "any": [
+            "junior",
+            "third year",
+            "penultimate",
+            "one summer left"
+          ],
+          "text": "Typically for current bachelor's and master's students with one full summer left before graduation",
+          "source_url": "https://www.bain.com/careers/work-with-us/internships-programs/associate-consultant-internship/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "bain-r2",
+          "program": "Associate Consultant Intern (ACI)",
+          "kind": "grad_window",
+          "from": "2027-12",
+          "to": "2028-06",
+          "text": "The Columbia ACI posting is for students graduating December 2027 to June 2028",
+          "source_url": "https://www.bain.com/careers/work-with-us/students/columbia/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "microsoft",
+      "name": "Microsoft",
+      "aliases": [
+        "microsoft",
+        "msft"
+      ],
+      "sector": "tech",
+      "lca_company_id": "microsoft",
+      "programs": [
+        {
+          "name": "University internship (US)",
+          "roles": [
+            "software engineer",
+            "swe",
+            "intern",
+            "internship",
+            "engineer",
+            "product manager"
+          ],
+          "timeline": "You must be returning to school for at least one full academic term after the internship.",
+          "source_url": "https://careers.microsoft.com/v2/global/en/internship_eligibility",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Explore Microsoft",
+          "roles": [
+            "explore",
+            "freshman",
+            "sophomore",
+            "first year",
+            "second year",
+            "intern"
+          ],
+          "timeline": "A 12-week (US) summer internship for first- and second-year college students.",
+          "source_url": "https://careers.microsoft.com/v2/global/en/exploremicrosoft",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "msft-r1",
+          "program": "University internship (US)",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "master",
+            "mba",
+            "phd"
+          ],
+          "text": "Enrolled full time in a bachelor's, master's, MBA or PhD program in an area relevant to the role during the term before the internship",
+          "source_url": "https://careers.microsoft.com/v2/global/en/internship_eligibility",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "msft-r2",
+          "program": "Explore Microsoft",
+          "kind": "skill",
+          "any": [
+            "intro to computer science",
+            "introduction to computer science",
+            "cs1",
+            "calculus"
+          ],
+          "text": "No computer science major needed, but you must have completed an Introduction to Computer Science course and one semester of calculus (or equivalents)",
+          "source_url": "https://careers.microsoft.com/v2/global/en/exploremicrosoft",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "amazon",
+      "name": "Amazon",
+      "aliases": [
+        "amazon",
+        "aws",
+        "amazon web services"
+      ],
+      "sector": "tech",
+      "lca_company_id": "amazon",
+      "programs": [
+        {
+          "name": "Software Development Engineer Intern, Summer 2027 (USA)",
+          "roles": [
+            "software engineer",
+            "software development engineer",
+            "sde",
+            "swe",
+            "intern",
+            "internship"
+          ],
+          "timeline": "12-week internships, 40 hours a week minimum.",
+          "source_url": "https://www.amazon.jobs/en/jobs/10552937/software-development-engineer-intern-summer-2027-usa",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "amzn-r1",
+          "program": "Software Development Engineer Intern, Summer 2027 (USA)",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "computer engineering",
+            "data science",
+            "information systems",
+            "engineering",
+            "math",
+            "physics",
+            "stem"
+          ],
+          "text": "Enrolled in a Bachelor's degree or above in Computer Science, Computer Engineering, Data Science, Information Systems or a related STEM field",
+          "source_url": "https://www.amazon.jobs/en/jobs/10552937/software-development-engineer-intern-summer-2027-usa",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "amzn-r2",
+          "program": "Software Development Engineer Intern, Summer 2027 (USA)",
+          "kind": "skill",
+          "any": [
+            "java",
+            "python",
+            "c++",
+            "c#",
+            "go",
+            "rust",
+            "typescript",
+            "javascript"
+          ],
+          "text": "Experience with at least one general-purpose programming language such as Java, Python, C++, C#, Go, Rust or TypeScript",
+          "source_url": "https://www.amazon.jobs/en/jobs/10552937/software-development-engineer-intern-summer-2027-usa",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "meta",
+      "name": "Meta",
+      "aliases": [
+        "meta",
+        "facebook",
+        "meta platforms"
+      ],
+      "sector": "tech",
+      "lca_company_id": "meta",
+      "programs": [
+        {
+          "name": "Software Engineering Intern",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "A minimum of twelve weeks.",
+          "source_url": "https://www.metacareers.com/profile/job_details/1952991802037374/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "meta-r1",
+          "program": "Software Engineering Intern",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "computer engineering",
+            "software engineering",
+            "electrical"
+          ],
+          "text": "Currently enrolled full time and in the process of obtaining a Bachelor's or Master's degree in computer science or a related field",
+          "source_url": "https://www.metacareers.com/profile/job_details/1952991802037374/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "meta-r2",
+          "program": "Software Engineering Intern",
+          "kind": "skill",
+          "any": [
+            "java",
+            "python",
+            "c++",
+            "objective-c",
+            "javascript"
+          ],
+          "text": "Coding experience in an industry-standard language such as Java, Python, C++, Objective-C or JavaScript",
+          "source_url": "https://www.metacareers.com/profile/job_details/1952991802037374/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "meta-r3",
+          "program": "Software Engineering Intern",
+          "kind": "experience",
+          "any": [
+            "intern",
+            "internship",
+            "hackathon",
+            "competition"
+          ],
+          "text": "Preferred: prior internship or competition experience",
+          "source_url": "https://www.metacareers.com/profile/job_details/1952991802037374/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "stripe",
+      "name": "Stripe",
+      "aliases": [
+        "stripe"
+      ],
+      "sector": "tech",
+      "lca_company_id": "stripe",
+      "programs": [
+        {
+          "name": "Software Engineer, Intern (summer or winter)",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Summer or winter terms.",
+          "source_url": "https://stripe.com/careers/listing/software-engineer-intern-summer-or-winter/8130805",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Software Engineer, New Grad",
+          "roles": [
+            "software engineer",
+            "swe",
+            "new grad",
+            "full time"
+          ],
+          "timeline": "Degree obtained by summer 2027, or equivalent work experience.",
+          "source_url": "https://stripe.com/careers/listing/software-engineer-new-grad/8130930",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "stripe-r1",
+          "program": "Software Engineer, Intern (summer or winter)",
+          "kind": "experience",
+          "any": [
+            "intern",
+            "internship",
+            "open source",
+            "team project",
+            "group project"
+          ],
+          "text": "Prior internship or multi-person project experience (open source counts) where you took feedback from mentors and peers",
+          "source_url": "https://stripe.com/careers/listing/software-engineer-intern-summer-or-winter/8130805",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "stripe-r2",
+          "program": "Software Engineer, New Grad",
+          "kind": "grad_window",
+          "from": null,
+          "to": "2027-09",
+          "text": "A Bachelor's or Master's degree in computer science or a directly related field obtained by summer 2027, or equivalent work experience",
+          "source_url": "https://stripe.com/careers/listing/software-engineer-new-grad/8130930",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "stripe-r3",
+          "program": "Software Engineer, New Grad",
+          "kind": "field",
+          "any": [
+            "computer science",
+            "computer engineering",
+            "software engineering"
+          ],
+          "text": "A degree in computer science or a directly related field, or equivalent work experience",
+          "source_url": "https://stripe.com/careers/listing/software-engineer-new-grad/8130930",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "blackstone",
+      "name": "Blackstone",
+      "aliases": [
+        "blackstone",
+        "bx"
+      ],
+      "sector": "finance",
+      "lca_company_id": "blackstone",
+      "programs": [
+        {
+          "name": "Summer Analyst and Associate",
+          "roles": [
+            "summer analyst",
+            "analyst",
+            "associate",
+            "intern",
+            "private equity",
+            "pe"
+          ],
+          "timeline": "Campus positions appear on the Blackstone website as early as January through March; for US roles interviews start in February for programs starting the following year and run through December. European summer applications are due in late November. The summer program typically lasts 10 weeks.",
+          "source_url": "https://www.blackstone.com/careers/students/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "bx-r1",
+          "program": "Summer Analyst and Associate",
+          "kind": "year_of_study",
+          "any": [
+            "junior",
+            "third year",
+            "3rd year",
+            "first year mba",
+            "first-year mba"
+          ],
+          "text": "Students in their junior year of college, third year of university, or first year of business school may apply",
+          "source_url": "https://www.blackstone.com/careers/students/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "two-sigma",
+      "name": "Two Sigma",
+      "aliases": [
+        "two sigma",
+        "2 sigma",
+        "twosigma"
+      ],
+      "sector": "trading",
+      "lca_company_id": "two-sigma",
+      "programs": [
+        {
+          "name": "Software Engineering Internship (Summer 2027)",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "Summer 2027, New York.",
+          "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Quantitative Researcher, Intern (2027 Summer)",
+          "roles": [
+            "quantitative researcher",
+            "quant",
+            "research",
+            "intern"
+          ],
+          "timeline": "10 weeks in the summer at the Soho, New York office.",
+          "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Intern-2027-Summer/13945",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "ts-r1",
+          "program": "Software Engineering Internship (Summer 2027)",
+          "kind": "year_of_study",
+          "any": [
+            "junior",
+            "senior",
+            "master",
+            "phd"
+          ],
+          "text": "Engineering internships take undergraduates entering junior or senior year, master's students and PhDs pursuing a technical or quantitative degree",
+          "source_url": "https://www.twosigma.com/careers/internships/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "ts-r2",
+          "program": "Software Engineering Internship (Summer 2027)",
+          "kind": "skill",
+          "any": [
+            "java",
+            "c++",
+            "python",
+            "ruby",
+            "perl",
+            "scala",
+            "kotlin",
+            "c"
+          ],
+          "text": "Experience with Java, C, C++, Python, Ruby, Perl or another JVM language, and exceptional programming skills",
+          "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "ts-r3",
+          "program": "Quantitative Researcher, Intern (2027 Summer)",
+          "kind": "experience",
+          "any": [
+            "research",
+            "thesis",
+            "paper",
+            "publication"
+          ],
+          "text": "Prior work on an in-depth research project examining real-world data",
+          "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Intern-2027-Summer/13945",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "not_required": [
+        {
+          "text": "Financial experience is not a requirement for the software engineering internship",
+          "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "hudson-river-trading",
+      "name": "Hudson River Trading",
+      "aliases": [
+        "hudson river trading",
+        "hrt"
+      ],
+      "sector": "trading",
+      "lca_company_id": "hudson-river-trading",
+      "programs": [
+        {
+          "name": "Software Engineering Internship (C++ or Python), Summer 2027",
+          "roles": [
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern",
+            "internship"
+          ],
+          "timeline": "You choose to interview in C++ or Python when you apply. Interviews usually are a coding test, 1-2 technical phone screens and an onsite final.",
+          "source_url": "https://www.hudsonrivertrading.com/hrt-job/software-engineering-internship-c-or-python-summer-2027/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "hrt-r1",
+          "program": "Software Engineering Internship (C++ or Python), Summer 2027",
+          "kind": "skill",
+          "any": [
+            "c++",
+            "python",
+            "c"
+          ],
+          "text": "Projects are in Python, C or C++; you pick C++ or Python for the interviews",
+          "source_url": "https://www.hudsonrivertrading.com/hrt-job/software-engineering-internship-c-or-python-summer-2027/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "hrt-r2",
+          "program": "Software Engineering Internship (C++ or Python), Summer 2027",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "master",
+            "phd",
+            "student",
+            "university",
+            "college"
+          ],
+          "text": "For full-time students",
+          "source_url": "https://www.hudsonrivertrading.com/hrt-job/software-engineering-internship-c-or-python-summer-2027/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "de-shaw",
+      "name": "D. E. Shaw",
+      "aliases": [
+        "de shaw",
+        "d. e. shaw",
+        "d.e. shaw",
+        "deshaw",
+        "d e shaw"
+      ],
+      "sector": "trading",
+      "lca_company_id": "de-shaw",
+      "programs": [
+        {
+          "name": "Fundamental Research Analyst Intern (New York, Summer 2027)",
+          "roles": [
+            "fundamental research",
+            "research analyst",
+            "analyst",
+            "intern",
+            "investing"
+          ],
+          "timeline": "Ten weeks, June to August 2027.",
+          "source_url": "https://www.deshaw.com/careers/fundamental-research-analyst-intern-new-york-summer-2027-5709",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Software Developer Intern (New York, Summer 2027)",
+          "roles": [
+            "software developer",
+            "software engineer",
+            "swe",
+            "engineer",
+            "intern"
+          ],
+          "timeline": "A 12-week program; most interns are approaching their final year.",
+          "source_url": "https://www.deshaw.com/careers/software-developer-intern-new-york-summer-2027-5894",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Quantitative Analyst Intern (New York, Summer 2027)",
+          "roles": [
+            "quantitative analyst",
+            "quant",
+            "intern"
+          ],
+          "timeline": "Summer 2027.",
+          "source_url": "https://www.deshaw.com/careers/quantitative-analyst-intern-new-york-summer-2027-5890",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "des-r1",
+          "program": "Fundamental Research Analyst Intern (New York, Summer 2027)",
+          "kind": "experience",
+          "any": [
+            "investing club",
+            "investment club",
+            "stock pitch",
+            "internship",
+            "equity research",
+            "investing"
+          ],
+          "text": "A demonstrated interest in markets and company research, for example investing clubs, internships or stock pitch competitions",
+          "source_url": "https://www.deshaw.com/careers/fundamental-research-analyst-intern-new-york-summer-2027-5709",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "des-r2",
+          "program": "Software Developer Intern (New York, Summer 2027)",
+          "kind": "skill",
+          "any": [
+            "python",
+            "java",
+            "c++",
+            "c"
+          ],
+          "text": "Programming skill and problem-solving ability, for example in Python, Java or C/C++; enrolled in a full-time degree program",
+          "source_url": "https://www.deshaw.com/careers/software-developer-intern-new-york-summer-2027-5894",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "des-r3",
+          "program": "Quantitative Analyst Intern (New York, Summer 2027)",
+          "kind": "field",
+          "any": [
+            "math",
+            "mathematics",
+            "statistics",
+            "physics",
+            "engineering",
+            "computer science"
+          ],
+          "text": "A strong academic record including advanced coursework in math, statistics, physics, engineering, computer science or another quantitative program; Python preferred",
+          "source_url": "https://www.deshaw.com/careers/quantitative-analyst-intern-new-york-summer-2027-5890",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "not_required": [
+        {
+          "text": "The Fundamental Research Analyst internship welcomes students in any field and needs no prior finance experience",
+          "source_url": "https://www.deshaw.com/careers/fundamental-research-analyst-intern-new-york-summer-2027-5709",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "evercore",
+      "name": "Evercore",
+      "aliases": [
+        "evercore",
+        "evr"
+      ],
+      "sector": "finance",
+      "lca_company_id": "evercore",
+      "programs": [
+        {
+          "name": "Summer intern programs (Europe/Asia, 2027)",
+          "roles": [
+            "summer analyst",
+            "analyst",
+            "intern",
+            "london",
+            "europe"
+          ],
+          "timeline": "2027 summer intern applications open 31 August to 11 October 2026 (Europe/Asia). No US date was in the index.",
+          "source_url": "https://www.evercore.com/careers/students-graduates/students-graduates-europe-asia/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Campus programs (US)",
+          "roles": [
+            "summer analyst",
+            "analyst",
+            "investment banking",
+            "intern"
+          ],
+          "timeline": "Up to two applications a year; late applications are not accepted. A 10-week Summer Apprenticeship Program pairs each analyst with a peer mentor and a senior banker.",
+          "source_url": "https://www.evercore.com/careers/faqs/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "evr-r1",
+          "program": "Campus programs (US)",
+          "kind": "degree_level",
+          "any": [
+            "bachelor",
+            "mba",
+            "undergraduate"
+          ],
+          "text": "Campus programs are for students currently in undergraduate or MBA programs",
+          "source_url": "https://www.evercore.com/careers/faqs/",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "evr-r2",
+          "program": "Campus programs (US)",
+          "kind": "experience",
+          "any": [
+            "investment banking",
+            "finance",
+            "markets",
+            "investing"
+          ],
+          "text": "The US page asks for an exceptional academic record and a strong interest in investment banking and global markets",
+          "source_url": "https://www.evercore.com/careers/students-graduates/students-graduates-u-s/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "deloitte",
+      "name": "Deloitte",
+      "aliases": [
+        "deloitte",
+        "deloitte consulting"
+      ],
+      "sector": "consulting",
+      "lca_company_id": "deloitte-consulting",
+      "programs": [
+        {
+          "name": "Business Strategy Summer Scholar (Summer 2026)",
+          "roles": [
+            "summer scholar",
+            "strategy",
+            "consultant",
+            "consulting",
+            "intern"
+          ],
+          "timeline": "Summer 2026 posting.",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Deloitte-Business-Strategy-Summer-Scholar-Summer-2026/307102",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "name": "Government and Public Services Summer Scholar, Business Analytics",
+          "roles": [
+            "summer scholar",
+            "analytics",
+            "business analytics",
+            "government",
+            "intern"
+          ],
+          "timeline": "Target graduation by Spring/Summer 2027.",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Deloitte-Consulting-LLP-Government-Public-Services-Summer-Scholar-Business-Analytics/309156",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "dtt-r1",
+          "program": "Government and Public Services Summer Scholar, Business Analytics",
+          "kind": "gpa",
+          "min": 3.0,
+          "text": "Minimum GPA 3.0 (3.4 preferred)",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Deloitte-Consulting-LLP-Government-Public-Services-Summer-Scholar-Business-Analytics/309156",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "dtt-r2",
+          "program": "Government and Public Services Summer Scholar, Business Analytics",
+          "kind": "field",
+          "any": [
+            "accounting",
+            "analytics",
+            "computer science",
+            "data science",
+            "finance",
+            "statistics",
+            "information systems",
+            "economics"
+          ],
+          "text": "Majors such as accounting, analytics, computer science, data science, finance, statistics or related technology fields",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Deloitte-Consulting-LLP-Government-Public-Services-Summer-Scholar-Business-Analytics/309156",
+          "checked_at": "2026-10-20"
+        },
+        {
+          "id": "dtt-r3",
+          "program": "Government and Public Services Summer Scholar, Business Analytics",
+          "kind": "clearance",
+          "any": [
+            "clearance",
+            "u.s. citizen",
+            "us citizen"
+          ],
+          "text": "Some government roles require eligibility for a US security clearance",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Deloitte-Consulting-LLP-Government-Public-Services-Summer-Scholar-Business-Analytics/309156",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    },
+    {
+      "firm_id": "point72",
+      "name": "Point72",
+      "aliases": [
+        "point72",
+        "point 72"
+      ],
+      "sector": "trading",
+      "lca_company_id": "point72",
+      "programs": [
+        {
+          "name": "Point72 Academy (summer internship and full-time program)",
+          "roles": [
+            "academy",
+            "investment analyst",
+            "analyst",
+            "research",
+            "intern",
+            "full time"
+          ],
+          "timeline": "The 2026 Academy Summer Internship and Full-Time Program applications are closed, except roles based in Japan. The full-time program is ten months of paid training.",
+          "source_url": "https://point72.com/point72-academy/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "p72-r1",
+          "program": "Point72 Academy (summer internship and full-time program)",
+          "kind": "other",
+          "text": "Include your month of graduation: many of the opportunities apply only to certain graduation years",
+          "source_url": "https://point72.com/blog/applying-for-the-academy-internship-how-to-put-your-best-foot-forward/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "not_required": [
+        {
+          "text": "Point72 says over 50 percent of Academy graduates and associates come from non-finance majors and it welcomes all fields of study",
+          "source_url": "https://point72.com/point72-academy/",
+          "checked_at": "2026-10-20"
+        }
+      ],
+      "base_rates": []
+    }
+  ]
+}

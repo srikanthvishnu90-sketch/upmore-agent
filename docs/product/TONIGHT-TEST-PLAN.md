@@ -97,7 +97,7 @@ The apply engine runs on the tester's own computer, signed in as themselves. It 
 
 ## 4. Resume
 
-PR #49 when merged; needs `CAREER_BRAIN=agent`.
+Merged (#49); needs `CAREER_BRAIN=agent`.
 
 | # | Text | Must come back | Pass bar |
 |---|---|---|---|
@@ -113,17 +113,19 @@ PR #49 when merged; needs `CAREER_BRAIN=agent`.
 | 5.1 | `mock interview for Goldman investment banking` | 6 role-specific questions, one at a time | Questions fit the role |
 | 5.2 | Answer each | A debrief that quotes your own words, with a rubric score per answer | No quote you didn't say |
 | 5.3 | `brief me for my interview at JPMorgan` | The company brief with sources and a 10-point plan | Every source link opens |
-| 5.4 | Voice mock (WO-035, when it lands) | The link opens a voice session. Debrief within 2 minutes of hang-up. | Time from your last word to its first audio (**target under 1 s**); debrief time |
+| 5.4 | Voice mock (#53; needs `CAREER_VOICE=on`; `start a voice mock for Goldman IB`) | The link opens a voice session. Debrief within 2 minutes of hang-up. | Time from your last word to its first audio (**target under 1 s**); debrief time |
 
 ## 6. Tracking
 
-PR #46; needs `CAREER_MAIL_TRACKING=on` and the Google grant.
+Merged (#46); needs `CAREER_MAIL_TRACKING=on` and the Google grant. With `CAREER_BRIEF_DIGEST=on` (#56), an interview invite in the mail is briefed in the same run, and the weekly digest arrives at the person's day and hour.
 
 | # | Step | Must happen | Pass bar |
 |---|---|---|---|
 | 6.1 | An employer's "we received your application" email arrives | A status text within the run interval | Time from email to text (**target under 1 hour**) |
 | 6.2 | `where do I stand with JPMorgan` | Tracker and mail status | Matches the inbox |
 | 6.3 | A scam "job offer" email | **Never texted** | Nothing arrives |
+| 6.4 | An interview invite email (with `CAREER_BRIEF_DIGEST=on`) | The brief: the invite's facts, sourced patterns, a 10-point plan | Time from email to brief (**target under 1 hour**); nothing in it the invite did not say |
+| 6.5 | `weekly digest on Sunday at 6pm` | The setting restated; the digest arrives then | Built only from your own rows |
 
 ## 7. Memory
 
@@ -132,7 +134,7 @@ PR #46; needs `CAREER_MAIL_TRACKING=on` and the Google grant.
 | 7.1 | `remember I never want roles in Texas`, then later `find me analyst roles` | No Texas roles | Holds after 40+ messages |
 | 7.2 | `what did I apply to last week` | From the timeline, with dates | Matches what happened |
 | 7.3 | `what do you remember about me` | Standing instructions and confirmed facts only | Nothing invented |
-| 7.4 | `forget everything` | Erased, including tailored resumes | A later `what do you remember` returns nothing |
+| 7.4 | `forget everything` | Erased, including tailored resumes, outreach drafts and (with #59) mail-tracking events and drafts | A later `what do you remember` returns nothing |
 
 ## 8. Connector
 
@@ -142,13 +144,50 @@ PR #46; needs `CAREER_MAIL_TRACKING=on` and the Google grant.
 
 ## 9. WhatsApp and Telegram
 
-Not ready tonight. WO-038 is in build, and the PR #50 fixes are its base.
+Ready to test once #57 is merged and deployed, and the owner has set the channel inputs at go-live. A channel left empty
+stays NOT_WIRED: its webhook answers 503 and nothing is lost.
 
-Today the texting path is LoopMessage only. A WhatsApp or Telegram message would not be answered on that channel. The audit is in the architect's notes.
+**Owner, before testing (on your own machine):**
+- Telegram: create the bot with @BotFather, then give go-live `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`. Enter
+  generates the webhook secret.
+- WhatsApp: Meta business verification (can take days), a permanent system-user token, the phone number id, the app
+  secret, and the approved updates template (`docs/launch/whatsapp-templates.json`). Give them at the go-live prompts.
 
-To test once WO-038 merges and the owner sets the tokens: run the same sections 1 to 8 on each channel and compare the person-visible text to iMessage's.
+| # | Step | Must happen | Pass bar |
+|---|---|---|---|
+| 9.1 | Telegram: open `t.me/<bot>?start=<link>` from the link Trainee texts on iMessage ("link my Telegram") | Linked to the same account; no code typed | One account, both channels |
+| 9.2 | Run sections 1, 2.1-2.2, 4.1, 5.1 and 7 on Telegram | The same words as iMessage, on Telegram | Compare each reply with iMessage's, side by side |
+| 9.3 | `draft emails to the bankers on my list` (with a list imported) on Telegram | A 10-draft batch arrives as separate messages, each draft whole, in order | No draft cut; numbering intact |
+| 9.4 | WhatsApp: message the business number first, then repeat 9.2 | The same words as iMessage | Side-by-side compare |
+| 9.5 | WhatsApp: wait more than 24 hours with no message, then let an alert fire | A short template ("Trainee has N new updates for you. Reply to see them."); after your reply, the full alerts in order | Nothing lost, nothing out of order |
+| 9.6 | `STOP` on Telegram | Alerts held on every channel; answers keep coming | Same as 1.4 |
 
-WhatsApp's 24-hour rule is a platform rule. An alert outside the window arrives as a short template ("Trainee has 2 new updates for you. Reply to see them."), and the full text follows your reply. That is the one place WhatsApp can't be identical.
+WhatsApp's 24-hour rule is a platform rule, and it is the one place WhatsApp can't be identical.
+
+## 10. Outreach (networking)
+
+Merged (#55). Drafting works with no switch; sending needs `CAREER_OUTREACH_SEND=on` and the career Google sign-in with
+Gmail send. Hunter checks need `HUNTER_API_KEY`; without it, only the free checks run and the labels say so. Use a list
+you exported from your **own** account (D-018a): your LinkedIn connections export, or an Apollo CSV from your own
+Apollo account.
+
+| # | Text | Must come back | Pass bar |
+|---|---|---|---|
+| 10.1 | Send the CSV, then `how many of these can I email?` | Counts, with each check labelled exactly as it ran | No check claimed that did not run |
+| 10.2 | `sign them <your name>`, then `draft emails to the bankers on my list` | Up to 10 drafts, each in full, numbered | Check every claim against your confirmed facts: **zero invented** |
+| 10.3 | `send 1-3` (first send only to an address you own) | Exactly drafts 1-3 approved; sent by the scheduled run, 90 s apart | One recipient per email, no Cc or Bcc; the text sent is the text you approved |
+| 10.4 | Reply "stop" from the recipient address | That address is on the do-not-contact list | No later draft to it, for any user |
+| 10.5 | `which bankers did I email in October?` | From the timeline, with dates | Matches what was sent |
+
+## 11. Career guidance
+
+#58 when merged. Hired-candidate backgrounds need `PDL_API_KEY`; without it, Trainee says it has no data.
+
+| # | Text | Must come back | Pass bar |
+|---|---|---|---|
+| 11.1 | `how do I get into Goldman investment banking` | Programs, timeline and requirements, each with a link and a checked date; 3 moves, each citing a requirement | Every link opens; a probability only with its cited base rate |
+| 11.2 | `I got an offer: analyst at JPMorgan in New York, $110k base` | A benchmark with n and year for each number, and a negotiation script | No benchmark from n under 5; no invented competing offer |
+| 11.3 | `who did Goldman hire last year` | With the PDL key: aggregates only (schools, prior employers, degrees), nothing under 5. Without it: says it has no data | Never a named person |
 
 ## Recording
 

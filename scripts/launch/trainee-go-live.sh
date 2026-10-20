@@ -11,6 +11,7 @@
 #   LOOPMESSAGE_API_KEY, OPENAI_API_KEY          Enter keeps the one already set on the project
 #   INGEST_CONTACT_EMAIL, TRAINEE_ALLOWED_CONTACTS, LOOPMESSAGE_DAILY_CONTACTS   settings; Enter keeps what is set
 #   UPMORE_TEST_JWT (optional), TRAINEE_SMOKE_CONTACT (with --allow-send)        for the smoke checks
+#   PDL_API_KEY (optional)                       People Data Labs, hired-candidate aggregates (WO-036, D-018); Enter keeps
 # Optional, one channel each (WO-038); a channel left empty stays NOT_WIRED (its rows wait, its webhook answers 503):
 #   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET (Enter generates one when a token is given), TELEGRAM_BOT_USERNAME
 #   WHATSAPP_TOKEN (the permanent system-user token), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET,
@@ -76,8 +77,10 @@ MIGRATIONS=(
   20261020130000_career_resume_tailoring.sql
   20261021010000_career_outreach.sql
   20261021020000_career_voice_mock.sql
+  20261021030000_career_hired_backgrounds.sql
   20261021050000_career_brief_digest.sql
   20261021070000_channel_parity.sql
+  20261021090000_career_mail_erase.sql
   20261021100000_career_proactive_last_word.sql
 )
 MIGRATION_MARK=(
@@ -100,8 +103,10 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_claim')"
   "exists (select 1 from pg_proc where proname = 'career_voice_create')"
+  "to_regclass('public.career_pdl_calls') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
   "exists (select 1 from pg_proc where proname = 'channel_link_nonce_redeem')"
+  "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_to_thread')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -137,7 +142,7 @@ fail() { echo "STEP $CUR: FAILED: $1"; REPORTED=1; exit 1; }
 mask_values() {
   local v
   for v in SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
-    LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL \
+    LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL PDL_API_KEY \
     TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN; do
     [[ -n "${!v:-}" ]] && printf '%s\n' "${!v}"
   done
@@ -227,7 +232,8 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   ask INGEST_CONTACT_EMAIL "Contact email the job boards see in the User-Agent (Enter to keep the one already set)" plain
   ask TRAINEE_ALLOWED_CONTACTS "Phone numbers allowed to sign up, comma-separated (Enter to keep what is set)" hidden
   ask LOOPMESSAGE_DAILY_CONTACTS "LoopMessage contacts a day, 300 or 1000 by plan (Enter to keep; unset means 300)" plain
-  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS; do
+  ask PDL_API_KEY "People Data Labs API key for hired-candidate backgrounds (Enter to keep; without one Trainee says it has no data)" hidden
+  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS PDL_API_KEY; do
     if [[ -n "${!v:-}" ]] && ! env_safe "${!v}"; then fail "$v has a space, quote, # or backslash (the value is not shown)"; fi
   done
   [[ -z "${INGEST_CONTACT_EMAIL:-}" || "$INGEST_CONTACT_EMAIL" == *@* ]] || fail "INGEST_CONTACT_EMAIL is not an email address"
@@ -337,6 +343,7 @@ else
   if [[ -n "${LOOPMESSAGE_API_KEY:-}" ]]; then add LOOPMESSAGE_API_KEY "$LOOPMESSAGE_API_KEY" "***"; else echo "  kept: LOOPMESSAGE_API_KEY (not given; without one, delivery and inbound answer 503 NOT_WIRED)"; fi
   if [[ -n "${LOOPMESSAGE_DAILY_CONTACTS:-}" ]]; then add LOOPMESSAGE_DAILY_CONTACTS "$LOOPMESSAGE_DAILY_CONTACTS" "***"; else echo "  kept: LOOPMESSAGE_DAILY_CONTACTS (unset means 300 a day)"; fi
   if [[ -n "${TRAINEE_ALLOWED_CONTACTS:-}" ]]; then add TRAINEE_ALLOWED_CONTACTS "$TRAINEE_ALLOWED_CONTACTS" "***"; else echo "  kept: TRAINEE_ALLOWED_CONTACTS (sign-up stays closed to anyone not listed or already linked)"; fi
+  if [[ -n "${PDL_API_KEY:-}" ]]; then add PDL_API_KEY "$PDL_API_KEY" "***"; else echo "  kept: PDL_API_KEY (not given; hired-candidate backgrounds say NO DATA until it is set)"; fi
   # OpenAI only (owner, 2026-10-12): the key goes with MODEL_PROVIDER=openai, as in go-live.sh.
   if [[ -n "${OPENAI_API_KEY:-}" ]]; then add OPENAI_API_KEY "$OPENAI_API_KEY" "***"; add MODEL_PROVIDER openai openai; else echo "  kept: OPENAI_API_KEY (not given; an already-set key stays as it is)"; fi
   # WO-038: each channel's values when given; a channel never given stays NOT_WIRED.

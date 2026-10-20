@@ -23,7 +23,8 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     "stop_job_alerts", "tailor_resume", "track_application", "use_resume_persona", "where_do_i_stand",
     "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts",
     "brief_from_invite", "set_weekly_digest",
-  ].sort()); // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028; brief_from_invite and set_weekly_digest: WO-034;
+    "offer_benchmark", "career_path_answer",
+  ].sort()); // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028; brief_from_invite and set_weekly_digest: WO-034; offer_benchmark and career_path_answer: WO-036;
   // contacts, outreach drafts and the referral map: WO-033 (drafting is write_own: sending is only by the approval reply and the scheduled run)
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
@@ -31,7 +32,8 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own",
     list_applications: "read", track_application: "write_own", search_jobs: "read",
     set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own", recall: "read",
-    get_interview_questions: "read", interview_brief: "read", score_interview_answer: "read",
+    get_interview_questions: "read", interview_brief: "read", offer_benchmark: "write_own", career_path_answer: "read",
+    score_interview_answer: "read",
     tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own", where_do_i_stand: "read",
     contact_list: "read", verify_contacts: "write_own", record_list_cost: "write_own", draft_outreach: "write_own",
     set_outreach_signature: "write_own", set_outreach_limit: "write_own", referral_map: "read",

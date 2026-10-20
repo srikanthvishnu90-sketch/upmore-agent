@@ -424,7 +424,260 @@ const GH_FILE_REMOUNT = GH_FORM.replace(
   `<script>document.getElementById('email').addEventListener('input', () => { const r = document.getElementById('resume'); if (r) { const n = document.createElement('input'); n.type = 'file'; n.id = 'resume-file-2'; n.name = 'resume'; n.required = true; r.replaceWith(n); } });</script></body>`
 );
 
-const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE };const server = http.createServer((req, res) => {
+// MI-098 fixture: a Constellation-shaped fellowship form (the Anthropic
+// Fellows shape staged from the census §1 / packet topics — fields are
+// read at drive time by module 150 in the real product; this fixture is
+// the captured-form replay guard). Availability + research statement are
+// textareas: owner-decision / owner-writing, never filled from facts.
+const CONSTELLATION_FORM = `<!doctype html><html><head><title>Anthropic Fellows Application (TEST fixture)</title></head><body>
+<h1>Anthropic Fellows Program</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="linkedin">LinkedIn</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="wa">Are you authorized to work in the US, UK, or Canada? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require visa sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="availability">Availability for the full-time 4-month cohort</label><textarea id="availability" name="availability"></textarea></div>
+  <div><label for="research_statement">Research statement</label><textarea id="research_statement" name="research_statement"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+// MI-099 fixture: a Tally-shaped fellowship form (the a16z Academy
+// Fellowship Stage 1 shape staged from the census §10 materials —
+// fields are read at drive time by module 150 in the real product;
+// this fixture is the captured-form replay guard). The essay is a
+// textarea and the video/transcript are owner-supplied artifacts:
+// none is ever filled from facts, and none is marked required here —
+// the live form's required flags are read at drive time, and a live
+// required owner-only field correctly stops the run awaiting_user.
+const TALLY_FORM = `<!doctype html><html><head><title>a16z Academy Fellowship — Stage 1 (TEST fixture)</title></head><body>
+<h1>a16z Academy Fellowship</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country</label>
+    <select id="country" name="country"><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="linkedin">LinkedIn</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="portfolio">Link to your personal portfolio website *</label><input id="portfolio" name="portfolio" type="text" required></div>
+  <div><label for="test_scores">Test scores (SAT/ACT, if any)</label><input id="test_scores" name="test_scores" type="text"></div>
+  <div><label for="essay">Essay</label><textarea id="essay" name="essay"></textarea></div>
+  <div><label for="video_link">Short video link</label><input id="video_link" name="video_link" type="text"></div>
+  <div><label for="transcript">High school transcript</label><input id="transcript" name="transcript" type="file"></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit</button>
+</form></body></html>`;
+
+// MI-100 fixture: a FormAssembly-shaped fellowship form (the Emergent
+// Ventures shape, form 5099527, staged from the census 2026-10-15 §12 —
+// fields are read at drive time by module 150 in the real product; this
+// fixture is the captured-form replay guard). The proposal textarea is
+// owner-writing only (EV bans AI-written applications): the drive must
+// leave it untouched, and it is not required here so the fact-only
+// doorstep can be verified around it.
+const FORMASSEMBLY_FORM = `<!doctype html><html><head><title>Emergent Ventures Application (TEST fixture)</title></head><body>
+<h1>Emergent Ventures</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="state">State of Residence</label><input id="state" name="state" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="region">Region affected</label><textarea id="region" name="region_affected"></textarea></div>
+  <div><label for="funding">Dedicated funding area (optional)</label><input id="funding" name="funding_area" type="text"></div>
+  <div><label for="proposal">Proposal (no more than 1,500 words)</label><textarea id="proposal" name="proposal"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+// MI-101 fixture: a Google-Forms-shaped fellowship form (the Z Fellows
+// shape, staged from the census 2026-10-15 §13 — fields are read at
+// drive time by module 150 in the real product; this fixture is the
+// captured-form replay guard). The short-answer textareas are
+// owner-writing only: the drive must leave them untouched, and they
+// are not required here so the fact-only doorstep can be verified
+// around them. The live form has no resume upload, so neither does
+// this fixture.
+const GOOGLE_FORMS_FORM = `<!doctype html><html><head><title>Z Fellows – 2026 cohorts (TEST fixture)</title></head><body>
+<h1>Z Fellows – 2026 cohorts</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="company">Company or project name *</label><input id="company" name="company_or_project" type="text" required></div>
+  <div><label for="birthday">Birthday *</label><input id="birthday" name="date_of_birth" type="text" required></div>
+  <div><label for="phone">Phone Number *</label><input id="phone" name="phone" type="tel" required></div>
+  <div><label for="tech">Are you technical? *</label>
+    <select id="tech" name="is_technical" required><option value="">Select...</option><option>Yes</option><option>No</option></select></div>
+  <div><label for="prev">Have you previously applied to Z Fellows? *</label>
+    <select id="prev" name="previously_applied" required><option value="">Select...</option><option>Yes</option><option>No</option></select></div>
+  <div><label for="based">Where are you based? *</label><input id="based" name="location" type="text" required></div>
+  <div><label for="site">Personal or project website and links *</label><input id="site" name="website" type="text" required></div>
+  <div><label for="schoolwork">Are you in school or working? Or both? Where at?</label><textarea id="schoolwork" name="school_or_work"></textarea></div>
+  <div><label for="achievements">Achievements and prizes</label><textarea id="achievements" name="achievements"></textarea></div>
+  <div><label for="project">What project are you working on and why?</label><textarea id="project" name="project_description"></textarea></div>
+  <div><label for="problem">What problem are you solving?</label><textarea id="problem" name="problem"></textarea></div>
+  <div><label for="video">1-minute intro video (YouTube link) (optional)</label><input id="video" name="intro_video" type="text"></div>
+  <button type="submit" id="submit-btn">Submit</button>
+</form></body></html>`;
+
+// MI-102 fixture: a Neo-shaped fellowship portal form (the Neo
+// Residency shape, staged from the census 2026-10-15 §5 — the live
+// Bubble portal's fields do not render in a text fetch and are
+// uncaptured, so this is a captured-form-SHAPE replay guard; in the
+// real product the live form's fields are read at drive time by
+// module 150). The free-text textareas are owner-writing only: the
+// drive must leave them untouched, and they are not required here so
+// the fact-only doorstep can be verified around them.
+const NEO_FORM = `<!doctype html><html><head><title>Neo Residency Application (TEST fixture)</title></head><body>
+<h1>Neo Residency — Winter 2027</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="school">School</label><input id="school" name="school" type="text"></div>
+  <div><label for="gy">Graduation Year</label><input id="gy" name="graduation_year" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="website">Portfolio / personal website</label><input id="website" name="website" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="track">Applicant track</label>
+    <select id="track" name="applicant_track"><option value="">Select...</option><option>Startup</option><option>Student</option></select></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="startup_or_project_description">Startup or project description</label><textarea id="startup_or_project_description" name="startup_or_project_description"></textarea></div>
+  <div><label for="why_neo_residency">Why Neo Residency</label><textarea id="why_neo_residency" name="why_neo_residency"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+// MI-103 fixtures: the Thiel Fellowship's two page shapes, staged from
+// the fellowship census 2026-10-15 §3 (the in-account field list comes
+// from secondary walkthroughs — name, date of birth, hometown, current
+// location, project/company name + URL, LinkedIn, previous projects,
+// short written answers about the project; in the real product the live
+// form's fields are read at drive time by module 150). THIEL_FORM is the
+// IN-ACCOUNT application (the shape the owner sees after HE signs in):
+// the written-answer textareas are owner-writing only, the drive must
+// leave them untouched, and they are not required here so the fact-only
+// doorstep can be verified around them. The live application stages
+// carry no resume upload per the census, so neither does this fixture.
+// THIEL_LOGIN is the ACCOUNT WALL itself: an email + password sign-in /
+// create-account page. The drive must stop ACCOUNT_WALL_OWNER_HANDOFF
+// on it before any form read or fill — no credential is ever typed here.
+const THIEL_FORM = `<!doctype html><html><head><title>Thiel Fellowship Application (TEST fixture)</title></head><body>
+<h1>Thiel Fellowship — Application</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="dob">Date of Birth *</label><input id="dob" name="date_of_birth" type="text" required></div>
+  <div><label for="hometown">Hometown</label><input id="hometown" name="hometown" type="text"></div>
+  <div><label for="location">Current Location</label><input id="location" name="location" type="text"></div>
+  <div><label for="project_name">Project or Company Name *</label><input id="project_name" name="project_or_company_name" type="text" required></div>
+  <div><label for="project_url">Project or Company URL</label><input id="project_url" name="project_url" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="previous_projects">Previous projects</label><textarea id="previous_projects" name="previous_projects"></textarea></div>
+  <div><label for="project_description">Describe your project</label><textarea id="project_description" name="project_description"></textarea></div>
+  <div><label for="project_progress">What progress have you made on your project so far?</label><textarea id="project_progress" name="project_progress"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const THIEL_LOGIN = `<!doctype html><html><head><title>Thiel Fellowship — Sign In (TEST fixture)</title></head><body>
+<h1>Sign in to the Thiel Fellowship</h1>
+<p>Create an account or sign in to continue your application.</p>
+<form id="login" method="post" action="/never-submit">
+  <div><label for="login_email">Email *</label><input id="login_email" name="email" type="email" required></div>
+  <div><label for="login_password">Password *</label><input id="login_password" name="password" type="password" required></div>
+  <button type="submit" id="signin-btn">Sign in</button>
+</form>
+<p><a href="/thiel-login">Create account</a> · <a href="/thiel-login">Forgot password?</a></p>
+</body></html>`;
+
+// MI-104 fixtures: the two bespoke program-site fellowship forms,
+// staged from the fellowship census 2026-10-15 (§8 for 8VC, §7 for
+// Kleiner Perkins — neither census published an exact field list, so
+// these are captured-form-SHAPE replay guards; in the real product the
+// live forms' fields are read at drive time by module 150). The
+// free-text textareas are owner-writing only: both drives must leave
+// them untouched, and they are not required here so the fact-only
+// doorstep can be verified around them.
+const EIGHTVC_FORM = `<!doctype html><html><head><title>8VC Fellowship Application (TEST fixture)</title></head><body>
+<h1>8VC Fellowship</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="school">School</label><input id="school" name="school" type="text"></div>
+  <div><label for="gy">Graduation Year</label><input id="gy" name="graduation_year" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="website">Portfolio / personal website</label><input id="website" name="website" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="pathway">Fellowship pathway</label>
+    <select id="pathway" name="pathway"><option value="">Select...</option><option>Engineering</option><option>Design</option></select></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="project_description">Project description</label><textarea id="project_description" name="project_description"></textarea></div>
+  <div><label for="why_8vc_fellowship">Why 8VC Fellowship</label><textarea id="why_8vc_fellowship" name="why_8vc_fellowship"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const KLEINERPERKINS_FORM = `<!doctype html><html><head><title>Kleiner Perkins Fellows Application (TEST fixture)</title></head><body>
+<h1>Kleiner Perkins Fellows</h1>
+<form id="application" method="post" action="/never-submit">
+  <div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+  <div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+  <div><label for="email">Email *</label><input id="email" name="email" type="email" required></div>
+  <div><label for="phone">Phone</label><input id="phone" name="phone" type="tel"></div>
+  <div><label for="location">Location (City)</label><input id="location" name="location" type="text"></div>
+  <div><label for="country">Country *</label>
+    <select id="country" name="country" required><option value="">Select...</option><option>United States</option><option>United Kingdom</option><option>Canada</option></select></div>
+  <div><label for="school">School</label><input id="school" name="school" type="text"></div>
+  <div><label for="degree">Degree</label><input id="degree" name="degree" type="text"></div>
+  <div><label for="discipline">Field of Study</label><input id="discipline" name="discipline" type="text"></div>
+  <div><label for="gy">Graduation Year</label><input id="gy" name="graduation_year" type="text"></div>
+  <div><label for="linkedin">LinkedIn Profile</label><input id="linkedin" name="linkedin" type="text"></div>
+  <div><label for="website">Portfolio / personal website</label><input id="website" name="website" type="text"></div>
+  <div><label for="resume">Resume/CV *</label><input id="resume" name="resume" type="file" required></div>
+  <div><label for="wa">Are you authorized to work in the US? *</label>
+    <select id="wa" name="work_authorization" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="sp">Will you require sponsorship? *</label>
+    <select id="sp" name="sponsorship" required><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <div><label for="project_you_launched_from_scratch">Project you launched from scratch</label><textarea id="project_you_launched_from_scratch" name="project_you_launched_from_scratch"></textarea></div>
+  <div><label for="campus_leadership_and_roles">Campus leadership and roles</label><textarea id="campus_leadership_and_roles" name="campus_leadership_and_roles"></textarea></div>
+  <div><label><input id="certify" name="certify_true" type="checkbox" required> I certify the above is true *</label></div>
+  <button type="submit" id="submit-btn">Submit application</button>
+</form></body></html>`;
+
+const pages = { "/gh-form": GH_FORM, "/captcha-open": CAPTCHA_OPEN, "/captcha-review": CAPTCHA_REVIEW_STEP1, "/gh-confirm": GH_CONFIRM, "/gh-ambiguous": GH_AMBIGUOUS, "/gh-eeo-variant": GH_EEO_VARIANT, "/lever-card": LEVER_CARD, "/lever-radio": LEVER_RADIO, "/gh-remount": GH_REMOUNT, "/gh-remount-forever": GH_REMOUNT_FOREVER, "/gh-false-confirm": GH_FALSE_CONFIRM, "/gh-remount-late": GH_REMOUNT_LATE, "/gh-typeahead": GH_TYPEAHEAD, "/gh-file-vanish": GH_FILE_VANISH, "/gh-file-remount": GH_FILE_REMOUNT, "/gh-current": GH_CURRENT, "/gh-current-late-file": GH_CURRENT_LATE_FILE, "/constellation-form": CONSTELLATION_FORM, "/tally-form": TALLY_FORM, "/formassembly-form": FORMASSEMBLY_FORM, "/google-forms-form": GOOGLE_FORMS_FORM, "/neo-form": NEO_FORM, "/thiel-form": THIEL_FORM, "/thiel-login": THIEL_LOGIN, "/eightvc-form": EIGHTVC_FORM, "/kleinerperkins-form": KLEINERPERKINS_FORM };const server = http.createServer((req, res) => {
   // D1 fixture: an allowed-host page that server-redirects OFF the
   // allowlist (the HRT Greenhouse -> employer-site shape). The target is
   // a .invalid host: pre-fix Chromium burned minutes on proxy/DNS; the

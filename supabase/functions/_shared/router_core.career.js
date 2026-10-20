@@ -21605,6 +21605,13 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    { re: /(^|\.)constellation\.(jobs|com|io)$/, family: "constellation" },
+    { re: /(^|\.)tally\.so$/, family: "tally" },
+    { re: /(^|\.)(tfaforms\.(net|com)|formassembly\.com)$/, family: "formassembly" },
+    { re: /(^|\.)neo\.com$/, family: "neo" },
+    { re: /(^|\.)thielfellowship\.org$/, family: "thiel" },
+    { re: /(^|\.)8vc\.com$/, family: "eightvc" },
+    { re: /(^|\.)kleinerperkins\.com$/, family: "kleinerperkins" },
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
@@ -21613,9 +21620,12 @@ const CareerPortalApply = (() => {
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
   function classifyTarget(url) {
-    let host = "";
-    try { host = new URL(String(url)).hostname.toLowerCase(); } catch (e) {
+    let host = "", pathname = "";
+    try { const u = new URL(String(url)); host = u.hostname.toLowerCase(); pathname = u.pathname || ""; } catch (e) {
       return { allowed: false, code: "BAD_URL", host: "", kind: null };
+    }
+    if (host === "docs.google.com" && /\/forms\//.test(pathname)) {
+      return { allowed: true, code: null, host, kind: "employer_ats", atsFamily: "googleforms" };
     }
     if (AGGREGATOR_HOSTS.some((re) => re.test(host))) {
       return { allowed: false, code: "AGGREGATOR_APPLY_FORBIDDEN", host, kind: "aggregator",
@@ -21627,7 +21637,16 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Constellation, Tally, FormAssembly, Google Forms, Neo, Thiel Fellowship, 8VC, Kleiner Perkins) and registered sandbox boards may be driven (§6.3)" };
+  }
+
+  function isConstellationPointer(posting) {
+    const p = posting || {};
+    if (p.constellationFormUrl) return true;
+    const t = classifyTarget(p.url || "");
+    if (!t.allowed || t.atsFamily !== "greenhouse") return false;
+    const text = String(p.description || p.jd_text || p.text || "");
+    return /constellation/i.test(text) && /(will not be considered|complete the constellation|constellation application form)/i.test(text);
   }
 
   const SANDBOX_FIELDS = [
@@ -21653,6 +21672,7 @@ const CareerPortalApply = (() => {
     const calls = { open: 0, fill: 0, submit: 0 };
     return {
       kind: "sandbox", sandbox: true, atsFamily: "greenhouse",
+      schemaSource: "cached",
       host: "sandbox.greenhouse-like.test",
       calls,
       get accountName() { return state.accountName; },
@@ -21673,6 +21693,438 @@ const CareerPortalApply = (() => {
           state.confirmationSeq += 1;
           state.submitted = { confirmationId: `SBX-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
           return { outcome: "timeout" };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const CONSTELLATION_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US, UK, or Canada?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require visa sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "availability", label: "Availability for the full-time 4-month cohort", kind: "free_text", question_key: "availability", required: false },
+    { field_id: "research_statement", label: "Research statement", kind: "free_text", question_key: "research_statement", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createConstellationSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "constellation",
+      host: "sandbox.constellation-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: CONSTELLATION_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-C-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const TALLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: false },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "portfolio", label: "Link to your personal portfolio website", kind: "standard", profile_key: "website", required: true },
+    { field_id: "test_scores", label: "Test scores (SAT/ACT, if any)", kind: "standard", profile_key: "test_scores", required: false },
+    { field_id: "essay", label: "Essay", kind: "free_text", question_key: "essay", required: false },
+    { field_id: "video_link", label: "Short video link", kind: "free_text", question_key: "video_link", required: false },
+    { field_id: "transcript", label: "High school transcript", kind: "unknown", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createTallySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "tally",
+      host: "sandbox.tally-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: TALLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const FORMASSEMBLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "state_of_residence", label: "State of residence", kind: "standard", profile_key: "state_of_residence", required: false },
+    { field_id: "resume", label: "Supplementary attachment (resume/CV)", kind: "standard", profile_key: "resume", required: false },
+    { field_id: "region_affected", label: "Region affected", kind: "free_text", question_key: "region_affected", required: false },
+    { field_id: "funding_area", label: "Dedicated funding area (optional)", kind: "free_text", question_key: "funding_area", required: false },
+    { field_id: "proposal", label: "Proposal (no more than 1,500 words — your own writing)", kind: "free_text", question_key: "proposal", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createFormAssemblySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "formassembly",
+      host: "sandbox.tfaforms-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: FORMASSEMBLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-F-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const GOOGLE_FORMS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "company_or_project", label: "Company or project name", kind: "screening", question_key: "company_or_project", required: true },
+    { field_id: "date_of_birth", label: "Birthday", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "phone", label: "Phone Number", kind: "standard", profile_key: "phone", required: true },
+    { field_id: "is_technical", label: "Are you technical?", kind: "screening", question_key: "is_technical", required: true },
+    { field_id: "previously_applied", label: "Have you previously applied to Z Fellows?", kind: "screening", question_key: "previously_applied", required: true },
+    { field_id: "location", label: "Where are you based?", kind: "standard", profile_key: "location", required: true },
+    { field_id: "website", label: "Personal/project website + links", kind: "standard", profile_key: "website", required: true },
+    { field_id: "school_or_work", label: "Are you in school or working? Or both? Where at?", kind: "free_text", question_key: "school_or_work", required: true },
+    { field_id: "achievements", label: "Achievements and prizes", kind: "free_text", question_key: "achievements", required: true },
+    { field_id: "project_description", label: "What project are you working on and why?", kind: "free_text", question_key: "project_description", required: true },
+    { field_id: "problem", label: "What problem are you solving?", kind: "free_text", question_key: "problem", required: true },
+    { field_id: "expertise", label: "What is your expertise to execute?", kind: "free_text", question_key: "expertise", required: true },
+    { field_id: "competitors", label: "Competitors — and what do you understand that they don't?", kind: "free_text", question_key: "competitors", required: false },
+    { field_id: "past_work", label: "What have you worked on in the past?", kind: "free_text", question_key: "past_work", required: true },
+    { field_id: "nerdiest_thing", label: "What is the nerdiest thing about you?", kind: "free_text", question_key: "nerdiest_thing", required: true },
+    { field_id: "what_drives_you", label: "What drives you?", kind: "free_text", question_key: "what_drives_you", required: true },
+    { field_id: "nontraditional_upbringing", label: "Non-traditional things you were doing growing up", kind: "free_text", question_key: "nontraditional_upbringing", required: true },
+    { field_id: "risk_or_challenge", label: "A risk you've taken or challenge you've faced — and what it says about your character", kind: "free_text", question_key: "risk_or_challenge", required: true },
+    { field_id: "cofounder_pick", label: "Who would you co-found a company with if you could pick anyone in your network?", kind: "free_text", question_key: "cofounder_pick", required: true },
+    { field_id: "need_help", label: "One thing you need help with (optional)", kind: "free_text", question_key: "need_help", required: false },
+    { field_id: "intro_video", label: "1-minute intro video (YouTube link) (optional)", kind: "free_text", question_key: "intro_video", required: false },
+  ];
+  function createGoogleFormsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "googleforms",
+      host: "sandbox.docs.google-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: GOOGLE_FORMS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-G-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const NEO_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "applicant_track", label: "Applicant track (Startup or Student)", kind: "screening", question_key: "applicant_track", required: false },
+    { field_id: "startup_or_project_description", label: "Startup or project description", kind: "free_text", question_key: "startup_or_project_description", required: false },
+    { field_id: "why_neo_residency", label: "Why Neo Residency", kind: "free_text", question_key: "why_neo_residency", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createNeoSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "neo",
+      host: "sandbox.neo-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: NEO_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-N-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const THIEL_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "date_of_birth", label: "Date of Birth", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "hometown", label: "Hometown", kind: "standard", profile_key: "hometown", required: false },
+    { field_id: "current_location", label: "Current Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "project_or_company_name", label: "Project or Company Name", kind: "screening", question_key: "project_or_company_name", required: true },
+    { field_id: "project_url", label: "Project or Company URL", kind: "standard", profile_key: "website", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "previous_projects", label: "Previous projects", kind: "free_text", question_key: "previous_projects", required: false },
+    { field_id: "project_description", label: "Describe your project", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "project_progress", label: "What progress have you made on your project so far?", kind: "free_text", question_key: "project_progress", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createThielSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountWallAt: o.accountWallAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "thiel",
+      host: "sandbox.thielfellowship-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null, accountWall: state.accountWallAt === "open" ? "account_wall" : null }; },
+      form() { return { fields: THIEL_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null, accountWall: state.accountWallAt === "review" ? "account_wall" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const EIGHTVC_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "pathway", label: "Fellowship pathway (Engineering or Design)", kind: "screening", question_key: "pathway", required: false },
+    { field_id: "project_description", label: "Project description", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "why_8vc_fellowship", label: "Why 8VC Fellowship", kind: "free_text", question_key: "why_8vc_fellowship", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createEightVcSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "eightvc",
+      host: "sandbox.8vc-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: EIGHTVC_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-8-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  const KLEINERPERKINS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "degree", label: "Degree", kind: "standard", profile_key: "education_degree", required: false },
+    { field_id: "discipline", label: "Field of Study", kind: "standard", profile_key: "education_discipline", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "project_you_launched_from_scratch", label: "Project you launched from scratch", kind: "free_text", question_key: "project_you_launched_from_scratch", required: false },
+    { field_id: "campus_leadership_and_roles", label: "Campus leadership and roles", kind: "free_text", question_key: "campus_leadership_and_roles", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createKleinerPerkinsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "kleinerperkins",
+      host: "sandbox.kleinerperkins-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: KLEINERPERKINS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-K-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
         }
         return { outcome: "timeout" };
       },
@@ -21994,11 +22446,173 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  const TELEMETRY_SCHEMA_SOURCES = ["census-fresh", "cached", "not_read"];
+  function validSchemaSource(v) { return TELEMETRY_SCHEMA_SOURCES.includes(v) && v !== "not_read" ? v : null; }
+  function tokensOf() {
+    for (const src of arguments) {
+      if (!src || typeof src !== "object") continue;
+      let v = null;
+      if (typeof src.tokenMeter === "function") { try { v = src.tokenMeter(); } catch (e) { v = null; } }
+      if (v == null && src.tokens != null) v = src.tokens;
+      if (v == null && src.tokensConsumed != null) v = src.tokensConsumed;
+      if (v == null && src.tokenUsage && src.tokenUsage.total != null) v = src.tokenUsage.total;
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0) return Math.round(v);
+    }
+    return null;
+  }
+  function clockReadingMs(src) {
+    if (src && typeof src.clock === "function") { try { return tsMs(src.clock()); } catch (e) { return NaN; } }
+    return NaN;
+  }
+  function beginTelemetry(session, src, posting, phase) {
+    const s = src || {};
+    const board = session.board || {};
+    const p = posting || {};
+    const canonicalKey = p.canonicalKey || (session.doorstep && session.doorstep.postingKey) || null;
+    let applicationId = s.applicationId || s.application_id || session.applicationId || null;
+    if (!applicationId) {
+      applicationId = `app-${sha256(`${session.userId || ""}|${canonicalKey || ""}|${session.sessionId || ""}`).slice(0, 12)}`;
+    }
+    session.applicationId = applicationId;
+    const target = p.url ? classifyTarget(p.url) : { atsFamily: null };
+    const platform = board.atsFamily || target.atsFamily || p.atsFamily || p.vendor || board.kind || null;
+    let startedMs = clockReadingMs(s);
+    if (!Number.isFinite(startedMs)) startedMs = tsMs(s.now);
+    const submitRecordBefore = session._submitTelemetryRecord || null;
+    session._lastSubmitOutcome = null;
+    return {
+      phase, applicationId, platform, canonicalKey,
+      company: p.company || (session.doorstep && session.doorstep.company) || null,
+      vendor: p.vendor || target.atsFamily || board.atsFamily || null,
+      startedMs, startedRaw: s.now != null ? s.now : null,
+      tokens: tokensOf(s), attest: validSchemaSource(s.schemaSource),
+      formRead: false, captchaAt: null, submitRecordBefore,
+    };
+  }
+  function schemaSourceOf(session, tctx) {
+    if (tctx.attest) return tctx.attest;
+    if (!tctx.formRead) return "not_read";
+    const boardSrc = session.board ? validSchemaSource(session.board.schemaSource) : null;
+    if (boardSrc) return boardSrc;
+    return "census-fresh";
+  }
+  function finalizeTelemetry(session, tctx, log, src, outcome) {
+    const s = src || {};
+    const result = outcome && outcome.result ? outcome.result : null;
+    const error = outcome && outcome.error ? outcome.error : null;
+    let finishedMs = clockReadingMs(s);
+    let measured = Number.isFinite(finishedMs);
+    if (!measured && (s.endNow != null || s.finishedAt != null)) { finishedMs = tsMs(s.endNow != null ? s.endNow : s.finishedAt); measured = Number.isFinite(finishedMs); }
+    if (!Number.isFinite(finishedMs)) finishedMs = tsMs(s.now);
+    const executionSeconds = measured && Number.isFinite(tctx.startedMs) && Number.isFinite(finishedMs)
+      ? Math.max(0, Math.round(((finishedMs - tctx.startedMs) / 1000) * 1000) / 1000) : null;
+    let captcha = false, captchaAt = tctx.captchaAt;
+    if (result && result.code === "CAPTCHA_HANDOFF") captcha = true;
+    if (result && Array.isArray(result.stepLog)) {
+      const hit = result.stepLog.find((x) => x && x.action === "captcha_stop");
+      if (hit) { captcha = true; captchaAt = captchaAt || hit.at || null; }
+    }
+    if (session._lastSubmitOutcome === "captcha_stop") { captcha = true; captchaAt = captchaAt || "submit"; }
+    let delivery = "not_submitted", resultStatus = result ? result.resultStatus || null : null, outcomeCode = result ? result.code || null : null;
+    let confirmationId = null;
+    if (error) {
+      outcomeCode = error.code || "ERROR";
+      resultStatus = resultStatus || "error";
+      if (session.needsReconcile) delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") delivery = "submitted";
+    } else if (tctx.phase === "submit") {
+      if (resultStatus === "completed") {
+        delivery = "submitted";
+        confirmationId = (result.submission && result.submission.confirmationId) || (session.submission && session.submission.confirmationId) || null;
+      } else if (resultStatus === "unknown_outcome") delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") { delivery = "submitted"; confirmationId = session.submission.confirmationId || null; }
+    }
+    const finishedAt = Number.isFinite(finishedMs) ? new Date(finishedMs).toISOString() : (s.now != null ? s.now : null);
+    const rec = {
+      record_type: "run_telemetry", telemetry: true, phase: tctx.phase,
+      application_id: tctx.applicationId, applicationId: tctx.applicationId, appId: tctx.applicationId,
+      userId: session.userId, canonicalKey: tctx.canonicalKey, company: tctx.company, vendor: tctx.vendor,
+      platform: tctx.platform, target_platform: tctx.platform,
+      schema_source: schemaSourceOf(session, tctx),
+      tokens_consumed: tctx.tokens,
+      execution_seconds: executionSeconds,
+      captcha_encountered: captcha, captcha_at: captcha ? captchaAt : null,
+      delivery_status: delivery,
+      result_status: resultStatus, outcome_code: outcomeCode,
+      confirmation_id: confirmationId, confirmationId,
+      started_at: Number.isFinite(tctx.startedMs) ? new Date(tctx.startedMs).toISOString() : tctx.startedRaw,
+      finished_at: finishedAt, timestamp: finishedAt,
+    };
+    if (tctx.phase === "submit" && delivery === "submitted" && resultStatus === "completed") rec.status = "submitted";
+    if (log && Array.isArray(log.records)) {
+      const subIdx = tctx.phase === "prepare" && session._submitTelemetryRecord && session._submitTelemetryRecord !== tctx.submitRecordBefore ? log.records.indexOf(session._submitTelemetryRecord) : -1;
+      if (subIdx >= 0) log.records.splice(subIdx, 0, rec); else log.records.push(rec);
+    }
+    if (tctx.phase === "submit") session._submitTelemetryRecord = rec;
+    session._lastTelemetryRecord = rec;
+    if (result && typeof result === "object") result.telemetry = rec;
+    return rec;
+  }
+  function summarizeTelemetry(input) {
+    const records = Array.isArray(input) ? input : ((input && input.records) || []);
+    const rows = records.filter((r) => r && (r.record_type === "run_telemetry" || r.telemetry === true));
+    const sum = {
+      runs: rows.length, applications: 0,
+      total_tokens: 0, unmetered_runs: 0,
+      total_execution_seconds: 0, unmeasured_runs: 0,
+      captcha_encounters: 0,
+      by_delivery_status: {}, applications_by_delivery_status: {},
+      by_platform: {}, rows: [],
+    };
+    const apps = new Map();
+    const bump = (obj, key, fields) => {
+      const k = key == null ? "unknown" : String(key);
+      if (!obj[k]) obj[k] = { runs: 0, tokens: 0, execution_seconds: 0, captcha_encounters: 0, submitted: 0, unknown_outcome: 0, not_submitted: 0 };
+      obj[k].runs += 1;
+      if (fields.tokens != null) obj[k].tokens += fields.tokens;
+      if (fields.seconds != null) obj[k].execution_seconds = Math.round((obj[k].execution_seconds + fields.seconds) * 1000) / 1000;
+      if (fields.captcha) obj[k].captcha_encounters += 1;
+      if (fields.delivery && obj[k][fields.delivery] != null) obj[k][fields.delivery] += 1;
+    };
+    for (const r of rows) {
+      if (r.tokens_consumed != null) sum.total_tokens += r.tokens_consumed; else sum.unmetered_runs += 1;
+      if (r.execution_seconds != null) sum.total_execution_seconds = Math.round((sum.total_execution_seconds + r.execution_seconds) * 1000) / 1000; else sum.unmeasured_runs += 1;
+      if (r.captcha_encountered) sum.captcha_encounters += 1;
+      sum.by_delivery_status[r.delivery_status] = (sum.by_delivery_status[r.delivery_status] || 0) + 1;
+      bump(sum.by_platform, r.platform, { tokens: r.tokens_consumed, seconds: r.execution_seconds, captcha: r.captcha_encountered, delivery: r.delivery_status });
+      const id = r.application_id || r.canonicalKey || "?";
+      const prev = apps.get(id);
+      if (!prev || r.phase === "submit" || prev.phase !== "submit") apps.set(id, { phase: r.phase, delivery: r.delivery_status });
+      sum.rows.push({
+        application_id: r.application_id, phase: r.phase, platform: r.platform,
+        schema_source: r.schema_source, tokens_consumed: r.tokens_consumed,
+        execution_seconds: r.execution_seconds, captcha_encountered: !!r.captcha_encountered,
+        delivery_status: r.delivery_status, outcome_code: r.outcome_code || null,
+        confirmation_id: r.confirmation_id || null, canonicalKey: r.canonicalKey || null,
+      });
+    }
+    sum.applications = apps.size;
+    for (const a of apps.values()) sum.applications_by_delivery_status[a.delivery] = (sum.applications_by_delivery_status[a.delivery] || 0) + 1;
+    return sum;
+  }
+
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.doorstep = null;
-    return prepareRound(session, input, false, 0, []);
+    const inp = input || {};
+    const tctx = beginTelemetry(session, inp, inp.posting, "prepare");
+    session._activeTelemetry = tctx;
+    try {
+      const result = prepareRound(session, inp, false, 0, []);
+      finalizeTelemetry(session, tctx, inp.log, inp, { result });
+      session._activeTelemetry = null;
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, inp.log, inp, { error: e });
+      session._activeTelemetry = null;
+      throw e;
+    }
   }
   function prepareRound(session, input, continued, round, priorSteps) {
     const inp = input || {};
@@ -22015,9 +22629,21 @@ const CareerPortalApply = (() => {
       return blocked("SESSION_USER_MISMATCH");
     }
     const board = session.board;
-    const target = classifyTarget(posting.url || "");
-    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
-    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    let target = classifyTarget(posting.url || "");
+    let effectiveUrl = posting.url || "";
+    if (isConstellationPointer(posting)) {
+      if (!posting.constellationFormUrl) {
+        logStep("constellation_pointer_stop", { url: posting.url || null });
+        return blocked("CONSTELLATION_FORM_REQUIRED", { reason: "this posting is only a pointer — the application is the separate Constellation form, and submitting the Greenhouse shell alone does not count as applying; the Constellation form URL is required to drive it" });
+      }
+      target = classifyTarget(posting.constellationFormUrl);
+      effectiveUrl = posting.constellationFormUrl;
+      logStep("constellation_pointer_route", { from: posting.url || null, to: effectiveUrl, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    } else {
+      logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    }
     if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
       return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
     }
@@ -22037,9 +22663,13 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: opened.code, finalUrl: opened.finalUrl || null, host: opened.host || null, at: "open" });
       return blocked(opened.code, { reason: opened.reason || "the page landed off the tested-ATS allowlist (§6.3)", finalUrl: opened.finalUrl || null, host: opened.host || null });
     }
+    if (opened.accountWall) {
+      logStep("account_wall_stop", { at: "open" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "the application is behind an account wall — registering or signing in with the owner's email + password is an owner-credential action no drive may perform; the owner creates / signs into the account, then the drive resumes on the in-account application" });
+    }
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
     }
     if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
       logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
@@ -22047,6 +22677,7 @@ const CareerPortalApply = (() => {
     }
 
     const formDef = board.form();
+    if (session._activeTelemetry) session._activeTelemetry.formRead = true;
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -22154,9 +22785,13 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
       return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null });
     }
+    if (review.accountWall) {
+      logStep("account_wall_stop", { at: "review" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
+    }
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -22191,9 +22826,13 @@ const CareerPortalApply = (() => {
         logStep("review_validation_failed_after_repair", { code: recheck.code });
         return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", formAnalysis, asks });
       }
+      if (recheck && recheck.accountWall) {
+        logStep("account_wall_stop", { at: "review_recheck" });
+        return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
+      }
       if (recheck && recheck.captcha) {
         logStep("captcha_stop", { at: "review_recheck" });
-        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
       }
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -22213,12 +22852,25 @@ const CareerPortalApply = (() => {
     if (inp.approval && inp.approval.approvedByUser === true) {
       inp.approval.payloadSha256 = payloadSha256;
       logStep("approval_bound", { payloadSha256 });
-      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications, clock: inp.clock, schemaSource: inp.schemaSource, applicationId: inp.applicationId }));
     }
     return prepared;
   }
 
   function submitDoorstep(session, approval, ctx) {
+    const c = ctx || {};
+    const src = Object.assign({}, approval || {}, c);
+    const tctx = beginTelemetry(session, src, c.posting, "submit");
+    try {
+      const result = submitDoorstepInner(session, approval, ctx);
+      finalizeTelemetry(session, tctx, c.log, src, { result });
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, c.log, src, { error: e });
+      throw e;
+    }
+  }
+  function submitDoorstepInner(session, approval, ctx) {
     const c = ctx || {};
     const log = c.log || { records: [] };
     if (session.needsReconcile) {
@@ -22287,10 +22939,10 @@ const CareerPortalApply = (() => {
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256 });
     }
     const out = board.submit();
+    session._lastSubmitOutcome = out && out.outcome ? out.outcome : null;
     if (out.outcome === "accepted") {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     session.needsReconcile = true;
@@ -22300,20 +22952,33 @@ const CareerPortalApply = (() => {
       reason: "the board did not answer — the application may or may not have landed; check before any retry" };
   }
 
+  function syncReconcileTelemetry(session, delivery, confirmationId) {
+    const rec = session._submitTelemetryRecord;
+    if (!rec) return;
+    rec.delivery_status = delivery;
+    rec.reconciled = true;
+    if (delivery === "submitted") {
+      rec.status = "submitted";
+      if (confirmationId) { rec.confirmation_id = confirmationId; rec.confirmationId = confirmationId; }
+    }
+  }
   function reconcile(session) {
     const st = session.board.submissionState();
     if (st.submitted) {
+      syncReconcileTelemetry(session, "submitted", st.confirmationId);
       session.needsReconcile = false;
       session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
         confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
     }
     if (st.unverifiable === true) {
+      syncReconcileTelemetry(session, "unknown_outcome", null);
       return { resultStatus: "unknown_outcome",
         submission: { status: "unknown_outcome", onBoard: null, needsHuman: true, receiptBoard: session.board.kind,
           confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null },
         reason: "the board's state cannot be read back — the captured confirmation evidence is attached; a human verifies before any retry" };
     }
+    syncReconcileTelemetry(session, "not_submitted", null);
     session.needsReconcile = false;
     return { resultStatus: "unknown_outcome",
       submission: { status: "not_submitted", onBoard: false, needsHuman: true, receiptBoard: session.board.kind },
@@ -22400,13 +23065,14 @@ const CareerPortalApply = (() => {
         else if (outcome && outcome.reason) attempt.detail = outcome.reason;
         report.stillUnknown.push({ id: recId(rec), userQuestion: rec.userQuestion });
       }
+      if (rec.delivery_status !== undefined) rec.delivery_status = rec.status;
       if (!rec.resolutionAttempts) rec.resolutionAttempts = [];
       rec.resolutionAttempts.push(attempt);
     }
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, createConstellationSandboxBoard, isConstellationPointer, CONSTELLATION_FIELDS, createTallySandboxBoard, TALLY_FIELDS, createFormAssemblySandboxBoard, FORMASSEMBLY_FIELDS, createGoogleFormsSandboxBoard, GOOGLE_FORMS_FIELDS, createNeoSandboxBoard, NEO_FIELDS, createThielSandboxBoard, THIEL_FIELDS, createEightVcSandboxBoard, createKleinerPerkinsSandboxBoard, EIGHTVC_FIELDS, KLEINERPERKINS_FIELDS, summarizeTelemetry, TELEMETRY_SCHEMA_SOURCES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -23517,6 +24183,9 @@ const CareerBatchApply = (() => {
     }
     return run.apps[key];
   }
+  function applicationIdFor(run, posting) {
+    return `app-${sha256(`${run.id}|${postingKeyOf(posting)}`).slice(0, 12)}`;
+  }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
     const Jobs = getJobs();
@@ -23601,7 +24270,7 @@ const CareerBatchApply = (() => {
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
       const session = Portal.createPortalSession({ userId: run.userId, board });
       rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
       absorbPrepareResult(run, app, res);
     }
 
@@ -23715,10 +24384,10 @@ const CareerBatchApply = (() => {
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
-          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+          const prep = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {}, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
           if (!prep || prep.resultStatus !== "prepared") { absorbPrepareResult(run, app, prep); continue; }
         }
-        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null });
+        const out = Portal.submitDoorstep(session, { approvedByUser: true, payloadSha256: approvedSha, approvalRef: run.approvalRef || null }, { log, now, posting, approvalRef: run.approvalRef || null, applicationId: applicationIdFor(run, posting), clock: d.clock || null, tokens: d.tokens, schemaSource: d.schemaSource });
         absorbSubmitResult(run, app, out, d);
       } catch (err) {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);

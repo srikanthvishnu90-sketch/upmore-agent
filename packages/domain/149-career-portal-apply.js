@@ -7,8 +7,12 @@
    and submit ONLY on an explicit owner approval, exactly once, with
    timeout -> needs_human reconciliation (§8.3). §6.3 rules are hard code:
      - employer-hosted forms on TESTED ATS families only (Greenhouse,
-       Lever, Ashby, SmartRecruiters); LinkedIn / Indeed apply automation
-       is refused by construction (AGGREGATOR_APPLY_FORBIDDEN);
+       Lever, Ashby, SmartRecruiters, plus the fellowship portal families
+       Constellation — MI-098, Tally — MI-099, FormAssembly — MI-100,
+       Google Forms — MI-101, Neo Bubble — MI-102, the account-gated Thiel
+       Fellowship — MI-103, and the bespoke program sites 8VC + Kleiner
+       Perkins — MI-104); LinkedIn / Indeed apply automation is refused by
+       construction (AGGREGATOR_APPLY_FORBIDDEN);
      - one isolated session per user; a session refuses any other user;
      - a captcha / verification code at any point STOPS the run and hands
        the user the link to finish the last step (CAPTCHA_HANDOFF) — this
@@ -43,6 +47,14 @@
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
    owner-gated work — see docs/career/board-automation-map.md.
+   MI-103 (Thiel Fellowship): the one account-gated family in the seam.
+   Its application lives BEHIND an account the owner must create/sign
+   into himself (email + password — an owner-credential action no drive
+   may perform, and this module never handles a credential). A landing
+   that is not the in-account application — an unauthenticated /
+   login-wall page, surfaced by the board as `accountWall` — is a typed
+   ACCOUNT_WALL_OWNER_HANDOFF stop, never a drive; only the in-account
+   form (the owner's own session) may be driven, to the doorstep.
    Caps (§6.4) are the owner's DECIDED numbers (15/day locked 2026-10-12;
    5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
    or submit that would exceed one stops CAP_REACHED naming the cap and
@@ -54,6 +66,19 @@
    on the same canonical job stops ALREADY_APPLIED_BY_USER naming the
    source of the knowledge (MI-108 / G3), at the doorstep and again at
    click time.
+   Telemetry (MI-118, contract docs/career/contracts/
+   mi-118-per-run-telemetry.md): EVERY run of this module — prepare and
+   submit phases alike, on every terminal path including a thrown board
+   error — writes ONE structured record to that same ledger carrying
+   application_id, platform, schema_source (census-fresh vs cached,
+   honestly not_read when no form was read), tokens_consumed and
+   execution_seconds (null when unmetered/unmeasured, never fabricated),
+   captcha_encountered as a STOP metric, and delivery_status as the
+   employer's END STATE. An accepted submit's telemetry record IS the
+   ledger's one submitted record; every other telemetry record carries
+   no submitted status, so caps and the duplicate guard never count one.
+   summarizeTelemetry(records) renders the per-run cost/latency summary
+   from the ledger records alone.
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -64,7 +89,63 @@ const CareerPortalApply = (() => {
     { re: /(^|\.)lever\.co$/, family: "lever" },
     { re: /(^|\.)ashbyhq\.com$/, family: "ashby" },
     { re: /(^|\.)smartrecruiters\.com$/, family: "smartrecruiters" },
+    // MI-098: Constellation — Anthropic's recruiting partner for the
+    // Fellows Program (census 2026-10-15 §1). The form is partner-hosted
+    // under Constellation's own domains; the census could not publish an
+    // exact tenant host (the only published link is a shortlink), so the
+    // family matches Constellation's own registrable domains and the
+    // exact host is read at drive time. Lookalikes (constellation.* on
+    // someone else's registrable domain) do NOT match: the pattern is
+    // anchored to the END of the hostname.
+    { re: /(^|\.)constellation\.(jobs|com|io)$/, family: "constellation" },
+    // MI-099: Tally — the form platform carrying the a16z Academy
+    // Fellowship's Stage 1 application (census 2026-10-15 §10). Forms
+    // live on tally.so (tenant subdomains included); the pattern is
+    // anchored to the END of the hostname, so lookalikes
+    // (tally.so.example.com, nottally.so) do NOT match. The exact form
+    // path/ID is read at drive time.
+    { re: /(^|\.)tally\.so$/, family: "tally" },
+    // MI-100: FormAssembly — the hosted form platform behind Emergent
+    // Ventures (Mercatus Center, George Mason University; census
+    // 2026-10-15 §12 — the live form is mercatus.tfaforms.net/5099527).
+    // Tenants live on tfaforms.net / tfaforms.com subdomains;
+    // formassembly.com is the vendor's own host. Lookalikes (tfaforms.*
+    // on someone else's registrable domain) do NOT match: the pattern
+    // is anchored to the END of the hostname.
+    { re: /(^|\.)(tfaforms\.(net|com)|formassembly\.com)$/, family: "formassembly" },
+    // MI-102: Neo's bespoke portal (portal.neo.com/residency, a Bubble
+    // app; fellowship census 2026-10-15 §5). The pattern is anchored
+    // to the END of the hostname, so lookalikes (neo.example.com,
+    // notneo.com, neo.com.evil.com) do NOT match.
+    { re: /(^|\.)neo\.com$/, family: "neo" },
+    // MI-103: the Thiel Fellowship's bespoke account-gated application
+    // on thielfellowship.org (fellowship census 2026-10-15 §3). The
+    // pattern is anchored to the END of the hostname, so lookalikes
+    // (thielfellowship.example.com, thielfellowship.org.evil.com) do
+    // NOT match. Classification alone never authorizes a drive over a
+    // login wall — see the ACCOUNT_WALL_OWNER_HANDOFF stop in runApply.
+    { re: /(^|\.)thielfellowship\.org$/, family: "thiel" },
+    // MI-104: bespoke program-site fellowship forms — one family class
+    // (each program's own site form), two instances with genuinely
+    // different hosts and field sets, so each gets its own family:
+    // the 8VC Fellowship form on 8vc.com (Webflow; census 2026-10-15
+    // §8) and the Kleiner Perkins Fellows application at
+    // fellows.kleinerperkins.com (census 2026-10-15 §7). Both patterns
+    // are anchored to the END of the hostname, so lookalikes
+    // (8vc.example.com, kleinerperkins.com.evil.com) do NOT match.
+    { re: /(^|\.)8vc\.com$/, family: "eightvc" },
+    { re: /(^|\.)kleinerperkins\.com$/, family: "kleinerperkins" },
   ];
+  // MI-101: Google Forms — the form platform behind the Z Fellows
+  // application (census 2026-10-15 §13; the live form is linked from
+  // zfellows.com and lives on docs.google.com under /forms/). This
+  // family is PATH-PRECISE, not host-wide: docs.google.com also serves
+  // Docs, Sheets and Drive, none of which is an application form, so
+  // classifyTarget special-cases it below — only a docs.google.com
+  // URL whose path is under /forms/ is the googleforms family; every
+  // other docs.google.com URL stays UNTESTED_ATS_HOST. Shortlink
+  // hosts (forms.gle) are NOT classified: the hop gate refuses them
+  // until the redirect target itself is a /forms/ URL in hand.
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
@@ -74,9 +155,13 @@ const CareerPortalApply = (() => {
 
   // ---------- §6.3 target classification ----------
   function classifyTarget(url) {
-    let host = "";
-    try { host = new URL(String(url)).hostname.toLowerCase(); } catch (e) {
+    let host = "", pathname = "";
+    try { const u = new URL(String(url)); host = u.hostname.toLowerCase(); pathname = u.pathname || ""; } catch (e) {
       return { allowed: false, code: "BAD_URL", host: "", kind: null };
+    }
+    // MI-101: the googleforms family — path-precise (see ATS_HOSTS note).
+    if (host === "docs.google.com" && /\/forms\//.test(pathname)) {
+      return { allowed: true, code: null, host, kind: "employer_ats", atsFamily: "googleforms" };
     }
     if (AGGREGATOR_HOSTS.some((re) => re.test(host))) {
       return { allowed: false, code: "AGGREGATOR_APPLY_FORBIDDEN", host, kind: "aggregator",
@@ -88,7 +173,25 @@ const CareerPortalApply = (() => {
       return { allowed: true, code: null, host, kind: "sandbox", atsFamily: null };
     }
     return { allowed: false, code: "UNTESTED_ATS_HOST", host, kind: "unknown",
-      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters) and registered sandbox boards may be driven (§6.3)" };
+      reason: "only tested ATS families (Greenhouse, Lever, Ashby, SmartRecruiters, Constellation, Tally, FormAssembly, Google Forms, Neo, Thiel Fellowship, 8VC, Kleiner Perkins) and registered sandbox boards may be driven (§6.3)" };
+  }
+
+  // ---------- MI-098: the Constellation pointer law ----------
+  // The Anthropic Fellows Greenhouse posting is a POINTER, not the
+  // application (census 2026-10-15 §1): its own text says applicants
+  // "will not be considered" without the separate Constellation form.
+  // A posting is a Constellation pointer when it carries an explicit
+  // constellationFormUrl, or when a Greenhouse posting's own text names
+  // Constellation as the required application. runApply never doorsteps
+  // or submits the pointer shell: with the form URL it drives THAT;
+  // without it the run stops CONSTELLATION_FORM_REQUIRED.
+  function isConstellationPointer(posting) {
+    const p = posting || {};
+    if (p.constellationFormUrl) return true;
+    const t = classifyTarget(p.url || "");
+    if (!t.allowed || t.atsFamily !== "greenhouse") return false;
+    const text = String(p.description || p.jd_text || p.text || "");
+    return /constellation/i.test(text) && /(will not be considered|complete the constellation|constellation application form)/i.test(text);
   }
 
   // ---------- the sandbox board (faithful hosted-form seam, TEST only) ----------
@@ -118,6 +221,9 @@ const CareerPortalApply = (() => {
     const calls = { open: 0, fill: 0, submit: 0 };
     return {
       kind: "sandbox", sandbox: true, atsFamily: "greenhouse",
+      // MI-118: the sandbox field set is a fixed in-code fixture — a
+      // cached (censused) schema by construction, never a live read.
+      schemaSource: "cached",
       host: "sandbox.greenhouse-like.test",
       calls,
       get accountName() { return state.accountName; },
@@ -140,6 +246,565 @@ const CareerPortalApply = (() => {
           return { outcome: "timeout" }; // the receipt landed; the driver cannot know yet
         }
         return { outcome: "timeout" }; // timeout_noreceipt: nothing landed
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-098: the Constellation sandbox board (TEST only) ----------
+  // Constellation-shaped field set, staged from the Anthropic Fellows
+  // packet topics (~/workspace/your_files/real-apply/fellowships/ —
+  // never in this repo): identity/contact + eligibility fill from
+  // confirmed facts; availability and the research statement are
+  // owner-decision / owner-writing fields (Anthropic's candidate
+  // AI-usage policy) — free_text, never invented, always asks. The live
+  // form's fields are read at drive time by module 150; this board is
+  // the faithful local seam for the pipeline, like the Greenhouse one.
+  const CONSTELLATION_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US, UK, or Canada?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require visa sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "availability", label: "Availability for the full-time 4-month cohort", kind: "free_text", question_key: "availability", required: false },
+    { field_id: "research_statement", label: "Research statement", kind: "free_text", question_key: "research_statement", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createConstellationSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "constellation",
+      host: "sandbox.constellation-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: CONSTELLATION_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-C-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-099: the Tally sandbox board (TEST only) ----------
+  // Tally-shaped field set, staged from the a16z Academy Fellowship's
+  // Stage 1 materials (census 2026-10-15 §10 — the census file lives in
+  // ~/workspace/your_files/real-apply/fellowships/, never in this repo):
+  // contact information + the portfolio link + test scores fill from
+  // confirmed facts; the essay is the owner's own writing (the
+  // program's AI policy: applicants may use AI to move faster, not to
+  // write for them), and the short video + high-school transcript are
+  // owner-supplied artifacts — essay/video ride as free_text asks,
+  // the transcript as an unfilled document field (module 150 classifies
+  // a transcript upload exactly the same way: no fill path exists for
+  // a non-resume document, by design). None of the three is ever
+  // invented. The live form's fields are read at drive time by module
+  // 150; this board is the faithful local seam for the pipeline, like
+  // the Greenhouse one.
+  const TALLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: false },
+    { field_id: "linkedin", label: "LinkedIn", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "portfolio", label: "Link to your personal portfolio website", kind: "standard", profile_key: "website", required: true },
+    { field_id: "test_scores", label: "Test scores (SAT/ACT, if any)", kind: "standard", profile_key: "test_scores", required: false },
+    { field_id: "essay", label: "Essay", kind: "free_text", question_key: "essay", required: false },
+    { field_id: "video_link", label: "Short video link", kind: "free_text", question_key: "video_link", required: false },
+    { field_id: "transcript", label: "High school transcript", kind: "unknown", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createTallySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "tally",
+      host: "sandbox.tally-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: TALLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-100: the FormAssembly sandbox board (TEST only) ----------
+  // FormAssembly-shaped field set, staged from the Emergent Ventures
+  // live form (census 2026-10-15 §12, form 5099527): basic questions
+  // (name/contact/country/state) fill from confirmed facts; region
+  // affected and the optional funding area are owner-decision fields;
+  // the proposal (no more than 1,500 words, three parts, must stand
+  // alone) is free_text and NEVER invented — Emergent Ventures' own
+  // form bans AI-written applications and tests submissions for them,
+  // so the product organizes facts + outline only and the proposal
+  // text may only ever be the owner's own confirmed draft (the generic
+  // free_text rule: confirmed + draft, nothing else fills). The live
+  // form's fields are read at drive time by module 150; this board is
+  // the faithful local seam for the pipeline, like the Greenhouse one.
+  const FORMASSEMBLY_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "state_of_residence", label: "State of residence", kind: "standard", profile_key: "state_of_residence", required: false },
+    { field_id: "resume", label: "Supplementary attachment (resume/CV)", kind: "standard", profile_key: "resume", required: false },
+    { field_id: "region_affected", label: "Region affected", kind: "free_text", question_key: "region_affected", required: false },
+    { field_id: "funding_area", label: "Dedicated funding area (optional)", kind: "free_text", question_key: "funding_area", required: false },
+    { field_id: "proposal", label: "Proposal (no more than 1,500 words — your own writing)", kind: "free_text", question_key: "proposal", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createFormAssemblySandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "formassembly",
+      host: "sandbox.tfaforms-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: FORMASSEMBLY_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-F-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-101: the Google Forms sandbox board (TEST only) ----------
+  // Google-Forms-shaped field set, staged from the Z Fellows live form
+  // (census 2026-10-15 §13 — the census captured the form's fields in
+  // full; the census file lives in ~/workspace/your_files/real-apply/
+  // fellowships/, never in this repo): the form is short and
+  // fact-heavy. FACT fields (email, name, phone, location, website)
+  // fill from confirmed facts only; Birthday is a required FACT that
+  // is NOT in the fact bank (Phase 2) — with no confirmed
+  // date_of_birth the drive honestly waits. The company-or-project
+  // name is a DECISION (Trainee or Sporv — the owner's Phase 2 call)
+  // and the two yes/no questions (technical? / previously applied?)
+  // fill ONLY from confirmed answers — the owner's approved short
+  // answers. Every short-answer/essay field (most capped at ~500
+  // characters, written in the owner's voice; drafts from confirmed
+  // facts go to him for approval) is free_text: it fills ONLY from
+  // the owner's own confirmed draft — never invented, never from a
+  // merely-confirmed answer. The optional intro video is the same
+  // class (only he can record it; the link is his draft to supply).
+  // The live form carries NO resume upload and NO attestation
+  // checkbox, so this board has neither. The live form's fields are
+  // read at drive time by module 150; this board is the faithful
+  // local seam for the pipeline, like the Greenhouse one.
+  const GOOGLE_FORMS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "company_or_project", label: "Company or project name", kind: "screening", question_key: "company_or_project", required: true },
+    { field_id: "date_of_birth", label: "Birthday", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "phone", label: "Phone Number", kind: "standard", profile_key: "phone", required: true },
+    { field_id: "is_technical", label: "Are you technical?", kind: "screening", question_key: "is_technical", required: true },
+    { field_id: "previously_applied", label: "Have you previously applied to Z Fellows?", kind: "screening", question_key: "previously_applied", required: true },
+    { field_id: "location", label: "Where are you based?", kind: "standard", profile_key: "location", required: true },
+    { field_id: "website", label: "Personal/project website + links", kind: "standard", profile_key: "website", required: true },
+    { field_id: "school_or_work", label: "Are you in school or working? Or both? Where at?", kind: "free_text", question_key: "school_or_work", required: true },
+    { field_id: "achievements", label: "Achievements and prizes", kind: "free_text", question_key: "achievements", required: true },
+    { field_id: "project_description", label: "What project are you working on and why?", kind: "free_text", question_key: "project_description", required: true },
+    { field_id: "problem", label: "What problem are you solving?", kind: "free_text", question_key: "problem", required: true },
+    { field_id: "expertise", label: "What is your expertise to execute?", kind: "free_text", question_key: "expertise", required: true },
+    { field_id: "competitors", label: "Competitors — and what do you understand that they don't?", kind: "free_text", question_key: "competitors", required: false },
+    { field_id: "past_work", label: "What have you worked on in the past?", kind: "free_text", question_key: "past_work", required: true },
+    { field_id: "nerdiest_thing", label: "What is the nerdiest thing about you?", kind: "free_text", question_key: "nerdiest_thing", required: true },
+    { field_id: "what_drives_you", label: "What drives you?", kind: "free_text", question_key: "what_drives_you", required: true },
+    { field_id: "nontraditional_upbringing", label: "Non-traditional things you were doing growing up", kind: "free_text", question_key: "nontraditional_upbringing", required: true },
+    { field_id: "risk_or_challenge", label: "A risk you've taken or challenge you've faced — and what it says about your character", kind: "free_text", question_key: "risk_or_challenge", required: true },
+    { field_id: "cofounder_pick", label: "Who would you co-found a company with if you could pick anyone in your network?", kind: "free_text", question_key: "cofounder_pick", required: true },
+    { field_id: "need_help", label: "One thing you need help with (optional)", kind: "free_text", question_key: "need_help", required: false },
+    { field_id: "intro_video", label: "1-minute intro video (YouTube link) (optional)", kind: "free_text", question_key: "intro_video", required: false },
+  ];
+  function createGoogleFormsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "googleforms",
+      host: "sandbox.docs.google-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: GOOGLE_FORMS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-G-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-102: the Neo sandbox board (TEST only) ----------
+  // Neo Residency (portal.neo.com/residency, a Bubble app): the
+  // current cycle is Winter 2027 — up to 20 startups + student teams,
+  // 3 months based at Neo's SF workspace with a 2-week bootcamp;
+  // startups get a $750K uncapped SAFE + participation rights,
+  // students $40K grants each + $100K+ in credits (fellowship census
+  // 2026-10-15 §5). The census could NOT capture the portal's field
+  // list or deadline read-only — the form content does not render in
+  // a text fetch — so this board's field set is staged from the
+  // census summary only; the live portal's fields are read at drive
+  // time by module 150 and this board is the faithful local seam for
+  // the pipeline, like the Greenhouse one. Identity/contact/
+  // education/resume + work-authorization/sponsorship screening fill
+  // from confirmed facts only; the startup-vs-student applicant
+  // track (the census's two tracks, with different terms) is the
+  // applicant's own choice, staged as a screening field that fills
+  // only from a confirmed answer and otherwise stays an ask; every
+  // free-text field fills ONLY from the owner's own confirmed draft
+  // — never invented; certify stays explicit-only.
+  const NEO_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "applicant_track", label: "Applicant track (Startup or Student)", kind: "screening", question_key: "applicant_track", required: false },
+    { field_id: "startup_or_project_description", label: "Startup or project description", kind: "free_text", question_key: "startup_or_project_description", required: false },
+    { field_id: "why_neo_residency", label: "Why Neo Residency", kind: "free_text", question_key: "why_neo_residency", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createNeoSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "neo",
+      host: "sandbox.neo-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: NEO_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-N-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-103: the Thiel Fellowship sandbox board (TEST only) ----------
+  // The Thiel application is a bespoke account-gated web app on
+  // thielfellowship.org (census 2026-10-15 §3): register with an email
+  // + password (the OWNER's step — this board models the wall, it never
+  // creates an account), then complete the application in stages. The
+  // field set below is staged from the census §3 summary ONLY — the
+  // census could not read the in-account fields without an account;
+  // secondary walkthroughs list: name, date of birth, hometown, current
+  // location, project/company name + URL, LinkedIn, previous projects,
+  // and short written answers about the project. The live form's fields
+  // are read at drive time by module 150; this board is the faithful
+  // local seam for the pipeline, like the Greenhouse one. Discipline:
+  // identity/contact/DOB/hometown/location/LinkedIn fill from confirmed
+  // facts only (DOB and hometown are NOT in the fact bank — with no
+  // confirmed value the drive waits, it never invents); the project /
+  // company name is a screening DECISION that fills only from a
+  // confirmed answer; every written-answer field is free_text that
+  // fills ONLY from the owner's own confirmed draft; certify stays
+  // explicit-only. Behaviors are switchable so the guard can stage the
+  // account wall (accountWallAt: "open" | "review") and captchas.
+  const THIEL_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "date_of_birth", label: "Date of Birth", kind: "standard", profile_key: "date_of_birth", required: true },
+    { field_id: "hometown", label: "Hometown", kind: "standard", profile_key: "hometown", required: false },
+    { field_id: "current_location", label: "Current Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "project_or_company_name", label: "Project or Company Name", kind: "screening", question_key: "project_or_company_name", required: true },
+    { field_id: "project_url", label: "Project or Company URL", kind: "standard", profile_key: "website", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "previous_projects", label: "Previous projects", kind: "free_text", question_key: "previous_projects", required: false },
+    { field_id: "project_description", label: "Describe your project", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "project_progress", label: "What progress have you made on your project so far?", kind: "free_text", question_key: "project_progress", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createThielSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null, // null | "open" | "review"
+      accountWallAt: o.accountWallAt || null, // null | "open" | "review" — the unauthenticated landing
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "thiel",
+      host: "sandbox.thielfellowship-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null, accountWall: state.accountWallAt === "open" ? "account_wall" : null }; },
+      form() { return { fields: THIEL_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null, accountWall: state.accountWallAt === "review" ? "account_wall" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-T-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // ---------- MI-104: the bespoke program-site sandbox boards (TEST only) ----------
+  // Two program-site forms, two families — the sites share nothing but
+  // the family CLASS (a fellowship program's own site form), so each
+  // gets its own board + field set, staged from its census summary
+  // only (fellowship census 2026-10-15 §8 for 8VC, §7 for Kleiner
+  // Perkins). Neither census could publish an exact field list (both
+  // record "read at drive time"); the live forms' fields are read at
+  // drive time by module 150 and these boards are the faithful local
+  // seams for the pipeline, like the Greenhouse one. On both boards:
+  // identity/contact/education/resume + work-authorization/sponsorship
+  // screening fill from confirmed facts only; every free-text/essay
+  // field is an owner ask that fills ONLY from the owner's own
+  // confirmed draft — never invented; certify stays explicit-only.
+  //
+  // 8VC Fellowship (8vc.com, Webflow): a 3-month summer internship
+  // placing undergraduate students (sophomore through graduating
+  // senior) as engineers at 8VC portfolio startups; one application
+  // covers dozens of companies; Engineering + Design pathways — the
+  // pathway is the applicant's own choice, staged as a screening field
+  // that fills only from a confirmed answer and otherwise stays an ask.
+  const EIGHTVC_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "pathway", label: "Fellowship pathway (Engineering or Design)", kind: "screening", question_key: "pathway", required: false },
+    { field_id: "project_description", label: "Project description", kind: "free_text", question_key: "project_description", required: false },
+    { field_id: "why_8vc_fellowship", label: "Why 8VC Fellowship", kind: "free_text", question_key: "why_8vc_fellowship", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createEightVcSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "eightvc",
+      host: "sandbox.8vc-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: EIGHTVC_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-8-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
+      },
+      submissionState() {
+        return state.submitted
+          ? { submitted: true, confirmationId: state.submitted.confirmationId }
+          : { submitted: false, confirmationId: null };
+      },
+    };
+  }
+
+  // Kleiner Perkins Fellows (fellows.kleinerperkins.com): summer
+  // engineering internships inside KP portfolio companies, SF Bay Area,
+  // in person; deadline Jan 31, 2027, 11:59pm PST. The program's top
+  // criterion is "experience launching a meaningful product/project
+  // from scratch" and it asks about positions of influence in campus
+  // organizations — both are staged as free_text owner asks (the
+  // write-ups are the substance of the application and are the owner's
+  // own writing; campus offices are not in the fact bank). Degree in
+  // progress (CS/engineering/math/physics) fills from the education fact.
+  const KLEINERPERKINS_FIELDS = [
+    { field_id: "full_name", label: "Full name", kind: "standard", profile_key: "name", required: true },
+    { field_id: "email", label: "Email", kind: "standard", profile_key: "email", required: true },
+    { field_id: "phone", label: "Phone", kind: "standard", profile_key: "phone", required: false },
+    { field_id: "location", label: "Location", kind: "standard", profile_key: "location", required: false },
+    { field_id: "country", label: "Country", kind: "standard", profile_key: "country", required: true },
+    { field_id: "school", label: "School", kind: "standard", profile_key: "education_school", required: false },
+    { field_id: "degree", label: "Degree", kind: "standard", profile_key: "education_degree", required: false },
+    { field_id: "discipline", label: "Field of Study", kind: "standard", profile_key: "education_discipline", required: false },
+    { field_id: "graduation_year", label: "Graduation Year", kind: "standard", profile_key: "education_graduation_year", required: false },
+    { field_id: "linkedin", label: "LinkedIn Profile", kind: "standard", profile_key: "linkedin", required: false },
+    { field_id: "website", label: "Portfolio / personal website", kind: "standard", profile_key: "website", required: false },
+    { field_id: "resume", label: "Resume/CV", kind: "standard", profile_key: "resume", required: true },
+    { field_id: "work_authorization", label: "Are you authorized to work in the US?", kind: "screening", question_key: "work_authorization", required: true },
+    { field_id: "sponsorship", label: "Will you require sponsorship?", kind: "screening", question_key: "sponsorship", required: true },
+    { field_id: "project_you_launched_from_scratch", label: "Project you launched from scratch", kind: "free_text", question_key: "project_you_launched_from_scratch", required: false },
+    { field_id: "campus_leadership_and_roles", label: "Campus leadership and roles", kind: "free_text", question_key: "campus_leadership_and_roles", required: false },
+    { field_id: "certify_true", label: "I certify the above is true", kind: "attestation", question_key: "certify_true", required: true },
+  ];
+  function createKleinerPerkinsSandboxBoard(opts) {
+    const o = opts || {};
+    const state = {
+      answers: {}, submitted: null, confirmationSeq: 0,
+      submitOutcome: o.submitOutcome || "accepted",
+      captchaAt: o.captchaAt || null,
+      accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+    };
+    const calls = { open: 0, fill: 0, submit: 0 };
+    return {
+      kind: "sandbox", sandbox: true, atsFamily: "kleinerperkins",
+      host: "sandbox.kleinerperkins-like.test",
+      calls,
+      get accountName() { return state.accountName; },
+      setSubmitOutcome(v) { state.submitOutcome = v; },
+      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      form() { return { fields: KLEINERPERKINS_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      answers() { return Object.assign({}, state.answers); },
+      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      submit() {
+        calls.submit += 1;
+        if (state.submitOutcome === "accepted") {
+          state.confirmationSeq += 1;
+          state.submitted = { confirmationId: `SBX-K-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
+          return { outcome: "accepted", confirmationId: state.submitted.confirmationId };
+        }
+        return { outcome: "timeout" };
       },
       submissionState() {
         return state.submitted
@@ -556,12 +1221,203 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  // ---------- MI-118: per-run telemetry / proof layer ----------
+  // One structured record per run phase, written to the SAME injected
+  // ledger (log.records) the caps count from. Honesty rules (contract
+  // mi-118): tokens/time are null when the caller metered/measured
+  // nothing — never fabricated; schema_source is census-fresh only when
+  // a form schema was actually read live in this run, cached when the
+  // board attests a censused/fixture schema, and not_read when the run
+  // stopped before any form read; delivery_status is the employer's
+  // end state, graded exactly as the submit path already grades it.
+  const TELEMETRY_SCHEMA_SOURCES = ["census-fresh", "cached", "not_read"];
+  function validSchemaSource(v) { return TELEMETRY_SCHEMA_SOURCES.includes(v) && v !== "not_read" ? v : null; }
+  function tokensOf() {
+    for (const src of arguments) {
+      if (!src || typeof src !== "object") continue;
+      let v = null;
+      if (typeof src.tokenMeter === "function") { try { v = src.tokenMeter(); } catch (e) { v = null; } }
+      if (v == null && src.tokens != null) v = src.tokens;
+      if (v == null && src.tokensConsumed != null) v = src.tokensConsumed;
+      if (v == null && src.tokenUsage && src.tokenUsage.total != null) v = src.tokenUsage.total;
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0) return Math.round(v);
+    }
+    return null;
+  }
+  function clockReadingMs(src) {
+    if (src && typeof src.clock === "function") { try { return tsMs(src.clock()); } catch (e) { return NaN; } }
+    return NaN;
+  }
+  function beginTelemetry(session, src, posting, phase) {
+    const s = src || {};
+    const board = session.board || {};
+    const p = posting || {};
+    const canonicalKey = p.canonicalKey || (session.doorstep && session.doorstep.postingKey) || null;
+    let applicationId = s.applicationId || s.application_id || session.applicationId || null;
+    if (!applicationId) {
+      applicationId = `app-${sha256(`${session.userId || ""}|${canonicalKey || ""}|${session.sessionId || ""}`).slice(0, 12)}`;
+    }
+    session.applicationId = applicationId;
+    const target = p.url ? classifyTarget(p.url) : { atsFamily: null };
+    const platform = board.atsFamily || target.atsFamily || p.atsFamily || p.vendor || board.kind || null;
+    let startedMs = clockReadingMs(s);
+    if (!Number.isFinite(startedMs)) startedMs = tsMs(s.now);
+    // Per-run state resets: a prior phase's submit outcome / record
+    // must never leak into this run's record on a reused session. An
+    // inline submit later in THIS run re-sets both after this point.
+    const submitRecordBefore = session._submitTelemetryRecord || null;
+    session._lastSubmitOutcome = null;
+    return {
+      phase, applicationId, platform, canonicalKey,
+      company: p.company || (session.doorstep && session.doorstep.company) || null,
+      vendor: p.vendor || target.atsFamily || board.atsFamily || null,
+      startedMs, startedRaw: s.now != null ? s.now : null,
+      tokens: tokensOf(s), attest: validSchemaSource(s.schemaSource),
+      formRead: false, captchaAt: null, submitRecordBefore,
+    };
+  }
+  function schemaSourceOf(session, tctx) {
+    if (tctx.attest) return tctx.attest; // the caller's census posture, stated explicitly
+    if (!tctx.formRead) return "not_read"; // this run read no schema — no claim
+    const boardSrc = session.board ? validSchemaSource(session.board.schemaSource) : null;
+    if (boardSrc) return boardSrc; // the board's attestation, earned by a read this run
+    return "census-fresh"; // a form() read happened live in this run and nothing attests a cache
+  }
+  function finalizeTelemetry(session, tctx, log, src, outcome) {
+    const s = src || {};
+    const result = outcome && outcome.result ? outcome.result : null;
+    const error = outcome && outcome.error ? outcome.error : null;
+    // A second clock reading (injected clock, or an explicit end stamp)
+    // is the ONLY source of a measured duration; the run's single `now`
+    // still stamps the record so ledger day-slicing keeps working.
+    let finishedMs = clockReadingMs(s);
+    let measured = Number.isFinite(finishedMs);
+    if (!measured && (s.endNow != null || s.finishedAt != null)) { finishedMs = tsMs(s.endNow != null ? s.endNow : s.finishedAt); measured = Number.isFinite(finishedMs); }
+    if (!Number.isFinite(finishedMs)) finishedMs = tsMs(s.now);
+    const executionSeconds = measured && Number.isFinite(tctx.startedMs) && Number.isFinite(finishedMs)
+      ? Math.max(0, Math.round(((finishedMs - tctx.startedMs) / 1000) * 1000) / 1000) : null;
+    // captcha: a STOP metric — read from the run's own step log / codes.
+    let captcha = false, captchaAt = tctx.captchaAt;
+    if (result && result.code === "CAPTCHA_HANDOFF") captcha = true;
+    if (result && Array.isArray(result.stepLog)) {
+      const hit = result.stepLog.find((x) => x && x.action === "captcha_stop");
+      if (hit) { captcha = true; captchaAt = captchaAt || hit.at || null; }
+    }
+    if (session._lastSubmitOutcome === "captcha_stop") { captcha = true; captchaAt = captchaAt || "submit"; }
+    // delivery_status: the employer's END STATE for this phase.
+    let delivery = "not_submitted", resultStatus = result ? result.resultStatus || null : null, outcomeCode = result ? result.code || null : null;
+    let confirmationId = null;
+    if (error) {
+      outcomeCode = error.code || "ERROR";
+      resultStatus = resultStatus || "error";
+      if (session.needsReconcile) delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") delivery = "submitted";
+    } else if (tctx.phase === "submit") {
+      if (resultStatus === "completed") {
+        delivery = "submitted";
+        confirmationId = (result.submission && result.submission.confirmationId) || (session.submission && session.submission.confirmationId) || null;
+      } else if (resultStatus === "unknown_outcome") delivery = "unknown_outcome";
+      else if (session.submission && session.submission.status === "submitted") { delivery = "submitted"; confirmationId = session.submission.confirmationId || null; }
+    }
+    const finishedAt = Number.isFinite(finishedMs) ? new Date(finishedMs).toISOString() : (s.now != null ? s.now : null);
+    const rec = {
+      record_type: "run_telemetry", telemetry: true, phase: tctx.phase,
+      application_id: tctx.applicationId, applicationId: tctx.applicationId, appId: tctx.applicationId,
+      userId: session.userId, canonicalKey: tctx.canonicalKey, company: tctx.company, vendor: tctx.vendor,
+      platform: tctx.platform, target_platform: tctx.platform,
+      schema_source: schemaSourceOf(session, tctx),
+      tokens_consumed: tctx.tokens,
+      execution_seconds: executionSeconds,
+      captcha_encountered: captcha, captcha_at: captcha ? captchaAt : null,
+      delivery_status: delivery,
+      result_status: resultStatus, outcome_code: outcomeCode,
+      confirmation_id: confirmationId, confirmationId,
+      started_at: Number.isFinite(tctx.startedMs) ? new Date(tctx.startedMs).toISOString() : tctx.startedRaw,
+      finished_at: finishedAt, timestamp: finishedAt,
+    };
+    // An ACCEPTED submit's record IS the ledger's submission record:
+    // it alone carries status "submitted" (caps + duplicate guard
+    // count exactly it). Every other telemetry record carries no
+    // status a cap or duplicate count could mistake for a submission.
+    if (tctx.phase === "submit" && delivery === "submitted" && resultStatus === "completed") rec.status = "submitted";
+    if (log && Array.isArray(log.records)) {
+      // An inline submit finalizes its record from inside the prepare
+      // run, before the prepare wrapper finalizes its own — the ledger
+      // keeps phase order (prepare before its submit) regardless.
+      const subIdx = tctx.phase === "prepare" && session._submitTelemetryRecord && session._submitTelemetryRecord !== tctx.submitRecordBefore ? log.records.indexOf(session._submitTelemetryRecord) : -1;
+      if (subIdx >= 0) log.records.splice(subIdx, 0, rec); else log.records.push(rec);
+    }
+    if (tctx.phase === "submit") session._submitTelemetryRecord = rec;
+    session._lastTelemetryRecord = rec;
+    if (result && typeof result === "object") result.telemetry = rec;
+    return rec;
+  }
+  // The per-run cost/latency summary, producible from ledger records
+  // alone (MI-118 done-test, second half). Unmetered/unmeasured runs
+  // contribute nothing to the sums and are NAMED in their own counts.
+  function summarizeTelemetry(input) {
+    const records = Array.isArray(input) ? input : ((input && input.records) || []);
+    const rows = records.filter((r) => r && (r.record_type === "run_telemetry" || r.telemetry === true));
+    const sum = {
+      runs: rows.length, applications: 0,
+      total_tokens: 0, unmetered_runs: 0,
+      total_execution_seconds: 0, unmeasured_runs: 0,
+      captcha_encounters: 0,
+      by_delivery_status: {}, applications_by_delivery_status: {},
+      by_platform: {}, rows: [],
+    };
+    const apps = new Map();
+    const bump = (obj, key, fields) => {
+      const k = key == null ? "unknown" : String(key);
+      if (!obj[k]) obj[k] = { runs: 0, tokens: 0, execution_seconds: 0, captcha_encounters: 0, submitted: 0, unknown_outcome: 0, not_submitted: 0 };
+      obj[k].runs += 1;
+      if (fields.tokens != null) obj[k].tokens += fields.tokens;
+      if (fields.seconds != null) obj[k].execution_seconds = Math.round((obj[k].execution_seconds + fields.seconds) * 1000) / 1000;
+      if (fields.captcha) obj[k].captcha_encounters += 1;
+      if (fields.delivery && obj[k][fields.delivery] != null) obj[k][fields.delivery] += 1;
+    };
+    for (const r of rows) {
+      if (r.tokens_consumed != null) sum.total_tokens += r.tokens_consumed; else sum.unmetered_runs += 1;
+      if (r.execution_seconds != null) sum.total_execution_seconds = Math.round((sum.total_execution_seconds + r.execution_seconds) * 1000) / 1000; else sum.unmeasured_runs += 1;
+      if (r.captcha_encountered) sum.captcha_encounters += 1;
+      sum.by_delivery_status[r.delivery_status] = (sum.by_delivery_status[r.delivery_status] || 0) + 1;
+      bump(sum.by_platform, r.platform, { tokens: r.tokens_consumed, seconds: r.execution_seconds, captcha: r.captcha_encountered, delivery: r.delivery_status });
+      const id = r.application_id || r.canonicalKey || "?";
+      const prev = apps.get(id);
+      // per-application delivery: the submit phase's end state wins
+      // over the prepare phase's (a doorstep is not a delivery).
+      if (!prev || r.phase === "submit" || prev.phase !== "submit") apps.set(id, { phase: r.phase, delivery: r.delivery_status });
+      sum.rows.push({
+        application_id: r.application_id, phase: r.phase, platform: r.platform,
+        schema_source: r.schema_source, tokens_consumed: r.tokens_consumed,
+        execution_seconds: r.execution_seconds, captcha_encountered: !!r.captcha_encountered,
+        delivery_status: r.delivery_status, outcome_code: r.outcome_code || null,
+        confirmation_id: r.confirmation_id || null, canonicalKey: r.canonicalKey || null,
+      });
+    }
+    sum.applications = apps.size;
+    for (const a of apps.values()) sum.applications_by_delivery_status[a.delivery] = (sum.applications_by_delivery_status[a.delivery] || 0) + 1;
+    return sum;
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.doorstep = null;
-    return prepareRound(session, input, false, 0, []);
+    const inp = input || {};
+    const tctx = beginTelemetry(session, inp, inp.posting, "prepare");
+    session._activeTelemetry = tctx;
+    try {
+      const result = prepareRound(session, inp, false, 0, []);
+      finalizeTelemetry(session, tctx, inp.log, inp, { result });
+      session._activeTelemetry = null;
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, inp.log, inp, { error: e });
+      session._activeTelemetry = null;
+      throw e;
+    }
   }
   function prepareRound(session, input, continued, round, priorSteps) {
     const inp = input || {};
@@ -580,9 +1436,26 @@ const CareerPortalApply = (() => {
     }
     const board = session.board;
     // target rules (§6.3): aggregators and untested hosts refused before any open
-    const target = classifyTarget(posting.url || "");
-    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
-    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    // MI-098 pointer routing: a Constellation pointer posting (the
+    // Anthropic Fellows Greenhouse shell) is never itself driven — the
+    // run drives the Constellation form URL when the posting carries
+    // one, and stops CONSTELLATION_FORM_REQUIRED when it does not.
+    // Submitting the shell alone is not an application (census §1).
+    let target = classifyTarget(posting.url || "");
+    let effectiveUrl = posting.url || "";
+    if (isConstellationPointer(posting)) {
+      if (!posting.constellationFormUrl) {
+        logStep("constellation_pointer_stop", { url: posting.url || null });
+        return blocked("CONSTELLATION_FORM_REQUIRED", { reason: "this posting is only a pointer — the application is the separate Constellation form, and submitting the Greenhouse shell alone does not count as applying; the Constellation form URL is required to drive it" });
+      }
+      target = classifyTarget(posting.constellationFormUrl);
+      effectiveUrl = posting.constellationFormUrl;
+      logStep("constellation_pointer_route", { from: posting.url || null, to: effectiveUrl, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    } else {
+      logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+      if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    }
     if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
       // The real-browser seam (module 150) HAS landed: an attested
       // browser board may be driven, and may transmit ONLY through the
@@ -614,9 +1487,19 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: opened.code, finalUrl: opened.finalUrl || null, host: opened.host || null, at: "open" });
       return blocked(opened.code, { reason: opened.reason || "the page landed off the tested-ATS allowlist (§6.3)", finalUrl: opened.finalUrl || null, host: opened.host || null });
     }
+    // MI-103: the account wall is a typed stop, never a drive. An
+    // unauthenticated / login-wall landing means the application lives
+    // behind an account only the owner may create or sign into (email +
+    // password are owner credentials — no drive performs that step,
+    // handles a password, or attempts a login). The run stops here:
+    // no form read, no fill, no submit on or after the wall.
+    if (opened.accountWall) {
+      logStep("account_wall_stop", { at: "open" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "the application is behind an account wall — registering or signing in with the owner's email + password is an owner-credential action no drive may perform; the owner creates / signs into the account, then the drive resumes on the in-account application" });
+    }
     if (opened.captcha) {
       logStep("captcha_stop", { at: "open" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: opened.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
     }
     // §11(F): the name on the board account must be the person applying
     if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
@@ -626,6 +1509,7 @@ const CareerPortalApply = (() => {
 
     // steps 3+4: analyze, then fill from confirmed facts only
     const formDef = board.form();
+    if (session._activeTelemetry) session._activeTelemetry.formRead = true; // MI-118: a schema was read live in this run
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -781,9 +1665,13 @@ const CareerPortalApply = (() => {
       logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
       return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null });
     }
+    if (review.accountWall) {
+      logStep("account_wall_stop", { at: "review" });
+      return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
+    }
     if (review.captcha) {
       logStep("captcha_stop", { at: "review" });
-      return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+      return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -844,9 +1732,13 @@ const CareerPortalApply = (() => {
         logStep("review_validation_failed_after_repair", { code: recheck.code });
         return blocked(recheck.code, { reason: "the board's own validation still rejects the form after the doorstep repair restored every readback value — the stop is the board's, named as-is", formAnalysis, asks });
       }
+      if (recheck && recheck.accountWall) {
+        logStep("account_wall_stop", { at: "review_recheck" });
+        return blocked("ACCOUNT_WALL_OWNER_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "the review step landed on an account wall (the session is signed out) — signing in with the owner's email + password is an owner-credential action no drive may perform; the owner signs in, then the drive resumes on the in-account application" });
+      }
       if (recheck && recheck.captcha) {
         logStep("captcha_stop", { at: "review_recheck" });
-        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: effectiveUrl, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
       }
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
@@ -876,13 +1768,30 @@ const CareerPortalApply = (() => {
       // fields win) — returning the leg's bare object dropped the
       // audit trail, which hid the D11 doorstep repair from the run's
       // record (BUG-207 guards, ported from the submit-path lineage).
-      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications, clock: inp.clock, schemaSource: inp.schemaSource, applicationId: inp.applicationId }));
     }
     return prepared;
   }
 
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
+  // MI-118 wrapper: every submit-leg run — completed, blocked, unknown,
+  // or thrown — finalizes its telemetry record (sharing the session's
+  // application_id with the prepare phase) before the caller sees the
+  // outcome; a throw is recorded and rethrown, never swallowed.
   function submitDoorstep(session, approval, ctx) {
+    const c = ctx || {};
+    const src = Object.assign({}, approval || {}, c);
+    const tctx = beginTelemetry(session, src, c.posting, "submit");
+    try {
+      const result = submitDoorstepInner(session, approval, ctx);
+      finalizeTelemetry(session, tctx, c.log, src, { result });
+      return result;
+    } catch (e) {
+      finalizeTelemetry(session, tctx, c.log, src, { error: e });
+      throw e;
+    }
+  }
+  function submitDoorstepInner(session, approval, ctx) {
     const c = ctx || {};
     const log = c.log || { records: [] };
     if (session.needsReconcile) {
@@ -979,10 +1888,15 @@ const CareerPortalApply = (() => {
         payload: session.doorstep.payload, payloadSha256: session.doorstep.payloadSha256 });
     }
     const out = board.submit();
+    session._lastSubmitOutcome = out && out.outcome ? out.outcome : null; // MI-118: captcha_stop at submit is a telemetry STOP metric
     if (out.outcome === "accepted") {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
+      // MI-118: the ledger's submitted record is written by the
+      // submitDoorstep telemetry wrapper (finalizeTelemetry) — it
+      // carries every legacy field (userId, canonicalKey, status,
+      // timestamp, confirmationId, vendor, company via the tctx) plus
+      // the telemetry fields, exactly once.
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
@@ -994,15 +1908,30 @@ const CareerPortalApply = (() => {
   }
 
   // ---------- reconciliation: truth is read from the board, never from memory ----------
+  // MI-118: reconciliation resolves the employer's end state, so the
+  // session's submit-phase telemetry record (the same object the
+  // ledger holds) is updated in place to carry it.
+  function syncReconcileTelemetry(session, delivery, confirmationId) {
+    const rec = session._submitTelemetryRecord;
+    if (!rec) return;
+    rec.delivery_status = delivery;
+    rec.reconciled = true;
+    if (delivery === "submitted") {
+      rec.status = "submitted"; // now employer-confirmed: the caps count it from here
+      if (confirmationId) { rec.confirmation_id = confirmationId; rec.confirmationId = confirmationId; }
+    }
+  }
   function reconcile(session) {
     const st = session.board.submissionState();
     if (st.submitted) {
+      syncReconcileTelemetry(session, "submitted", st.confirmationId);
       session.needsReconcile = false;
       session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
         confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
     }
     if (st.unverifiable === true) {
+      syncReconcileTelemetry(session, "unknown_outcome", null);
       // The board cannot prove a negative (a real portal without account
       // access): the outcome STAYS unknown and the reconcile lock stays
       // on — a human reads the captured evidence; no retry is cleared.
@@ -1011,6 +1940,7 @@ const CareerPortalApply = (() => {
           confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null },
         reason: "the board's state cannot be read back — the captured confirmation evidence is attached; a human verifies before any retry" };
     }
+    syncReconcileTelemetry(session, "not_submitted", null);
     session.needsReconcile = false; // state is now KNOWN: nothing landed; a fresh approval may retry
     return { resultStatus: "unknown_outcome",
       submission: { status: "not_submitted", onBoard: false, needsHuman: true, receiptBoard: session.board.kind },
@@ -1110,12 +2040,13 @@ const CareerPortalApply = (() => {
         else if (outcome && outcome.reason) attempt.detail = outcome.reason;
         report.stillUnknown.push({ id: recId(rec), userQuestion: rec.userQuestion });
       }
+      if (rec.delivery_status !== undefined) rec.delivery_status = rec.status; // MI-118: delivery stays in sync with the resolved end state
       if (!rec.resolutionAttempts) rec.resolutionAttempts = [];
       rec.resolutionAttempts.push(attempt);
     }
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, createConstellationSandboxBoard, isConstellationPointer, CONSTELLATION_FIELDS, createTallySandboxBoard, TALLY_FIELDS, createFormAssemblySandboxBoard, FORMASSEMBLY_FIELDS, createGoogleFormsSandboxBoard, GOOGLE_FORMS_FIELDS, createNeoSandboxBoard, NEO_FIELDS, createThielSandboxBoard, THIEL_FIELDS, createEightVcSandboxBoard, createKleinerPerkinsSandboxBoard, EIGHTVC_FIELDS, KLEINERPERKINS_FIELDS, summarizeTelemetry, TELEMETRY_SCHEMA_SOURCES };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

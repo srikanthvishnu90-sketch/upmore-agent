@@ -49,10 +49,20 @@
        records as unknown_outcome, never as sent. submissionState()
        reports from the same capture: confirmed → submitted; ambiguous →
        unverifiable (reconcile must not clear it for a retry).
+   Telemetry (MI-118): the board attests its form-schema source for
+   module 149's per-run record — a caller-censused attestation
+   (opts.schemaSource) until form() performs a live discovery on this
+   board, from which point the schema is census-fresh by construction.
    Session isolation (§6.3): every board owns a fresh browser context —
    no cookies, storage, or values are shared between boards or users.
    Account model: boards that need no account (Greenhouse / Lever /
-   Ashby public forms) run anonymously. Account-walled families
+   Ashby public forms) run anonymously. The Thiel Fellowship family
+   (MI-103) is account-gated: the helper reports a visible password
+   field on a landing as `accountWall`, this driver surfaces it from
+   open()/atReview(), and module 149 stops ACCOUNT_WALL_OWNER_HANDOFF —
+   the driver never types a credential, never clicks sign-in or
+   create-account, and only the owner's own signed-in session may be
+   driven, to the doorstep. Account-walled families
    (Workday, iCIMS, Taleo) are mapped in docs/career/board-automation-map.md
    with the least-user design (per-employer account, user-owned details,
    vaulted credential, one-time approval, Gmail verification retrieval);
@@ -95,11 +105,23 @@ const CareerPortalBrowser = (() => {
   }
   function atsFamilyOf(url) {
     try {
-      const host = new URL(String(url)).hostname.toLowerCase();
+      const u = new URL(String(url));
+      const host = u.hostname.toLowerCase();
       if (/(^|\.)greenhouse\.io$/.test(host)) return "greenhouse";
       if (/(^|\.)lever\.co$/.test(host)) return "lever";
       if (/(^|\.)ashbyhq\.com$/.test(host)) return "ashby";
       if (/(^|\.)smartrecruiters\.com$/.test(host)) return "smartrecruiters";
+      if (/(^|\.)constellation\.(jobs|com|io)$/.test(host)) return "constellation"; // MI-098
+      if (/(^|\.)tally\.so$/.test(host)) return "tally"; // MI-099
+      if (/(^|\.)(tfaforms\.(net|com)|formassembly\.com)$/.test(host)) return "formassembly"; // MI-100
+      // MI-101: Google Forms is path-precise like module 149 — only a
+      // docs.google.com URL under /forms/ is the family; a Doc/Sheet
+      // on the same host is not.
+      if (host === "docs.google.com" && /\/forms\//.test(u.pathname || "")) return "googleforms";
+      if (/(^|\.)neo\.com$/.test(host)) return "neo"; // MI-102: Neo's bespoke Bubble portal (portal.neo.com)
+      if (/(^|\.)thielfellowship\.org$/.test(host)) return "thiel"; // MI-103
+      if (/(^|\.)8vc\.com$/.test(host)) return "eightvc"; // MI-104
+      if (/(^|\.)kleinerperkins\.com$/.test(host)) return "kleinerperkins"; // MI-104
     } catch (e) { /* fall through */ }
     return null;
   }
@@ -275,6 +297,51 @@ const CareerPortalBrowser = (() => {
     // boards name these fields by machine name (hispanic_ethnicity)
     // as often as by label ("Are you Hispanic/Latino?").
     if (/gender|race|ethnic|veteran|disability|sexual orientation|pronouns|lgbt|hispanic|latino/.test(hay)) return { kind: "eeo", question_key: slug(eff).slice(0, 32) || "eeo" };
+    // MI-101: the Z Fellows Google Form's own question wordings (census
+    // 2026-10-15 §13). The two yes/no questions and the company-or-
+    // project DECISION bind to confirmed answers (screening — the
+    // owner's approved short answers, never a guess); "Birthday" binds
+    // to the date-of-birth fact below; every short-answer/essay wording
+    // binds to the SAME free_text question_key module 149's sandbox
+    // board uses, so an owner's confirmed draft under that key is the
+    // only text that can fill the live field either. These wordings
+    // are narrow program-specific phrases, checked before the generic
+    // education/standard rules (the school-or-work wording would
+    // otherwise bind to the school fact).
+    if (/company or project/.test(eff)) return { kind: "screening", question_key: "company_or_project" };
+    if (/are you technical/.test(eff)) return { kind: "screening", question_key: "is_technical" };
+    if (/previously applied/.test(eff)) return { kind: "screening", question_key: "previously_applied" };
+    if (/in school or working/.test(eff)) return { kind: "free_text", question_key: "school_or_work" };
+    if (/achievements and prizes/.test(eff)) return { kind: "free_text", question_key: "achievements" };
+    if (/what project are you working on/.test(eff)) return { kind: "free_text", question_key: "project_description" };
+    if (/what problem are you solving/.test(eff)) return { kind: "free_text", question_key: "problem" };
+    if (/expertise to execute/.test(eff)) return { kind: "free_text", question_key: "expertise" };
+    if (/competitors/.test(eff) && /understand|don.t know/.test(eff)) return { kind: "free_text", question_key: "competitors" };
+    if (/worked on in the past/.test(eff)) return { kind: "free_text", question_key: "past_work" };
+    if (/nerdiest thing/.test(eff)) return { kind: "free_text", question_key: "nerdiest_thing" };
+    if (/what drives you/.test(eff)) return { kind: "free_text", question_key: "what_drives_you" };
+    if (/non-traditional things|nontraditional things/.test(eff)) return { kind: "free_text", question_key: "nontraditional_upbringing" };
+    if (/risk you|challenge you/.test(eff) && /character/.test(eff)) return { kind: "free_text", question_key: "risk_or_challenge" };
+    if (/co-found a company with|cofound a company with/.test(eff)) return { kind: "free_text", question_key: "cofounder_pick" };
+    if (/one thing you need help with/.test(eff)) return { kind: "free_text", question_key: "need_help" };
+    if (/intro video/.test(eff)) return { kind: "free_text", question_key: "intro_video" };
+    // MI-103: the Thiel Fellowship in-account wordings (census 2026-10-15
+    // §3's secondary-walkthrough field list). The project/company name is
+    // the applicant's own DECISION (screening — fills only from a
+    // confirmed answer); the project/company URL takes the confirmed
+    // website fact; "Hometown" takes the hometown fact (checked before
+    // the generic location rule below can claim it); the written-answer
+    // wordings bind to the SAME free_text question_keys module 149's
+    // sandbox board uses, so an owner's confirmed draft under that key
+    // is the only text that can fill the live field either. A password
+    // field never reaches this classifier — the helper reports the
+    // account wall at open and 149 stops before any form read.
+    if (/project or company name|company or project name|project\/company name/.test(eff)) return { kind: "screening", question_key: "project_or_company_name" };
+    if (/project or company url|project url|company url/.test(eff)) return { kind: "standard", profile_key: "website" };
+    if (/hometown|home town/.test(eff)) return { kind: "standard", profile_key: "hometown" };
+    if (/previous projects|prior projects/.test(eff)) return { kind: "free_text", question_key: "previous_projects" };
+    if (/describe your project/.test(eff)) return { kind: "free_text", question_key: "project_description" };
+    if (/progress have you made|progress.*so far/.test(eff)) return { kind: "free_text", question_key: "project_progress" };
     // D4 (BUG-062): education + country keys — the answers exist in the
     // fact bank (F-001 shape) and now have keys to carry them.
     if (/preferred name|preferred first name/.test(eff)) return { kind: "standard", profile_key: "preferred_name" };
@@ -311,8 +378,13 @@ const CareerPortalBrowser = (() => {
     // keys so deriveAnswers' profile fields can fill them.
     if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
-    if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
+    if (/date of birth|birth ?date|birthday|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" }; // MI-101: the Z Fellows form labels it "Birthday"
     if (/\bcountry\b/.test(eff) && !/how (many|long)|\byears?\b|\bmonths?\b/.test(eff)) return { kind: "standard", profile_key: "country" };
+    // MI-099: a test-scores question (the a16z Academy Stage 1 form
+    // asks for SAT/ACT scores if any) binds to the profile's confirmed
+    // test_scores fact (the fact bank's F-001 carries the SAT score);
+    // a profile without one leaves the field an honest ask.
+    if (/test scores?|standardized test|\bsat\b|\bact\b/.test(eff)) return { kind: "standard", profile_key: "test_scores" };
     if (ownText && (/first name|last name|full name|your name|^name\b/.test(eff) || (f && !f.label && (f.name === "name" || f.id === "name")))) return { kind: "standard", profile_key: "name" };
     if (ownText && (/e-?mail/.test(eff) || inputType === "email")) return { kind: "standard", profile_key: "email" };
     if (ownText && (/\b(tele)?phone\b|\bcell\b|^mobile\b|mobile (phone|number)/.test(eff) || inputType === "tel")) return { kind: "standard", profile_key: "phone" };
@@ -422,6 +494,7 @@ const CareerPortalBrowser = (() => {
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
       armed: o.submitArmed === true, approvalRef: o.submitArmed === true ? (o.approvalRef || null) : null,
+      schemaAttest: o.schemaSource === "cached" || o.schemaSource === "census-fresh" ? o.schemaSource : null, // MI-118
     };
     const refuseIfRedirected = () => {
       if (state.redirectRefused) throw coded("HOST_REDIRECT_REFUSED", `this board landed off the allowlist at ${state.redirectRefused.finalUrl} — no further actions on it (§6.3)`);
@@ -454,6 +527,11 @@ const CareerPortalBrowser = (() => {
       atsFamily: atsFamilyOf(o.url) || o.atsFamily || null,
       host: gate.host || "", contextId: boardId, calls, driverLog,
       get accountName() { return o.accountName || null; },
+      // MI-118: the schema source this board's form carries — the
+      // caller's censused attestation until a live discovery happens
+      // on THIS board (state.defs is set only by form()'s discover
+      // call), census-fresh from then on. Never a claim before either.
+      get schemaSource() { return state.defs ? "census-fresh" : state.schemaAttest; },
       get fillFailures() { return state.fillFailures.slice(); },
       // The board's own rendering of each verified fill (FR-395: a
       // widget's single-value, including its short forms like the
@@ -501,6 +579,7 @@ const CareerPortalBrowser = (() => {
           log("host_redirect_refused", { at: "open", finalUrl: fg.finalUrl, host: fg.host });
           return { ok: false, captcha: null, code: fg.code, finalUrl: fg.finalUrl, host: fg.host, reason: fg.reason };
         }
+        if (r.accountWall) { log("account_wall_detected", { at: "open" }); return { ok: true, captcha: null, accountWall: r.accountWall }; }
         if (r.captcha) { log("captcha_detected", { at: "open" }); return { ok: true, captcha: r.captcha, screenshotRef: captureStopScreenshot("open") }; }
         return { ok: true, captcha: r.captcha || null };
       },
@@ -644,6 +723,7 @@ const CareerPortalBrowser = (() => {
           state.finalUrl = landed;
         }
         if (r.code) return { code: r.code, finalUrl: r.finalUrl };
+        if (r.accountWall) { log("account_wall_detected", { at: "review" }); return { ok: true, captcha: null, accountWall: r.accountWall }; }
         if (r.captcha) { log("captcha_detected", { at: "review" }); return { ok: true, captcha: "challenge", screenshotRef: captureStopScreenshot("review") }; }
         log("at_review", {});
         return { ok: true, captcha: null, needsFields: !!r.needsFields, advanced: !!r.advanced, atFinalReview: r.atFinalReview === true };

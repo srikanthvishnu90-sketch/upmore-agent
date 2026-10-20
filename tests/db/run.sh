@@ -148,9 +148,12 @@ done
 # (20261020120100) needs career_watch_kv, so the ledger below applies it.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020120000_career_events.sql"
+# The cloud worker (WO-039): its gate, opt-in, claim, telemetry and throttle. Idempotent: applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021080000_career_apply_cloud.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021080000_career_apply_cloud.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -184,4 +187,6 @@ echo "== career_connector.test.sql (double opt-in introductions: every refusal, 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_events.test.sql (the account timeline: own reads, recall, prepared on insert, wiped by an erase)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_cloud.test.sql (the cloud worker: the gate at 3 hand submissions, opt-in, every claim limit, the throttle)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

@@ -55,9 +55,14 @@ Deno.test("WO-040/E1 the set: dev, devcheck, holdout and blind40 are disjoint; W
   assert(!labels.mails.some((m) => blind.mails.some((b) => b.id === m.id)), "blind40 is not in the tuned file");
 });
 
-Deno.test("WO-040/E2 dev holds the target (devcheck, holdout and blind40 floors: added after their one-time scoring)", () => {
-  const dev = evaluate(splitsOf(labels.mails as any).dev);
+Deno.test("WO-040/E2 dev holds the target; devcheck, the holdout and blind40 are floors at their one-time scores (VERIFIED), not goals", () => {
+  const s = splitsOf(labels.mails as any);
+  const dev = evaluate(s.dev), check = evaluate(s.devcheck), held = evaluate(s.holdout), b = evaluate(blind.mails as any);
   assert(dev.status.precision >= 0.97 && dev.status.recall >= 0.95, `dev ${JSON.stringify(dev.status)}`);
+  assert(check.status.precision >= 0.97 && check.status.recall >= 0.95, `devcheck ${JSON.stringify(check.status)}`);
+  assert(held.status.precision >= 0.97 && held.status.recall >= 0.95, `holdout ${JSON.stringify(held.status)}`);
+  // blind40 is far below the target (10/12 precision, 10/30 recall at ea28d4e0): the honest gap, a regression floor only.
+  assert(b.status.precision >= 0.83 && b.status.recall >= 0.33, `blind40 ${JSON.stringify(b.status)}`);
 });
 
 // ------------------------------------------------------------------------------------------------ causes that generalise

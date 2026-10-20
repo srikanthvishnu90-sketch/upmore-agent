@@ -23,6 +23,7 @@ const FACTS = [
   { id: "F-4", kind: "other", text: "Has never been referred by an employee of any company applied to", status: "confirmed" },
   { id: "F-5", kind: "experience", text: "Led a team of 12 engineers at Stripe", needs_confirmation: true, status: "draft" },
   { id: "F-6", kind: "other", text: "Work authorization: US citizen; will not need visa sponsorship now or in the future", status: "confirmed" },
+  { id: "F-7", kind: "other", text: "non compete: No", status: "confirmed" },
 ];
 const q = (key: string, label: string, options: string[] = [], type = options.length ? "select" : "text"): ShortQuestion =>
   ({ key, label, type, options, company: "Acme", location: "Chicago, IL" });
@@ -55,9 +56,10 @@ Deno.test("WO-064/1 never drafted: crime, a government's question about the pers
     "What is your most recent company?",
     "Do you have experience with SQL?",
     "What are your salary expectations?",
-    "Will you now or in the future require sponsorship? If so, please explain",
     "Were you referred by a current employee? If yes, who?",
   ]) eq(neverDraft(l), null, l);
+  // Run 2's reviewers: work rights depend on the job's country, which the planner's rules read from the posting.
+  assert(neverDraft("Will you now or in the future require sponsorship? If so, please explain"));
 });
 
 Deno.test("WO-064/2 the model sees confirmed facts only, and never a never-drafted question", async () => {
@@ -74,13 +76,14 @@ Deno.test("WO-064/2 the model sees confirmed facts only, and never a never-draft
 });
 
 Deno.test("WO-064/3 an option answer comes back in the option's own spelling; anything else is not_an_option", () => {
-  const sq = q("s", "Will you now or in the future require sponsorship?", ["Yes", "No"]);
-  const no = vetoDraft(sq, { answer: " no ", fact_ids: ["F-6"] }, FACTS);
+  const sq = q("s", "Are you bound by a non-compete agreement?", ["Yes", "No"]);
+  const no = vetoDraft(sq, { answer: " no ", fact_ids: ["F-7"] }, FACTS);
   assert(no.ok, JSON.stringify(no));
-  eq([no.answer, no.fact_ids, no.from.length], ["No", ["F-6"], 1]);
-  assert(/Work authorization/.test(no.from[0]), "the panel names the fact it came from by label");
-  eq(vetoDraft(sq, { answer: "Not now", fact_ids: ["F-6"] }, FACTS).ok, false);
-  eq((vetoDraft(sq, { answer: "Not now", fact_ids: ["F-6"] }, FACTS) as any).why, "not_an_option");
+  eq([no.answer, no.fact_ids, no.from.length], ["No", ["F-7"], 1]);
+  assert(/non compete/.test(no.from[0]), "the panel names the fact it came from by label");
+  eq(vetoDraft(sq, { answer: "Not now", fact_ids: ["F-7"] }, FACTS).ok, false);
+  eq((vetoDraft(sq, { answer: "Not now", fact_ids: ["F-7"] }, FACTS) as any).why, "not_an_option");
+  eq((vetoDraft(sq, { answer: "Yes", fact_ids: ["F-7"] }, FACTS) as any).why, "unverified", "a yes the yes/no fact says no to");
   const multi = q("m", "Which tools have you used?", ["SQL", "Looker", "Tableau"], "multi_value_multi_select");
   const d = vetoDraft(multi, { answer: "sql; looker", fact_ids: ["F-1"] }, FACTS);
   assert(d.ok, JSON.stringify(d));
@@ -215,10 +218,9 @@ Deno.test("WO-064/11 an answer must rest on a cited fact about the question; a n
   eq((vetoDraft(subj, { answer: "Science", fact_ids: ["P-major"] }, P) as any).why, "unverified");
   const rate = q("r", "If successful in receiving an offer, are you willing to accept the hourly rate stated in the job posting?", ["Yes", "No"]);
   eq((vetoDraft(rate, { answer: "Yes", fact_ids: ["P-pay"] }, P) as any).why, "unverified", "a salary figure says nothing about accepting this rate");
-  const auth = q("a", "Are you legally authorized to work in the country for which you are applying?", ["Yes", "No"]);
-  assert(vetoDraft(auth, { answer: "Yes", fact_ids: ["P-auth"] }, P).ok, "authorized ~ authorization");
-  const sg = q("g", "Are you a Singapore citizen?", ["Yes", "No"]);
-  assert(vetoDraft(sg, { answer: "No", fact_ids: ["P-cit"] }, P).ok, "citizen ~ citizenship");
+  // Work rights and citizenship are never drafted since run 2 (they depend on the job's country).
+  assert(neverDraft("Are you legally authorized to work in the country for which you are applying?"));
+  assert(neverDraft("Are you a Singapore citizen?"));
   const pay = q("p", "Expected Salary");
   assert(vetoDraft(pay, { answer: "95000", fact_ids: ["P-sal"] }, P).ok);
 });
@@ -254,4 +256,27 @@ Deno.test("WO-064/15 an answer that copies the question back is refused; a langu
   eq((vetoDraft(url, { answer: "Please fill out the technical assessment here: https://docs.google.com/forms/d/e/abc", fact_ids: ["F-1"] }, FACTS) as any).why, "unverified");
   const lang = q("l", "Are you bilingual in German/English?", ["Yes", "No"]);
   eq((vetoDraft(lang, { answer: "No", fact_ids: ["F-1"] }, FACTS) as any).why, "negative_from_absence");
+});
+
+// Run 2 (CI 39474047241) read by two independent reviewers: 80 of 368 drafts wrong (A 69, B 75; they agree on 336 of
+// 368). Every one of those 80, as drafted, must now be refused; the ones both called right are counted, not required.
+import RUN2 from "../fixtures/answer-draft/run2-reviewed.json" with { type: "json" };
+import { TEST_FACTS } from "../../evals/apply/answer-draft.ts";
+import { factText } from "../../supabase/functions/_shared/essay_draft.ts";
+const RUN2_NOW = Date.UTC(2026, 9, 20);
+function reveto(x: any) {
+  const byText = new Map(TEST_FACTS.map((f: any) => [factText(f), f.id]));
+  const ids = x.facts_cited.map((t: string) => byText.get(t) ?? "?");
+  const qq = { key: "r", label: x.question, type: x.options.length ? "select" : "text", options: x.options, company: x.company ?? "" };
+  return neverDraft(x.question) ? { ok: false, why: "never" } : vetoDraft(qq, { answer: x.answer, fact_ids: ids }, TEST_FACTS, RUN2_NOW);
+}
+Deno.test("WO-064/16 every draft the reviewers found wrong in run 2 is refused (80 of 80)", () => {
+  const passed = (RUN2 as any).wrong.filter((x: any) => reveto(x).ok);
+  eq(passed.map((x: any) => `${x.question.slice(0, 70)} => ${x.answer.slice(0, 30)}`), [], "wrong drafts still passing the veto");
+});
+Deno.test("WO-064/17 of the drafts both reviewers called right, the share still drafted is reported (not required)", () => {
+  const right = (RUN2 as any).right as any[];
+  const kept = right.filter((x) => reveto(x).ok).length;
+  console.log(`run 2: ${kept} of ${right.length} drafts both reviewers called right still pass the veto`);
+  assert(right.length > 0);
 });

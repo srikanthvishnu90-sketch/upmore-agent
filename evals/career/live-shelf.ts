@@ -37,7 +37,7 @@ export const SHELF_BOARDS: ShelfBoard[] = [
   { provider: "greenhouse", board: "braze", company: "Braze", field: "marketing" },
   { provider: "greenhouse", board: "klaviyo", company: "Klaviyo", field: "marketing" },
   { provider: "greenhouse", board: "duolingo", company: "Duolingo", field: "product" },
-  { provider: "greenhouse", board: "squarespace", company: "Squarespace", field: "product" },
+  { provider: "greenhouse", board: "figma", company: "Figma", field: "product" },
   { provider: "greenhouse", board: "pinterest", company: "Pinterest", field: "product" },
   { provider: "lever", board: "elfbeauty", company: "e.l.f. Beauty", field: "marketing" },
   { provider: "greenhouse", board: "peloton", company: "Peloton", field: "marketing" },
@@ -56,7 +56,7 @@ export const SHELF_BOARDS: ShelfBoard[] = [
   { provider: "lever", board: "metlife", company: "MetLife", field: "finance" },
   // healthcare operations
   { provider: "greenhouse", board: "oscar", company: "Oscar Health", field: "healthcare" },
-  { provider: "greenhouse", board: "onemedical", company: "One Medical", field: "healthcare" },
+  { provider: "greenhouse", board: "swordhealth", company: "Sword Health", field: "healthcare" },
   { provider: "lever", board: "lyrahealth", company: "Lyra Health", field: "healthcare" },
   { provider: "greenhouse", board: "cloverhealth", company: "Clover Health", field: "healthcare" },
   { provider: "greenhouse", board: "zocdoc", company: "Zocdoc", field: "healthcare" },
@@ -184,7 +184,7 @@ export async function fetchShelf(o: { runId: string; seed: string; cap?: number;
   }));
   read.sort((x, y) => boards.indexOf(x.b) - boards.indexOf(y.b));
   const ok = read.filter((r) => !r.error && r.postings.length);
-  const perBoard = Math.max(1, Math.ceil(cap / Math.max(1, ok.length)));
+  const perBoard = Math.max(1, Math.floor(cap / Math.max(1, ok.length)));
   const postings: ShelfPosting[] = [];
   const kept = new Map<string, number>();
   for (const r of ok) {

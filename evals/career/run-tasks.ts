@@ -69,9 +69,37 @@ export function cleanLocation(loc: string): string {
   while (parts.length > 1 && COUNTRY.test(parts[parts.length - 1])) parts.pop();
   return parts.slice(0, 2).join(", ").replace(/[\s,–-]+$/, "").trim();
 }
+// The person texts from a US number (the harness's +1 contact, America/New_York): {location} is a US place a person would
+// type, "City, ST" ("San Francisco, California" -> "San Francisco, CA"), or a large US city on its own.
+const STATES: Record<string, string> = { alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA", colorado: "CO", connecticut: "CT", delaware: "DE",
+  florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME",
+  maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
+  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC", "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
+  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI", wyoming: "WY", "district of columbia": "DC", "d.c.": "DC", dc: "DC" };
+const ABBR = new Set(Object.values(STATES));
+const BIG_CITIES: Record<string, string> = { "new york": "New York, NY", "new york city": "New York, NY", nyc: "New York, NY", "san francisco": "San Francisco, CA", seattle: "Seattle, WA",
+  chicago: "Chicago, IL", boston: "Boston, MA", austin: "Austin, TX", denver: "Denver, CO", "los angeles": "Los Angeles, CA", atlanta: "Atlanta, GA", miami: "Miami, FL",
+  "washington d.c.": "Washington, DC", "washington, d.c.": "Washington, DC", dallas: "Dallas, TX", houston: "Houston, TX", philadelphia: "Philadelphia, PA", pittsburgh: "Pittsburgh, PA",
+  "salt lake city": "Salt Lake City, UT", phoenix: "Phoenix, AZ", nashville: "Nashville, TN", "san diego": "San Diego, CA", "san jose": "San Jose, CA", portland: "Portland, OR", minneapolis: "Minneapolis, MN" };
+const ABROAD = /\b(argentina|brazil|brasil|canada|india|mexico|méxico|uk|united kingdom|england|ireland|germany|france|japan|australia|singapore|spain|poland|netherlands|colombia|chile|peru|israel|china|korea|philippines|portugal|sweden|switzerland|emea|apac|latam|buenos aires|s[ãa]o paulo|toronto|vancouver|montreal|london|dublin|berlin|paris|tokyo|bangalore|bengaluru|amsterdam|madrid|warsaw|sydney|zurich)\b/i;
+export function usPlace(loc: string): string | null {
+  const c = cleanLocation(loc).replace(/\s+(hq|headquarters|office|campus|hub)$/i, "").trim();
+  if (!c || /\d/.test(c) || / - /.test(c) || ABROAD.test(loc)) return null;
+  const big = BIG_CITIES[c.toLowerCase()];
+  if (big) return big;
+  const m = /^([A-Z][A-Za-z.' -]{1,30}),\s*([A-Za-z.' ]{2,25})$/.exec(c);
+  if (!m) return null;
+  const st = ABBR.has(m[2].trim().toUpperCase()) && m[2].trim().length === 2 ? m[2].trim().toUpperCase() : STATES[m[2].trim().toLowerCase()];
+  if (!st || STATES[m[1].trim().toLowerCase()]) return null;
+  return `${m[1].trim()}, ${st}`;
+}
+// The posting reads in English (the battery is typed in English).
+export const english = (t: string) => { const w = String(t).toLowerCase().split(/[^a-z]+/).filter(Boolean); return w.length < 30 || w.filter((x) => /^(the|and|to|of|you|with|for|our|we|in|is|are|will)$/.test(x)).length / w.length >= 0.08; };
 export const isRemote = (loc: string) => /\b(remote|anywhere|distributed|virtual|work from home|wfh)\b/i.test(loc);
 export const cityOf = (loc: string) => cleanLocation(loc).split(",")[0].trim().toLowerCase();
 
+const ROLE_NOUN = "(?:analyst|engineer|manager|scientist|coordinator|specialist|associate|director|designer|developer|accountant|representative|executive|lead|consultant|nurse|intern|administrator|officer|advisor|adviser|strategist|architect|recruiter|partner|agent|technician|writer|editor|researcher|head|vp|planner|producer|marketer|operator|assistant|counsel|attorney|therapist|physician|clinician|pharmacist|coach|supervisor|controller|auditor|underwriter|trader|economist|programmer|generalist|biller|coder|scheduler|navigator|liaison|owner|principal|staff|role|position|opening|job)s?";
 const SENIORITY = /^(senior|sr\.?|staff|principal|lead|junior|jr\.?|associate|entry[- ]level|mid[- ]level|experienced|distinguished|founding|chief)$/i;
 const NUMERAL = /^(i{1,3}|iv|v|vi|[0-9]+|l[0-9]+|level|grade)$/i;
 // A short searchable role phrase from a posting title: "Senior Data Analyst, Growth (Remote)" -> "Data Analyst".
@@ -82,6 +110,8 @@ export function titlePhrase(title: string): string | null {
   while (words.length && /^(of|and|&|the|for|to|in|-)$/i.test(words[words.length - 1])) words.pop();
   while (words.length && /^(of|and|&|the|for|to|in|-)$/i.test(words[0])) words.shift();
   if (words.length < 2 || words.length > 4) return null;
+  // A role phrase ends in a role noun ("Data Analyst", "Product Manager"); a person's name in the title field does not.
+  if (!new RegExp(`^${ROLE_NOUN}$`, "i").test(words[words.length - 1])) return null;
   if (!words.some((w) => /^[A-Za-z]{3,}$/.test(w))) return null;
   return words.join(" ");
 }
@@ -94,34 +124,34 @@ export function findable(pool: any[], p: ShelfPosting, phrase: string): boolean 
 }
 
 export function fillTask(task: TaskDef, shelf: Shelf, pool: any[], seed: string): Fills | { error: string } {
-  const placeOk = (loc: string) => { const c = cleanLocation(loc); return !!c && c.length <= 40 && !isRemote(loc) && /[a-z]/i.test(c); };
+  const placeOk = (loc: string) => !isRemote(loc) && !!usPlace(loc);
   const sorted = shelf.postings.slice().sort((a, b) => a.id.localeCompare(b.id));
   if (task.pick === "two_places") {
     const groups = new Map<string, ShelfPosting[]>();
     for (const p of sorted) {
       const ph = titlePhrase(p.title);
-      if (!ph || !placeOk(p.location) || !findable(pool, p, ph)) continue;
+      if (!ph || !placeOk(p.location) || !english(p.text) || !findable(pool, p, ph)) continue;
       const k = ph.toLowerCase();
       groups.set(k, [...(groups.get(k) || []), p]);
     }
     const keys = shuffled([...groups.keys()].sort(), `${seed}:${task.id}`);
     for (const k of keys) {
       const ps = shuffled(groups.get(k)!, `${seed}:${task.id}:${k}`);
-      const a = ps[0], ca = cityOf(a.location);
-      const b = ps.find((x) => { const cb = cityOf(x.location); return cb && ca && !cb.includes(ca) && !ca.includes(cb); });
+      const a = ps[0], ca = cityOf(usPlace(a.location)!);
+      const b = ps.find((x) => { const cb = cityOf(usPlace(x.location)!); return cb && ca && !cb.includes(ca) && !ca.includes(cb); });
       if (!b) continue;
-      return { company: a.company, title: titlePhrase(a.title)!, location: cleanLocation(a.location), company2: b.company, title2: titlePhrase(b.title)!,
-        location2: cleanLocation(b.location), posting_ids: [a.id, b.id] };
+      return { company: a.company, title: titlePhrase(a.title)!, location: usPlace(a.location)!, company2: b.company, title2: titlePhrase(b.title)!,
+        location2: usPlace(b.location)!, posting_ids: [a.id, b.id] };
     }
     return { error: "no role phrase on the shelf exists in two different places" };
   }
-  const ok = (p: ShelfPosting) => { const ph = titlePhrase(p.title); return !!ph && placeOk(p.location) && (task.pick !== "with_text" || p.text.length >= 400) && findable(pool, p, ph); };
+  const ok = (p: ShelfPosting) => { const ph = titlePhrase(p.title); return !!ph && placeOk(p.location) && english(p.text) && (task.pick !== "with_text" || p.text.length >= 400) && findable(pool, p, ph); };
   const order = shuffled(sorted, `${seed}:${task.id}`);
   const a = order.find(ok);
   if (!a) return { error: `no posting on the shelf fits pick ${task.pick}` };
   const b = order.find((p) => p !== a && p.company !== a.company && ok(p)) ?? a;
-  return { company: a.company, title: titlePhrase(a.title)!, location: cleanLocation(a.location), company2: b.company, title2: titlePhrase(b.title)!,
-    location2: cleanLocation(b.location), posting_ids: [a.id, b.id] };
+  return { company: a.company, title: titlePhrase(a.title)!, location: usPlace(a.location)!, company2: b.company, title2: titlePhrase(b.title)!,
+    location2: usPlace(b.location)!, posting_ids: [a.id, b.id] };
 }
 export const fillText = (s: string, f: Fills) => s.replace(/\{(company2|title2|location2|company|title|location)\}/g, (_, k) => (f as any)[k] ?? `{${k}}`);
 
@@ -170,7 +200,6 @@ export function postingOf(c: Ctx, item: string): ShelfPosting | null {
 
 // A job a reply names: a list item that names a company, or "<role> at <Company>" anywhere in the reply. `company` is the
 // shelf company it names (null: the name is not a shelf company), `cands` the shelf postings it can be.
-const ROLE_NOUN = "(?:analyst|engineer|manager|scientist|coordinator|specialist|associate|director|designer|developer|accountant|representative|executive|lead|consultant|nurse|intern|administrator|officer|advisor|adviser|strategist|architect|recruiter|partner|agent|technician|writer|editor|researcher|head|vp|planner|producer|marketer|operator|assistant|counsel|attorney|therapist|physician|clinician|pharmacist|coach|supervisor|controller|auditor|underwriter|trader|economist|programmer|generalist|biller|coder|scheduler|navigator|liaison|owner|principal|staff|role|position|opening|job)s?";
 export interface Mention { reply: number; text: string; company: string | null; name: string; cands: ShelfPosting[] }
 function candidates(c: Ctx, company: string, before: string): ShelfPosting[] {
   const words = new Set(searchWords(before).map(wordStem));

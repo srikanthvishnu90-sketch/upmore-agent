@@ -131,3 +131,48 @@ export async function draftShortAnswers(qs: ShortQuestion[], deps: { model: Mode
 
 ## Size cap
 About 900 lines of code and tests, excluding fixtures and the eval's output.
+
+## Result (2026-10-20): the target was not met; the order is shelved and not merged
+Measured with gpt-5-mini on samples A–H (797 postings, 1,472 panel questions), with the synthetic TEST persona
+(VERIFIED-S). Spend: $0.298 of the $5 cap, across three runs.
+
+| Run | What changed | Drafted | Wrong (two independent reviewers, union) | Stops/posting | Ready cards |
+|---|---|---|---|---|---|
+| 1 | first build | 1,014 | many (office "No", LinkedIn read from a URL, consents); not counted in full | 2.33 → 1.20 | 174 → 278 |
+| 2 | NEVER list, consent words, the negative rule | 368 | 80 (21.7%) | 2.32 → 1.87 | 174 → 197 |
+| 3 | the restatement veto | 144 | **26 (18.1%)**; A 26, B 24, both 24 | 2.32 → 2.15 | 174 → 180 |
+
+The target was ≤ 0.5% wrong. Run 3's veto was written to refuse each of run 2's 80 wrong drafts, and it did. Run 3 then
+produced 26 new wrong drafts of kinds run 2 never showed:
+- "No" to a question covering non-compete, non-solicit and confidentiality, from a fact about the non-compete only;
+- one number where a range was asked;
+- USD where ZAR was asked;
+- a graduation date given as a training start;
+- years with C/C++ that no fact states;
+- LinkedIn where the confirmed source is the company website;
+- an invented leadership example.
+
+Each veto fits the last run's mistakes and the next run finds new ones. Three runs have not converged. A fourth round of
+tuning against the same samples would only fit them better; it would not show the drafts are right.
+
+### Why drafting cannot reach the order's own targets
+- **762 of the 1,472 panel questions are, by policy, the person's to answer.** These are office and place, work rights,
+  consents, how they heard, relatives, past work for this employer and the like (`neverDraft`). Perfect drafts of every
+  other question would still leave about 0.96 stops per posting, before essays.
+- **The open questions are a long tail.** The 378 open questions that no rule maps are 375 distinct wordings. A map built
+  from samples A to D covers 3 of the 217 asks in E to H (1.4%). A shared, reviewed wording map would not help either.
+- **The right drafts were restatements of facts the planner already holds:** salary, start date, years, title,
+  non-compete. That is the planner's work, and its precision is measured (WO-052, WO-056).
+
+### What happens instead
+- **Not merged:**
+  - "Draft from my facts" and `career-answer-draft` stay on `wo/064-short-drafts`, for the record and for reuse;
+  - nothing in trunk changes;
+  - the panel stays manual: the person answers, and nothing is suggested.
+- **WO-075** (found in this measurement): Greenhouse's resume upload and its paste box were counted as two questions.
+  Fixing it raises ready cards from 174 to 218 of 797, more than all three drafting runs did together.
+- **Next, by measured size:**
+  - choose postings whose forms Trainee can complete. Fit decides first, then the cost of the form, and abroad postings
+    go to the person;
+  - standing answers the person gives once for a class of question: office, work rights by country, relatives, and how
+    they heard. These are the person's own words, never drafted.

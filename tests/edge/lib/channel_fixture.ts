@@ -172,6 +172,19 @@ export function fakeFetchRich(opts: {
   return { fn: fn as any, calls };
 }
 
+// CHANNEL-DOC-1 additions: the channel_artifacts table (owner-scoped
+// document bytes behind the reply contract's artifacts[] refs), keyed by
+// row id, served by the same FakeQuery shapes as the approvals table.
+export class FakeAdminArtifacts extends FakeAdminApprovals {
+  artifacts = new Map<string, any>(); // id -> channel_artifacts row
+  override from(table: string) {
+    if (table === "channel_artifacts") {
+      return new FakeQuery(() => this.artifacts, (row: any) => row.id);
+    }
+    return super.from(table);
+  }
+}
+
 export function envOf(map: Record<string, string>) {
   return (k: string) => map[k];
 }

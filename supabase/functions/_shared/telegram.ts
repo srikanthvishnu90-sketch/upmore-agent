@@ -38,6 +38,7 @@ import {
   presentReply,
   takeApproval,
 } from "./channel_present.ts";
+import { fetchArtifactBytes } from "./channel_artifacts.ts";
 
 export const TELEGRAM_LIMIT = 4096; // Telegram sendMessage text limit
 
@@ -80,6 +81,28 @@ async function botApi(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+  const body: any = await res.json().catch(() => ({}));
+  if (!res.ok || body?.ok !== true) {
+    throw new Error(`telegram ${method} failed HTTP ${res.status}: ${JSON.stringify(body).slice(0, 160)}`);
+  }
+  return body;
+}
+
+// Multipart variant for file uploads (CHANNEL-DOC-1): Telegram takes a
+// document either as a URL string or as an uploaded file — an
+// artifacts[] bytes-ref uploads the file itself, so no URL for the
+// document ever exists. The fetch layer sets the multipart
+// Content-Type (with boundary); setting it by hand would break it.
+async function botApiForm(
+  deps: ChannelDeps,
+  token: string,
+  method: string,
+  form: FormData,
+): Promise<any> {
+  const res = await deps.fetchFn(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    body: form,
   });
   const body: any = await res.json().catch(() => ({}));
   if (!res.ok || body?.ok !== true) {
@@ -241,12 +264,29 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
     }
     await sendParts(deps, parts, (part) => sendTelegramRendered(deps, token, parsed.chatId, part));
 
-    // Documents as files (gap CHANNEL-DOC-1: inert on today's contract).
+    // Documents as files (CHANNEL-DOC-1, landed): a bytes-ref artifact
+    // is resolved owner-scoped (this user, this thread) and uploaded as
+    // the file itself; a legacy url artifact goes by URL. A ref that
+    // resolves to nothing — foreign, expired, never stored — sends
+    // NOTHING and the failure is spoken; a document is never claimed
+    // sent that was not.
     for (const art of extractArtifacts(outcome.chat)) {
       try {
-        await botApi(deps, token, "sendDocument", { chat_id: chatIdValue(parsed.chatId), document: art.url });
+        if (art.ref) {
+          const got = await fetchArtifactBytes(deps.createAdmin(), {
+            userId, threadId: outcome.threadId, ref: art.ref,
+          });
+          if (!got) { try { await send(parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ } continue; }
+          const form = new FormData();
+          form.append("chat_id", String(chatIdValue(parsed.chatId)));
+          form.append("document", new Blob([got.bytes], { type: got.mime }), got.filename);
+          await botApiForm(deps, token, "sendDocument", form);
+        } else if (art.url) {
+          await botApi(deps, token, "sendDocument", { chat_id: chatIdValue(parsed.chatId), document: art.url });
+        }
       } catch (e) {
         console.warn("telegram-inbound sendDocument failed:", String((e as Error)?.message ?? e).slice(0, 160));
+        try { await send(parsed.chatId, VOICE.docAttachFailed); } catch { /* send already failing */ }
       }
     }
 

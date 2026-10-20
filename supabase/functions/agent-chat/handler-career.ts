@@ -34,6 +34,7 @@ import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerRep
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
+import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -237,10 +238,26 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (plan) { batchIntent = plan.intent; out = { ...out, batch: plan.batch }; }
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
-      const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+      // CHANNEL-DOC-1: documents the turn produced (the tailored
+      // resume PDF; the delivery handler's documents) are materialized
+      // into the owner-scoped artifact store and ride the reply as
+      // bytes-refs — the bytes never ride the reply itself. A document
+      // that fails to store is dropped from the contract and said so
+      // on the reply; it is never claimed attached.
+      let artifactsField: any[] | undefined;
+      let artifactNote = "";
+      {
+        const docs = documentsOf(out.result);
+        if (docs.length) {
+          const m = await materializeArtifacts(admin, { userId: user.id, threadId: tid, documents: docs });
+          if (m.artifacts.length) artifactsField = m.artifacts;
+          if (m.failed > 0) artifactNote = "One file from this turn couldn't be attached here — ask me to send it again and I'll rebuild it.";
+        }
+      }
+      const reply = (flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply) + (artifactNote ? `\n${artifactNote}` : "");
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const visibleReply = [reply, ...reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "")].filter(Boolean).join("\n");
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       flowCtx.note = null;
       return json(cors, saved.response, 200);

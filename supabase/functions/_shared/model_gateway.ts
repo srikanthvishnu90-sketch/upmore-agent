@@ -76,6 +76,8 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
   if (Array.isArray(payload.stop_sequences) && payload.stop_sequences.length) body.stop = payload.stop_sequences.slice(0, 4);
   // WO-040: a caller that reads a person's mail asks OpenAI not to keep the completion (store: false).
   if (payload.store === false) body.store = false;
+  // WO-051: a caller that needs a fixed answer shape asks for OpenAI's structured output (a strict JSON schema).
+  if (payload.response_format?.type === "json_schema") body.response_format = payload.response_format;
   return body;
 }
 

@@ -277,3 +277,21 @@ Monday" and "Apple selected you for the 9-month contract assignment" stay "other
 - `evals/career/mail-eval.ts` (dev7 splits, dev7check sealed);
 - `tests/architect/wo-050-mail-english.test.ts`;
 - this document.
+
+## Architect review: blind300 (2026-10-20)
+300 SYNTHETIC emails written by a separate agent that never read the classifier, labels or eval files, asked to make English
+mail hard and realistic (scheduling-tool confirmations, rejections that mention interviews, assessments that look like
+interviews, look-alike "other" mail); 60 in six other languages by the writer's count. Sealed (sha256 bcdf74b9...; labels
+moved under `expect` mechanically, unread), scored once.
+
+| | trunk affdb123 | WO-050 b94ba00e |
+|---|---|---|
+| all, status precision / recall | 95.6% / 81.7% | 95.7% / 83.3% |
+| English (245, word-list split) | 94.7% / 82.5% | 94.7% / 83.5% |
+| others (55 detected of 60) | 100% / 78.3% | 100% / 82.6% |
+| rejection read as interview | 0 | 0 |
+| status read as another status | 8 | 8 |
+
+The honest reading: on the builder's own dev7check this round reached 100% / 86.7%; on independent, harder mail it adds
+1.6 points of recall and holds precision. Both targets (97% / 95%) are missed on blind300, precision too. A rule-and-weight
+classifier fits the voice of whoever wrote its training mail. The next lever is not more rules; see WO-051.

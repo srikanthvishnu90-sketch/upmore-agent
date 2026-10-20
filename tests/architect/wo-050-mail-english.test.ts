@@ -9,6 +9,7 @@
 // Run: deno test --no-check tests/architect/wo-050-mail-english.test.ts
 import { classifyMail, fromEmployer, MAIL_WEIGHTS, mailFeatures, planUpdates, sameCompany, type TrackedApp } from "../../supabase/functions/_shared/career_mail.ts";
 import { dev7Splits, evaluate, SEALED } from "../../evals/career/mail-eval.ts";
+import blind300 from "../../evals/career/mail-blind300.json" with { type: "json" };
 import { TUNING_SPLITS, tuningMails } from "../../evals/career/mail-fit.ts";
 import labels from "../../evals/career/mail-labels.json" with { type: "json" };
 import dev4 from "../../evals/career/mail-dev4.json" with { type: "json" };
@@ -277,4 +278,14 @@ Deno.test("WO-050/W1 the classifier stays pure and the scheduling tools and agen
   // Agencies never make an employer's own mail: an offer relayed by an agency is not the employer's authenticated word.
   const c = read("\"Amanda Ruiz | TEKsystems\" <aruiz@teksystems.com>", "Offer from Northrop Grumman - Network Engineer contract", "Northrop Grumman extended you an offer: 12-month contract, $72/hr W2.");
   eq(fromEmployer(c, { company: "Northrop Grumman" }, "aruiz@teksystems.com", ["mx.google.com; dmarc=pass header.from=teksystems.com"]), false);
+});
+
+Deno.test("WO-050/E9 blind300, written by an agent that never read the classifier, is a floor at its one-time score", () => {
+  // Architect review, 2026-10-20: 300 SYNTHETIC emails (240 status), harder English by design, sealed (sha256 bcdf74b9...)
+  // and scored once. Trunk affdb123: 95.6% (196/205) precision / 81.7% recall. This branch (b94ba00e): 95.7% (200/209) /
+  // 83.3% (200/240). Below both targets (97/95): the gains on the builder's own sets did not carry over to independent mail.
+  assert(SEALED.includes("blind300"), "blind300 prints only when named");
+  const r = evaluate(blind300.mails as any);
+  assert(r.status.precision >= 0.956 && r.status.recall >= 0.833, `blind300 ${JSON.stringify(r.status)}`);
+  assert(r.confusions.rejection_as_interview === 0, "blind300: a rejection read as an interview");
 });

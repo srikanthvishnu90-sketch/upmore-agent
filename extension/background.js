@@ -257,6 +257,39 @@ async function requestDraft(card, q, previous) {
     return { ok: false, why: "model", message: "" };
   }
 }
+// WO-084 (D-029): the code an application site emailed the person, asked for only by the page of an application the
+// person approved and Trainee sent (this tab's pending record), from their own Gmail through apply-code. Asked again every
+// 5 seconds while it has not arrived, for up to 2 minutes. The code goes back to that page only; nothing here keeps it.
+const NO_GMAIL = "Connect Gmail in Trainee (one tap) and I'll fill these codes for you. For now, type the code from your inbox.";
+const NO_CODE = "No code arrived yet. Check your inbox and type it here.";
+const SITE = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday" };
+async function emailedCode(tabId, m) {
+  const p = (await pendings())[tabId];
+  if (!p || p.finished) return { ok: false, why: "invalid" };
+  const cfg = await config();
+  const body = JSON.stringify({ family: String(m.family || ""), employer_domain: typeof m.employerDomain === "string" ? m.employerDomain : null, since: Number(m.since) });
+  for (const end = Date.now() + 120_000; ; await new Promise((r) => setTimeout(r, 5000))) {
+    const a = await session();
+    if (!a) return { ok: false, why: "signed_out" };
+    const j = await fetch(cfg.supabaseUrl + "/functions/v1/apply-code", {
+      method: "POST", cache: "no-store", headers: { apikey: cfg.anonKey, authorization: "Bearer " + a.access_token, "content-type": "application/json" }, body,
+    }).then((r) => r.json()).catch(() => null);
+    if (j?.ok && typeof j.code === "string") return { ok: true, code: j.code, from: oneLine(j.from, "").slice(0, 80) };
+    if (j && j.why !== "not_yet") return { ok: false, why: j.why === "no_gmail" ? "no_gmail" : "invalid" };
+    if (Date.now() + 5000 > end) return { ok: false, why: "not_yet" };
+  }
+}
+// The card while the employer's page waits for the code: filled (the person presses Submit) or the person types it.
+function codeLine(card, m) {
+  const site = SITE[card?.family] || card?.company || "The employer";
+  if (m.filled) {
+    const who = m.from && !/\./.test(m.from) ? m.from : card?.company || site;
+    return `Filled the code ${who} emailed you. Press Submit to finish; I'll record it when ${who} confirms.`;
+  }
+  const first = m.why === "no_gmail" ? NO_GMAIL + " " : m.why === "none" ? "" : NO_CODE + " ";
+  return `${first}${site} emailed you a code. Type it here and press Submit; I'll record it when ${site} confirms.`;
+}
+
 const NO_DRAFT = "Trainee couldn't draft this right now, so nothing changed and the question is still open. Try again in a few minutes.";
 
 async function keepEvidence(rec) {
@@ -338,6 +371,7 @@ async function finish(tabId, observation, extra = {}) {
     ...evidence, id: p.id, state: outcome.state, proved, job_id: p.payload.job_id, company: p.payload.company, url: p.payload.url,
     approved_answers: p.payload.fields.map((f) => (provenance[f.name] ? { ...f, provenance: provenance[f.name].said, fact_ids: provenance[f.name].fact_ids, edited: provenance[f.name].edited } : f)),
     screenshot: p.screenshot || null, screenshot_after: shotAfter?.dataUrl || null, recorded,
+    screenshot_code: (observation && extra.shotCode?.dataUrl) || null, // WO-084: the filled code step, the code covered
   });
   // Ask once, from the form: the person's own answers on the card they approved are kept for later forms, only once the
   // application went (never for a stop before the click). A failure here never touches the application's outcome.
@@ -411,6 +445,12 @@ async function readAndFinish(tabId, p) {
   await new Promise((r) => setTimeout(r, 600));
   try {
     const { observation, shotAfter } = await readAfterNavigation(tabId, p);
+    // WO-084: the page after the click asks for an emailed code: its own content script waits on that step and reports.
+    if (observation?.email_code_prompt && !observation.captcha && !p.code_step) {
+      await setPending(tabId, { ...p, code_step: true });
+      const r = await chrome.tabs.sendMessage(tabId, { type: "code-step", before: p.url_before, planned: p.planned_names, errorsBefore: p.errors_before || [] }).catch(() => null);
+      if (r?.ok) return;
+    }
     if (observation) await finish(tabId, observation, { shotAfter });
   } catch {
     // The page after the click could not be read: unknown, counted as applied, never resent.
@@ -643,6 +683,11 @@ async function handle(m, sender) {
     }
     case "outcome":
       return { ok: true, card: await finish(tabId, m.observation, m) };
+    case "email-code":
+      return await emailedCode(tabId, m);
+    case "code-card":
+      await withCards(tabId, "code", (prev) => (prev?.status === "submitting" ? { ...prev, message: codeLine(prev, m), updated_at: Date.now() } : null));
+      return { ok: true };
     case "stopped": {
       if (m.finishPending) await finish(tabId, null, { reason: C.BEFORE_CLICK, message: m.message });
       else await setCard(tabId, { status: "stopped", message: m.message, approved: false, beforeClick: !!m.beforeClick });
@@ -836,7 +881,8 @@ async function handle(m, sender) {
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
   "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey",
+  "email-code", "code-card"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

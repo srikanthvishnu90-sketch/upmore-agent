@@ -134,3 +134,51 @@ Rebuild `extension/lib/trainee-core.js` (`deno run -A extension/build.ts`).
 2. **Google's review of gmail.readonly.** It is a restricted scope. Past 100 users, Google requires app verification and
    a yearly third-party security assessment (CASA). Its cost and timing are to be confirmed in the research report. Until
    then, Gmail-connected users are capped at the 100 test users the OAuth app allows.
+
+## Addendum 1 (architect, 2026-10-20, from research)
+Today an emailed-code prompt after the person's Submit ended the attempt `needs_user`, and the card said "Finish it
+yourself on the page"; even when the person typed the code and the employer confirmed, the receipt never showed confirmed.
+Whatever the code's source (filled from Gmail, or typed by the person after `no_gmail` or `not_yet`), the content script
+keeps observing the same tab: `observe()` every 1 s for up to 10 minutes. As soon as the confirmation shows (the form and
+the prompt are gone, or the employer's thanks appear), the outcome is recorded exactly as the normal post-click path
+does: the proof screenshot with masking, then `outcome`. Only after 10 minutes with no confirmation does it end
+`needs_user` / `email_code`, with today's text. Card text while waiting:
+- filled: "Filled the code <X> emailed you. Press Submit to finish; I'll record it when <X> confirms."
+- not filled: "<X> emailed you a code. Type it here and press Submit; I'll record it when <X> confirms." (after
+  `no_gmail` it follows rule 6's line; after `not_yet` it follows "No code arrived yet. Check your inbox and type it here.")
+
+Browser test: the stub answers `no_gmail`, the test types the code into the field and clicks the fixture's Submit, the
+fixture shows the thank-you, and the recorded outcome is sent (confirmed, not `needs_user`), with no code anywhere in the
+stored records.
+
+## Evidence (builder, 2026-10-20)
+Counts are from this branch on a root container (Chromium refuses its sandbox as root, so the browser ran with
+`UPMORE_CHROMIUM_SANDBOX=off`).
+- `tests/architect/wo-084-emailed-codes.test.ts`: 5/5. Moved out of `pending/`; the only change is its import path, one
+  level shallower after the move (`../../supabase/...`), as earlier orders' moves did.
+- Architect tests (`deno test -A --no-check --ignore=tests/architect/pending tests/architect/`): 634 passed, 0 failed.
+- Browser suite (`node --test tests/career-extension-browser.test.cjs`): 56/56 (54 before, plus the two WO-084 cases).
+  - Filled, for one security-code field and for eight one-character boxes: the code lands in the field(s); the card says
+    "Filled the code Greenhouse emailed you. Press Submit to finish; …"; 1.5 s later neither Submit nor Verify was
+    pressed and nothing was recorded; every code box was covered by a mask while it held the code when the proof picture
+    was taken; the account password box has no value and saw no event; the code is in neither chrome.storage area, the
+    record, its evidence nor the panel's text. The person's own Submit sends the code, and the outcome is confirmed.
+  - `no_gmail` (addendum 1): the card says rule 6's line and then "Greenhouse emailed you a code. Type it here …";
+    nothing is filled and nothing is recorded while the page waits; the person types the code and presses Submit; the
+    outcome is confirmed (not `needs_user`), and the code is nowhere in the stored records.
+- `deno run -A extension/build.ts --check`: fresh. `python3 scripts/build-router-core.py --career-only --check`: verified.
+- Gate (`bash scripts/gate.sh`): cannot pass on this machine. Its browser check launches Chromium with the sandbox, which
+  root refuses. With a local shim that launches without the sandbox: test-paths, browser-runtime, architect-tests and
+  apply-cli-typecheck OK. Career and shared node tests: 1908 passed, 56 failed, 20 skipped. The same 56 fail on the
+  unchanged base commit here: the apply engine refuses a browser without its sandbox (`BROWSER_SANDBOX_REQUIRED`).
+  Edge tests: 135/0. Pay importers: OK. Career bundle: verified. The career typecheck cannot fetch deno.land here; with
+  those two remote imports stubbed, `apply-code/index.ts` and `career-essay-draft/index.ts` type-check.
+
+What stays NOT_RUN: everything live.
+- `apply-code` is not deployed. It is in the go-live deploy list (JWT on) and deploys only on the owner's word.
+- No real Gmail was read. The reader is proven against a fake Gmail (WO-084/4) and the extension against a TEST stub.
+- No real Greenhouse or Gusto code step was met. The live demo (one real application that asks for a code) is GATED on
+  the owner or Muse; label it VERIFIED-LIVE only from the card, the employer's confirmation mail and the code being absent
+  from every stored record.
+- A navigating submit whose next page asks for a code (the content script there takes the step; `code-step`) has no
+  browser test: no fixture page navigates into a code step.

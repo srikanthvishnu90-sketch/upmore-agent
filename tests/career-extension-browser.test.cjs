@@ -1502,6 +1502,107 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// ------------------------------------------------------------------------------------------------ emailed codes (WO-084)
+// A Greenhouse-shaped page asks for the security code it emailed the person after the approved Submit (world.cjs codePage).
+// The TEST apply-code stand-in answers with the TEST code (or no_gmail); the real reader is tests/architect/wo-084.
+const CODE_URL = (tenant, n, variant) => `https://job-boards.greenhouse.io/${tenant}/jobs/77000000${String(n).padStart(2, "0")}${variant ? "?trainee_test=" + variant : ""}`;
+const RULE5 = "Filled the code Greenhouse emailed you. Press Submit to finish; I'll record it when Greenhouse confirms.";
+const RULE6 = "Connect Gmail in Trainee (one tap) and I'll fill these codes for you. For now, type the code from your inbox.";
+const TYPE_IT = "Greenhouse emailed you a code. Type it here and press Submit; I'll record it when Greenhouse confirms.";
+// Every code box on the code step, with whether a mask covered it while it held a value (the proof picture).
+const watchMasks = (page) => page.evaluate(() => {
+  window.__codeCovered = new Set();
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+    if (!n.getAttribute?.("data-trainee-mask")) return;
+    const r = n.getBoundingClientRect();
+    document.querySelectorAll("#code-step input:not([type=password])").forEach((el, i) => {
+      const e = el.getBoundingClientRect(), x = e.left + e.width / 2, y = e.top + e.height / 2;
+      if (el.value && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) window.__codeCovered.add(i);
+    });
+  }))).observe(document.documentElement, { childList: true });
+});
+const codeBoxes = (page) => page.evaluate(() => Array.from(document.querySelectorAll("#code-step input:not([type=password])"), (el) => el.value));
+// The code appears nowhere Trainee keeps anything: chrome.storage (session and local), the record, the card, the panel.
+async function codeNowhere(form, code) {
+  const kept = await sw.evaluate(async () => JSON.stringify({ s: await chrome.storage.session.get(null), l: await chrome.storage.local.get(null) }));
+  assert.ok(!kept.includes(code), "the code is not in chrome.storage (session or local), the card or the local proof");
+  assert.ok(!JSON.stringify({ b: world.state.begins, f: world.state.finishes }).includes(code), "nor in the record or its evidence");
+  assert.ok(!(await form.panel.evaluate(() => document.body.innerText)).includes(code), "nor in the text the panel shows");
+}
+
+test("emailed code: filled from the person's Gmail into one field or eight boxes; never Submit or Verify after; the card says so; masked; kept nowhere; a password untouched", async (t) => {
+  if (skip(t)) return;
+  for (const [n, variant] of [[1, ""], [2, "box8"]]) {
+    fresh();
+    world.state.codeCalls = [];
+    world.state.codeSubmits = [];
+    world.state.codeReply = null;
+    const form = await openForm(CODE_URL(`acmecode${n}`, n, variant));
+    try {
+      const card = await readyCard(form);
+      assert.equal(card.status, "ready", card.message);
+      await watchMasks(form.page);
+      await form.panel.click("#approve");
+      const waiting = await waitCard(form.tabId, (c) => c.message === RULE5, 20000);
+      assert.equal(waiting.status, "submitting", "not recorded yet: the person presses Submit");
+      const boxes = await codeBoxes(form.page);
+      assert.equal(boxes.join(""), world.state.code, `${variant || "one field"}: the code is in the field(s)`);
+      assert.equal(boxes.length, variant ? 8 : 1);
+      const call = world.state.codeCalls[0];
+      assert.equal(world.state.codeCalls.length, 1);
+      assert.equal(call.family, "greenhouse");
+      assert.equal(call.employer_domain, null, "the board's own site: Greenhouse's senders only");
+      assert.ok(Math.abs(call.since - Date.now()) < 60_000, "since: the moment the prompt showed");
+      assert.equal(await form.page.inputValue("#acct_pw"), "", "the password box is untouched");
+      assert.equal(await form.page.evaluate(() => window.__pwEvents), 0, "not even focused or typed in");
+      await sleep(1500);
+      assert.equal(world.state.codeSubmits.length, 0, "Trainee never presses Submit or Verify after the code");
+      assert.equal(world.state.finishes.length, 0, "nothing is recorded before the employer answers");
+      assert.equal((await form.page.evaluate(() => window.__codeCovered.size)), boxes.length, "the proof picture covered every code box while it held the code");
+      await codeNowhere(form, world.state.code);
+      // The person presses Submit.
+      await form.page.click("#submit_app");
+      const done = await waitCard(form.tabId, (c) => c.status === "done", 20000);
+      assert.equal(done.result, "confirmed", done.message);
+      assert.deepEqual(world.state.codeSubmits.map((s) => [s.code, s.trusted]), [[world.state.code, true]], "the person's own press sent the code");
+      assert.equal(world.state.finishes.at(-1).p_state, "confirmed");
+      assert.match((await evidenceLocal())[0].screenshot_code, /^data:image\/png;base64,/, "the filled step's picture is in the local proof");
+      await codeNowhere(form, world.state.code);
+    } finally {
+      await closeForm(form);
+    }
+  }
+});
+
+test("emailed code: without the Gmail grant the card says so and nothing is filled; the person types it, presses Submit, and it is recorded as sent", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  world.state.codeCalls = [];
+  world.state.codeSubmits = [];
+  world.state.codeReply = () => ({ ok: false, why: "no_gmail", message: "TEST: no grant" });
+  const form = await openForm(CODE_URL("acmenogmail", 3, ""));
+  try {
+    await readyCard(form);
+    await form.panel.click("#approve");
+    const waiting = await waitCard(form.tabId, (c) => c.message?.startsWith(RULE6), 20000);
+    assert.equal(waiting.message, `${RULE6} ${TYPE_IT}`);
+    assert.equal(world.state.codeCalls.length, 1, "asked once; no_gmail is not asked again");
+    await sleep(1200);
+    assert.deepEqual(await codeBoxes(form.page), [""], "nothing is filled");
+    assert.equal(world.state.finishes.length, 0, "still watching the page, not needs_user");
+    // The person types the code from their inbox and presses Submit; the employer thanks them.
+    await form.page.fill("#security_code", world.state.code);
+    await form.page.click("#submit_app");
+    const done = await waitCard(form.tabId, (c) => c.status === "done", 20000);
+    assert.equal(done.result, "confirmed", done.message);
+    assert.equal(world.state.finishes.at(-1).p_state, "confirmed", "recorded as sent, not needs_user");
+    assert.equal((await evidenceLocal())[0].screenshot_code, null, "no code was filled, so no picture of one");
+    await codeNowhere(form, world.state.code);
+  } finally {
+    world.state.codeReply = null;
+    await closeForm(form);
+  }
+});
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

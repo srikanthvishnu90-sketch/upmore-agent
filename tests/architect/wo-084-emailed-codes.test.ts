@@ -4,7 +4,7 @@
 // never shown in chat, never stored, never logged. D-013(b) holds: never a password.
 import {
   extractCode, handleApplyCode, pickCode, readEmailedCode, senderAllowed, type CodeMail,
-} from "../../../supabase/functions/_shared/apply_code.ts";
+} from "../../supabase/functions/_shared/apply_code.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 const NOW = Date.UTC(2026, 9, 20, 15);

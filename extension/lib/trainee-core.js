@@ -2468,13 +2468,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   // supabase/functions/_shared/career_apply.ts
   var SUCCESS = /(application (?:has been |was )?(?:submitted|received)|thank you for (?:applying|your application)|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i;
   var ID = /(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]?|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i;
+  var saysThanks = (text) => SUCCESS.test(text || "");
   function classifyOutcome(o) {
     if (o.captcha) return {
       state: "needs_user",
       reason: "captcha",
       confirmation_id: null
     };
-    if (o.email_code_prompt) return {
+    if (o.email_code_prompt && !o.email_code_sent) return {
       state: "needs_user",
       reason: "email_code",
       confirmation_id: null
@@ -3720,6 +3721,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     postingLinks: () => postingLinks,
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
+    saysThanks: () => saysThanks,
     scrubIdentity: () => scrubIdentity,
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
@@ -4183,7 +4185,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ...o,
       validation_errors: fresh
     });
-    if (timedOut && o.form_present_after && !fresh.length && !o.captcha && !o.email_code_prompt) {
+    if (timedOut && o.form_present_after && !fresh.length && !o.captcha && !(o.email_code_prompt && !o.email_code_sent)) {
       return {
         state: "unknown_outcome",
         reason: "the employer did not answer within 30 seconds; counted as applied, never sent again",
@@ -4428,9 +4430,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var dom_exports = {};
   __export(dom_exports, {
     clearWorkdayOptions: () => clearWorkdayOptions,
+    codeInputs: () => codeInputs,
     element: () => element,
+    employerDomain: () => employerDomain,
     fieldNameFor: () => fieldNameFor,
     fill: () => fill,
+    fillCode: () => fillCode,
     findSubmit: () => findSubmit,
     fnCaptchaTech: () => fnCaptchaTech,
     fnDetectChallenge: () => fnDetectChallenge,
@@ -4847,7 +4852,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       required_empty_after: fields.filter((f) => f.required && !f.valid).length,
       validation_errors: errors,
       captcha: !!fnDetectChallenge(),
-      email_code_prompt: /verification code|email.*code|one[- ]time code/i.test(text),
+      // WO-084: Greenhouse's spam check says "Enter the 8-character security code we sent to your email".
+      email_code_prompt: /verification code|email.*code|one[- ]time code|security code|code (?:we )?(?:sent|emailed) to your/i.test(text),
       page_text: text
     };
   }
@@ -4855,7 +4861,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const covers = [];
     const els = [
       ...selectors.map((s) => element(s)).filter(Boolean),
-      ...Array.from(doc().querySelectorAll("input[type=password]"))
+      ...Array.from(doc().querySelectorAll("input[type=password]")),
+      ...codeEls.filter((e) => e.isConnected)
     ];
     for (const el of els) {
       const r = el.getBoundingClientRect();
@@ -4875,6 +4882,52 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       covers.push(c);
     }
     return () => covers.forEach((c) => c.remove());
+  }
+  var codeEls = [];
+  var labelOf = (el) => norm2([
+    ...Array.from(el.labels ?? []).map((l) => l.textContent),
+    el.getAttribute("aria-label"),
+    ...(el.getAttribute("aria-labelledby") || "").split(/\s+/).map((id) => doc().getElementById(id)?.textContent),
+    el.placeholder,
+    el.name,
+    el.id
+  ].join(" "));
+  function codeInputs() {
+    const all = Array.from(doc().querySelectorAll("input")).filter((el) => visible(el) && !el.disabled && !el.readOnly && /^(text|tel|number)?$/i.test(el.getAttribute("type") || ""));
+    if (all.some((el) => el.maxLength === 1 && el.value)) return [];
+    const rows = /* @__PURE__ */ new Map();
+    for (const el of all.filter((e) => e.maxLength === 1)) rows.set(el.parentElement, [
+      ...rows.get(el.parentElement) || [],
+      el
+    ]);
+    const boxes = [
+      ...rows.values()
+    ].filter((r) => r.length >= 4 && r.length <= 10);
+    if (boxes.length === 1) return boxes[0];
+    const one = all.filter((el) => el.autocomplete === "one-time-code" || /\b(code|verification)\b/.test(labelOf(el)) && !/\b(zip|postal|post|promo|coupon|referral|discount|country|area|password)\b/.test(labelOf(el)));
+    return one.length === 1 && !one[0].value ? one : [];
+  }
+  function fillCode(els, code) {
+    const parts = els.length === 1 ? [
+      code
+    ] : String(code).split("");
+    if (parts.length !== els.length || els.some((el) => !el.isConnected || el.value || el.type === "password")) return false;
+    els.forEach((el, i) => (setNative(el, parts[i]), fire(el, "input", "change")));
+    codeEls = els;
+    return els.every((el, i) => el.value === parts[i]);
+  }
+  function employerDomain() {
+    let host = "";
+    try {
+      const a = W.location.ancestorOrigins;
+      host = new URL(a && a.length ? a[a.length - 1] : W.location.href).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
+    if (/(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs\.com|myworkdaysite\.com|myworkday\.com)$/.test(host)) return null;
+    const p = host.split(".");
+    const n = p.length > 2 && p[p.length - 1].length === 2 && /^(co|com|org|net|ac|gov|edu)$/.test(p[p.length - 2]) ? 3 : 2;
+    return p.length >= n ? p.slice(-n).join(".") : null;
   }
   var WD_HOST = /(^|\.)(myworkdayjobs\.com|myworkdaysite\.com|myworkday\.com)$/i;
   var wdEls = /* @__PURE__ */ new Map();

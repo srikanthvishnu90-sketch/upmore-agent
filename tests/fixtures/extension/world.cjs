@@ -247,6 +247,51 @@ const LABELS_PAGE = `<!doctype html><html><head><title>TEST label traps</title><
 <div><label>Email</label><input name="email1" type="text"></div><div><label>Email</label><input name="email2" type="text"></div>
 <button type="submit">Submit application</button></form></body></html>`;
 
+// WO-084: a TEST Greenhouse-shaped page whose spam check asks for an emailed security code (no capture of that step exists
+// in the repo; the wording is Greenhouse's, support article 115005448066). After Submit the page answers in place with the
+// prompt, one code field ("box8": eight one-character boxes), a Verify button and an account password box Trainee must
+// never touch. Submit or Verify on the code step posts what the code boxes hold to /__employer/code, with whether the click
+// was a person's (isTrusted), and shows the thank-you.
+const CODE_PATH = /^\/[a-z0-9-]+\/jobs\/77\d{8}$/;
+const codePage = (variant) => `<!doctype html><html><head><title>TEST security code (Greenhouse-shaped)</title></head><body>
+<h1>Data Analyst (TEST)</h1><form id="application-form">
+<div><label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required></div>
+<div><label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required></div>
+<div><label for="email">Email *</label><input id="email" name="email" type="text" required></div>
+<div id="code-slot"></div><button type="submit" id="submit_app">Submit application</button></form>
+<script>/* TEST stand-in for Greenhouse's submit and its security-code step. */
+(function () {
+  var stage = "form", form = document.getElementById("application-form");
+  window.__pwEvents = 0;
+  function post(url, body) { return fetch(url, { method: "POST", body: body }); }
+  function boxes() { return Array.prototype.slice.call(document.querySelectorAll("#code-step input:not([type=password])")); }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("button");
+    if (!b || !/submit|verify/i.test(b.textContent)) return;
+    e.preventDefault(); e.stopPropagation();
+    if (stage === "form") {
+      stage = "sending";
+      var fd = new FormData(form);
+      post("/__employer/submit?form=gh-code&path=" + encodeURIComponent(location.pathname), fd).then(function () {
+        stage = "code";
+        var fields = ${JSON.stringify(variant)}.indexOf("box8") >= 0
+          ? '<div class="code-boxes">' + Array.apply(null, Array(8)).map(function (_, i) { return '<input type="text" maxlength="1" aria-label="Character ' + (i + 1) + '">'; }).join("") + "</div>"
+          : '<label for="security_code">Security code</label><input id="security_code" name="security_code" type="text" maxlength="8">';
+        document.getElementById("code-slot").innerHTML = '<div id="code-step"><p>Enter the 8-character security code we sent to your email</p>' + fields +
+          '<button type="button" id="verify">Verify</button><div><label for="acct_pw">Account password</label><input id="acct_pw" type="password"></div></div>';
+        ["input", "change", "keydown", "focus"].forEach(function (t) { document.getElementById("acct_pw").addEventListener(t, function () { window.__pwEvents++; }); });
+      });
+      return;
+    }
+    if (stage !== "code") return;
+    stage = "done";
+    post("/__employer/code?trusted=" + e.isTrusted + "&button=" + encodeURIComponent(b.textContent.trim()), boxes().map(function (x) { return x.value; }).join("")).then(function () {
+      document.body.innerHTML = "<h1>Thank you for applying!</h1><p>Your application has been submitted. Application ID: TEST-84084</p>";
+    });
+  }, true);
+  document.addEventListener("submit", function (e) { e.preventDefault(); }, true);
+})();</script></body></html>`;
+
 const WORKDAY_PAGE = `<!doctype html><html><head><title>Analyst - Acme (TEST Workday-shaped page)</title></head><body>
 <h1>TEST Workday-shaped page (no captured Workday HTML exists in the repo)</h1>
 <form id="wd">
@@ -315,6 +360,10 @@ async function startWorld(o = {}) {
     essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
     essayReply: null,
     touched: [], // WO-054: what the "watch" variant saw done to a page
+    codeCalls: [], // WO-084: what reached the apply-code stand-in
+    codeReply: null,
+    code: "K" + Array.from(crypto.randomBytes(7), (b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"[b % 56]).join(""),
+    codeSubmits: [], // WO-084: what the code step's Submit or Verify sent, and whether a person clicked
     serviceKeySession: false,
   };
   // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
@@ -380,6 +429,13 @@ async function startWorld(o = {}) {
         ok: true, text: `TEST draft ${n}: as a Data Analyst at Example Analytics for 3 years I built the weekly reporting, and I studied Statistics at Example State University.`,
         facts, fact_ids: facts.map((f) => f.id), message: "Drafted by Trainee only from your confirmed facts. TEST: this is a stand-in draft.", used: n, cap: 60,
       });
+    }
+    // WO-084: the TEST stand-in for supabase/functions/apply-code (its real logic is tested against a fake Gmail in
+    // tests/architect/wo-084-emailed-codes.test.ts): the TEST code from "Greenhouse", or state.codeReply(body, n).
+    if (u.pathname === "/functions/v1/apply-code" && req.method === "POST") {
+      state.codeCalls.push(args);
+      const r = state.codeReply ? state.codeReply(args, state.codeCalls.length) : { ok: true, code: state.code, from: "Greenhouse" };
+      return res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "access-control-allow-origin": "*" }).end(JSON.stringify(r));
     }
     const m = /^\/rest\/v1\/rpc\/([a-z_]+)$/.exec(u.pathname);
     if (!m) return json(res, 404, { message: "not found" });
@@ -493,6 +549,13 @@ async function startWorld(o = {}) {
         }
         state.submits.push({ form: u.searchParams.get("form"), path: u.searchParams.get("path"), host, fields, files, at: Date.now() });
         return json(res, 200, { ok: true });
+      }
+      if (u.pathname === "/__employer/code" && req.method === "POST") {
+        state.codeSubmits.push({ code: (await readBody(req)).toString(), trusted: u.searchParams.get("trusted") === "true", button: u.searchParams.get("button"), at: Date.now() });
+        return json(res, 200, { ok: true });
+      }
+      if (host === "job-boards.greenhouse.io" && CODE_PATH.test(u.pathname) && req.method === "GET") {
+        return res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(codePage(u.searchParams.get("trainee_test") || ""));
       }
       if (u.pathname === "/__employer/touched" && req.method === "POST") {
         state.touched.push({ host, type: u.searchParams.get("type"), path: u.searchParams.get("path"), at: Date.now() });

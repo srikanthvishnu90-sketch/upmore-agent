@@ -27,6 +27,7 @@
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
 #                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret)
+#                 then apply-code (WO-084) with the JWT check on
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
@@ -429,6 +430,8 @@ else
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
   done
+  # apply-code (WO-084) answers only the signed-in person's own session: the JWT check stays on.
+  run "supabase functions deploy apply-code --project-ref $REF" supabase functions deploy apply-code --project-ref "$REF"
   ok
 fi
 

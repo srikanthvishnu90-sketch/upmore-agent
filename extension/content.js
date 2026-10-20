@@ -554,14 +554,49 @@
         break;
       }
     }
-    const obs = D.observe(before, planned);
-    // Proof after the click: what the employer answered (or the form with its errors), identity fields covered.
-    const unmaskAfter = D.maskFields(maskSelectors(last.now));
+    await report(before, planned, errorsBefore, timedOut, maskSelectors(last.now));
+    submitting = false;
+  }
+  // What the page shows after the click, recorded once. A page that asks for the code it emailed the person waits on that
+  // step first (WO-084). Proof after the click: what the employer answered (or the form with its errors), identity fields
+  // and any filled code covered.
+  async function report(before, planned, errorsBefore, timedOut, masks) {
+    let obs = D.observe(before, planned), code = null;
+    if (obs.email_code_prompt && !obs.captcha) code = await codeStep(before, planned);
+    if (code) ({ obs, timedOut } = code);
+    const unmaskAfter = D.maskFields(masks);
     await sleep(60);
     const after = await send({ type: "screenshot" });
     unmaskAfter();
-    await send({ type: "outcome", observation: obs, errorsBefore, timedOut, shotAfter: after?.ok ? { sha256: after.sha256, dataUrl: after.dataUrl } : null });
-    submitting = false;
+    await send({ type: "outcome", observation: obs, errorsBefore, timedOut, shotAfter: after?.ok ? { sha256: after.sha256, dataUrl: after.dataUrl } : null,
+      shotCode: code?.shot || null });
+  }
+
+  // WO-084 (D-029): the employer's page asks for the code it emailed the person. With an empty code box on the page, the
+  // background reads the code from the person's own Gmail and it is typed in as theirs (never kept, never in the card); the
+  // picture of the filled step covers it. The person presses Submit themselves: Trainee never clicks Submit or Verify after
+  // a code. Filled or typed by the person, the same tab is watched every second for up to 10 minutes and the application is
+  // recorded once the employer's answer shows; with none by then it ends needs_user, as before.
+  const CODE_WAIT_MS = 600_000;
+  async function codeStep(before, planned) {
+    const boxes = D.codeInputs();
+    let r = null, filled = false, shot = null;
+    if (boxes.length) r = await send({ type: "email-code", family: portal.family, employerDomain: D.employerDomain(), since: Date.now() });
+    if (r?.ok && typeof r.code === "string") filled = D.fillCode(boxes, r.code);
+    if (r) r.code = null;
+    await send({ type: "code-card", filled, from: r?.from || "", why: boxes.length ? r?.why || "" : "none" });
+    if (filled) {
+      const unmask = D.maskFields([]);
+      await sleep(60);
+      const s = await send({ type: "screenshot" });
+      unmask();
+      shot = s?.ok ? { sha256: s.sha256, dataUrl: s.dataUrl } : null;
+    }
+    for (const end = Date.now() + CODE_WAIT_MS; Date.now() < end; await sleep(1000)) {
+      const o = D.observe(before, planned);
+      if ((!o.form_present_after && !o.email_code_prompt) || C.saysThanks(o.page_text)) return { obs: { ...o, email_code_sent: true }, timedOut: false, shot };
+    }
+    return { obs: D.observe(before, planned), timedOut: false, shot };
   }
 
   // WO-049: the person tapped "Use this" (or edited the used text) on the card: the text goes on the form as theirs, from
@@ -598,6 +633,13 @@
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;
+    }
+    if (m?.type === "code-step") {
+      // WO-084: the page after a navigating submit asks for an emailed code; only the frame that shows the prompt answers.
+      if (!D.observe(m.before, m.planned || []).email_code_prompt) return false;
+      reply({ ok: true });
+      report(m.before, m.planned || [], m.errorsBefore || [], false, []);
+      return false;
     }
     if (m?.type === "submit") {
       // Answered at once: the submit may move the page away, which would close a reply still waiting (WO-031 review).

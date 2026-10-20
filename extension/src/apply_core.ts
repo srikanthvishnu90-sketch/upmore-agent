@@ -11,6 +11,7 @@ import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+export { saysThanks } from "../../supabase/functions/_shared/career_apply.ts"; // WO-084: the code step is over once it shows
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -333,7 +334,7 @@ export function outcomeAfterClick(o: Observation, before: string[] = [], timedOu
   // it was not already showing before the click.
   const fresh = o.form_present_after ? (o.validation_errors || []).filter((e) => !before.includes(e)) : [];
   const r = classifyOutcome({ ...o, validation_errors: fresh });
-  if (timedOut && o.form_present_after && !fresh.length && !o.captcha && !o.email_code_prompt) {
+  if (timedOut && o.form_present_after && !fresh.length && !o.captcha && !(o.email_code_prompt && !o.email_code_sent)) {
     return { state: "unknown_outcome", reason: "the employer did not answer within 30 seconds; counted as applied, never sent again", confirmation_id: null };
   }
   if (r.state === "not_submitted") return { state: "unknown_outcome", reason: `after the click, ${r.reason}; counted as applied, never sent again`, confirmation_id: null };

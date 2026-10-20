@@ -417,7 +417,8 @@ export function observe(urlBefore: string, plannedNames: string[]) {
     required_empty_after: fields.filter((f) => f.required && !f.valid).length,
     validation_errors: errors,
     captcha: !!fnDetectChallenge(),
-    email_code_prompt: /verification code|email.*code|one[- ]time code/i.test(text),
+    // WO-084: Greenhouse's spam check says "Enter the 8-character security code we sent to your email".
+    email_code_prompt: /verification code|email.*code|one[- ]time code|security code|code (?:we )?(?:sent|emailed) to your/i.test(text),
     page_text: text,
   };
 }
@@ -425,7 +426,8 @@ export function observe(urlBefore: string, plannedNames: string[]) {
 // The screenshot never shows an identity number or a password: each such field is covered while the picture is taken.
 export function maskFields(selectors: string[]): () => void {
   const covers: any[] = [];
-  const els = [...selectors.map((s) => element(s)).filter(Boolean), ...Array.from(doc().querySelectorAll("input[type=password]"))];
+  const els = [...selectors.map((s) => element(s)).filter(Boolean), ...Array.from(doc().querySelectorAll("input[type=password]")),
+    ...codeEls.filter((e) => e.isConnected)]; // WO-084: an emailed code Trainee filled is covered too
   for (const el of els as any[]) {
     const r = el.getBoundingClientRect();
     const c = doc().createElement("div");
@@ -436,6 +438,49 @@ export function maskFields(selectors: string[]): () => void {
     covers.push(c);
   }
   return () => covers.forEach((c) => c.remove());
+}
+
+// ------------------------------------------------------------------------------------------------ emailed codes (WO-084)
+// The box a code prompt asks the person to type the emailed code into: one empty field whose label asks for a code
+// (code, verification, security code), or one row of 4-10 empty one-character boxes. Never a password box, never a field
+// the person already typed in, never a zip, promo or referral code. Nothing else on the page is read or changed.
+let codeEls: any[] = [];
+const labelOf = (el: any) => norm([...Array.from(el.labels ?? []).map((l: any) => l.textContent), el.getAttribute("aria-label"),
+  ...(el.getAttribute("aria-labelledby") || "").split(/\s+/).map((id: string) => doc().getElementById(id)?.textContent), el.placeholder, el.name, el.id].join(" "));
+export function codeInputs(): any[] {
+  const all = (Array.from(doc().querySelectorAll("input")) as any[]).filter((el) => visible(el) && !el.disabled && !el.readOnly &&
+    /^(text|tel|number)?$/i.test(el.getAttribute("type") || ""));
+  if (all.some((el) => el.maxLength === 1 && el.value)) return [];
+  const rows = new Map<any, any[]>();
+  for (const el of all.filter((e) => e.maxLength === 1)) rows.set(el.parentElement, [...(rows.get(el.parentElement) || []), el]);
+  const boxes = [...rows.values()].filter((r) => r.length >= 4 && r.length <= 10);
+  if (boxes.length === 1) return boxes[0];
+  const one = all.filter((el) => el.autocomplete === "one-time-code" || (/\b(code|verification)\b/.test(labelOf(el)) &&
+    !/\b(zip|postal|post|promo|coupon|referral|discount|country|area|password)\b/.test(labelOf(el))));
+  return one.length === 1 && !one[0].value ? one : [];
+}
+// The code into those boxes as a person's typing lands (the native setter, input and change); true only if each box shows it.
+export function fillCode(els: any[], code: string): boolean {
+  const parts = els.length === 1 ? [code] : String(code).split("");
+  if (parts.length !== els.length || els.some((el) => !el.isConnected || el.value || el.type === "password")) return false;
+  els.forEach((el, i) => (setNative(el, parts[i]), fire(el, "input", "change")));
+  codeEls = els;
+  return els.every((el, i) => el.value === parts[i]);
+}
+// The employer's own domain, when the form sits on the employer's own site (an embedded board): the top page's host, cut to
+// its registrable part. Null on the board's own site.
+export function employerDomain(): string | null {
+  let host = "";
+  try {
+    const a = W.location.ancestorOrigins;
+    host = new URL(a && a.length ? a[a.length - 1] : W.location.href).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (/(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs\.com|myworkdaysite\.com|myworkday\.com)$/.test(host)) return null;
+  const p = host.split(".");
+  const n = p.length > 2 && p[p.length - 1].length === 2 && /^(co|com|org|net|ac|gov|edu)$/.test(p[p.length - 2]) ? 3 : 2;
+  return p.length >= n ? p.slice(-n).join(".") : null;
 }
 
 // ------------------------------------------------------------------------------------------------ Workday (WO-048)

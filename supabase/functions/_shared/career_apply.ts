@@ -16,6 +16,8 @@ export interface Observation {
   form_present_after: boolean; required_empty_after: number;
   validation_errors: string[]; captcha: boolean; email_code_prompt: boolean;
   page_text: string;
+  // WO-084: the page asked for an emailed code and the application was then sent (the employer's page moved past it).
+  email_code_sent?: boolean;
 }
 export type OutcomeState = "confirmed" | "submitted_unconfirmed" | "needs_user" | "failed" | "not_submitted";
 export interface Outcome { state: OutcomeState; reason: string; confirmation_id: string | null }
@@ -25,9 +27,11 @@ const SUCCESS = /(application (?:has been |was )?(?:submitted|received)|thank yo
 // An id needs an id label and a token with a digit: a word is never an id (BUG-208: "security").
 const ID = /(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]?|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i;
 
+// WO-084: the employer's thanks on the page (the code step is over once it shows).
+export const saysThanks = (text: string) => SUCCESS.test(text || "");
 export function classifyOutcome(o: Observation): Outcome {
   if (o.captcha) return { state: "needs_user", reason: "captcha", confirmation_id: null };
-  if (o.email_code_prompt) return { state: "needs_user", reason: "email_code", confirmation_id: null };
+  if (o.email_code_prompt && !o.email_code_sent) return { state: "needs_user", reason: "email_code", confirmation_id: null };
   if (o.validation_errors.length) return { state: "failed", reason: o.validation_errors.join("; "), confirmation_id: null };
   if (o.form_present_after) return { state: "not_submitted", reason: o.required_empty_after ? `${o.required_empty_after} required field(s) still empty` : "the form is still open", confirmation_id: null };
   const m = ID.exec(o.page_text || "");

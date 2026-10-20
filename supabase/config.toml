@@ -42,3 +42,7 @@ verify_jwt = false
 # WO-049: the extension card's "Draft from my facts": the signed-in person's own session only.
 [functions.career-essay-draft]
 verify_jwt = true
+
+# WO-084: the emailed code for the signed-in person's own application, from their own Gmail: their own session only.
+[functions.apply-code]
+verify_jwt = true

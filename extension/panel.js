@@ -140,6 +140,13 @@ function renderEssays(card, drafts) {
     el.dataset.state = state;
     text(el.querySelector(".essay-label"), q.label.replace(/\s*[*✱]+\s*$/, ""));
     const draftBtn = el.querySelector(".essay-draft"), ta = el.querySelector(".essay-text");
+    // The employer asks for the person's own words: no button, no request, the reason up front.
+    if (q.own) {
+      for (const s of [".essay-draft", ".essay-text", ".essay-use", ".essay-redo"]) el.querySelector(s).hidden = true;
+      text(el.querySelector(".essay-facts"), "");
+      text(el.querySelector(".essay-msg"), q.own, true);
+      continue;
+    }
     draftBtn.hidden = !["none", "failed", "drafting"].includes(state);
     draftBtn.disabled = state === "drafting";
     const shown = state === "drafted" || state === "used";

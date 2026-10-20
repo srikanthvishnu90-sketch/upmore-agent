@@ -131,6 +131,11 @@ Deno.test("WO-044/S5 a host that said 429 recovers its pace (run 39345730265 sta
   const api = calls.filter((c) => !isRobots(c.url));
   const gaps = api.slice(1).map((c, i) => c.at - api[i].at);
   assert(gaps.every((g) => g >= 200), `one request per 200 ms at most: min gap ${Math.min(...gaps)}`);
+  // A host that says "come back in an hour" near the deadline: nobody waits past the deadline for it.
+  const late = fakeNet((url) => (isRobots(url) || url.includes("zzqx") ? gone() : new Response("later", { status: 429, headers: { "retry-after": "3600" } })));
+  const lr = await verifyCandidates(Array.from({ length: 20 }, (_, i) => ({ provider: "workable" as const, slug: `w${i}`, source: "ccdata" })), { net: late.net, deadline: 60000, workersPerHost: 1 });
+  assert(late.net.now() <= 60000 + 15000, `stopped at the deadline, not after the back-off (clock ${late.net.now()})`);
+  assert(lr.unprobed > 0 && lr.rows.length + lr.unprobed === 20, "the rest are counted as not probed");
 });
 
 Deno.test("WO-044/S6 a transient error gets one more probe at the end; robots that cannot be read stop the probe", async () => {

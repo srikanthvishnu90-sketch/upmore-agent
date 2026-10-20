@@ -225,6 +225,7 @@ export class HostPacer {
   constructor(private o: { gapMs: number; now: () => number; sleep: (ms: number) => Promise<void>; maxGapMs?: number }) {}
   private base(host: string) { return Math.max(this.o.gapMs, this.floor.get(host) ?? 0); }
   gapFor(host: string) { return this.gap.get(host) ?? this.base(host); }
+  nextSlot(host: string) { return Math.max(this.o.now(), this.next.get(host) ?? 0); }
   setFloor(host: string, ms: number) { if (ms > (this.floor.get(host) ?? 0)) this.floor.set(host, ms); if (ms > this.gapFor(host)) this.gap.set(host, ms); }
   async wait(host: string) {
     const now = this.o.now(), at = Math.max(now, this.next.get(host) ?? 0);
@@ -313,7 +314,8 @@ export async function verifyCandidates(cands: Candidate[], o: VerifyOptions = {}
     byKey.set(rk, [...(byKey.get(rk) ?? []), c]);
   }
   let unprobed = 0;
-  async function probe(c: Candidate, gibberishLive: boolean): Promise<VerdictRow> {
+  // null: the deadline came before this slug's turn (counted as not probed).
+  async function probe(c: Candidate, gibberishLive: boolean): Promise<VerdictRow | null> {
     let rq: ReturnType<typeof probeRequest>;
     try { rq = probeRequest(c.provider, c.slug); } catch (e) { return { ...base(c), verdict: "error", http: 0, postings: null, board_name: null, error: String((e as Error).message).slice(0, 160) }; }
     const rk = API[c.provider].rateKey(c.slug);
@@ -322,13 +324,17 @@ export async function verifyCandidates(cands: Candidate[], o: VerifyOptions = {}
     if (robots.unreachable) return { ...base(c), verdict: "error", http: 0, postings: null, board_name: null, error: "robots.txt unreachable (no request made)" };
     const u = new URL(rq.url);
     if (!robots.allowed(u.pathname + u.search)) return { ...base(c), verdict: "blocked_by_robots", http: 0, postings: null, board_name: null };
+    // A slot past the deadline is not waited for (run 39380185627's Workable job sat in 429 back-off past its deadline).
+    if (o.deadline && pacer.nextSlot(rk) >= o.deadline) return null;
     await pacer.wait(rk);
     let r = await getJson(net, rq.url, timeoutMs, c.provider, rq);
-    if (r.status === 429 || r.status === 503) {
+    if ((r.status === 429 || r.status === 503)) {
       const ra = Number(r.headers?.get("retry-after"));
       pacer.backoff(rk, Number.isFinite(ra) ? ra : null);
-      await pacer.wait(rk);
-      r = await getJson(net, rq.url, timeoutMs, c.provider, rq);
+      if (!o.deadline || pacer.nextSlot(rk) < o.deadline) {
+        await pacer.wait(rk);
+        r = await getJson(net, rq.url, timeoutMs, c.provider, rq);
+      }
     }
     if (r.status !== 429 && r.status !== 503) pacer.relax(rk);
     const v = classify(c.provider, r.status, r.data, gibberishLive);
@@ -345,8 +351,8 @@ export async function verifyCandidates(cands: Candidate[], o: VerifyOptions = {}
       const provider = list[0].provider;
       if (first && !calibration[provider]) {
         const cal = await probe({ provider, slug: gibberishFor(provider, list[0].slug), source: "calibration" }, false);
-        calibration[provider] = { http: cal.http, verdict: cal.verdict };
-        gibLive[provider] = cal.verdict === "live";
+        calibration[provider] = cal ? { http: cal.http, verdict: cal.verdict } : { http: 0, verdict: "error" };
+        gibLive[provider] = cal?.verdict === "live";
       }
       let next = 0;
       await Promise.all(Array.from({ length: Math.max(1, o.workersPerHost ?? 2) }, async () => {
@@ -354,6 +360,7 @@ export async function verifyCandidates(cands: Candidate[], o: VerifyOptions = {}
           if (o.deadline && net.now() >= o.deadline) { if (first) unprobed += list.length - next; next = list.length; return; }
           const c = list[next++];
           const row = await probe(c, gibLive[provider] ?? false);
+          if (!row) { if (first) unprobed++; continue; }
           if (first) { rows.push(row); o.onRow?.(row); } else retriedRows.set(keyOf(c.provider, c.slug), row);
         }
       }));

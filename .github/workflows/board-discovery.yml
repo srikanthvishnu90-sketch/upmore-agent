@@ -25,7 +25,7 @@ on:
   schedule:
     - cron: "17 6 * * 1" # Mondays 06:17 UTC
   # TEMPORARY (WO-044): the MCP integration cannot dispatch (403); removed in the final commit, as WO-037 did, with the
-  # resume_branch fallbacks below (discovery/boards-39380185627) set back to "".
+  # resume_branch fallbacks below (discovery/boards-39380185627, run 2) set back to "".
   push:
     branches: [wo/044-discovery-scale]
     paths: [.github/workflows/board-discovery.yml]

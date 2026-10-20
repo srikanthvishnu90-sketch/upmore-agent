@@ -20821,11 +20821,53 @@ const CareerPlatformDrafts = (() => {
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPlatformDrafts;
 
 const CareerRender = (() => {
+  const EdgeBuffer = (() => {
+    const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    class EdgeBuffer extends Uint8Array {
+      static isBuffer(v) { return v instanceof EdgeBuffer; }
+      static alloc(n) { return new EdgeBuffer(n); }
+      static from(v, enc) {
+        if (typeof v !== "string") return EdgeBuffer._of(v instanceof ArrayBuffer ? new Uint8Array(v) : v);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { const b = new EdgeBuffer(v.length); for (let i = 0; i < v.length; i++) b[i] = v.charCodeAt(i) & 0xff; return b; }
+        if (e === "hex") { const b = new EdgeBuffer(v.length >> 1); for (let i = 0; i < b.length; i++) b[i] = parseInt(v.substr(i * 2, 2), 16); return b; }
+        return EdgeBuffer._of(new TextEncoder().encode(v));
+      }
+      static _of(src) { const b = new EdgeBuffer(src.length); for (let i = 0; i < src.length; i++) b[i] = src[i]; return b; }
+      static concat(list) {
+        const b = new EdgeBuffer(list.reduce((n, x) => n + x.length, 0));
+        let o = 0; for (const x of list) { b.set(x, o); o += x.length; }
+        return b;
+      }
+      toString(enc, start, end) {
+        const v = this.subarray(start || 0, end === undefined ? this.length : end);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { let s = ""; for (let i = 0; i < v.length; i++) s += String.fromCharCode(v[i]); return s; }
+        if (e === "hex") { let s = ""; for (let i = 0; i < v.length; i++) s += v[i].toString(16).padStart(2, "0"); return s; }
+        if (e === "base64") {
+          let s = "";
+          for (let i = 0; i < v.length; i += 3) {
+            const n = (v[i] << 16) | ((v[i + 1] || 0) << 8) | (v[i + 2] || 0);
+            s += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (i + 1 < v.length ? B64[(n >> 6) & 63] : "=") + (i + 2 < v.length ? B64[n & 63] : "=");
+          }
+          return s;
+        }
+        return new TextDecoder().decode(v);
+      }
+      copy(target, at) { target.set(this, at || 0); return this.length; }
+      readUInt16LE(o) { return this[o] | (this[o + 1] << 8); }
+      readUInt32LE(o) { return (this[o] | (this[o + 1] << 8) | (this[o + 2] << 16)) + this[o + 3] * 0x1000000; }
+      writeUInt16LE(v, o) { this[o] = v & 0xff; this[o + 1] = (v >>> 8) & 0xff; return o + 2; }
+      writeUInt32LE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (8 * i)) & 0xff; return o + 4; }
+      writeUInt32BE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (24 - 8 * i)) & 0xff; return o + 4; }
+    }
+    return EdgeBuffer;
+  })();
   const nodeReq = (m) => (typeof require !== "undefined" ? (() => { try { return require(m); } catch { return null; } })() : null);
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+  const Buffer = rt.Buffer || EdgeBuffer;
   function adler32(data) {
     let a = 1, b = 0;
     for (let i = 0; i < data.length; i++) { a = (a + data[i]) % 65521; b = (b + a) % 65521; }
@@ -21006,8 +21048,8 @@ const CareerRender = (() => {
     },
   };
 
-  const zlib = rt.zlib || (Buffer ? pureZlib : null);
-  const crypto = rt.crypto || (Buffer ? pureCrypto : null);
+  const zlib = rt.zlib || pureZlib;
+  const crypto = rt.crypto || pureCrypto;
 
   const PDF_CONTENT_TYPE = "application/pdf";
   const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -21599,8 +21641,8 @@ const CareerRender = (() => {
     return { format, filename: rendered.filename, contentType: rendered.contentType, bytes: rendered.buffer.length, sha256: sha256(rendered.buffer), base64: rendered.buffer.toString("base64") };
   }
 
-  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!Buffer, codec: rt.zlib && rt.crypto ? "platform" : zlib && crypto ? "vendored" : "none" };
-  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => (Buffer ? Buffer.from(bytes) : null), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
+  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!rt.Buffer, codec: rt.zlib && rt.crypto ? "platform" : "vendored" };
+  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => Buffer.from(bytes), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
   }
   return make(NODE_RUNTIME);
 })();

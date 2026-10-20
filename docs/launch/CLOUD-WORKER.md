@@ -132,7 +132,8 @@ deno run -A workers/career-browser/approve-first.ts record <posting URL> <eviden
 ```
 
 When the employer's "we received your application" email arrives, the mail tracking run (WO-024) records it, and
-`career_apply_confirm_by_mail` (WO-032 wires the call) marks the application confirmed. Check the gate:
+WO-032's matcher (`career_apply_confirm_as`) marks the application confirmed. A page's "thank you" alone never does. Check
+the gate:
 
 ```
 select career_apply_cloud_open('greenhouse'), career_apply_cloud_open('lever'), career_apply_cloud_open('ashby');

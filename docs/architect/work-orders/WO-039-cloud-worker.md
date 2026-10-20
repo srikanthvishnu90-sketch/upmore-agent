@@ -60,7 +60,8 @@ Built:
     - a portal pauses for the cloud for 6 hours at 2% user-facing failures in its last 50 attempts since its last pause
       (with 50 attempts, one failure), or at 2 bot checks in its last 20;
     - a person pauses until the next UTC day at 2 bot checks in one day;
-    - the person and the owner are told once per pause (outbox kind `cloud`);
+    - the person and the owner are told once per pause, as a status text (kind `status`, key
+      `status:cloud-pause:<id>`; the outbox constraints are not touched, so no kind is dropped);
     - the person's own computer is never paused by this.
   - `career_apply_cloud_report(days)` gives rates with their counts, per portal and per person.
 - **Owner ops:** `docs/launch/CLOUD-WORKER.md` covers:
@@ -74,14 +75,29 @@ Built:
   others can read.
 
 ## Contracts for other orders
-- **WO-032** (upgrade to `confirmed` from mail): call `career_apply_confirm_by_mail(p_user, p_job, p_message_hash)` with a
-  `received` mail event whose `application_ref` is `job:<id>`. It sets `state='confirmed'`, `email_confirmed_at` (the
-  mail's time) and `confirmation_mail_hash`, once. The `source` column, values `own_computer | extension | cloud |
-  email`, is defined here. This branch was pushed first (2b2e1dbc), so WO-032 uses these names.
+- **WO-032** (branch `wo/032-apply-ops`, migration `20261021040000_career_apply_ops.sql`) uses this order's names. Both
+  migrations define them the same way, so whichever applies first, the other changes nothing:
+  - the `source` column and its check;
+  - `email_confirmed_at` and `confirmation_mail_hash`, with `career_apply_jobs_mail_confirm_check`;
+  - `career_apply_claim_own(integer[, text])` and `career_apply_claim`, which set the source.
+
+  How the two fit:
+  - A row is `confirmed` only by the employer's email. WO-032's trigger enforces it, and its matcher
+    `career_apply_confirm_as` is the production path.
+  - This order's `career_apply_confirm_by_mail` sets the same two columns together, so the trigger accepts it.
+  - A page's confirmation is evidence: this order's cloud finish and `career_apply_record_own` record
+    `submitted_unconfirmed` with `evidence.page_confirmation`, as WO-032's `career_apply_finish` does.
+  - A cloud row's email confirmation reaches the telemetry through a trigger, whichever function sets it.
+
+  Checked together in a throwaway database: WO-032's migration (3c3d7560) applied twice, then this one twice, then the
+  whole `tests/db/run.sh` with both DB tests. `db tests passed`.
+- **The gate counts `source in ('own_computer', 'extension')`.** WO-032's claims set those for the person's computer
+  and extension, and the gate counts the same in `career_apply_gate_status`. A null source means a row nobody has
+  claimed yet, or one driven before the column existed; it never counts.
 - **WO-031** (extension): its claim sets `source='extension'` on the rows it claims (only rows whose `source` is null).
 
 ## Tests
-- `tests/db/career_apply_cloud.test.sql` (in `tests/db/run.sh`, migration applied twice), 60+ checks:
+- `tests/db/career_apply_cloud.test.sql` (in `tests/db/run.sh`, migration applied twice), 73 checks:
   - the gate: refused below 3, open at 3, that family only;
   - a cloud submission confirmed by email does not count, a page confirmation alone does not count, and a deleted mail
     event closes the gate;
@@ -181,7 +197,9 @@ Numbers are VERIFIED on this sandbox (4 vCPU, 16 GB, the same CPU count as the D
   bucket for evidence yet, and no retention job beyond the runbook's `find` line.
 - **Telemetry for own-computer and extension runs.** `career_apply_cloud_events` takes `source`, but only the cloud
   writes it.
-- **The call from the mail run** to `career_apply_confirm_by_mail` belongs to WO-032.
+- **The mail run's confirmation** is WO-032's (`career_apply_confirm_as`).
+- **The cloud's kept resume** is a bytea table (5 MB cap). Trunk now has WO-028's private `career-resumes` bucket, which
+  could hold it instead.
 - **The card answer wording.** It now says "it is sent next, from your computer or, if you turned it on, the cloud".
   The batch card itself does not say which path will send it.
 - **The person cannot read their opt-in in the app.** All new tables are service-role only, so the export list is

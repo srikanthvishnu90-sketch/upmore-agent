@@ -1,0 +1,57 @@
+# WO-065 (real-world testing): the jobs a person hires Trainee for (evals/career/tasks-live.json), sent to both brains
+# against a LIVE shelf of today's postings from public board APIs, graded by code checks and the model judge.
+# Needs the repository secret OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it the run prints NOT RUN and
+# fails: a score is never faked. Spend: $15 in total across every result file on this branch (EVAL_BUDGET_USD); each
+# runner counts what is recorded in evals/career/results/ and stops before the task that would cross it.
+# On a push to ci/trainee-tasks (dispatch is not available to the session's integration). The results commit made with
+# GITHUB_TOKEN does not trigger another run.
+name: trainee-tasks
+on:
+  push:
+    branches: [ci/trainee-tasks]
+    paths:
+      - .github/workflows/trainee-tasks.yml
+      - evals/career/**
+      - supabase/functions/_shared/agent/**
+      - supabase/functions/agent-chat/career_brain.ts
+permissions:
+  contents: write
+concurrency: { group: trainee-tasks, cancel-in-progress: false }
+jobs:
+  tasks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_BUDGET_USD: "15"
+      RUN: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Fetch the live shelf
+        id: shelf
+        run: deno run -A evals/career/live-shelf.ts --run-id "$RUN" | tee "$RUNNER_TEMP/shelf.txt"
+      - name: Router (trunk's CareerHost)
+        if: ${{ !cancelled() && steps.shelf.outcome == 'success' }}
+        run: deno run -A evals/career/run-tasks.ts --brain router --shelf "$RUN" | tee "$RUNNER_TEMP/router.txt"
+      - name: Agent (trunk's agent brain, gpt-5-mini)
+        if: ${{ !cancelled() && steps.shelf.outcome == 'success' }}
+        run: deno run -A evals/career/run-tasks.ts --brain agent --shelf "$RUN" | tee "$RUNNER_TEMP/agent.txt"
+      - name: Summary
+        if: always()
+        run: deno run -A evals/career/run-tasks.ts --summary "$RUN" | tee "$RUNNER_TEMP/summary.txt"
+      - name: Commit the results to ci/trainee-tasks
+        if: always()
+        run: |
+          git config user.name "trainee-tasks[ci]"
+          git config user.email "trainee-tasks@users.noreply.github.com"
+          git add evals/career/results/ || true
+          git commit -m "WO-065 data: real-world task battery, run $RUN ($(grep -E '^(ROUTER|AGENT)' "$RUNNER_TEMP/summary.txt" 2>/dev/null | sed 's/ (.*): / /' | cut -d'·' -f1 | tr '\n' ';'))" || exit 0
+          git pull --rebase origin ci/trainee-tasks || true
+          git push origin HEAD:ci/trainee-tasks

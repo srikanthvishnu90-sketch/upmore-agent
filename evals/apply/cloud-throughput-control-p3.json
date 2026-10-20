@@ -1,0 +1,299 @@
+{
+ "summary": {
+  "measured_at": "2026-10-20T00:49:04.644Z",
+  "parallel": 3,
+  "forms": 12,
+  "wall_ms": 67135,
+  "reached_final_review": 12,
+  "submitted_to_local_server": 12,
+  "median_dry_run_ms": 5836,
+  "median_submit_ms": 8645,
+  "control_runs": 12,
+  "control_median_dry_run_ms": 5836,
+  "control_median_submit_ms": 8645,
+  "control_submitted": 12,
+  "real_median_open_and_plan_ms": null,
+  "bot_check_loaded": 0,
+  "stops": {
+   "control submit:employer confirmation on the page": 12
+  }
+ },
+ "rows": [
+  {
+   "id": "control/0",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2539
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5679
+    }
+   ],
+   "dry_ms": 5679,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8496,
+    "posts": 3
+   },
+   "hash": "7499ce7551dd1086461c7ef3dcc9088f42aa583a033595e3e888fb4b1dd3f4b1"
+  },
+  {
+   "id": "control/1",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2542
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5817
+    }
+   ],
+   "dry_ms": 5817,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8318,
+    "posts": 3
+   },
+   "hash": "7c1e962f8f051ed44369dfdf825a31e857d6fd830a708e594f5919a1379f5cc9"
+  },
+  {
+   "id": "control/10",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2162
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5095
+    }
+   ],
+   "dry_ms": 5095,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8822,
+    "posts": 3
+   },
+   "hash": "ea4e0bb1d81ac3a262d35c8b1438625a705818e0236a6da8f3e429ac123c3a68"
+  },
+  {
+   "id": "control/11",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2178
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5194
+    }
+   ],
+   "dry_ms": 5194,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8812,
+    "posts": 3
+   },
+   "hash": "fcc7f12ac6d7a710388264a332e2f4bb1388c00e6fa3333830263271084488b9"
+  },
+  {
+   "id": "control/2",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2352
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5881
+    }
+   ],
+   "dry_ms": 5881,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8240,
+    "posts": 3
+   },
+   "hash": "95f9cf81550181f72493f87f334ddf013dadd2c5a02e74689e7e7d06759d3921"
+  },
+  {
+   "id": "control/3",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2238
+    },
+    {
+     "reason": "dry_run",
+     "ms": 6019
+    }
+   ],
+   "dry_ms": 6019,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 9056,
+    "posts": 3
+   },
+   "hash": "4578d910a4e9a3de08fdd7b852533e5fc193136d73a477002c61d5d6acad4baf"
+  },
+  {
+   "id": "control/4",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2201
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5959
+    }
+   ],
+   "dry_ms": 5959,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 9062,
+    "posts": 3
+   },
+   "hash": "28e45ef125eab01c8d50c281cbc9d2f3bd5248401e59ecfc22bd7e892dacf015"
+  },
+  {
+   "id": "control/5",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2316
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5836
+    }
+   ],
+   "dry_ms": 5836,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8645,
+    "posts": 3
+   },
+   "hash": "28d3ea5aa1cbc373f4b577e15028d5328a8d9047bc407068b17757b967e0b3d6"
+  },
+  {
+   "id": "control/6",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2369
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5659
+    }
+   ],
+   "dry_ms": 5659,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8620,
+    "posts": 3
+   },
+   "hash": "a7f498c4f17ea1b051b64fcecc90251d8587b8a7d5c6ee8af378ec0cdd5fe842"
+  },
+  {
+   "id": "control/7",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2288
+    },
+    {
+     "reason": "dry_run",
+     "ms": 6066
+    }
+   ],
+   "dry_ms": 6066,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8795,
+    "posts": 3
+   },
+   "hash": "672b2793e7f612222eb64c187e1a8c8a3f62333675856fffb7a3809d8cac9d15"
+  },
+  {
+   "id": "control/8",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 2353
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5956
+    }
+   ],
+   "dry_ms": 5956,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8637,
+    "posts": 3
+   },
+   "hash": "dedb5ff4152316666dce1fe74453cc88c2711e8f23f289ce781c677845a257ec"
+  },
+  {
+   "id": "control/9",
+   "family": "control",
+   "bot_check": [],
+   "passes": [
+    {
+     "reason": "needs_answers",
+     "ms": 1971
+    },
+    {
+     "reason": "dry_run",
+     "ms": 5101
+    }
+   ],
+   "dry_ms": 5101,
+   "submit": {
+    "state": "confirmed",
+    "reason": "employer confirmation on the page",
+    "ms": 8052,
+    "posts": 3
+   },
+   "hash": "ceafecd8dd9be1b4e29c699621a9ef7a6387262f00e4fe9c9540ee0354639e0c"
+  }
+ ]
+}

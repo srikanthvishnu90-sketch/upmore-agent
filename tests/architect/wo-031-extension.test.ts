@@ -229,7 +229,7 @@ Deno.test("WO-031/17 after the click: never 'not sent'; an old notice is not the
   eq(outcomeAfterClick({ ...base, form_present_after: false, page_text: "Thank you for applying!" }, ["We use cookies"]).state, "confirmed");
   eq(BEFORE_CLICK, "stopped before the click");
   const ok = { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-1" };
-  eq(cardOutcome(ok, true).message, "Sent and confirmed by the employer (TEST-1).");
+  eq(cardOutcome(ok, true).message, "Sent; the employer's page confirmed it (TEST-1). Their email makes it final.");
   eq(cardOutcome(ok, false).message, "Sent; the employer's answer could not be captured. Check your email for their confirmation.");
   assert(!/confirmed by/.test(cardOutcome({ state: "unknown_outcome", reason: "r", confirmation_id: null }, true).message));
 });

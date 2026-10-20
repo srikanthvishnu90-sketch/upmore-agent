@@ -4,21 +4,27 @@
 // record on file (packages/career-data/cirs), quoted, with its source label. With no record, nothing is said about how
 // the company interviews. The debrief quotes only the person's own words and states no number the rubric did not give.
 //
-// Text only (v1). Voice is a later step: 127's voiceMockAvailability() still reports no voice rail.
+// WO-035 adds the voice mock: "start a voice mock for Goldman IB" answers with a single-use link to the app's voice page
+// (career_voice_link.ts), the call runs on OpenAI's Realtime API with the same plan of questions (career_voice.ts), and
+// the transcript's words, never audio, come back to voiceDebrief here, scored with the same rubric. Firms without a full
+// record get their sourced interview patterns from packages/career-data/interview-patterns.json (127 interviewPatterns).
 //
 // Over SMS, STOP (and END, QUIT, CANCEL, UNSUBSCRIBE, STOPALL, HELP, INFO, START) are carrier keywords that trainee-inbound
 // handles before any turn runs. None of them, alone, is ever a mock command or a mock answer: the mock ends with
 // "end mock" or "stop the mock".
-import { CareerPrep } from "./router_core.career.js";
+import { CareerPaths, CareerPrep } from "./router_core.career.js";
 import { supabaseCardStore } from "./career_apply_cards.ts";
+import { hostEnv, supabaseVoiceLinks, type VoiceLinks } from "./career_voice_link.ts";
 
 export const MOCK_INTENT = "career_mock"; // the mock asked a question and waits for the answer
 export const MOCK_DONE_INTENT = "career_mock_debrief"; // the mock ended; nothing waits
 export const MOCK_PAUSED_INTENT = "career_mock_paused"; // the mock is still saved, but the next text is not its answer
+export const MOCK_VOICE_INTENT = "career_mock_voice"; // a voice link was sent; the next text is not an answer
 export const IDLE_MS = 30 * 60_000;
 export const MAX_QUESTIONS = 6;
 export const DEFAULT_MINUTES = 20;
 const MAX_ANSWER = 2000;
+const MAX_VOICE_ANSWER = 6000; // spoken answers run longer than texted ones
 
 export type QKind = "opener" | "behavioral" | "technical" | "company" | "closer";
 export interface MockQuestion { n: number; q: string; kind: QKind; from: string }
@@ -29,6 +35,8 @@ export interface MockState {
   role: string;
   company: string | null;
   record: { id: string; name: string; as_of: string | null } | null;
+  patterns?: { id: string; name: string; checked: string | null; unverified?: string | null } | null; // a firm without a record, from its sourced patterns
+  voice?: boolean; // planned for the voice page (WO-035)
   sector: string | null;
   minutes: number;
   started_at: number;
@@ -146,8 +154,102 @@ const STYLE_SKIP = /^(?:per |candidate reports only|documented sequence)|\bcap(?
 function styleOf(cir: any): Fact | null {
   return factsOf(cir, "interview_styles").find((f) => f.text.split(" ").length >= 10 && !STYLE_SKIP.test(f.text)) || null;
 }
+// Every sourced fact a record holds about how the company hires and interviews, with the record field it came from: what
+// the voice interviewer may say about the company, and nothing else (WO-035).
+export function recordFacts(cir: any, max = 8): { field: string; text: string; label: string }[] {
+  const out: { field: string; text: string; label: string }[] = [];
+  for (const f of factsOf(cir, "interview_styles")) out.push({ field: "interview_styles", ...f });
+  for (const f of stagesOf(cir)) out.push({ field: "process_stages", ...f });
+  for (const f of factsOf(cir, "screening_signals").filter((x) => !LOGISTICS.test(x.text))) out.push({ field: "screening_signals", ...f });
+  return out.filter((f) => !STYLE_SKIP.test(f.text)).map((f) => ({ ...f, text: cut(f.text, 240) })).slice(0, max);
+}
 // "Stripe's", "Goldman Sachs'".
 export const possessive = (name: string) => /s$/i.test(name) ? `${name}'` : `${name}'s`;
+
+// ---------- The 50 firms' interview patterns (WO-035) ----------
+// packages/career-data/interview-patterns.json through 127's interviewPatterns(). A firm with a full record answers
+// from the record (findRecord above); the rest carry their own patterns, each with its public URL, source type and the
+// date it was checked. A firm question is used only when a source attributes it to that firm. Matching is exact, as
+// for records: the firm's id, name or a listed alias, never a shared word ("Citadel" is not Citadel Securities).
+export interface FirmPattern { text: string; source_url: string; source_type: string; checked: string; note?: string }
+export interface FirmQuestion { q: string; source_url: string; source_type: string; checked: string }
+export interface Firm { id: string; name: string; aliases: string[]; sector: string; record: string | null; checked: string; patterns: FirmPattern[]; questions: FirmQuestion[] }
+export function firms(lib?: Firm[]): Firm[] {
+  return lib ?? ((CareerPrep.interviewPatterns ? CareerPrep.interviewPatterns().firms : []) || []);
+}
+function firmForms(f: Firm): Set<string> {
+  const name = clean(f.name);
+  return new Set([norm(f.id), norm(name), norm(name.replace(/\s*(?:&|and)\s*(?:co\.?|company)$/i, "")),
+    norm(name.replace(/\s+(?:inc\.?|llc|partners|trading|group)$/i, "")), ...(f.aliases || []).map(norm)].filter((x) => x.length >= 2));
+}
+export function findFirm(company: unknown, lib?: Firm[]): Firm | null {
+  const want = norm(String(company ?? "").replace(/^\s*the\s+/i, "").replace(/[,.]?\s+(?:inc\.?|llc|corp\.?)\s*$/i, ""));
+  if (want.length < 2) return null;
+  for (const f of firms(lib)) if (f && f.id && firmForms(f).has(want)) return f;
+  return null;
+}
+// "official, metacareers.com, 2026-10-19": the same shape as a record's source label. A pattern with no URL is never used.
+export function patternLabel(p: { source_url?: string; source_type?: string; checked?: string } | null | undefined): string | null {
+  const url = String(p?.source_url ?? "");
+  if (!/^https:\/\/[^\s]+\.[^\s]+$/.test(url)) return null;
+  let host = "";
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { return null; }
+  const t = String(p?.source_type ?? "").toLowerCase();
+  const kind = /anecdot/.test(t) ? "anecdotal" : /posting/.test(t) ? "posting" : /official/.test(t) ? "official" : "reported";
+  return [kind, host, String(p?.checked ?? "").slice(0, 10)].filter(Boolean).join(", ");
+}
+const RANK: Record<string, number> = { official: 0, posting: 1, reported: 2, anecdotal: 3 };
+// What is wrong with a patterns file, one line per problem (none for the file on disk): every firm checked on a date,
+// every firm without a record carrying at least one pattern, and every pattern and every firm question citing a public
+// https URL, its source type and the date it was checked.
+export function patternProblems(data: any, recordIds: Set<string>): string[] {
+  const out: string[] = [];
+  const day = (x: unknown) => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x);
+  const src = (x: any, at: string) => {
+    if (!/^https:\/\/[^\s/]+\.[^\s]+$/.test(String(x?.source_url ?? ""))) out.push(`${at}: no public https source_url`);
+    if (!Object.prototype.hasOwnProperty.call(RANK, String(x?.source_type ?? ""))) out.push(`${at}: source_type must be official, posting, reported or anecdotal`);
+    if (!day(x?.checked)) out.push(`${at}: no checked date`);
+  };
+  const list = Array.isArray(data?.firms) ? data.firms : null;
+  if (!list) return ["no firms list"];
+  const seen = new Set<string>();
+  for (const f of list) {
+    const id = String(f?.id ?? "");
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) { out.push(`firm "${id}": bad id`); continue; }
+    if (seen.has(id)) out.push(`${id}: listed twice`);
+    seen.add(id);
+    if (!clean(f.name)) out.push(`${id}: no name`);
+    if (!day(f.checked)) out.push(`${id}: no checked date`);
+    if (f.record !== null && !recordIds.has(String(f.record))) out.push(`${id}: record ${f.record} is not on file`);
+    if (f.record === null && !(f.patterns || []).length) out.push(`${id}: no record and no sourced pattern`);
+    (f.patterns || []).forEach((p: any, i: number) => { if (!clean(p?.text)) out.push(`${id}.patterns[${i}]: no text`); src(p, `${id}.patterns[${i}]`); });
+    (f.questions || []).forEach((q: any, i: number) => { if (!clean(q?.q)) out.push(`${id}.questions[${i}]: no question`); src(q, `${id}.questions[${i}]`); });
+  }
+  return out;
+}
+// WO-041: what the last source check (packages/career-data/source-checks.json, through 134 sourceStatus) says about a
+// pattern's page. A page the check found gone (404 or 410) is never quoted. A page no check has opened, or one that
+// refused or failed the check, is quoted only with that said: its text is a search summary nobody has read on the page.
+export interface SourceStatus { status: string; verified: boolean; checked: string | null }
+export function sourceOf(p: { source_url?: string } | null | undefined, checks?: unknown): SourceStatus {
+  return (CareerPaths as any).sourceStatus(String(p?.source_url ?? ""), checks);
+}
+export function unverifiedNote(src: SourceStatus): string | null {
+  if (src.verified || src.status === "gone") return null;
+  if (src.status === "unverified") return "Unverified: a search summary of that page; no source check has opened the page yet.";
+  return `Unverified: the page could not be opened at the ${src.checked} source check (${src.status}).`;
+}
+// The pattern to build a question from: a firm-attributed question first, then the firm's own pages, then reports;
+// within each, a page the check opened before one it did not. Gone pages are left out.
+function firmPrompt(f: Firm, checks?: unknown): { text: string; label: string; asked: boolean; note: string | null } | null {
+  for (const q of f.questions || []) {
+    const label = patternLabel(q), src = sourceOf(q, checks);
+    if (label && clean(q.q) && src.status !== "gone") return { text: clean(q.q), label, asked: true, note: unverifiedNote(src) };
+  }
+  const ps = (f.patterns || []).map((p) => ({ p, label: patternLabel(p), src: sourceOf(p, checks) })).filter((x) => x.label && clean(x.p.text) && x.src.status !== "gone");
+  ps.sort((a, b) => (RANK[a.label!.split(",")[0]] ?? 9) - (RANK[b.label!.split(",")[0]] ?? 9) || Number(b.src.verified) - Number(a.src.verified));
+  return ps.length ? { text: clean(ps[0].p.text), label: ps[0].label!, asked: false, note: unverifiedNote(ps[0].src) } : null;
+}
 
 // ---------- The plan of questions ----------
 const TECH_SOURCES = new Set(["swe_coding_bank", "finance_drill_bank", "quant_drill_bank", "pm_drill_bank"]);
@@ -192,7 +294,7 @@ export function questionCount(minutes: number): number {
   return Math.max(2, Math.min(MAX_QUESTIONS, Math.round(minutes / 3.5)));
 }
 
-export function plan(o: { role: string; company: string | null; cir: any | null; minutes: number; seed: number }): MockQuestion[] {
+export function plan(o: { role: string; company: string | null; cir: any | null; minutes: number; seed: number; firm?: Firm | null; checks?: unknown }): MockQuestion[] {
   const gen: string[] = CareerPrep.GENERIC_BEHAVIORAL;
   const seed = Math.abs(Math.floor(o.seed)) || 0;
   const beh = [gen[1], gen[2], gen[3]];
@@ -205,11 +307,20 @@ export function plan(o: { role: string; company: string | null; cir: any | null;
     for (let k = 1; k < tech.length && !t2; k++) { const c = tech[(i + k) % tech.length]; if (c.group !== t1.group) t2 = c; }
     if (!t2 && tech.length > 1) t2 = tech[(i + 1) % tech.length];
   }
-  const name = o.cir ? recordName(o.cir) : (o.company ? cut(clean(o.company), 60) : null);
+  const firm = o.cir ? null : (o.firm ?? null);
+  const name = o.cir ? recordName(o.cir) : firm ? clean(firm.name) : (o.company ? cut(clean(o.company), 60) : null);
   const look = o.cir ? lookFor(o.cir) : null;
+  // A firm without a record: its own sourced pattern (or a question a source attributes to it), quoted with its label.
+  const fp = firm ? firmPrompt(firm, o.checks) : null;
+  const unverified = fp?.note ? ` ${fp.note}` : "";
   const companyQ = look
     ? `${possessive(name!)} record says (${look.label}): "${firstSentence(look.text, 150)}". ${look.field === "signal" ? "Tell me about a time you showed that." : "Pick the part of that you know best and walk me through a real example of it."}`
+    : fp
+    ? (fp.asked
+      ? `A question reported from ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 200)}"${unverified}`
+      : `What is on file about ${possessive(name!)} interviews (${fp.label}): "${firstSentence(fp.text, 150)}".${unverified} How would you prepare for that, and which example of your own would you bring?`)
     : null;
+  const companyFrom = look ? `${possessive(name!)} record (${look.label})` : fp ? `${possessive(name!)} interview patterns (${fp.label})` : "";
   type Slot = { pri: number; pos: number; q: string; kind: QKind; from: string };
   const slots: Slot[] = [
     { pri: 0, pos: 0, q: gen[0], kind: "opener", from: "general behavioral" },
@@ -219,7 +330,7 @@ export function plan(o: { role: string; company: string | null; cir: any | null;
   ];
   if (t1) slots.push({ pri: 1, pos: 2, q: t1.q, kind: "technical", from: t1.from });
   if (t2) slots.push({ pri: 5, pos: 4, q: t2.q, kind: "technical", from: t2.from });
-  if (companyQ && look) slots.push({ pri: 2, pos: 3, q: companyQ, kind: "company", from: `${possessive(name!)} record (${look.label})` });
+  if (companyQ) slots.push({ pri: 2, pos: 3, q: companyQ, kind: "company", from: companyFrom });
   if (name) slots.push({ pri: 4, pos: 5, q: `Why ${name}, specifically?`, kind: "closer", from: "general behavioral" });
   return slots.sort((a, b) => a.pri - b.pri).slice(0, questionCount(o.minutes)).sort((a, b) => a.pos - b.pos)
     .map((s, i) => ({ n: i + 1, q: s.q, kind: s.kind, from: s.from }));
@@ -231,15 +342,20 @@ export function idle(s: MockState, now: number): boolean {
   return now - s.last_at > IDLE_MS;
 }
 
-export function start(o: { role?: string | null; company?: string | null; minutes?: number; now: number; cir?: any | null; lib?: any[] }): { state: MockState; reply: string } {
+export function start(o: { role?: string | null; company?: string | null; minutes?: number; now: number; cir?: any | null; lib?: any[]; firm?: Firm | null; firms?: Firm[]; checks?: unknown }): { state: MockState; reply: string } {
   const role = cut(clean(o.role), 80), company = o.company ? cut(clean(o.company), 80) : null;
   const minutes = Math.max(5, Math.min(30, Math.round(Number(o.minutes) || DEFAULT_MINUTES)));
   const cir = o.cir !== undefined ? o.cir : (company ? findRecord(company, o.lib) : null);
+  // No record: a firm among the 50 still has its sourced patterns (never a firm whose record exists; that is the record).
+  const found = cir ? null : (o.firm !== undefined ? o.firm : (company ? findFirm(company, o.firms) : null));
+  const fp = found && !found.record ? firmPrompt(found, o.checks) : null;
+  const firm = fp ? found : null;
   const sector = sectorOf(role);
-  const questions = plan({ role, company, cir, minutes, seed: Math.floor(o.now / 60_000) });
+  const questions = plan({ role, company, cir, minutes, seed: Math.floor(o.now / 60_000), firm, checks: o.checks });
   const state: MockState = {
-    v: 1, role, company: cir ? recordName(cir) : company,
+    v: 1, role, company: cir ? recordName(cir) : firm ? clean(firm.name) : company,
     record: cir ? { id: String(cir.company_id), name: recordName(cir), as_of: String(cir.as_of || cir.last_verified_at || "").slice(0, 10) || null } : null,
+    patterns: firm ? { id: firm.id, name: clean(firm.name), checked: String(firm.checked || "").slice(0, 10) || null, unverified: fp?.note ?? null } : null,
     sector, minutes, started_at: o.now, last_at: o.now, questions, answers: [], status: "running",
   };
   const what = `${role || "general"} mock${state.company ? ` for ${state.company}` : ""}`;
@@ -247,7 +363,8 @@ export function start(o: { role?: string | null; company?: string | null; minute
     `Mock interview: ${what}. About ${minutes} minutes, ${questions.length} questions, by text (voice comes later). Each answer gets a score out of 15 for structure, evidence and detail, and you get a debrief at the end. Text "end mock" any time.`,
   ];
   const fromRecord = questions.find((q) => q.kind === "company");
-  if (fromRecord) lines.push(`Q${fromRecord.n} comes from ${possessive(state.record!.name)} record on file.`);
+  if (fromRecord && state.record) lines.push(`Q${fromRecord.n} comes from ${possessive(state.record.name)} record on file.`);
+  else if (fromRecord && state.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${state.patterns.name} interviews (checked ${state.patterns.checked}).${state.patterns.unverified ? ` ${state.patterns.unverified}` : ""}`);
   else if (state.record) lines.push(`${possessive(state.record.name)} record on file has nothing to build a question from, so these are role questions.`);
   else if (company) lines.push(`No record for ${company} on file, so nothing here is about how they interview.`);
   if (!role) lines.push(`No role named, so these are general questions. Try "mock me for data analyst at Stripe" for a role mock.`);
@@ -319,7 +436,7 @@ export function debrief(s: MockState): Debrief {
     return { n: q.n, q: q.q, score: a && a.scores ? a.scores.total : null };
   });
   const skipped = s.answers.filter((a) => a.skipped).length;
-  const what = `${s.role || "general"} mock${s.company ? ` for ${s.company}` : ""}`;
+  const what = `${s.role || "general"} ${s.voice ? "voice mock" : "mock"}${s.company ? ` for ${s.company}` : ""}`;
   const why = s.ended === "time" ? `Time is up (${s.minutes} minutes). ` : s.ended === "idle" ? "The mock stopped after 30 minutes with no reply. " : "";
   if (!scored.length) {
     const text = `${why}Debrief, ${what}: no answers to score, so there is nothing to grade. Text "start a mock interview" to try again.`;
@@ -351,6 +468,7 @@ export function debrief(s: MockState): Debrief {
   const rec = s.record ? companyRecords().find((c) => String(c.company_id) === s.record!.id) : null;
   const steps = rec ? stagesOf(rec).slice(0, 3).map((x) => x.text) : [];
   if (s.record && steps.length) practice.push(`Before ${s.record.name}, practice for each step on their record: ${steps.join("; ")}.`);
+  else if (s.company && s.patterns) practice.push(`Ask your recruiter what the ${s.company} rounds are; the notes on file about ${s.company} are general, not a list of their rounds.`);
   else if (s.company && !s.record) practice.push(`Ask your recruiter what the ${s.company} rounds are; there is no record of them here.`);
   else if (s.sector) practice.push(`Do 3 more ${s.sector.replace(/_/g, " ")} questions: text "mock me for ${s.role}${s.company ? ` at ${s.company}` : ""}".`);
   else practice.push(`Do another mock in 2 days and beat today's average of ${avg}.`);
@@ -378,6 +496,7 @@ export function end(s0: MockState, now: number, why: "done" | "time" | "asked" |
 // ---------- The text that drives it ----------
 export type MockCommand =
   | { kind: "start"; role: string; company: string | null; minutes: number }
+  | { kind: "voice"; role: string; company: string | null; minutes: number }
   | { kind: "end" }
   | { kind: "done" }
   | { kind: "resume" }
@@ -393,7 +512,17 @@ export function parseMockCommand(text: string): MockCommand | null {
   if (/^(?:done|i'?m done|im done|that'?s all|that is all)$/.test(low)) return { kind: "done" };
   if (/^(?:resume|continue|back to)(?: the| my)? mock(?: interview)?$/.test(low)) return { kind: "resume" };
   if (/^(?:skip|pass|next question|skip (?:this|that)(?: one| question)?)$/.test(low)) return { kind: "skip" };
-  const m = t.match(START);
+  // WO-035: "start a voice mock for Goldman IB", "voice mock me for data analyst at Stripe", "a mock interview by voice":
+  // the same words as a text mock, with "voice" in them, ask for the voice page instead.
+  let voice = false, said = t;
+  if (/\bvoice[- ](?:mock|practice|interview)\b/i.test(said)) {
+    voice = true;
+    said = said.replace(/\bvoice[- ](mock|practice)\b/i, "$1").replace(/\bvoice[- ]interview\b/i, "mock interview");
+  } else if (/\b(?:mock|practice)(?: interview)? (?:by|over|with|on) voice\b/i.test(said)) {
+    voice = true;
+    said = said.replace(/ (?:by|over|with|on) voice\b/i, "");
+  }
+  const m = said.match(START);
   if (!m) return null;
   const minutes = m[1] ? Number(m[1]) : DEFAULT_MINUTES;
   const rest = m[2].trim().replace(/^(?:me|now)\b\s*/i, "").replace(/,?\s*please$/i, "").trim();
@@ -409,9 +538,18 @@ export function parseMockCommand(text: string): MockCommand | null {
   role = clean(role).replace(/^(?:an?|the|my)\s+/i, "").replace(/\s+(?:role|position|job|interview)s?$/i, "").trim();
   company = company ? clean(company).replace(/\s+interviews?$/i, "").trim() || null : null;
   if (role.length > 80 || (company && company.length > 80)) return null;
-  // "mock me for Stripe": a company with a record named alone is the company, not the role.
-  if (role && !company && findRecord(role)) { company = role; role = ""; }
-  return { kind: "start", role, company, minutes };
+  const known = (x: string) => !!(findRecord(x) || findFirm(x));
+  // "mock me for Stripe": a company on file named alone is the company, not the role.
+  if (role && !company && known(role)) { company = role; role = ""; }
+  // "for Goldman IB", "for Stripe data analyst": a company on file named first, then the role.
+  if (role && !company) {
+    const w = role.split(" ");
+    for (let k = w.length - 1; k >= 1; k--) {
+      const head = w.slice(0, k).join(" ");
+      if (known(head)) { company = head; role = w.slice(k).join(" "); break; }
+    }
+  }
+  return { kind: voice ? "voice" : "start", role, company, minutes };
 }
 
 // The person says they are in a real interview right now: never help during one (D-015), never score it as practice.
@@ -423,6 +561,79 @@ export interface MockStore {
   save(userId: string, threadId: string, s: MockState): Promise<void>;
   clear(userId: string, threadId: string): Promise<void>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
+  voice?: VoiceLinks; // WO-035: single-use links to the voice page; absent where no voice rail exists
+}
+
+// ---------- The voice mock (WO-035) ----------
+const mockName = (s: MockState) => `${s.role || "general"} mock${s.company ? ` for ${s.company}` : ""}`;
+const textAsk = (s: MockState) => `mock me for ${s.role || "this role"}${s.company ? ` at ${s.company}` : ""}`;
+export const VOICE_LIMIT_REPLY = "You have started 5 voice mocks in the last day, which is the limit. The text mock has no limit: text \"start a mock interview\".";
+// The link alone on its own line; every other line plain text that reads the same on iMessage, WhatsApp and Telegram.
+export function voiceStartText(s: MockState, url: string): string {
+  const lines = [
+    `Voice mock: ${mockName(s)}. About ${s.minutes} minutes, ${s.questions.length} questions, out loud. Open this link within 10 minutes. It works once, and only for you:`,
+    url,
+    "Allow the microphone when your browser asks. Audio is never stored: only the words of the call are scored, and your debrief comes back here within 2 minutes of hanging up.",
+  ];
+  const fromRecord = s.questions.find((q) => q.kind === "company");
+  if (fromRecord && s.record) lines.push(`Q${fromRecord.n} comes from ${possessive(s.record.name)} record on file.`);
+  else if (fromRecord && s.patterns) lines.push(`Q${fromRecord.n} comes from sourced notes on how ${s.patterns.name} interviews (checked ${s.patterns.checked}).${s.patterns.unverified ? ` ${s.patterns.unverified}` : ""}`);
+  else if (s.company && !s.record) lines.push(`No record for ${s.company} on file, so nothing in the call is about how they interview.`);
+  return lines.join("\n");
+}
+export function voiceOffText(s: MockState): string {
+  return `Voice mocks aren't on yet, so there is no call to join. The text mock works now: text "${textAsk(s)}".`;
+}
+
+export interface Turn { who: "interviewer" | "candidate"; text: string }
+const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+const contentWords = (x: string) => new Set(norm(x) ? x.toLowerCase().split(/[^a-z0-9']+/).filter((w) => w.length >= 4) : []);
+// Which planned question each candidate turn answers. The interviewer is told to say "Question N." before each planned
+// question (career_voice.ts); without that, an interviewer turn that shares most of its words with a planned question
+// counts as asking it. The count only moves forward. Candidate words before the first question are small talk.
+export function answersFromTranscript(questions: MockQuestion[], turns: Turn[]): { answers: Map<number, string>; reached: number } {
+  const answers = new Map<number, string>();
+  let current = 0;
+  for (const t of turns) {
+    const text = clean(t.text);
+    if (!text) continue;
+    if (t.who === "interviewer") {
+      const m = text.match(/\bquestion\s+(\d|one|two|three|four|five|six)\b/i);
+      let n = m ? (NUMBER_WORDS[m[1].toLowerCase()] ?? Number(m[1])) : 0;
+      if (!n) {
+        const said = contentWords(text);
+        for (const q of questions) {
+          const want = contentWords(q.q);
+          if (!want.size || q.n <= current) continue;
+          let hit = 0;
+          for (const w of want) if (said.has(w)) hit++;
+          if (hit / want.size >= 0.6) { n = q.n; break; }
+        }
+      }
+      if (n > current && n <= questions.length) current = n;
+      continue;
+    }
+    if (!current || LIVE.test(text)) continue; // never score words said about a real interview (D-015)
+    answers.set(current, answers.has(current) ? `${answers.get(current)} ${text}` : text);
+  }
+  return { answers, reached: current };
+}
+
+// The debrief of a voice call: each planned question the call reached is scored with the same rubric as the text mock,
+// over the person's own words only (the candidate's side of the transcript); the interviewer's words are never scored
+// or quoted. Questions the call never reached are left out, not marked skipped.
+export function voiceDebrief(s0: MockState, turns: Turn[], now: number): { state: MockState; reply: string; debrief: Debrief; reached: number } {
+  const s: MockState = { ...structuredClone(s0), voice: true, answers: [], status: "running" };
+  const { answers, reached } = answersFromTranscript(s.questions, turns);
+  for (let n = 1; n <= reached; n++) {
+    const said = answers.get(n);
+    if (!said) { s.answers.push({ n, text: "", skipped: true, scores: null, gaps: [], fix: null, nudge: "Skipped." }); continue; }
+    const answer = said.slice(0, MAX_VOICE_ANSWER);
+    const g = graded(answer);
+    s.answers.push({ n, text: answer, skipped: false, scores: g.scores, gaps: g.gaps || [], fix: g.fix_first ?? null, nudge: nudgeFor(g) });
+  }
+  const e = end(s, now, reached >= s.questions.length ? "done" : "asked");
+  return { state: e.state, reply: e.reply, debrief: e.debrief, reached };
 }
 
 // One turn, before any brain, right after the card hook. Returns null when the text is not for the mock, so the turn
@@ -438,6 +649,18 @@ export async function mockTurn(
     await o.store.save(o.userId, o.threadId, s.state);
     const dropped = prev && prev.status === "running" && !idle(prev, o.now) ? "The earlier mock was dropped. " : "";
     return { reply: dropped + s.reply, status: "started", intent: MOCK_INTENT };
+  }
+  if (cmd?.kind === "voice") {
+    // The same plan as the text mock, for the voice page. A text mock already running stays saved ("resume mock").
+    const st: MockState = { ...start({ role: cmd.role, company: cmd.company, minutes: cmd.minutes, now: o.now }).state, voice: true };
+    if (!o.store.voice) return { reply: voiceOffText(st), status: "voice_not_wired", intent: MOCK_VOICE_INTENT };
+    const link = await o.store.voice.create(o.userId, o.threadId, st, o.now);
+    if (!link.ok) {
+      return link.reason === "limit"
+        ? { reply: VOICE_LIMIT_REPLY, status: "voice_limit", intent: MOCK_VOICE_INTENT }
+        : { reply: voiceOffText(st), status: "voice_not_wired", intent: MOCK_VOICE_INTENT };
+    }
+    return { reply: voiceStartText(st, link.url), status: "voice_link", intent: MOCK_VOICE_INTENT };
   }
   const low = String(o.message ?? "").trim().replace(/[.!?]+$/, "");
   if (CARRIER.test(low)) return null;
@@ -505,6 +728,7 @@ export function supabaseMockStore(admin: any): MockStore {
       if (r.error) throw new Error(`clear the mock: ${r.error.message}`);
     },
     lastAssistantIntent: (threadId) => cards.lastAssistantIntent(threadId),
+    voice: supabaseVoiceLinks(admin, hostEnv()),
   };
 }
 

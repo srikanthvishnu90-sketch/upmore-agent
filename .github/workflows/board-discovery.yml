@@ -1,0 +1,83 @@
+# WO-037: board discovery at scale, and the real postings for the 200-role labeled set. Runs where the internet is
+# (CI; the build sandbox has none): weekly, and on demand. Public GETs only, paced per host, robots.txt read first, a
+# User-Agent naming Upmore with a contact URL. No secrets. Each job commits its output to a NEW branch named
+# discovery/... (never trunk or main) for the architect to open as a PR, and uploads it as an artifact.
+name: board-discovery
+on:
+  workflow_dispatch:
+    inputs:
+      max_minutes: { description: "Run budget in minutes (Common Crawl gets half)", default: "300" }
+      cc_pages: { description: "Common Crawl index pages per query per crawl", default: "60" }
+      crawls: { description: "Latest Common Crawl crawls to read", default: "2" }
+      domains_limit: { description: "Top domains turned into slug guesses (0 = none)", default: "3000" }
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+permissions:
+  contents: write
+concurrency: { group: board-discovery, cancel-in-progress: false }
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: A ranked domain list (Tranco top 1M, tranco-list.eu), for slug guesses
+        run: |
+          if [ "${{ inputs.domains_limit || '3000' }}" != "0" ]; then
+            curl -sSfL --max-time 120 -A "UpmoreTrainee-BoardDiscovery/1.0 (+https://github.com/srikanthvishnu90-sketch/upmore-agent)" \
+              https://tranco-list.eu/top-1m.csv.zip -o tranco.zip && unzip -p tranco.zip > domains.csv || echo "no domain list this run"
+          fi
+          touch domains.csv; wc -l domains.csv
+      - name: Discover and verify (200 with the expected shape, nothing else)
+        run: |
+          mkdir -p discovery-out
+          deno run -A --no-check scripts/career/discover-boards.ts --sources directory,candidates,commoncrawl,domains \
+            --domains domains.csv --domains-limit "${{ inputs.domains_limit || '3000' }}" \
+            --crawls "${{ inputs.crawls || '2' }}" --cc-pages "${{ inputs.cc_pages || '60' }}" \
+            --max-minutes "${{ inputs.max_minutes || '300' }}" --out-dir discovery-out --merge | tee discovery-out/run.log \
+            | grep -E '^(SOURCES|CALIBRATION|TALLY|CONDITIONAL|VERIFIED|MERGED|CC |progress)'
+          deno run -A --no-check scripts/build-ingest-boards.ts
+      - name: Say the numbers where the API can read them
+        run: |
+          for k in VERIFIED MERGED TALLY CALIBRATION CONDITIONAL SOURCES; do
+            line=$(grep -m1 "^$k" discovery-out/run.log || true); [ -n "$line" ] && echo "::notice title=$k::${line:0:3900}"
+          done
+      - uses: actions/upload-artifact@v4
+        with: { name: board-discovery, path: discovery-out, retention-days: 30 }
+      - name: Commit the refreshed directory to a new discovery/ branch (never trunk or main)
+        run: |
+          branch="discovery/boards-${{ github.run_id }}"
+          case "$branch" in discovery/*) ;; *) echo "refusing to push $branch"; exit 1 ;; esac
+          git config user.name "board-discovery[bot]"; git config user.email "board-discovery@users.noreply.github.com"
+          git checkout -b "$branch"
+          gzip -9 -c discovery-out/verdicts.jsonl > packages/career-data/discovery-verdicts.jsonl.gz
+          cp discovery-out/summary.json packages/career-data/discovery-summary.json
+          git add packages/career-data/board-directory.json supabase/functions/career-ingest/boards.json packages/career-data/discovery-verdicts.jsonl.gz packages/career-data/discovery-summary.json
+          git commit -m "board discovery run ${{ github.run_id }}: $(grep -m1 '^VERIFIED' discovery-out/run.log | cut -c1-200)"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "::notice title=BRANCH::$branch"
+  label-pool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Real postings for the 200-role labeled set, read with the product's own feed reader
+        run: deno run -A --no-check evals/career/alert-labels/collect-pool.ts --out-dir label-pool-out | tee label-pool-out.log
+      - name: Say the numbers
+        run: grep -E '^(POOL|STRATA)' label-pool-out.log | head -12 | while read -r l; do echo "::notice title=LABEL_POOL::$l"; done
+      - uses: actions/upload-artifact@v4
+        with: { name: label-pool, path: label-pool-out, retention-days: 30 }
+      - name: Commit the candidates to a new discovery/ branch (never trunk or main)
+        run: |
+          branch="discovery/label-pool-${{ github.run_id }}"
+          git config user.name "board-discovery[bot]"; git config user.email "board-discovery@users.noreply.github.com"
+          git checkout -b "$branch"
+          cp label-pool-out/candidates.json evals/career/alert-labels/candidates.json
+          git add evals/career/alert-labels/candidates.json
+          git commit -m "label pool run ${{ github.run_id }}: $(grep -m1 '^POOL' label-pool-out.log | cut -c1-200)"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "::notice title=BRANCH::$branch"

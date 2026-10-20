@@ -4,7 +4,7 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { type Answer, type FormField, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
 import { chooseOption, placeQuery } from "../../supabase/functions/_shared/answer_options.ts";
-import { chooseWidgetOption } from "../../extension/src/apply_core.ts";
+import { chooseWidgetOption, formAnswersToKeep, MASKED } from "../../extension/src/apply_core.ts";
 import CONTENT from "../../extension/content.js" with { type: "text" };
 import DOM from "../../extension/src/dom.ts" with { type: "text" };
 import BACKGROUND from "../../extension/background.js" with { type: "text" };
@@ -137,4 +137,48 @@ Deno.test("WO-042/10 Greenhouse's location search is typed key by key; a value t
   // Live run 12: Anduril's First Name was empty 20 ms after it was set; it is set once more after the rest.
   assert(/else if \(ok && !listed && b\.inputType !== "file"\) dropped\.push\(p\)/.test(CONTENT), "a dropped plain field is kept for later");
   assert(/for \(const p of dropped\)[\s\S]{0,120}edited\.has\(p\.name\)[\s\S]{0,80}D\.fill\(b, p\.value, resume\)/.test(CONTENT), "and set again unless the person edited it");
+});
+
+Deno.test("WO-042/11 ask once, from the form: only the person's own answer to a question this posting raised is kept, under the text path's key", () => {
+  // Session run 4: 50 of 60 cards needed the person, the same questions typed again at every company; only texted answers
+  // were kept. A form answer travels exactly as far as a texted one (answerKey), and nothing else on the form is kept.
+  const needs = [
+    { label: "How did you hear about us?", type: "input_text", options: [] },
+    { label: "Why do you want to work at Example Co?", type: "textarea", options: [] },
+    { label: "Social Security Number", type: "input_text", options: [] },
+    { label: "Portfolio", type: "input_file", options: [] },
+    { label: "Pronouns", type: "input_text", options: [] },
+    { label: "Website", type: "input_text", options: [] },
+    { label: "Anything else we should know?", type: "input_text", options: [] },
+    { label: "Do you have any relatives working here?", type: "input_text", options: [] },
+  ];
+  const fields = [
+    { name: "q1", label: "How did you  hear about us?", value: " LinkedIn ", source: "you" },
+    { name: "q2", label: "Why do you want to work at Example Co?", value: "Because of the team.", source: "you" },
+    { name: "q3", label: "Social Security Number", value: MASKED, source: "you" },
+    { name: "q4", label: "Portfolio", value: "work.pdf", source: "you" },
+    { name: "q5", label: "Pronouns", value: "they/them", source: "page" },
+    { name: "fixed:q6", label: "Website", value: "https://example.test", source: "you" },
+    { name: "q7", label: "Email", value: "me@example.test", source: "you" },
+    { name: "q8", label: "Anything else we should know?", value: "I have used Example Co's app for years.", source: "you" },
+    { name: "q9", label: "Do you have any relatives working here?", value: "No", source: "you" },
+  ];
+  const kept = formAnswersToKeep({ jobId: "job-1", company: "Example Co", needs, fields, answers: {}, answered: new Set() });
+  assertEquals(kept.posting, "job-1");
+  assertEquals(kept.answers.map((a) => [a.label, a.answer]), [
+    ["How did you hear about us?", "LinkedIn"],
+    ["Why do you want to work at Example Co?", "Because of the team."],
+    ["Do you have any relatives working here?", "No"],
+  ]);
+  const [heard, essay, relatives] = kept.answers;
+  assertEquals(heard.key, "fact:how_heard", "a channel is true of every employer");
+  assert(/^job:[0-9a-f]{16}$/.test(essay.key), "an essay stays with its posting");
+  assert(/^job:[0-9a-f]{16}$/.test(relatives.key), "relatives at this employer is about this employer only");
+  // An answer about this employer never travels: a how-heard that names no channel, or one naming the company.
+  const friend = formAnswersToKeep({ jobId: "job-2", company: "Example Co", needs: needs.slice(0, 1), answers: {}, answered: new Set(),
+    fields: [{ name: "q1", label: "How did you hear about us?", value: "A friend here told me", source: "you" }] });
+  assertEquals(friend.answers, []);
+  // Kept only after the page confirmed the send, and a failure to keep never touches the outcome.
+  const finish = BACKGROUND.slice(BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") - 400, BACKGROUND.indexOf("career_apply_questions_answer_from_form_own") + 300);
+  assert(/observation && p\.form_answers/.test(finish) && /try \{/.test(finish) && /catch/.test(finish), "kept on a confirmed send, best effort");
 });

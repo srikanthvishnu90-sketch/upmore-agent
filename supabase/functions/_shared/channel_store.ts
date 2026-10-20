@@ -2,13 +2,18 @@
 // channel_contacts (supabase/migrations/20261019020000_channel_delivery.sql). due() claims rows, so two overlapping runs
 // never send the same one; release() puts back what a run claimed and did not finish (a capped row); sweep() fails a row
 // a dead run left "sending", never resending it (the provider may already have it: at most once beats twice).
+// WO-038 (20261021070000_channel_parity.sql): the claim resolves each row's channel (its own, or the person's home
+// channel); a WhatsApp row carries the window's times; "held" rows wait for the person's next message; STOP is the
+// person's across channels.
 import type { ChannelStore, DeliveryMark, OutboxRow } from "./channel.ts";
+import type { Channel } from "./channel_adapters.ts";
 
 export const SENDING_TIMEOUT_MS = 10 * 60000; // longer than any run can last (a function's wall clock is shorter)
 export const UNKNOWN_OUTCOME = "delivery outcome unknown: the run stopped before recording it; not resent";
 const DAY_MS = 86400000;
 const dayRange = (day: string) => { const t = Date.parse(`${day}T00:00:00Z`); return [new Date(t).toISOString(), new Date(t + DAY_MS).toISOString()]; };
 const iso = (t: number) => new Date(t).toISOString();
+const ms = (v: unknown) => (typeof v === "string" && v ? Date.parse(v) : null);
 function must<T>(r: { data: T | null; error: { message: string } | null }, what: string): T {
   if (r.error) throw new Error(`${what}: ${r.error.message}`);
   return r.data as T;
@@ -16,28 +21,38 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
 
 export type DeliveryStore = ChannelStore & { release(): Promise<number>; sweep(now: number): Promise<number> };
 
-// `only` narrows the store to one row (a reply sent the moment it is written); the rules are the same.
+// `only` narrows the store to one row (a reply sent the moment it is written); `user` to everything due for one person
+// (a WhatsApp message: what waited for the window goes out first, then the answer). The rules are the same.
 // deno-lint-ignore no-explicit-any
-export function supabaseChannelStore(admin: any, o: { only?: { userId: string; key: string } } = {}): DeliveryStore {
+export function supabaseChannelStore(admin: any, o: { only?: { userId: string; key: string }; user?: string } = {}): DeliveryStore {
   const claimed = new Map<string, { prior: string; attempts: number }>();
   return {
     async due(now, limit) {
       const claim = o.only ? admin.rpc("career_outbox_claim_key", { p_user: o.only.userId, p_key: o.only.key, p_now: iso(now) })
+        : o.user ? admin.rpc("career_outbox_claim_user", { p_user: o.user, p_now: iso(now), p_limit: limit })
         : admin.rpc("career_outbox_claim", { p_now: iso(now), p_limit: limit });
       const rows = must<any[]>(await claim, "claim due messages") || [];
       const out: OutboxRow[] = rows.map((r) => ({ id: String(r.id), userId: r.user_id, contact: r.contact, key: r.key, text: r.text, deliver_at: Date.parse(r.deliver_at), attempts: r.attempts }));
       for (const r of rows) claimed.set(String(r.id), { prior: r.prior_status, attempts: r.attempts });
+      // A WhatsApp row needs the person's last message there (the 24-hour window) and the last nudge.
+      const wa = [...new Set(out.filter((r) => String(r.contact).startsWith("wa:")).map((r) => r.contact))];
+      if (wa.length) {
+        const seen = must<any[]>(await admin.from("channel_contacts").select("contact,last_inbound_at,nudged_at").in("contact", wa), "read the WhatsApp window") || [];
+        const by = new Map(seen.map((s) => [s.contact, s]));
+        for (const r of out) if (by.has(r.contact)) { const s = by.get(r.contact); r.lastInboundAt = ms(s.last_inbound_at); r.nudgedAt = ms(s.nudged_at); }
+        for (const r of out) if (String(r.contact).startsWith("wa:") && r.lastInboundAt === undefined) { r.lastInboundAt = null; r.nudgedAt = null; }
+      }
       return out.sort((a, b) => a.deliver_at - b.deliver_at || Number(a.id) - Number(b.id));
     },
     async optedOut(contact) {
-      const r = must<any>(await admin.from("channel_contacts").select("opted_out").eq("contact", contact).maybeSingle(), "read opt-out");
-      return r?.opted_out === true;
+      return must<boolean>(await admin.rpc("channel_opted_out", { p_contact: contact }), "read opt-out") === true;
     },
     async setOptOut(contact, out, at) {
-      must(await admin.from("channel_contacts").upsert({ contact, opted_out: out, opted_out_at: out ? iso(at) : null, updated_at: iso(at) }, { onConflict: "contact" }), "save opt-out");
+      must(await admin.rpc("channel_set_opt_out", { p_contact: contact, p_out: out, p_at: iso(at) }), "save opt-out");
     },
-    async contactsSentOn(day) {
-      return Number(must<number>(await admin.rpc("career_outbox_contacts_on", { p_day: day }), "count today's contacts")) || 0;
+    async contactsSentOn(day, channel?: Channel) {
+      const r = channel ? await admin.rpc("career_outbox_contacts_on_channel", { p_day: day, p_channel: channel }) : await admin.rpc("career_outbox_contacts_on", { p_day: day });
+      return Number(must<number>(r, "count today's contacts")) || 0;
     },
     async sentTo(contact, day) {
       const [from, to] = dayRange(day);
@@ -47,11 +62,26 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     async mark(id, m: DeliveryMark) {
       const c = claimed.get(id);
       const base = { status: m.status, claimed_at: null, error: m.error ? m.error.slice(0, 500) : null };
-      const patch = m.status === "delivered" ? { ...base, delivered_at: iso(m.at), provider_id: m.providerId ? m.providerId.slice(0, 200) : null, retry_at: null }
+      const patch = m.status === "delivered" ? { ...base, delivered_at: iso(m.at), provider_id: m.providerId ? m.providerId.slice(0, 200) : null, retry_at: null,
+          ...(m.providerIds ? { provider_ids: m.providerIds.slice(0, 10).map((x) => x.slice(0, 200)) } : {}) }
         : m.status === "failed" ? { ...base, attempts: (c?.attempts ?? 0) + 1, retry_at: m.retryAt ? iso(m.retryAt) : null }
         : { ...base, retry_at: null };
       must(await admin.from("career_outbox").update(patch).eq("id", id).eq("status", "sending"), "record delivery");
       claimed.delete(id);
+    },
+    async heldFor(userId) {
+      const r = await admin.from("career_outbox").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "held");
+      if (r.error) throw new Error(`count held messages: ${r.error.message}`);
+      return Number(r.count) || 0;
+    },
+    async nudgesOn(day) {
+      const [from, to] = dayRange(day);
+      const r = await admin.from("channel_contacts").select("contact", { count: "exact", head: true }).eq("channel", "whatsapp").gte("nudged_at", from).lt("nudged_at", to);
+      if (r.error) throw new Error(`count today's templates: ${r.error.message}`);
+      return Number(r.count) || 0;
+    },
+    async setNudged(contact, at) {
+      must(await admin.from("channel_contacts").update({ nudged_at: iso(at) }).eq("contact", contact), "record the template");
     },
     async release() {
       let n = 0;

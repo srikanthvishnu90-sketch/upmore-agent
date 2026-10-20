@@ -40,6 +40,30 @@ const OUTCOMES = new Set([
   "unknown_outcome",
 ]);
 
+// WO-028: a resume Trainee tailored for this posting (tailor_resume) is said as such on the card, with the persona it
+// used, and tagged on the payload so the queue counts tailored and untailored applications apart. The database keeps the
+// tag only when that exact file is one Trainee stored for this person (career-resumes/<user_id>/<sha256>.pdf).
+export interface ResumeTag {
+  tailored: true;
+  persona: string | null;
+}
+export function resumeCardLine(filename: string, sha256: string, tag?: ResumeTag | null): string {
+  return tag?.tailored
+    ? `Resume: ${tag.persona ?? "your base resume"}, tailored for this role (${sha256.slice(0, 12)})`
+    : `Resume: ${filename} (${sha256.slice(0, 12)})`;
+}
+// "--tailored-resume <persona|base>" on the command line; the rest goes to the engine.
+export function takeResumeTag(args: string[]): { tag: ResumeTag | null; rest: string[] } {
+  const i = args.indexOf("--tailored-resume");
+  if (i < 0) return { tag: null, rest: args };
+  const v = String(args[i + 1] ?? "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9 -]{0,23}$/.test(v)) throw Error("--tailored-resume needs a persona name or 'base'");
+  return {
+    tag: { tailored: true, persona: v === "base" ? null : v },
+    rest: [...args.slice(0, i), ...args.slice(i + 2)],
+  };
+}
+
 export async function prepare(o: {
   url: string;
   factsPath: string;
@@ -48,6 +72,7 @@ export async function prepare(o: {
   now: number;
   ttlHours?: number;
   runEngine: RunEngine;
+  resumeTag?: ResumeTag | null;
 }) {
   const run = await o.runEngine(["--url", o.url, "--facts", o.factsPath, "--resume", o.resumePath]);
   if (!run || run.result.reason !== "dry_run" || !run.evidence?.approval_hash) {
@@ -69,6 +94,9 @@ export async function prepare(o: {
     privacy_epoch: o.account.epoch,
     account_version: o.account.version,
     expires_at: new Date(o.now + (o.ttlHours ?? 24) * 3600_000).toISOString(),
+    ...(o.resumeTag?.tailored
+      ? { resume_tailored: true, ...(o.resumeTag.persona ? { resume_persona: o.resumeTag.persona } : {}) }
+      : {}),
   };
   // What the person reads before the yes: every answer as the form itself shows it (the engine's readback, so a select
   // reads "Yes", never its internal value "1"), the resume once by name, and where it goes. Nothing on the card that the
@@ -80,7 +108,7 @@ export async function prepare(o: {
   const card = [
     payload.company,
     ...fields.filter((f: any) => f.value !== payload.resume_sha256).map((f: any) => `${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${f.label}: ${shown(f)}`),
-    `Resume: ${ev.payload.resume.filename} (${payload.resume_sha256.slice(0, 12)})`,
+    resumeCardLine(ev.payload.resume.filename, payload.resume_sha256, o.resumeTag),
     ...(payload.page_field_names.length
       ? [`Also sent, set by the employer's page, unchanged: ${payload.page_field_names.join(", ")}`]
       : []),
@@ -297,6 +325,28 @@ export function engineRunner(o: { root: string; extra?: string[]; deno?: string 
   };
 }
 
+// WO-039: what a hand submission's evidence says was sent, for career_apply_record_own: the posting, the employer and the
+// page it was sent from (the engine's own observation, never typed by hand), and its outcome. Only a run that sent the
+// application is recorded, and the page's family must be the posting's.
+export function handRecord(ev: any): { job_id: string; company: string; url: string; state: string } {
+  const state = ev?.result?.state, posting = String(ev?.payload?.posting ?? ""), url = String(ev?.observation?.url_before ?? "");
+  if (!["submitted_unconfirmed", "confirmed", "unknown_outcome"].includes(state) || !posting) {
+    throw Error(`That run did not send an application (${state ?? "no result"})`);
+  }
+  let host = "";
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" || u.username || u.password) throw Error();
+    host = u.hostname.toLowerCase();
+  } catch {
+    throw Error("The evidence has no https page the application was sent from");
+  }
+  const fam = /(^|\.)greenhouse\.io$/.test(host) ? "greenhouse" : /(^|\.)lever\.co$/.test(host) ? "lever"
+    : /(^|\.)ashbyhq\.com$/.test(host) ? "ashby" : /(^|\.)smartrecruiters\.com$/.test(host) ? "smartrecruiters" : null;
+  if (!fam || !posting.startsWith(fam + ":")) throw Error("The page and the posting in the evidence do not match");
+  return { job_id: posting, company: String(ev.payload.company ?? ""), url, state };
+}
+
 // The person signs this computer in themselves, in a browser window on the Upmore app, the same way they sign in
 // anywhere (their own password or Google, their own 2FA). The session is read only from the app's own origin, after
 // they are signed in, from where the app keeps it (supabase-js: localStorage "sb-<project>-auth-token"); it stays in
@@ -410,12 +460,14 @@ async function signedInClient(cmd: string): Promise<any> {
 
 // Command line, for the owner's own machine (the first cohort): prepare one posting, or run one approved payload.
 //   deno run -A workers/career-browser/approve-first.ts prepare <url> <facts.json> <resume.pdf> <epoch> <version>
+//     [--tailored-resume <persona|base>]   (the resume is one tailor_resume made for this posting)
 //   deno run -A workers/career-browser/approve-first.ts run-one <payload.json> <resume.pdf> [engine args...]
 if (import.meta.main) {
   const [cmd, ...rest] = Deno.args;
   const root = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
   if (cmd === "prepare") {
-    const [url, facts, resume, epoch, version, ...extra] = rest;
+    const [url, facts, resume, epoch, version, ...more] = rest;
+    const { tag, rest: extra } = takeResumeTag(more);
     const r = await prepare({
       url,
       factsPath: facts,
@@ -423,6 +475,7 @@ if (import.meta.main) {
       account: { epoch: Number(epoch), version: Number(version) },
       now: Date.now(),
       runEngine: engineRunner({ root, extra }),
+      resumeTag: tag,
     });
     console.log("PREPARED " + JSON.stringify(r));
   } else if (cmd === "run-one") {
@@ -477,9 +530,12 @@ if (import.meta.main) {
     // person. Each ready application is stored for its card (career_apply_prepare_own: the database computes its hash and
     // checks it is theirs, for their current account); a posting with open questions is listed with them. Nothing is
     // sent: the card in their thread and their one text decide.
-    const [urlsFile, facts, resume, ...extra] = rest;
+    const [urlsFile, facts, resume, ...more] = rest;
+    const { tag, rest: extra } = takeResumeTag(more);
     if (!urlsFile || !facts || !resume) {
-      console.error("usage: approve-first.ts prepare-batch <urls.txt> <facts.json> <resume.pdf> [engine args]");
+      console.error(
+        "usage: approve-first.ts prepare-batch <urls.txt> <facts.json> <resume.pdf> [--tailored-resume <persona|base>] [engine args]",
+      );
       Deno.exit(2);
     }
     const urls = [
@@ -521,6 +577,7 @@ if (import.meta.main) {
           account: { epoch: Number(acct.data.epoch), version: Number(acct.data.version) },
           now: Date.now(),
           runEngine: engineRunner({ root, extra }),
+          resumeTag: tag,
         });
         if (!r.ready) {
           const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
@@ -551,8 +608,40 @@ if (import.meta.main) {
         `${asked} question${asked === 1 ? "" : "s"} only you can answer went to Trainee. Text "what do you need from me" to answer each once; then prepare again.`,
       );
     }
+  } else if (cmd === "record") {
+    // WO-039: a hand submission (scripts/apply.ts --headed --person-submits --submit, the owner's first trials) recorded
+    // as this person's own computer's, so the employer's confirmation email can count it toward the cloud's gate. Every
+    // value comes from the engine's own evidence, never from the command line.
+    const [evidenceDir] = rest;
+    if (!evidenceDir) {
+      console.error("usage: approve-first.ts record <evidence folder printed by apply.ts>");
+      Deno.exit(2);
+    }
+    let rec;
+    try {
+      rec = handRecord(JSON.parse(await Deno.readTextFile(`${evidenceDir}/evidence.json`)));
+    } catch (e: any) {
+      console.error(`${e?.message ?? e}; nothing was recorded.`);
+      Deno.exit(2);
+    }
+    const client = await signedInClient("record");
+    const r = await client.rpc("career_apply_record_own", { p_job_id: rec.job_id, p_company: rec.company, p_url: rec.url, p_state: rec.state });
+    console.log(r.error ? `NOT RECORDED (${r.error.message})` : `RECORDED ${rec.job_id}: it counts once the employer's email confirms it.`);
+  } else if (cmd === "cloud-resume") {
+    // WO-039: the resume the cloud may send, by its hash, kept until the person turns the cloud off or erases.
+    const [resume] = rest;
+    if (!resume) {
+      console.error("usage: approve-first.ts cloud-resume <resume.pdf>");
+      Deno.exit(2);
+    }
+    const bytes = await Deno.readFile(resume);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    const client = await signedInClient("cloud-resume");
+    const r = await client.rpc("career_apply_cloud_resume_put_own", { p_filename: resume.split("/").pop(), p_b64: btoa(bin) });
+    console.log(r.error ? `NOT STORED (${r.error.message})` : `STORED ${r.data}: the cloud can send applications approved with this resume.`);
   } else {
-    console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch ...");
+    console.error("usage: approve-first.ts prepare|run-one|run|prepare-batch|record|cloud-resume ...");
     Deno.exitCode = 2;
   }
 }

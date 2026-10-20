@@ -9,6 +9,7 @@ import { classifyField, classifyOutcome, type FormField, normLabel, type Observa
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
+import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 
 export type Family = "greenhouse" | "lever" | "ashby" | "workday";
 export interface Portal { family: Family; embedded: boolean }
@@ -154,7 +155,13 @@ export function questionsForTrainee(o: { jobId: string; company: string; needs: 
 // only answers given by text were kept). A question this posting could not answer, which the person then answered on the
 // form themselves and approved on the card, is kept under the same key the text path uses (answerKey: a fact for every
 // employer, a wording, or this posting only), so it travels exactly as far as a texted answer would. Never a masked or
-// identity value, never a file, never anything the page or Trainee filled.
+// identity value, never a file, never anything the page or Trainee filled. An answer that would travel beyond this
+// posting is kept only when it can be true elsewhere: never one naming this employer, and a how-heard answer only when it
+// names a channel ("A friend here told me" is about this employer).
+const namesEmployer = (answer: string, company: string) => {
+  const c = String(company ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|co|the)\b/g, "").replace(/\s+/g, " ").trim();
+  return c.length >= 3 && ` ${answer.toLowerCase().replace(/[^a-z0-9 ]/g, " ")} `.includes(` ${c} `);
+};
 export function formAnswersToKeep(o: {
   jobId: string; company: string; needs: { label: string; type: string; options: string[] }[];
   fields: { name: string; label: string; value: string; source: string }[]; answers: Record<string, unknown>; answered: Set<string>;
@@ -167,6 +174,7 @@ export function formAnswersToKeep(o: {
     const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm(x.label) === row.label);
     const answer = norm(f?.value ?? "");
     if (!f || !answer || answer === MASKED || answer.length > 2000) continue;
+    if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || (row.key === "fact:how_heard" && !howHeardChannel(answer)))) continue;
     out.push({ key: row.key, kind: row.kind, label: row.label, type: row.type, options: row.options, company: row.company, answer });
   }
   return { posting: q.posting, answers: out };
@@ -339,7 +347,7 @@ export async function evidenceRecord(o: {
 // screenshot the card never says confirmed (the owner: "when someone submits... they need to show proof").
 export function cardOutcome(o: { state: string; reason: string; confirmation_id: string | null }, hasAfterShot: boolean) {
   if (o.state === "confirmed" && hasAfterShot) {
-    return { status: "done", message: `Sent and confirmed by the employer${o.confirmation_id ? ` (${o.confirmation_id})` : ""}.` };
+    return { status: "done", message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` };
   }
   if (o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome") {
     return { status: "done", message: "Sent; the employer's answer could not be captured. Check your email for their confirmation." };

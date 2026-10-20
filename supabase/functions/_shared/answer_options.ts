@@ -100,6 +100,8 @@ const HOW_HEARD: [RegExp, RegExp][] = [
   [/indeed/, /^indeed$/],
   [/glassdoor/, /^glassdoor$/],
 ];
+// A how-heard answer that names a channel (a careers site, LinkedIn): one that can be true of every employer.
+export const howHeardChannel = (value: string) => HOW_HEARD.some(([v]) => v.test(low(value)));
 // A yes/no question whose answer follows from a stated fact: a citizenship or residence that names the country asked
 // about, an education level at or above the one asked, a notice period or start shorter than the one asked.
 export function yesNoFromFact(fact: string, value: string, question: string): "yes" | "no" | null {

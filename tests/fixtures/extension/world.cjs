@@ -340,6 +340,22 @@ async function startWorld(o = {}) {
         }
         return json(res, 200, (args.p_questions || []).length);
       }
+      // As 20261021120000: only a question still open and raised by this posting is answered (a missing one is created
+      // answered); an answer already given is never replaced. The answer reads back through career_apply_answers_own.
+      case "career_apply_questions_answer_from_form_own": {
+        state.formAnswerCalls = state.formAnswerCalls || [];
+        state.formAnswerCalls.push(args);
+        let n = 0;
+        for (const a of args.p_answers || []) {
+          const prior = state.questions.get(a.key);
+          if (prior && (prior.state !== "open" || !(prior.job_ids || []).includes(args.p_job_id))) continue;
+          const row = { ...(prior || { id: crypto.randomUUID(), job_ids: [args.p_job_id], kind: a.kind, label: a.label }), state: "answered", answer: String(a.answer).trim() };
+          state.questions.set(a.key, row);
+          state.answers.push({ id: row.id, key: a.key, kind: row.kind, answer: row.answer, answered_at: new Date().toISOString() });
+          n++;
+        }
+        return json(res, 200, n);
+      }
       case "career_apply_extension_begin_own": {
         const p = args.p_payload || {};
         state.begins.push(args);

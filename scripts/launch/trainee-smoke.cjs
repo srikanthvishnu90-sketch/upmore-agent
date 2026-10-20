@@ -16,6 +16,11 @@
 //     texted to that number through LoopMessage. Use your own number. Without the flag that check is skipped.
 //   - agent-chat with UPMORE_TEST_JWT: one "hi" turn for that test user (a thread, one of its 60 turns an hour).
 //   - with SUPABASE_DB_URL: reads only (psql): the three pg_cron jobs, their last run, and each run record's newest row.
+//   - WO-038, each only when its secrets are given (otherwise NOT RUN: that channel is NOT_WIRED, never a failure):
+//     trainee-telegram refuses a wrong X-Telegram-Bot-Api-Secret-Token and ignores an empty update with the right one
+//     (TELEGRAM_WEBHOOK_SECRET); Telegram's getWebhookInfo says the webhook is this project's trainee-telegram, read only
+//     (TELEGRAM_BOT_TOKEN); trainee-whatsapp answers Meta's GET challenge only with the right verify token and refuses an
+//     unsigned POST (WHATSAPP_VERIFY_TOKEN). None of them sends a message.
 // No secret, JWT, phone number or database URL is ever printed.
 const { execFileSync } = require('node:child_process');
 const crypto = require('node:crypto');
@@ -40,6 +45,8 @@ const RUNS = [
     sql: "select extract(epoch from now() - run_at)::int, coalesce(replace(error, E'\\n', ' '), '') from public.channel_delivery_runs order by run_at desc limit 1" },
 ];
 
+// WO-038: optional; each channel is checked only when its secrets are given.
+const CHANNEL_SECRETS = ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET', 'WHATSAPP_VERIFY_TOKEN', 'WHATSAPP_TOKEN', 'WHATSAPP_APP_SECRET'];
 const r = (status, check, detail) => ({ status, check, detail });
 const clip = (s, n = 160) => { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 async function call(fetchFn, url, init, timeoutMs) {
@@ -103,6 +110,50 @@ async function checkInboundHelp({ base, secret, contact, fetchFn, now }) {
   return r('FAIL', name, `HTTP ${x.status || 'none'}: ${said(x)}`);
 }
 
+// WO-038: the Telegram and WhatsApp webhooks' doors, and Telegram's own record of where it posts.
+async function checkTelegram({ base, secret, fetchFn }) {
+  const out = [], u = `${base}/functions/v1/trainee-telegram`;
+  const post = (s) => call(fetchFn, u, { method: 'POST', headers: { 'content-type': 'application/json', 'x-telegram-bot-api-secret-token': s }, body: '{}' }, 30000);
+  const w = await post('wrong' + crypto.randomBytes(20).toString('hex'));
+  out.push(w.status === 403 ? r('PASS', 'trainee-telegram refuses a wrong secret token', 'HTTP 403')
+    : r('FAIL', 'trainee-telegram refuses a wrong secret token', w.status === 404 ? 'HTTP 404: the function is not deployed' : `HTTP ${w.status || 'none'}: ${said(w)}`));
+  const a = await post(secret);
+  const name = 'trainee-telegram answers the right secret token';
+  if (a.status === 200 && a.body && a.body.ok === true) out.push(r('PASS', name, 'HTTP 200 (an empty update is ignored: no turn, no text)'));
+  else if (a.status === 503 && /NOT_WIRED|not configured/.test(said(a))) out.push(r('WARN', name, `HTTP 503, not wired yet: ${said(a)}`));
+  else if (a.status === 401) out.push(r('FAIL', name, 'HTTP 401 from the gateway: deploy it with --no-verify-jwt (Telegram carries no JWT)'));
+  else out.push(r('FAIL', name, `HTTP ${a.status || 'none'}: ${said(a)}`));
+  return out;
+}
+async function checkTelegramWebhook({ base, token, fetchFn }) {
+  const name = "Telegram's webhook is this project's trainee-telegram";
+  const x = await call(fetchFn, `https://api.telegram.org/bot${token}/getWebhookInfo`, { method: 'GET' }, 30000);
+  const info = x.body && x.body.result;
+  if (x.status !== 200 || !info) return r('FAIL', name, `getWebhookInfo HTTP ${x.status || 'none'}: ${said(x)} (check TELEGRAM_BOT_TOKEN)`);
+  if (info.url !== `${base}/functions/v1/trainee-telegram`) return r('FAIL', name, `it posts to ${info.url ? 'another URL' : 'nowhere'}: run setWebhook (docs/launch/TRAINEE-GO-LIVE.md, Telegram)`);
+  if (info.last_error_message) return r('WARN', name, `set, but its last delivery failed: ${clip(info.last_error_message, 120)}`);
+  return r('PASS', name, `set; ${Number(info.pending_update_count) || 0} updates pending`);
+}
+async function checkWhatsApp({ base, verifyToken, fetchFn }) {
+  const out = [], u = `${base}/functions/v1/trainee-whatsapp`;
+  const challenge = String(crypto.randomInt(1e9, 2e9));
+  const get = (t) => call(fetchFn, `${u}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(t)}&hub.challenge=${challenge}`, { method: 'GET' }, 30000);
+  const w = await get('wrong' + crypto.randomBytes(20).toString('hex'));
+  out.push(w.status === 403 ? r('PASS', 'trainee-whatsapp refuses a wrong verify token', 'HTTP 403')
+    : r('FAIL', 'trainee-whatsapp refuses a wrong verify token', w.status === 404 ? 'HTTP 404: the function is not deployed' : `HTTP ${w.status || 'none'}: ${said(w)}`));
+  const a = await get(verifyToken);
+  const name = "trainee-whatsapp answers Meta's challenge with the right verify token";
+  if (a.status === 200 && a.text === challenge) out.push(r('PASS', name, 'HTTP 200, the challenge echoed'));
+  else if (a.status === 401) out.push(r('FAIL', name, 'HTTP 401 from the gateway: deploy it with --no-verify-jwt (Meta carries no JWT)'));
+  else out.push(r('FAIL', name, `HTTP ${a.status || 'none'}: ${said(a)}`));
+  const p = await call(fetchFn, u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }, 30000);
+  const pn = 'trainee-whatsapp refuses an unsigned POST';
+  if (p.status === 403) out.push(r('PASS', pn, 'HTTP 403'));
+  else if (p.status === 503 && /not configured|NOT_WIRED/.test(said(p))) out.push(r('WARN', pn, `HTTP 503, not wired yet: ${said(p)}`));
+  else out.push(r('FAIL', pn, `HTTP ${p.status || 'none'}: ${said(p)}`));
+  return out;
+}
+
 async function checkChatNoJwt({ base, fetchFn }) {
   const x = await call(fetchFn, `${base}/functions/v1/agent-chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"message":"hi"}' }, 30000);
   return x.status === 401 ? r('PASS', 'agent-chat refuses a call with no JWT', 'HTTP 401') : r('FAIL', 'agent-chat refuses a call with no JWT', `HTTP ${x.status || 'none'}: ${said(x)}`);
@@ -156,7 +207,7 @@ async function main(argv, env, deps = {}) {
   const fetchFn = deps.fetch || fetch, sleep = deps.sleep || ((ms) => new Promise((res) => setTimeout(res, ms)));
   const now = deps.now || Date.now;
   // Never print a value that was handed in; an error message from a provider or psql could carry one back.
-  const hidden = ['SUPABASE_DB_URL', 'UPMORE_TEST_JWT', 'TRAINEE_SMOKE_CONTACT', ...GATED.map((g) => g.env)].map((k) => env[k]).filter((v) => v && v.length >= 4);
+  const hidden = ['SUPABASE_DB_URL', 'UPMORE_TEST_JWT', 'TRAINEE_SMOKE_CONTACT', ...GATED.map((g) => g.env), ...CHANNEL_SECRETS].map((k) => env[k]).filter((v) => v && v.length >= 4);
   const scrub = (s) => hidden.reduce((t, v) => t.split(v).join('***').split(encodeURIComponent(v)).join('***'), String(s));
   const line = (x) => log(scrub(`${x.status.padEnd(7)} ${x.check}${x.detail ? `: ${x.detail}` : ''}`));
   let opts;
@@ -176,6 +227,14 @@ async function main(argv, env, deps = {}) {
   if (!opts.allowSend) add(r('NOT RUN', 'trainee-inbound answers HELP', 'skipped: it texts the help reply through LoopMessage; pass --allow-send with TRAINEE_SMOKE_CONTACT (your own number)'));
   else if (!env.TRAINEE_SMOKE_CONTACT) add(r('NOT RUN', 'trainee-inbound answers HELP', 'missing TRAINEE_SMOKE_CONTACT'));
   else add(await checkInboundHelp({ base, secret: env.TRAINEE_INBOUND_SECRET, contact: env.TRAINEE_SMOKE_CONTACT, fetchFn, now: now() }));
+  // A channel not given is reported, not counted: it is NOT_WIRED by choice, and the core launch does not wait on it.
+  const optional = (x) => line(x);
+  if (env.TELEGRAM_WEBHOOK_SECRET) add(await checkTelegram({ base, secret: env.TELEGRAM_WEBHOOK_SECRET, fetchFn }));
+  else optional(r('NOT RUN', 'trainee-telegram', 'Telegram NOT_WIRED: no TELEGRAM_WEBHOOK_SECRET given'));
+  if (env.TELEGRAM_BOT_TOKEN) add(await checkTelegramWebhook({ base, token: env.TELEGRAM_BOT_TOKEN, fetchFn }));
+  else optional(r('NOT RUN', "Telegram's webhook", 'Telegram NOT_WIRED: no TELEGRAM_BOT_TOKEN given'));
+  if (env.WHATSAPP_VERIFY_TOKEN) add(await checkWhatsApp({ base, verifyToken: env.WHATSAPP_VERIFY_TOKEN, fetchFn }));
+  else optional(r('NOT RUN', 'trainee-whatsapp', 'WhatsApp NOT_WIRED: no WHATSAPP_VERIFY_TOKEN given'));
   if (env.UPMORE_TEST_JWT) add(await checkChatHi({ base, jwt: env.UPMORE_TEST_JWT, fetchFn }));
   else add(r('NOT RUN', 'agent-chat answers "hi" for the test user', 'missing UPMORE_TEST_JWT'));
 
@@ -197,5 +256,5 @@ async function main(argv, env, deps = {}) {
   return n('FAIL') ? 1 : 0;
 }
 
-module.exports = { GATED, RUNS, checkGate, checkInboundHelp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
+module.exports = { GATED, RUNS, CHANNEL_SECRETS, checkGate, checkInboundHelp, checkTelegram, checkTelegramWebhook, checkWhatsApp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
 if (require.main === module) main(process.argv.slice(2), process.env).then((code) => { process.exitCode = code; }, (e) => { console.log(`FAIL    trainee smoke crashed: ${e && e.message}`); process.exitCode = 1; });

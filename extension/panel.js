@@ -82,7 +82,7 @@ async function showProof(id) {
     return;
   }
   text($("proof-heading"), p.proved
-    ? `Proof: ${p.company}, sent and confirmed by the employer${p.confirmation_id ? ` (${p.confirmation_id})` : ""}`
+    ? `Proof: ${p.company}, sent; the employer's page confirmed it${p.confirmation_id ? ` (${p.confirmation_id})` : ""}`
     : `Not confirmed: ${p.screenshot_after ? p.reason : "the page after the click could not be photographed"}. This is what the page showed.`);
   text($("proof-meta"), `Approved ${when(p.times?.approved_at)}, approval ${String(p.approval_hash || "").slice(0, 12)}`);
   const ol = $("proof-answers");

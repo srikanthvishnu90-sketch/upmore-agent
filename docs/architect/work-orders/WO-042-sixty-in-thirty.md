@@ -465,6 +465,37 @@ The run's D and J were recomputed from its own recorded marks after a benchmark 
 `evidence.times`, which the extension does not record per step. Both the run's JSON and the benchmark now use
 content.js `steps.begun`.
 
+### Ask once, from the form (VERIFIED offline; the session gain is measured in session run 5)
+
+Session run 4 showed the person re-typing the same open questions on every repeat (40 typed, 110 picked over 60 cards),
+because only answers given by text were kept. Now an answer the person types or picks on the form, for a question this
+posting could not answer, is kept once the employer's page confirms the send. It is kept under the same key the text
+path uses (`answerKey`), so it reaches exactly as far as a texted answer would:
+- a fact goes to every employer;
+- a wording goes to that same wording only;
+- an essay, a screen or anything about this employer stays with this posting.
+
+What is never kept:
+- a masked value;
+- a file;
+- an answer Trainee or the page filled;
+- anything when the application stopped before the click;
+- an answer that would travel but names this employer;
+- a how-heard answer that names no channel ("A friend here told me").
+
+A failure to keep never touches the application's outcome.
+
+Found while building it: "Do you have any relatives working here?" mapped to nothing, because the rule matched only
+"relative", not "relatives". A kept "No" would then have gone to every employer asking the same wording, where it can be
+false. The rule now takes plurals, so the question maps to `relative_here`, which stays with its posting. Fill coverage
+moved from 84.3% to 84.5% (A) and from 83.5% to 83.6% (B) (VERIFIED, `docs/apply/fill-coverage.md`).
+
+Files and tests:
+- `extension/src/apply_core.ts` (`formAnswersToKeep`), `extension/content.js`, `extension/background.js`;
+- `supabase/migrations/20261021120000_career_apply_form_answers.sql` (`career_apply_questions_answer_from_form_own`:
+  updates only an open question of this posting; otherwise inserts an answered one under the 500-question cap);
+- tests: WO-042/11, the browser test "ask once, from the form", and `tests/db/career_apply_form_answers.test.sql`.
+
 ## 4. What blocks 60, in order of size
 
 1. **D-011 caps a person at 50 applications a day** (25 by default). One session of 60 in a day breaks the owner's own
@@ -498,7 +529,8 @@ content.js `steps.begun`.
    in hidden tabs at most once a second.
 4. A card reviewable in seconds: answers new to the person first and marked; repeated answers below them; every line
    present.
-5. Answer once before the session: the queue prepares all postings first, gathers the distinct questions only the
+5. Answer once. **Half done:** an answer given on one form now fills the same question on later postings (ask once,
+   from the form, above). Not built: answering before the session. There, the queue prepares all postings first, gathers the distinct questions only the
    person can answer, and asks them once in the panel. Each answer then fills every posting that asks it, at its exact
    wording.
 

@@ -54,7 +54,7 @@ create temp table ext_row as select career_apply_extension_begin_own((select p f
 select t.ok((select (r->>'payload_hash')=(select h from ext_h) and (r->>'id') is not null and (r->>'lease') is not null from ext_row),'begin returns the row, its lease and the database''s own hash');
 select t.ok((select count(*)=1 and bool_and(state='driving' and attempts=1 and payload_hash=approval_hash) from career_apply_jobs),'A reads one driving row of A''s');
 select t.must_fail($$select career_apply_extension_begin_own((select p from ext_p),(select h from ext_h))$$,'duplicate_job','the same posting twice is refused');
-select t.ok((select count(*)=0 from career_apply_claim_own(6)),'no worker claims the extension''s drive');
+select t.ok((select count(*)=0 from career_apply_claim_own(6,'extension')),'no worker claims the extension''s drive');
 reset role;
 grant select on ext_row to authenticated;
 select t.as_user('00000000-0000-4000-8000-000000000932');set role authenticated;
@@ -64,8 +64,9 @@ reset role;
 
 -- A records the employer's answer, once.
 select t.as_user('00000000-0000-4000-8000-000000000931');set role authenticated;
-select t.ok((select state='confirmed' and confirmation_id='TEST-12345' from career_apply_finish_own((select (r->>'id')::uuid from ext_row),(select (r->>'lease')::uuid from ext_row),'confirmed',
- '{"reason":"employer confirmation on the page","confirmation_id":"TEST-12345","source":"extension","screenshot_sha256":"00"}')),'A records the employer''s confirmation and the evidence');
+-- The page's confirmation is evidence; the row is confirmed only by the employer's email (20261021075000, WO-032).
+select t.ok((select state='submitted_unconfirmed' and confirmation_id='TEST-12345' and (evidence->>'page_confirmation')::boolean from career_apply_finish_own((select (r->>'id')::uuid from ext_row),(select (r->>'lease')::uuid from ext_row),'confirmed',
+ '{"reason":"employer confirmation on the page","confirmation_id":"TEST-12345","source":"extension","screenshot_sha256":"00"}')),'A records the page''s confirmation as evidence; the email confirms it');
 select t.must_fail($$select career_apply_finish_own((r->>'id')::uuid,(r->>'lease')::uuid,'failed','{}') from ext_row$$,'invalid apply transition','a finished application cannot be rewritten');
 -- One per company per 30 days, through the same queue rule.
 select t.must_fail($$select career_apply_extension_begin_own(p, h) from ext_v where name='same_company'$$,'company_cooldown','the same company again within 30 days is refused');
@@ -93,7 +94,7 @@ reset role;
 -- A drive the extension never finished is unknown at the next own claim, never re-driven.
 update career_apply_jobs set claimed_at=now()-interval '16 minutes' where job_id='ashby:fourth:1';
 select t.as_user('00000000-0000-4000-8000-000000000931');set role authenticated;
-select t.ok((select count(*)=0 from career_apply_claim_own(6)),'nothing is re-driven');
+select t.ok((select count(*)=0 from career_apply_claim_own(6,'extension')),'nothing is re-driven');
 reset role;
 select t.ok((select state='unknown_outcome' from career_apply_jobs where job_id='ashby:fourth:1'),'an unfinished extension drive is unknown, never resent');
 rollback;

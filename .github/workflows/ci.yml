@@ -27,6 +27,10 @@ jobs:
           echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"
           echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
           echo "ESBUILD_BIN=$RUNNER_TEMP/wo001-tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
+          echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
       - name: Allow sandboxed Chromium user namespaces for this gate job
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Career gate

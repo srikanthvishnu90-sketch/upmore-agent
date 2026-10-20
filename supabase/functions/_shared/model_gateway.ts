@@ -74,6 +74,8 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
     body.tool_choice = !tc || tc.type === "auto" ? "auto" : tc.type === "any" ? "required" : tc.type === "tool" ? { type: "function", function: { name: tc.name } } : tc.type === "none" ? "none" : "auto";
   }
   if (Array.isArray(payload.stop_sequences) && payload.stop_sequences.length) body.stop = payload.stop_sequences.slice(0, 4);
+  // WO-040: a caller that reads a person's mail asks OpenAI not to keep the completion (store: false).
+  if (payload.store === false) body.store = false;
   return body;
 }
 

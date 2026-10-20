@@ -520,12 +520,32 @@
    "order": ["created_at", "id"]
   },
   {
+   "table": "career_mail_events",
+   "order": ["detected_at", "id"]
+  },
+  {
+   "table": "career_mail_drafts",
+   "order": ["created_at", "id"]
+  },
+  {
    "table": "connector_profiles",
    "order": ["created_at"]
   },
   {
    "table": "career_events",
    "order": ["at", "id"]
+  },
+  {
+   "table": "career_interviews",
+   "order": ["seen_at", "id"]
+  },
+  {
+   "table": "career_digest_prefs",
+   "order": ["updated_at"]
+  },
+  {
+   "table": "career_outreach_drafts",
+   "order": ["created_at", "id"]
   },
   {
    "table": "channel_contacts",

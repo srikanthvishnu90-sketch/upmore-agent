@@ -1154,7 +1154,7 @@
     ],
     [
       "relative_here",
-      /\b(relative|family member|spouse|related to|personal relationship|close relationship|in-laws|anyone you live with)\b/
+      /\b(relatives?|family members?|spouses?|related to|personal relationships?|close relationships?|in-laws|anyone you live with)\b/
     ],
     [
       "applied_before",
@@ -1320,8 +1320,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function byYesNo(want, options) {
     const hit = options.filter((o) => yesNoOf(o.label) === want);
     if (hit.length === 1) return hit[0].value;
-    const plain = hit.filter((o) => /^(yes|no|sí|si|ja|nee|oui|non|はい|いいえ)[.!]?$/i.test(o.label.trim()));
-    return only(plain);
+    const plain2 = hit.filter((o) => /^(yes|no|sí|si|ja|nee|oui|non|はい|いいえ)[.!]?$/i.test(o.label.trim()));
+    return only(plain2);
   }
   var DECLINE = /decline|prefer not|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|ne préfère pas/;
   var EDUCATION = {
@@ -1466,6 +1466,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       /^glassdoor$/
     ]
   ];
+  var howHeardChannel = (value) => HOW_HEARD.some(([v]) => v.test(low(value)));
   function yesNoFromFact(fact, value, question) {
     const q = low(question), v = low(value);
     const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
@@ -2009,6 +2010,45 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes.encode(canonical(payload))))).map((n) => n.toString(16).padStart(2, "0")).join("");
   }
 
+  // supabase/functions/_shared/ai_policy.ts
+  var plain = (s) => String(s ?? "").replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
+  var sentences = (s) => (s.match(/[^.!?]+[.!?]*/g) || []).map((x) => x.trim()).filter(Boolean);
+  var AI = /\b(ai|a\.i\.|artificial intelligence|chat ?gpt|gpt|llms?|large language models?|generative|gen ?ai|language models?|chatbots?)\b|\bgenerated (content|text|answers?|responses?)\b/i;
+  var INTERVIEW_ONLY = (s) => /\binterview/i.test(s) && !/\b(application|answers?|responses?|written|writing|essays?|materials|submissions?|cover letter|questions?|apply)\b/i.test(s);
+  var BAN = [
+    /\b(do not|don'?t|must not|may not|should not|shouldn'?t|cannot|can'?t|never|refrain from|avoid|without)\b[^.!?]{0,60}\b(ai|artificial intelligence|chat ?gpt|llms?|generative|gen ?ai|language models?|chatbots?)\b/i,
+    /\b(ai|artificial intelligence|chat ?gpt|llms?|generative ai|gen ?ai|ai tools|generated content)\b[^.!?]{0,80}\b(not (be )?(allowed|permitted|accepted|acceptable)|prohibited|forbidden|disqualif\w*|grounds for (rejection|disqualification)|(result in|lead to) (rejection|disqualification))/i,
+    /\b(not|never) (be )?(written|generated|produced|drafted|created|assisted) (by|with|using) (an? )?(ai|artificial intelligence|chat ?gpt|generative|language model|llm)/i,
+    /\bnon-?ai[- ]assisted\b|\bwithout (mediation|assistance|help) (through|from|of) (an? )?ai\b/i
+  ];
+  var OWN_WORDS = /\b(only|solely|entirely) (in )?(my|your|their) own words\b|\buse (only )?(my|your) own words\b/i;
+  var ALLOW = [
+    /\b(encourage|welcome|invite)s? (you |candidates |applicants )?to use\b[^.!?]{0,40}\b(ai|artificial intelligence|chat ?gpt|llms?)\b/i,
+    /\b(feel free|you(?:'re| are) (free|welcome)|you may|you can|it'?s (fine|ok(ay)?)|is (fine|ok(ay)?|allowed|permitted)) to use\b[^.!?]{0,40}\b(ai|artificial intelligence|chat ?gpt|llms?)\b/i,
+    /\b(ai|artificial intelligence|chat ?gpt|llms?)( tools)? (is|are) (allowed|permitted|welcome|fine)\b/i
+  ];
+  var APPLICATION_SCOPE = /\b(application|applying|apply|materials|answers?|responses?|research|prepare|refine|resume|cover letter|writing)\b/i;
+  var NAMED_POLICY = /\bai[- ](use )?polic(y|ies)\b|\bpolicy on (the )?(use of )?(ai|artificial intelligence|generative ai)\b|\b(ai|generative ai) (usage )?guidelines\b/i;
+  function readOne(label) {
+    const text = plain(label);
+    if (!text || !(AI.test(text) || OWN_WORDS.test(text) || /plagiari/i.test(text))) return "unknown";
+    const scoped = sentences(text).filter((s) => !INTERVIEW_ONLY(s)).join(" ");
+    if (!scoped) return "unknown";
+    if (BAN.some((r) => r.test(scoped))) return "prohibited";
+    if (OWN_WORDS.test(scoped) && (AI.test(scoped) || /plagiari/i.test(scoped))) return "prohibited";
+    if (ALLOW.some((r) => r.test(scoped)) && APPLICATION_SCOPE.test(scoped)) return "allowed";
+    if (NAMED_POLICY.test(scoped)) return "unread";
+    return "unknown";
+  }
+  function aiPolicyStatements(labels) {
+    const out = [];
+    for (const l of labels || []) {
+      const t = plain(l).slice(0, 600);
+      if (t && readOne(t) !== "unknown" && !out.includes(t)) out.push(t);
+    }
+    return out.slice(0, 4);
+  }
+
   // workers/career-browser/ask-once.ts
   function factsWithTextAnswers(facts, rows) {
     const answers = {
@@ -2041,6 +2081,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       posting,
       questions: []
     };
+    const aiPolicy = aiPolicyStatements(Array.isArray(result?.ai_policy) ? result.ai_policy : []).join("\n").slice(0, 1200);
     for (const q of Array.isArray(result?.questions) ? result.questions : []) {
       const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
       if (!label || NEVER_BY_TEXT.test(label)) continue;
@@ -2065,7 +2106,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         type,
         options,
         company: result?.company ? String(result.company).slice(0, 200) : null,
-        misfit: o.answered.has(key)
+        misfit: o.answered.has(key),
+        ...m.kind === "essay" && aiPolicy ? {
+          ai_policy: aiPolicy
+        } : {}
       });
     }
     return {
@@ -2162,6 +2206,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     chooseWidgetOption: () => chooseWidgetOption,
     detectPortal: () => detectPortal,
     evidenceRecord: () => evidenceRecord,
+    formAnswersToKeep: () => formAnswersToKeep,
     isIdentityField: () => isIdentityField,
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
@@ -2368,6 +2413,35 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       answered: o.answered
     });
   }
+  var namesEmployer = (answer, company) => {
+    const c = String(company ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|co|the)\b/g, "").replace(/\s+/g, " ").trim();
+    return c.length >= 3 && ` ${answer.toLowerCase().replace(/[^a-z0-9 ]/g, " ")} `.includes(` ${c} `);
+  };
+  function formAnswersToKeep(o) {
+    const q = questionsForTrainee(o);
+    const norm3 = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
+    const out = [];
+    for (const row of q.questions) {
+      if (/file/.test(String(row.type))) continue;
+      const f = o.fields.find((x) => x.source === "you" && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
+      const answer = norm3(f?.value ?? "");
+      if (!f || !answer || answer === MASKED || answer.length > 2e3) continue;
+      if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || row.key === "fact:how_heard" && !howHeardChannel(answer))) continue;
+      out.push({
+        key: row.key,
+        kind: row.kind,
+        label: row.label,
+        type: row.type,
+        options: row.options,
+        company: row.company,
+        answer
+      });
+    }
+    return {
+      posting: q.posting,
+      answers: out
+    };
+  }
   var MASKED = "[typed by you on the form; never kept by Trainee]";
   function reviewPayload(o) {
     return {
@@ -2528,7 +2602,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (o.state === "confirmed" && hasAfterShot) {
       return {
         status: "done",
-        message: `Sent and confirmed by the employer${o.confirmation_id ? ` (${o.confirmation_id})` : ""}.`
+        message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.`
       };
     }
     if (o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome") {

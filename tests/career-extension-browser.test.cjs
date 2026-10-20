@@ -469,6 +469,59 @@ test("a value the page drops while it hydrates is set again after the rest (live
   }
 });
 
+test("ask once, from the form: what the person typed on an approved card fills the same question at another company; a stop keeps nothing", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d";
+  const before = (world.state.formAnswerCalls || []).length, answersBefore = world.state.answers.length;
+  // A stop before the click keeps nothing.
+  let form = await openForm(world.cloneUrl(id, 901));
+  try {
+    const card = await readyCard(form);
+    assert.equal(card.status, "ready");
+    // The person's own edit while the approved application is being recorded stops it before the click.
+    world.state.beginDelayMs = 700;
+    await form.panel.click("#approve");
+    await sleep(250);
+    await form.page.fill("[name='email']", "changed.by.me@example.test");
+    await waitCard(form.tabId, (c) => c.status === "stopped");
+    await sleep(500);
+    assert.equal(submitsFor(id).length, 0, "nothing sent");
+    assert.equal((world.state.formAnswerCalls || []).length, before, "nothing kept when nothing was sent");
+  } finally {
+    world.state.beginDelayMs = 0;
+    await closeForm(form);
+  }
+  // Sent: the person's own answers go to the questions this posting raised.
+  form = await openForm(world.cloneUrl(id, 902));
+  let typed;
+  try {
+    const card = await readyCard(form);
+    typed = card.payload.fields.filter((f) => f.source === "you");
+    assert.ok(typed.length >= 1, "the person typed at least one answer on this form");
+    await form.panel.click("#approve");
+    await waitCard(form.tabId, (c) => c.status === "done");
+    const call = world.state.formAnswerCalls.at(-1);
+    assert.equal(world.state.formAnswerCalls.length, before + 1, "kept once, after the send");
+    assert.ok(call.p_answers.length >= 1 && call.p_answers.every((a) => typed.some((f) => f.value.trim() === a.answer)), "only the person's own answers");
+    assert.ok(world.state.answers.length > answersBefore, "they read back as answers");
+  } finally {
+    await closeForm(form);
+  }
+  // The same form at another company: the questions answered once are filled from those answers, not asked again.
+  form = await openForm(world.cloneUrl(id, 903));
+  try {
+    const card = await fill(form);
+    const kept = world.state.formAnswerCalls.at(-1).p_answers;
+    const reused = card.payload.fields.filter((f) => f.source === "trainee" && /^text-answer:/.test(f.factId || ""));
+    const travels = kept.filter((a) => !a.key.startsWith("job:"));
+    assert.ok(travels.length >= 1, "at least one answer travels beyond its posting");
+    for (const a of travels) assert.ok(reused.some((f) => f.label.replace(/\s+/g, " ").trim() === a.label && f.value.trim() === a.answer), "filled again: " + a.label);
+  } finally {
+    await closeForm(form);
+  }
+});
+
 test("verification: a challenge on the page stops before anything is filled and hands off to the person", async (t) => {
   if (skip(t)) return;
   fresh();
@@ -979,7 +1032,7 @@ test("proof: Lever (navigates) and Ashby (in place): two screenshots, both hashe
       await form.panel.click("#approve");
       const done = await waitCard(form.tabId, (c) => c.status === "done");
       assert.equal(done.result, "confirmed");
-      assert.match(done.message, /^Sent and confirmed by the employer/);
+      assert.match(done.message, /^Sent; the employer's page confirmed it/);
       await sleep(1200); // a late "page closed" would land here
       const trail = await trailOf(form.tabId);
       const after = trail.slice(trail.findIndex((x) => x.by === "approve"));
@@ -1006,7 +1059,7 @@ test("proof: Lever (navigates) and Ashby (in place): two screenshots, both hashe
         quote: document.getElementById("proof-text").textContent, url: document.getElementById("proof-url").textContent,
         times: document.getElementById("proof-times").textContent, meta: document.getElementById("proof-meta").textContent,
       }));
-      assert.match(view.heading, /sent and confirmed by the employer/);
+      assert.match(view.heading, /sent; the employer's page confirmed it/);
       assert.equal(view.answers, done.payload.fields.length);
       assert.match(view.before, /^data:image\/png/);
       assert.match(view.after, /^data:image\/png/);

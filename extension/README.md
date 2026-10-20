@@ -37,7 +37,7 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
   text and number, the final page address, and the times. Your account's record keeps the screenshots' hashes, never the
   pictures. Press **Proof** on the card or on a queue item to see it. **Clear proof on this computer** removes it after
   you confirm.
-- "Sent and confirmed by the employer" is said only when the employer's answer was read and the page after the click was
+- "Sent; the employer's page confirmed it" is said only when the employer's answer was read and the page after the click was
   photographed. Otherwise the panel says "Sent; the employer's answer could not be captured. Check your email for their
   confirmation."
 - Questions only you can answer go to Trainee, which asks you once by text. Your answer then fills on every later form.
@@ -64,7 +64,7 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
    "Type this yourself" (an identity number) you type on the form; it is never kept.
 4. Press **Approve and submit** once. The extension checks the form is unchanged and presses the site's own Submit. If a
    verification appears, finish it yourself on the page and press Approve again.
-5. The panel shows the employer's answer ("Sent and confirmed by the employer", or what is missing) and the seconds from
+5. The panel shows the employer's answer ("Sent; the employer's page confirmed it", or what is missing; the employer's email makes it confirmed) and the seconds from
    card to answer. Press **Proof** to see what was sent and what the employer's page showed.
 
 ## Many postings: the queue

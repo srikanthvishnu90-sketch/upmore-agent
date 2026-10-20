@@ -1,0 +1,1207 @@
+{
+ "kind": "assumed",
+ "note": "ASSUMED. Architect-proposed labels for WO-037, written by the architect from each row's title, company, location and the first 3,000 characters of its description, against the rubric below, without looking at the gate's answer. They are NOT ground truth: the precision target counts only labels.human.json. Use them to see where the gate and a careful reader disagree before the human labels exist.",
+ "rubric": "A row is a match only if all hold. R role: the title is the persona's role or a direct equivalent a person in that role applies to (product marketing is not product management; claims operations is not data analysis). P place: the location is one of the persona's places, or remote within the US for a persona who accepts remote; a multi-city listing counts when one city is theirs; remote restricted to another country is not. L level: inside the persona's stated levels, read from the title, and for entry-only personas a visible requirement of 3+ years fails (5+ for entry-or-mid). T type: a persona who said full time does not want contract, temporary, part time, co-op or internship. S staffing: a third-party recruiter posting for a client fails (no persona allowed staffing). X: a training scheme is not a job. Codes in 'why' name the deciding rules.",
+ "labels": {
+  "P01-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P01-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P01-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 2-5 years asked, under 3"
+  },
+  "P01-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 1-4 years"
+  },
+  "P01-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P01-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P01-07": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: 10+ years"
+  },
+  "P01-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P01-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: lead"
+  },
+  "P01-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: staff"
+  },
+  "P01-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P01-12": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: Rosslyn, VA is in the US"
+  },
+  "P01-13": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: Hawthorne, CA; new grad"
+  },
+  "P01-14": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: SF / NYC hybrid"
+  },
+  "P01-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Canada; T: co-op"
+  },
+  "P01-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Canada; T: internship"
+  },
+  "P01-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Canada; R: tester"
+  },
+  "P01-18": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: mobile developer; P: Ohio"
+  },
+  "P01-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior; S"
+  },
+  "P01-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing firm"
+  },
+  "P02-01": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Webster, NY is upstate, not NYC"
+  },
+  "P02-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 3 years"
+  },
+  "P02-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P02-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 3+ years, mid"
+  },
+  "P02-05": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: claims operations analyst"
+  },
+  "P02-06": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: data support (support role)"
+  },
+  "P02-07": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "X: a training scheme, not a job"
+  },
+  "P02-08": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: claims operations analyst"
+  },
+  "P02-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P02-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P02-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior; S"
+  },
+  "P02-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L; P: Berlin"
+  },
+  "P02-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Ventura"
+  },
+  "P02-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Manchester UK"
+  },
+  "P02-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P02-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: data scientist; L: lead"
+  },
+  "P02-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P02-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Chicago; T: intern"
+  },
+  "P02-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P02-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Sao Paulo; L"
+  },
+  "P03-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P03-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P03-03": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: program management"
+  },
+  "P03-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P03-05": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: product marketing"
+  },
+  "P03-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P03-07": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: product marketing"
+  },
+  "P03-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: outbound PM; P: Palo Alto"
+  },
+  "P03-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: principal"
+  },
+  "P03-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: product marketing"
+  },
+  "P03-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: product marketing"
+  },
+  "P03-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Maryland"
+  },
+  "P03-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Boston"
+  },
+  "P03-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: New York"
+  },
+  "P03-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: retail"
+  },
+  "P03-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P03-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: design intern"
+  },
+  "P03-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: UK"
+  },
+  "P03-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: program management"
+  },
+  "P03-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: program management; P"
+  },
+  "P04-01": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing agency"
+  },
+  "P04-02": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S; R: nurse manager"
+  },
+  "P04-03": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing agency"
+  },
+  "P04-04": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing agency"
+  },
+  "P04-05": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing agency"
+  },
+  "P04-06": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing agency"
+  },
+  "P04-07": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Tennessee; S"
+  },
+  "P04-08": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Illinois"
+  },
+  "P04-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: California; S"
+  },
+  "P04-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: nurse practitioner; P"
+  },
+  "P04-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P; T: part time"
+  },
+  "P04-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P04-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P04-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R"
+  },
+  "P04-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P04-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Illinois"
+  },
+  "P04-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: practical nurse; P"
+  },
+  "P04-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: California; S"
+  },
+  "P04-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: not Texas, not stated remote"
+  },
+  "P04-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: New Jersey"
+  },
+  "P05-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; staff accountant is an entry title"
+  },
+  "P05-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 2-5 years"
+  },
+  "P05-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P05-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P05-05": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-06": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-07": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-08": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: SF / Seattle"
+  },
+  "P05-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Dallas"
+  },
+  "P05-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Boston"
+  },
+  "P05-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P05-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: manager; P"
+  },
+  "P05-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P05-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P05-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P; S"
+  },
+  "P05-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P; S"
+  },
+  "P05-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P; S"
+  },
+  "P06-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; no level limit stated"
+  },
+  "P06-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-07": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P06-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "T: internship"
+  },
+  "P06-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "T: internship"
+  },
+  "P06-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: UK"
+  },
+  "P06-12": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: San Leandro, CA"
+  },
+  "P06-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "S: staffing firm"
+  },
+  "P06-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: designer (drafting)"
+  },
+  "P06-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R"
+  },
+  "P06-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: sourcing"
+  },
+  "P06-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: manufacturing engineering"
+  },
+  "P06-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: hardware (electrical)"
+  },
+  "P06-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: civil"
+  },
+  "P06-20": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P: San Mateo"
+  },
+  "P07-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-03": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Canada"
+  },
+  "P07-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; temp, no type limit stated"
+  },
+  "P07-07": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P07-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P07-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior, 4+ years"
+  },
+  "P07-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Warsaw"
+  },
+  "P07-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Singapore"
+  },
+  "P07-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Manila"
+  },
+  "P07-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R"
+  },
+  "P07-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L; P"
+  },
+  "P07-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; L: manager"
+  },
+  "P07-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R"
+  },
+  "P07-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P07-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R L"
+  },
+  "P08-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P08-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; contract, no type limit stated"
+  },
+  "P08-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P08-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P08-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 2-5 years"
+  },
+  "P08-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P08-07": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P08-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; 2+ years"
+  },
+  "P08-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P08-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: senior"
+  },
+  "P08-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: manager"
+  },
+  "P08-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: not stated remote or Austin"
+  },
+  "P08-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: SF"
+  },
+  "P08-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Minneapolis"
+  },
+  "P08-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P08-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P08-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P08-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; L"
+  },
+  "P08-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P08-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R; P"
+  },
+  "P09-01": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: remote in the Philippines"
+  },
+  "P09-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-03": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Costa Rica"
+  },
+  "P09-04": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: remote in Canada"
+  },
+  "P09-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-06": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Poland"
+  },
+  "P09-07": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; no level limit stated"
+  },
+  "P09-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P; no level limit stated"
+  },
+  "P09-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: UK; T: contract"
+  },
+  "P09-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "T: contract"
+  },
+  "P09-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "T: contract"
+  },
+  "P09-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: on site"
+  },
+  "P09-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Hong Kong"
+  },
+  "P09-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: on site"
+  },
+  "P09-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: customer service"
+  },
+  "P09-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P09-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: MENA"
+  },
+  "P10-01": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R: ML Ops engineering; P L"
+  },
+  "P10-02": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-03": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-04": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-05": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P10-06": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-07": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-08": {
+   "label": "match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P L"
+  },
+  "P10-09": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: staff"
+  },
+  "P10-10": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: staff"
+  },
+  "P10-11": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "T: co-op"
+  },
+  "P10-12": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Tel Aviv"
+  },
+  "P10-13": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: SF / NYC"
+  },
+  "P10-14": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P: Massachusetts"
+  },
+  "P10-15": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R"
+  },
+  "P10-16": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P10-17": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "L: VP; P"
+  },
+  "P10-18": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "P; T"
+  },
+  "P10-19": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  },
+  "P10-20": {
+   "label": "no_match",
+   "by": "architect (ASSUMED)",
+   "at": "2026-10-20",
+   "why": "R P"
+  }
+ }
+}

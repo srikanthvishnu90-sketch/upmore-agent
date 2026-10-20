@@ -296,7 +296,7 @@ Deno.test("WO-036/T12 the brain tools: effects, descriptions that say when to us
   eq([done.status, done.offer.company, done.offer.metro, done.draft.sent], ["benchmarked", "Stripe", "seattle", false]);
   eq(state.offerBenchmark, undefined, "cleared once benchmarked");
   // The guidance tool reads only confirmed facts.
-  const c = { userId: "u1", threadId: "t2", now: NOW, state: {} as Record<string, any>, turn: { message: "x", added: [] as string[] } };
+  const c = { userId: "u1", threadId: "t2", now: NOW, state: {} as Record<string, any>, turn: { message: "I'm doing a BS in Computer Science, class of 2028", added: [] as string[] } }; // WO-061: a fact is saved only from the person's words
   await tools.add_profile_fact.run({ kind: "education", text: "BS Computer Science, class of 2028" }, c);
   const draftOnly = await tools.career_path_answer.run({ firm: "Palantir" }, c) as any;
   assert(draftOnly.moves.every((m: any) => m.fact === null), "a draft fact is not used");

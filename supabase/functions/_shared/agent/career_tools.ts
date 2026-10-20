@@ -41,6 +41,19 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
   return null;
 }
+// D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the
+// fact's own words (3+ letters, not filler) must be in their message, and words of inference are refused outright.
+const FILLER = new Set(["the", "and", "for", "with", "has", "have", "had", "was", "are", "is", "years", "year", "wants", "want", "work", "worked", "role", "roles", "job", "jobs", "their", "they", "from", "who", "that", "this", "person", "user"]);
+const GUESSED = /\b(assum\w*|infer\w*|probabl\w*|likely|presumabl\w*|guess\w*|seems?|maybe|perhaps|implied)\b/i;
+export function factRefusal(text: string, message: string | undefined): string | null {
+  if (GUESSED.test(text)) return "not saved: a fact about the person is only what they said, never an assumption or inference";
+  if (message === undefined) return null;
+  const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !FILLER.has(w));
+  const said = new Set(words(message)), mine = words(text);
+  if (!mine.length) return null;
+  const hit = mine.filter((w) => said.has(w) || [...said].some((s) => s.length >= 4 && (s.startsWith(w.slice(0, 4)) || w.startsWith(s.slice(0, 4))))).length;
+  return hit * 2 >= mine.length ? null : "not saved: the person did not say this in their message; save only what they said, in their words";
+}
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
@@ -117,6 +130,8 @@ export function careerTools(deps: {
       description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words. It is not usable until they confirm it.",
       input_schema: obj({ kind: str("experience | education | skill | goal | location | preference | other"), text: str("The fact in the person's own words") }, ["kind", "text"]),
       run: async (i, c) => {
+        const refused = factRefusal(String(i.text ?? ""), c.turn?.message);
+        if (refused) throw new Error(refused);
         const fact = CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" });
         c.turn?.added.push(fact.id);
         return { fact };

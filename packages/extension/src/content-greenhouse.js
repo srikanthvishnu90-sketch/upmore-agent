@@ -16,31 +16,46 @@
  *      proof record and hand it to the background worker, which screenshots
  *      the tab and files the report.
  *
- * SPIKE NOTE: until bank sync lands (see DESIGN.md), the bank comes from
- * chrome.storage.local 'traineeBank'; the local demo seeds it from the
- * committed fixture (fixtures/answer-bank.alex-testcase.json — the Alex
- * Testcase TEST persona) when the extension runs on localhost. On real
- * Greenhouse hosts with no synced bank, the popup says so — the extension
- * never fabricates a bank.
+ * SAVED-ANSWERS SOURCE (sync lane, 2026-10-20): the answers come from
+ * chrome.storage.local 'traineeBank', whose writer decides its kind:
+ * the sync client stores the signed-in user's own saved answers there
+ * (source "saved-answers", served by the product's extension-sync
+ * function from their confirmed profile); the local demo may seed the
+ * committed fixture (fixtures/answer-bank.alex-testcase.json — the
+ * Alex Testcase TEST persona, source "demo-fixture", LABELED demo
+ * everywhere it surfaces). The choice between them is
+ * TraineeBankSource.resolveBankSource (src/bank-source.js) and its
+ * hard rule: signed in -> NEVER the fixture. On real Greenhouse hosts
+ * with no synced answers, the popup says so — the extension never
+ * fabricates a set.
  */
 (() => {
   const E = window.TraineeFillEngine;
   if (!E) return;
   const isDemo = location.hostname === "localhost" || location.hostname === "127.0.0.1";
   const store = (typeof chrome !== "undefined" && chrome.storage) ? chrome.storage : null;
+  let bankSource = null;
 
   async function loadBank() {
     if (!store) return null;
-    const got = await store.local.get("traineeBank");
-    if (got && got.traineeBank) return got.traineeBank;
-    if (isDemo) {
+    const got = await store.local.get(["traineeBank", "traineeSession"]);
+    const stored = got && got.traineeBank ? got.traineeBank : null;
+    const S = window.TraineeBankSource;
+    const decision = S
+      ? S.resolveBankSource({ hasSession: !!(got && got.traineeSession), storedBank: stored, isDemoHost: isDemo })
+      : { action: stored ? "use-stored" : "none", source: stored ? "stored" : null };
+    if (decision.action === "use-stored") { bankSource = decision.source; return stored; }
+    if (decision.action === "seed-fixture") {
       try {
         const res = await fetch(chrome.runtime.getURL("fixtures/answer-bank.alex-testcase.json"));
         const bank = await res.json();
+        bank.source = "demo-fixture"; // the storage copy is labeled; the committed fixture file is never edited
         await store.local.set({ traineeBank: bank });
+        bankSource = "demo-fixture";
         return bank;
-      } catch (e) { return null; }
+      } catch (e) { bankSource = null; return null; }
     }
+    bankSource = null;
     return null;
   }
 
@@ -50,9 +65,9 @@
   async function analyze() {
     const bank = await loadBank();
     const entries = E.discoverFields(document);
-    lastPlan = bank ? E.planFill(entries, bank) : entries.map((e) => Object.assign({}, e, { status: "needs_user", reasonCode: "no_bank", reason: "no answer bank synced yet" }));
+    lastPlan = bank ? E.planFill(entries, bank) : entries.map((e) => Object.assign({}, e, { status: "needs_user", reasonCode: "no_bank", reason: "no saved answers synced yet" }));
     lastCoverage = E.coverageOf(lastPlan);
-    if (store) await store.session.set({ traineeCoverage: { url: location.href, at: new Date().toISOString(), bankPersona: bank ? bank.persona : null, coverage: { total: lastCoverage.total, answerable: lastCoverage.answerable, needsUser: lastCoverage.needsUser }, needs: lastCoverage.needs } });
+    if (store) await store.session.set({ traineeCoverage: { url: location.href, at: new Date().toISOString(), bankPersona: bank ? bank.persona : null, bankSource, coverage: { total: lastCoverage.total, answerable: lastCoverage.answerable, needsUser: lastCoverage.needsUser }, needs: lastCoverage.needs } });
     return lastCoverage;
   }
 

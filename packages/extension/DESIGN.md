@@ -41,7 +41,28 @@ Hard rules, enforced as code shape, not copy:
   failure and the field joins the needs-user list — never a silent
   "filled".
 
-## 2. Answer bank sync — how answers get from the product to the extension
+## 2. Saved-answers sync — how answers get from the product to the extension
+
+> **STATUS — BUILT 2026-10-20 (not deployed).** The sync below is built
+> as a dedicated edge function, `extension-sync`, with core
+> `supabase/functions/_shared/extension_sync.js` (guard suite:
+> `tests/career-extension-sync.test.cjs`, 20/20; real-Chromium proof
+> against the real core behind auth doubles — see
+> `docs/career/extension-sync-record-2026-10-20.md`). As-built deltas
+> from the sketch that follows: the endpoints are
+> `GET /functions/v1/extension-sync/saved-answers` and
+> `POST /functions/v1/extension-sync/application-proofs`; the version
+> field is named `savedAnswersVersion`; sign-in is the popup's GoTrue
+> password grant (the `launchWebAuthFlow` hand-off page sketched below
+> does not exist — the password is never stored, the refresh token
+> lives in `chrome.storage.local`, and the function verifies the JWT
+> itself via GoTrue, so gateway `verify_jwt` is not load-bearing);
+> composition is module 149's derivation **plus** the product's own
+> module 132 saved-answer seam for the sensitive questions
+> (work authorization, sponsorship, pronouns, located-in-US), because
+> in the 122 master dialect those answers live in
+> constraints/defaults, not in derivable facts. The function and
+> migration `20261020010000` await the owner's deploy word.
 
 The extension consumes the **derived answer map**, never raw facts. Module
 149's `deriveAnswers(bank)` already produces exactly the contract:
@@ -157,10 +178,28 @@ prose must never mint a "submitted"). The proof record:
 
 The background worker screenshots the confirmation tab and files the
 record; the popup shows "Application proof saved". The report back to
-the product (authenticated, same token as bank sync) is
+the product (authenticated, same token as the saved-answers sync) is
 `POST /career/application-proofs` — in the spike this call is a named
 stub (`traineeProofOutbox`, status `queued_local_only`, endpoint
 NOT_WIRED): the spike sends nothing anywhere, and says so in the record.
+
+> **STATUS — BUILT 2026-10-20 (not deployed).** The report now goes to
+> `POST /functions/v1/extension-sync/application-proofs` under the
+> signed-in user's own session. The function **re-parses the claimed
+> confirmation server-side** from the excerpt the report carries,
+> under the same module 150 rules: a claimed ID must equal the parsed
+> ID, a still-open form is refused, and an excerpt with neither a
+> labeled ID nor success wording records nothing — a report claiming a
+> confirmation the page didn't show is impossible by construction.
+> Accepted reports are stored in `public.extension_submission_reports`
+> with the fully built module 126 tracker record (stage "Confirmed",
+> employer-record confirmation event) on the row, and the extension
+> keeps the receipt; duplicates (same user, same confirmation ID)
+> return the original receipt. Reports that cannot go out stay
+> `queued_local_only` with the true reason and retry on sign-in/sync.
+> Folding the stored tracker records into the in-chat track store is a
+> named agent-chat follow-up (agent-chat's versioned commit owns that
+> store's write path).
 
 This proof is what feeds the product's tracker and its caps ledger — an
 assisted submission is a real submission, counted like any other (module

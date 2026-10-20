@@ -352,6 +352,11 @@ const TraineeFillEngine = (() => {
       answersSubmitted: snapshot || null,
       confirmationId: ex.confirmationId,
       confirmationText: excerpt,
+      // The sync report carries these so the product re-parses the
+      // confirmation from the excerpt under the same rules — the
+      // record claims only what the page showed (DESIGN.md §4).
+      successText: !!ex.successText,
+      formStillOpen: open,
       timestamp: new Date().toISOString(),
       url: String(url || ""),
     };

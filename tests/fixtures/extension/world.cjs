@@ -43,7 +43,7 @@ function employerScript(form, behaviour = "") {
   const thanks = form.family === "lever" ? JSON.stringify(new URL(form.source_url).pathname.replace(/\/apply$/, "/thanks")) : "null";
   return `<script>/* TEST stand-in for ${form.company}'s own submit script (stripped from the capture). */
 (function () {
-  var sent = false;
+  var sent = false, rejected = 0;
   function collect() {
     var fd = new FormData();
     document.querySelectorAll("input,select,textarea").forEach(function (el) {
@@ -59,14 +59,25 @@ function employerScript(form, behaviour = "") {
   function go(e) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     if (sent) return; sent = true;
+    if (${JSON.stringify(behaviour)}.indexOf("challengeafter") >= 0) {
+      // TEST (WO-091d): the page asks for a verification at Submit; nothing is sent until the person finishes it.
+      var ch = document.createElement("iframe");
+      ch.title = "TEST challenge"; ch.src = "https://www.google.com/recaptcha/api2/bframe?k=TEST";
+      ch.style.cssText = "display:block;width:320px;height:200px;border:1px solid #888";
+      document.body.appendChild(ch);
+      return;
+    }
     fetch("/__employer/submit?form=${form.id}&path=" + encodeURIComponent(location.pathname), { method: "POST", body: collect() }).then(function () {
       if (${JSON.stringify(behaviour)}.indexOf("silent") >= 0) return;
       if (${JSON.stringify(behaviour)}.indexOf("rejects") >= 0) {
-        // TEST: the employer got the application and answered with an error; the form stays.
+        // TEST: the employer got the application and answered with an error; the form stays, and takes another try
+        // (WO-091d: each answer is its own, so a second refusal is a new error on the page).
+        rejected++;
         var err = document.createElement("div");
         err.setAttribute("role", "alert");
-        err.textContent = "TEST: There was a problem submitting your application. Please try again.";
+        err.textContent = "TEST: There was a problem submitting your application" + (rejected > 1 ? " (try " + rejected + ")" : "") + ". Please try again.";
         (document.querySelector("form, .ashby-application-form-container") || document.body).prepend(err);
+        sent = false;
         return;
       }
       setTimeout(function () {
@@ -247,6 +258,27 @@ const LABELS_PAGE = `<!doctype html><html><head><title>TEST label traps</title><
 <div><label>Email</label><input name="email1" type="text"></div><div><label>Email</label><input name="email2" type="text"></div>
 <button type="submit">Submit application</button></form></body></html>`;
 
+// WO-091d: a TEST Greenhouse-shaped page (not a captured form) with a plain <form>, its own submit button, a URL field the
+// browser validates, and an employer stand-in that listens only for the form's submit event (as a plain form's page does),
+// so the browser's own validation runs on the click first. ?trainee_test=hiddenrequired adds a required field the page
+// keeps hidden. What reaches the stand-in is recorded as form "native-test".
+const NATIVE_PATH = "/trainee-test/jobs/9100091";
+const nativePage = (variants) => `<!doctype html><html><head><title>TEST native validation</title></head><body><h1>TEST: Analyst at Trainee Test Co</h1>
+<form id="application-form">
+<label for="first_name">First Name *</label><input id="first_name" name="first_name" type="text" required>
+<label for="last_name">Last Name *</label><input id="last_name" name="last_name" type="text" required>
+<label for="email">Email *</label><input id="email" name="email" type="email" required>
+<label for="portfolio_test">Portfolio URL</label><input id="portfolio_test" name="portfolio_test" type="url">
+${/hiddenrequired/.test(variants || "") ? '<input name="hidden_req_test" aria-label="TEST hidden employer field" required style="display:none">' : ""}
+<button type="submit">Submit application</button></form>
+<script>/* TEST stand-in for the employer's submit script */ document.getElementById("application-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  var fd = new FormData(e.target);
+  fetch("/__employer/submit?form=native-test&path=" + encodeURIComponent(location.pathname), { method: "POST", body: fd }).then(function () {
+    document.body.innerHTML = "<h1>Thank you for applying!</h1><p>Your application has been submitted. Application ID: TEST-91004</p>";
+  });
+});</script></body></html>`;
+
 const WORKDAY_PAGE = `<!doctype html><html><head><title>Analyst - Acme (TEST Workday-shaped page)</title></head><body>
 <h1>TEST Workday-shaped page (no captured Workday HTML exists in the repo)</h1>
 <form id="wd">
@@ -336,6 +368,23 @@ async function startWorld(o = {}) {
   }
 
   const json = (res, code, body) => res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*" }).end(JSON.stringify(body));
+  // WO-091d: the queue's own rules (20261023091400), mirrored. What a new approval may replace; what holds a place under the
+  // daily limit and the company rule; the person's stale drives swept after their 30-minute lease.
+  const LEASE_MS = 30 * 60_000;
+  const retriable = (j) => j.state === "interrupted" ||
+    (j.state === "not_submitted" && /^(stopped before the click$|interrupted before the click|the browser refused the submit)/.test(j.evidence?.reason || "")) ||
+    (j.state === "failed" && !!j.evidence?.released_at);
+  const counts = (j) => ["queued", "confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(j.state) || (j.state === "driving" && Date.now() - j.at < LEASE_MS);
+  const sweep = () => {
+    let n = 0;
+    for (const j of state.jobs) {
+      if (j.state !== "driving" || Date.now() - j.at < LEASE_MS) continue;
+      j.state = j.evidence?.click_reported_at ? "unknown_outcome" : "interrupted";
+      j.evidence = { ...(j.evidence || {}), swept_at: new Date().toISOString() };
+      n++;
+    }
+    return n;
+  };
   // WO-048: host -> { dir, base, files, served }
   const workdayTenants = new Map();
 
@@ -427,21 +476,67 @@ async function startWorld(o = {}) {
         if (p.privacy_epoch !== state.account.epoch || p.account_version !== state.account.version || Date.parse(p.expires_at) < Date.now()) {
           return json(res, 400, { message: "invalid or stale application approval" });
         }
-        // The SQL's rule: only a row stopped before the click may be replaced; any other row for the posting is final.
-        const retriable = (j) => j.state === "not_submitted" && j.evidence?.reason === "stopped before the click";
-        if (state.jobs.some((j) => j.job_id === p.job_id && !retriable(j))) return json(res, 400, { message: "duplicate_job" });
-        const live = state.jobs.filter((j) => !["not_submitted", "failed"].includes(j.state));
+        // The SQL's rules (20261023091400): the person's stale drives are swept first; only a row that provably never
+        // reached the employer (career_apply_retriable) may be replaced; any other row for the posting is final, and the
+        // refusal names its state and id.
+        sweep();
+        const dup = () => state.jobs.find((j) => j.job_id === p.job_id && !retriable(j));
+        if (dup()) return json(res, 400, { message: `duplicate_job: ${dup().state} ${dup().id}` });
         if (state.beginDelayMs) await new Promise((r) => setTimeout(r, state.beginDelayMs));
-        if (live.some((j) => j.job_id === p.job_id)) return json(res, 400, { message: "duplicate_job" });
+        if (dup()) return json(res, 400, { message: `duplicate_job: ${dup().state} ${dup().id}` });
+        const live = state.jobs.filter(counts);
         if (live.some((j) => j.company === p.company && Date.now() - j.at < 30 * 86400000)) return json(res, 400, { message: "company_cooldown" });
         if (live.filter((j) => Date.now() - j.at < 86400000).length >= state.dailyLimit) return json(res, 400, { message: "daily_cap" });
         state.jobs = state.jobs.filter((j) => j.job_id !== p.job_id);
-        const row = { id: crypto.randomUUID(), lease: crypto.randomUUID(), job_id: p.job_id, company: p.company, payload: p, payload_hash: h, state: "driving", at: Date.now() };
+        const row = { id: crypto.randomUUID(), lease: crypto.randomUUID(), job_id: p.job_id, company: p.company, payload: p, payload_hash: h, state: "driving", at: Date.now(), evidence: {} };
         state.jobs.push(row);
+        // WO-091d TEST hook: the record is made and its answer lost on the way back (state.dropBeginResponse times).
+        if (state.dropBeginResponse > 0) {
+          state.dropBeginResponse--;
+          return json(res, 503, { message: "TEST: the answer was lost on the way back" });
+        }
         return json(res, 200, { id: row.id, lease: row.lease, payload_hash: h });
       }
+      case "career_apply_extension_resume_own": {
+        const p = args.p_payload || {};
+        state.resumes = (state.resumes || 0) + 1;
+        if (p.user_id !== userId) return json(res, 400, { message: "not your application" });
+        if (args.p_approval !== sha(canonical(p))) return json(res, 400, { message: "invalid or stale application approval" });
+        const j = state.jobs.find((x) => x.job_id === p.job_id && x.state === "driving" && x.payload_hash === args.p_approval && !x.evidence?.click_reported_at &&
+          Date.now() - x.at < LEASE_MS);
+        if (!j) return json(res, 400, { message: "nothing to resume" });
+        return json(res, 200, { id: j.id, lease: j.lease, payload_hash: j.payload_hash, again: true });
+      }
+      case "career_apply_clicked_own": {
+        const j = state.jobs.find((x) => x.id === args.p_id && x.lease === args.p_lease && x.state === "driving");
+        if (j && !j.evidence?.click_reported_at) j.evidence = { ...(j.evidence || {}), click_reported_at: new Date().toISOString() };
+        state.clicks = (state.clicks || 0) + 1;
+        return json(res, 200, !!j);
+      }
+      case "career_apply_sweep_own":
+        return json(res, 200, sweep());
+      case "career_apply_resolve_own": {
+        const j = state.jobs.find((x) => x.id === args.p_id && x.state === "needs_user");
+        if (!j) return json(res, 400, { message: "invalid apply transition" });
+        j.state = "submitted_unconfirmed";
+        j.evidence = { ...(j.evidence || {}), finished_by: "person" };
+        return json(res, 200, j);
+      }
+      case "career_apply_release_own": {
+        const j = state.jobs.find((x) => x.id === args.p_id && x.state === "failed" && !x.evidence?.released_at);
+        if (!j) return json(res, 400, { message: "invalid apply transition" });
+        j.evidence = { ...(j.evidence || {}), released_at: new Date().toISOString() };
+        return json(res, 200, j);
+      }
       case "career_apply_finish_own": {
+        // WO-091d TEST hook: the network fails this many finishes (state.failFinish) before one gets through.
+        if (state.failFinish > 0) {
+          state.failFinish--;
+          return json(res, 503, { message: "TEST: the network is down" });
+        }
         const j = state.jobs.find((x) => x.id === args.p_id && x.lease === args.p_lease);
+        // A finish kept on the computer lands after the sweep, under its own lease, once (20261023091400).
+        if (j && ["interrupted", "unknown_outcome"].includes(j.state) && j.evidence?.swept_at) j.state = "driving";
         if (!j || j.state !== "driving") return json(res, 400, { message: "invalid apply claim" });
         if (JSON.stringify(args.p_evidence || {}).length > 65536) return json(res, 400, { message: "invalid apply evidence" });
         j.state = args.p_state;
@@ -498,6 +593,9 @@ async function startWorld(o = {}) {
         state.touched.push({ host, type: u.searchParams.get("type"), path: u.searchParams.get("path"), at: Date.now() });
         return res.writeHead(204).end();
       }
+      if (host === "job-boards.greenhouse.io" && u.pathname === NATIVE_PATH && req.method === "GET") {
+        return res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(nativePage(u.searchParams.get("trainee_test")));
+      }
       if (host === "jobs.lever.co" && u.pathname === LABELS_PATH) {
         return res.writeHead(200, { "content-type": "text/html" }).end(LABELS_PAGE);
       }
@@ -547,4 +645,5 @@ async function startWorld(o = {}) {
   };
 }
 
-module.exports = { startWorld, canonical, WORKDAY_HOST, APP_HOST, SUPABASE_HOST, LABELS_URL: "https://jobs.lever.co" + LABELS_PATH };
+module.exports = { startWorld, canonical, WORKDAY_HOST, APP_HOST, SUPABASE_HOST, LABELS_URL: "https://jobs.lever.co" + LABELS_PATH,
+  NATIVE_URL: "https://job-boards.greenhouse.io" + NATIVE_PATH };

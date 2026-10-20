@@ -187,14 +187,16 @@ const setCard = (tabId, patch, by = patch.status || "patch") =>
     if (patch.status === "submitting" && prev?.status === "done") return null;
     return { ...(prev || {}), ...patch, tabId, updated_at: Date.now() };
   });
-const pendings = async () => await get(S, "pending", {});
+// WO-091d (F2): an application between its record and its end is kept in chrome.storage.local, so a closed browser or a
+// restarted service worker still knows it began and whether it clicked; start-up and a closed tab end it (recover()).
+const pendings = async () => await get(L, "pending", {});
 let pendingQueue = Promise.resolve();
 function setPending(tabId, v) {
   const run = pendingQueue.then(async () => {
     const all = await pendings();
     if (v === null) delete all[tabId];
     else all[tabId] = v;
-    await put(S, "pending", all);
+    await put(L, "pending", all);
   });
   pendingQueue = run.catch(() => {});
   return run;
@@ -265,6 +267,90 @@ async function keepEvidence(rec) {
   await put(L, "evidence", list.slice(0, 300));
 }
 
+// ------------------------------------------------------------------------------------------------ lifecycle (WO-091d)
+// The finishes not recorded yet (finish_outbox, chrome.storage.local): sent again until the queue takes them or refuses
+// them for good (the drive was replaced or already finished), for at most 14 days.
+let outboxQueue = Promise.resolve();
+function outboxChange(change) {
+  const run = outboxQueue.then(async () => put(L, "finish_outbox", change(await get(L, "finish_outbox", []))));
+  outboxQueue = run.catch(() => {});
+  return run;
+}
+const outboxPut = (item) => outboxChange((list) => [...list.filter((x) => x.id !== item.id), item].slice(-200));
+let flushing = null;
+function flushOutbox() {
+  flushing ??= (async () => {
+    try {
+      for (const it of await get(L, "finish_outbox", [])) {
+        let done = Date.now() - it.at > 14 * 86400_000;
+        if (!done) {
+          try {
+            await rpc("career_apply_finish_own", { p_id: it.id, p_lease: it.lease, p_state: it.state, p_evidence: it.evidence });
+            done = true;
+            const list = await get(L, "evidence", []);
+            const e = list.find((x) => x.id === it.id);
+            if (e) await put(L, "evidence", list.map((x) => (x.id === it.id ? { ...x, recorded: true } : x)));
+            const all = await cards();
+            for (const [t, c] of Object.entries(all)) if (c?.proof_id === it.id) await setCard(Number(t), { recorded: true }, "recorded");
+          } catch (e) {
+            if (e.message === "SIGNED_OUT") break;
+            if (/invalid apply (claim|transition)/.test(e.message)) done = true;
+          }
+        }
+        if (done) await outboxChange((list) => list.filter((x) => x.id !== it.id));
+      }
+    } finally {
+      flushing = null;
+    }
+  })();
+  return flushing;
+}
+// An application this browser began and lost track of ends with what is known: after its click, unknown (never sent
+// again); before it, not sent, and the person may approve it again (C.recoveredOutcome). Only one with no live page.
+async function recover(tabId, why) {
+  const p = (await pendings())[tabId];
+  if (!p) return;
+  if (p.finished) return void (await setPending(tabId, null));
+  await finish(tabId, null, { outcome: C.recoveredOutcome(p, why), message: `Interrupted (${why}) before the site's Submit was clicked. Nothing was sent; approve it again.` });
+}
+async function recoverAll(why) {
+  for (const t of Object.keys(await pendings())) await recover(Number(t), why);
+}
+// Start-up: the browser was closed with work in flight. Nothing from the last session is running now.
+chrome.runtime.onStartup.addListener(async () => {
+  await recoverAll("the browser was closed");
+  await flushOutbox().catch(() => {});
+  if (await session()) await rpc("career_apply_sweep_own", {}).catch(() => {});
+});
+// A closed tab ends its own work: its application (as above), its card, and the queue's open posting (back to waiting,
+// the queue stopped, so Start reopens it).
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await recover(tabId, "the tab was closed");
+  const q = await queueState();
+  if (q.tabId === tabId) {
+    const it = q.items[q.index];
+    if (it && it.state === "open") it.state = "waiting";
+    q.running = false;
+    q.tabId = null;
+    await put(S, "queue", q);
+  }
+  const run = cardQueue.then(async () => {
+    const all = await cards();
+    if (!all[tabId]) return;
+    delete all[tabId];
+    await put(S, "cards", all);
+  });
+  cardQueue = run.catch(() => {});
+  await run;
+  await setWorkdayNext(tabId, false);
+});
+// A service worker started fresh is preparing nothing: a "reading" left by the one before it was cut off.
+get(S, "answer_once", null).then(async (a) => {
+  if (a?.status === "reading" && !preparing) {
+    await put(S, "answer_once", { ...a, status: "ready", postings: a.postings || 0, notes: [...(a.notes || []), "Reading was cut off before it finished. Press Prepare again."] });
+  }
+}).catch(() => {});
+
 async function queueState() {
   return await get(S, "queue", { items: [], index: -1, tabId: null, running: false });
 }
@@ -311,7 +397,8 @@ async function finish(tabId, observation, extra = {}) {
   p.finished = true;
   await setPending(tabId, p);
   const done = Date.now();
-  const outcome = observation
+  // WO-091d: an application found unfinished (a closed tab or browser) ends with what is known (C.recoveredOutcome).
+  const outcome = extra.outcome ? extra.outcome : observation
     ? C.outcomeAfterClick(observation, extra.errorsBefore || p.errors_before || [], !!extra.timedOut)
     : { state: "not_submitted", reason: extra.reason || C.BEFORE_CLICK, confirmation_id: null };
   const shotAfter = observation && extra.shotAfter?.sha256 ? extra.shotAfter : null;
@@ -328,10 +415,14 @@ async function finish(tabId, observation, extra = {}) {
     try {
       await rpc("career_apply_finish_own", { p_id: p.id, p_lease: p.lease, p_state: outcome.state, p_evidence: evidence });
       recorded = true;
-    } catch {
+    } catch (e) {
+      if (/invalid apply (claim|transition)/.test(e.message)) break;
       await new Promise((r) => setTimeout(r, 500 * (i + 1)));
     }
   }
+  // WO-091d (F2): a finish that could not be recorded now (offline, signed out) is kept and sent again at start-up, on the
+  // next form, and before the next approval, under the drive's own lease (the queue takes it even after its sweep).
+  if (!recorded) await outboxPut({ id: p.id, lease: p.lease, state: outcome.state, evidence, at: done });
   // The proof stays on this computer: the answers as approved, both pictures, the employer's words, the times.
   const proved = outcome.state === "confirmed" && !!shotAfter;
   await keepEvidence({
@@ -351,8 +442,9 @@ async function finish(tabId, observation, extra = {}) {
   await setPending(tabId, null);
   // A stop before the click leaves the posting open for another try; anything after the click moves the queue on. The queue
   // is final before the card says done, so the panel never shows a done card beside an open queue item.
-  if (observation) await queueAfter(tabId, proved ? "confirmed" : outcome.state, evidence.ms_card_to_done, p.id);
-  const view = observation ? C.cardOutcome(outcome, !!shotAfter) : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
+  if (observation || (extra.outcome && p.clicked_at)) await queueAfter(tabId, proved ? "confirmed" : outcome.state, evidence.ms_card_to_done, p.id);
+  const view = observation || (extra.outcome && p.clicked_at) ? C.cardOutcome(outcome, !!shotAfter)
+    : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
   return await withCards(tabId, "finish:" + outcome.state, (prev) => ({
     ...(prev || {}), tabId, updated_at: Date.now(), status: view.status, message: view.message, result: outcome.state, proved,
     ms: evidence.ms_card_to_done, recorded, proof_id: p.id, approved: false,
@@ -522,6 +614,7 @@ async function handle(m, sender) {
       }
       const f = await facts(a.user_id);
       const resume = await get(L, "resume", null);
+      flushOutbox().catch(() => {}); // WO-091d: a finish kept while offline goes now, in the background
       return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null };
     }
     case "queued": {
@@ -535,9 +628,11 @@ async function handle(m, sender) {
     }
     case "card": {
       // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
-      // submitted is never replaced by the page's own refresh.
+      // submitted is never replaced by the page's own refresh, unless it was left behind (WO-091d F11): no application
+      // in flight on this tab and a minute since the tap.
+      const inFlight = !!(await pendings())[tabId];
       const card = await withCards(tabId, "card", (prev) =>
-        prev && prev.status === "submitting" ? prev
+        prev && prev.status === "submitting" && (inFlight || Date.now() - (prev.approved_at || prev.updated_at || 0) < 60_000) ? prev
           : { ...m.card, tabId, approved: false, status: m.card.status || (m.card.blockers?.length ? "blocked" : "ready"), updated_at: Date.now() });
       if (m.card?.signIn) await setWorkdayNext(tabId, true);
       return { ok: true, card };
@@ -599,8 +694,17 @@ async function handle(m, sender) {
       // The content script may only start the one application the person approved, by its hash.
       // A Workday step's draft approval (WO-048) never submits: only a card that submits starts an application.
       if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash || card.action === "draft") return { ok: false, message: "This application was not approved as it is now. Nothing was sent." };
+      // WO-091d: what this browser kept unrecorded goes first (it may be what holds this posting).
+      await flushOutbox().catch(() => {});
       try {
-        const row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
+        let row;
+        try {
+          row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
+        } catch (e) {
+          // WO-091d (F2): this same approval's record exists and was never clicked (its answer was lost): the same drive.
+          if (!/duplicate_job: driving/.test(e.message)) throw e;
+          row = await rpc("career_apply_extension_resume_own", { p_payload: m.payload, p_approval: m.hash }).catch(() => { throw e; });
+        }
         // The drafts behind each drafted answer, as Trainee wrote them, for the proof (edited or used as drafted).
         const items = await draftsFor(tabId, card.jobId), drafts = {};
         for (const f of m.payload.fields || []) {
@@ -615,11 +719,19 @@ async function handle(m, sender) {
         await setCard(tabId, { begun: true });
         return { ok: true };
       } catch (e) {
+        // WO-091d (F2 d): a posting already on record is named by what happened to it, and offers the person's own edge.
+        const dup = /duplicate_job(?::\s*([a-z_]+)(?:\s+([0-9a-f-]{36}))?)?/.exec(e.message);
+        const known = /daily_cap|company_cooldown|stale|current/.test(e.message) || dup || e.message === "SIGNED_OUT";
         const why = /daily_cap/.test(e.message) ? "You reached today's application limit." : /company_cooldown/.test(e.message)
-          ? "You applied to this company in the last 30 days." : /duplicate_job/.test(e.message) ? "You already applied to this posting."
+          ? "You applied to this company in the last 30 days." : dup ? C.duplicateMessage(dup[1] || "")
           : e.message === "SIGNED_OUT" ? say.signedOut : /stale|current/.test(e.message) ? "Your account changed since this card was made; review it again."
           : "Trainee could not record this application, so it was not sent.";
-        await setCard(tabId, { status: "stopped", message: why + " Nothing was sent.", approved: false }, "refused");
+        // Anything else (offline, a lost answer) leaves the same card ready: approving it again resumes the same record.
+        if (!known) {
+          await setCard(tabId, { status: "ready", message: why + " Nothing was sent. Approve again to try once more.", approved: false }, "retry");
+          return { ok: false, message: why };
+        }
+        await setCard(tabId, { status: "stopped", message: why + " Nothing was sent.", approved: false, row_id: dup?.[2] || null, row_state: dup?.[1] || null }, "refused");
         return { ok: false, message: why };
       }
     }
@@ -630,6 +742,9 @@ async function handle(m, sender) {
         p.errors_before = m.errorsBefore || [];
         p.steps = m.steps || null;
         await setPending(tabId, p);
+        // WO-091d (F2): the record learns the click happened, so a drive that never finishes is swept as unknown (never
+        // sent again), not as interrupted. After the click, never in its way.
+        rpc("career_apply_clicked_own", { p_id: p.id, p_lease: p.lease }).catch(() => {});
       }
       await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });
       // The click may have moved the page before this message landed (CI, a fast thank-you page): its load is over and
@@ -644,7 +759,9 @@ async function handle(m, sender) {
     case "outcome":
       return { ok: true, card: await finish(tabId, m.observation, m) };
     case "stopped": {
-      if (m.finishPending) await finish(tabId, null, { reason: C.BEFORE_CLICK, message: m.message });
+      // WO-091d (F1): a submit the browser itself refused at the click is the one other end known to be not sent.
+      const reason = typeof m.reason === "string" && m.reason.startsWith(C.BROWSER_REFUSED + ":") ? m.reason.slice(0, 500) : C.BEFORE_CLICK;
+      if (m.finishPending) await finish(tabId, null, { reason, message: m.message });
       else await setCard(tabId, { status: "stopped", message: m.message, approved: false, beforeClick: !!m.beforeClick });
       return { ok: true };
     }
@@ -712,6 +829,37 @@ async function handle(m, sender) {
         if ((await pendings())[m.tabId]) return;
         await setCard(m.tabId, { status: "stopped", message: "The page could not be reached, so nothing was sent.", approved: false }, "unreachable");
       });
+      return { ok: true };
+    }
+    case "resolve-own": {
+      // WO-091d (F4): the page asked the person for something after the click and they finished it there themselves.
+      const card = (await cards())[m.tabId];
+      const id = card?.proof_id || card?.row_id;
+      if (!card || !id || (card.result !== "needs_user" && card.row_state !== "needs_user")) return { ok: false, message: "There is nothing on this card to finish." };
+      try {
+        await rpc("career_apply_resolve_own", { p_id: id });
+      } catch (e) {
+        return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "That could not be recorded; nothing changed. Try again in a moment." };
+      }
+      const list = await get(L, "evidence", []);
+      if (list.some((x) => x.id === id)) await put(L, "evidence", list.map((x) => (x.id === id ? { ...x, state: "submitted_unconfirmed", finished_by: "person" } : x)));
+      await withCards(m.tabId, "resolved", (prev) => prev && ({ ...prev, status: "done", result: "submitted_unconfirmed", row_state: null, updated_at: Date.now(),
+        message: "Recorded: you finished it yourself on the page. It counts as sent; their confirmation email makes it final." }));
+      return { ok: true };
+    }
+    case "release-own": {
+      // WO-091d (F4): the employer's form refused it in place; on the person's own tap it may be approved once more.
+      const card = (await cards())[m.tabId];
+      const id = card?.proof_id || card?.row_id;
+      if (!card || !id || (card.result !== "failed" && card.row_state !== "failed")) return { ok: false, message: "There is nothing on this card to try again." };
+      try {
+        await rpc("career_apply_release_own", { p_id: id });
+      } catch (e) {
+        return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "That could not be recorded; nothing changed. Try again in a moment." };
+      }
+      await chrome.tabs.sendMessage(m.tabId, { type: "rearm" }).catch(() => null);
+      await withCards(m.tabId, "released", (prev) => prev && ({ ...prev, status: "stopped", result: null, row_state: null, released: true, approved: false, updated_at: Date.now(),
+        message: "Fix what the employer's form said on the page, then press Fill this application and approve again. It goes only on your approval." }));
       return { ok: true };
     }
     case "essay-draft": {
@@ -834,6 +982,7 @@ async function handle(m, sender) {
 // only from the extension's own panel page, never from a content script running inside an employer's page; what a page
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
+  "resolve-own", "release-own",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
   "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
 const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);

@@ -24,13 +24,14 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts",
     "brief_from_invite", "set_weekly_digest",
     "offer_benchmark", "career_path_answer",
-  ].sort()); // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028; brief_from_invite and set_weekly_digest: WO-034; offer_benchmark and career_path_answer: WO-036;
+    "queue_applications",
+  ].sort()); // queue_applications (the person's own apply queue; each application goes only on its card's tap): WO-066; // the three alert tools: WO-007; standing instructions: WO-023; where_do_i_stand: WO-024; the pre-interview brief: WO-025; recall (the account's timeline): WO-027; the resume tools: WO-028; brief_from_invite and set_weekly_digest: WO-034; offer_benchmark and career_path_answer: WO-036;
   // contacts, outreach drafts and the referral map: WO-033 (drafting is write_own: sending is only by the approval reply and the scheduled run)
   const effects = Object.fromEntries(tools.map((t) => [t.name, t.effect]));
   eq(effects, {
     remember_instruction: "write_own", forget_instruction: "write_own", get_memory: "read",
     get_profile: "read", add_profile_fact: "write_own", confirm_profile_fact: "write_own",
-    list_applications: "read", track_application: "write_own", search_jobs: "read",
+    list_applications: "read", track_application: "write_own", queue_applications: "write_own", search_jobs: "read",
     set_job_alerts: "write_own", get_job_alerts: "read", stop_job_alerts: "write_own", recall: "read",
     get_interview_questions: "read", interview_brief: "read", offer_benchmark: "write_own", career_path_answer: "read",
     score_interview_answer: "read",

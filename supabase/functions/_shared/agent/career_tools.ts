@@ -27,6 +27,8 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
+import { queueWants, type WantStore } from "../career_apply_want.ts";
+import type { Limits } from "../career_apply.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -59,9 +61,12 @@ export interface TailorTools { posting: (jobId: string) => Promise<any | null>; 
 export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 // `interviews` and `digest` (WO-034) keep a pasted invite (for its thank-you, nudge and the digest) and the weekly digest's
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
+// `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
+// queue_applications says applying from chat is not connected here. `limits` is the person's daily application limit.
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
+  wants?: WantStore | null; limits?: Limits;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -152,6 +157,18 @@ export function careerTools(deps: {
         const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
         await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
         return { application };
+      },
+    },
+    {
+      name: "queue_applications", effect: "write_own",
+      description: "Start applying: put the postings the person chose (links exactly as search_jobs returned them) in their own apply queue, up to their daily limit. Nothing is sent: the Trainee extension prepares each in their browser and shows a card, and each goes only after they approve it. Say how many were queued, what was refused and why.",
+      input_schema: obj({ postings: { type: "array", description: "The postings to apply to, from search_jobs", items: obj({ url: str("The posting's link as search_jobs returned it"), company: str("Employer"), title: str("Job title") }, ["url"]) } }, ["postings"]),
+      run: async (i, c) => {
+        if (!deps.wants) throw new Error("applying from chat is not connected here; say so, and that the person can paste posting links into the Trainee extension's queue");
+        const picks = Array.isArray(i.postings) ? i.postings.slice(0, 100) : [];
+        const r = await queueWants(deps.wants, c.userId, picks, c.now, { limits: deps.limits, tz: deps.tz });
+        await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: r.refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
+        return { ...r, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card." };
       },
     },
     {

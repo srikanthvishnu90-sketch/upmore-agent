@@ -1,0 +1,49 @@
+# WO-052 (architect): a third, sealed 100-posting sample (C) of real required questions, captured where the internet is.
+# On a push to ci/question-capture-c: 40 Greenhouse, 30 Lever and 30 Ashby postings in seeded random order (seed 3), no
+# employer from samples A or B, the same read-only capture as question-capture.yml (Greenhouse's public questions API;
+# Lever and Ashby pages rendered in sandboxed Chromium, nothing clicked or typed). Commits evals/apply/questions-ci-c.json
+# to ci/question-capture-c only. It is scored once by the architect (coverage and an independent review of every fill),
+# never tuned on.
+name: question-capture-c
+on:
+  push:
+    branches: [ci/question-capture-c]
+    paths:
+      - .github/workflows/question-capture-c.yml
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Playwright and the runner's Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Pick 100 real postings (seed 3), no employer from samples A or B
+        run: |
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("evals/apply/questions-ci.json")).postings,b=JSON.parse(fs.readFileSync("evals/apply/questions-ci-b.json")).postings;fs.writeFileSync(process.argv[1],JSON.stringify({postings:[...a,...b].map(p=>({company:p.company}))}))' "$RUNNER_TEMP/exclude.json"
+          node scripts/career/pick-form-sources.cjs "$RUNNER_TEMP/c/sources.json" greenhouse=40,lever=30,ashby=30 --seed 3 --exclude "$RUNNER_TEMP/exclude.json"
+      - name: Greenhouse questions (public API, one GET each)
+        run: node scripts/career/capture-greenhouse-questions.cjs "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/gh"
+      - name: Lever and Ashby application pages (Chromium, read-only)
+        run: |
+          node -e 'const fs=require("fs");const s=JSON.parse(fs.readFileSync(process.argv[1]));fs.writeFileSync(process.argv[2],JSON.stringify(s.filter(x=>x.family!=="greenhouse")))' "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/render-sources.json"
+          node scripts/career/render-form.cjs "$RUNNER_TEMP/c/render-sources.json" "$RUNNER_TEMP/c/rendered"
+      - name: Build the question set
+        run: deno run --allow-read --allow-write evals/apply/build-question-set.ts "$RUNNER_TEMP/c/sources.json" "$RUNNER_TEMP/c/gh" "$RUNNER_TEMP/c/rendered" evals/apply/questions-ci-c.json "CI run ${{ github.run_id }} of question-capture-c.yml at ${{ github.sha }}, sample C (seed 3, no employer from A or B); sealed: scored once (WO-052)"
+      - name: Commit to ci/question-capture-c
+        run: |
+          git config user.name "question-capture[ci]"
+          git config user.email "question-capture@users.noreply.github.com"
+          git add evals/apply/questions-ci-c.json
+          git commit -m "WO-052 data: sample C, the required questions of 100 more real postings (sealed, scored once)" || exit 0
+          git push origin HEAD:ci/question-capture-c

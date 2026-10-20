@@ -9,8 +9,10 @@ import dev4set from "./mail-dev4.json" with { type: "json" };
 import blind160 from "./mail-blind160.json" with { type: "json" };
 import blind200 from "./mail-blind200.json" with { type: "json" };
 import blind240 from "./mail-blind240.json" with { type: "json" };
+import blind300 from "./mail-blind300.json" with { type: "json" };
 import dev5set from "./mail-dev5.json" with { type: "json" };
 import dev6set from "./mail-dev6.json" with { type: "json" };
+import dev7set from "./mail-dev7.json" with { type: "json" };
 
 export const TARGET = { precision: 0.97, recall: 0.95 };
 const KINDS: MailKind[] = [...STATUS_KINDS, "other"];
@@ -77,7 +79,15 @@ export function evaluate(mails: typeof set.mails) {
 // "blind240" (WO-046 review, mail-blind240.json): 240 SYNTHETIC emails written by a separate agent that never read the
 // classifier, any labeled mail or any eval file; 60 in Spanish, Portuguese, French, German, Italian or Dutch (by the
 // writer's count). Sealed (sha256 62690765...) and scored once on cab14bda. Spent; a floor, printed only when named.
-export const SEALED = ["blind40", "dev4check", "blind160", "dev5check", "blind200", "dev6check", "blind240"];
+// WO-050: "dev7" (mail-dev7.json, 225 of 301 SYNTHETIC English-heavy emails written by the WO-050 builder and committed
+// before its classifier change: scheduling-tool notices, reschedules, terse invitations, onsite logistics, next steps,
+// agency and DocuSign offers, rejections that mention interviews, recruiter replies that are not decisions) is read for
+// misses; "dev7check" (76, a fixed-seed quarter) is printed only when named and was scored once.
+// "blind300" (WO-050 review, mail-blind300.json): 300 SYNTHETIC emails written by a separate agent that never read the
+// classifier, any labeled mail or any eval file, asked to make English mail hard and realistic (scheduling tools, look-alikes,
+// assessments that look like interviews); 60 in six other languages by the writer's count. Sealed (sha256 bcdf74b9...; the
+// labels moved under "expect" mechanically for this eval, unread) and scored once on b94ba00e. Spent; a floor.
+export const SEALED = ["blind40", "dev4check", "blind160", "dev5check", "blind200", "dev6check", "blind240", "dev7check", "blind300"];
 export function dev4Splits() {
   const mails = dev4set.mails as typeof set.mails;
   return { dev4: mails.filter((m) => m.split === "dev4"), dev4check: mails.filter((m) => m.split === "dev4check") };
@@ -90,12 +100,16 @@ export function dev6Splits() {
   const mails = dev6set.mails as unknown as typeof set.mails;
   return { dev6: mails.filter((m) => m.split === "dev6"), dev6check: mails.filter((m) => m.split === "dev6check") };
 }
+export function dev7Splits() {
+  const mails = dev7set.mails as unknown as typeof set.mails;
+  return { dev7: mails.filter((m) => m.split === "dev7"), dev7check: mails.filter((m) => m.split === "dev7check") };
+}
 export function splitsOf(mails: typeof set.mails) {
   const of = (...names: string[]) => mails.filter((m) => names.includes(m.split));
   return { all: mails, dev: of("tune", "tune2", "dev3"), tune: of("tune"), tune2: of("tune2"), dev3: of("dev3"), devcheck: of("devcheck"), holdout: of("holdout") };
 }
 if (import.meta.main) {
-  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits(), blind160: blind160.mails as typeof set.mails, ...dev5Splits(), blind200: blind200.mails as typeof set.mails, ...dev6Splits(), blind240: blind240.mails as typeof set.mails };
+  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails, ...dev4Splits(), blind160: blind160.mails as typeof set.mails, ...dev5Splits(), blind200: blind200.mails as typeof set.mails, ...dev6Splits(), blind240: blind240.mails as typeof set.mails, ...dev7Splits(), blind300: blind300.mails as typeof set.mails };
   const at = Deno.args.indexOf("--only"), only = at >= 0 ? String(Deno.args[at + 1] ?? "").split(",") : null;
   const results = Object.fromEntries(Object.entries(splits).filter(([k]) => (only ? only.includes(k) : !SEALED.includes(k))).map(([k, v]) => [k, evaluate(v)]));
   if (Deno.args.includes("--json")) console.log(JSON.stringify(results, null, 2));

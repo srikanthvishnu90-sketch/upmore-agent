@@ -76,6 +76,13 @@ The 12 distinct fills:
   `OPENAI_API_KEY`. It writes the owner's bar into the verdict: the agent switches on only at 95% or more AND at least 40
   points above the router.
 
+- `evals/career/heldout-live.json` (new, 38 items) and `run.ts --set heldout`:
+  - real sentences from the deployed line's battery and live gauntlet ("what's the batch status?", "ok thanks", "keep
+    going — next question", "which day is my interview?" after a correction);
+  - the router answered most of them "I didn't catch that";
+  - the brain's builder never saw them, and `tests/architect/wo-059-heldout.test.ts` keeps them out of the brain's files;
+  - the eval workflow reports this set beside the official one. The owner's bar stays on the official set.
+
 ## Every fill on A–H before and after
 | | |
 |---|---|

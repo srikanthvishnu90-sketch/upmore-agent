@@ -32,6 +32,10 @@ jobs:
         run: deno run -A evals/career/run.ts --brain router --label "router-${{ github.run_id }}" | tee "$RUNNER_TEMP/router.txt"
       - name: Agent (WO-002)
         run: deno run -A evals/career/run.ts --brain agent --label "agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/agent.txt"
+      - name: Held-out live phrasings (reported beside the official set; not the bar)
+        run: |
+          deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
+          deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
       - name: The D-008 verdict
         run: |
           deno eval '

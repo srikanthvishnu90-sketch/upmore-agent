@@ -97,7 +97,7 @@ const TEXT_COMPANY = [
 ];
 const NOT_COMPANY = /^(you|your|we|our|the|this|that|hi|hello|dear|thank|thanks|congratulations|please|next|re|fw|fwd|following|update|application|interview|offer|assessment|online|new|job|jobs|complete|invitation|scheduled?)$/i;
 // The employer a sentence names, read sentence by sentence; leading words that are not a name are dropped.
-function companyFromText(text: string): string | undefined {
+export function companyFromText(text: string): string | undefined {
   const sentences = text.split(/(?<=[.!?])\s+|\n+/);
   for (const re of TEXT_COMPANY) for (const sentence of sentences) for (const m of sentence.matchAll(re)) {
     const words = m[1].replace(/[.,!?:;'’]+$/, "").replace(/'s$/, "").trim().split(/\s+/);
@@ -127,7 +127,7 @@ const ROLE_RES = [
   new RegExp(`\\b(?:application|applying|applied|interview|offer letter|assessment|test|exercise|case study|offer) for (?:the )?${ROLE}(?:\\s+(?:at|with)\\s|[.,;!]|\\s+-\\s|\\s+\\(|$)`),
   new RegExp(`\\byour application for ${ROLE}(?:\\s+at\\s|[.,;]|$)`),
 ];
-function roleOf(subject: string, snippet: string): string | undefined {
+export function roleOf(subject: string, snippet: string): string | undefined {
   for (const t of [snippet, subject]) for (const re of ROLE_RES) {
     const m = re.exec(t);
     if (m && !/^(the|a|an|this|your|our|position|role)$/i.test(m[1].trim())) return m[1].trim().replace(/\s+/g, " ");
@@ -231,16 +231,33 @@ export function classifyMail(m: MailMeta): Classified {
   return other(COLD.exec(text)?.[0] ?? "no status phrase");
 }
 
+// WO-034: the phrase that makes a text an interview invitation, read with the same rules as mail (a step already done is
+// not an invitation; a rejection, an offer, a scam or a newsletter is not one either), for an invite pasted into chat
+// where there is no sender to read. null: it does not read as an invite.
+export function interviewPhrase(text: string): string | null {
+  const t = String(text ?? "");
+  if (SCAM.exec(t) || NOISE_TEXT.exec(t)) return null;
+  for (const [kind, re] of RULES) {
+    const hit = re.exec(kind === "rejection" ? t : t.replace(PAST_STEP, " "));
+    if (hit) return kind === "interview" ? hit[0] : null;
+  }
+  return null;
+}
+
 // ------------------------------------------------------------------------------------------------ applications
 // One application, from any source: the apply queue (career_apply_jobs), the tracker the person keeps by text, or one
 // first seen in mail (an application made by hand that nothing else knew about).
 export interface TrackedApp {
   ref: string; company: string; role?: string; url?: string;
   applied_at?: string; stage: string; source: "queue" | "tracker" | "mail";
-  events?: { kind: MailKind | "applied"; at: string }[];
+  // source: where that event was read ("mail" for a status email, "tracker" for what the person reported).
+  events?: { kind: MailKind | "applied"; at: string; source?: string }[];
+  // WO-034: the date of an interview the invite stated (career_interviews). With it, the interview planner
+  // (career_invite.ts interviewDrafts) owns the thank-you and the nudge, counted from the interview, not the invite.
+  interview_on?: string;
 }
 export const STAGES = ["Saved", "Submitted", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Rejected", "Withdrawn", "Accepted"];
-const TERMINAL = new Set(["Rejected", "Withdrawn", "Accepted"]);
+export const TERMINAL = new Set(["Rejected", "Withdrawn", "Accepted"]);
 const RANK: Record<string, number> = { Saved: 0, Tailoring: 0, Ready: 0, Submitted: 1, Confirmed: 1, Ghosted: 1, "Recruiter screen": 2, "OA/assessment": 3, "Interview rounds": 4, Final: 5, Offer: 6 };
 export const STAGE_OF: Record<Exclude<MailKind, "other">, string> = {
   received: "Submitted", recruiter_reply: "Recruiter screen", assessment: "OA/assessment", interview: "Interview rounds", offer: "Offer", rejection: "Rejected",
@@ -306,7 +323,9 @@ export interface StatusEvent {
   flagged: boolean; evidence: string; at: string; new_app: boolean;
 }
 export interface StatusText { key: string; hash: string; ref: string; text: string }
-export interface Draft { key: string; ref: string; kind: "followup" | "thank_you"; company: string; role?: string; text: string; basis: string }
+// step (WO-034): a thank-you drafted right after an interview ("thanks"), or the thank-you and nudge after quiet days (the
+// default). Both are kind thank_you in the table; only the text that offers them differs.
+export interface Draft { key: string; ref: string; kind: "followup" | "thank_you"; company: string; role?: string; text: string; basis: string; step?: "thanks" | "nudge" }
 export interface Plan { events: StatusEvent[]; texts: StatusText[]; drafts: Draft[]; apps: TrackedApp[]; unmatched: number; ambiguous: number; other: number }
 
 export const FOLLOW_UP_DAYS = 14, THANK_YOU_DAYS = 7, DRAFT_WINDOW_DAYS = 30;
@@ -336,7 +355,7 @@ export function foldEvents(apps: TrackedApp[], events: StatusEvent[]): TrackedAp
   for (const e of [...events].sort((x, y) => x.at.localeCompare(y.at))) {
     let a = out.find((x) => x.ref === e.ref);
     if (!a) { a = { ref: e.ref, company: e.company, role: e.role, applied_at: e.at, stage: "Submitted", source: "mail", events: [] }; out.push(a); }
-    a.events!.push({ kind: e.kind, at: e.at });
+    a.events!.push({ kind: e.kind, at: e.at, source: "mail" });
     if (e.stage) a.stage = e.stage;
   }
   return out;
@@ -375,7 +394,7 @@ export function planUpdates(mails: MailIn[], applications: TrackedApp[], now: nu
       stage: forward ? to : fresh ? was : null, flagged, evidence: c.evidence, at: new Date(Date.parse(m.date) || now).toISOString(), new_app: fresh,
     };
     plan.events.push(e);
-    app.events!.push({ kind: c.kind, at: e.at });
+    app.events!.push({ kind: c.kind, at: e.at, source: "mail" });
     if (forward) app.stage = to;
     // Said once per message: a stage that moved, a newly tracked application, or a flag. A repeat is only recorded.
     if (forward || flagged || fresh) plan.texts.push({ key: `status:${m.hash}`, hash: m.hash, ref: app.ref, text: statusText(e, m.subject, was) });
@@ -405,6 +424,9 @@ export function followUps(apps: TrackedApp[], now: number): Draft[] {
       continue;
     }
     const last = evs[evs.length - 1];
+    // An interview whose date the invite stated is the interview planner's (career_invite.ts): its thank-you comes right
+    // after it and its nudge 7 quiet days after it, never 7 days after the invite.
+    if (a.interview_on) continue;
     if ((a.stage === "Interview rounds" || a.stage === "Final") && last && last.kind === "interview") {
       const quiet = (now - Date.parse(last.at)) / DAY;
       if (quiet >= THANK_YOU_DAYS && quiet <= DRAFT_WINDOW_DAYS) {
@@ -421,22 +443,37 @@ export function followUps(apps: TrackedApp[], now: number): Draft[] {
 }
 // The text that offers a draft. The draft is shown in full; nothing is sent until the person sends it themselves.
 export function draftOffer(d: Draft): string {
+  if (d.step === "thanks") return `Your ${clip(d.company, 80)}${forRole(d.role)} interview (${d.basis}). I drafted a thank-you for you to send; it is not sent:\n\n${d.text}`;
   const what = d.kind === "followup" ? `No reply from ${clip(d.company, 80)}${forRole(d.role)} (${d.basis}).` : `Nothing from ${clip(d.company, 80)}${forRole(d.role)} since the interview (${d.basis}).`;
   return `${what} I drafted a ${d.kind === "followup" ? "follow-up" : "thank-you and nudge"}; it is not sent:\n\n${d.text}`;
 }
 
 // ------------------------------------------------------------------------------------------------ where do I stand
 // Every application to that company, its stage, and the last thing that happened, from the records only.
-export function standing(company: string, apps: TrackedApp[], events: StatusEvent[]): { found: number; text: string; applications: { ref: string; company: string; role?: string; stage: string; last?: string }[] } {
+// WO-034: each stage the application reached, with its date and where that was read: "Trainee" (an application Trainee
+// sent), "tracker" (what the person told Trainee) or "mail" (a status email). An application with no date says so.
+export interface StageAt { stage: string; date: string | null; source: string }
+const SOURCE_WORD: Record<TrackedApp["source"], string> = { queue: "Trainee", tracker: "tracker", mail: "mail" };
+export function stagesOf(a: TrackedApp): StageAt[] {
+  const out: StageAt[] = [{ stage: "Submitted", date: a.applied_at ? day(a.applied_at) : null, source: SOURCE_WORD[a.source] ?? a.source }];
+  for (const e of [...(a.events ?? [])].sort((x, y) => x.at.localeCompare(y.at))) {
+    if (e.kind === "applied" || e.kind === "other" || e.kind === "received") continue;
+    const stage = STAGE_OF[e.kind];
+    if (stage && out[out.length - 1].stage !== stage) out.push({ stage, date: day(e.at), source: e.source ?? (a.source === "tracker" ? "tracker" : "mail") });
+  }
+  return out;
+}
+export function standing(company: string, apps: TrackedApp[], events: StatusEvent[]): { found: number; text: string; history: string; applications: { ref: string; company: string; role?: string; stage: string; last?: string; stages: StageAt[] }[] } {
   const all = foldEvents(apps, events).filter((a) => sameCompany(a.company, company))
     .sort((a, b) => String(a.applied_at ?? "").localeCompare(String(b.applied_at ?? "")));
-  if (!all.length) return { found: 0, text: `No application to ${clip(company, 80)} on file.`, applications: [] };
+  if (!all.length) return { found: 0, text: `No application to ${clip(company, 80)} on file.`, history: "", applications: [] };
   const rows = all.map((a) => {
     const evs = [...(a.events ?? [])].sort((x, y) => x.at.localeCompare(y.at));
     const last = evs[evs.length - 1];
     const lastText = last && last.kind !== "applied" ? `last: ${last.kind.replace("_", " ")} email ${day(last.at)}` : a.applied_at ? `applied ${day(a.applied_at)}, nothing since` : "no date on file";
-    return { ref: a.ref, company: a.company, role: a.role, stage: a.stage, last: lastText };
+    return { ref: a.ref, company: a.company, role: a.role, stage: a.stage, last: lastText, stages: stagesOf(a) };
   });
   const lines = rows.map((r) => `${clip(r.company, 80)}${forRole(r.role)}: ${r.stage} (${r.last})`);
-  return { found: rows.length, text: lines.join("\n"), applications: rows };
+  const history = rows.map((r) => `${clip(r.company, 80)}${forRole(r.role)}: ${r.stages.map((s) => `${s.stage} ${s.date ?? "(no date on file)"} (${s.source})`).join("; ")}`).join("\n");
+  return { found: rows.length, text: lines.join("\n"), history, applications: rows };
 }

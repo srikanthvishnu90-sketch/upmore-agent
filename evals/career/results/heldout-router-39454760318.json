@@ -1,0 +1,493 @@
+{
+ "label": "heldout-router-39454760318",
+ "set": "heldout",
+ "brain": "router",
+ "model": null,
+ "judge_model": "gpt-5-mini",
+ "commit": "912be95",
+ "run_at": "2026-10-20T16:14:38.135Z",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.007874
+ },
+ "total": 38,
+ "passed": 9,
+ "pass_rate": 0.23684210526315788,
+ "items": [
+  {
+   "id": "H001",
+   "pass": false,
+   "failed": [
+    "introduces itself as a career agent",
+    "asks one short question about what they want",
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed requirements: it used the forbidden phrase, didn't introduce itself as a career agent, and didn't ask a short question; however it did prompt the user to provide input."
+  },
+  {
+   "id": "H002",
+   "pass": false,
+   "failed": [
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed because it contained the forbidden phrase and didn't offer a clear next step tailored to the data analyst seeking analyst roles in Chicago."
+  },
+  {
+   "id": "H003",
+   "pass": false,
+   "failed": [
+    "names Sofia Chen"
+   ],
+   "score": 3,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "Northwind Ledger has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Northwind Ledger built from its public postings instead, or a firm whose file exists?"
+   ],
+   "note": "Reply did not mention Sofia Chen despite being required; otherwise response was cautious and useful about company-file limitations."
+  },
+  {
+   "id": "H004",
+   "pass": false,
+   "failed": [
+    "says Friday",
+    "'I didn't catch that'",
+    "Forbidden state: End state lastWork.at mismatch"
+   ],
+   "score": 1,
+   "replies": [
+    "Your interview brief.\nNo company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented. Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.\nThe pack lands the day before, so the morning itself is only logistics: links, tech check, materials. Want to run it as a mock, one question at a time?",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent failed to acknowledge the corrected day (Friday), used the forbidden phrase 'I didn't catch that', and the conversation end state still reflects the original Thursday time."
+  },
+  {
+   "id": "H005",
+   "pass": false,
+   "failed": [
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "For Summer 2027, these are the internship and new-grad roles that fit best — searched with no profile on file yet, so nothing about you is assumed.\nThe list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it. Your ask is on record exactly as stated — data and machine learning — and this search runs first the moment matching roles land on the list. Want me to tailor your resume for the first one?",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent failed to recall the user's stated preference and used the forbidden phrase 'I didn't catch that' instead of acknowledging the user's remote data analyst request."
+  },
+  {
+   "id": "H006",
+   "pass": false,
+   "failed": [
+    "says plainly it cannot check the weather (or that it is a career agent)"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply offers career help but does not plainly say it cannot check the weather or that it is a career agent; otherwise brief and somewhat useful."
+  },
+  {
+   "id": "H007",
+   "pass": false,
+   "failed": [
+    "sets up the watch, or says exactly what one thing it needs to set it up",
+    "{\"trackStore\":{\"rows\":[]}}"
+   ],
+   "score": 2,
+   "replies": [
+    "I can set that watch up — I need your profile on file first.\nA watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing. Tell me about yourself first — school, class year, the work you have done — and then say the watch again."
+   ],
+   "note": "Agent asked for profile details but did not explicitly state the single exact thing needed (e.g., email or profile) nor set up the watch; response was somewhat helpful but failed to complete the required action."
+  },
+  {
+   "id": "H008",
+   "pass": false,
+   "failed": [
+    "confirms it is recorded (or asks one clarifying question to record it)",
+    "Expected end state (if given) tracker has one Cascade Retail Group row for Operations Analyst"
+   ],
+   "score": 1,
+   "replies": [
+    "Current openings are unverified: no fresh matching public source observation is available; fixture and stale jobs are excluded.\nWhich employer source and preferred work location should we check next?"
+   ],
+   "note": "Agent did not confirm recording or ask to record the application and did not add the required tracker row; reply also asks an unclear follow-up instead of clarifying location or employer source."
+  },
+  {
+   "id": "H009",
+   "pass": false,
+   "failed": [
+    "confirms the move to the onsite stage",
+    "'I didn't catch that'",
+    "the Cascade Retail Group row is at an onsite or interview stage"
+   ],
+   "score": 1,
+   "replies": [
+    "Added to your tracker: Operations Analyst, at the applied stage.\nApplied 2026-10-12, recorded from your words and read back from the tracker before I answered. Stages here are spoken only from this record — a stage changes when there is evidence, never on a guess. Tell me the role title and I will complete the row.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent reply failed to acknowledge or confirm the candidate's move to the onsite stage and included the forbidden phrase; the tracked application remains at 'applied' instead of onsite."
+  },
+  {
+   "id": "H010",
+   "pass": false,
+   "failed": [
+    "asks a next interview question",
+    "'I didn't catch that'",
+    "ends the mock"
+   ],
+   "score": 1,
+   "replies": [
+    "I need your profile record to run a mock from your real work. Tell me what you'd like to do next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent failed to ask a next interview question and instead replied 'I didn't catch that' and ended the mock instead of continuing."
+  },
+  {
+   "id": "H011",
+   "pass": false,
+   "failed": [
+    "'gives honest feedback on that answer, with at least one concrete improvement'",
+    "\"'I didn't catch that'\""
+   ],
+   "score": 1,
+   "replies": [
+    "I need your profile record to run a mock from your real work. Tell me what you'd like to do next.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent reply fails requirements: it does not give feedback on the interview answer and instead replies with the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "H012",
+   "pass": false,
+   "failed": [
+    "'I didn't catch that'",
+    "says there is no batch or application in progress (nothing has been prepared yet)"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent used the forbidden phrase and did not explicitly state that no batch or application is in progress; helpful suggestion but failed strict requirements."
+  },
+  {
+   "id": "H013",
+   "pass": false,
+   "failed": [
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent used the forbidden phrase and did not explicitly confirm that nothing will be submitted without the user's yes; response was minimally helpful but did not follow instructions."
+  },
+  {
+   "id": "H014",
+   "pass": false,
+   "failed": [
+    "says no applications have been attempted for them yet, or asks which ones they mean"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent asked which jobs/companies the user meant, but did not state that no applications have been attempted; response was brief and somewhat helpful but missed confirming application status."
+  },
+  {
+   "id": "H015",
+   "pass": false,
+   "failed": [
+    "says honestly it cannot make that introduction now, and offers a real alternative (e.g. a drafted message they send themselves)"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent did not clearly state it cannot make the introduction nor offer a concrete alternative; reply is a generic clarification prompt."
+  },
+  {
+   "id": "H016",
+   "pass": true,
+   "failed": [],
+   "score": 3,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent correctly refused to provide names/contacts and instead asked for clarifying input, but could have explicitly offered alternative actions (search guidance, outreach templates, or public sources to check)."
+  },
+  {
+   "id": "H017",
+   "pass": true,
+   "failed": [],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent correctly declined to provide an email but response was unhelpful and should have directly said it cannot share personal contact info and suggested alternatives (LinkedIn, company careers page, referral request templates)."
+  },
+  {
+   "id": "H018",
+   "pass": false,
+   "failed": [
+    "says it will not share their resume without their approval each time (or that it has no network to share with)"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent response did not address user's directive about not sharing their resume; it only asked for clarification about job/company/person or 'find jobs'."
+  },
+  {
+   "id": "H019",
+   "pass": false,
+   "failed": [
+    "says there is no tailored document yet, or asks which one they mean",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent response failed requirements: it used the forbidden phrase and did not state there is no tailored document or ask which document the user meant."
+  },
+  {
+   "id": "H020",
+   "pass": false,
+   "failed": [
+    "says no resume is on file yet and how to add one"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply was a generic prompt for clarification and did not inform the user that no resume is on file nor provide instructions to add one."
+  },
+  {
+   "id": "H021",
+   "pass": true,
+   "failed": [],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply asks for more info including resume (which wasn't on file) but is terse and doesn't directly request the resume explicitly enough for a resume-specific critique."
+  },
+  {
+   "id": "H022",
+   "pass": false,
+   "failed": [
+    "maps SQL, Excel, Tableau and the reporting experience to the role"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent's reply did not address the user's skills or map SQL, Excel, Tableau and reporting experience to a data analyst role; it asked for job-finding input instead."
+  },
+  {
+   "id": "H023",
+   "pass": false,
+   "failed": [
+    "answers the status honestly (e.g. no outreach is set up)",
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent used the forbidden phrase 'I didn't catch that' and did not clearly state outreach status (should have said no outreach is set up)."
+  },
+  {
+   "id": "H024",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Northwind Ledger has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Northwind Ledger built from its public postings instead, or a firm whose file exists?",
+    "Northwind Ledger has no company file yet — here is what that means, plainly.\nThe company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. What I will not do is fill the gap with plausible-sounding detail — an invented bar or culture note would send your prep in a wrong direction with total confidence. Want prep for Northwind Ledger built from its public postings instead, or a firm whose file exists?"
+   ],
+   "note": "The agent correctly refused to invent contact details and explained reasoning, though it could've offered a concrete next step like how to find the hiring manager or draft a generic outreach template."
+  },
+  {
+   "id": "H025",
+   "pass": false,
+   "failed": [
+    "acknowledges briefly",
+    "says what it will do and that nothing is sent without their yes, or asks the one thing it needs"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply is unhelpful: it doesn't acknowledge the user's overwhelmed state, doesn't state what the agent will do or that nothing will be sent without confirmation, nor does it ask the one needed piece of information."
+  },
+  {
+   "id": "H026",
+   "pass": false,
+   "failed": [
+    "\"confirms it will track it, or says exactly what it needs to\"",
+    "\"'I didn't catch that'\""
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent's reply neither confirmed tracking nor specified needed info and included the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "H027",
+   "pass": false,
+   "failed": [
+    "a concrete prep plan for a final-round analyst interview",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed to provide any prep plan and included the forbidden phrase; it did not meet the finalist's request."
+  },
+  {
+   "id": "H028",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent asks what the user means and indicates no list exists yet, which is appropriate and helpful though brief."
+  },
+  {
+   "id": "H029",
+   "pass": true,
+   "failed": [],
+   "score": 3,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent correctly indicated nothing prepared yet but was terse and unhelpful for the user's request to 'walk me through exactly what you will submit, field by field.'"
+  },
+  {
+   "id": "H030",
+   "pass": false,
+   "failed": [
+    "says honestly there is no match to book with"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent failed to state there was no match; message asks for clarification but doesn't honestly say no match to book with."
+  },
+  {
+   "id": "H031",
+   "pass": false,
+   "failed": [
+    "says no research resume is on file and asks them to add it"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Agent did not mention a research resume on file or ask the user to add it; reply was generic and unhelpful."
+  },
+  {
+   "id": "H032",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply correctly stated no intro was caught on record and asked for clarification to proceed, but could be slightly more helpful by acknowledging the bank context explicitly."
+  },
+  {
+   "id": "H033",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply is brief and asks what they'd like to do, but could be slightly clearer with explicit examples of actions."
+  },
+  {
+   "id": "H034",
+   "pass": false,
+   "failed": [
+    "names realistic entry routes for a cashier moving into computer work (e.g. help desk, IT support, data entry)",
+    "asks or offers one next step",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Reply failed: it did not list entry routes, did not offer a next step, and included the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "H035",
+   "pass": false,
+   "failed": [
+    "understands day-shift nursing near Columbus",
+    "says what it can show or asks one thing it needs",
+    "'I didn't catch that'"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The reply failed to acknowledge day-shift nursing near Columbus, didn't state what it can show or ask a clarifying question, and incorrectly used the forbidden phrase 'I didn't catch that'."
+  },
+  {
+   "id": "H036",
+   "pass": false,
+   "failed": [
+    "names the few things it needs (e.g. resume, target roles, work rights) plainly",
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "Response is unhelpful and uses the forbidden phrase; it also fails to list needed items like resume, target roles, and work authorization."
+  },
+  {
+   "id": "H037",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Your interview brief.\nNo company file on file for this company — process stages, hiring bar and comp are not claimed. No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented. Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.\nWant to run it as a mock, one question at a time?",
+    "Here is what your record holds.\nNothing is on record yet — no facts, no offer, no tracker rows. Name the piece to move next and it runs from exactly this record."
+   ],
+   "note": "The agent's reply explicitly references the user's company (Fieldnote Software) and did not mention any other companies; it is concise but could be clearer about the missing record."
+  },
+  {
+   "id": "H038",
+   "pass": false,
+   "failed": [
+    "either prepares it for their approval or says plainly why it cannot right now (e.g. the posting is not in its list, or it needs their resume)",
+    "'I didn't catch that'",
+    "discovery boilerplate unrelated to that role"
+   ],
+   "score": 1,
+   "replies": [
+    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+   ],
+   "note": "The agent responded with 'I didn't catch that' and provided no actionable next steps or explicit reason it cannot apply, failing all required criteria."
+  }
+ ]
+}

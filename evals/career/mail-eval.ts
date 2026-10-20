@@ -4,6 +4,7 @@
 // Run: deno run --allow-read evals/career/mail-eval.ts [--json] [--check]
 import { classifyMail, type MailKind, sameCompany, STATUS_KINDS } from "../../supabase/functions/_shared/career_mail.ts";
 import set from "./mail-labels.json" with { type: "json" };
+import blind from "./mail-blind.json" with { type: "json" };
 
 export const TARGET = { precision: 0.97, recall: 0.95 };
 const KINDS: MailKind[] = [...STATUS_KINDS, "other"];
@@ -44,16 +45,18 @@ export function evaluate(mails: typeof set.mails) {
 // mail). "devcheck" (WO-040, same origin, split off by a fixed seed) was never used to change a rule: it is the first check
 // for over-fitting. "holdout" (WO-024's 50) was never tuned on; WO-040 read its misses for their causes (the work order
 // asked for that error analysis), so after WO-040 it is an optimistic number, not a blind one. --check guards dev against
-// a regression; it does not steer by devcheck or the holdout. --only <split,...> prints just those splits (tune with
-// --only dev). --json prints everything as JSON.
+// a regression; it does not steer by devcheck or the holdout. "blind40" (WO-040 review, mail-blind.json) is 30 status
+// emails in new wordings, written before the review's rule changes and scored once; it is printed only when named
+// (--only blind40), so tuning never shows it. --only <split,...> prints just those splits (tune with --only dev). --json
+// prints everything as JSON.
 export function splitsOf(mails: typeof set.mails) {
   const of = (...names: string[]) => mails.filter((m) => names.includes(m.split));
   return { all: mails, dev: of("tune", "tune2", "dev3"), tune: of("tune"), tune2: of("tune2"), dev3: of("dev3"), devcheck: of("devcheck"), holdout: of("holdout") };
 }
 if (import.meta.main) {
-  const splits = splitsOf(set.mails);
+  const splits = { ...splitsOf(set.mails), blind40: blind.mails as typeof set.mails };
   const at = Deno.args.indexOf("--only"), only = at >= 0 ? String(Deno.args[at + 1] ?? "").split(",") : null;
-  const results = Object.fromEntries(Object.entries(splits).filter(([k]) => !only || only.includes(k)).map(([k, v]) => [k, evaluate(v)]));
+  const results = Object.fromEntries(Object.entries(splits).filter(([k]) => (only ? only.includes(k) : k !== "blind40")).map(([k, v]) => [k, evaluate(v)]));
   if (Deno.args.includes("--json")) console.log(JSON.stringify(results, null, 2));
   else {
     const pct = (x: number) => (100 * x).toFixed(1) + "%";

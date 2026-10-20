@@ -150,8 +150,11 @@ export function roleOf(subject: string, snippet: string): string | undefined {
 // Status phrases, strongest first. Each is a phrase an employer writes, never a lone word: "offer" alone is a sale,
 // "interview" alone is a newsletter. Listed one phrase family per line so a miss can be found and fixed.
 const phrases = (...p: string[]) => new RegExp(String.raw`\b(` + p.join("|") + String.raw`)\b`, "i");
+// A reference to the person's own application (WO-040 review): its role, the application, an interview, the hiring side.
+export const APP_REF = /\b(your (application|candidacy|resume|cv|portfolio)|you applied|applied (for|to)|(the|this|that)\b[^.]{0,50}?\b(role|position|opening|requisition)\b|interview\w*|hiring (manager|team)|next (step|steps|round|stage)|(phone|recruiter|technical) screen)\b/i;
 const NOT = String.raw`(will not|won'?t|not|unable to|cannot|can'?t)`;
-const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp][] = [
+// A third element: the phrase counts only when the words also refer to the person's application (WO-040 review).
+const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp, RegExp?][] = [
   ["rejection", phrases(
     String.raw`regret to (inform|let you know|tell you)|we regret that|regrettably|sorry to (inform|tell|let you know)`,
     String.raw`not (been )?selected|(was|were|has been|is) (not successful|unsuccessful)`,
@@ -176,7 +179,7 @@ const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp][] = [
   )],
   ["offer", phrases(
     String.raw`offer letter|offer of employment|job offer|(internship|employment|verbal|written|formal|conditional|contingent|tentative|provisional) offer`,
-    String.raw`(would|'d) (like|love) to offer you|want(s)? to offer you|offer you (the|a|an) ([\w-]+ ){0,5}(position|role|job|place|internship|spot)\b`,
+    String.raw`offer you (the|a|an) ([\w-]+ ){0,5}(position|role|job|place|internship|spot)\b`,
     String.raw`(pleased|happy|excited|delighted|thrilled|glad) to (extend|offer you|make you an offer)|extend(ing)? (you )?an? (formal |verbal |written |conditional )?offer`,
     String.raw`make you an offer|your offer (from|with|letter|details|package|for)|offer (details|package) (is|are) (attached|ready)|accept (your|the) offer`,
     String.raw`you'?re hired|you are hired|(love|like) (for you to|to have you) (start|join)`,
@@ -192,19 +195,23 @@ const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp][] = [
   )],
   ["interview", phrases(
     String.raw`interview invitation|invitation to interview|superday invitation\b|invit\w* (you )?to (an? |the |our |your )?([\w-]+ ){0,4}(interview|interviews|superday|power day|onsite|on-site|(phone|recruiter|technical|intro|initial|video) screen|video call)`,
-    String.raw`selected (you )?(to|for (an? |the )?)interview|would like to (interview you|meet with you|speak with you|chat with you)|(like|love|want) you to meet (with )?(the|our) (hiring manager|team)`,
-    String.raw`(re-?schedule|schedule|book|set up|arrange) (an?|your|the) ([\w-]+ ){0,3}(interviews?|call|chat|phone screen|screen|conversation|onsite|on-site|superday)|come in for an? (interview|chat)`,
+    String.raw`selected (you )?(to|for (an? |the )?)interview|would like to interview you|(like|love|want) you to meet (with )?(the|our) (hiring manager|team)`,
+    String.raw`(re-?schedule|schedule|book|set up|arrange) (an?|your|the) ([\w-]+ ){0,3}(interviews?|phone screen|screen|onsite|on-site|superday)|come in for an? interview`,
     String.raw`interview (loop |panel |day )?(is |has been )?(confirmed|scheduled)|(onsite|on-site|final|panel) interview|interview (loop|panel)`,
     String.raw`(first|second|third|final|next)[- ]round (of )?(interviews?|superday)|move (you )?(forward )?to the interview stage`,
-    // WO-040: an invitation in the words people use: someone wants to talk with you, a screen, the next round, a
-    // confirmed time.
-    String.raw`(would|'d) (like|love) to (talk|speak|chat|meet|connect) (with )?you|wants? to (talk|speak|chat|meet) (with )?you|(would|'d) (like|love) to bring you in`,
+    // WO-040: a screen, the next round, a confirmed time.
     String.raw`(recruiter|technical|intro|introductory|initial|hiring manager) (screen|screening)\b|(advanced|advance|moved|moving|progressed) (you )?(on |forward )?to the (next|final|second|third|interview) (round|stage)`,
     String.raw`interview\b[^.]{0,60}?\b(is|has been) (confirmed|scheduled|set|booked)|(confirmed|scheduled|booked):? (your )?interview|(join|attend)\b[^.]{0,50}\b(for )?(your|the) interview\b`,
-    String.raw`move (you )?forward with (an?|the|your) ([\w-]+ ){0,3}(call|interview|interviews|conversation|screen|chat)|(select|share|send) your (availability|interview times?)`,
-    String.raw`(are you|would you be) (available|free)\b[^.?]{0,60}\b(call|interview|chat|meeting|screen|conversation)`,
-    String.raw`availability (next week |this week )?for an? ([\w-]+ ){0,2}(interview|call|chat)|(pick|choose|select|book) (a|an) (interview )?time|(phone|video|technical|virtual) interview\b`,
+    String.raw`move (you )?forward with (an?|the|your) ([\w-]+ ){0,3}(interview|interviews|screen)|(select|share|send) your interview times?`,
+    String.raw`(are you|would you be) (available|free)\b[^.?]{0,60}\b(interview|screen)|availability (next week |this week )?for an? ([\w-]+ ){0,2}interview|(pick|choose|select|book) (a|an) interview time|(phone|video|technical|virtual) interview\b`,
   )],
+  // WO-040: the words anyone uses to ask for a call (a sales rep, a sourcer, a friend) are an invitation only when they
+  // are about the person's application: "the Data Analyst role", "your application", the hiring manager, an interview.
+  ["interview", phrases(
+    String.raw`(would|'d) (like|love) to (talk|speak|chat|meet|connect) (with )?you|wants? to (talk|speak|chat|meet) (with )?you|(would|'d) (like|love) to bring you in|would like to (meet|speak|chat) with you`,
+    String.raw`(re-?schedule|schedule|book|set up|arrange) (an?|your|the) ([\w-]+ ){0,3}(call|chat|conversation)|come in for an? chat|move (you )?forward with (an?|the|your) ([\w-]+ ){0,3}(call|conversation|chat)`,
+    String.raw`(are you|would you be) (available|free)\b[^.?]{0,60}\b(call|chat|meeting|conversation)|availability (next week |this week )?for an? ([\w-]+ ){0,2}(call|chat)|(pick|choose|select|book) (a|an) time|(select|share|send) your availability`,
+  ), APP_REF],
   ["received", phrases(
     String.raw`thank(s| you) for (applying|your application|submitting your application|your interest in [^.]{0,60}?\. we (have )?received)`,
     String.raw`(we('ve| have)?|has been|was|we) (received|got) your application|we got your application|receipt of your application`,
@@ -217,8 +224,12 @@ const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp][] = [
   )],
 ];
 // Words that make a message something other than an application step, checked on the subject and sender first.
-const NOISE_SUBJECT = /\b(job alerts?|new jobs|jobs for you|jobs? (matching|recommended)|recommended (jobs|for you)|is hiring|are hiring|hiring now|great match|top applicant|newsletter|webinar|digest|info session|career fair|events?|conference|registration|rsvp|survey|feedback|statement|receipt|your order|package|shipped|deals?|sale|% off|premium|verify|verification|password|sign[- ]?in|security code|candidate account|viewed your|tips|course|salaries|profile|product update|what'?s new|new features|withdrawn|self-identification)\b/i;
-const NOISE_TEXT = /\b(complete your application|finish (applying|your application)|haven'?t (submitted|finished)|isn'?t finished|started an application|pick up where you left off|unsubscribe from (job )?alerts|viewed your (application|profile)|mock interviews?|practice interviews?|interview tips|career coach(es|ing)?|(health|wellness|wellbeing|property|tax|fitness|medical|hearing|vision|skin|home|energy|credit) assessments?|assessor)\b/i;
+const NOISE_SUBJECT = /\b(job alerts?|new jobs|jobs for you|jobs? (matching|recommended)|recommended (jobs|for you)|is hiring|are hiring|hiring now|great match|top applicant|newsletter|webinar|digest|info session|career fair|events?|conference|registration|rsvp|survey|feedback|statement|receipt|your order|package|shipped|deals?|sale|% off|premium|verify|verification|password|sign[- ]?in|security code|candidate account|viewed your|tips|course|salaries|profile|product update|what'?s new|new features|withdrawn|self-identification|automatic reply|auto-?reply|autoreply|out of (the )?office|ooo)\b/i;
+const NOISE_TEXT = /\b(complete your application|finish (applying|your application)|haven'?t (submitted|finished)|isn'?t finished|started an application|pick up where you left off|unsubscribe from (job )?alerts|viewed your (application|profile)|mock interviews?|practice interviews?|interview tips|career coach(es|ing)?|(health|wellness|wellbeing|property|tax|fitness|medical|hearing|vision|skin|home|energy|credit) assessments?|assessor|out of (the )?office|when i return|limited access to (my )?e-?mail|video visit|clinician|telehealth|your (doctor|provider|care team)|mychart|lab results)\b/i;
+// WO-040 review: a calendar or meeting tool's notice repeats an event's title; it is not the employer's words, and its
+// sender ("Google Calendar") is never the employer.
+const SYSTEM_SENDER = /\b(calendar|calendly)\b|calendar-notification/i;
+const SYSTEM_DOMAINS = ["calendly.com", "zoom.us", "webex.com", "calendar.google.com"];
 // WO-040: applications that are not for a job (a card, a loan, a lease, a visa, an account) use the same words.
 const NOT_A_JOB = /\b((credit card|card|loan|mortgage|rental|lease|apartment|housing|brokerage|bank|checking|savings|investment|account|membership|visa|passport|insurance|scholarship|grant|admissions?|enrollment|financing|credit) application|applying for (the |a |an )?[^.]{0,40}? card\b|apply(ing)? to live|pre-?approv\w*)/i;
 // What scams and look-alikes ask for; a real employer never does in a first message.
@@ -234,7 +245,7 @@ const PAST_STEP = /\b(thanks? (you )?(again )?for (completing|taking|interviewin
 const MAYBE_STEP = /\b(if|should|once|when|in case) (you are |you're |you get |you be |you have been )?(selected|chosen|shortlisted|invited|moved forward)\b[^.]*/gi;
 // A job word: a company's own domain writing about a step names the application, the role or the process. Without one,
 // "complete your assessment" or "take your test" is the company's product talking.
-const JOB_CUE = /\b(applications?|applied|applying|candidate|candidacy|positions?|roles?|jobs?|openings?|requisition|interview\w*|recruit\w*|hiring|internship|program(me)?|resume|cv|portfolio|panel|next (stage|step|round)|employment|start date)\b/i;
+const JOB_CUE = /\b(applications?|applied|applying|candidate|candidacy|positions?|roles?|jobs?|openings?|requisition|interview\w*|recruit\w*|hiring|internship|(graduate|internship|leadership|rotational|analyst|trainee|early careers?) program(me)?|resume|cv|portfolio|panel|next (stage|step|round)|employment|start date)\b/i;
 const JOB_SENDER = /(career|recruit|talent|jobs?\b|hiring|\bhr\b|people)/i;
 // Words that make a message worth a second look by the model (WO-040), when the rules found no status phrase.
 const STEP_CUE = /\b(applications?|applied|candidacy|candidate|positions?|roles?|interview\w*|assessment|offer|recruit\w*|hiring|next steps?|update on|status|decision|move forward|moving forward|schedul\w*|availability)\b/i;
@@ -254,6 +265,7 @@ export function classifyMail(m: MailMeta): Classified {
   const scam = SCAM.exec(text);
   if (scam) return other(scam[0]);
   if (lookAlike(s)) return other(`look-alike domain ${s.domain}`);
+  if (SYSTEM_SENDER.test(`${s.name} ${s.local}`) || endsWithDomain(s.domain, SYSTEM_DOMAINS)) return other("calendar or meeting notice");
   const board = endsWithDomain(s.domain, JOB_BOARDS), vendor = endsWithDomain(s.domain, ASSESSMENT_VENDORS);
   const free = endsWithDomain(s.domain, FREE_MAIL), ats = endsWithDomain(s.domain, ATS);
   // An ATS or a vendor writes only about jobs; "Your Visa application" from Visa's careers site is one.
@@ -263,15 +275,17 @@ export function classifyMail(m: MailMeta): Classified {
   if (/^(job-?alerts?|jobalerts-noreply|alerts?|digest|newsletter|jobs-listings|inmail)/i.test(s.local)) return other(s.local);
   const live = text.replace(PAST_STEP, " ").replace(MAYBE_STEP, " ");
   const cold = !ats && !vendor ? COLD.exec(text) : null;
-  for (const [kind, re] of RULES) {
+  for (const [kind, re, needs] of RULES) {
     const hit = re.exec(kind === "rejection" ? text : live);
-    if (!hit) continue;
+    if (!hit || (needs && !needs.test(text))) continue;
     // A job board says only that an application went; anything else from it is its own advert.
     if (board && kind !== "received") return other(`job board: ${hit[0]}`);
     if (free && kind !== "rejection") return other(`personal address: ${hit[0]}`);
     // Cold outreach is not a step in anything the person applied to, however it is worded (WO-040).
     if (cold) return other(cold[0]);
-    if (!ats && !vendor && !board && kind !== "rejection" && !looksLikePerson(s) && !JOB_SENDER.test(`${s.local} ${s.name}`) && !JOB_CUE.test(text)) return other(`no job word: ${hit[0]}`);
+    // An automated sender that is not an ATS writes about a job only in job words; "we regret that we are unable to ship"
+    // is a shop (WO-040 review: rejections too).
+    if (!ats && !vendor && !board && !looksLikePerson(s) && !JOB_SENDER.test(`${s.local} ${s.name}`) && !JOB_CUE.test(text)) return other(`no job word: ${hit[0]}`);
     const company = companyOf(s, subject, snippet, vendor);
     if (board && !company) return other("job board, no employer named");
     return { kind, company, role: roleOf(subject, snippet), domain: s.domain, evidence: evidenceLine(kind, hit[0], subject, s.domain) };
@@ -282,15 +296,18 @@ export function classifyMail(m: MailMeta): Classified {
     if (r) return { kind: "recruiter_reply", company: companyOf(s, subject, snippet, false), role: roleOf(subject, snippet), domain: s.domain, evidence: evidenceLine("recruiter_reply", r[0], subject, s.domain) };
   }
   if (COLD.test(text)) return other(COLD.exec(text)![0]);
-  // Unclear, from an employer's ATS, a vendor, a person or a careers sender, or naming the job, with a step word: "other" by
-  // the rules, but worth a second look. A shop's "order status" or "special offer" is not sent to the model.
+  // Unclear, from an employer's ATS or a vendor, or naming the job, with a step word: "other" by the rules, but worth a
+  // second look. A person's "status of your filing" or a shop's "order status" names no job and is never ambiguous.
   const out = other("no status phrase");
-  const jobby = ats || vendor || looksLikePerson(s) || JOB_SENDER.test(`${s.local} ${s.name}`) || JOB_CUE.test(text);
-  if (!board && !free && jobby && STEP_CUE.test(text)) out.ambiguous = true;
+  if (!board && !free && (ats || vendor || JOB_CUE.test(text)) && STEP_CUE.test(text)) out.ambiguous = true;
   return out;
 }
-export function lookAlike(s: Pick<Sender, "label">): boolean {
-  return s.label.includes("-") && LOOKALIKE.test(s.label);
+// The brand of an ATS or a test vendor on any other domain ("greenhouse.xyz", "ashbyhq.net", "myworkdayjobs.net").
+const BRAND_EXEMPT = new Set(["amazon", "oraclecloud"]);
+const ATS_BRANDS = new Set([...ATS, ...ASSESSMENT_VENDORS].map((d) => registrableLabel(d)).filter((l) => l && !BRAND_EXEMPT.has(l)));
+export function lookAlike(s: Pick<Sender, "label" | "domain">): boolean {
+  if (s.label.includes("-") && LOOKALIKE.test(s.label)) return true;
+  return ATS_BRANDS.has(s.label) && !endsWithDomain(s.domain, [...ATS, ...ASSESSMENT_VENDORS]);
 }
 
 // WO-040: a kind decided outside the rules (the model's second pass, career_mail_model.ts), with the employer, role and
@@ -363,7 +380,16 @@ export function candidates(mail: Classified, apps: TrackedApp[]): TrackedApp[] {
     ((mail.company && sameCompany(a.company, mail.company)) ||
       (fromCompanyDomain && (sameCompany(a.company, label) || urlSlugs(a.url).includes(label))) ||
       (mail.company && urlSlugs(a.url).includes(collapsed(mail.company)))) &&
-    !(mail.role && a.role && roleWords(mail.role).size && roleWords(a.role).size && roleOverlap(a.role, mail.role) === 0));
+    !(mail.role && a.role && roleWords(mail.role).size && roleWords(a.role).size && roleOverlap(a.role, mail.role) === 0) &&
+    !(mail.kind === "rejection" && mail.role && a.role && !sameJob(a.role, mail.role)));
+}
+// WO-040 review: a rejection moves an application only for that job. "Software Engineer, Infrastructure" is not
+// "Software Engineer, Payments": each names a word the other lacks. One inside the other, or nearly equal, is the same.
+function sameJob(a: string, b: string): boolean {
+  const x = roleWords(a), y = roleWords(b);
+  if (!x.size || !y.size) return true;
+  const xOnly = [...x].filter((t) => !y.has(t)).length, yOnly = [...y].filter((t) => !x.has(t)).length;
+  return xOnly === 0 || yOnly === 0 || roleOverlap(a, b) >= 0.75 && Math.max(x.size, y.size) >= 4;
 }
 // WO-032: the message comes from this employer itself, or from the applicant tracking system it applies through naming
 // it; never from a personal address, a job board, an assessment vendor or any other domain ("Stripe <apply@talent-mail.io>"
@@ -470,6 +496,17 @@ export function onEmployerDomain(address: string, company: string, url?: string)
 }
 export { roleOverlap };
 
+// WO-040 review: services where anyone can send in an employer's name: e-signature, and ATSs with a free self-serve sign-up.
+// An offer through one is said with "check it is real" and never moves a stage.
+const SELF_SERVE: Record<string, string> = {
+  "docusign.net": "DocuSign", "breezy.hr": "Breezy", "recruitee.com": "Recruitee", "jazzhr.com": "JazzHR", "applytojob.com": "JazzHR",
+  "workable.com": "Workable", "workablemail.com": "Workable", "bamboohr.com": "BambooHR", "pinpointhq.com": "Pinpoint", "teamtailor.com": "Teamtailor",
+};
+function offerVia(domain?: string): string | null {
+  const d = String(domain ?? "").toLowerCase();
+  const hit = Object.keys(SELF_SERVE).find((k) => d === k || d.endsWith("." + k));
+  return hit ? SELF_SERVE[hit] : null;
+}
 // One of them, only when it is the only one or its role is the clear best; otherwise null (a forced match would move
 // the wrong application).
 function pick(hits: TrackedApp[], said: string): TrackedApp | null {
@@ -496,6 +533,9 @@ export interface StatusEvent {
   hash: string; ref: string; kind: Exclude<MailKind, "other">; company: string; role?: string;
   stage: string | null; // the stage after this message; null when it did not move one (already there, or flagged)
   flagged: boolean; evidence: string; at: string; new_app: boolean;
+  // WO-040 review: why a flagged event was only said, never applied: an offer through an e-signature or self-serve ATS
+  // ("via DocuSign"), or the model's reading of an offer or rejection ("model").
+  note?: string;
 }
 export interface StatusText { key: string; hash: string; ref: string; text: string }
 // step (WO-034): a thank-you drafted right after an interview ("thanks"), or the thank-you and nudge after quiet days (the
@@ -513,6 +553,8 @@ const quote = (s: string) => `"${clip(s, 80)}"`;
 
 function statusText(e: StatusEvent, subject: string, was: string): string {
   const co = clip(e.company, 80), when = day(e.at), r = forRole(e.role), email = ` Email: ${quote(subject)}`;
+  if (e.flagged && e.note?.startsWith("via ")) return `${co}${r}: an email on ${when} reads as an offer ${e.note}. Check it is real with ${co} before you act on it; I left it at ${was}.${email}`;
+  if (e.flagged && e.note === "model") return `${co}${r}: an email on ${when} may be a${e.kind === "offer" ? "n" : ""} ${e.kind}, but its words don't say so plainly, so I left it at ${was}. Tell me if it changed.${email}`;
   if (e.flagged) return `${co}${r} sent what reads as a ${e.kind.replace("_", " ")} on ${when}, but you are at ${was} with them. I left it at ${was}; tell me if it changed.${email}`;
   switch (e.kind) {
     case "received": return `${co}${r} confirmed your application on ${when}. I'm tracking it.${email}`;
@@ -531,7 +573,8 @@ export function foldEvents(apps: TrackedApp[], events: StatusEvent[]): TrackedAp
   for (const e of [...events].sort((x, y) => x.at.localeCompare(y.at))) {
     let a = out.find((x) => x.ref === e.ref);
     if (!a) { a = { ref: e.ref, company: e.company, role: e.role, applied_at: e.at, stage: "Submitted", source: "mail", events: [] }; out.push(a); }
-    a.events!.push({ kind: e.kind, at: e.at, source: "mail" });
+    // WO-040 review: a flagged event that moved nothing (an offer "via DocuSign", the model's reading) is not a step.
+    if (!(e.flagged && !e.stage)) a.events!.push({ kind: e.kind, at: e.at, source: "mail" });
     if (e.stage) a.stage = e.stage;
   }
   return out;
@@ -564,7 +607,18 @@ export function planUpdates(mails: MailIn[], applications: TrackedApp[], now: nu
       apps.push(app);
       fresh = true;
     }
-    if (!fresh && (c.kind === "offer" || c.source === "model") && !fromEmployer(c, app, m.from, m.auth)) { plan.refused++; continue; }
+    // An offer, or anything the model read, only from the employer's own authenticated mail (WO-032's fromEmployer); an
+    // offer through an e-signature or self-serve ATS is said with a warning; the model's offer or rejection is only said.
+    const via = c.kind === "offer" ? offerVia(c.domain) : null;
+    if (!fresh && !via && (c.kind === "offer" || c.source === "model") && !fromEmployer(c, app, m.from, m.auth)) { plan.refused++; continue; }
+    if (c.source === "model" && c.kind === "received") { plan.refused++; continue; }
+    const soft = via ? `via ${via}` : c.source === "model" && (c.kind === "offer" || c.kind === "rejection") ? "model" : null;
+    if (soft) {
+      const e: StatusEvent = { hash: m.hash, ref: app.ref, kind: c.kind, company: app.company, role: app.role ?? c.role, stage: null, flagged: true, evidence: c.evidence, at: new Date(Date.parse(m.date) || now).toISOString(), new_app: false, note: soft };
+      plan.events.push(e);
+      plan.texts.push({ key: `status:${m.hash}`, hash: m.hash, ref: app.ref, text: statusText(e, m.subject, app.stage) });
+      continue;
+    }
     const was = app.stage, to = STAGE_OF[c.kind];
     const closed = TERMINAL.has(was), offerThenNo = was === "Offer" && c.kind === "rejection";
     const flagged = (closed && to !== was) || offerThenNo;

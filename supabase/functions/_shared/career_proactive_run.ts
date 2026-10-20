@@ -7,10 +7,10 @@ import { DEFAULT_PREFS, planProactive, quietAt } from "./career_alerts.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 import { cardFor, type Prepared } from "./career_apply_cards.ts";
-import { type Classified, draftOffer, foldEvents, type MailIn, planUpdates, type StatusEvent, type TrackedApp } from "./career_mail.ts";
+import { type Classified, classifyMail, draftOffer, foldEvents, type MailIn, planUpdates, type StatusEvent, type TrackedApp } from "./career_mail.ts";
 import type { ReadResult } from "./career_mail_gmail.ts";
 import type { MailPerson, MailStore } from "./career_mail_store.ts";
-import { type MailModelWiring, secondPass } from "./career_mail_model.ts";
+import { MAIL_MODEL_MAX_CALLS, MAIL_MODEL_MAX_RUN_CALLS, type MailModelWiring, secondPass } from "./career_mail_model.ts";
 import { newMeter } from "./model_gateway.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 import { type AskStore, type ConfirmStore, planConfirmations } from "./career_apply_confirm.ts";
@@ -163,6 +163,7 @@ export async function runMail(o: {
 }): Promise<MailStats> {
   const stats: MailStats = { people: 0, not_wired: 0, statuses: 0, followups: 0, briefs: 0, brief_ms_max: null, confirmations: 0, asks: 0 };
   const second = o.model?.status === "on" ? o.model.deps : null;
+  let reserved = 0; // model calls promised to people still running, so parallel people never pass the run's cap
   if (o.model) Object.assign(stats, { model: o.model.status, model_calls: 0, model_decided: 0 }, o.model.status === "NOT_WIRED" ? { model_ask: o.model.ask } : {});
   const failed: string[] = [];
   const one = async (p: MailPerson) => {
@@ -172,17 +173,22 @@ export async function runMail(o: {
     if (r.status === "ERROR") failed.push(r.detail);
     stats.people++;
     const had = o.briefs ? await o.briefs.list(p.user_id) : [];
-    // The second pass, one meter per person; its cost is recorded whether or not anything was decided.
-    let decided: Map<string, Classified> | undefined;
-    if (second) {
+    const apps = withInterviews(foldEvents(await o.store.applications(p.user_id), await o.store.events(p.user_id)), had);
+    // Each message is read by the rules once; the second pass (one meter per person, its cost recorded whatever it decided)
+    // sees only mail newer than the last read, and the run as a whole asks at most MAIL_MODEL_MAX_RUN_CALLS times.
+    const decided = new Map<string, Classified>(r.mails.map((m) => [m.hash, classifyMail(m)]));
+    const budget = Math.max(0, Math.min(MAIL_MODEL_MAX_CALLS, MAIL_MODEL_MAX_RUN_CALLS - (stats.model_calls ?? 0) - reserved));
+    if (second && budget > 0) {
+      reserved += budget;
       const meter = newMeter();
-      const sp = await secondPass(r.mails, (payload) => second.call(payload, meter));
-      decided = sp.decided;
+      const sp = await secondPass(r.mails, apps, (payload) => second.call(payload, meter), { rules: decided, since: p.read_through ? Date.parse(p.read_through) : null, maxCalls: budget })
+        .finally(() => { reserved -= budget; });
+      for (const [h, c] of sp.decided) decided.set(h, c);
       stats.model_calls! += sp.asked;
       stats.model_decided! += sp.decided.size;
       if (meter.calls) await second.cost(p.user_id, meter).catch((e) => console.error("mail second pass cost:", e instanceof Error ? e.message : e));
     }
-    const plan = planUpdates(r.mails, withInterviews(foldEvents(await o.store.applications(p.user_id), await o.store.events(p.user_id)), had), o.now, decided);
+    const plan = planUpdates(r.mails, apps, o.now, decided);
     const fresh = await o.store.record(p.user_id, plan.events);
     const at = awake(o.now, p.tz, p);
     for (const t of plan.texts) {

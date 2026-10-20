@@ -54,9 +54,10 @@ real texting channel is last (D-009).
 | 068 | The agent reads postings: stated pay on every hit, `get_posting`, a search shortened when nothing matches | done (PR #91) | 061 | M1 | Claude |
 | 069 | Structured pay at ingestion (`career_postings.pay`, migration 20261022110000) | done (PR #94); the migration waits on the deploy | 068 | M2 | Claude |
 | 070 | Port `fix/v242-live-gaps` (a post-commit throw no longer denies a confirmed resume) | done (PR #92) | 060 | M1 | Claude |
-| 071 | The live router keeps a company's name ("Klaviyo", not "Klaviyo yesterday"); then port `main`'s site with re-versioned migrations | first half done (PR #92); site port queued | 060 | M1 | Claude |
+| 071 | The live router keeps a company's name ("Klaviyo", not "Klaviyo yesterday"); then port `main`'s site with re-versioned migrations | first half done (PR #92); the site port is WO-081 (PR #101) | 060 | M1 | Claude |
 | 072 | Browser tests wait for the panel's own "N postings added." (an add-then-Prepare race on loaded CI runners) | done (PRs #90–#92) | 054 | M0 | Claude |
 | [073](WO-073-title-search.md) | A search for a role ranks the role first: title tiers, a title-weighted database query, `title_matches` (battery T03) | PR #93 | 065 | M1 | Claude |
 | 074 | Standing answers the person gives once for a class of question (work rights by country, office and place, relatives, how they heard), in their own words; never drafted | next: order to be written | 075 | M4 | Claude |
 | [075](WO-075-resume-pair.md) | Greenhouse's resume upload and its paste box are one question (ready cards 174 → 218 of 797) | PR #95 | 064 | M4 | Claude |
 | 076 | Ready-first: the extension plans queued postings before Prepare (Greenhouse from the board's public API) and fills the day with the forms Trainee can finish; fit first, form cost second | proposed; waits on the owner (queue more postings than the day's sends) | 075 | M4 | Claude → owner |
+| [081](WO-081-port-sweep.md) | The port sweep (owner: "every other port verdict: port it"): main's site with channel delivery re-versioned to 20261019020001; every WO-1 verdict ported or retired with its reason (66 branches + the brief's six) | PRs #101, #104, #110, #111, #113, #115, #116 (on #115), #119; waiting on review | 071 | M1 | Claude |

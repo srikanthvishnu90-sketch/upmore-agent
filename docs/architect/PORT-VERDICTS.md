@@ -4,6 +4,17 @@ Trunk is the only line (D-026). Branches were audited against `origin/trunk` and
 deployed line is now ported (WO-060, PR #89, merged as a53face5). The architect's verdicts on the branches of the brief
 come first; the full audit of the 66 other branches follows.
 
+**Carried out by WO-081 (2026-10-20).** The owner's order was "port it — retire only what is already in trunk or truly
+dead". `docs/architect/work-orders/WO-081-port-sweep.md` records the outcome of every row, with the PR or the reason.
+Re-checking against trunk revised four verdicts:
+
+| Branch | Verdict here | Revised to | Why |
+|---|---|---|---|
+| `work/mi108-duplicate-check` | gap | in trunk | cad4c25c |
+| `work/mi117-alert-fatigue` | superseded | in trunk | 9de6d869 |
+| `work/mi098`…`mi104` portal families | "old stack" | ported (#116) | Module 150 and the helper are the live engine (D-014) |
+| `work/mi106-repost-stale`, `work/mi118-telemetry` | "old stack" | ported (#119, #116) | Live code: 121 is in the router bundle, and 149/150 are on the live path |
+
 ## The brief's branches
 
 | Branch | Verdict | Why |

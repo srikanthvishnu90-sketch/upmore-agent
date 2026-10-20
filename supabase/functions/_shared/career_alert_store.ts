@@ -2,7 +2,7 @@
 // waiting to be delivered. The chat's tools write preferences; the scheduled runner (career-proactive) reads them, plans
 // with career_alerts.ts, writes the outbox (one row per person and key, ever) and saves the counters. Delivery from the
 // outbox is the texting channel's job (WO-013); the simulator drains its own in-memory queue.
-// Tables: supabase/migrations/20261019010000_career_alerts.sql.
+// Tables: supabase/migrations/20261019010001_career_alerts.sql.
 import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, WEEKLY_MAX, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
 import { validFloor } from "./career_floor.ts";
 

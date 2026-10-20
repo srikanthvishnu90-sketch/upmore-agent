@@ -383,14 +383,14 @@ const listOf = (ds: OutreachDraft[]) => ds.map((d) => `${d.n} ${d.recipient.name
 export async function outreachTurn(o: {
   message: string; userId: string; threadId: string; now: number; store: OutreachStore; events?: EventStore | null;
   redraft?: (d: OutreachDraft) => Promise<Drafted>; gmailConnected?: () => Promise<boolean>; connectAsk?: string; tz?: string;
-}): Promise<{ reply: string; status: string; intent: string } | null> {
+}): Promise<{ reply: string; status: string; intent: string; parts?: string[] } | null> {
   const r = parseOutreachReply(o.message);
   if (!r) return null;
   if (r.kind !== "show" && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
   const batch = await o.store.latestBatch(o.userId);
   if (!batch.length) return r.kind === "show" ? { reply: "There are no outreach drafts yet. Ask me to draft emails to people on your list.", status: "empty", intent: "career_outreach_answer" } : null;
   const open = (s: string, status: string) => ({ reply: s, status, intent: OUTREACH_INTENT });
-  if (r.kind === "show") return open(batchText(batch), "shown");
+  if (r.kind === "show") return { ...open(batchText(batch), "shown"), parts: batchMessages(batch) };
   const byN = new Map(batch.map((d) => [d.n, d]));
   const numbers = batch.map((d) => d.n);
   const range = numbers.length === 1 ? "only number 1" : `numbers 1 to ${Math.max(...numbers)}`;

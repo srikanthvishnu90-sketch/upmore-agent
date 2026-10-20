@@ -19,7 +19,7 @@ import type { DigestStore, InterviewStore } from "../career_brief_store.ts";
 import { DAY_NAMES, DEFAULT_DIGEST, validDigest } from "../career_digest.ts";
 import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, sameFirm, type Verifier, vendorSource } from "../career_contacts.ts";
 import {
-  BATCH_MAX, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+  BATCH_MAX, batchMessages, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, recordOutreach, SIGNATURE_ASK,
 } from "../career_outreach.ts";
 import { legacyRows, REFERRAL_ASK, referralMap, targetFirms } from "../career_referrals.ts";
@@ -490,7 +490,9 @@ export function careerTools(deps: {
         const saved = await o.store.saveBatch(c.userId, c.threadId, ok, c.now);
         for (const d of saved) await recordOutreach(deps.events, c.userId, "outreach_drafted", d, c.now);
         const left = notDrafted.length ? `\n\nNot drafted, because I couldn't write to them without making something up: ${notDrafted.map((x) => x.name).join(", ")}.` : "";
-        if (c.turn) c.turn.show = { intent: OUTREACH_INTENT, text: batchText(saved) + left };
+        const parts = batchMessages(saved);
+        if (left) parts.push(left.trim());
+        if (c.turn) c.turn.show = { intent: OUTREACH_INTENT, text: batchText(saved) + left, parts };
         return { drafted: saved.length, not_drafted: notDrafted, held_out: held, shown: "Code shows the batch to the person in full; do not repeat or change it." };
       },
     },

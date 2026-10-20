@@ -24,7 +24,7 @@
 - **The band:** a 95% Wilson interval on n = 87. Beside it, the judge's 3 votes disagreed on 13 of 87 scenarios. So up
   to about ±13 scenarios are judge noise on top of the sampling band.
 - **The router row is not a score.** It has no judge and no tool checks. It passes many replies a judge would fail. It
-  is there only to show that the router's generic fallback still fires on trunk: 20 of its 87 scenarios hit "I didn't
+  is there only to show that the router's generic fallback still fires on trunk: 19 of its 87 scenarios hit "I didn't
   catch that".
 - **Rescoring fixed three harness misreads and changed one scenario's premise.** Four scenarios flipped to pass:
   BR-010, BR-040, BR-043, BR-080. The fixes:

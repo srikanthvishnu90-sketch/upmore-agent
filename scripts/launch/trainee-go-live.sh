@@ -69,6 +69,9 @@ MIGRATIONS=(
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
   20261020130000_career_resume_tailoring.sql
+  20261021010000_career_outreach.sql
+  20261021020000_career_voice_mock.sql
+  20261021050000_career_brief_digest.sql
   20261021080000_career_apply_cloud.sql
 )
 MIGRATION_MARK=(
@@ -89,6 +92,9 @@ MIGRATION_MARK=(
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
+  "exists (select 1 from pg_proc where proname = 'career_outreach_claim')"
+  "exists (select 1 from pg_proc where proname = 'career_voice_create')"
+  "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_interviews%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_open')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -342,7 +348,8 @@ else
     echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF)"
     (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
   fi
-  for fn in "${SCHEDULED[@]}"; do
+  # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
+  for fn in "${SCHEDULED[@]}" career-voice; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
   done
   ok

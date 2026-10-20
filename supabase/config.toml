@@ -33,3 +33,8 @@ verify_jwt = false
 # Guided manual connect: every action is the signed-in person's own (consent, the live sign-in window, read, disconnect).
 [functions.manual-connect]
 verify_jwt = true
+
+# WO-035 voice mock: the app's voice page has no Upmore session; the signed, single-use, 10-minute link (and the call
+# token it returns) authorizes each action in the handler.
+[functions.career-voice]
+verify_jwt = false

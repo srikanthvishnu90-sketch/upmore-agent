@@ -22,6 +22,8 @@ import { callModel, modelConfig, newMeter } from "../supabase/functions/_shared/
 import { memoryPostingsDb, searchWords, type Posting } from "../supabase/functions/_shared/career_ingest.ts";
 import { memoryAlertStore, startWatching, validPrefs, type MemoryAlerts } from "../supabase/functions/_shared/career_alert_store.ts";
 import { runAlerts } from "../supabase/functions/_shared/career_proactive_run.ts";
+import { draftFor, memoryOutreachStore, outreachTurn, runOutreachSends } from "../supabase/functions/_shared/career_outreach.ts";
+import { dohMx } from "../supabase/functions/_shared/career_contacts.ts";
 
 const args = Deno.args;
 const opt = (name: string, dflt: string | null = null) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : dflt; };
@@ -68,11 +70,19 @@ const routerBrain: Brain = async (a) => {
   const out = host.runTurn(withFiles(a.message, a.attachments), ctx);
   return { reply: out.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
 };
+// WO-033: outreach drafts and approvals live in memory for this session; sends go to a simulated Gmail that only prints
+// (/clock runs the scheduled send, one per person per 5-minute step). Nothing is ever emailed from the simulator.
+const outreach = memoryOutreachStore();
 const agentBrain: Brain = async (a) => {
   const ctx = turnCtx(a.userId, a.stores) as Record<string, unknown>;
   const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-  const t = await agentTurn({ message: withFiles(a.message, a.attachments), history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
-    model: (p) => callModel(cfg, p, { meter, role: "chat" }), postings: (q) => jobs.search(searchWords(q), 150), alerts });
+  const model = (p: any) => callModel(cfg, p, { meter, role: "chat" });
+  const ans = await outreachTurn({ message: a.message, userId: a.userId, threadId: a.userId, now, store: outreach, gmailConnected: async () => true,
+    redraft: (d) => draftFor({ model, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }) });
+  if (ans) { outreach.setIntent(a.userId, ans.intent); return { reply: ans.reply, stores: { snapshot: host.extractSnapshot(ctx as any) } }; }
+  const t = await agentTurn({ message: a.message, attachments: a.attachments, mx: dohMx(fetch), outreach: { store: outreach, model }, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
+    model, postings: (q) => jobs.search(searchWords(q), 150), alerts });
+  outreach.setIntent(a.userId, t.show?.intent ?? "agent");
   if (t.tool_calls.length) console.log(`   · tools: ${t.tool_calls.map((c) => `${c.name}${c.ok ? "" : " ✗"}`).join(", ")}`);
   if (t.stopped !== "final") console.log(`   · stopped: ${t.stopped}`);
   return { reply: t.reply, stores: { snapshot: host.extractSnapshot(ctx as any) } };
@@ -135,7 +145,8 @@ async function line(input: string): Promise<boolean> {
     const d = parseDelta(t.slice(6)); if (d === null) { log("  (use /clock +30m, +2h or +1d)"); return true; }
     // Step in 5-minute runs, like the schedule, so quiet hours and the report hour land when they would.
     const end = now + d;
-    while (now < end) { now = Math.min(end, now + 300000); await planAlerts(); await deliver(); }
+    const gmail = { send: async (_u: string, m: { to: string; subject: string }) => { log(`  (simulated Gmail, nothing really sent: to ${m.to}, "${m.subject}")`); return { status: "sent" as const, id: `sim-${now}`, thread_id: `sim-${now}` }; } };
+    while (now < end) { now = Math.min(end, now + 300000); await planAlerts(); await deliver(); await runOutreachSends({ store: outreach, sender: gmail, now }); }
     log(`  (clock: ${new Date(now).toISOString()})`); return true;
   }
   log(`⟶ ${as}: ${t}`);

@@ -238,6 +238,14 @@
       "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
       "as_of": "2026-10-12",
       "kind": "norm"
+    },
+    {
+      "statement": "Candidate guides describe a timed online coding test, live coding phone screens with an engineer, and an onsite of back-to-back technical rounds; algorithm developer candidates also report probability and expected-value questions.",
+      "source_url": "https://www.tradermath.org/articles/hudson-river-trading-interview-guide",
+      "source_type": "reported",
+      "as_of": "2026-10-20",
+      "kind": "norm",
+      "note": "WO-035: a third-party guide, labeled reported; no problem counts or durations are stated as facts."
     }
   ],
   "values_culture_signals": [

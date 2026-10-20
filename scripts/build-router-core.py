@@ -230,8 +230,8 @@ def strip_js_comments(src):
 
 # The career artifact must stay under the platform's upload ceiling (tests/career-staged-size.test.cjs: 3,950,107 B
 # accepted, 4,822,785 B rejected). Its embedded data is most of it, so the career-only bundle carries each data const as
-# raw DEFLATE in base64 and inflates it once at load with the small pure-JS inflater below (no imports, so the staged
-# ES-module loaders and the Edge runtime both run it unchanged). The values are identical to the plain JSON:
+# raw DEFLATE in base64 and inflates it once at load with the small pure-JS inflater below (no imports and no web globals
+# such as atob or TextDecoder, which the staged ES-module sandboxes lack, so they and the Edge runtime run it unchanged). The values are identical to the plain JSON:
 # tests/career-bundle-data.test.cjs decodes every one and compares it with its source files.
 CAREER_INFLATE = (
     "const __careerData = (() => {"
@@ -262,8 +262,15 @@ CAREER_INFLATE = (
     "else{sym-=257;if(sym>28)throw new Error(\"career data: bad length\");const len=LB[sym]+bits(LE[sym]),ds=dec(dc);if(ds>29)throw new Error(\"career data: bad distance\");const dist=DB[ds]+bits(DE[ds]);"
     "if(dist>ol)throw new Error(\"career data: bad distance\");room(len);for(let k=0;k<len;k++){out[ol]=out[ol-dist];ol++;}}}}"
     "else throw new Error(\"career data: bad block\");}while(!last);return out.subarray(0,ol);};"
-    "return (b64)=>{const bin=atob(b64),src=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)src[i]=bin.charCodeAt(i);"
-    "return JSON.parse(new TextDecoder().decode(inflate(src)));};})();\n"
+    "const B64=new Uint8Array(128);for(let i=0;i<64;i++)B64[\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\".charCodeAt(i)]=i;"
+    "const unb64=(s)=>{let n=s.length;while(n&&s[n-1]===\"=\")n--;const out=new Uint8Array((n*3)>>2);let o=0;"
+    "for(let i=0;i<n;i+=4){const a=B64[s.charCodeAt(i)],b=B64[s.charCodeAt(i+1)],c=i+2<n?B64[s.charCodeAt(i+2)]:0,d=i+3<n?B64[s.charCodeAt(i+3)]:0;"
+    "out[o++]=(a<<2)|(b>>4);if(i+2<n)out[o++]=((b&15)<<4)|(c>>2);if(i+3<n)out[o++]=((c&3)<<6)|d;}return out;};"
+    "const utf8=(b)=>{let s=\"\",chunk=[];for(let i=0;i<b.length;){let c=b[i++];"
+    "if(c>=0xf0){c=((c&7)<<18)|((b[i++]&63)<<12)|((b[i++]&63)<<6)|(b[i++]&63);c-=0x10000;chunk.push(0xd800+(c>>10),0xdc00+(c&1023));}"
+    "else if(c>=0xe0){chunk.push(((c&15)<<12)|((b[i++]&63)<<6)|(b[i++]&63));}else if(c>=0xc0){chunk.push(((c&31)<<6)|(b[i++]&63));}else chunk.push(c);"
+    "if(chunk.length>=8192){s+=String.fromCharCode.apply(null,chunk);chunk=[];}}return s+String.fromCharCode.apply(null,chunk);};"
+    "return (b64)=>JSON.parse(utf8(inflate(unb64(b64))));})();\n"
 )
 import base64, zlib
 def career_data_line(name, value):

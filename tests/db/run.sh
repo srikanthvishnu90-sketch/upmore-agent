@@ -136,6 +136,10 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020060000_career_apply_questions.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020070000_career_apply_questions_ai_policy.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020070000_career_apply_questions_ai_policy.sql"
+# After the card push migration, as in production order: mail tracking widens the outbox kinds it set.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020100000_career_mail_tracking.sql"
+# Idempotent: the mail tracking migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020100000_career_mail_tracking.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020110000_career_connector.sql"
 # Idempotent: the connector migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020110000_career_connector.sql"

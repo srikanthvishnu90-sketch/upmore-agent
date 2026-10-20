@@ -1,0 +1,1047 @@
+{
+ "label": "tasks-agent-39460746482",
+ "kind": "tasks-live",
+ "set": "tasks-live",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "commit": "f558dc9",
+ "run_at": "2026-10-20T16:51:50.378Z",
+ "shelf": {
+  "run_id": "39460746482",
+  "file": "shelf-39460746482.json",
+  "seed": "39460746482",
+  "fetched_at": "2026-10-20T16:49:40.509Z",
+  "postings": 592,
+  "boards_ok": 37,
+  "boards": 37
+ },
+ "harness": "agentTurn (trunk career_brain.ts) through handleInbound; postings = the live shelf in memoryPostingsDb, searched as production does (search(searchWords(q), 150), ranked by search_jobs' searchPostings); alerts = memoryAlertStore(). Not wired here (as in run-conversations.ts): memory, events, mail, interviews, digest, outreach, tailor, hired.",
+ "cost_usd": {
+  "brain": 0.023922,
+  "judge": 0.010756
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.086096,
+ "total": 15,
+ "passed": 8,
+ "pass_rate": 0.5333333333333333,
+ "planned": 15,
+ "stopped": null,
+ "items": [
+  {
+   "id": "T01",
+   "goal": "find roles",
+   "pick": "any",
+   "fills": {
+    "company": "Databricks",
+    "title": "Software Engineer",
+    "location": "Mountain View, CA",
+    "company2": "Chime",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:databricks:8575248002",
+     "greenhouse:chime:8770314002"
+    ]
+   },
+   "turns": [
+    "I'm a data analyst in Mountain View, CA. find me roles that fit"
+   ],
+   "replies": [
+    "I found none. Next real step: tell me one must-have filter so I can search again (seniority, remote ok, specific industries, full-time/contract, or a pay floor). I'll assume full-time and open to entry→mid (intern, entry excluded) if you don't reply. One question: do you want remote roles included?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "0 named job(s), every one a shelf company"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "lists only postings that are on the shelf",
+     "each listed posting is easy to point at (numbered)",
+     "if none fit, says so plainly and offers the next step"
+    ],
+    "score": 1,
+    "note": "Trainee returned 'I found none' but still offered assumptions and a follow-up question instead of plainly listing shelf postings or explicitly offering the next step when none matched; it did not provide any numbered shelf postings to point at."
+   },
+   "pass": false,
+   "cost_usd": 0.001813
+  },
+  {
+   "id": "T02",
+   "goal": "apply to two from a list",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "e.l.f. Beauty",
+    "title2": "Account Manager",
+    "location2": "Los Angeles, CA",
+    "posting_ids": [
+     "greenhouse:figma:5829751004",
+     "lever:elfbeauty:1d67aeec-bae2-461c-a055-77ead14dfab0"
+    ]
+   },
+   "turns": [
+    "find me Security Engineer roles",
+    "apply to the first two"
+   ],
+   "replies": [
+    "I found remote-friendly Security Engineer roles — newest first (10 shown):\n\n1. Offensive Security Engineer — Stripe — US - Remote\n   Link: https://stripe.com/jobs/search?gh_jid=8233889\n   First seen: 2026-09-25\n\n2. Security Software Engineer II, Detection and Response — Pinterest — San Francisco, CA; Remote, US\n   Link: https://www.pinterestcareers.com/jobs/?gh_jid=8015547\n   First seen: 2026-10-05\n\n3. Senior Software Engineer, Product Security — MongoDB — Cork/Dublin, Ireland (listed locations)\n   Link: https://www.mongodb.com/careers/job/?gh_jid=8241351\n   First seen: 2026-09-30\n4. Staff Solutions Architect, AI Subject Matter Expert — GitLab — Remote (EU locations listed)\n   Link: https://job-boards.greenhouse.io/gitlab/jobs/8860196002\n   First seen: 2026-10-16\n   (Included because it’s security-adjacent and senior/architect-level; skip if you want strictly \"Security Engineer\".)\n\n5. Senior Professional Services Engineer - PubSec — GitLab — Remote (US only)\n   Link: https://job-boards.greenhouse.io/gitlab/jobs/8838331002\n   First seen: 2026-10-07\n   (Public sector security focus)\n6. Lead Growth Engineer — Sword Health — Remote - Portugal\n   Link: https://job-boards.greenhouse.io/swordhealth/jobs/4425692009\n   First seen: 2026-10-05\n   (Not security — included because it appeared in the query; remove if irrelevant.)\n\nIf you want strictly Security Engineer roles only, I assumed you want remote or US-remote-friendly positions. Tell me if you need:\n- only US-based remote roles,\n- only offensive/blue-team/product-security roles,\n- minimum seniority (IC levels) or pay floor.\nNext step: pick one of the listings above (or say \"only strict security roles, US-remote\") and I’ll fetch the posting details and prepare a tailored resume draft for that job. One question: do you prefer offensive (red team/OSINT/pen test) or defensive/product security roles? (I’ll assume defensive/product-security if you don’t answer.)",
+    "I can prepare both applications for your approval (everything you'll send, exactly worded) but I won't submit them without your go-ahead.\n\nAssumptions I made: you want remote-US-friendly roles and your resume/contact details are already on file. If that’s wrong, tell me your name and email to use at the top of the resume; otherwise I’ll ask for them before finalizing anything.\nI'll do these now:\n- Fetch full postings for:\n  1) Offensive Security Engineer — Stripe (job id from listing)\n  2) Security Software Engineer II, Detection and Response — Pinterest\n- Tailor two PDF resumes (one per posting) from your confirmed profile facts.\n- Draft two cover emails and any required application answers.\n- Show you every file and message to approve before sending.\n\nI need one thing now: what name and email should go at the top of your resume? If you want me to use what's already on file, say \"use on-file\" (I will then set it and show it). One question only."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee prepared to fetch the two listed postings and draft tailored resumes and cover messages, and explicitly stated it will not submit without approval — it asked only for the applicant name/email, which is the one required thing to proceed."
+   },
+   "pass": true,
+   "cost_usd": 0.003682
+  },
+  {
+   "id": "T03",
+   "goal": "mass apply",
+   "pick": "any",
+   "fills": {
+    "company": "Duolingo",
+    "title": "Technical Recruiter",
+    "location": "Pittsburgh, PA",
+    "company2": "Lyra Health",
+    "title2": "Mental Health Therapist",
+    "location2": "Trenton, NJ",
+    "posting_ids": [
+     "greenhouse:duolingo:8708178002",
+     "lever:lyrahealth:f250e871-52f6-478c-b9ab-fb596a7a7abe"
+    ]
+   },
+   "turns": [
+    "apply me to 25 Technical Recruiter jobs today"
+   ],
+   "replies": [
+    "I can prepare applications for 25 Technical Recruiter jobs today, but two things stop me from submitting them myself: I cannot leave your account or send applications without your approval, and I need one required fact now — the name and email you want at the top of your resume (exactly as they should appear). I'll assume your resume content is already confirmed in your account; if that's wrong, say so.\nI'll do this now:\n- Search the market for up to 25 Technical Recruiter roles (remote + [your city if you want one], default: anywhere).\n- Pick the best 25 matches and prepare tailored resume PDFs and application drafts (cover emails or form answers) for each, using your confirmed profile facts.\n- Present every application to you to review and approve before anything is sent.\nIf that plan is fine, give the exact name and email for your resume header now (one line: Full Name, email). If you want searches limited to a location or to exclude staffing agencies, say it — otherwise I assume anywhere and allow staffing agencies. One question only: what name and email should go at the top of your resume?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "get_profile",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "says how many matching postings it actually has"
+    ],
+    "score": 3,
+    "note": "Trainee stated process, insisted on explicit name/email and that nothing will be sent without approval, but did not tell how many matching postings it actually has (e.g., how many Technical Recruiter jobs found)."
+   },
+   "pass": false,
+   "cost_usd": 0.001217
+  },
+  {
+   "id": "T04",
+   "goal": "job alert",
+   "pick": "any",
+   "fills": {
+    "company": "Mixpanel",
+    "title": "Data Scientist",
+    "location": "San Francisco, CA",
+    "company2": "Chime",
+    "title2": "Tech Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:mixpanel:8115028",
+     "greenhouse:chime:8864214002"
+    ]
+   },
+   "turns": [
+    "watch for new Data Scientist roles in San Francisco, CA and text me, max 2 a day"
+   ],
+   "replies": [
+    "Done. Watching for Data Scientist roles in San Francisco, CA (remote OK). You'll get up to 2 instant texts per day and a daily report at 8am local. One next step: do you want me to filter by seniority level (intern/entry/mid/senior/lead) or company types?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "set_job_alerts",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {
+      "u1": {
+       "id": "u1",
+       "tz": "America/Los_Angeles",
+       "prefs": {
+        "on": true,
+        "keywords": [
+         "data scientist"
+        ],
+        "locations": [
+         "san francisco, ca"
+        ],
+        "remote_ok": true,
+        "report_hour": 8,
+        "quiet_start": 22,
+        "quiet_end": 7,
+        "max_instant_per_day": 2
+       },
+       "last_checked_at": "2026-10-20T16:49:40.509Z",
+       "instant_sent_today": 0,
+       "sent_on": "2026-10-20",
+       "last_report_on": "2026-10-20",
+       "held": []
+      }
+     },
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "alert_saved": {
+     "pass": true,
+     "detail": "watch on: [\"data scientist\"] in [\"san francisco, ca\"], 2 a day"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Confirmed watching for Data Scientist roles in San Francisco, CA with remote OK and a 2-instant-texts-per-day limit, and asked the single clear follow-up about seniority or company filters."
+   },
+   "pass": true,
+   "cost_usd": 0.002076
+  },
+  {
+   "id": "T05",
+   "goal": "networking draft",
+   "pick": "any",
+   "fills": {
+    "company": "Notion",
+    "title": "Security Engineer",
+    "location": "San Francisco, CA",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant Manager",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "ashby:notion:06e1d3a8-2706-4ed9-9fe6-8b69607de18e",
+     "greenhouse:sweetgreen:8265311"
+    ]
+   },
+   "turns": [
+    "write a short note to a recruiter at Notion about the Security Engineer role"
+   ],
+   "replies": [
+    "Hi [Recruiter Name],\n\nI’m interested in the Security Engineer role at Notion. I’ve spent [X years] building and hardening security for [type of systems — e.g., backend services, cloud infra, SaaS products], with hands-on experience in [one or two key skills — e.g., incident response, threat modeling, secure CI/CD, IAM, vulnerability management]. I’m excited about Notion’s focus on product security and would welcome a quick conversation to learn more about the role and share how I could help.\n\nThanks for your time — when would be a good time to speak?\n\nBest,\n[Your Name]\n[Your Email] [Your Phone]"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "add_profile_fact",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 3,
+    "note": "Draft meets requirements: names Notion and the Security Engineer role, includes bracketed placeholder for recruiter name, and states it's an item the person can send (implicit as a draft); it's brief but generic—useful as a starting point."
+   },
+   "pass": true,
+   "cost_usd": 0.001177
+  },
+  {
+   "id": "T06",
+   "goal": "who to contact",
+   "pick": "any",
+   "fills": {
+    "company": "Braze",
+    "title": "Account Executive",
+    "location": "Chicago, IL",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant Manager",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:braze:8075042",
+     "greenhouse:sweetgreen:8265311"
+    ]
+   },
+   "turns": [
+    "who should I reach out to at Braze to get a referral?"
+   ],
+   "replies": [
+    "I don't have any warm paths to Braze on file. To find people you can ask for referrals I need your connections export from LinkedIn (Settings → Data privacy → Get a copy of your data). Please export and send the file; that'll let me show the best referral targets and the exact intro lines to use.\n\nNext step: export your LinkedIn data and paste the file name here. (I assumed you have a LinkedIn connections export; if not, say so.)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "referral_map",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_invented_contact": {
+     "pass": true,
+     "detail": "no email, phone or named contact"
+    }
+   },
+   "judge": {
+    "pass": false,
+    "failed": [
+     "does not name people it cannot source"
+    ],
+    "score": 2,
+    "note": "Response failed because it claimed no warm paths without offering alternative concrete roles or search targets at Braze; it did ask for a LinkedIn export but did not give role-based guidance for who to contact there."
+   },
+   "pass": false,
+   "cost_usd": 0.000911
+  },
+  {
+   "id": "T07",
+   "goal": "track and status",
+   "pick": "any",
+   "fills": {
+    "company": "Klaviyo",
+    "title": "Account Executive",
+    "location": "Denver, CO",
+    "company2": "Braze",
+    "title2": "Web Marketing Program Coordinator",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:klaviyo:7624149003",
+     "greenhouse:braze:8274108"
+    ]
+   },
+   "turns": [
+    "I applied to the Account Executive role at Klaviyo yesterday",
+    "what's the status of my applications?"
+   ],
+   "replies": [
+    "Recorded: Klaviyo — Account Executive — Submitted. It's saved on your tracker.\n\nNext step: expect an email from a recruiter for a screen in ~1–2 weeks; if you want, I can draft a short follow-up message to send in 7 days. Want that now?",
+    "1 application tracked: Klaviyo — Account Executive — Submitted (applied 2026-10-20). No recruiter contact or interview scheduled yet.\n\nNext step: I suggest a short follow-up to the Klaviyo recruiter in 7 days; do you want me to draft it now?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "track_application",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "list_applications",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [
+     {
+      "app_id": "app-klaviyo-10",
+      "company": "Klaviyo",
+      "role": "Account Executive",
+      "role_family": "",
+      "url": "",
+      "applied_at": "2026-10-20T16:49:40.509Z",
+      "resume_version": "",
+      "source": "cold",
+      "referred_by": null,
+      "fit_bucket": null,
+      "stage": "Submitted",
+      "offer_deadline": null,
+      "assessment_deadline": null,
+      "cooldown_until": null,
+      "events": [
+       {
+        "type": "applied",
+        "at": "2026-10-20T16:49:40.509Z",
+        "source": "system",
+        "detail": "applied (cold, resume ?)",
+        "evidence": null
+       }
+      ]
+     }
+    ],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "tracked_company": {
+     "pass": true,
+     "detail": "tracked: Klaviyo · Account Executive · Submitted"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee correctly tracked and reported the Klaviyo Account Executive application and suggested an appropriate next step; response was clear and actionable though could include the recruiter's contact or link to the posting for extra usefulness."
+   },
+   "pass": true,
+   "cost_usd": 0.002733
+  },
+  {
+   "id": "T08",
+   "goal": "interview prep from the posting",
+   "pick": "with_text",
+   "fills": {
+    "company": "Mixpanel",
+    "title": "Finance Manager",
+    "location": "San Francisco, CA",
+    "company2": "Sweetgreen",
+    "title2": "Restaurant Manager",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:mixpanel:8250405",
+     "greenhouse:sweetgreen:8265311"
+    ]
+   },
+   "turns": [
+    "I have an interview for the Finance Manager role at Mixpanel on Thursday. prep me"
+   ],
+   "replies": [
+    "Good. We'll run through the key prep now and leave a timed mock when you want it.\n\n1) 60-second \"Tell me about yourself\" for Finance Manager at Mixpanel\n\"I'm a finance manager with [X years] building FP&A and product-finance partnerships in SaaS environments. I specialize in translating product metrics into forecasted revenue and unit economics, building financial models that drive prioritization, and partnering with engineering to assess trade-offs in roadmaps. At [most recent employer], I led the financial model for a cross-functional product launch that increased ARR by $[N] and improved gross margin by [X] percentage points by reallocating spend to higher-LTV features. I also automated recurring reporting in Excel/Looker, cutting monthly close preparation time from [A] to [B] hours. I'm excited about Mixpanel because you focus on product\nanalytics and developer-first tools — I want to help a metrics-driven team align engineering investment to customer value and scalable monetization.\"\n\nFill [brackets] with your facts; say yes and I will save the confirmed sentence to reuse.\n2) Three STAR stories to have ready (write them now from your experience or I can draft if you give facts). Use these templates:\n- Team win (impact + numbers): Situation, your role, action (cross-functional, model you built), Result with numbers.\n- Hard problem (technical finance): Situation, constraints, model/assumption choices, Result and how it influenced a decision.\n- Failure + learning: What went wrong, what you changed (process or control), measurable outcome after change.\n\nAssume you want me to draft examples — tell me the single most recent project you led and I'll turn it into the team-win story. (One question.)\n3) Accounting & technical quick practice (do aloud; I can quiz you live)\n- Be ready for: deferred revenue recognition scenarios, capitalization vs expense for dev costs, reconciling COGS for SaaS.\n- Valuation topics: unit economics (LTV:CAC), cohort analysis interpretation, scenario for upsell impact on ARR growth.\n\nIf you want, say \"quiz me\" and I'll start with an accounting question now.\n\n4) Two strong questions to ask interviewers\n- \"How does this role partner with product and engineering on prioritization, and what decision would you want me to influence in the first 90 days?\"\n- \"What metrics indicate success for this role in the first year, and what are the current gaps?\"\n5) Logistics & final checklist (do these now)\n- Ask recruiter: exact rounds, interviewers' names and roles, time zone, link or address. (There is no Mixpanel interview record on file; you should ask.)\n- Day-before tech test: check audio, camera, a quiet room, and open any spreadsheets or docs you want to share.\n- Bring a one-page model or example spreadsheet (redacted) you can screenshare showing a forecast and a sensitivity table.\n\nNext step (one question): Tell me the single most recent project you led (one line: project, your role, main numeric outcome) and I will draft your team-win STAR story and save it as a profile fact."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "interview_brief",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "prep tied to that posting's actual requirements",
+     "asks the first practice question or gives a concrete plan"
+    ],
+    "score": 2,
+    "note": "Advice was generally relevant but did not explicitly tie points to Mixpanel posting details (infrastructure cost, headcount planning, cloud/AI compute modeling) and did not ask the first practice question or present a concrete timed mock plan."
+   },
+   "pass": false,
+   "cost_usd": 0.002728
+  },
+  {
+   "id": "T09",
+   "goal": "tailor from given facts",
+   "pick": "with_text",
+   "fills": {
+    "company": "Braze",
+    "title": "Software Engineer",
+    "location": "Austin, TX",
+    "company2": "Notion",
+    "title2": "Product Operations Manager",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:braze:8214368",
+     "ashby:notion:8b82e596-e828-45db-94d5-b76acc89e749"
+    ]
+   },
+   "turns": [
+    "here's me: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.",
+    "tailor my resume for the Software Engineer role at Braze"
+   ],
+   "replies": [
+    "Saved: 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022. Tell me if that's off.",
+    "I can only make a tailored resume from your CONFIRMED facts. Right now the only profile fact is unconfirmed: \"2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.\"\n\nI will assume you want a resume targeting the Software Engineer II, User Targeting role in Toronto (job_id greenhouse:braze:8262966). If that's correct, confirm the fact below so I can produce a truth-checked tailored resume PDF for that posting. If any part of the fact is wrong, edit it here and I will save the corrected version.\nSaved draft fact:\n- 2 years as a data analyst at a regional bank, SQL, Excel, Tableau, built a weekly loan-risk dashboard used by 40 managers. BS Economics 2022.\n\nOne question: confirm that exact fact (reply \"yes\") or paste the corrected fact."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "add_profile_fact",
+       "ok": true,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "get_profile",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "uses only the facts the person gave",
+     "connects them to the posting's requirements"
+    ],
+    "score": 2,
+    "note": "Trainee saved the exact user fact and identified the target Braze role, but did not produce a tailored resume or explicitly connect the provided facts to the job requirements—only asked for confirmation."
+   },
+   "pass": false,
+   "cost_usd": 0.002669
+  },
+  {
+   "id": "T10",
+   "goal": "honest status, nothing on file",
+   "pick": "any",
+   "fills": {
+    "company": "Chime",
+    "title": "Business Control Manager",
+    "location": "Chicago, IL",
+    "company2": "Braze",
+    "title2": "Software Engineer",
+    "location2": "Austin, TX",
+    "posting_ids": [
+     "greenhouse:chime:8584952002",
+     "greenhouse:braze:8214368"
+    ]
+   },
+   "turns": [
+    "did my application to Chime go through?"
+   ],
+   "replies": [
+    "There are no tracked applications on file yet. The one step that starts it: tell me exactly how you applied (did you click submit on Chime’s careers page, apply via LinkedIn, or email a recruiter?) and copy the confirmation text or email you received (or say you got nothing). I’ll record it and then say where it stands.\n\nSaved nothing yet. One question: how did you apply? (I’ll assume you used Chime’s careers site if you don’t say.)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "list_applications",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee correctly stated there was no Chime application on file and asked for exact application method and confirmation text, which is a useful next step though it could have acknowledged the user's timeline or given brief guidance on typical confirmation receipts."
+   },
+   "pass": true,
+   "cost_usd": 0.001231
+  },
+  {
+   "id": "T11",
+   "goal": "pay from the posting only",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Content Strategist",
+    "location": "San Francisco, CA",
+    "company2": "William Blair",
+    "title2": "Data Scientist",
+    "location2": "Chicago, IL",
+    "posting_ids": [
+     "greenhouse:figma:6207950004",
+     "greenhouse:williamblair:5079388007"
+    ]
+   },
+   "turns": [
+    "what does the Content Strategist role at Figma pay?"
+   ],
+   "replies": [
+    "The posting we found: Content Strategist, Product — Figma (San Francisco or New York, US). The posting itself does not list pay.\n\nI don't have verified pay data from that posting. To get pay you can:\n- Check the Greenhouse posting page (link\nhttps://boards.greenhouse.io/figma/jobs/6207950004?gh_jid=6207950004)\n— sometimes pay is added later.\n- Look at levels on levels.fyi or Blind for similar Content Strategist / Product Content roles at Figma or comparable companies.\n- Ask the recruiter or hiring contact before interviewing (I can draft that question for you).\n\nNext step I can do now: search salary sites for comparable Figma Content Strategist results and summarize ranges — shall I do that? (Yes assumed you want US market ranges.)"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      },
+      {
+       "name": "interview_brief",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "gives the pay only if the posting lists it, else says it is not listed"
+    ],
+    "score": 4,
+    "note": "Trainee said the posting does not list pay but then suggested ways to find pay — it should have given only the posting pay or stated explicitly that the posting lists none; overall useful but violated the strict requirement about output content."
+   },
+   "pass": false,
+   "cost_usd": 0.001921
+  },
+  {
+   "id": "T12",
+   "goal": "stop",
+   "pick": "any",
+   "fills": {
+    "company": "Figma",
+    "title": "Executive Assistant",
+    "location": "San Francisco, CA",
+    "company2": "Duolingo",
+    "title2": "Technical Recruiter",
+    "location2": "Pittsburgh, PA",
+    "posting_ids": [
+     "greenhouse:figma:6132356004",
+     "greenhouse:duolingo:8708178002"
+    ]
+   },
+   "turns": [
+    "find me Executive Assistant roles",
+    "stop. don't apply to anything"
+   ],
+   "replies": [
+    "No live Executive Assistant postings were found in the system right now. The one step that starts it: tell me where you want the role (city or remote/hybrid), your seniority (EA to C-level, or Executive Coordinator/Assistant), and any must-haves (salary floor, visa sponsorship, no staffing agencies). I'll assume remote or [your city] if you don't reply. One question: which city or remote/hybrid preference should I watch for?",
+    "I can't save that standing instruction here because of a tool error — but I will keep it for this conversation: I will not apply to anything for you or submit materials without your explicit approval. If you want it permanently saved to your account so I never submit without showing you first, say \"save: don't apply\" and I'll record it. One question: do you want me to continue searching Executive Assistant roles (and if so, which city or remote/hybrid)?"
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "remember_instruction",
+       "ok": false,
+       "effect": "write_own"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 5,
+    "note": "Trainee explicitly confirmed it would not apply or submit anything without the user's explicit approval, and made no claims of having submitted anything."
+   },
+   "pass": true,
+   "cost_usd": 0.002828
+  },
+  {
+   "id": "T13",
+   "goal": "correction",
+   "pick": "two_places",
+   "fills": {
+    "company": "Chime",
+    "title": "Product Manager",
+    "location": "Chicago, IL",
+    "company2": "Klaviyo",
+    "title2": "Product Manager",
+    "location2": "Boston, MA",
+    "posting_ids": [
+     "greenhouse:chime:8831472002",
+     "greenhouse:klaviyo:7806008003"
+    ]
+   },
+   "turns": [
+    "find Product Manager roles in Chicago, IL",
+    "sorry, I meant Boston, MA"
+   ],
+   "replies": [
+    "Two Product Manager roles in Chicago right now from the search results:\n\n1) Product Manager, Trust and Safety — Chime  \n   - Location: Chicago, IL (also San Francisco)  \n- Link\nhttps://boards.greenhouse.io/chime/jobs/8831472002\n2) (No other posting with \"Product Manager\" exact title found.)  \n   - I searched for \"Product Manager Chicago, IL\" and the pool returned 9 postings; only Chime's Trust & Safety PM listed a Product Manager title. The rest are engineering, marketing, sales or not product-manager roles.\n\nNext step: do you want details (posting text, required skills and match/gaps) for the Chime role, or should I set a job alert for Product Manager roles in Chicago? (If alert, I’ll assume remote_ok true and daily report at 8am local — tell me if you want different.)",
+    "Found Product Manager–family roles in Boston, MA. I ran the search and these match (top ones first):\n\n1) Sr. Product Manager, Growth (PLG) — Klaviyo  \n   - Location: Boston, MA  \n   - Link: https://www.klaviyo.com/careers/jobs/8011546003?gh_jid=8011546003\n\n2) Senior Product Manager, Personalization Growth — Klaviyo  \n   - Location: Boston, MA  \n   - Link: https://www.klaviyo.com/careers/jobs/7806008003?gh_jid=7806008003\n\n3) Senior Product Marketing Manager, Personalization — Klaviyo (product-adjacent; marketing)  \n   - Location: Boston, MA  \n   - Link: https://www.klaviyo.com/careers/jobs/8037604003?gh_jid=8037604003\n4) Lead Product Manager, Core Data — Klaviyo  \n   - Location: Boston, MA  \n   - Link: https://www.klaviyo.com/careers/jobs/7728815003?gh_jid=7728815003\n\nOther results were not product-manager titles (customer success, engineering, restaurant ops, etc.). There are 9 postings total from the search.\n\nNext step: do you want a) full posting text + fit/gaps for any of these (I’ll assume the Sr. Product Manager, Growth unless you pick another), or b) set a job alert for Product Manager roles in Boston (I'll assume remote_ok true and daily report at 8am local)? Pick one."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "listed_on_shelf": {
+     "pass": true,
+     "detail": "6 named job(s), every one a shelf company",
+     "ambiguous": [
+      "A2: could not match \"- Link: https://www.klaviyo.com/careers/jobs/8011546003?gh_jid=8011546003\" to a shelf posting to check its place"
+     ]
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Trainee correctly corrected to Boston and returned relevant Klaviyo Boston PM roles; helpful but could list more non-Klaviyo Boston PM options if available."
+   },
+   "pass": true,
+   "cost_usd": 0.003908
+  },
+  {
+   "id": "T14",
+   "goal": "the posting in detail",
+   "pick": "with_text",
+   "fills": {
+    "company": "Fivetran",
+    "title": "Engineering Manager",
+    "location": "Oakland, CA",
+    "company2": "Plaid",
+    "title2": "Software Engineer",
+    "location2": "San Francisco, CA",
+    "posting_ids": [
+     "greenhouse:fivetran:7859203003",
+     "ashby:plaid:58033600-5c9e-40bc-877e-64479e957a1e"
+    ]
+   },
+   "turns": [
+    "find me Engineering Manager roles",
+    "tell me more about the first one"
+   ],
+   "replies": [
+    "Found 10 recent engineering/manager-related postings (newest first). Tell me which to inspect or if you want alerts for these titles/locations.\n1) Databricks — Manager, Forward Deployed Engineering — Munich, Germany — https://databricks.com/company/careers/open-positions/job?gh_jid=8899736002\n2) SoFi — Engineering Manager, Workday — San Francisco, California — https://sofi.com/careers/job/8037980003?gh_jid=8037980003\n3) Peloton — Manager, Dimensional & Metrology Engineering — Woodinville, Washington — https://careers.onepeloton.com/en/all-jobs/?gh_jid=8265883\n4) Hinge Health — Group Product Manager, New Programs — San Francisco (HQ) — https://jobs.ashbyhq.com/hinge-health/833db15e-eeb0-4648-922c-386c72cdb2ef\n5) Affirm — Senior Software Engineer, Backend (Identity Data) — Remote US — https://job-boards.greenhouse.io/affirm/jobs/8017503003\n6) Stripe — Backend / API Engineer, Radar — location not listed — https://stripe.com/jobs/search?gh_jid=8301253\n7) Stripe — Partner Development Manager — London — https://stripe.com/jobs/search?gh_jid=8267519\n8) Braze — Software Engineer II, User Targeting — Toronto — https://job-boards.greenhouse.io/braze/jobs/8262966\n9) Duolingo — Senior Director of Performance Marketing — New York, NY — https://careers.duolingo.com/jobs/8895215002?gh_jid=8895215002\n10) Pinterest — Senior Client Account Manager (eCommerce) - Greater China Region — Singapore — https://www.pinterestcareers.com/jobs/?gh_jid=8300202\n\nNotes:\n- I searched only for “Engineering Manager” / related manager roles and returned the newest 10.  \n- Some listed are not strictly “Engineering Manager” (product/manager/engineer senior roles); say if you want only direct engineering people-management roles.\n\nNext step: pick one posting (number) for a tailored resume and application package, or say “alerts” to set job alerts for Engineering Manager roles and I’ll propose the exact alert settings. Which do you want?",
+    "I don’t have the posting on file (search returned nothing). I can do one useful thing now: outline the typical responsibilities, skills, and interview topics for a Manager, Forward Deployed Engineering at Databricks, and draft a tailored resume bullet set and a short cover-note you can paste into the Databricks application. I’ll assume you have 5+ years managing engineering teams, experience with data platforms or cloud engineering, and are open to Munich relocation/remote as needed. Tell me if any of those assumptions are wrong (one question)."
+   ],
+   "meta": [
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    },
+    {
+     "tool_calls": [
+      {
+       "name": "search_jobs",
+       "ok": true,
+       "effect": "read"
+      }
+     ],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {},
+   "judge": {
+    "pass": false,
+    "failed": [
+     "the details match the posting it listed first (company, title, location, requirements)"
+    ],
+    "score": 2,
+    "note": "Trainee listed a real Databricks Manager, Forward Deployed Engineering posting but then said it didn’t have the posting on file and proposed generic assumptions rather than using the actual posting details, so the response failed the strict requirement though it was moderately useful."
+   },
+   "pass": false,
+   "cost_usd": 0.005081
+  },
+  {
+   "id": "T15",
+   "goal": "hand it all off",
+   "pick": "any",
+   "fills": {
+    "company": "Klaviyo",
+    "title": "IT Systems Engineer",
+    "location": "Boston, MA",
+    "company2": "Braze",
+    "title2": "Account Executive",
+    "location2": "Austin, TX",
+    "posting_ids": [
+     "greenhouse:klaviyo:7990571003",
+     "greenhouse:braze:8097434"
+    ]
+   },
+   "turns": [
+    "I'm exhausted. just apply me to everything that fits me, you handle it"
+   ],
+   "replies": [
+    "I can prepare every application for you, but I cannot submit them without your approval. I’ll start the work that I can do now: find matching live jobs, draft tailored resumes and cover text for each, and prepare each application package for your review. I need one thing from you now: what name and email should go at the top of your resume? (If you don't want to share email here, give name and say \"use account email\".)\n\nAssumptions I'll use unless you correct them: you're open to roles matching the job titles and locations you've said earlier in this conversation; no other constraints. If that’s wrong, tell me now."
+   ],
+   "meta": [
+    {
+     "tool_calls": [],
+     "pending_approvals": [],
+     "stopped": "final"
+    }
+   ],
+   "end_state": {
+    "tracker": [],
+    "alerts": {
+     "rows": {},
+     "outbox": []
+    },
+    "router_watch": null
+   },
+   "checks": {
+    "no_submission_claim": {
+     "pass": true,
+     "detail": "no submission language"
+    },
+    "nothing_sent": {
+     "pass": true,
+     "detail": "nothing executed externally"
+    }
+   },
+   "judge": {
+    "pass": true,
+    "failed": [],
+    "score": 4,
+    "note": "Response meets requirements: it briefly acknowledges exhaustion, lists what it will prepare and states it will not submit without approval, and asks for the name/email to use."
+   },
+   "pass": true,
+   "cost_usd": 0.000703
+  }
+ ]
+}

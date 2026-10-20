@@ -25,6 +25,11 @@
       "by": "the architect, WO-053, 2026-10-20, once each page's own location was read (tests/career-posting-location.test.cjs)",
       "fields": ["greenhouse-wppmedia question_18820178008 (Are you lawfully authorized to work in the country where this job is located?, select): work_authorization -> null", "greenhouse-wppmedia question_18820179008 (Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located?, select): sponsorship -> null", "ashby-snowflake a3cc08ef-4552-444a-b493-c608c65670df (... could you confirm you are currently authorized to work in the country to which you are applying?, radio): work_authorization -> null", "ashby-openai d33e2a8f-3742-4e5e-b91c-b7607d3cdf63 (Are you able to work from our US office three days per week?, radio): onsite_ok -> null"],
       "why": "The persona is authorized to work in the US and lives in Chicago, IL, and will not relocate. WPP Media's posting is in London, United Kingdom, and Snowflake's in GB-London: the person's work rights there are not stated, and their US answers are wrong there. OpenAI's posting is in San Francisco: three office days a week there is not a Chicago person's yes to working on site where they live. The key had read each question without the posting's location, which every page shows beside the job title. None of the three is a held-out form."
+    },
+    {
+      "by": "the architect, WO-055, 2026-10-20, after sealed sample D was scored once by an independent reviewer (who read the persona, each posting's location and the fills)",
+      "fields": ["greenhouse-wppmedia question_18820180008 (What are your salary expectations?, text): salary_expectation -> null", "ashby-airwallex 37f9cdbb-c5c4-495e-876e-593908d37fe6 (Salary Expectations, text): salary_expectation -> null"],
+      "why": "The persona's 95000 is an annual US salary. WPP Media's posting is in London, United Kingdom, and Airwallex's in HK - Hong Kong SAR: a bare 95000 typed into their pay box reads as pounds or Hong Kong dollars, and a US expectation is not the person's expectation for a job in another country. The review of sample D judged every such fill wrong (Faculty AI, Lovable, loveholidays, think-cell); the key had read these without the posting's location. Neither is a held-out form."
     }
   ],
   "split": {
@@ -175,7 +180,7 @@
       "question_18820177008": { "fact": "former_employers", "expect": "No" },
       "question_18820178008": null,
       "question_18820179008": null,
-      "question_18820180008": "salary_expectation",
+      "question_18820180008": null,
       "question_18820181008": "notice_period",
       "4017729008": null,
       "4017730008": null,
@@ -360,7 +365,7 @@
       "_systemfield_location": "location",
       "_systemfield_resume": "resume",
       "1b628532-6f2d-4729-a502-459c234b38e3": "linkedin",
-      "37f9cdbb-c5c4-495e-876e-593908d37fe6": "salary_expectation",
+      "37f9cdbb-c5c4-495e-876e-593908d37fe6": null,
       "184096a9-5750-4da5-ade0-bec5148fe278": "notice_period",
       "7fcfdda5-b2a6-448a-8ec2-a751c6afef28": "relative_here",
       "fbcbdbf8-19db-4666-970b-e7384ac0719f": null,

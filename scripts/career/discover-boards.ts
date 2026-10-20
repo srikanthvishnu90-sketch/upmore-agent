@@ -65,7 +65,13 @@ async function gather(deadline: number) {
     for (const c of r.candidates) add(c);
   }
   if (sources.has("wayback")) {
-    const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), limit: Number(opt("--wb-limit", "20000")), filter: opt("--wb-filter", "roots") !== "none", deadline, log });
+    // Resumable (WO-044): an earlier run's resumption keys (packages/career-data/discovery-wayback-state.json on its
+    // discovery branch) continue each query where it stopped; this run's keys are written for the next one.
+    let resume: Record<string, { key: string | null; done: boolean }> | undefined;
+    if (opt("--wb-state")) { try { resume = JSON.parse(await Deno.readTextFile(opt("--wb-state")!)); } catch { resume = undefined; } }
+    const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), limit: Number(opt("--wb-limit", "5000")), filter: opt("--wb-filter", "roots") !== "none", deadline, log, resume });
+    await Deno.writeTextFile(`${outDir}/wayback-state.json`, JSON.stringify(r.resume, null, 1) + "\n");
+    extra.wayback_resumed = !!resume;
     extra.wayback = { pages: r.pages, errors: r.errors, blocked: !!r.blocked, by_query: r.by_query, slugs: r.candidates.length };
     console.log(`WAYBACK ${JSON.stringify(extra.wayback)}`);
     for (const c of r.candidates) add(c);

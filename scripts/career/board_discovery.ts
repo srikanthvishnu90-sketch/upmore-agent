@@ -686,10 +686,10 @@ export const WAYBACK_QUERIES: { provider: Provider; url: string; matchType: "pre
   { provider: "personio", url: "jobs.personio.com", matchType: "domain" },
   { provider: "workday", url: "myworkdayjobs.com", matchType: "domain" },
 ];
-export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES; limit?: number; filter?: boolean }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; by_query: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> }> {
+export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES; limit?: number; filter?: boolean; resume?: Record<string, { key: string | null; done: boolean }> }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; resume: Record<string, { key: string | null; done: boolean }>; by_query: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> }> {
   const net = o.net ?? realNet, log = o.log ?? (() => {});
   const host = "web.archive.org";
-  const pacer = new HostPacer({ gapMs: o.gapMs ?? 2000, now: net.now, sleep: net.sleep, maxGapMs: 300000 });
+  const pacer = new HostPacer({ gapMs: o.gapMs ?? 2000, now: net.now, sleep: net.sleep, maxGapMs: 60000 });
   await pacer.wait(host);
   const robots = await (async () => { try { const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) }); return robotsFromResponse(r.status, r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "")); } catch { return DISALLOW_ALL; } })();
   const found = new Map<string, Candidate>();
@@ -703,10 +703,14 @@ export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs
     (o.filter === false ? "" : `&filter=${encodeURIComponent(`original:${waybackRootPattern(q)}`)}`) + `&limit=${o.limit ?? 20000}&showResumeKey=true`;
   const state = new Map<string, { key: string | null; fails: number }>();
   for (const q of queries) {
+    // Resuming (WO-044): an earlier run's key for this query continues where it stopped; a finished query starts over.
+    const prior = o.resume?.[q.url];
     by[q.url] = { pages: 0, read: 0, slugs: 0, done: false, errors: 0 };
     if (!robots.allowed(path(q))) { blocked++; by[q.url].done = true; log(`WAYBACK ${q.url} blocked by robots`); continue; }
-    state.set(q.url, { key: null, fails: 0 });
+    state.set(q.url, { key: prior && !prior.done && prior.key ? prior.key : null, fails: 0 });
   }
+  const finished = new Set<string>(); // read to its last page (a query stopped by errors or the deadline is resumed next run)
+  const resumeOut = () => Object.fromEntries(queries.map((q) => [q.url, { key: state.get(q.url)?.key ?? null, done: finished.has(q.url) }]));
   // Round-robin: page n of every query before page n+1 of any, so a deadline thins every provider alike.
   for (let p = 0; p < (o.maxPages ?? 50); p++) {
     let any = false;
@@ -714,10 +718,10 @@ export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs
       const st = state.get(q.url);
       if (!st || by[q.url].done) continue;
       any = true;
-      if (o.deadline && net.now() >= o.deadline) { log("WAYBACK deadline reached"); return { candidates: [...found.values()], pages, errors, by_query: by }; }
+      if (o.deadline && net.now() >= o.deadline) { log("WAYBACK deadline reached"); return { candidates: [...found.values()], pages, errors, by_query: by, resume: resumeOut() }; }
       await pacer.wait(host);
       let r: Response | null = null;
-      try { r = await net.fetch(`https://${host}${path(q)}${st.key ? `&resumeKey=${encodeURIComponent(st.key)}` : ""}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(300000) }); } catch { r = null; }
+      try { r = await net.fetch(`https://${host}${path(q)}${st.key ? `&resumeKey=${encodeURIComponent(st.key)}` : ""}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(120000) }); } catch { r = null; }
       if (!r || r.status !== 200) {
         errors++; by[q.url].errors++;
         if (r && (r.status === 429 || r.status === 503)) pacer.backoff(host, Number(r.headers.get("retry-after")) || null);
@@ -736,11 +740,11 @@ export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs
         if (!found.has(k)) { found.set(k, { ...s, source: "wayback" }); by[q.url].slugs++; }
       }
       if (by[q.url].read <= 2) log(`WAYBACK ${q.url} page ${by[q.url].read}: ${lines.length} urls, ${by[q.url].slugs} slugs so far, ${resumeKey ? "more" : "last page"}`);
-      if (resumeKey) st.key = resumeKey; else by[q.url].done = true;
+      if (resumeKey) st.key = resumeKey; else { by[q.url].done = true; finished.add(q.url); }
     }
     if (!any) break;
   }
-  return { candidates: [...found.values()], pages, errors, by_query: by, ...(blocked === queries.length ? { blocked: true } : {}) };
+  return { candidates: [...found.values()], pages, errors, by_query: by, resume: resumeOut(), ...(blocked === queries.length ? { blocked: true } : {}) };
 }
 // A page of a showResumeKey answer: its lines, then (after a blank line) the key to the next page.
 export function splitResumeKey(text: string): { lines: string[]; resumeKey: string | null } {
@@ -753,11 +757,13 @@ export function splitResumeKey(text: string): { lines: string[]; resumeKey: stri
 // The archived URLs that can name a board's own page: one path segment on the path providers; the host's root or one
 // segment on the subdomain providers; [locale/]site on Workday. No query string: in smoke run 39377124463 the variants
 // with one (?gh_jid=, ?lever-source=) filled the pages, about 90 lines per board.
+// Anchored (^...$): in run 39380185627 the unanchored pattern let every URL through (the server searches, it does not
+// match whole), so a page held one board's thousands of postings (Workable's second page added no new board).
 export function waybackRootPattern(q: { provider: Provider; url: string; matchType: string }): string {
   const host = q.url.replace(/\/$/, "").replace(/\./g, "\\.");
-  if (q.provider === "workday") return `https?://[^/]+\\.${host}(:\\d+)?/([a-zA-Z]{2}-[a-zA-Z]{2}/)?[^/?#]+/?`;
-  if (q.matchType === "domain") return `https?://[^/]+\\.${host}(:\\d+)?(/[^/?#]*)?/?`;
-  return `https?://${host}(:\\d+)?/[^/?#]+/?`;
+  if (q.provider === "workday") return `^https?://[^/]+\\.${host}(:\\d+)?/([a-zA-Z]{2}-[a-zA-Z]{2}/)?[^/?#]+/?$`;
+  if (q.matchType === "domain") return `^https?://[^/]+\\.${host}(:\\d+)?(/[^/?#]*)?/?$`;
+  return `^https?://${host}(:\\d+)?/[^/?#]+/?$`;
 }
 
 // ------------------------------------------------------------------------------------------------ Hacker News

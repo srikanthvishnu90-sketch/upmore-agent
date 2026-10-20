@@ -20,15 +20,10 @@ on:
       hn_pages: { description: "Hacker News search pages (1,000 comments each) per query", default: "40" }
       wb_limit: { description: "Wayback lines per page to start with (halved per query after a failure)", default: "5000" }
       providers: { description: "Providers to verify (comma list, or all)", default: "all" }
-      resume_branch: { description: "A discovery/ branch whose dead verdicts need no new probe (empty = probe all)", default: "" }
+      resume_branch: { description: "A discovery/ branch to continue from: its live boards are verified again, its dead ones skipped, its Wayback keys continue (empty = from scratch)", default: "" }
       label_pool: { description: "Also collect the labeled-set pool (yes / no)", default: "yes" }
   schedule:
     - cron: "17 6 * * 1" # Mondays 06:17 UTC
-  # TEMPORARY (WO-044): the MCP integration cannot dispatch (403); removed in the final commit, as WO-037 did, with the
-  # resume_branch fallbacks below (discovery/boards-39380185627, run 2) set back to "".
-  push:
-    branches: [wo/044-discovery-scale]
-    paths: [.github/workflows/board-discovery.yml]
 permissions:
   contents: write
 concurrency: { group: board-discovery, cancel-in-progress: false }
@@ -47,7 +42,7 @@ jobs:
       WB_PAGES: ${{ inputs.wb_pages || '400' }}
       HN_PAGES: ${{ inputs.hn_pages || '40' }}
       WB_LIMIT: ${{ inputs.wb_limit || '5000' }}
-      RESUME_BRANCH: ${{ inputs.resume_branch || 'discovery/boards-39380185627' }}
+      RESUME_BRANCH: ${{ inputs.resume_branch || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -95,7 +90,7 @@ jobs:
       PROVIDER: ${{ matrix.provider }}
       PROVIDERS: ${{ inputs.providers || 'all' }}
       MAX_MINUTES: ${{ inputs.max_minutes || '270' }}
-      RESUME_BRANCH: ${{ inputs.resume_branch || 'discovery/boards-39380185627' }}
+      RESUME_BRANCH: ${{ inputs.resume_branch || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -175,7 +170,7 @@ jobs:
           echo "::notice title=BRANCH::$branch"
 
   label-pool:
-    if: inputs.label_pool != 'no' && github.event_name != 'push'
+    if: inputs.label_pool != 'no'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

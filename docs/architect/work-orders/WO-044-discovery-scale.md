@@ -7,7 +7,13 @@ Status: in review · Depends on: WO-037 (merged) · Assignee: Claude (architect,
 
 ## Where it stands (every number labeled)
 
-__RESULT_TABLE__
+| | Number | Label |
+|---|---|---|
+| Boards verified before this order | 2,288 (2,140 on providers then read, 2,020 with ≥1 posting) of 20,031 candidates | VERIFIED, run 39345730265 |
+| Boards verified, run 1 of this order | **11,052** (8,534 with ≥1 posting) of 47,707 candidates; 3,141 not probed (Workable) | VERIFIED, run 39380185627, branch `discovery/boards-39380185627` |
+| Boards verified, run 2 (resumed from run 1) | 25,527 on ten providers' finished jobs; Workable's job and the merge were still running when this was written | VERIFIED per provider job (the `SHARD` lines), run 39433413503; the merged total is in that run's `VERIFIED` line and on `discovery/boards-39433413503` (NOT_RUN here) |
+| Candidates, run 2 | 91,005 unique | VERIFIED, run 39433413503 (`SOURCES`) |
+| Target | 50,000 | NOT MET |
 
 Labels: **VERIFIED** = measured by a named CI run (the run id is given); **ASSUMED** = an input we chose, not measured;
 **NOT_RUN** = not measured. A board counts as VERIFIED only when its public job API or feed answered 200 with that
@@ -75,19 +81,83 @@ Three stages: **gather** (one job, 150 min budget), **verify** (one job per prov
 **merge** (verdicts, summary, directory, ingest list). Splitting by provider adds no load to any host: each provider's
 hosts keep one pace (200 ms between request starts per platform, a robots Crawl-delay raises it, 429/503 back off and
 recover). A verify job writes every verdict as it goes (`verdicts.partial.jsonl`), so a job cut off still counts what it
-probed; `resume_branch` skips the slugs an earlier discovery branch found dead (only dead ones: a board counts only
-from this run's own answer). The discovery branch is now trunk plus the four data files: the workflow token may not
+probed. With `resume_branch` set to an earlier discovery branch, the run skips the slugs it found dead and probes the
+ones it found live again (a board counts only from this run's own answer). The Wayback queries also continue from that
+branch's saved resumption keys. The discovery branch is now trunk plus the four data files: the workflow token may not
 push a branch carrying a workflow change (run 39375781988's merge was refused for that).
 
-__RUN_SECTION__
+## The runs (all on `wo/044-discovery-scale`, started by a temporary `push` trigger because the integration's token
+cannot dispatch workflows: `403 Resource not accessible by integration`; the trigger is gone in the final commit)
+
+| Run | What | Result |
+|---|---|---|
+| 39375781988 | smoke (12-min verify) | pipeline end to end: VERIFIED 2,250 of 3,027; merge refused (the workflow-token branch rule; fixed) |
+| 39376329842 | smoke + robots diagnostics | the robots facts above |
+| 39377124463 | smoke, Wayback (2 pages), HN, Workday robots | VERIFIED 6,320 of 12,041 (1,385 unprobed): the sources work |
+| 39397971621 | Wayback alone, anchored filter (`wayback-smoke.yml`, temporary) | 25,627 slugs from 15 pages in 25 min (the unanchored filter: 13,343 from 37 pages in 150 min) |
+| **39380185627** | full run 1 | **VERIFIED 11,052** (below) |
+| **39433413503** | full run 2, resumed from run 1 | 91,005 candidates; 25,527 verified on ten providers; Workable pending (below) |
+
+**Run 1 (39380185627), per provider** (VERIFIED; postings = the count each board's API answered at probe time; for
+Workday it is the board's own `total`, not postings read):
+
+| Provider | Live | With ≥1 posting | Postings | Dead (404) | Other |
+|---|---|---|---|---|---|
+| Greenhouse | 1,876 | 1,675 | 88,493 | 4,235 | |
+| Ashby | 2,064 | 1,876 | 40,000 | 3,522 | |
+| Lever | 533 | 447 | 23,450 | 3,174 | |
+| Personio | 2,061 | 1,756 | 15,782 | 964 | 3,958 robots-blocked (unknown subdomains) |
+| Workday | 1,229 | 949 | 296,809 | 217 | 147 errors |
+| Breezy | 997 | 540 | 10,820 | 3,857 | |
+| Recruitee | 903 | 749 | 13,628 | 3,856 | 102 errors |
+| Workable | 897 | 228 | 6,013 | 121 | 3,141 not probed (429s) |
+| Teamtailor | 287 | 220 | 3,700 | 3,098 | |
+| BambooHR | 205 | 94 | 381 | 0 | 2,949 redirects (unknown subdomains answer 302) |
+| SmartRecruiters | 0 | 0 | 0 | 0 | 3,257 robots-blocked |
+| **Total** | **11,052** | **8,534** | **499,076** | | |
+
+Verified by source (run 1): directory 2,173 · Wayback 6,601 · HN 1,140 · Workday robots 651 · domain guesses 430 (of
+26,451 probed, 1.6%) · WO-017 candidates 57.
+
+**Run 2 (39433413503), per provider job** (VERIFIED, `SHARD` lines; run 1's dead slugs skipped, its live ones probed
+again): Greenhouse 4,621 · Breezy 4,593 · Personio 4,229 · BambooHR 3,447 · Ashby 3,433 · Recruitee 1,688 · Lever 1,543 ·
+Workday 1,232 · Teamtailor 741 · SmartRecruiters 0 · Workable pending. Sum of the ten: 25,527. Candidates 91,005:
+Wayback 57,939 (Ashby, Workable, Breezy, both Personio queries read to the end; Greenhouse, Lever, Recruitee, BambooHR,
+Teamtailor stopped at the deadline with their keys saved; Workday's query failed every page), prior live 11,052,
+domain guesses 31,740, Workday robots 1,163.
 
 ## The 6-hour refresh at the new size
 
-__REFRESH_SECTION__
+- **Finding:** WO-037's per-run capacity assumed the 64 buckets split evenly across lanes. They do not: at 12,000 boards
+  and 4 lanes the heaviest lane held 3,710 (24% over a quarter), and the simulated oldest read reached 6.25 h
+  (WO-044/R1 reproduces it). Fixed in `career-ingest/handler.ts`: a lane takes at least its own share
+  (`capacityPer` of the lane's boards); WO-037/R5 still passes. With it, every board on all eleven providers is read
+  within 6 h at 12,000 boards over 4 lanes with a tenth of runs lost and a tenth cut short (WO-044/R1, simulated).
+- **Sizing at run 1's directory** (`deno run -A scripts/career/size-ingest.ts --directory <run 1's board-directory.json>`;
+  CPU per board measured on this sandbox, latency 600 ms ASSUMED, limits from supabase.com/docs/guides/functions/limits):
+  11,352 live boards, mean 57 postings (median 5), 1.84 requests per read (Workday pages). No 304s: 13 lanes, 3,474
+  requests/hour, 1.96 s CPU per run. 70% 304s (ASSUMED): 4 lanes. At 50,000 boards: 55 lanes without 304s, 17 with 70%.
+  Workable, Recruitee, BambooHR and Workday send no validators (run 1 `CONDITIONAL`), so the 304 share will be lower
+  than for Greenhouse/Lever/Ashby. Live: NOT_RUN.
+- A Workday board larger than 1,000 postings, or one whose pages run past the per-board time, is a partial read
+  (closes nothing).
 
 ## What stands between the count and 50,000
 
-__GAP_SECTION__
+1. **Candidate supply.** Common Crawl, the source WO-037 counted on, is closed by robots.txt. The Wayback Machine is
+   the source that works, but slowly (about 1-4 min a page, frequent 503s). In run 2 it had not finished Greenhouse
+   (job-boards), Lever, Recruitee, BambooHR or Teamtailor. Its keys are saved (`discovery-wayback-state.json`), so the
+   weekly run continues where the last one stopped.
+2. **Workable throughput.** Its widget API answers 429 with long Retry-After values. Run 1 probed 1,064 Workable slugs in
+   5 h (84% live), and run 2 has ~16,000 Workable candidates. At that pace that is weeks of weekly runs.
+3. **Workday supply.** 1,229-1,232 verified (95% hit rate) but only from known tenants. Wayback's `myworkdayjobs.com`
+   query failed every page in run 2.
+4. **SmartRecruiters:** robots.txt closed (0 of 3,257).
+5. **Hit rate of the remaining candidates.** Domain guesses verify at 1.6%; Wayback slugs at roughly half
+   (archived boards close).
+6. **Projection (ASSUMED, not measured):** each weekly run that resumes adds the next Wayback pages and the next
+   Workable slugs. Reaching 50,000 needs both the Wayback backlog read through and Workable's ~16,000 candidates
+   probed, which at today's pace is several weeks of weekly runs. It is not reachable in one run under these rules.
 
 ## Tests (written with the code; all offline)
 - `tests/architect/wo-044-discovery-scale.test.ts` S1-S16: slugs for the new providers; every new shape; XML feeds;
@@ -107,7 +177,12 @@ __GAP_SECTION__
   unknown provider, since Workday is now read) and B8 (the shipped list grows: at least 2,179),
   `tests/db/career_board_state.test.sql` (an unknown provider is refused; the new ones are taken).
 
-__TESTS_RUN__
+**Run here:** architect suite `deno test -A --no-check --ignore=tests/architect/pending tests/architect/`: 427 passed,
+0 failed before the last additions; the WO-044 files after them: discovery 16/16, ingest readers 6/6, refresh 3/3, WO-037
+discovery and refresh 15/15. Gate edge tests: 129 passed, 0 failed. Node: `tests/career-board-directory.test.cjs`,
+`career-board-harvest`, `trainee-go-live`, `career-jobs`, `no-secrets`: 55/55. `build-router-core.py --career-only
+--check`: verified (no bundled file changed). DB tests cannot run here (initdb refuses root); in CI (`ci` workflow,
+`database` job) green at c53baf41. Run 1's directory passes `career-board-directory.test.cjs` and the ingest edge test.
 
 ## Owner steps (nothing here deploys or spends)
 - Apply `20261022090000_career_more_providers.sql` (it is in `trainee-go-live.sh`) and deploy `career-ingest` **before**

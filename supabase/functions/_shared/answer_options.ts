@@ -29,7 +29,8 @@ const EDUCATION: Record<string, RegExp> = {
   high_school: /high school|ged|secondary|diploma or equivalent/,
   some_college: /some college|some university|enrollment/,
   associate: /associate/,
-  bachelor: /bachelor|undergraduate degree|\bb\.?s\.?c?\b|\bb\.?a\.?\b|\bbsc\b/,
+  // "B.A." inside "M.B.A." is not a bachelor's (WO-042, Greenhouse's degree list).
+  bachelor: /bachelor|undergraduate degree|(?<![a-z]\.)\bb\.?s\.?c?\b|(?<![a-z]\.)\bb\.?a\.?\b|\bbsc\b/,
   master: /master|\bm\.?s\.?c?\b|\bmba\b|graduate degree(?!.*under)/,
   doctorate: /ph\.?d|doctor|doctoral/,
 };

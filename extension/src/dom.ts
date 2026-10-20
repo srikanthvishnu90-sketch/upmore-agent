@@ -70,6 +70,14 @@ function widgetValue(el: any): string | null {
 // (`choose`, apply_core chooseWidgetOption): an option is clicked only when the planner names it. A place search with no
 // toggle (Greenhouse's location) opens on what is typed into it. Waits poll briefly; nothing waits a fixed 3 seconds.
 type Chooser = (labels: string[]) => string | null;
+// The employer's own option text the last widget fill clicked ("United States +1"), for the card: the widget itself may
+// show less ("+1"), which a person could not check.
+let lastChoice: string | null = null;
+export function takeWidgetChoice(): string | null {
+  const c = lastChoice;
+  lastChoice = null;
+  return c;
+}
 const optionEls = () => (Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")) as any[]).filter(visible);
 const optionText = (o: any) => String(o.textContent || "").replace(/\s+/g, " ").trim();
 async function until<T>(fn: () => T | null, ms: number, every = 40): Promise<T | null> {
@@ -98,7 +106,13 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
     setNative(el, String(wanted).split(",")[0].trim());
     fire(el, "input");
   }
-  let opts = await until(() => (optionEls().length ? optionEls() : null), toggle ? 1500 : 3000);
+  let opts = await until(() => (optionEls().length ? optionEls() : null), toggle ? 1500 : 2000);
+  if (!opts && !toggle) {
+    // A place search whose results loaded but whose menu stayed shut: ArrowDown opens a react-select menu.
+    el.focus();
+    el.dispatchEvent(new W.KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", keyCode: 40, which: 40, bubbles: true, cancelable: true }));
+    opts = await until(() => (optionEls().length ? optionEls() : null), 1500);
+  }
   if (!opts) {
     closeMenu(el);
     return false;
@@ -124,6 +138,7 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   }
   press(hit);
   const shown = await until(() => widgetValue(el), 1000);
+  if (shown) lastChoice = label;
   return !!shown;
 }
 

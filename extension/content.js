@@ -25,6 +25,7 @@
   };
   const filled = new Map(); // name -> the value as the page showed it right after Trainee filled it
   const factIds = new Map(); // name -> the confirmed fact it came from
+  const chosen = new Map(); // name -> the employer's option text a widget fill clicked, shown while the widget still shows it
   const edited = new Set(); // names the person changed themselves (trusted events only)
 
   // The person's own edits: a trusted input or change on a field. Trainee's own fills dispatch untrusted events.
@@ -68,6 +69,7 @@
         continue;
       }
       const source = filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you" : "page";
+      if (source === "trainee" && chosen.has(s.name)) v = chosen.get(s.name);
       out.push({ name: s.name, label: s.label, value: v, source, factId: source === "trainee" ? factIds.get(s.name) ?? null : null, masked: false });
     }
     return out;
@@ -145,7 +147,9 @@
         await sleep(20);
         let v = D.readValue(b);
         if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = "No (left unchecked)";
+        const label = b.widget ? D.takeWidgetChoice() : null;
         if (ok && v) {
+          if (label && label !== v) chosen.set(p.name, label);
           filled.set(p.name, v);
           factIds.set(p.name, p.factId);
         }

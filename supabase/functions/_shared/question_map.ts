@@ -115,6 +115,11 @@ const RULES: Rule[] = [
   ["unknown", /\b(graduate|doctorate|doctoral|master'?s) gpa\b|\bgpa \((graduate|doctorate)\)/, (q, t) => !/undergraduate/.test(t)],
   ["gpa", /\bgpa\b|\bppa\b|\bgrade point average\b|\bdegree result\b/],
   ["test_scores", /\b(sat|act|gre|gmat|lsat) score\b/],
+  // Greenhouse's education block names its fields with one word ("Degree", "School", "Discipline"): exact labels only,
+  // never "degree in" or "school district" (WO-042, live Greenhouse forms).
+  ["education_level", /^degree[\s*:]*$/],
+  ["school", /^(school|college|university)[\s*:]*$/],
+  ["major", /^(discipline|field of study)[\s*:]*$/],
   ["education_level", /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/],
   ["major", /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/],
   ["graduation_date", /\bgraduation (date|year)\b|\bgraduat(e|ed|ion) date\b|\bexpected graduation\b|\bdiplôme\b|\bhave you graduated\b/],

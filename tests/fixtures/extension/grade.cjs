@@ -30,7 +30,8 @@ function expectedValue(spec, field, isWidget, persona, resumeName) {
 const PHONE = /^\+?[\d\s().-]{7,}$/;
 const same = (got, want) => {
   if (PHONE.test(String(want ?? "").trim()) && PHONE.test(String(got ?? "").trim())) return String(got).replace(/\D/g, "") === String(want).replace(/\D/g, "");
-  const g = norm(got).replace(/^no \(left unchecked\)$/, "no"), w = norm(want);
+  // A phone-country option names the country and its dialing code ("United States +1").
+  const g = norm(got).replace(/^no \(left unchecked\)$/, "no").replace(/^(.+?)\s\+\d{1,4}$/, "$1"), w = norm(want);
   return g === w || (w === "yes (checked)" && g === "yes") || (w === "no" && g === "no");
 };
 const emptyish = (v) => !v || norm(v) === "no (left unchecked)";

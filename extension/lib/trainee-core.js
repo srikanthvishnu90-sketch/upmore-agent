@@ -993,6 +993,20 @@
       "test_scores",
       /\b(sat|act|gre|gmat|lsat) score\b/
     ],
+    // Greenhouse's education block names its fields with one word ("Degree", "School", "Discipline"): exact labels only,
+    // never "degree in" or "school district" (WO-042, live Greenhouse forms).
+    [
+      "education_level",
+      /^degree[\s*:]*$/
+    ],
+    [
+      "school",
+      /^(school|college|university)[\s*:]*$/
+    ],
+    [
+      "major",
+      /^(discipline|field of study)[\s*:]*$/
+    ],
     [
       "education_level",
       /\bhighest (level of )?(education|degree)\b(?! in\b)|\blevel of education\b|\bwhich best describes your education\b|\bhigher education degree\b|\bhigh school diploma or equivalent\b/
@@ -1298,7 +1312,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     high_school: /high school|ged|secondary|diploma or equivalent/,
     some_college: /some college|some university|enrollment/,
     associate: /associate/,
-    bachelor: /bachelor|undergraduate degree|\bb\.?s\.?c?\b|\bb\.?a\.?\b|\bbsc\b/,
+    // "B.A." inside "M.B.A." is not a bachelor's (WO-042, Greenhouse's degree list).
+    bachelor: /bachelor|undergraduate degree|(?<![a-z]\.)\bb\.?s\.?c?\b|(?<![a-z]\.)\bb\.?a\.?\b|\bbsc\b/,
     master: /master|\bm\.?s\.?c?\b|\bmba\b|graduate degree(?!.*under)/,
     doctorate: /ph\.?d|doctor|doctoral/
   };
@@ -2384,7 +2399,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     maskFields: () => maskFields,
     observe: () => observe,
     readForm: () => readForm,
-    readValue: () => readValue
+    readValue: () => readValue,
+    takeWidgetChoice: () => takeWidgetChoice
   });
   var import_page_functions = __toESM(require_page_functions());
   var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech } = import_page_functions.default;
@@ -2442,6 +2458,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
     return t || null;
   }
+  var lastChoice = null;
+  function takeWidgetChoice() {
+    const c = lastChoice;
+    lastChoice = null;
+    return c;
+  }
   var optionEls = () => Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")).filter(visible);
   var optionText = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
   async function until(fn, ms, every = 40) {
@@ -2483,7 +2505,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       setNative(el, String(wanted).split(",")[0].trim());
       fire(el, "input");
     }
-    let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 3e3);
+    let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 2e3);
+    if (!opts2 && !toggle) {
+      el.focus();
+      el.dispatchEvent(new W.KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        code: "ArrowDown",
+        keyCode: 40,
+        which: 40,
+        bubbles: true,
+        cancelable: true
+      }));
+      opts2 = await until(() => optionEls().length ? optionEls() : null, 1500);
+    }
     if (!opts2) {
       closeMenu(el);
       return false;
@@ -2508,6 +2542,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     press(hit);
     const shown = await until(() => widgetValue(el), 1e3);
+    if (shown) lastChoice = label;
     return !!shown;
   }
   async function fill(b, value, resume, choose) {

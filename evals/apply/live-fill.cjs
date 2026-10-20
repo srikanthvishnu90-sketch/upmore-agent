@@ -29,6 +29,24 @@ const OUT = arg("out", path.join(ROOT, "evals/apply/results/live-fill.json"));
 const EXT = path.join(ROOT, "extension");
 const KEY = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/extension/answer-key.json"), "utf8"));
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/forms-ci/manifest.json"), "utf8"));
+// The employer's own dropdown options (CI capture): a widget's expected answer is the option the key's rule names among
+// them (exact text, or the one yes or no), never a guess; a rule that names no single option leaves the field unkeyed.
+const OPTIONS = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/forms-ci/greenhouse-options.json"), "utf8"));
+  } catch {
+    return { forms: {}, education: {} };
+  }
+})();
+const widgetOptions = (formId, name) => {
+  const f = OPTIONS.forms[formId];
+  const sel = f?.selects?.[name] || f?.selects?.[name.replace(/\[\]$/, "")];
+  if (sel) return sel.options;
+  const ed = f && OPTIONS.education[f.board];
+  if (/^degree--/.test(name)) return ed?.degrees || null;
+  if (/^discipline--/.test(name)) return ed?.disciplines || null;
+  return null;
+};
 const RESUME = { name: "test-person-resume.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n% TEST resume for WO-042, not a real person\n") };
 const NEVER = /(^|\.)(linkedin\.com|lnkd\.in|indeed\.com)$/i;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -153,7 +171,8 @@ async function main() {
           let want = "unkeyed";
           if (spec !== undefined) {
             try {
-              want = expectedValue(spec, fld, !!fld.widget, persona, RESUME.name);
+              const wopts = fld.widget ? widgetOptions(f.id, fld.name) : null;
+              want = expectedValue(spec, wopts ? { ...fld, options: wopts.map((l) => ({ label: l, value: l })) } : fld, !!fld.widget && !wopts, persona, RESUME.name);
             } catch (e) {
               want = "unkeyed";
             }

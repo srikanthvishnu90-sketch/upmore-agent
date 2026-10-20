@@ -108,6 +108,8 @@ Deno.test("WO-050/F2 reschedules, reminders, onsite logistics, next steps and as
     ["Kara Whitfield <kara.whitfield@okta.com>", "New time for Thursday", "Hi Ben, would it be OK to push our chat with the hiring manager to 3pm instead of 1pm Thursday? Same link."],
     ["Capital One Recruiting <recruiting@capitalone.com>", "Change to your Power Day schedule", "Hello Arjun, your Power Day for Associate, Product Manager has moved to Wednesday, December 2."],
     ["Chewy Talent Acquisition <talent@chewy.com>", "Reminder: Interview tomorrow at 11:00 AM", "Hi Taylor, just a reminder that your interview for Pharmacy Operations Supervisor at Chewy is tomorrow at 11:00 AM ET."],
+    ["Chewy Careers <careers@chewy.com>", "Reminder", "Hi Taylor, a reminder about your interview on Thursday."],
+    ["Acme <careers@acme.com>", "Interview reminder", "This is a reminder of your upcoming interview."],
     ["Meta Recruiting <recruiting@meta.com>", "Your onsite logistics - Menlo Park", "Hi Sarah, here are the details for your onsite on Tuesday: arrive at MPK 21 by 9:30 AM and check in at the front desk."],
     ["Boeing Talent Acquisition <talentacquisition@boeing.com>", "What to expect on your interview day", "Hi Leo, for your interview on Dec 1 at the Everett site: check in at Gate 4, three 45-minute interviews and a site tour."],
     ["Spotify <no-reply@smartrecruiters.com>", "Next steps for your application - Spotify", "Hi Leah, we'd like to invite you to the next stage for Data Scientist: a 45-minute conversation with the hiring manager."],
@@ -122,6 +124,9 @@ Deno.test("WO-050/F3 a hiring manager's or founder's terse ask is an interview; 
     ["Nina Park <nina.park@rippling.com>", "Re: Senior Recruiter role", "Thanks Ana! Want to grab 30 minutes with our Head of Talent this week? Let me know what works and I'll send an invite."],
     ["Rachel Gomez <rgomez@sweetgreen.com>", "Store manager role", "Hi Dante, I'm the area director. Can you come by the Union Square store Wednesday at 10 to meet me?"],
     ["Sara Lin <sara.lin@mixpanel.com>", "Re: Thanks for the call", "Great talking today! Next up I'd like you to meet Raj, our VP of Sales. Are you around Monday or Tuesday afternoon?"],
+    // A reply whose own words lead, but which asks to meet and says nothing about where things stand, is an invitation.
+    ["Sam Park <sam.park@acme.com>", "Re: Analyst role", "Thanks! I would like you to meet Raj."],
+    ["Sara Lin <sara.lin@mixpanel.com>", "Re: Thanks for the call", "Next up I would like you to meet Raj, our VP of Sales."],
     ["Nina Alvarez <nina@harborloop.co>", "coffee next week?", "Hi Ola, loved your application for the ops lead role. Want to grab a coffee next week and talk through what we're building?"],
   ]) eq(kind(from, subject, snippet), "interview", subject);
   for (const [from, subject, snippet] of [
@@ -215,6 +220,7 @@ Deno.test("WO-050/G1 a rejection is never an interview: feedback calls, reschedu
   }
   // A negation in a recruiter's update is not a decision said outright: never a rejection from a reply's own weights.
   assert(kind("Sam Park <sam.park@acme.com>", "Re: Data Analyst", "No decision yet - the team has not selected anyone, still interviewing this week. I'll keep you posted.") !== "rejection", "an update is not a rejection");
+  assert(kind("Sam Park <sam.park@acme.com>", "Re: Data Analyst", "We have not scheduled the panel yet; I'll keep you posted.") !== "rejection", "a step not scheduled yet is not a rejection");
   // A reply that says where things stand stays a reply even when it mentions a call to come.
   eq(kind("Sam Park <sam.park@acme.com>", "Re: Data Analyst role", "Still waiting on the panel's feedback; once I hear back we can set up a call with the hiring manager."), "recruiter_reply");
 });

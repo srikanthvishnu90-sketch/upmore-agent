@@ -85,6 +85,7 @@ MIGRATIONS=(
   20261021090000_career_mail_erase.sql
   20261021100000_career_proactive_last_word.sql
   20261021110000_career_board_state.sql
+  20261022090000_career_more_providers.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
@@ -114,6 +115,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_mail_on_erase')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_to_thread')"
   "to_regclass('public.career_board_state') is not null"
+  "exists (select 1 from pg_constraint where conname = 'career_board_state_provider_check' and pg_get_constraintdef(oid) like '%workday%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

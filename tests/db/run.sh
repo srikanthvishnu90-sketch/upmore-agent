@@ -169,6 +169,9 @@ done
 # its own table and one outbox column that no later migration touches, so it is applied here, before the tests, twice.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021110000_career_board_state.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021110000_career_board_state.sql"
+# WO-044 (20261022090000): the postings and board-state provider lists widen to the seven new readers; applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022090000_career_more_providers.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022090000_career_more_providers.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" ]]; then continue; fi

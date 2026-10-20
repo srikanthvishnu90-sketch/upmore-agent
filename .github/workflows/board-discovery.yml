@@ -17,6 +17,7 @@ on:
       cc_blocks: { description: "Common Crawl index blocks read per provider prefix per crawl", default: "1500" }
       domains_limit: { description: "Top domains turned into slug guesses (0 = none)", default: "3000" }
       wb_pages: { description: "Wayback Machine CDX pages read per query", default: "60" }
+      hn_pages: { description: "Hacker News search pages (1,000 comments each) per query", default: "40" }
       providers: { description: "Providers to verify (comma list, or all)", default: "all" }
       resume_branch: { description: "A discovery/ branch whose dead verdicts need no new probe (empty = probe all)", default: "" }
       label_pool: { description: "Also collect the labeled-set pool (yes / no)", default: "yes" }
@@ -42,6 +43,7 @@ jobs:
       CC_BLOCKS: ${{ inputs.cc_blocks || '15' }}
       DOMAINS_LIMIT: ${{ inputs.domains_limit || '40' }}
       WB_PAGES: ${{ inputs.wb_pages || '2' }}
+      HN_PAGES: ${{ inputs.hn_pages || '2' }}
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -56,9 +58,10 @@ jobs:
         run: |
           mkdir -p gather-out
           deno run -A --no-check scripts/career/discover-boards.ts --phase gather \
-            --sources diagnose,directory,candidates,ccdata,wayback,sitemaps,commoncrawl,domains --domains domains.csv --domains-limit "$DOMAINS_LIMIT" \
-            --cc-crawls "$CC_CRAWLS" --crawls "$CRAWLS" --cc-blocks "$CC_BLOCKS" --wb-pages "$WB_PAGES" --max-minutes "$GATHER_MINUTES" --out-dir gather-out \
-            | tee gather-out/gather.log | grep -E '^(SOURCES|ROBOTS|CCDATA|WAYBACK|SITEMAP|CC )'
+            --sources diagnose,directory,candidates,hn,wayback,ccdata,sitemaps,commoncrawl,workday-robots,domains --domains domains.csv --domains-limit "$DOMAINS_LIMIT" \
+            --cc-crawls "$CC_CRAWLS" --crawls "$CRAWLS" --cc-blocks "$CC_BLOCKS" --wb-pages "$WB_PAGES" --hn-pages "$HN_PAGES" \
+            --max-minutes "$GATHER_MINUTES" --out-dir gather-out \
+            | tee gather-out/gather.log | grep -E '^(SOURCES|ROBOTS|CCDATA|WAYBACK|HN|WORKDAY_ROBOTS|SITEMAP|CC )'
           grep -m1 '^SOURCES' gather-out/gather.log | cut -c1-3900 | sed 's/^/::notice title=SOURCES::/'
       - uses: actions/upload-artifact@v4
         with: { name: candidates, path: gather-out, retention-days: 30 }

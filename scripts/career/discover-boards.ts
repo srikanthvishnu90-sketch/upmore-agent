@@ -14,9 +14,10 @@
 //     [--domains-limit 3000] [--gap-ms 200] [--workers 4] [--max-minutes 300] [--gather-minutes 90] [--providers a,b]
 //     [--only provider] [--resume prior-verdicts.jsonl[.gz]] [--out-dir discovery-out] [--merge]
 import {
-  type Candidate, ccDataCandidates, commonCrawlCandidates, guessesFromDomain, keyOf, knownDead, mergeDirectory, PROVIDERS, robotsReport,
-  SITEMAP_HOSTS, sitemapCandidates, tally, type VerdictRow, verifyCandidates, waybackCandidates,
+  type Candidate, ccDataCandidates, commonCrawlCandidates, guessesFromDomain, hnCandidates, keyOf, knownDead, mergeDirectory, PROVIDERS, robotsReport,
+  SITEMAP_HOSTS, sitemapCandidates, tally, type VerdictRow, verifyCandidates, waybackCandidates, workdaySiteCandidates,
 } from "./board_discovery.ts";
+import { workdayParts } from "../../supabase/functions/_shared/career_ingest_feeds.ts";
 
 const opt = (k: string, d?: string) => { const i = Deno.args.indexOf(k); return i >= 0 ? Deno.args[i + 1] : d; };
 const flag = (k: string) => Deno.args.includes(k);
@@ -57,8 +58,14 @@ async function gather(deadline: number) {
     for (const r of await robotsReport(["index.commoncrawl.org", "data.commoncrawl.org", "web.archive.org", "api.smartrecruiters.com", ...SITEMAP_HOSTS, "apply.workable.com", "acme.bamboohr.com", "nvidia.wd5.myworkdayjobs.com"]))
       console.log(`ROBOTS ${r.host} ${r.status} ${r.text}`);
   }
+  if (sources.has("hn")) {
+    const r = await hnCandidates({ maxPages: Number(opt("--hn-pages", "40")), deadline, log });
+    extra.hn = { requests: r.requests, errors: r.errors, blocked: !!r.blocked, by_query: r.by_query, slugs: r.candidates.length };
+    console.log(`HN ${JSON.stringify(extra.hn)}`);
+    for (const c of r.candidates) add(c);
+  }
   if (sources.has("wayback")) {
-    const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), deadline, log });
+    const r = await waybackCandidates({ maxPages: Number(opt("--wb-pages", "60")), limit: Number(opt("--wb-limit", "20000")), filter: opt("--wb-filter", "roots") !== "none", deadline, log });
     extra.wayback = { pages: r.pages, errors: r.errors, blocked: !!r.blocked, by_query: r.by_query, slugs: r.candidates.length };
     console.log(`WAYBACK ${JSON.stringify(extra.wayback)}`);
     for (const c of r.candidates) add(c);
@@ -78,6 +85,14 @@ async function gather(deadline: number) {
   if (sources.has("commoncrawl")) {
     const r = await commonCrawlCandidates({ crawls: Number(opt("--crawls", "2")), maxPages: Number(opt("--cc-pages", "60")), deadline, log });
     extra.commoncrawl = { pages: r.pages, errors: r.errors, crawls: r.crawls, blocked: !!r.blocked };
+    for (const c of r.candidates) add(c);
+  }
+  // Every Workday tenant found so far names its other career sites in its robots.txt.
+  if (sources.has("workday-robots")) {
+    const tenants = [...new Map(cands.filter((c) => c.provider === "workday").map((c) => workdayParts(c.slug)).filter((w): w is NonNullable<typeof w> => !!w).map((w) => [w.host, { tenant: w.tenant, wd: w.wd }])).values()];
+    const r = await workdaySiteCandidates(tenants, { deadline: Math.max(deadline, Date.now() + 20 * 60000) });
+    extra.workday_robots = { tenants: tenants.length, hosts_read: r.hosts, errors: r.errors, sites: r.candidates.length };
+    console.log(`WORKDAY_ROBOTS ${JSON.stringify(extra.workday_robots)}`);
     for (const c of r.candidates) add(c);
   }
   if (sources.has("domains") && opt("--domains")) {

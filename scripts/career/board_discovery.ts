@@ -106,12 +106,13 @@ const SLUG_OK = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
 const LABEL_OK = /^[a-z0-9][a-z0-9-]{0,62}$/i;
 const SUB = (domain: string) => new RegExp(`^https?:\\/\\/([a-z0-9][a-z0-9-]*)\\.${domain.replace(/\./g, "\\.")}(?::\\d+)?(?:[/?#]|$)`, "i");
 const PATTERNS: [Provider, RegExp][] = [
-  ["greenhouse", /^https?:\/\/(?:boards|job-boards)(?:\.eu)?\.greenhouse\.io\/embed\/job_board(?:\/js)?\?(?:.*&)?for=([^&#/]+)/i],
-  ["greenhouse", /^https?:\/\/(?:boards|job-boards)(?:\.eu)?\.greenhouse\.io\/([^/?#]+)/i],
-  ["lever", /^https?:\/\/jobs\.lever\.co\/([^/?#]+)/i],
-  ["ashby", /^https?:\/\/jobs\.ashbyhq\.com\/([^/?#]+)/i],
-  ["smartrecruiters", /^https?:\/\/(?:jobs|careers)\.smartrecruiters\.com\/([^/?#]+)/i],
-  ["workable", /^https?:\/\/apply\.workable\.com\/([^/?#]+)/i],
+  // (?::\d+)?: archived URLs often carry the port ("http://jobs.lever.co:80/acme").
+  ["greenhouse", /^https?:\/\/(?:boards|job-boards)(?:\.eu)?\.greenhouse\.io(?::\d+)?\/embed\/job_board(?:\/js)?\?(?:.*&)?for=([^&#/]+)/i],
+  ["greenhouse", /^https?:\/\/(?:boards|job-boards)(?:\.eu)?\.greenhouse\.io(?::\d+)?\/([^/?#]+)/i],
+  ["lever", /^https?:\/\/jobs\.lever\.co(?::\d+)?\/([^/?#]+)/i],
+  ["ashby", /^https?:\/\/jobs\.ashbyhq\.com(?::\d+)?\/([^/?#]+)/i],
+  ["smartrecruiters", /^https?:\/\/(?:jobs|careers)\.smartrecruiters\.com(?::\d+)?\/([^/?#]+)/i],
+  ["workable", /^https?:\/\/apply\.workable\.com(?::\d+)?\/([^/?#]+)/i],
   ["workable", SUB("workable.com")],
   ["recruitee", SUB("recruitee.com")],
   ["bamboohr", SUB("bamboohr.com")],
@@ -278,7 +279,7 @@ export function gibberishFor(provider: Provider, sample?: string): string {
   return w ? `${w.tenant}.${w.wd}/${GIBBERISH}` : `${GIBBERISH}.wd1/${GIBBERISH}`;
 }
 // Sources in the order a run spends its time on them: the ones that find real boards first, slug guesses last.
-const SOURCE_RANK: Record<string, number> = { directory: 0, ccdata: 1, commoncrawl: 1, wayback: 1, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
+const SOURCE_RANK: Record<string, number> = { directory: 0, "workday-robots": 1, hn: 1, ccdata: 1, commoncrawl: 1, wayback: 2, sitemaps: 2, "wo017-candidates": 3, domains: 9 };
 export const sourceRank = (source: string) => SOURCE_RANK[String(source).split(":")[0]] ?? 5;
 
 // Every candidate gets one request, paced per platform, after its host's robots.txt is read and its provider's gibberish
@@ -685,55 +686,167 @@ export const WAYBACK_QUERIES: { provider: Provider; url: string; matchType: "pre
   { provider: "personio", url: "jobs.personio.com", matchType: "domain" },
   { provider: "workday", url: "myworkdayjobs.com", matchType: "domain" },
 ];
-export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; by_query: Record<string, { pages: number; read: number; slugs: number }> }> {
+export async function waybackCandidates(o: { net?: Net; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; queries?: typeof WAYBACK_QUERIES; limit?: number; filter?: boolean }): Promise<{ candidates: Candidate[]; pages: number; errors: number; blocked?: boolean; by_query: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> }> {
   const net = o.net ?? realNet, log = o.log ?? (() => {});
   const host = "web.archive.org";
   const pacer = new HostPacer({ gapMs: o.gapMs ?? 2000, now: net.now, sleep: net.sleep, maxGapMs: 300000 });
   await pacer.wait(host);
   const robots = await (async () => { try { const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) }); return robotsFromResponse(r.status, r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "")); } catch { return DISALLOW_ALL; } })();
   const found = new Map<string, Candidate>();
-  const by: Record<string, { pages: number; read: number; slugs: number }> = {};
+  const by: Record<string, { pages: number; read: number; slugs: number; done: boolean; errors: number }> = {};
   let pages = 0, errors = 0, blocked = 0;
   const queries = o.queries ?? WAYBACK_QUERIES;
-  // Round-robin: page 0 of every query, then page 1 of every query, ... so a deadline thins every provider alike.
-  const totals = new Map<string, number>();
-  const path = (q: (typeof queries)[number]) => `/cdx/search/cdx?url=${encodeURIComponent(q.url)}&matchType=${q.matchType}&fl=original&collapse=urlkey`;
+  // Paged with the server's resumption key (showResumeKey / resumeKey: a page ends with a blank line and the key to the
+  // next one; no key means the last page). filter: only URLs that can name a board's own page (the server returns those
+  // and skips the rest), so a page holds many boards instead of one board's thousands of postings.
+  const path = (q: (typeof queries)[number]) => `/cdx/search/cdx?url=${encodeURIComponent(q.url)}&matchType=${q.matchType}&fl=original&collapse=urlkey` +
+    (o.filter === false ? "" : `&filter=${encodeURIComponent(`original:${waybackRootPattern(q)}`)}`) + `&limit=${o.limit ?? 20000}&showResumeKey=true`;
+  const state = new Map<string, { key: string | null; fails: number }>();
   for (const q of queries) {
-    by[q.url] = { pages: 0, read: 0, slugs: 0 };
-    if (!robots.allowed(path(q))) { blocked++; log(`WAYBACK ${q.url} blocked by robots`); continue; }
-    await pacer.wait(host);
-    const np = await getJson(net, `https://${host}${path(q)}&showNumPages=true`, 120000);
-    const total = Number(typeof np.data === "number" ? np.data : (np.data as any)?.pages ?? NaN);
-    if (np.status === 429) pacer.backoff(host, Number(np.headers?.get("retry-after")) || null);
-    by[q.url].pages = Number.isFinite(total) ? total : 0;
-    totals.set(q.url, Number.isFinite(total) ? Math.min(total, o.maxPages ?? 50) : 0);
-    log(`WAYBACK ${q.url}: http ${np.status}, ${Number.isFinite(total) ? total : "?"} pages, reading ${totals.get(q.url)}`);
+    by[q.url] = { pages: 0, read: 0, slugs: 0, done: false, errors: 0 };
+    if (!robots.allowed(path(q))) { blocked++; by[q.url].done = true; log(`WAYBACK ${q.url} blocked by robots`); continue; }
+    state.set(q.url, { key: null, fails: 0 });
   }
-  const maxTake = Math.max(0, ...totals.values());
-  for (let p = 0; p < maxTake; p++) {
+  // Round-robin: page n of every query before page n+1 of any, so a deadline thins every provider alike.
+  for (let p = 0; p < (o.maxPages ?? 50); p++) {
+    let any = false;
     for (const q of queries) {
-      if (p >= (totals.get(q.url) ?? 0)) continue;
+      const st = state.get(q.url);
+      if (!st || by[q.url].done) continue;
+      any = true;
       if (o.deadline && net.now() >= o.deadline) { log("WAYBACK deadline reached"); return { candidates: [...found.values()], pages, errors, by_query: by }; }
       await pacer.wait(host);
       let r: Response | null = null;
-      try { r = await net.fetch(`https://${host}${path(q)}&page=${p}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(300000) }); } catch { r = null; }
+      try { r = await net.fetch(`https://${host}${path(q)}${st.key ? `&resumeKey=${encodeURIComponent(st.key)}` : ""}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(300000) }); } catch { r = null; }
       if (!r || r.status !== 200) {
-        errors++;
+        errors++; by[q.url].errors++;
         if (r && (r.status === 429 || r.status === 503)) pacer.backoff(host, Number(r.headers.get("retry-after")) || null);
         await r?.body?.cancel().catch(() => {});
+        if (++st.fails >= 4) { by[q.url].done = true; log(`WAYBACK ${q.url}: stopped after ${st.fails} failed pages in a row (last http ${r?.status ?? 0})`); }
         continue;
       }
+      st.fails = 0;
       pacer.relax(host);
       let text = "";
       try { text = await r.text(); } catch { errors++; continue; }
+      const { lines, resumeKey } = splitResumeKey(text);
       pages++; by[q.url].read++;
-      for (const s of slugsFromCdx(text)) {
+      for (const s of slugsFromCdx(lines.join("\n"))) {
         const k = keyOf(s.provider, s.slug);
         if (!found.has(k)) { found.set(k, { ...s, source: "wayback" }); by[q.url].slugs++; }
       }
+      if (by[q.url].read <= 2) log(`WAYBACK ${q.url} page ${by[q.url].read}: ${lines.length} urls, ${by[q.url].slugs} slugs so far, ${resumeKey ? "more" : "last page"}`);
+      if (resumeKey) st.key = resumeKey; else by[q.url].done = true;
     }
+    if (!any) break;
   }
   return { candidates: [...found.values()], pages, errors, by_query: by, ...(blocked === queries.length ? { blocked: true } : {}) };
+}
+// A page of a showResumeKey answer: its lines, then (after a blank line) the key to the next page.
+export function splitResumeKey(text: string): { lines: string[]; resumeKey: string | null } {
+  const all = String(text || "").replace(/\r/g, "").split("\n");
+  while (all.length && all[all.length - 1] === "") all.pop();
+  const blank = all.lastIndexOf("");
+  if (blank >= 0 && blank === all.length - 2) return { lines: all.slice(0, blank), resumeKey: all[all.length - 1].trim() || null };
+  return { lines: all, resumeKey: null };
+}
+// The archived URLs that can name a board's own page: one path segment on the path providers; the host's root or one
+// segment on the subdomain providers; [locale/]site on Workday. A query string is allowed (tracking parameters).
+export function waybackRootPattern(q: { provider: Provider; url: string; matchType: string }): string {
+  const host = q.url.replace(/\/$/, "").replace(/\./g, "\\.");
+  if (q.provider === "workday") return `https?://[^/]+\\.${host}(:\\d+)?/([a-zA-Z]{2}-[a-zA-Z]{2}/)?[^/?#]+/?(\\?.*)?`;
+  if (q.matchType === "domain") return `https?://[^/]+\\.${host}(:\\d+)?(/[^/?#]*)?/?(\\?.*)?`;
+  return `https?://${host}(:\\d+)?/[^/?#]+/?(\\?.*)?`;
+}
+
+// ------------------------------------------------------------------------------------------------ Hacker News
+// WO-044. Hacker News comments (the monthly "Who is hiring?" threads above all) link employers' job boards. Read through
+// HN Search by Algolia (hn.algolia.com/api, the public, documented search API of Hacker News), newest first, paged by
+// time (created_at_i < the oldest hit so far), 1,000 comments a page. Robots read first; one request per second.
+export const HN_QUERIES = ["jobs.lever.co", "boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.ashbyhq.com", "apply.workable.com",
+  "recruitee.com", "bamboohr.com", "teamtailor.com", "breezy.hr", "jobs.personio", "myworkdayjobs.com"];
+export function urlsInHtml(html: string): string[] {
+  const t = String(html || "").replace(/&#x2F;/gi, "/").replace(/&#x3D;/gi, "=").replace(/&#x27;/gi, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  return [...t.matchAll(/https?:\/\/[^\s"'<>)\]]+/g)].map((m) => m[0].replace(/[.,;:]+$/, ""));
+}
+export async function hnCandidates(o: { net?: Net; queries?: string[]; maxPages?: number; gapMs?: number; deadline?: number; log?: (s: string) => void; now?: number }): Promise<{ candidates: Candidate[]; requests: number; errors: number; by_query: Record<string, { pages: number; hits: number; slugs: number }>; blocked?: boolean }> {
+  const net = o.net ?? realNet, log = o.log ?? (() => {});
+  const host = "hn.algolia.com";
+  const pacer = new HostPacer({ gapMs: o.gapMs ?? 1000, now: net.now, sleep: net.sleep });
+  await pacer.wait(host);
+  const robots = await (async () => { try { const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(30000) }); return robotsFromResponse(r.status, r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "")); } catch { return DISALLOW_ALL; } })();
+  const found = new Map<string, Candidate>();
+  const by: Record<string, { pages: number; hits: number; slugs: number }> = {};
+  let requests = 0, errors = 0, blocked = 0;
+  for (const q of o.queries ?? HN_QUERIES) {
+    by[q] = { pages: 0, hits: 0, slugs: 0 };
+    let before = Math.floor((o.now ?? net.now()) / 1000) + 86400;
+    for (let page = 0; page < (o.maxPages ?? 40); page++) {
+      const path = `/api/v1/search_by_date?query=${encodeURIComponent(q)}&tags=comment&hitsPerPage=1000&numericFilters=${encodeURIComponent(`created_at_i<${before}`)}`;
+      if (!robots.allowed(path)) { blocked++; log(`HN ${q} blocked by robots`); break; }
+      if (o.deadline && net.now() >= o.deadline) { log("HN deadline reached"); return { candidates: [...found.values()], requests, errors, by_query: by }; }
+      await pacer.wait(host);
+      const r = await getJson(net, `https://${host}${path}`, 60000);
+      requests++;
+      if (r.status === 429 || r.status === 503) { errors++; pacer.backoff(host, Number(r.headers?.get("retry-after")) || null); page--; if (errors > 20) break; continue; }
+      const hits = (r.data as any)?.hits;
+      if (r.status !== 200 || !Array.isArray(hits)) { errors++; break; }
+      pacer.relax(host);
+      by[q].pages++; by[q].hits += hits.length;
+      let oldest = before;
+      for (const h of hits) {
+        const t = Number(h?.created_at_i);
+        if (Number.isFinite(t) && t < oldest) oldest = t;
+        for (const u of urlsInHtml(String(h?.comment_text ?? ""))) {
+          const s = slugFromUrl(u);
+          if (!s) continue;
+          const k = keyOf(s.provider, s.slug);
+          if (!found.has(k)) { found.set(k, { ...s, source: "hn" }); by[q].slugs++; }
+        }
+      }
+      if (hits.length < 1000 || oldest >= before) break;
+      before = oldest;
+    }
+    log(`HN ${q}: ${by[q].pages} pages, ${by[q].hits} comments, ${by[q].slugs} new slugs`);
+  }
+  return { candidates: [...found.values()], requests, errors, by_query: by, ...(blocked === (o.queries ?? HN_QUERIES).length ? { blocked: true } : {}) };
+}
+
+// ------------------------------------------------------------------------------------------------ Workday sites
+// WO-044. A Workday tenant's robots.txt names its career sites ("Allow: /NVIDIAExternalCareerSite/"), so every tenant
+// already known gives its other public sites. Only Allow lines count (a Disallowed site is not read); paced with the
+// Workday probes' platform pace.
+export function workdaySitesInRobots(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const m = /^\s*allow\s*:\s*\/([A-Za-z0-9][A-Za-z0-9_.-]{0,99})\/?\s*$/i.exec(raw.replace(/#.*$/, ""));
+    if (m && !/^(wday|[a-z]{2}(-[a-z]{2})?)$/i.test(m[1]) && !NOT_A_SLUG.has(m[1].toLowerCase())) out.push(m[1]);
+  }
+  return [...new Set(out)];
+}
+export async function workdaySiteCandidates(tenants: { tenant: string; wd: string }[], o: { net?: Net; gapMs?: number; deadline?: number } = {}): Promise<{ candidates: Candidate[]; hosts: number; errors: number }> {
+  const net = o.net ?? realNet;
+  const pacer = new HostPacer({ gapMs: o.gapMs ?? 200, now: net.now, sleep: net.sleep });
+  const found = new Map<string, Candidate>();
+  const seen = new Set<string>();
+  let hosts = 0, errors = 0;
+  for (const t of tenants) {
+    const host = `${t.tenant}.${t.wd}.myworkdayjobs.com`;
+    if (seen.has(host)) continue;
+    seen.add(host);
+    if (o.deadline && net.now() >= o.deadline) break;
+    await pacer.wait("myworkdayjobs.com");
+    try {
+      const r = await net.fetch(`https://${host}/robots.txt`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(15000) });
+      const text = r.status === 200 ? await r.text() : (await r.body?.cancel().catch(() => {}), "");
+      hosts++;
+      for (const site of workdaySitesInRobots(text)) {
+        const slug = `${t.tenant}.${t.wd}/${site}`;
+        if (!found.has(keyOf("workday", slug))) found.set(keyOf("workday", slug), { provider: "workday", slug, source: "workday-robots" });
+      }
+    } catch { errors++; }
+  }
+  return { candidates: [...found.values()], hosts, errors };
 }
 
 // What a host's robots.txt says (status and its first lines), for the run log: a source that finds nothing says why.

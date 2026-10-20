@@ -7,7 +7,16 @@ insert into auth.users(id,email) values('00000000-0000-0000-0000-0000000003a1','
 set role service_role;
 insert into public.career_board_state(provider,board,bucket) values('greenhouse','stripe',7),('lever','plaid',63);
 select t.ok((select count(*)=2 from public.career_board_state),'the service role seeds board state');
-select t.must_fail($$insert into public.career_board_state(provider,board,bucket) values('workday','x',1)$$,'career_board_state_provider_check','an unsupported provider is refused');
+select t.must_fail($$insert into public.career_board_state(provider,board,bucket) values('someats','x',1)$$,'career_board_state_provider_check','an unsupported provider is refused');
+-- WO-044 (20261022090000): the seven new readers' boards are taken, in board state and in the postings table.
+insert into public.career_board_state(provider,board,bucket) values('workday','acme.wd5/External',1),('teamtailor','acme',2);
+select t.ok((select count(*)=2 from public.career_board_state where provider in ('workday','teamtailor')),'board state takes the new providers');
+delete from public.career_board_state where provider in ('workday','teamtailor');
+insert into public.career_postings(job_id,provider,board,company,title,url,first_seen_at,last_seen_at)
+  values('workday:acme.wd5/external:Associate_R1','workday','acme.wd5/External','acme','Associate','https://acme.wd5.myworkdayjobs.com/External/job/x',now(),now());
+select t.ok((select count(*)=1 from public.career_postings where provider='workday'),'the postings table takes a Workday posting');
+select t.must_fail($$insert into public.career_postings(job_id,provider,board,company,title,url,first_seen_at,last_seen_at) values('someats:a:1','someats','a','A','T','https://a.b/1',now(),now())$$,'career_postings_job_id_check','an unknown provider''s posting is refused');
+delete from public.career_postings where provider='workday';
 select t.must_fail($$insert into public.career_board_state(provider,board,bucket) values('ashby','x',64)$$,'career_board_state_bucket_check','a bucket past 63 is refused');
 select t.must_fail($$insert into public.career_board_state(provider,board,bucket) values('greenhouse','stripe',7)$$,'career_board_state_pkey','one row per board');
 update public.career_board_state set last_attempt_at=now(), last_ok_at=now(), last_status='ok', etag='"abc"' where board='stripe';

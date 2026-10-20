@@ -4,9 +4,10 @@
 // carries the reason, so the agent can say what is missing instead of pretending the job doesn't exist.
 import { CareerJobs, CareerProfile, CareerRouter } from "./router_core.career.js";
 import { matchesWords, searchWords } from "./career_ingest.ts";
+import { payFrom } from "./posting_pay.ts";
 
 export interface Fit { score: number | null; bucket: string | null; excluded: boolean; reasons: string[]; gaps: string[] }
-export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null }
+export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null; pay: string | null }
 
 export function scoringProfileFor(profile: any): any | null {
   const confirmed = profile ? CareerProfile.confirmedFacts(profile) : [];
@@ -47,7 +48,8 @@ export function searchPostings(pool: any[], query: unknown, profile: any, limit 
   });
   const n = Math.max(1, Math.min(50, Math.floor(Number(limit) || 10)));
   return {
-    postings: scored.slice(0, n).map(({ p, fit }) => ({ job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, first_seen_at: p.first_seen_at ?? null, fit })),
+    // WO-068: the pay the posting itself states (posting_pay.ts), or null: never an estimate.
+    postings: scored.slice(0, n).map(({ p, fit }) => ({ job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, first_seen_at: p.first_seen_at ?? null, fit, pay: p.pay ?? payFrom(p.description) })),
     total: hits.length, ranked_by: sp ? "fit" : "newest",
   };
 }

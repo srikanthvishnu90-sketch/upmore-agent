@@ -330,6 +330,7 @@ $("q-add").onclick = async () => {
 };
 $("q-tabs").onclick = async () => (qmsg(await send({ type: "queue-from-tabs" })), render());
 $("q-matches").onclick = async () => (qmsg(await send({ type: "queue-from-matches" })), render());
+$("q-picks").onclick = async () => (qmsg(await send({ type: "queue-from-trainee" })), render());
 $("q-start").onclick = async () => (qmsg(await send({ type: "queue-start", tabId: params.has("tab") ? tabId : undefined })), render());
 $("q-skip").onclick = async () => (qmsg(await send({ type: "queue-skip" })), render());
 $("q-stop").onclick = async () => (qmsg(await send({ type: "queue-stop" })), render());

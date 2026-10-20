@@ -769,6 +769,19 @@ async function handle(m, sender) {
         return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "Trainee's matches could not be read; paste the links instead." };
       }
     }
+    case "queue-from-trainee": {
+      // WO-066: the postings the person asked Trainee to apply to in chat, from their own queue (row-level security: only
+      // theirs), into the same queue their pasted links go; each is then prepared here and goes only on its card's tap.
+      try {
+        const rows = await selectOwn("career_apply_wanted?select=posting_key,url&state=eq.waiting&order=queued_at.asc&limit=100");
+        if (!rows.length) return { ok: false, message: "Trainee has no postings waiting for you. Ask Trainee in chat to apply to some." };
+        const r = await handle({ type: "queue-set", text: rows.map((x) => x.url).join("\n") }, {});
+        await rpc("career_apply_want_take_own", { p_keys: rows.map((x) => x.posting_key) });
+        return r;
+      } catch (e) {
+        return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "Trainee's picks could not be read; paste the links instead." };
+      }
+    }
     case "queue-start": {
       const q = await queueState();
       if (!q.items.some((x) => x.state === "waiting")) return { ok: false, message: "Add some posting links first." };
@@ -821,7 +834,7 @@ async function handle(m, sender) {
 // only from the extension's own panel page, never from a content script running inside an employer's page; what a page
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
-  "queue-set", "queue-from-tabs", "queue-from-matches", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
+  "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
   "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
 const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side

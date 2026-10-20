@@ -310,6 +310,7 @@ async function startWorld(o = {}) {
     submits: [], // what reached the stand-in employer
     otp: [],
     outbox: [],
+    wanted: [], // WO-066: career_apply_wanted rows {posting_key, url, company, title, state}
     rpcCalls: [],
     essayCalls: [], // WO-049: what reached the career-essay-draft stand-in
     essayReply: null,
@@ -358,6 +359,11 @@ async function startWorld(o = {}) {
     }
     if (req.headers.authorization !== "Bearer " + state.access) return json(res, 401, { message: "JWT expired" });
     if (u.pathname === "/rest/v1/career_outbox") return json(res, 200, state.outbox);
+    // WO-066: the person's own apply queue, as RLS serves it (their rows; the panel asks for state=eq.waiting).
+    if (u.pathname === "/rest/v1/career_apply_wanted") {
+      const st = (u.searchParams.get("state") || "").replace(/^eq\./, "");
+      return json(res, 200, state.wanted.filter((w) => !st || w.state === st).map(({ posting_key, url }) => ({ posting_key, url })));
+    }
     // WO-049: the TEST stand-in for supabase/functions/career-essay-draft (its real logic is tested with a stub model in
     // tests/architect/wo-049-essay-card.test.ts). Each call is recorded; the reply is state.essayReply(body, n) when a test
     // sets one, else a TEST draft, or the employer's AI-policy refusal when the form's own words ask for answers without AI.
@@ -381,6 +387,11 @@ async function startWorld(o = {}) {
     switch (m[1]) {
       case "career_apply_account_own":
         return json(res, 200, state.account);
+      case "career_apply_want_take_own": {
+        let n = 0;
+        for (const w of state.wanted) if (w.state === "waiting" && (args.p_keys || []).includes(w.posting_key)) { w.state = "taken"; n++; }
+        return json(res, 200, n);
+      }
       case "career_apply_answers_own":
         return json(res, 200, state.answers);
       case "career_apply_questions_put_own": {

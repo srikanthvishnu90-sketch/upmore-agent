@@ -12,7 +12,7 @@ select t.ok(has_table_privilege('service_role', 'public.career_deploy_ledger', '
 
 -- What go-live writes: one row per migration mark read, one per function deployed.
 insert into public.career_deploy_ledger (sha, kind, migration_file, bundle_sha256, manifest_sha256, deployed_by_label)
-values ('5f7efe45e484f2139b6bd82e0ebf253775a0481a', 'migration', '20261022120000_career_deploy_ledger.sql', repeat('a', 64), repeat('c', 64), 'owner'),
+values ('5f7efe45e484f2139b6bd82e0ebf253775a0481a', 'migration', '20261022120500_career_deploy_ledger.sql', repeat('a', 64), repeat('c', 64), 'owner'),
        ('5f7efe45e484f2139b6bd82e0ebf253775a0481a', 'migration', '20260923_000001_agent_rate_limits.sql', repeat('d', 64), repeat('c', 64), 'owner');
 insert into public.career_deploy_ledger (sha, kind, function_name, bundle_sha256, platform_version, manifest_sha256, deployed_by_label)
 values ('5f7efe45e484f2139b6bd82e0ebf253775a0481a', 'function', 'agent-chat', repeat('b', 64), 246, repeat('c', 64), 'owner shell');
@@ -27,7 +27,7 @@ select t.must_fail($$insert into public.career_deploy_ledger (sha, function_name
   'career_deploy_ledger_deployed_by_label_check', 'a label is a plain name');
 select t.must_fail($$insert into public.career_deploy_ledger (sha, kind, bundle_sha256, deployed_by_label) values (repeat('e', 40), 'function', repeat('b', 64), 'owner')$$,
   'career_deploy_ledger_check', 'a function row names its function');
-select t.must_fail($$insert into public.career_deploy_ledger (sha, kind, function_name, migration_file, bundle_sha256, deployed_by_label) values (repeat('e', 40), 'migration', 'agent-chat', '20261022120000_career_deploy_ledger.sql', repeat('b', 64), 'owner')$$,
+select t.must_fail($$insert into public.career_deploy_ledger (sha, kind, function_name, migration_file, bundle_sha256, deployed_by_label) values (repeat('e', 40), 'migration', 'agent-chat', '20261022120500_career_deploy_ledger.sql', repeat('b', 64), 'owner')$$,
   'career_deploy_ledger_check', 'a migration row names a file and no function');
 select t.must_fail($$update public.career_deploy_ledger set bundle_sha256 = repeat('f', 64)$$, 'append-only', 'a row is never rewritten, not even by the owner');
 select t.must_fail($$delete from public.career_deploy_ledger$$, 'append-only', 'nor removed');

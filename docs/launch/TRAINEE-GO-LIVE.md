@@ -92,7 +92,7 @@ Function secrets are project-wide in Supabase: every function sees every one.
    prove a second run changes nothing. Then **every mark is read again** (`MIGRATION_MARK` and the earlier ones), and a
    single missing one fails the step, each named: a ledger row saying "applied" is never taken for the schema (a
    packet's migrations once never landed). The marks read true get their rows in `public.career_deploy_ledger`
-   (`20261022120000_career_deploy_ledger.sql`, applied by this step). With `--skip-migrations` the same marks are read at
+   (`20261022120500_career_deploy_ledger.sql`, applied by this step). With `--skip-migrations` the same marks are read at
    the start of step 4, and nothing is deployed on a schema without them.
 3. **secrets**: one `supabase secrets set --env-file` from a 0600 temp file that is removed at once.
 4. **deploy**: first downloads the live `agent-chat` to `~/trainee-rollback/agent-chat-<UTC>` (best effort), then deploys

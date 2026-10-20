@@ -139,15 +139,15 @@ test('the manifest of a fixed sha is the same every time, from git archive, and 
   assert.deepEqual(EXPECTED.functions.map((f) => f.name), FNS);
   for (const f of EXPECTED.functions) { assert.match(f.bundle_sha256, prov.HEX64); assert.match(f.entry_sha256, prov.HEX64); assert.ok(f.files >= 1); }
   assert.deepEqual(EXPECTED.migrations.filter((m) => m.kind === 'trainee').map((m) => m.file), MIGRATIONS);
-  assert.ok(MIGRATIONS.includes('20261022120000_career_deploy_ledger.sql'), 'the ledger migration ships with go-live');
+  assert.ok(MIGRATIONS.includes('20261022120500_career_deploy_ledger.sql'), 'the ledger migration ships with go-live');
   // Each hash is the commit's own bytes: the entry and a migration, read straight from git.
   const deliver = EXPECTED.functions.find((f) => f.name === 'trainee-deliver');
   const crypto = require('node:crypto');
   const gitSha = (p) => crypto.createHash('sha256').update(execFileSync('git', ['show', `${HEAD}:${p}`], { cwd: root })).digest('hex');
   assert.equal(deliver.entry_sha256, gitSha('supabase/functions/trainee-deliver/index.ts'));
   for (const [k, v] of Object.entries(deliver.file_sha256)) assert.equal(v, gitSha(`supabase/functions/${k}`), k);
-  const ledger = EXPECTED.migrations.find((m) => m.file === '20261022120000_career_deploy_ledger.sql');
-  assert.equal(ledger.sha256, gitSha('supabase/migrations/20261022120000_career_deploy_ledger.sql'));
+  const ledger = EXPECTED.migrations.find((m) => m.file === '20261022120500_career_deploy_ledger.sql');
+  assert.equal(ledger.sha256, gitSha('supabase/migrations/20261022120500_career_deploy_ledger.sql'));
   // agent-chat's bundle is exactly what stage-career.cjs stages (index-career.ts as agent-chat/index.ts).
   const stage = stageHead();
   const staged = JSON.parse(execFileSync(process.execPath, [path.join(stage, 'scripts/career/stage-career.cjs'), tmp('wo093-sc-'), '--json'], { encoding: 'utf8' }));
@@ -256,7 +256,7 @@ test('platform versions are read from `supabase functions list` by their header 
 });
 
 test('the deploy ledger migration: service role only, RLS on, no client access, append-only, idempotent', () => {
-  const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20261022120000_career_deploy_ledger.sql'), 'utf8');
+  const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20261022120500_career_deploy_ledger.sql'), 'utf8');
   assert.match(sql, /create table if not exists public\.career_deploy_ledger/);
   assert.match(sql, /enable row level security/);
   assert.doesNotMatch(sql, /create policy/, 'no policy: no client reads a row');
@@ -264,6 +264,29 @@ test('the deploy ledger migration: service role only, RLS on, no client access, 
   assert.match(sql, /grant select, insert on public\.career_deploy_ledger to service_role;/);
   assert.doesNotMatch(sql.replace(/--[^\n]*/g, ''), /grant [^;]*to (anon|authenticated)/);
   for (const c of ['sha', 'function_name', 'bundle_sha256', 'deployed_at', 'deployed_by_label']) assert.match(sql, new RegExp(`\\n  ${c} `), c);
-  assert.match(fs.readFileSync(path.join(root, 'tests/db/run.sh'), 'utf8'), /20261022120000_career_deploy_ledger\.sql"\n"\$\{QUIET\[@\]\}" -f "\$ROOT\/supabase\/migrations\/20261022120000_career_deploy_ledger\.sql"/, 'applied twice in tests/db/run.sh');
+  assert.match(fs.readFileSync(path.join(root, 'tests/db/run.sh'), 'utf8'), /20261022120500_career_deploy_ledger\.sql"\n"\$\{QUIET\[@\]\}" -f "\$ROOT\/supabase\/migrations\/20261022120500_career_deploy_ledger\.sql"/, 'applied twice in tests/db/run.sh');
   assert.ok(fs.existsSync(path.join(root, 'tests/db/career_deploy_ledger.test.sql')));
+});
+
+// Parallel lanes keep picking the same migration version (20261022120000 was taken by three branches at once). Supabase
+// keys a migration by the digits before its first "_", so two files with one version mean one is refused or skipped on
+// deploy. Every file from 20261020000000 on must have its own version; the frozen 2026-09 / early-10 YYYYMMDD_00000N
+// groups are applied history and exempt.
+function sharedVersions(files) {
+  const byVersion = new Map();
+  for (const f of files) {
+    const v = /^([0-9]+)_/.exec(f)?.[1];
+    if (!v || v < '20261020000000') continue;
+    byVersion.set(v, [...(byVersion.get(v) || []), f]);
+  }
+  return [...byVersion].filter(([, fs]) => fs.length > 1).map(([v, fs]) => `${v}: ${fs.join(', ')}`);
+}
+
+test('no two migrations from 20261020000000 on share a version (the digits before the first "_")', () => {
+  assert.deepEqual(sharedVersions(['20261022120000_career_control_state.sql', '20261022120000_career_deploy_ledger.sql', '20261022120500_x.sql']),
+    ['20261022120000: 20261022120000_career_control_state.sql, 20261022120000_career_deploy_ledger.sql'], 'the guard catches a collision');
+  assert.deepEqual(sharedVersions(['20260923_000001_a.sql', '20260923_000002_b.sql', '20261008_000001_c.sql', '20261008_000002_d.sql']), [], 'frozen history is exempt');
+  const files = fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql'));
+  assert.deepEqual(sharedVersions(files), [], 'rename the newer file to a free version (and every reference to it)');
+  assert.ok(files.includes('20261022120500_career_deploy_ledger.sql'));
 });

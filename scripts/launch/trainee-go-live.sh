@@ -118,7 +118,7 @@ MIGRATIONS=(
   20261021130000_career_mail_model_calls.sql
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
-  20261022120000_career_deploy_ledger.sql
+  20261022120500_career_deploy_ledger.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"

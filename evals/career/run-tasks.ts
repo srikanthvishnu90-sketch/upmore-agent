@@ -429,7 +429,7 @@ export function taskJudgePrompt(task: TaskDef, c: Ctx, turns: string[], run: Run
   const transcript = turns.map((u, i) => `U${i + 1}: ${u}\nA${i + 1}: ${run.replies[i] ?? "(no reply)"}`).join("\n");
   const trace = run.meta.map((m, i) => `turn ${i + 1}: ${m.error ? `error: ${m.error}` : m.tool_calls ? `tools ${JSON.stringify(m.tool_calls.map((t) => `${t.name}${t.ok ? "" : " (failed)"}`))}${m.pending_approvals?.length ? `, pending approvals ${JSON.stringify(m.pending_approvals.map((p) => p.tool))}` : ""}` : `router intent ${m.intent ?? "none"} (${m.result_status ?? "-"})`}`).join("\n");
   const st = run.state.stores || {};
-  const state = { tracker: st.trackStore?.rows ?? [], alerts: run.state.alerts?.rows ?? {}, router_watch: st.alertWatchState ?? null, profile_facts: st.profile?.facts ?? [] };
+  const state = { tracker: st.trackStore?.rows ?? [], alerts: run.state.alerts?.rows ?? {}, router_watch: st.alertWatchState ?? null, profile_facts: st.profile?.facts ?? [], apply_queue: (run.state as any).queued ?? [] };
   const fill: Record<string, string> = {
     goal: task.goal, count: String(c.shelf.postings.length), companies: JSON.stringify(c.companies.map((x) => x.name)),
     postings: JSON.stringify(judgePostings(c, run.replies), null, 0), transcript, trace, state: JSON.stringify(state).slice(0, 5000),
@@ -446,13 +446,15 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
   const { memoryPostingsDb } = await import("../../supabase/functions/_shared/career_ingest.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
+  const { memoryWantStore } = await import("../../supabase/functions/_shared/career_apply_want.ts");
   const host = (CareerHost as any).createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   if (o.kind === "agent" && !o.model) throw new Error("the agent brain needs a model");
   const pool = productPool(o.shelf), rpool = routerPool(o.shelf);
   // The shelf was observed at fetched_at; the conversation happens right after (the router's freshness gate is 24h).
   const T0 = Math.max(Date.parse(o.shelf.fetched_at), Date.now() - 3600000);
   return async (turns) => {
-    const store = memoryStore(), alerts = memoryAlertStore(), db = memoryPostingsDb();
+    // WO-066/068: the apply queue and one-posting reader, as agent-chat wires them in production.
+    const store = memoryStore(), alerts = memoryAlertStore(), db = memoryPostingsDb(), wants = memoryWantStore();
     await db.putMany(pool);
     let now = T0;
     const replies: string[] = [], meta: TurnMeta[] = [];
@@ -464,7 +466,7 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
       try {
         if (o.kind === "agent") {
           const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
-            model: o.model!, postings: (q) => db.search(searchWords(q), 150), alerts });
+            model: o.model!, postings: (q) => db.search(searchWords(q), 150), alerts, wants, posting: (id) => db.get(id) });
           m.tool_calls = t.tool_calls; m.pending_approvals = t.pending_approvals; m.stopped = t.stopped;
           if (t.stopped === "model_error") throw new Error("agent model unavailable");
           reply = t.reply;
@@ -483,7 +485,7 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
     }
     const p = await store.userFor("+15550003000");
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
-    return { replies, meta, state: { stores: snap ? snap.stores : null, alerts: alerts.dump() } };
+    return { replies, meta, state: { stores: snap ? snap.stores : null, alerts: alerts.dump(), queued: Object.values(wants.dump()).flat() } };
   };
 }
 

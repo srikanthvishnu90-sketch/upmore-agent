@@ -11,6 +11,9 @@ on:
     branches: [ci/brain-eval]
     paths:
       - .github/workflows/brain-eval.yml
+      - evals/career/**
+      - supabase/functions/_shared/agent/**
+      - supabase/functions/agent-chat/career_brain.ts
   workflow_dispatch: {}
 permissions:
   contents: write

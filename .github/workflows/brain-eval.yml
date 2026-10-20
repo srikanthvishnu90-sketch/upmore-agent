@@ -2,6 +2,8 @@
 # run where the model is reachable. Both brains are scored by the same model judge; the agent brain switches on only if it
 # passes 95% or more AND at least 40 points above the router (owner, 2026-10-20). Needs the repository secret
 # OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it the run prints NOT RUN and fails: a score is never faked.
+# Spend: $15 in total across every run (D-027). Each step passes --budget-usd, the runner counts the spend recorded in
+# evals/career/results/ on this branch and stops before the item that would cross it; a stopped run is not a score.
 # On a push to ci/brain-eval (or by hand): the results land in evals/career/results/ on ci/brain-eval only.
 name: brain-eval
 on:
@@ -21,6 +23,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_BUDGET_USD: "15"
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -41,11 +44,14 @@ jobs:
           deno eval '
             const r = JSON.parse(Deno.readTextFileSync("evals/career/results/router-${{ github.run_id }}.json"));
             const a = JSON.parse(Deno.readTextFileSync("evals/career/results/agent-${{ github.run_id }}.json"));
+            if (r.stopped || a.stopped) { console.log("D-008: NOT RUN (a run stopped at the spend cap; a partial run is not a score)"); Deno.exit(0); }
             const gap = (a.pass_rate - r.pass_rate) * 100;
-            const pass = a.pass_rate >= 0.95 && gap >= 40;
             const cost = (x) => x.cost_usd.brain + x.cost_usd.judge;
-            console.log(`router ${r.passed}/${r.total} · agent ${a.passed}/${a.total} · gap ${gap.toFixed(1)} points · cost $${(cost(r) + cost(a)).toFixed(2)}`);
-            console.log(pass ? "D-008: PASS (agent >= 95% and >= 40 points above the router)" : "D-008: NOT MET (the agent stays off)");
+            const all = [];
+            for (const e of Deno.readDirSync("evals/career/results")) if (e.name.endsWith(".json")) all.push(JSON.parse(Deno.readTextFileSync("evals/career/results/" + e.name)));
+            console.log(`router ${r.passed}/${r.total} · agent ${a.passed}/${a.total} · gap ${gap.toFixed(1)} points · this run $${(cost(r) + cost(a)).toFixed(3)} · all runs $${all.reduce((s, x) => s + cost(x), 0).toFixed(3)} of $15`);
+            console.log(`D-008 as first written (80%, +40): ${a.pass_rate >= 0.80 && gap >= 40 ? "met" : "not met"}`);
+            console.log(a.pass_rate >= 0.95 && gap >= 40 ? "D-008: PASS (agent >= 95% and >= 40 points above the router; D-027)" : "D-008: NOT MET (the agent stays off; D-027 needs 95% and +40)");
           ' | tee "$RUNNER_TEMP/verdict.txt"
       - name: Commit the results to ci/brain-eval
         if: always()

@@ -2663,6 +2663,26 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       view: W
     }));
   }
+  function typeKeys(el, text) {
+    el.focus();
+    setNative(el, "");
+    for (const ch of text) {
+      const k = {
+        key: ch,
+        bubbles: true,
+        cancelable: true
+      };
+      el.dispatchEvent(new W.KeyboardEvent("keydown", k));
+      el.dispatchEvent(new W.KeyboardEvent("keypress", k));
+      setNative(el, el.value + ch);
+      el.dispatchEvent(new W.InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: ch
+      }));
+      el.dispatchEvent(new W.KeyboardEvent("keyup", k));
+    }
+  }
   function closeMenu(el) {
     el.dispatchEvent(new W.KeyboardEvent("keydown", {
       key: "Escape",
@@ -2677,11 +2697,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
     const pick = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
     if (toggle) press(toggle);
-    else {
-      el.focus();
-      setNative(el, String(wanted).split(",")[0].trim());
-      fire(el, "input");
-    }
+    else typeKeys(el, placeQuery(wanted));
     let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 2e3);
     if (!opts2 && !toggle) {
       el.focus();
@@ -2740,37 +2756,18 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const city = placeQuery(wanted);
     const keys = !!el.classList?.contains("location-input");
     const type = () => {
+      if (keys) return typeKeys(el, city);
       el.focus();
-      if (!keys) {
-        setNative(el, city);
-        el.dispatchEvent(new W.InputEvent("input", {
-          bubbles: true,
-          inputType: "insertText",
-          data: city
-        }));
-        el.dispatchEvent(new W.KeyboardEvent("keyup", {
-          key: city.slice(-1),
-          bubbles: true
-        }));
-        return;
-      }
-      setNative(el, "");
-      for (const ch of city) {
-        const k = {
-          key: ch,
-          bubbles: true,
-          cancelable: true
-        };
-        el.dispatchEvent(new W.KeyboardEvent("keydown", k));
-        el.dispatchEvent(new W.KeyboardEvent("keypress", k));
-        setNative(el, el.value + ch);
-        el.dispatchEvent(new W.InputEvent("input", {
-          bubbles: true,
-          inputType: "insertText",
-          data: ch
-        }));
-        el.dispatchEvent(new W.KeyboardEvent("keyup", k));
-      }
+      setNative(el, city);
+      el.dispatchEvent(new W.InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: city
+      }));
+      el.dispatchEvent(new W.KeyboardEvent("keyup", {
+        key: city.slice(-1),
+        bubbles: true
+      }));
     };
     await until(() => doc().readyState === "complete" ? true : null, 5e3);
     type();

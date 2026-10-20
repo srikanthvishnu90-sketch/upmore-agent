@@ -316,6 +316,35 @@ What changed:
   earlier keydown (the driver's Escape on giving up is one) is the likely trigger. Only key-by-key typing works in
   both worlds and in any order, so that is what the driver uses.
 
+### Live run 12 (VERIFIED-LIVE, CI run of 3b02fae3, never sent): Greenhouse's location opens for typed keys
+
+- **Precision 100% (192/192), coverage 94.6% (192/203).** Same code as run 11; one field more was missed (below).
+- **Greenhouse Location (City)** on SpaceX and WPP. The select's own React state, sampled 0.5, 1.5 and 3 s after
+  typing "Chicago":
+
+  | Typing | `menuIsOpen` | Options loaded | Shown |
+  |---|---|---|---|
+  | The driver's (value set, one `input` event) | false | 10 | 0 |
+  | **Key by key, from the extension's world** | **true** | 10 | **10, "Chicago, Illinois, United States" first** |
+  | Trusted (control) | true | 10 | 10 |
+
+  The places loaded every time; only the menu stayed shut. **Correction (architect's error):** §4 said this search
+  is one "no page script can open". It opens for untrusted key-by-key typing exactly as for a person's. Offered these
+  places, the chooser picks "Chicago, Illinois, United States".
+- **New miss: Anduril's First Name**, empty 20 ms after it was set (run 11 filled it; no extension change between the
+  runs). Greenhouse's boards are React pages that may still be hydrating after `load`, and hydration resets a value
+  set a moment before.
+- **Fixes (Run 4, below):** Greenhouse's untoggled search is typed key by key, one typing helper shared with Lever.
+  A plain field the page dropped is set once more after the rest.
+
+### Run 4: Greenhouse's location key by key; a dropped value set again (VERIFIED offline, 47/47)
+
+- **New TEST variant `hydrate`:** the page resets the name once, 5 ms after it is set. With the old fill, the name was
+  missing from the card (test failed). With the fix it is on the card, and the page holds it.
+- **Greenhouse's react-select is not live in the TEST world** (its scripts are stripped from the capture), so the
+  location fix is proven live only. That is live run 13.
+- **Pinned:** architect test WO-042/10.
+
 ### Run 3: Lever's location typed key by key (VERIFIED offline, `tests/career-extension-browser.test.cjs`, 46/46)
 
 - **Stand-in first.** The TEST stand-in now follows the rules of Lever's script: a lookup only after a keydown, a
@@ -431,12 +460,8 @@ content.js `steps.begun`.
    coverage.
 4. **Greenhouse widgets on live pages:** 35/42 now (live runs 8–11; from 0/51), and the phone-country default is
    resolved from the person's country.
-   - **Greenhouse's location is a place search that no page script can open.** It has no toggle button, and typing or
-     ArrowDown as untrusted events opens nothing (live probe). The places do load: React's own props hold "Chicago,
-     Illinois, United States".
-   - Choosing it would mean calling the page's React handler from the page's own world. That couples the extension to
-     Greenhouse's internals, so it is not done.
-   - Until then, the person picks it: about 2.5 s per Greenhouse posting that asks.
+   - **Greenhouse's location search** opens for key-by-key typing from the extension's world (live run 12; the earlier
+     claim that no page script can open it was wrong). It has been typed that way since Run 4; live run 13 measures it.
 5. **Bot checks.** In the person's own browser a verification check may still appear at Submit. The person finishes
    it; the rate is NOT_RUN.
 

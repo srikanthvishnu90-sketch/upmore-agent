@@ -192,6 +192,18 @@ function variantOne(name) {
       }, 150);
     }); }); }).observe(document.documentElement, { childList: true });</script>`;
   }
+  if (name === "hydrate") {
+    // TEST: a page still hydrating (React) resets the first name field once, just after a value is set (live run 12,
+    // Anduril's First Name).
+    return `<script>window.addEventListener("DOMContentLoaded", function () {
+      var el = document.querySelector("[name='first_name'], [name='name']");
+      if (!el) return;
+      el.addEventListener("input", function reset() {
+        el.removeEventListener("input", reset);
+        setTimeout(function () { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, ""); }, 5);
+      });
+    });</script>`;
+  }
   if (name === "captcha") {
     return `<iframe title="TEST challenge" src="https://www.google.com/recaptcha/api2/bframe?k=TEST" style="display:block;width:320px;height:200px;border:1px solid #888"></iframe>`;
   }

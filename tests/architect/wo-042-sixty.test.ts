@@ -108,7 +108,9 @@ Deno.test("WO-042/7 a place search waits for the page's load, types once and awa
 Deno.test("WO-042/8 Lever's place search gets the city key by key: its lookup starts only on a keydown (live run 10)", async () => {
   const body = DOM.slice(DOM.indexOf("async function drivePlace"), DOM.indexOf("export interface Resume"));
   assert(/contains\("location-input"\)/.test(body), "Lever's input is told apart");
-  assert(/for \(const ch of city\)[\s\S]{0,200}"keydown"[\s\S]{0,300}"keyup"/.test(body), "a keydown and a keyup per character");
+  assert(/if \(keys\) return typeKeys\(el, city\)/.test(body), "Lever's input is typed key by key");
+  const keys = DOM.slice(DOM.indexOf("function typeKeys"), DOM.indexOf("function closeMenu"));
+  assert(/for \(const ch of text\)[\s\S]{0,200}"keydown"[\s\S]{0,300}"keyup"/.test(keys), "a keydown and a keyup per character");
   // The offline stand-in follows Lever's own rules, so a driver without the keydown fails offline as it did live.
   const WORLD = await Deno.readTextFile(new URL("../fixtures/extension/world.cjs", import.meta.url));
   assert(/addEventListener\("keydown"[\s\S]{0,900}\}, 500\)/.test(WORLD), "the stand-in looks up 500 ms after a keydown");
@@ -125,4 +127,14 @@ Deno.test("WO-042/9 a page that loads before the click's message is still read; 
   assert(/globalThis\.__traineeClicked = true;[^\n]*\n\s*button\.click\(\);/.test(CONTENT), "the clicking page marks itself just before the click");
   assert(/patch\.status === "submitting" && prev\?\.status === "done"\) return null/.test(BACKGROUND), "submitting never lands on done");
   assert(/addListener\(\(tabId, info\) => \{\s*if \(info\.status === "complete"\) afterNavigation\(tabId\);/.test(BACKGROUND), "the load event uses the same reader");
+});
+
+Deno.test("WO-042/10 Greenhouse's location search is typed key by key; a value the page drops while it hydrates is set again", () => {
+  // Live run 12: one input event loaded the places but left react-select's menuIsOpen false; key by key opened it with
+  // all 10 places, as trusted typing did.
+  const widget = DOM.slice(DOM.indexOf("async function driveWidget"), DOM.indexOf("export function isPlaceSearch"));
+  assert(/else typeKeys\(el, placeQuery\(wanted\)\)/.test(widget), "an untoggled search gets the place key by key");
+  // Live run 12: Anduril's First Name was empty 20 ms after it was set; it is set once more after the rest.
+  assert(/else if \(ok && !listed && b\.inputType !== "file"\) dropped\.push\(p\)/.test(CONTENT), "a dropped plain field is kept for later");
+  assert(/for \(const p of dropped\)[\s\S]{0,120}edited\.has\(p\.name\)[\s\S]{0,80}D\.fill\(b, p\.value, resume\)/.test(CONTENT), "and set again unless the person edited it");
 });

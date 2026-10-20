@@ -92,6 +92,21 @@ async function until<T>(fn: () => T | null, ms: number, every = 40): Promise<T |
 function press(el: any) {
   for (const t of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new W.MouseEvent(t, { bubbles: true, cancelable: true, button: 0, view: W }));
 }
+// Typing the way a keyboard does: keydown, keypress, the character, input, keyup, per character. Lever's place search
+// looks up only on a keydown (live run 10) and Greenhouse's location menu opens only for typed keys (live run 12: one
+// input event loaded its places but left menuIsOpen false; key by key showed all 10, as trusted typing did).
+function typeKeys(el: any, text: string) {
+  el.focus();
+  setNative(el, "");
+  for (const ch of text) {
+    const k = { key: ch, bubbles: true, cancelable: true };
+    el.dispatchEvent(new W.KeyboardEvent("keydown", k));
+    el.dispatchEvent(new W.KeyboardEvent("keypress", k));
+    setNative(el, el.value + ch);
+    el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: ch }));
+    el.dispatchEvent(new W.KeyboardEvent("keyup", k));
+  }
+}
 function closeMenu(el: any) {
   el.dispatchEvent(new W.KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
   el.blur?.();
@@ -101,12 +116,8 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
   const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   if (toggle) press(toggle);
-  else {
-    // A place search: the city typed, the employer's own places read back.
-    el.focus();
-    setNative(el, String(wanted).split(",")[0].trim());
-    fire(el, "input");
-  }
+  // A place search: the city typed key by key, the employer's own places read back.
+  else typeKeys(el, placeQuery(wanted));
   let opts = await until(() => (optionEls().length ? optionEls() : null), toggle ? 1500 : 2000);
   if (!opts && !toggle) {
     // A place search whose results loaded but whose menu stayed shut: ArrowDown opens a react-select menu.
@@ -173,22 +184,11 @@ async function drivePlace(el: any, wanted: string, choose?: Chooser): Promise<bo
   // in run 5 (5 of 5), and keeps the one typing.
   const keys = !!el.classList?.contains("location-input");
   const type = () => {
+    if (keys) return typeKeys(el, city);
     el.focus();
-    if (!keys) {
-      setNative(el, city);
-      el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
-      el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
-      return;
-    }
-    setNative(el, "");
-    for (const ch of city) {
-      const k = { key: ch, bubbles: true, cancelable: true };
-      el.dispatchEvent(new W.KeyboardEvent("keydown", k));
-      el.dispatchEvent(new W.KeyboardEvent("keypress", k));
-      setNative(el, el.value + ch);
-      el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: ch }));
-      el.dispatchEvent(new W.KeyboardEvent("keyup", k));
-    }
+    setNative(el, city);
+    el.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: city }));
+    el.dispatchEvent(new W.KeyboardEvent("keyup", { key: city.slice(-1), bubbles: true }));
   };
   // The load is awaited, the city typed once (a second typing would restart the lookup), and the list awaited up to
   // 8 s. The wait happens while the person reads the card before; it is never a fixed sleep.

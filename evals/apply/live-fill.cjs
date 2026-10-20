@@ -152,75 +152,6 @@ async function main() {
   await setup.waitForFunction(() => document.getElementById("resume-name").textContent.includes(".pdf"));
   await setup.close();
 
-  // Greenhouse's location search (live run 11): the driver's typing loads its places (React's props held 10) but the
-  // menu never shows, so nothing can be clicked. Three typings of the city, then the select's own state from React
-  // (menuIsOpen, isFocused, inputValue, options) and the options shown, sampled at 0.5, 1.5 and 3 s. The typing runs in
-  // the extension's isolated world as the driver's would; the trusted one is the control. Nothing is chosen; Escape and
-  // a cleared input end each try.
-  const GH_TYPE = (way, name, text) => {
-    const inp = document.getElementById(name);
-    if (!inp) return { found: false };
-    const set = (v) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(inp, v);
-    inp.focus();
-    if (way === "as_driver") { set(text); inp.dispatchEvent(new Event("input", { bubbles: true })); }
-    else for (const ch of text) {
-      const k = { key: ch, bubbles: true, cancelable: true };
-      inp.dispatchEvent(new KeyboardEvent("keydown", k));
-      inp.dispatchEvent(new KeyboardEvent("keypress", k));
-      set(inp.value + ch);
-      inp.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: ch }));
-      inp.dispatchEvent(new KeyboardEvent("keyup", k));
-    }
-    return { found: true, active: document.activeElement === inp, has_focus: document.hasFocus() };
-  };
-  const GH_STATE = (name) => {
-    const inp = document.getElementById(name);
-    if (!inp) return { found: false };
-    const vis = Array.from(document.querySelectorAll("[class*='select__option'], [class*='-option'], [role='option']")).filter((x) => x.getClientRects().length).map((x) => x.textContent.replace(/\s+/g, " ").trim());
-    const key = Object.keys(inp).find((k) => k.startsWith("__reactFiber$"));
-    let fib = key ? inp[key] : null, hops = 0, sel = null;
-    while (fib && hops < 40 && !sel) {
-      const st = fib.stateNode;
-      if (st && st.state && "isFocused" in st.state && st.props && "menuIsOpen" in st.props) sel = st;
-      fib = fib.return; hops++;
-    }
-    return {
-      shown: vis.length, first: vis[0] || null, menu: !!document.querySelector("[class*='select__menu'], [class*='-menu']"),
-      react: sel ? { menuIsOpen: sel.props.menuIsOpen, isFocused: sel.state.isFocused, inputValue: sel.props.inputValue, options: (sel.props.options || []).length, isLoading: !!sel.props.isLoading } : null,
-      active: document.activeElement === inp, has_focus: document.hasFocus(),
-    };
-  };
-  async function greenhouseTyping(page, tabId, name) {
-    const out = [];
-    const sleep2 = (ms) => new Promise((res) => setTimeout(res, ms));
-    for (const way of ["as_driver", "per_key", "trusted"]) {
-      const call = JSON.stringify([way, name, "Chicago"]).slice(1, -1);
-      let typed;
-      if (way === "trusted") {
-        typed = await page.locator("#" + name).click({ timeout: 5000 }).then(() => page.locator("#" + name).pressSequentially("Chicago", { delay: 40 })).then(() => ({ found: true }), (e) => ({ error: String(e.message || e).slice(0, 160) }));
-      } else {
-        typed = await sw.evaluate(`chrome.scripting.executeScript({ target: { tabId: ${tabId} }, func: ${GH_TYPE}, args: [${call}] }).then((r) => r[0].result)`).catch((e) => ({ error: String(e.message || e).slice(0, 160) }));
-      }
-      const samples = {};
-      let t = 0;
-      for (const at of [500, 1500, 3000]) {
-        await sleep2(at - t); t = at;
-        samples[at] = await page.evaluate(`(${GH_STATE})(${JSON.stringify(name)})`).catch((e) => ({ error: String(e.message || e).slice(0, 160) }));
-      }
-      out.push({ way, typed, samples });
-      await page.keyboard.press("Escape").catch(() => {});
-      await page.evaluate((n) => {
-        const inp = document.getElementById(n);
-        if (!inp) return;
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(inp, "");
-        inp.dispatchEvent(new Event("input", { bubbles: true }));
-        inp.blur();
-      }, name).catch(() => {});
-      await sleep2(800);
-    }
-    return out;
-  }
-
   const rows = [];
   for (const f of MANIFEST.forms.filter((x) => x.status === "application" && KEY.forms[x.id])) {
     const r = { form: f.id, family: f.family, url: f.final_url || f.source_url };
@@ -347,7 +278,6 @@ async function main() {
           }
         }
       }
-      if (f.family === "greenhouse" && r.fields?.some((x) => x.name === "candidate-location")) r.greenhouse_typing = await greenhouseTyping(page, tabId, "candidate-location");
       // Lever's and Ashby's place search, after the card (nothing is sent; the page closes after): what a page script's
       // typing lists, whether typed text alone is kept after blur, and one trusted typing as the control. Nothing chosen.
       if ((f.family === "lever" || f.family === "ashby") && r.fields) {

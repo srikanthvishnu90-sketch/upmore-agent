@@ -454,6 +454,21 @@ test("zero wrong answers: a value the page set itself (nobody gave it) blocks th
   }
 });
 
+test("a value the page drops while it hydrates is set again after the rest (live run 12, Anduril's First Name)", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7";
+  const form = await openForm(world.urlOf(id, "hydrate"));
+  try {
+    const card = await fill(form);
+    const name = card.payload?.fields.find((x) => x.name === "name");
+    assert.equal(name?.value, "Test Person", "the name the page dropped was set again, and is on the card");
+    assert.equal((await formNow(form.tabId)).find((f) => f.name === "name")?.value, name.value, "and the page holds it");
+  } finally {
+    await closeForm(form);
+  }
+});
+
 test("verification: a challenge on the page stops before anything is filled and hands off to the person", async (t) => {
   if (skip(t)) return;
   fresh();

@@ -160,6 +160,9 @@
       timing.fields = form.schema.length;
       timing.widgets = Object.values(form.bindings).filter((b) => b.widget).length;
       const resume = ctx.resume ? { name: ctx.resume.name, type: ctx.resume.type, bytes: Uint8Array.from(atob(ctx.resume.base64), (c) => c.charCodeAt(0)), sha256: ctx.resume.sha256 } : null;
+      // A page still hydrating (React) can drop a value set a moment before (live run 12: Anduril's First Name, empty
+      // 20 ms after it was set). Plain fields the page dropped are set once more after the rest.
+      const dropped = [];
       for (const p of plan.fill) {
         const b = form.bindings[p.name];
         if (!b || edited.has(p.name)) continue; // never over what the person typed
@@ -175,6 +178,17 @@
         const label = D.takeWidgetChoice();
         if (ok && v) {
           if (label && label !== v) chosen.set(p.name, label);
+          filled.set(p.name, v);
+          factIds.set(p.name, p.factId);
+        } else if (ok && !listed && b.inputType !== "file") dropped.push(p);
+      }
+      for (const p of dropped) {
+        const b = form.bindings[p.name];
+        if (edited.has(p.name)) continue;
+        const ok = await D.fill(b, p.value, resume);
+        await sleep(20);
+        const v = D.readValue(b);
+        if (ok && v) {
           filled.set(p.name, v);
           factIds.set(p.name, p.factId);
         }

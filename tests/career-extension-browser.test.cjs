@@ -1427,14 +1427,14 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
   await page.goto("https://upmore-topaz.vercel.app/?answer-once=1");
   const tabId = await tabIdOf(page.url());
   const panel = await openPanel(tabId);
-  const tabCount = async () => (await sw.evaluate(() => chrome.tabs.query({}))).length;
+  // Prepare's own hidden tabs (each opened on one of these postings); a tab an earlier test is still closing is not one.
+  const hiddenTabs = async () => (await sw.evaluate(() => chrome.tabs.query({}))).filter((t) => urls.some((u) => (t.url || t.pendingUrl || "") === u)).length;
   try {
     await panel.fill("#links", urls.join("\n"));
     await panel.click("#q-add");
     // WO-072: as in the queue test (WO-059), the click resolves before the background has stored the queue; Prepare
     // pressed in that moment read a short queue on a loaded CI runner. Wait for the panel's own "N postings added."
     await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
-    const tabsBefore = await tabCount();
     const trailBefore = (await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length;
     await panel.click("#q-prepare");
     await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length > 0, null, { timeout: 60000 });
@@ -1446,8 +1446,8 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     assert.deepEqual(world.state.touched, [], "Prepare never fills or clicks");
     assert.equal(world.state.submits.length, 0);
     assert.equal((await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length, trailBefore, "no card during Prepare");
-    for (let i = 0; i < 50 && (await tabCount()) !== tabsBefore; i++) await sleep(100);
-    assert.equal(await tabCount(), tabsBefore, "the hidden tabs are closed");
+    for (let i = 0; i < 50 && (await hiddenTabs()) > 0; i++) await sleep(100);
+    assert.equal(await hiddenTabs(), 0, "the hidden tabs are closed");
     // One entry for sponsorship, asked by all three; nothing pre-selected; never an essay, EEO, identity or file question.
     const spons = ao.questions.find((q) => q.key === "fact:sponsorship");
     assert.ok(spons, JSON.stringify(ao.questions.map((q) => q.key + " " + q.label)));

@@ -25,6 +25,7 @@ export const BATCH = 25;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Never drafted, whatever the facts say: these stay the person's own answer every time.
+const CONSENT = /\bconsent\w*|\backnowledg\w*|\bdisclosures?\b|\bterms (and|&) conditions\b|\bprivacy (policy|notice|statement)\b|\bagree (to|with)\b|\battest\w*|\bi (hereby )?(certify|authori[sz]e)\b/;
 const NEVER: [RegExp, string][] = [
   [/\b(convict\w*|felon\w*|misdemeanou?r\w*|criminal|arrest\w*|pleaded|pled guilty|pending charges?)\b/, "a criminal history question"],
   [/\b(background|drug|alcohol)\s+(check|test|screen)\w*/, "a background check or drug test"],
@@ -34,6 +35,17 @@ const NEVER: [RegExp, string][] = [
   [/\bsocial security\b|\bssn\b|\bnational (id|insurance)\b|\bpassport (number|no)\b|\bdriver'?s licen[cs]e (number|no)\b|\btax (id|file number)\b|\bnin\b|\bsin\b/, "an identity number"],
   [/\bsignature\b|\bsign here\b|\be-?sign\b/, "a signature"],
   [/^\s*(i\s+)?(hereby\s+)?(certify|agree|consent|acknowledge|attest|authori[sz]e|declare|understand that|confirm that)\b/, "a consent or attestation"],
+  [CONSENT, "a consent, acknowledgement or disclosure"],
+  [/\b(prove|confirm|verify) (that )?you('| a)?re (a )?(real|human)|\bnot a robot\b|\bcaptcha\b|\btype (the word )?\w+ below\b/, "a human check"],
+  [/\bpronounc\w*/, "how the person says their name"],
+  [/\b(discharged|terminated|fired|dismissed|let go|asked to resign)\b/, "a question about leaving a job"],
+  [/\bex-?employee|\bformer (employee|intern|contractor)|\bpreviously (worked|been employed|interned)|\bever (worked|been employed|interned)|\bworked (for|at|with) .{0,60}\b(before|previously|in the past)\b/, "past work for this employer"],
+  [/\b(listed|stated|posted|outlined|mentioned|shown|advertised) (in|on|for) (the|this) (job |role )?(description|posting|ad|advert|listing)|\bthis (salary|pay|compensation|rate|range)\b|\b(salary|pay|compensation|rate) (range )?(for|of) this (position|role|job)\b/, "this posting's own terms"],
+  [/\bnotif\w*|\bnewsletters?\b|\bmarketing\b|\bsubscribe\w*|\btalent (community|network|pool)\b|\bopt[- ]in\b|\bkeep (you|me) (informed|updated)\b/, "an opt-in"],
+  [/\bcompetitors?\b|\bconflicts? of interest\b/, "an opinion about another employer"],
+  // This posting's office, place or schedule: the answer depends on where this job is and what the person will do for it,
+  // which no fact holds (a standing answer for postings the person approves is WO-074, the person's own choice).
+  [/\b(on-?site|in[- ]office|in the office|offices?|commut\w*|relocat\w*|hybrid|in[- ]person|headquarters|located (in|within|near|close)|live (in|within|near)|resid(e|ing) (in|within|near)|(which|preferred|work) location)\b/, "this posting's office or place"],
 ];
 export function neverDraft(label: string): string | null {
   const t = String(label ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
@@ -44,7 +56,7 @@ export function neverDraft(label: string): string | null {
 // ---------------------------------------------------------------------------------------------------------------------
 // The veto.
 const idOf = (f: any) => String(f?.id || f?.fact_id || "");
-const EXPERIENCE = /\bexperience\w*|\bfamiliar\w*|\bproficien\w*|\bknowledge of\b|\bworked (with|on|in)\b|\bhave you used\b|\bhands[- ]on\b|\byears of\b|\bcertifi\w*|\blicen[cs]e\w*|\bskill\w*/;
+const EXPERIENCE = /\bexperience\w*|\bbilingual\b|\bfluen\w*|\bspeak\w*|\bnative (speaker|language)\b|\bfamiliar\w*|\bproficien\w*|\bknowledge of\b|\bworked (with|on|in)\b|\bhave you (ever )?(used|built|developed|created|designed|led|managed|written|shipped|run|owned|taught|published|implemented|deployed|sold|launched)\b|\bhands[- ]on\b|\byears of\b|\bcertifi\w*|\blicen[cs]e\w*|\bskill\w*/;
 const ABOUT_THEM = /\brefer\w*|\brelative\w*|\bfamily members?\b|\brelated to\b|\bacquaint\w*|\bpreviously (worked|been employed|applied|interviewed)\b|\bworked (for|at)\b|\bformer (employee|intern)\b|\bcurrently employed (by|at)\b|\bapplied (before|previously)\b/;
 const NEGATIVE = /^(no\b|none\b|n\/?a\b|0\b|zero\b|not\b|never\b|no experience|less than|under 1\b|i do not|i don'?t|i have not|i haven'?t|i have never|i am not|i'?m not)/;
 const SAYS_NO = /\b(no|not|never|none|without|n't|nobody)\b/;
@@ -56,6 +68,24 @@ const GENERIC = new Set((
   "would should will able yes no other prior previous previously ever been time full part type kind area field fields such e g i.e etc"
 ).split(" "));
 const termsOf = (s: string) => [...new Set(norm(s).split(" ").filter((w) => w.length > 1 && !GENERIC.has(w) && !/^\d/.test(w)))];
+// A loose word match for "is this fact about this question": the first five letters, either way ("authorized" and
+// "authorization", "hear" and "heard", "citizen" and "citizenship").
+const stem = (w: string) => w.slice(0, 5);
+// A short word (SQL, R, AWS) matches only itself.
+const sameStem = (a: string, b: string) =>
+  a.length < 4 || b.length < 4 ? a === b : stem(a) === stem(b) || a.startsWith(b) || b.startsWith(a);
+const shares = (terms: string[], text: string) => {
+  const words = norm(text).split(" ").filter(Boolean);
+  return terms.some((t) => words.some((w) => sameStem(t, w)));
+};
+const allIn = (terms: string[], text: string) => terms.every((t) => shares([t], text));
+// What a fact of each kind is about, beyond its own words: a job answers "your most recent company", a school "your degree".
+const KIND_WORDS: Record<string, string> = {
+  experience: "employer employers company companies work worked working employed employment job role title position recent current previous",
+  education: "school degree education university college graduation graduate gpa major study studies",
+  skill: "skill skills experience tools",
+};
+const aboutText = (f: any) => `${factText(f)} ${KIND_WORDS[String(f?.kind)] ?? ""}`;
 const hasTerm = (corpus: string, w: string) => new RegExp(`(^| )${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(s|es|ed|ing)?( |$)`).test(corpus);
 
 // Years the cited facts carry: "4 years", "since 2023", "2019 to 2024", "2021 - present". The longest one.
@@ -129,8 +159,10 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
     picked = [...new Set(picked)];
     answer = picked.join("; ");
   } else if (q.own_words) return fail("never");
+  if (CONSENT.test(answer.toLowerCase())) return fail("never");
 
   const label = String(q.label ?? ""), l = label.toLowerCase();
+  if (!options.length && norm(answer).length > 15 && norm(label).includes(norm(answer))) return fail("unverified"); // the question copied back
   const experience = EXPERIENCE.test(l), aboutThem = ABOUT_THEM.test(l);
   const negative = NEGATIVE.test(answer.toLowerCase().trim());
   if ((experience || aboutThem) && negative) {
@@ -145,6 +177,13 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
     });
     return states ? { key: q.key, ok: true, answer, fact_ids: ids, from: cited.map(factLabel) } : fail("negative_from_absence");
   }
+  // Every other answer rests on a cited fact about this question: a word of the question in the fact, or, for a named
+  // option (a tool, a channel, a field), every word of that option in the cited facts.
+  const named = options.length && !YESNO(options) ? picked.flatMap((o) => termsOf(o.replace(/^\s*(yes|no)\b[\s,.:;-]*/i, ""))) : [];
+  const about = cited.map(aboutText).join(" \n ");
+  const labelTerms = termsOf(label);
+  if (named.length && !allIn(named, citedText)) return fail("unverified");
+  if (labelTerms.length && !shares(labelTerms, about) && !(named.length && allIn(named, citedText))) return fail("unverified");
   if (experience && !negative) {
     // A yes names the thing asked about; a named option (a tool, a field) is itself the thing.
     const named = options.length && !YESNO(options) && !claimedYears(answer, label, false) ? picked.flatMap(termsOf) : termsOf(label);
@@ -172,7 +211,7 @@ export function vetoDraft(q: ShortQuestion, p: { answer: unknown; fact_ids: unkn
 const SYSTEM = [
   "You fill in short job application questions for the person applying, using ONLY their confirmed facts listed below.",
   "For each question, either propose an answer or leave it out. Rules that do not bend:",
-  "1. Cite the fact ids your answer rests on. If no listed fact says it, leave the question out: never guess, never fill a gap with something plausible.",
+  "1. Cite the fact ids your answer rests on. Answer only what a listed fact states directly. If no fact says it, leave the question out: never guess, never fill a gap with something plausible, never infer a preference, an opinion, a consent or anything about this employer or posting.",
   "2. A question with options gets exactly one of its options, copied character for character (several, joined with \"; \", only when it says select all that apply).",
   "3. Never answer no, none or zero because a fact is missing. Answer no only when a fact says no.",
   "4. Years of experience come only from the dates or years in the facts you cite.",
@@ -217,9 +256,11 @@ export async function draftShortAnswers(
   const todo = ask.filter((x) => !out.has(x.key));
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
-    let got: Map<string, { answer: unknown; fact_ids: unknown }>;
-    try { got = proposalsOf(await deps.model(shortPayload(batch, facts))); }
-    catch { for (const x of batch) out.set(x.key, { key: x.key, ok: false, why: "model" }); continue; }
+    let got: Map<string, { answer: unknown; fact_ids: unknown }> | null = null;
+    for (let tries = 0; tries < 2 && !got; tries++) {
+      try { got = proposalsOf(await deps.model(shortPayload(batch, facts))); } catch { /* tried once more, then refused */ }
+    }
+    if (!got) { for (const x of batch) out.set(x.key, { key: x.key, ok: false, why: "model" }); continue; }
     for (const x of batch) {
       const p = got.get(x.key);
       out.set(x.key, p ? vetoDraft(x, p, facts, deps.now ?? Date.now()) : { key: x.key, ok: false, why: "no_fact" });

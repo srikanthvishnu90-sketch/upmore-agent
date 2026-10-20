@@ -21,7 +21,8 @@
 // CHANNEL_APPROVAL_TTL_MIN (optional; approval-button lifetime).
 
 import {
-  ChannelDeps,
+  type ChannelDeps,
+  ChannelRateLimitError,
   NOT_AUTHORIZED_TEXT,
   json,
   resolveTestUser,
@@ -246,6 +247,12 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
       });
     } catch (e) {
       console.error("telegram-inbound turn:", e);
+      if (e instanceof ChannelRateLimitError) {
+        if (send && !dryRun) await send(parsed.chatId, VOICE.rateLimited);
+        // Acknowledge receipt so Telegram does not replay this same message.
+        // The person can send a new request after the quota window permits it.
+        return json({ ok: false, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });
+      }
       if (send && !dryRun) { try { await send(parsed.chatId, VOICE.error); } catch { /* response below still 500 */ } }
       return json({ ok: false, error: "internal" }, 500);
     }

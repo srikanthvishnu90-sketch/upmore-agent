@@ -75,6 +75,7 @@ import type { ChannelDeps } from "./channel_bridge.ts";
 export const VOICE = {
   empty: "(I didn't get a reply — try again.)",
   error: "Something went wrong on my side — nothing was changed. Give me a moment and send that again.",
+  rateLimited: "This account has reached its message limit. Please wait a while, then send your request again.",
   dismiss: "Okay — nothing was approved. The batch stays right where it is.",
   approvalAck: "Got it ✓",
   approvalDeclined: "Not approved — nothing was sent.",

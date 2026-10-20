@@ -368,3 +368,36 @@ R1 alone is not caught in the browser: the reader marks the same fields (two lay
 - Where the key has no answer the person still answers generically (the first option, a TEST text), as in round 2.
 - A field that only an ancestor names as a section (a "Previous Work Experience" fieldset) is left even when it is not a
   row part; more asks, no guesses.
+
+## Architect review: round 3 on 4 new sealed tenants, scored once (2026-10-20)
+A third writer, told not to read the extension, the planner, the workers or the harness, wrote 4 more Workday-shaped TEST
+tenants (sealed-wd3: an email-first sign-in, a tenant with no sign-in, varied section ids and question wording). sha256 of
+`tar --sort=name --mtime=@0 --owner=0 --group=0 -cf - t1 t2 t3 t4` = `8d61702b35506a71...`, checked before the run.
+Round 3's head (9e168aa6) was run once on each with `evals/apply/workday-fill.cjs`; nothing was changed between seeing
+the result and recording it. The tenants are now spent.
+
+| Tenant | Pages reached | Coverage | Strict | Trainee's precision | Wrong | Never-violations |
+|---|---|---|---|---|---|---|
+| t1 (email-first sign-in, 7 steps) | all, to review | 92.7% (38/41) | 92.1% (35/38) | 36/36 | 0 | 0 |
+| t2 | all, to review | 91.9% (34/37) | 91.2% (31/34) | 32/32 | 0 | 0 |
+| t3 | all, to review | 92.3% (36/39) | 91.7% (33/36) | 34/34 | 0 | 0 |
+| t4 | all, to review | 92.1% (35/38) | 91.4% (32/35) | 33/33 | 0 | 0 |
+
+Coverage counts the country and phone-code values Workday set itself as filled where the key wants them (2 per tenant,
+"page-set"); strict leaves them out. Nothing was submitted; the review step asks, as it must.
+
+What Trainee left empty that the key says the persona settles (5 of 155):
+- t1 "What is your notice period with your current employer?" (a list; the persona's "2 weeks" did not match an option).
+- t2 education "Field of Study" (a prompt list; "Statistics" was not chosen).
+- t3 "How Did You Hear About Us?" expected "Corporate Website" (the persona's "Company website" did not match it).
+- t4 "In which U.S. state do you currently reside?" (Illinois) and "Are you currently employed?" (Yes, from a current job).
+Each is a miss, not a wrong answer: the person is asked.
+
+**Verdict: the 70% Workday target is now shown on independent tenants: 91.9-92.7% filled, 0 wrong, 0 never-violations,
+every tenant completed to review.** Label: VERIFIED-S (TEST Workday-shaped pages written blind to the product). Real
+Workday remains NOT_RUN until a person signs in to a real tenant and runs it; that is the only number that settles the
+target for the owner.
+
+One interaction to watch: WO-053 (the posting's location) asks "authorized to work in the country for which you are
+applying" when the posting's country is not shown. On t1 that question was answered "Yes" here; under WO-053 a Workday
+page whose location is in neither its job header nor its URL asks it instead.

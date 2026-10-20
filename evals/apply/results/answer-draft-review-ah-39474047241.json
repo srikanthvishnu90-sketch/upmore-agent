@@ -1,0 +1,4672 @@
+{
+ "a": [
+  {
+   "key": "job:ef4c62306962bf24",
+   "company": "Prolific",
+   "question": "Are you currently based in and can verify right to work from one of the following countries?",
+   "options": [
+    "Australia",
+    "Austria",
+    "Belgium",
+    "Canada",
+    "Chile",
+    "Croatia",
+    "Czech Republic",
+    "Denmark",
+    "Estonia",
+    "Finland",
+    "France",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Iceland",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Japan",
+    "Korea",
+    "Latvia",
+    "Luxembourg",
+    "Mexico",
+    "Netherlands",
+    "New Zealand",
+    "Norway",
+    "Poland",
+    "Portugal",
+    "Slovakia",
+    "Slovenia",
+    "South Africa",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "United Kingdom",
+    "United States",
+    "REST OF WORLD"
+   ],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:c7f2163c1d377328",
+   "company": "EOS Fitness",
+   "question": "Date Available to Start? (enter in MM/DD/YY format)",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:a71d745f44f48fc1",
+   "company": "WPP Media",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:6d2e5dc80be4c3ed",
+   "company": "Capco",
+   "question": "Expected CTC",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:1b9e76678ee5133f",
+   "company": "Capco",
+   "question": "Will you be able to manage and develop on AAA core objects, data model",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales",
+    "Teaching Assistant for Introductory Statistics at Example State University, 2020 to 2022: ran weekly R labs for 40 students"
+   ]
+  },
+  {
+   "key": "label:fcae8c1ce77a4d88",
+   "company": "Lucid Motors",
+   "question": "What is your expected compensation range?",
+   "options": [],
+   "answer": "$95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:91dcd3904436789e",
+   "company": "datadog",
+   "question": "In what cities are you available to work?",
+   "options": [
+    "Amsterdam",
+    "Atlanta",
+    "Bangalore",
+    "Barcelona",
+    "Barueri São Paulo",
+    "Bordeaux",
+    "Boston",
+    "Chicago",
+    "Copenhagen",
+    "Denver",
+    "Dubai",
+    "Dublin",
+    "Grenoble",
+    "Hamburg",
+    "Jakarta",
+    "Lisbon",
+    "London",
+    "Lyon",
+    "Madrid",
+    "Melbourne",
+    "Mexico City",
+    "Montpellier",
+    "Mumbai",
+    "Nantes",
+    "New York City",
+    "Nice",
+    "Osaka",
+    "Paris",
+    "Pittsburgh",
+    "Remote",
+    "Riyadh",
+    "Salt Lake City",
+    "San Francisco",
+    "San Jose (Campbell)",
+    "San Sebastian",
+    "São Paulo",
+    "Seattle",
+    "Seoul",
+    "Singapore",
+    "Sophia Antipolis",
+    "Stockholm",
+    "Sydney",
+    "Tel Aviv",
+    "Tokyo",
+    "Toronto"
+   ],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago",
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "label:90483c3a6bbdff13",
+   "company": "DH Pace",
+   "question": "If yes, provide dates of employment, location, manager, and role. If no, enter N/A",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "referral: No",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:8346b7f283fdf048",
+   "company": "DH Pace",
+   "question": "Start date of current/most recent employer:",
+   "options": [],
+   "answer": "June 2023",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:b1f996b11af161cc",
+   "company": "DH Pace",
+   "question": "End Date of current/most recent employer: If applicable. If currently employed, enter N/A",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "employment status: I am currently employed"
+   ]
+  },
+  {
+   "key": "label:3304edfa253dedc8",
+   "company": "DH Pace",
+   "question": "If currently employed, reason for seeking new opportunity? If no longer employed, what was your reason for leaving?",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "employment status: I am currently employed"
+   ]
+  },
+  {
+   "key": "job:e42b607800bd7963",
+   "company": "DH Pace",
+   "question": "Second most recent employer:",
+   "options": [],
+   "answer": "Sample Retail",
+   "facts": [
+    "former employers: Example Analytics; Sample Retail"
+   ]
+  },
+  {
+   "key": "job:cf91ec6a52dd7750",
+   "company": "DH Pace",
+   "question": "Start date of second most recent employer:",
+   "options": [],
+   "answer": "June 2021",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:6803e3068aae7def",
+   "company": "DH Pace",
+   "question": "End date of second most recent employer:",
+   "options": [],
+   "answer": "August 2021",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:d6a303ed64447991",
+   "company": "DH Pace",
+   "question": "Job title at second most recent employer:",
+   "options": [],
+   "answer": "Analytics Intern",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales"
+   ]
+  },
+  {
+   "key": "job:6593ea6257b2d255",
+   "company": "mongodb",
+   "question": "What is your expected graduation date?",
+   "options": [
+    "Fall 2025",
+    "Summer 2026",
+    "Spring 2026",
+    "Fall 2026",
+    "Spring 2027",
+    "Summer 2027",
+    "Fall 2027",
+    "Spring 2028",
+    "Summer 2028",
+    "Fall 2028",
+    "Spring 2029",
+    "Summer 2029",
+    "Fall 2029",
+    "Spring 2030",
+    "Summer 2030",
+    "Fall 2030",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:807b1f3e39f0adfc",
+   "company": "mongodb",
+   "question": "Will you now or in the future require employment sponsorship?",
+   "options": [
+    "Yes, I will require sponsorship",
+    "No, I will not require sponsorship"
+   ],
+   "answer": "No, I will not require sponsorship",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:ccf3fdedf08a3378",
+   "company": "Okta",
+   "question": "Will you now or in the future require Visa Sponsorship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:c2609854b4b77fa1",
+   "company": "Okta",
+   "question": "To the best of your knowledge, do you have any family members / relatives or personal relationships at Okta or at any suppliers, partners, or vendors that have a business relationship with Okta? (For purposes of this question, a “family member / relative or personal relationship” is defined as close personal friends (including sexual and/or romantic relationships), close relatives (spouse, partner, children, cousins, aunts, uncles, nieces, nephews, grandparents or grandchildren), someone who lives in your household, or anyone else with whom you have a close enough personal relationship or conn",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "relative here: No"
+   ]
+  },
+  {
+   "key": "job:bdd6ba3814879fe0",
+   "company": "AvePoint",
+   "question": "Please provide your salary expectations.",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:7c2b7b1848e8f37b",
+   "company": "TEGNA",
+   "question": "If you selected Other, please indicate where you heard about this position. If you did not select Other, type N/A.",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:ad49ed6d247df8a0",
+   "company": "TEGNA",
+   "question": "If selected for the internship program, what would be your top 3 TV station city locations within TEGNA?",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "label:12234b5268420e05",
+   "company": "Wing Assistant",
+   "question": "Current Monthly Salary/Compensation (USD)",
+   "options": [],
+   "answer": "85000",
+   "facts": [
+    "current compensation: 85000"
+   ]
+  },
+  {
+   "key": "label:6cb053df7f44b30f",
+   "company": "Wing Assistant",
+   "question": "Current Location (City, Country)",
+   "options": [],
+   "answer": "Chicago, United States",
+   "facts": [
+    "city: Chicago",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:3ecb7ecf53268e1c",
+   "company": "Wing Assistant",
+   "question": "How did you hear about this job?",
+   "options": [
+    "Indeed",
+    "LinkedIn",
+    "Referral",
+    "Facebook Group",
+    "Facebook Page",
+    "LinkedIn Page",
+    "Monster",
+    "Zip Recruiter",
+    "Google Jobs",
+    "Tiktok",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:9ff8348671ab887c",
+   "company": "Wing Assistant",
+   "question": ". Are you available to work during the US timezone required for this position?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "timezone: Central time"
+   ]
+  },
+  {
+   "key": "job:0bfe859fd49e75a3",
+   "company": "Palantir",
+   "question": "Are you legally authorized to work in the country for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:3b6eca7b3d137d8f",
+   "company": "Palantir",
+   "question": "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B, etc.)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:24714982faf78de2",
+   "company": "Palantir",
+   "question": "Are you a Singapore citizen?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "label:0071e298ea68dc87",
+   "company": "SunSource",
+   "question": "What is your desired annual salary or hourly rate of pay?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:358131014f453c6f",
+   "company": "Zoox",
+   "question": "How did you hear about us?",
+   "options": [
+    "Zoox Ads / Social Media",
+    "LinkedIn",
+    "Event, Media Interview, or other PR",
+    "Recruiter Outreach",
+    "Employee Referral",
+    "CVPR Conference",
+    "SHPE Conference",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:312bb1713a80d1df",
+   "company": "Xsolla",
+   "question": "Are you legally authorized to work in the location where this role is based?",
+   "options": [
+    "Yes, I am authorized to work without sponsorship",
+    "Yes, but I will require visa sponsorship in the future",
+    "No, I will require immediate visa sponsorship"
+   ],
+   "answer": "Yes, I am authorized to work without sponsorship",
+   "facts": [
+    "work authorization: Yes",
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:34a1fe2819811a10",
+   "company": "AHEAD",
+   "question": "Provide All Post-Secondary Education Attained - Formatted as: College Name; Degree Obtained (e.g.: University of Somewhere; Bachelor of Science). Please include only educational programs from which you graduated. **Any additional information provided, such as dates/year of graduation, will be disreg",
+   "options": [],
+   "answer": "Example State University; Bachelor of Science in Statistics",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:98c76b9d46cb3816",
+   "company": "Woven",
+   "question": "3. Do you have at least 1 year professional work experience? | 1年以上の職歴をお持ちですか？",
+   "options": [
+    "Yes | はい",
+    "No | いいえ"
+   ],
+   "answer": "Yes | はい",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:193d7f44b63d6b78",
+   "company": "Commonwealth Fusion Systems",
+   "question": "If you answered “No” to the above, please provide the country or countries of which you are a current citizen or national, and if applicable, where you are currently granted lawful permanent resident status. If you answered “Yes,” please enter N/A*",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:74dc5cb3e7bbcc34",
+   "company": "Thomas & Hutton",
+   "question": "Start Date",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:dcaa113941449c5d",
+   "company": "Thomas & Hutton",
+   "question": "How did you learn about this opportunity?",
+   "options": [
+    "Referred by current T&H employee",
+    "Referred - other source",
+    "LinkedIn",
+    "Indeed",
+    "Third party recruiter",
+    "Web search (Google, etc.)",
+    "University/College",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "label:a1ee8e66589fcb67",
+   "company": "Crest Industries",
+   "question": "Enter three professional references with name, company, position, phone number, and email address.",
+   "options": [],
+   "answer": "Available on request",
+   "facts": [
+    "references: Available on request"
+   ]
+  },
+  {
+   "key": "job:2ec8bedfc15f331d",
+   "company": "Airwallex",
+   "question": "Salary Expectations",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:943a74dc9b659cc8",
+   "company": "Snowflake",
+   "question": "For Snowflake to anticipate possible immigration timelines and obligations, could you confirm you are currently authorized to work in the country to which you are applying?",
+   "options": [],
+   "answer": "Sí",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "fact:preferred_last_name",
+   "company": "Harvey",
+   "question": "Preferred Last Name",
+   "options": [],
+   "answer": "Person",
+   "facts": [
+    "last name: Person"
+   ]
+  },
+  {
+   "key": "job:2857444f23de6a15",
+   "company": "Checkout.com",
+   "question": "Are you currently legally authorised to work as an employee in the country you are applying?",
+   "options": [],
+   "answer": "Sí",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:fdfaa63526f399ba",
+   "company": "Checkout.com",
+   "question": "Expected Salary: What are your yearly base salary expectations? Please include currency",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:eab1a1565ed35748",
+   "company": "Rivian and Volkswagen Group Technologies",
+   "question": "Is your most recent country of (1) citizenship or (2) permanent residency one of the following countries: North Korea; Syria; Iran; or Cuba?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States"
+   ]
+  }
+ ],
+ "b": [
+  {
+   "key": "label:70a0d5c0bf12e4fa",
+   "company": "lyft",
+   "question": "May we contact your current employer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "employment status: I am currently employed",
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "label:3bafffc4e4fa9606",
+   "company": "Vestwell",
+   "question": "What is the annual salary or range you are targeting?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:6c4967cdafb3f838",
+   "company": "McAdams",
+   "question": "What is your desired salary range? Example: (# - #)",
+   "options": [],
+   "answer": "95000 - 95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:8cba73ccdf33202d",
+   "company": "The New York Times",
+   "question": "Are you prohibited or limited in your performance of any job duties for a company by any restrictive covenants not to compete, confidentiality agreements or any other contractual obligations?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:e559718b70c35e8a",
+   "company": "Juvare",
+   "question": "Which of the following government compliance areas do you have direct hands-on experience with? (Select all that apply)",
+   "options": [
+    "FedRAMP Authorization process (ATO, SSP, ConMon)",
+    "DoD IL4 or IL5 environments",
+    "DISA STIGs",
+    "NIST 800-53 controls",
+    "None of the above"
+   ],
+   "answer": "None of the above",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "job:766099f7f53784ce",
+   "company": "Newsela",
+   "question": "Do your compensation expectations align with the posted range? (Base compensation)",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "salary expectation: 95000",
+    "current compensation: 85000"
+   ]
+  },
+  {
+   "key": "job:6e477406707bf8b0",
+   "company": "Newsela",
+   "question": "What are your base compensation expectations for this position?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:9bfe574df1844128",
+   "company": "WPP",
+   "question": "Are you currently an employee of a WPP agency?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "job:ca902a020ba2c53a",
+   "company": "IEM",
+   "question": "How many years of relevant professional experience do you have?",
+   "options": [
+    "No experience",
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "5-7 years",
+    "7-10 years",
+    "10-15 years",
+    "15+ years"
+   ],
+   "answer": "3-5 years",
+   "facts": [
+    "years experience: 3 years",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:5573f1cb889abbca",
+   "company": "University of Chicago",
+   "question": "Please list the names and emails of two references. We will inform you before contacting references.",
+   "options": [],
+   "answer": "Available on request",
+   "facts": [
+    "references: Available on request"
+   ]
+  },
+  {
+   "key": "label:df53d5aa1a7020e9",
+   "company": "SpryPoint",
+   "question": "What is your expected salary range for a full-time permanent position at SpryPoint?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:84920c2f9d200b98",
+   "company": "Strada Education Foundation",
+   "question": "What is your available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:1f9e1c58041e66ca",
+   "company": "Strada Education Foundation",
+   "question": "How did you hear about this position?",
+   "options": [
+    "Indeed",
+    "LinkedIn",
+    "Referral",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "job:2d7188cfb24bddc4",
+   "company": "Oyster",
+   "question": "Salary Expectations",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:541aa6123af8cd6a",
+   "company": "Aurelian",
+   "question": "Have you graduated yet? We are not considering upcoming at grads at this time",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6",
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:6c13be2d65ac811c",
+   "company": "Trunk Tools",
+   "question": "Country",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:fcae8c1ce77a4d88",
+   "company": "Trunk Tools",
+   "question": "What is your expected compensation range?",
+   "options": [],
+   "answer": "$95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:ef48981af758a25f",
+   "company": "Relay Technologies",
+   "question": "Do you need visa sponsorship in the UK now or in the future?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:f4d5a2926d226454",
+   "company": "Relay Technologies",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:d04c1f96d933edde",
+   "company": "Riveron",
+   "question": "What is you expected CTC ?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "c": [
+  {
+   "key": "label:e908d5bea3905741",
+   "company": "Clēnera",
+   "question": "Will you be able to submit proof of legal employment authorization and identity?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "citizenship: United States",
+    "us person: Yes"
+   ]
+  },
+  {
+   "key": "label:1f6017ab4be0bd1e",
+   "company": "Rocket EMS",
+   "question": "Current job title & company",
+   "options": [],
+   "answer": "Data Analyst at Example Analytics",
+   "facts": [
+    "current title: Data Analyst",
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "label:030236a1bcc5d3bc",
+   "company": "Rocket EMS",
+   "question": "Can you start within 14 days of offer acceptance?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:04c006f4449d7bf2",
+   "company": "Space Kinetic",
+   "question": "What is your desired salary range?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:6ab367acdda947c3",
+   "company": "Space Kinetic",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:5a8d60c26a4a5dd1",
+   "company": "Space Kinetic",
+   "question": "Please provide three professional references, including: Name Job Title Company Relationship to you Email Address Phone Number Example: John Smith | Engineering Manager | Space Company | Former Manager | john@email.com | (555) 555-5555",
+   "options": [],
+   "answer": "Available on request",
+   "facts": [
+    "references: Available on request"
+   ]
+  },
+  {
+   "key": "job:6da9377565949baf",
+   "company": "Yext",
+   "question": "Desired salary",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:0f108ae1b1cb7245",
+   "company": "Yext",
+   "question": "Are you legally authorized to work in the country where the job is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:17526235204bbfb5",
+   "company": "Yext",
+   "question": "Will you now or in the future require visa sponsorship for employment visa status?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:aac7c130ec5a64df",
+   "company": "Yext",
+   "question": "Years of Experience: Relevant Experience",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:555d8dbea611f948",
+   "company": "Freenome",
+   "question": "Do you have experience with Python?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:e28929d82bbb2151",
+   "company": "mthree",
+   "question": "Quelle est la première date disponible pour commencer la formation? / What is your first available date to start training?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:0d88679d092874fd",
+   "company": "IEQ Capital",
+   "question": "Do you have a Bachelor's Degree?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "job:741983e3e8cafeea",
+   "company": "RAPP",
+   "question": "Desired Salary",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:b895220756d41cb9",
+   "company": "InterSystems",
+   "question": "Are you graduating between December 2026 and August 2027?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "label:57209cfe022593ef",
+   "company": "Aevex Aerospace",
+   "question": "Is your most recent resume updated and included? (If not, please upload it)",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales",
+    "Teaching Assistant for Introductory Statistics at Example State University, 2020 to 2022: ran weekly R labs for 40 students"
+   ]
+  },
+  {
+   "key": "label:517da9ed1610de52",
+   "company": "Aevex Aerospace",
+   "question": "Are you currently a U.S. government military or civilian employee?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "job:b36eaebff098b702",
+   "company": "janestreet",
+   "question": "How did you hear about us?",
+   "options": [],
+   "answer": "Company website",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:dfbb55e1003c87c4",
+   "company": "Moonpig",
+   "question": "Salary expectation",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:9e966a4493514df6",
+   "company": "Research Innovations",
+   "question": "I heard about RII through:",
+   "options": [
+    "Internet Search",
+    "A friend",
+    "LinkedIn",
+    "Great Place to Work recognition",
+    "Social Media (Instagram, Meta, X, Discord, Reddit)",
+    "Job Fair or Campus/University Recruiting",
+    "Women Who Code DC",
+    "Coffee Sleeves",
+    "Github",
+    "Billboard",
+    "pwn.college",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "label:029f02a1a0d00f26",
+   "company": "BioAgilytix",
+   "question": "What is the earliest date you would be able to begin work?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:d239e088b02a34fd",
+   "company": "BioAgilytix",
+   "question": "What is your salary target for this role?",
+   "options": [
+    "30,000 - 40,000",
+    "41,000 - 50,000",
+    "51,000 - 60,000",
+    "61,000 - 70,000",
+    "71,000 - 80,000",
+    "81,000 - 90,000",
+    "91,000 - 100,000",
+    "101,000 - 125,000",
+    "125,000 - 150,000",
+    "150,000+",
+    "choose not to answer"
+   ],
+   "answer": "91,000 - 100,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:5de98c0211bf2ad7",
+   "company": "BioAgilytix",
+   "question": "Are you fluent in English?",
+   "options": [
+    "Yes",
+    "No",
+    "Limited Ability"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "label:6e2d190a42c3c023",
+   "company": "Penta Group",
+   "question": "If offered the position, how soon would you be able to start?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:f7c129b65a6fab44",
+   "company": "Patch My PC",
+   "question": "Are you open to occasional travel, including international travel, as needed for company events (e.g., summit, offsites)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:5d994995a69e8a47",
+   "company": "RWS",
+   "question": "Are you available to work 20 hours/week (approx. 4 hours per day, Monday–Friday), starting immediately?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "employment status: I am currently employed",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:64262daa39bcb6a4",
+   "company": "ShyftLabs",
+   "question": "Experience with Python?",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:ddedb4d32dff44da",
+   "company": "Focal",
+   "question": "Current Location (City, State, Country)",
+   "options": [],
+   "answer": "Chicago, IL, United States",
+   "facts": [
+    "location: Chicago, IL",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:b9832376ab21d868",
+   "company": "Sylvera",
+   "question": "Are you legally authorised to work in the location you are applying for?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "citizenship: United States",
+    "us person: Yes"
+   ]
+  },
+  {
+   "key": "job:fc2dfb0bd5c85526",
+   "company": "Sylvera",
+   "question": "Will you now or in the future require visa sponsorship to work in the location you are applying for?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:ad6dc83b46a30c61",
+   "company": "Quantum",
+   "question": "Will you now or in the future require sponsorship to work in the UK?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:43bcf7c97d8978a0",
+   "company": "Quantum",
+   "question": "Salary Expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:97a137a8d7dab660",
+   "company": "Sardine",
+   "question": "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B, etc.)? If yes, please specify.",
+   "options": [],
+   "answer": "No — I will not require sponsorship",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:bf1cc2695c39a067",
+   "company": "SPAICE Technology",
+   "question": "Are you legally entitled to work in the United Kingdom?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "citizenship: United States",
+    "country: United States",
+    "us person: Yes"
+   ]
+  }
+ ],
+ "d": [
+  {
+   "key": "job:9a8fe4ca88c73378",
+   "company": "Commvault",
+   "question": "Are you eligible to work in the country for which this role is located (for example, as a citizen, permanent resident, or holder of a valid work visa)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:0b9ec07969207a26",
+   "company": "Commvault",
+   "question": "Will you require Commvault to sponsor a work visa or work authorization for you to be employed in the country where the role is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:3f45604445ae515f",
+   "company": "American Institutes for Research",
+   "question": "Do you have any non-compete or non-solicitation agreements that would prevent you from working on specific projects or with certain agencies for any period of time? (Enter “N/A” if not applicable)",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:a22c0b1c0f21fd15",
+   "company": "Graphcore",
+   "question": "Have you added your full legal name and surname (including any middle names)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "legal name: Test Person",
+    "last name: Person"
+   ]
+  },
+  {
+   "key": "job:eab4749368a2143d",
+   "company": "carta",
+   "question": "Do you now or in the future require visa sponsorship to continue working in the country where this position is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:2d317dae918c86d4",
+   "company": "Detroit Lions",
+   "question": "Please list your earliest start date:",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:6ddd17e0c9448272",
+   "company": "Detroit Lions",
+   "question": "Are you subject to a non-compete or confidentiality agreement with a previous employers that might affect your ability to accept a job offer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:0fc2fa42d1b36963",
+   "company": "think-cell",
+   "question": "What is your desired salary?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:77c6b7f35b461104",
+   "company": "Chicago Trading Company",
+   "question": "Which university did you attend for your PhD program?",
+   "options": [
+    "Arizona State University",
+    "Boston University",
+    "Brown University",
+    "California Institute of Technology (Caltech)",
+    "Carnegie Mellon University",
+    "Columbia University",
+    "Cornell University",
+    "Duke University",
+    "Georgia Institute of Technology",
+    "Harvard University",
+    "Johns Hopkins University",
+    "Massachusetts Institute of Technology (MIT)",
+    "Michigan State University",
+    "New York University (NYU)",
+    "Northwestern University",
+    "Princeton University",
+    "Purdue University",
+    "Rice University",
+    "Stanford University",
+    "Stony Brook University--SUNY",
+    "University of California, Berkeley (UCB)",
+    "University of California, Los Angeles (UCLA)",
+    "University of California, San Diego (UCSD)",
+    "University of California, Santa Barbara (UCSB)",
+    "University of California, Santa Cruz",
+    "University of California--Irvine",
+    "University of Chicago",
+    "University of Colorado Boulder",
+    "University of Florida",
+    "University of Illinois Urbana-Champaign",
+    "University of Maryland, College Park",
+    "University of Michigan-Ann Arbor",
+    "University of Minnesota-Twin Cities",
+    "University of North Carolina--Chapel Hill",
+    "University of Pennsylvania",
+    "University of Southern California",
+    "University of Texas at Austin",
+    "University of Washington",
+    "University of Wisconsin-Madison",
+    "Virginia Polytechnic Institute and State University",
+    "Yale University",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:2f17b3a4bbda8b51",
+   "company": "Chicago Trading Company",
+   "question": "If 'Yes' to above, are you actively maintaining any security licenses?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "security clearance: None"
+   ]
+  },
+  {
+   "key": "job:638321b85fb52e01",
+   "company": "Neo4j",
+   "question": "Will you now, or in the future, require sponsorship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:30d75055050d705a",
+   "company": "Garda Capital Partners",
+   "question": "What country is your current legal residence in?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:b7e247cc6f4b22a1",
+   "company": "Garda Capital Partners",
+   "question": "Do you hold EU citizenship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:e4c5731fc6212f57",
+   "company": "Peloton",
+   "question": "This position is not eligible for Visa Sponsorship. Applicants must be authorized to work in the United States without the need for Visa Sponsorship by the start date of employment. By selecting \"Yes,\" you confirm that you do not require Visa Sponsorship.",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:b083bd503ff74f33",
+   "company": "Human Rights Watch",
+   "question": "Are you legally authorized to intern in the specified country?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:b2866fcf4543c7b3",
+   "company": "Human Rights Watch",
+   "question": "Please provide contact information for three references including reference name, reference's current employer, relationship to applicant, phone, and email.",
+   "options": [],
+   "answer": "Available on request",
+   "facts": [
+    "references: Available on request"
+   ]
+  },
+  {
+   "key": "label:020a84f34776f3c3",
+   "company": "Charles River Associates (CRA)",
+   "question": "Can you confirm that you will be graduating in 2027 or 2028?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:b8e223eaaa3937d4",
+   "company": "Charles River Associates (CRA)",
+   "question": "Bachelor's Degree Class (expected or achieved)",
+   "options": [
+    "4.0",
+    "3.9",
+    "3.8",
+    "3.7",
+    "3.6",
+    "3.5",
+    "3.4",
+    "3.3",
+    "3.2",
+    "3.1",
+    "3.0",
+    "<3.0",
+    "1st First Class Honours",
+    "2.1 Upper Second Class Honours",
+    "2.2 Lower Second Class Honours",
+    "Distinction",
+    "Merit",
+    "Pass",
+    "Other"
+   ],
+   "answer": "3.6",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6",
+    "gpa: 3.6"
+   ]
+  },
+  {
+   "key": "label:92f6e32a8f450e35",
+   "company": "Charles River Associates (CRA)",
+   "question": "Language Fluency",
+   "options": [
+    "Chinese (Mandarin)",
+    "Dutch/Flemish",
+    "English",
+    "French",
+    "German",
+    "Portuguese",
+    "Spanish",
+    "Swiss German"
+   ],
+   "answer": "English",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "job:d68a11da7c4e968f",
+   "company": "Charles River Associates (CRA)",
+   "question": "Do you require sponsorship to continue working in the United Kingdom in the future?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:05dc0260af4c5810",
+   "company": "komodohealth",
+   "question": "Which of these languages have you written and run in production? Select all that apply.",
+   "options": [
+    "Rust",
+    "Python",
+    "C++",
+    "Erlang",
+    "Go",
+    "Zig",
+    "None of these"
+   ],
+   "answer": "Python",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "label:15673d603d199904",
+   "company": "komodohealth",
+   "question": "Are you currently subject to or will you be subject to if hired by Komodo a non-compete agreement, non-solicit agreement or any other similar restrictions which may limit your ability to work at Komodo or perform the job functions for the job for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:058266ba4420964f",
+   "company": "robinhood",
+   "question": "Robinhood adheres to applicable laws and regulations in relation to government officials given inherent bribery and/or corruption risk. A government official is any person that performs a public function on any level or acts in any official capacity on behalf of a government or government owned entity. a) Do you currently hold or have you held, within the last 5 years, a position as a government official? b) Have you been referred or recommended for this position by a government official? c) Are you related to or have a close personal relationship with a government official?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No",
+    "relative here: No"
+   ]
+  },
+  {
+   "key": "label:6b15bb5e39477740",
+   "company": "DB E.C.O. North America",
+   "question": "Are you an existing employee at DB?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "job:fc5dae78954b6dd8",
+   "company": "DB E.C.O. North America",
+   "question": "Are you legally authorized to work in the country where the job is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:aec3d711355dd6a1",
+   "company": "Real Chemistry",
+   "question": "What is your city of residence?",
+   "options": [],
+   "answer": "Chicago, IL",
+   "facts": [
+    "city: Chicago",
+    "state: IL"
+   ]
+  },
+  {
+   "key": "label:6f977afc943db1e2",
+   "company": "Real Chemistry",
+   "question": "Are your salary expectations aligned with the posted range for this role?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:fb7080121f9d0629",
+   "company": "STEM Healthcare",
+   "question": "How did you hear about this job?",
+   "options": [
+    "LinkedIn",
+    "Glassdoor",
+    "Indeed",
+    "Other Online Job Board",
+    "Contacted by a Recruiter",
+    "Referral",
+    "Job Fair"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:df2d7c0bcf6f006d",
+   "company": "STEM Healthcare",
+   "question": "Are you legally eligible/authorized to work in the country that you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:82cbc979ee9ac9b5",
+   "company": "STEM Healthcare",
+   "question": "Will you now or in the future require visa sponsorship for employment?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:a51a3fedfc969d17",
+   "company": "Hudl",
+   "question": "Are you comfortable traveling at least 8 - 10 times / year?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:c0f49def3a1952c0",
+   "company": "Hudl",
+   "question": "Have you agreed to any post-employment restrictions, such as non-competition or non-solicitation restrictions, with your current or any prior employer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:78b412e7bc1999ee",
+   "company": "Liberis",
+   "question": "Your current salary (inclusive of bonus/commission).",
+   "options": [],
+   "answer": "85000 USD ($)",
+   "facts": [
+    "current compensation: 85000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:24568b7608bdd65b",
+   "company": "Liberis",
+   "question": "Your expected salary (inclusive of bonus/commission).",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:a08390a891302349",
+   "company": "Liberis",
+   "question": "Your availability for starting a new role.",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:76d4ac965c5a45e4",
+   "company": "H1",
+   "question": "Are you aware of, or subject to, any restrictive covenants (including, but not limited to, any non-compete agreement or provision) that would impact your ability to fully perform the duties of the role to which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:c09d05c81d77193e",
+   "company": "Galatea Associates",
+   "question": "What are your total compensation expectations, including base salary and bonus?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:c11dee3caf3468af",
+   "company": "IMO Health",
+   "question": "Please provide your home address below. We collect this information to support final steps in the hiring process, such as preparing employment documentation and coordinating onboarding logistics (e.g., shipping IT equipment). Your information will be kept confidential and used only for these purpose",
+   "options": [],
+   "answer": "1 Example St, Chicago, IL 60601",
+   "facts": [
+    "full address: 1 Example St, Chicago, IL 60601"
+   ]
+  },
+  {
+   "key": "job:d3dfa1a9280ff85e",
+   "company": "Olo",
+   "question": "Would you now or in the future require work authorization to accept employment in the United Kingdom?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:9289ae22b49fb76b",
+   "company": "Olo",
+   "question": "Desired Salary",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:1d230dacb3291974",
+   "company": "Blue Bottle Coffee",
+   "question": "This position is based in Tokyo, Japan. Are you authorized to work in the country of the job you are applying for?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:65a9a8f22f799cfd",
+   "company": "Blue Bottle Coffee",
+   "question": "Will you now or in the future require Blue Bottle Coffee to sponsor an employment visa?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:1950f2b8b7422613",
+   "company": "Blue Bottle Coffee",
+   "question": "Can you communicate in English and Japanese?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "languages: English",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:e00a725239431406",
+   "company": "Blue Bottle Coffee",
+   "question": "What is your current compensation? (e.g. JPY XXX,XXX x 12months + performance bonus)",
+   "options": [],
+   "answer": "85000 USD ($)",
+   "facts": [
+    "current compensation: 85000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:f29e711b7b89aa16",
+   "company": "SEP",
+   "question": "Years of relevant experience?",
+   "options": [],
+   "answer": "3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:a6b622126c812148",
+   "company": "SEP",
+   "question": "Does your work authorization now, or will it in the future, involve CPT (Curricular Practical Training) or OPT (Optional Practical Training)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "label:dbe3b62d90224854",
+   "company": "Bluesight",
+   "question": "Are you willing and able to travel up to 75%?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:61e3e48724409831",
+   "company": "Thrive Causemetics",
+   "question": "What are your salary expectations? (please reference range in job post)",
+   "options": [],
+   "answer": "95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:865cac8bb3644b6e",
+   "company": "ShopBack",
+   "question": "Citizenship/Visa Status",
+   "options": [
+    "Citizen",
+    "Permanent Resident",
+    "Require relevant work visa",
+    "Possess relevant work visa"
+   ],
+   "answer": "Citizen",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "label:3306274f18e4c089",
+   "company": "ShopBack",
+   "question": "Varsity",
+   "options": [
+    "University",
+    "Polytechnic",
+    "Others"
+   ],
+   "answer": "University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:e6ea762a968de860",
+   "company": "Datalab USA",
+   "question": "How many years of SQL work experience do you have",
+   "options": [],
+   "answer": "3",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:04c006f4449d7bf2",
+   "company": "PingWind",
+   "question": "What is your desired salary range?",
+   "options": [],
+   "answer": "95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:b090d9f033f502a3",
+   "company": "PingWind",
+   "question": "Applicants selected for this position may be subject to a U.S. Government security investigation and will be required to meet eligibility requirements for access to classified information; therefore, U.S. Citizenship is required. Are you able to meet this requirement? y/n",
+   "options": [],
+   "answer": "Yes, I am a U.S. citizen.",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:fd6ed04473ddc856",
+   "company": "EQ Bank",
+   "question": "What is the name of the school you are currently attending?",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:7e5ba3683c79253a",
+   "company": "EQ Bank",
+   "question": "Which year of studies are you currently in?",
+   "options": [
+    "First",
+    "Second",
+    "Third",
+    "Fourth",
+    "Graduate"
+   ],
+   "answer": "Graduate",
+   "facts": [
+    "graduation date: 05/2022",
+    "education level: bachelor"
+   ]
+  },
+  {
+   "key": "job:71e3bdc1f3dcf9eb",
+   "company": "Lovable",
+   "question": "Do you currently have the legal right to work in the country where you are applying for this role?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:500f8481c346ab9b",
+   "company": "Lovable",
+   "question": "Will you now or in the future require the company to sponsor a visa or work permit in order to work in this location?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:2333d2fbb2436f25",
+   "company": "Lovable",
+   "question": "What is the earliest date you can join us?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:4ae986d538c49fcc",
+   "company": "Lovable",
+   "question": "What are your compensation expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:f97d83755ee961a6",
+   "company": "Binance",
+   "question": "Will you now or will you in the future require employment visa sponsorship?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:07809cf19e16d50f",
+   "company": "Exa",
+   "question": "Do you require Visa sponsorship to work in your selected location? If so, which one? And when does your Visa expire?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:d98876b8d03c35c2",
+   "company": "Sequoia Capital",
+   "question": "Do you have a Bachelors Degree or equivalent with supporting documentation?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "education level: bachelor",
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "job:fa7f81769f66c15c",
+   "company": "Faculty AI",
+   "question": "What is your salary expectation?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:a42235e959ebca54",
+   "company": "Faculty AI",
+   "question": "Do you require visa sponsorship, either now or in the future, to work in the UK?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:908ce9c205cdb774",
+   "company": "Faculty AI",
+   "question": "If applying for our Defence team, you may be required travel throughout the UK on a weekly basis, please confirm this is something you are comfortable with",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "job:2f0ddbb32cdb2fc9",
+   "company": "loveholidays",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:bd4fadb4b62e7cd9",
+   "company": "Patch",
+   "question": "Are you authorized to work in the US? Please explain below.",
+   "options": [],
+   "answer": "I am authorized to work in the US.",
+   "facts": [
+    "work authorization: Yes",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:a6e5bc9abe724cb0",
+   "company": "mastra",
+   "question": "What location / time zone will you be working from?",
+   "options": [],
+   "answer": "Chicago, IL; Central time",
+   "facts": [
+    "location: Chicago, IL",
+    "timezone: Central time"
+   ]
+  },
+  {
+   "key": "job:b562b9b3f3fb7498",
+   "company": "Carwow",
+   "question": "What is your expected salary bracket?",
+   "options": [],
+   "answer": "$95,000 per year",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  }
+ ],
+ "e": [
+  {
+   "key": "job:023fcb351333e600",
+   "company": "General Atlantic",
+   "question": "Are you legally authorized to work in the country in which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:09d5047cc1fb980c",
+   "company": "General Atlantic",
+   "question": "Will you now or in the future require visa sponsorship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:c1c304f5a7d99c1d",
+   "company": "Cision",
+   "question": "Are you legally authorized to work in the country for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:ec923b6fac4a21ce",
+   "company": "Cision",
+   "question": "Will you now or in the future need sponsorship to work in the country in which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:56e610ec05f000de",
+   "company": "Cision",
+   "question": "What are your annual salary expectations in local currency?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:604663890a88602d",
+   "company": "Torc Robotics",
+   "question": "What is your availability or desired start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:5d1262b5f6c245e2",
+   "company": "Scout Motors",
+   "question": "How many years of relevant, professional experience do you have?",
+   "options": [
+    "No experience",
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "5-7 years",
+    "7-10 years",
+    "10-15 years",
+    "15+ years"
+   ],
+   "answer": "3-5 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:92cdfca46eab9f24",
+   "company": "Scout Motors",
+   "question": "Do you currently have a valid passport for international travel?",
+   "options": [
+    "Yes - I have a valid, unexpired passport",
+    "No - My previous passport has expired",
+    "No - I have never had a passport"
+   ],
+   "answer": "Yes - I have a valid, unexpired passport",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:4a9fd415995cb8d4",
+   "company": "Wikimedia Foundation",
+   "question": "In 2-3 sentences, give one example of a time you influenced a non-finance leader’s decision. What did you do, and what was the result?",
+   "options": [],
+   "answer": "I built SQL and Python reporting pipelines and Looker dashboards that changed pricing and reporting decisions.",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Skill: SQL",
+    "Skill: Python",
+    "Skill: Looker"
+   ]
+  },
+  {
+   "key": "job:90a15fad260882d6",
+   "company": "Momentum",
+   "question": "What is your graduation date (mm/dd/yyyy)?",
+   "options": [],
+   "answer": "05/2022",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "label:4813580099bd1662",
+   "company": "EQT Corporation",
+   "question": "Previous EQT Employee",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "employment status: I am currently employed"
+   ]
+  },
+  {
+   "key": "label:981878b0f9b0dd22",
+   "company": "Golden Pet Brands",
+   "question": "What salary/hourly rate are you targeting for this opportunity?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "fact:preferred_last_name",
+   "company": "Scopely",
+   "question": "Preferred Last Name",
+   "options": [],
+   "answer": "Person",
+   "facts": [
+    "last name: Person"
+   ]
+  },
+  {
+   "key": "job:d7e79cbefc670408",
+   "company": "Scopely",
+   "question": "Do you currently, or will you in the future, require visa sponsorship to work in the country where this position is based?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:f2a1fe36f5f4dbda",
+   "company": "K2 Space",
+   "question": "What is your ideal start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:cef32d8e609f5680",
+   "company": "iCapital Network",
+   "question": "What is your desired total annual compensation when considering an equity award? Please specify the amount and currency.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:e9eb912d641cd94c",
+   "company": "iCapital Network",
+   "question": "How did you hear about this job?",
+   "options": [
+    "Built In",
+    "eFinancialCareers",
+    "Employee Referral",
+    "Fairygodboss",
+    "Glassdoor",
+    "Indeed",
+    "LinkedIn",
+    "Other",
+    "WayUp"
+   ],
+   "answer": "Other",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "label:25db065a8aa1d8b0",
+   "company": "iCapital Network",
+   "question": "What is your desired bonus expectation? Please specify the amount and currency.",
+   "options": [],
+   "answer": "85000 USD ($)",
+   "facts": [
+    "current compensation: 85000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:7aa106e0425f2ff8",
+   "company": "Rhombus Power",
+   "question": "How many years of relevant work experience do you have?",
+   "options": [
+    "Less than 1 year",
+    "1 to 3 years",
+    "4 to 7 years",
+    "8 or more years"
+   ],
+   "answer": "1 to 3 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:83a1c1b2cb37f2f6",
+   "company": "Ekimetrics",
+   "question": "What is your expected salary range ?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:bd13f14d0d179c36",
+   "company": "Ekimetrics",
+   "question": "What is your preferred coding language (Python or R)?",
+   "options": [
+    "Python",
+    "R",
+    "Other or none but I am willing to learn!"
+   ],
+   "answer": "Python",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "job:4b56be4e8fb85ea0",
+   "company": "Employ",
+   "question": "What is your current and expected CTC? (LPA)",
+   "options": [],
+   "answer": "Current: 85000 USD ($); Expected: 95000 USD ($)",
+   "facts": [
+    "current compensation: 85000",
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:4f5caf8f772e93e5",
+   "company": "e.l.f. Beauty",
+   "question": "Please provide your preferred first name.",
+   "options": [],
+   "answer": "Test",
+   "facts": [
+    "preferred name: Test"
+   ]
+  },
+  {
+   "key": "label:3e5c16efd059064f",
+   "company": "e.l.f. Beauty",
+   "question": "Please provide your preferred last name.",
+   "options": [],
+   "answer": "Person",
+   "facts": [
+    "last name: Person"
+   ]
+  },
+  {
+   "key": "label:0d88679d092874fd",
+   "company": "e.l.f. Beauty",
+   "question": "Do you have a Bachelor's degree?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:09f42c510414346c",
+   "company": "e.l.f. Beauty",
+   "question": "Do your salary expectations align with the salary range budgeted for this position?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:deaccce302a3927d",
+   "company": "Artera",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:4bd6bb0b27a76d60",
+   "company": "LeanTaaS",
+   "question": "Do you have data analysis experience?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1",
+    "Skill: SQL"
+   ]
+  },
+  {
+   "key": "label:6746b231e4780c8e",
+   "company": "LeanTaaS",
+   "question": "Are you willing to travel 40-50% of the time?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "job:44c22b73363801a6",
+   "company": "Nextech Systems",
+   "question": "If sponsorship is required, which type of work visa/authorization? Please list below or enter N/A.",
+   "options": [],
+   "answer": "N/A",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:5b1d0185dbe0e265",
+   "company": "Nextech Systems",
+   "question": "Nextech allows remote work from home within the United States. Work or system access from outside the U.S. is not permitted. To meet healthcare data residency and compliance standards, Nextech monitors and restricts unapproved foreign or VPN access.",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "location: Chicago, IL",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:a2de5bd39aa3a7c8",
+   "company": "Nextech Systems",
+   "question": "Is your current employer a Nextech client or actively using Nextech software?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "current employer: Example Analytics",
+    "former employers: Example Analytics; Sample Retail"
+   ]
+  },
+  {
+   "key": "label:4c6930adcda68066",
+   "company": "Nextech Systems",
+   "question": "How many years of enterprise software sales experience do you have?",
+   "options": [
+    "Less than 5 years",
+    "5-9 years",
+    "10-14 years",
+    "15+ years"
+   ],
+   "answer": "Less than 5 years",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "label:d30bdcb546db0e35",
+   "company": "Nextech Systems",
+   "question": "This role requires up to 50% travel, including overnight travel. Are you able to meet this requirement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "job:2dbc2c9e519997dc",
+   "company": "Wintermute",
+   "question": "Please confirm whether you are currently legally authorised to work in the country where this role is based. Please also confirm whether you currently require, or in the future may require, immigration sponsorship or other immigration support from Wintermute to work in that country. If so, please br",
+   "options": [],
+   "answer": "I am legally authorized to work in the United States and do not require sponsorship.",
+   "facts": [
+    "work authorization: Yes",
+    "sponsorship: No",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:b1726871d8fb4143",
+   "company": "Wintermute",
+   "question": "Where did you hear about this vacancy?",
+   "options": [
+    "Linkedin",
+    "X",
+    "Search Engine",
+    "University",
+    "Wintermute Employee",
+    "Recruitment Agency",
+    "Conference",
+    "Friend/within network",
+    "Other"
+   ],
+   "answer": "Linkedin",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "label:e5dcafcc47960f26",
+   "company": "Gr0",
+   "question": "What type of role are you looking for?",
+   "options": [
+    "Full-Time Employee",
+    "Full-Time Contractor",
+    "Part-Time Contractor",
+    "Contract to Hire"
+   ],
+   "answer": "Full-Time Employee",
+   "facts": [
+    "employment type: Full-time"
+   ]
+  },
+  {
+   "key": "label:b6da453af3dbffd8",
+   "company": "Gr0",
+   "question": "How'd you find out about us?",
+   "options": [
+    "Best Places to Work Award",
+    "Built In LA",
+    "Glassdoor",
+    "GR0 Website",
+    "Indeed",
+    "LinkedIn",
+    "Online Job Search",
+    "Referral - Friend",
+    "Referral - GR0er",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "label:f3c88a6f3c511278",
+   "company": "Gr0",
+   "question": "Do you currently hold permanent residence in the United States?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "citizenship: United States",
+    "us person: Yes"
+   ]
+  },
+  {
+   "key": "label:17b53436db74ce92",
+   "company": "Gr0",
+   "question": "Can you confirm you are a current legal resident of one of the following states: Arizona, California, Colorado, Idaho, Iowa, Nevada, North Dakota, Oregon, Texas, Utah, Washington, or Wisconsin?",
+   "options": [
+    "Yes, I am a current legal resident of one of the listed states.",
+    "No, I am not a current legal resident of one of the listed states."
+   ],
+   "answer": "No, I am not a current legal resident of one of the listed states.",
+   "facts": [
+    "state: IL",
+    "location: Chicago, IL"
+   ]
+  },
+  {
+   "key": "label:ed1e4a762335d74c",
+   "company": "Agate Software",
+   "question": "What are your salary and OTE expectations for this role?",
+   "options": [],
+   "answer": "$95,000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:ada7dd0ceee80134",
+   "company": "Rover",
+   "question": "What's your desired annual salary? (in €)",
+   "options": [],
+   "answer": "€95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:def20a9544cfb4ac",
+   "company": "Mastery Charter Schools",
+   "question": "Did you graduate from high school with a Mastery Schools diploma?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:62b2dd4012d15a92",
+   "company": "Mastery Charter Schools",
+   "question": "Undergraduate GPA, if attained.",
+   "options": [
+    "3.5-4.0",
+    "3.0-3.5",
+    "2.5-3.0",
+    "2.0-2.5",
+    "unsure"
+   ],
+   "answer": "3.5-4.0",
+   "facts": [
+    "gpa: 3.6"
+   ]
+  },
+  {
+   "key": "job:040dc7b11fe1f6e6",
+   "company": "Mastery Charter Schools",
+   "question": "Do you currently hold the necessary certification(s) for the role you are applying to?",
+   "options": [
+    "Yes, I have checked the role requirements and I am certified",
+    "No, but I hold an emergency certification, charter school certification, or substitute teacher certification",
+    "No, I do not yet have the necessary certification(s), I am in the process of earning the necessary certification(s)"
+   ],
+   "answer": "No, I do not yet have the necessary certification(s), I am in the process of earning the necessary certification(s)",
+   "facts": [
+    "certifications: None"
+   ]
+  },
+  {
+   "key": "label:e425df5a792cf12e",
+   "company": "Samba TV",
+   "question": "How much (timeline) notice do you need to give your current job?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:fae6a4f61c14c9b4",
+   "company": "General Intuition &amp; Medal",
+   "question": "Contact phone number",
+   "options": [],
+   "answer": "+1 555 010 0000",
+   "facts": [
+    "phone: +1 555 010 0000"
+   ]
+  },
+  {
+   "key": "label:cbae7d8bc6687bd0",
+   "company": "Pogo Technologies, Inc.",
+   "question": "Do you have a college degree?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "education level: bachelor",
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:751207186e1c9856",
+   "company": "Pogo Technologies, Inc.",
+   "question": "Are you currently enrolled in full-time education, and if so, is your graduation date over 2 months away?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:7161b0d84245f90a",
+   "company": "Pogo Technologies, Inc.",
+   "question": "Have you worked at a startup or quant firm? (i.e., internship, part-time, etc)",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "Analytics Intern at Sample Retail, June 2021 to August 2021: cleaned point-of-sale data in Excel and SQL and built a Tableau dashboard of store sales",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "job:193a95f6ad535d94",
+   "company": "Terminal",
+   "question": "Location Preference",
+   "options": [],
+   "answer": "Chicago, IL",
+   "facts": [
+    "location: Chicago, IL",
+    "city: Chicago",
+    "state: IL"
+   ]
+  },
+  {
+   "key": "job:670049d583d9f50f",
+   "company": "Hawk-Eye Innovations",
+   "question": "Do you require visa sponsorship to work for Sony Sports?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:9247b4aa6f27fb47",
+   "company": "Niural",
+   "question": "Expected Salary",
+   "options": [],
+   "answer": "95000 USD",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:5f797f58654ee846",
+   "company": "Klue",
+   "question": "Are you able to come into the relevant Hub Location 3 times per week?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "onsite ok: Yes",
+    "location: Chicago, IL"
+   ]
+  }
+ ],
+ "f": [
+  {
+   "key": "label:7ea9434b8b33398d",
+   "company": "Eikon Therapeutics",
+   "question": "Are you authorized to accept full-time employment in the United States?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:c501b96c0a385662",
+   "company": "Muon Space",
+   "question": "When is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:77fa5b512b9c7596",
+   "company": "Da Vinci",
+   "question": "Source",
+   "options": [
+    "Search Engine",
+    "LinkedIn",
+    "Instagram",
+    "University Career Page",
+    "Study Association",
+    "Event",
+    "Friends/family",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "label:c1b237a975601136",
+   "company": "CharterUP",
+   "question": "What are your compensations expectations? Please provide a range.",
+   "options": [],
+   "answer": "$95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:dec13e6770747b70",
+   "company": "AXS",
+   "question": "Are you able to perform all essential job duties with or without accommodation?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "essential functions: Yes"
+   ]
+  },
+  {
+   "key": "label:61488fc5daae25e5",
+   "company": "Calm",
+   "question": "Calm uses a geographic pay model. Please provide your current primary residence ZIP code and city to determine your pay tier.\"",
+   "options": [],
+   "answer": "60601, Chicago",
+   "facts": [
+    "postal code: 60601",
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "label:43822dfa9e534192",
+   "company": "Datacor",
+   "question": "What is the most recent degree you obtained?",
+   "options": [],
+   "answer": "B.S. Statistics",
+   "facts": [
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:0605bbb9a7d66903",
+   "company": "Datacor",
+   "question": "Location (City, State, Country)",
+   "options": [],
+   "answer": "Chicago, IL, United States",
+   "facts": [
+    "city: Chicago",
+    "state: IL",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:bd79ef39ed42a13c",
+   "company": "Pico",
+   "question": "Will you now or in the future, require sponsorship for employment visa status?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:b11ef4d5c3013c06",
+   "company": "Pico",
+   "question": "What is your notice period or earliest date of availability?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:9069f6cfce7aaa5b",
+   "company": "Focus Financial Partners",
+   "question": "Do you have a non-solicitation agreement or any other agreement with your current or former employer that contains restrictive covenants that are still in effect?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:ebe04e3594135bb1",
+   "company": "Voloridge",
+   "question": "Please select the college or university you currently attend or previously attended:",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "label:4c4be7d64b98b61f",
+   "company": "Voloridge",
+   "question": "Please select your declared major:",
+   "options": [
+    "Physics",
+    "Mathematics",
+    "Statistics",
+    "Computer Science",
+    "Other"
+   ],
+   "answer": "Statistics",
+   "facts": [
+    "major: Statistics"
+   ]
+  },
+  {
+   "key": "label:eac927bf628c8204",
+   "company": "Voloridge",
+   "question": "Please select the programming language you are strongest in:",
+   "options": [
+    "Python",
+    "C++",
+    "C#",
+    "SQL",
+    "Other"
+   ],
+   "answer": "Python",
+   "facts": [
+    "Skill: Python",
+    "Skill: pandas"
+   ]
+  },
+  {
+   "key": "job:d820dcd941d298d7",
+   "company": "Veeam Software",
+   "question": "What are your salary expectations for this role? Please indicate your expected annual GROSS salary in your local currency.",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:e0d2e892e289c21a",
+   "company": "Veeam Software",
+   "question": "Do you require the company to sponsor a visa, work permit, or other authorization for you to work in the country where this role is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:3f87dd4d36dc15ef",
+   "company": "Wheely",
+   "question": "What are your salary expectations for this role? Please provide a specific number or range. Kindly avoid responses such as 'negotiable' or 'market average'.",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:67a7b0fd4359974b",
+   "company": "Wheely",
+   "question": "Would you require (now or in the future) visa sponsorship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:7729978f4a540b45",
+   "company": "Cohere Health",
+   "question": "Where are you staying in Hyderabad? Mention full address.",
+   "options": [],
+   "answer": "1 Example St, Chicago, IL 60601",
+   "facts": [
+    "full address: 1 Example St, Chicago, IL 60601"
+   ]
+  },
+  {
+   "key": "label:5c447c9e28349389",
+   "company": "Cohere Health",
+   "question": "In which of the following locations do you live?",
+   "options": [
+    "United States",
+    "Hyderabad, Telangana, India",
+    "Any other locations in India"
+   ],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:bb390df93403050c",
+   "company": "NewsBreak",
+   "question": "What's your earliest start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:113dc1b02a67019b",
+   "company": "NewsBreak",
+   "question": "What are your salary expectations? Please state a range.",
+   "options": [],
+   "answer": "USD $95,000 - USD $95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:466714e7cc84a242",
+   "company": "Beghou Consulting",
+   "question": "Are you aware of Python?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "Skill: Python"
+   ]
+  },
+  {
+   "key": "job:a4010bfbbaa4aa81",
+   "company": "Beghou Consulting",
+   "question": "What is your current compensation? What is your expected compensation?",
+   "options": [],
+   "answer": "Current: 85000; Expected: 95000",
+   "facts": [
+    "current compensation: 85000",
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:c6f54d9d7273038e",
+   "company": "WEP Clinical",
+   "question": "Are you legally authorised to work in the United Kingdom?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "job:c46ce66585799ae9",
+   "company": "WEP Clinical",
+   "question": "Will you now or in the future require sponsorship for employment visa status?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:a2c81fde533211e9",
+   "company": "WEP Clinical",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:8026e378da710345",
+   "company": "Belvedere Trading",
+   "question": "Name of School",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "job:5f58926409e68b0f",
+   "company": "Belvedere Trading",
+   "question": "Graduation date or expected graduation date:",
+   "options": [
+    "December 2026/January 2027",
+    "Spring 2027",
+    "December 2027/January 2028",
+    "Spring 2028",
+    "December 2028/January 2029",
+    "Spring 2029",
+    "December 2029/January 2030",
+    "Spring 2030",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "label:89b8f1c201c4ae54",
+   "company": "Belvedere Trading",
+   "question": "What year did you graduate high school?",
+   "options": [
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:05d04fe52ac9a6f9",
+   "company": "Belvedere Trading",
+   "question": "What date are you available to begin employment (Month and Year)",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:66ba0df9ad15cef0",
+   "company": "Mercedes-Benz",
+   "question": "What are your base annual salary expectations? (please provide a number or range)",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:057ae24dc16483bf",
+   "company": "Prosper Funding",
+   "question": "How did you hear about this job?",
+   "options": [
+    "Blind",
+    "College/University posting",
+    "Glassdoor",
+    "Indeed",
+    "LinkedIn",
+    "NSBE email or site",
+    "Otta",
+    "Prosper Site",
+    "Referral",
+    "Wellfound",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "job:956dcabcc4f712c4",
+   "company": "Hatch IT",
+   "question": "How did you hear about this opportunity?",
+   "options": [
+    "LinkedIn",
+    "Message from Recruiter",
+    "Social media post",
+    "Newsletter",
+    "Other"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "label:6aaed23c880dfbfa",
+   "company": "Hatch IT",
+   "question": "How many years of professional work experience do you have?",
+   "options": [
+    "entry level",
+    "0-2",
+    "2-4",
+    "4-6",
+    "7+"
+   ],
+   "answer": "2-4",
+   "facts": [
+    "years experience: 3 years"
+   ]
+  },
+  {
+   "key": "job:644ab58c395cf1a4",
+   "company": "Seer Interactive",
+   "question": "Earliest start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:3f1b87fa2f0089da",
+   "company": "Seer Interactive",
+   "question": "Are you based in the United States? [We are only able to consider candidates based in the US with eligibility to work here.]",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "country: United States",
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "label:58d78d77d04aff90",
+   "company": "Stand Together",
+   "question": "Are you currently, or have you been in the last two years, employed by a federal, state, or local government or any related entity?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "label:dd976ade6ab900bf",
+   "company": "Toyota Research Institute",
+   "question": "What degree are you currently enrolled in?",
+   "options": [
+    "PhD",
+    "Master's",
+    "Bachelor's",
+    "Other"
+   ],
+   "answer": "Bachelor's",
+   "facts": [
+    "education level: bachelor"
+   ]
+  },
+  {
+   "key": "job:6f8771ba016958df",
+   "company": "Toyota Research Institute",
+   "question": "Are you a national, citizen, or permanent resident of Cuba, Iran, North Korea, Sudan, Syria, or Crimea (region of Ukraine)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "label:3d1ed184e5df4908",
+   "company": "Magnet Forensics",
+   "question": "Please enter the country you are legally registered to work in.",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:04fc188b8c4e7c34",
+   "company": "Magnet Forensics",
+   "question": "What is your notice period to begin working with Magnet Forensics?",
+   "options": [
+    "Available Immediately",
+    "1-2 weeks",
+    "2-4 weeks",
+    "4-6 weeks",
+    "6-8 weeks",
+    "8+ weeks"
+   ],
+   "answer": "1-2 weeks",
+   "facts": [
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:c01c130941e10059",
+   "company": "Magnet Forensics",
+   "question": "What are your total annual salary expectations (OTE)?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:53c7e6fd2c483b01",
+   "company": "Ambi Robotics",
+   "question": "What is your anticipated start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:de027328e3aab6c5",
+   "company": "WisdomTree",
+   "question": "What are your compensation expectations for this role, including your desired annual base salary and any bonus or incentive expectations?",
+   "options": [],
+   "answer": "95000 USD ($) base",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:b4c58b80d82d8035",
+   "company": "Hermeus",
+   "question": "Select One",
+   "options": [
+    "Company Website",
+    "LinkedIn",
+    "YouTube",
+    "X (formerly Twitter)",
+    "University – Career Services",
+    "Facebook",
+    "Glassdoor",
+    "Indeed",
+    "Built In",
+    "Event – Recruiting",
+    "Event – Industry",
+    "Referral",
+    "Recruiter Outreach",
+    "Embry-Riddle Fall 2026 Career EXPO"
+   ],
+   "answer": "Company Website",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:a0e8d41573a784e9",
+   "company": "Trading212",
+   "question": "What are your salary expectations? (gross annual)",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:65a8c166971025e9",
+   "company": "Atominvest",
+   "question": "Do you require visa sponsorship now or in the future?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:815c378eb469a1e4",
+   "company": "Atominvest",
+   "question": "What is your current total compensation?",
+   "options": [],
+   "answer": "85000",
+   "facts": [
+    "current compensation: 85000"
+   ]
+  },
+  {
+   "key": "label:9961dba7cb00fd62",
+   "company": "Sweatpals",
+   "question": "What country?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "job:c83aa495b2447185",
+   "company": "TradingHub",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:41dc48d1b8208ada",
+   "company": "TradingHub",
+   "question": "Do you have the right to work in the UK without requiring a visa sponsor now or in the future?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:3b0280e59b388740",
+   "company": "Alta Ares",
+   "question": "Compensation Expectations",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:4e6aae7e8d4eb1ad",
+   "company": "Alta Ares",
+   "question": "Do you have the appropriate work authorization for this role?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "label:9f44b8534ddc8907",
+   "company": "Teamworks",
+   "question": "Full Name (Preferred)",
+   "options": [],
+   "answer": "Test",
+   "facts": [
+    "preferred name: Test"
+   ]
+  },
+  {
+   "key": "label:3c8579e429a406c5",
+   "company": "Collaborative Robotics",
+   "question": "Have you earned a Bachelor's degree in one of the fields mentioned above, as listed in the Minimum Requirements section?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "education level: bachelor"
+   ]
+  },
+  {
+   "key": "job:c5a11c5cc1f5a0b1",
+   "company": "KAYAK",
+   "question": "What are your salary expectations for this position?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:771d6c1a08ce5ade",
+   "company": "TRM Labs",
+   "question": "Have you heard of TRM before applying?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "how heard: Company website"
+   ]
+  }
+ ],
+ "g": [
+  {
+   "key": "job:efe426055805f267",
+   "company": "OpenTable",
+   "question": "Will you now or in the future require sponsorship for employment?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:34b312523ee553c2",
+   "company": "Think Academy International Education",
+   "question": "Can you use Japanese as a working language (no teaching in a language other than Japanese)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "job:8ba34f4f6f1a1acf",
+   "company": "Inizio",
+   "question": "How did you hear about this job?",
+   "options": [
+    "LinkedIn",
+    "Glassdoor",
+    "Indeed",
+    "Other Online Job Board",
+    "Contacted by a Recruiter",
+    "Referral",
+    "Job Fair"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person",
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:3df5757f1a344283",
+   "company": "Inizio",
+   "question": "Are you legally eligible/authorized to work in the country that you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:fdd41a065aab959b",
+   "company": "Inizio",
+   "question": "Will you now or in the future require visa sponsorship for employment?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:72c65e1efded5618",
+   "company": "Schonfeld",
+   "question": "What degree are you currently pursuing?",
+   "options": [
+    "Bachelor's",
+    "Master's",
+    "PhD",
+    "Other"
+   ],
+   "answer": "Bachelor's",
+   "facts": [
+    "education level: bachelor",
+    "B.S. Statistics, Example State University, graduated May 2022, GPA 3.6"
+   ]
+  },
+  {
+   "key": "label:f8657abb0e4ca46d",
+   "company": "NMI",
+   "question": "What is your desired salary range and additional compensation requirements for this role?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:81c62e59a3573850",
+   "company": "Charles Schwab",
+   "question": "Please note your potential starting date.",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:fd94bf3ae5c38394",
+   "company": "Charles Schwab",
+   "question": "What is your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:80c463f96d04043b",
+   "company": "Gallup",
+   "question": "Have you completed an application for any other opportunities at Gallup within the last 2 years?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "applied before: No"
+   ]
+  },
+  {
+   "key": "label:17216dce94834503",
+   "company": "Gallup",
+   "question": "What are your total annual salary requirements, including bonus or other forms of compensation? Please include a specific number or range.",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:26a45675b5bf2ebd",
+   "company": "Gallup",
+   "question": "Are you a U.S. federal government, foreign government, or United Nations employee, or have you worked for the U.S. federal government, foreign government, or United Nations in the past 24 months?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "job:feb9144f219d0744",
+   "company": "pagerduty",
+   "question": "Do you now, or in the future, require sponsorship to work for PagerDuty?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:214560683e73facf",
+   "company": "Fanatics",
+   "question": "Are you bound by any restrictive covenants (non-compete, non-solicitation)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:e291b982350e1102",
+   "company": "ITS Logistics",
+   "question": "Do you have a friend, roommate, relative (including step and in-law), or significant other who works at ITS Logistics?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "relative here: No"
+   ]
+  },
+  {
+   "key": "label:63e7ed3fee5d4157",
+   "company": "Blend",
+   "question": "Can you travel 40% of the time?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:fa51f387c5f4e259",
+   "company": "Blend",
+   "question": "Do you or any of your immediate family members or close personal friends work (or have worked) for a government agency or significant commercial partners of Blend Labs or its subsidiaries?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "government employment: No"
+   ]
+  },
+  {
+   "key": "label:a91ae7c45cd6cabb",
+   "company": "LG Electronics",
+   "question": "In what city/town do you currently reside?",
+   "options": [],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "label:af3d19dd3aef8e99",
+   "company": "World Wide Professional Solutions",
+   "question": "Please provide your Home Address: City, State and Zip Code",
+   "options": [],
+   "answer": "1 Example St, Chicago, IL 60601",
+   "facts": [
+    "full address: 1 Example St, Chicago, IL 60601"
+   ]
+  },
+  {
+   "key": "job:29092168fafbe8e4",
+   "company": "World Wide Professional Solutions",
+   "question": "Do you have any of the following certifications? Check all that apply:",
+   "options": [
+    "CCEA",
+    "CCP",
+    "CEP",
+    "CCC",
+    "MRICS",
+    "Equivalent Registration/Certification",
+    "N/A"
+   ],
+   "answer": "N/A",
+   "facts": [
+    "certifications: None"
+   ]
+  },
+  {
+   "key": "job:fed65f9e8718105a",
+   "company": "PDI Technologies",
+   "question": "If yes, do you now or will you in the future require sponsorship for employment visa status (e.g., H-1B visa, transfer, etc.) to work with our company?",
+   "options": [
+    "Yes, I will require sponsorship in the future.",
+    "No, I will not require sponsorship at any time in the future."
+   ],
+   "answer": "No, I will not require sponsorship at any time in the future.",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:003c7cda137fb694",
+   "company": "PDI Technologies",
+   "question": "What is your target total compensation (OTE)? Please include: Your desired base salary range (annual, in USD — e.g., $XX,000–$XXX,000).",
+   "options": [],
+   "answer": "$95,000–$95,000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:1d1c0c82e5fa97fc",
+   "company": "Match Group",
+   "question": "How did you apply for this job?",
+   "options": [
+    "Referral",
+    "LinkedIn",
+    "Social Media (X, Instagram, Facebook, etc.)",
+    "Job Board (Lapras, Indeed, Wantedly, etc.)",
+    "Pairs Engineering Blog",
+    "Pairs Career Site",
+    "Careers at Match Group",
+    "Recruiting Agency",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "job:994190bdbde35278",
+   "company": "Kabam",
+   "question": "How did you hear about this opportunity?",
+   "options": [
+    "Kabam career page (kabam.com)",
+    "Referral from a Kabam employee (Please specify their name in the \"Other\" field below)",
+    "Third party career site (LinkedIn, Indeed, Ziprecruiter, Glassdoor, etc.)",
+    "Social media (Facebook, Instagram, Twitter, Reddit, etc.)",
+    "Web search",
+    "Recruiting agency",
+    "School job board",
+    "Job Fair / Event",
+    "Kabam's Content Creator Program",
+    "Recommendation from someone (Please specify their name in the \"Other\" field below)",
+    "Other"
+   ],
+   "answer": "Other",
+   "facts": [
+    "how heard: Company website"
+   ]
+  },
+  {
+   "key": "label:0716647707a75cc4",
+   "company": "Nexus Engineering Group",
+   "question": "What is the name of your College or University?",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "job:f03f5eaa090627cf",
+   "company": "PointClickCare",
+   "question": "Would you require future sponsorship in order to work for our company in Canada?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:41d9ffdce84fdf41",
+   "company": "Protective Life",
+   "question": "What is your target compensation (salary and bonus)?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:0e784aca28b832b4",
+   "company": "Global Lending Services",
+   "question": "Are you subject to the terms of any legal agreement that may impact employment such as a Non-Compete or Confidentiality Agreement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:d9eee835a7e72e43",
+   "company": "certik",
+   "question": "What is your expected annual base salary? Please specify the currency.",
+   "options": [],
+   "answer": "USD 95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "label:9a5fe75dae010b4f",
+   "company": "Allegiant Air",
+   "question": "What is your Legal First Name?",
+   "options": [],
+   "answer": "Test Person",
+   "facts": [
+    "legal name: Test Person"
+   ]
+  },
+  {
+   "key": "label:c74ea5dca155bed3",
+   "company": "Allegiant Air",
+   "question": "What is your Legal Last Name?",
+   "options": [],
+   "answer": "Test Person",
+   "facts": [
+    "legal name: Test Person"
+   ]
+  },
+  {
+   "key": "label:a7aa72740a7373f3",
+   "company": "Fluxergy",
+   "question": "Are you comfortable with the salary range listed within the job description?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:ab4c387332faaabd",
+   "company": "Deepgram",
+   "question": "Are you legally authorized to work in the country where this role is located?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:2ca0d2eab7569816",
+   "company": "Deepgram",
+   "question": "Will you now or in the future require visa sponsorship to work in the country where this role is located?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:bf2aca57da05dbe7",
+   "company": "Miovision",
+   "question": "What is your base salary range expectation?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:d2d6a7a7c17999a2",
+   "company": "Miovision",
+   "question": "Will you now or in the future require sponsorship for immigration?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:3c2458d342f9e0eb",
+   "company": "UnitX",
+   "question": "Are you comfortable with traveling as needed? (both domestic and international)",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:49e3e773628dc30c",
+   "company": "UnitX",
+   "question": "What is your base salary expecation? (please provide a range)",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:44e1059240a1c837",
+   "company": "Quantexa",
+   "question": "Are you legally authorized to work in the location of the role?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:ef2e1f9616b1689b",
+   "company": "Quantexa",
+   "question": "Will you now or in the future require sponsorship for employment visa status within the location of the role?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:40fb23d84fa8380c",
+   "company": "Quantexa",
+   "question": "What are you salary expectations?",
+   "options": [],
+   "answer": "95000 USD ($)",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:d6c17e8778399da3",
+   "company": "Quantexa",
+   "question": "If applicable, what is your current notice period?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "notice period: 2 weeks",
+    "start date: 2 weeks"
+   ]
+  }
+ ],
+ "h": [
+  {
+   "key": "label:38bb13281b77bc5c",
+   "company": "IonQ",
+   "question": "What is your level of English?",
+   "options": [],
+   "answer": "English",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "job:1af99932fed7b34e",
+   "company": "Fospha",
+   "question": "Are you legally authorised to work permanently in the UK? (without a visa or sponsorship)",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States",
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:8c14088af89bd29f",
+   "company": "Fospha",
+   "question": "What is your earliest available start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "job:93f8c823e62a4fea",
+   "company": "Neros Technologies",
+   "question": "How did you hear about Neros?",
+   "options": [
+    "LinkedIn",
+    "Other Job Board",
+    "Search Engine",
+    "Social Media",
+    "Referral",
+    "News/Media Outlet",
+    "Recruiter Outreach",
+    "Event"
+   ],
+   "answer": "LinkedIn",
+   "facts": [
+    "linkedin: https://www.linkedin.com/in/test-person"
+   ]
+  },
+  {
+   "key": "label:fff7abfe63281865",
+   "company": "Netradyne",
+   "question": "Are you currently subject to any non-compete, non-solicitation, confidentiality, or other restrictive covenant agreement that may limit your ability to perform the duties of the position for which you are applying?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "job:e288714047926611",
+   "company": "Relay",
+   "question": "When is your desired start date?",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks",
+    "notice period: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:544bc70cafd921e9",
+   "company": "Voyager Technologies",
+   "question": "What is your Legal Name?",
+   "options": [],
+   "answer": "Test Person",
+   "facts": [
+    "legal name: Test Person"
+   ]
+  },
+  {
+   "key": "label:acff85343ffc1592",
+   "company": "Mechanical Licensing Collective",
+   "question": "Your current job title",
+   "options": [],
+   "answer": "Data Analyst",
+   "facts": [
+    "current title: Data Analyst"
+   ]
+  },
+  {
+   "key": "label:353c1d1a26f87854",
+   "company": "gusto",
+   "question": "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "former employers: Example Analytics; Sample Retail"
+   ]
+  },
+  {
+   "key": "label:5afd21fdd763bdae",
+   "company": "Astranis",
+   "question": "When are you able to join Astranis as an intern? (12 week minimum)",
+   "options": [],
+   "answer": "2 weeks",
+   "facts": [
+    "start date: 2 weeks"
+   ]
+  },
+  {
+   "key": "label:8dc5cdedb65e3100",
+   "company": "IonQ",
+   "question": "Have you performed thermal simulations and validated them with experimental data (e.g., lab testing) in a professional setting?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "Skill: A/B testing"
+   ]
+  },
+  {
+   "key": "job:403165e378294687",
+   "company": "IonQ",
+   "question": "Are you currently authorized to work on a full-time, unrestricted basis for any employer in the country where this position is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:51a87318fba35f20",
+   "company": "IonQ",
+   "question": "Do you now, or will you in the future, require visa sponsorship from an employer to work or remain legally in the country where this position is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:88fd695f2816d1fd",
+   "company": "Tebra",
+   "question": "Do you regularly use AI-assisted development tools (e.g., GitHub Copilot, ChatGPT, Cursor) to increase your coding, debugging, or research velocity? 1 = Yes, it is a core part of my workflow. 2 = I use them occasionally. 3 = No, I do not currently use AI tools for development.",
+   "options": [
+    "1",
+    "2",
+    "3"
+   ],
+   "answer": "2",
+   "facts": [
+    "Skill: Git"
+   ]
+  },
+  {
+   "key": "job:53915b65fe394073",
+   "company": "Speechmatics",
+   "question": "Are you authorised to work in the country where this job is located?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "label:d2472b6fbf224e29",
+   "company": "Speechmatics",
+   "question": "Are you currently a Speechmatics employee?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "current employer: Example Analytics"
+   ]
+  },
+  {
+   "key": "label:556a7a6c7fbbb87d",
+   "company": "OpenEye",
+   "question": "Are you currently subject to any restrictive covenant, non-compete, non-solicit, confidentiality or any other agreement that may limit or restrict your scope and ability to work for Alarm.com (or its subsidiaries)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "non compete: No"
+   ]
+  },
+  {
+   "key": "label:bd891f9b97b42bbe",
+   "company": "Latitude AI",
+   "question": "Are you presently authorized under U.S. immigration laws to work in the United States?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "Yes",
+   "facts": [
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:77430d27b8a7deaa",
+   "company": "Very Good Security",
+   "question": "Will you now or in the future require employer sponsorship to work in the United States, Greece or Canada (e.g., H-1B visa status)?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:a0f9c89e68ee6525",
+   "company": "Perr&Knight",
+   "question": "How many years of experience do you have with Microsoft Excel?",
+   "options": [
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "More than 5 years"
+   ],
+   "answer": "1-3 years",
+   "facts": [
+    "years experience: 3 years",
+    "Skill: Excel",
+    "Data Analyst at Example Analytics, Chicago, IL, June 2023 to present: built SQL and Python reporting pipelines and Looker dashboards for the sales team; ran A/B test analysis for pricing pages; cut weekly reporting from 6 hours to 1"
+   ]
+  },
+  {
+   "key": "label:cf9150f834d564c9",
+   "company": "CrowdGen by Appen",
+   "question": "In which country were you born?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States",
+    "citizenship: United States"
+   ]
+  },
+  {
+   "key": "label:213b30bcc798277d",
+   "company": "CrowdGen by Appen",
+   "question": "Primary Language Spoken",
+   "options": [],
+   "answer": "English",
+   "facts": [
+    "languages: English"
+   ]
+  },
+  {
+   "key": "job:7bfb9b01ec2089c0",
+   "company": "GeoComply",
+   "question": "What is your salary expectation?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:02560b8075cfd4a8",
+   "company": "GoMaterials",
+   "question": "What is your expected or actual graduation date?",
+   "options": [],
+   "answer": "05/2022",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:21ea03aa15442d92",
+   "company": "GoMaterials",
+   "question": "Which university are you attending / graduated from?",
+   "options": [],
+   "answer": "Example State University",
+   "facts": [
+    "school: Example State University"
+   ]
+  },
+  {
+   "key": "job:de5baed4b992e86d",
+   "company": "GoMaterials",
+   "question": "This position is funded through a government program that requires the successful candidate to be a Canadian citizen or permanent resident. Do you meet this eligibility requirement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "answer": "No",
+   "facts": [
+    "citizenship: United States",
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:d441a03cb40ea55c",
+   "company": "Immiland Canada",
+   "question": "What is your Country of Residency?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States",
+    "full address: 1 Example St, Chicago, IL 60601"
+   ]
+  },
+  {
+   "key": "label:d87c86ff8732c564",
+   "company": "Immiland Canada",
+   "question": "What is your hourly salary expectation?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:fe7d9462d6035516",
+   "company": "Matillion",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:e1f407536c20421b",
+   "company": "Provectus",
+   "question": "What is your legal status in USA? Do you have citizenship / visa / residence or work permit? What document exactly do you have?",
+   "options": [],
+   "answer": "I am a United States citizen and authorized to work in the U.S.; I have work authorization.",
+   "facts": [
+    "citizenship: United States",
+    "work authorization: Yes",
+    "us person: Yes"
+   ]
+  },
+  {
+   "key": "label:6d7abd9bc4a7fee3",
+   "company": "Provectus",
+   "question": "What is your country?",
+   "options": [],
+   "answer": "United States",
+   "facts": [
+    "country: United States"
+   ]
+  },
+  {
+   "key": "label:3fd8204b37d5c0ef",
+   "company": "Provectus",
+   "question": "What is your state/ province?",
+   "options": [],
+   "answer": "IL",
+   "facts": [
+    "state: IL"
+   ]
+  },
+  {
+   "key": "label:aec3d711355dd6a1",
+   "company": "Provectus",
+   "question": "What is your city of residence?",
+   "options": [],
+   "answer": "Chicago",
+   "facts": [
+    "city: Chicago"
+   ]
+  },
+  {
+   "key": "job:a5ddfad342edfb66",
+   "company": "Smarkets",
+   "question": "Salary Expectation",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "label:84e71ef354f6fe2a",
+   "company": "Flock Safety",
+   "question": "This role requires the use of ladders and bucket trucks with manufacturer-specified weight limits (300 lbs for ladder, 350 lbs for bucket trucks), which includes the weight of the employee plus any tools or equipment being carried. Are you able to safely perform the essential duties of this position",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "essential functions: Yes"
+   ]
+  },
+  {
+   "key": "label:edc8335051c43733",
+   "company": "Flock Safety",
+   "question": "This position requires working outdoors in varying weather conditions, which may range from -20F to 120F, depending on location and season. Are you able to perform the essential duties of the role under these environmental conditions?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "essential functions: Yes"
+   ]
+  },
+  {
+   "key": "label:f173d252dca269df",
+   "company": "Flock Safety",
+   "question": "This position requires at least 25% travel, which may include overnight stays and extended periods away from home. Are you able and willing to meet this requirement?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "travel ok: Yes"
+   ]
+  },
+  {
+   "key": "label:a898228148cd35ac",
+   "company": "SentiLink",
+   "question": "What is your most recent job title?",
+   "options": [],
+   "answer": "Data Analyst",
+   "facts": [
+    "current title: Data Analyst"
+   ]
+  },
+  {
+   "key": "job:1008c7ab0283c4bc",
+   "company": "Eight Sleep",
+   "question": "If you replied Yes above, please detail your current or future sponsorship needs.",
+   "options": [],
+   "answer": "n/a",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:d5a8da41bbd008bd",
+   "company": "Archy",
+   "question": "What is your expected base salary range?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000"
+   ]
+  },
+  {
+   "key": "job:aa0d6f11166eec2f",
+   "company": "Anthelion Capital",
+   "question": "Are you interested in full-time employment opportunities with us upon graduation?",
+   "options": [],
+   "answer": "n/a",
+   "facts": [
+    "graduation date: 05/2022"
+   ]
+  },
+  {
+   "key": "job:0210f2efbe9e7dc3",
+   "company": "Lightspark",
+   "question": "Are you legally authorized to work for Lightspark in Estonia (e.g., citizenship, EU residence, or valid work permit)?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "us person: Yes",
+    "citizenship: United States",
+    "work authorization: Yes"
+   ]
+  },
+  {
+   "key": "job:42a77f1dc312b226",
+   "company": "Lightspark",
+   "question": "Will you now, or in the future, require Lightspark to serve as a sponsor for EU employment?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "job:21e6f31d3b9381b4",
+   "company": "HCompany",
+   "question": "Do you require visa sponsorship for the location of the role you are applying for?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  },
+  {
+   "key": "label:f749dcace88c2d8e",
+   "company": "Faculte",
+   "question": "Are you able to start full-time employment after finishing the fellowship?",
+   "options": [],
+   "answer": "Yes",
+   "facts": [
+    "start date: 2 weeks",
+    "employment type: Full-time"
+   ]
+  },
+  {
+   "key": "job:7fe08f82cfdb8f63",
+   "company": "Trainline",
+   "question": "What are your salary expectations?",
+   "options": [],
+   "answer": "95000",
+   "facts": [
+    "salary expectation: 95000",
+    "salary currency: USD ($)"
+   ]
+  },
+  {
+   "key": "job:a10f4aa3d873fed4",
+   "company": "Trainline",
+   "question": "Do you require sponsorship now or in the future to work in the job's location?",
+   "options": [],
+   "answer": "No",
+   "facts": [
+    "sponsorship: No"
+   ]
+  }
+ ]
+}

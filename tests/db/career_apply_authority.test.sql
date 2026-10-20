@@ -134,9 +134,90 @@ select t.ok(pg_temp.batch_turn('k13',12,12,'batch-TEST-fence-d') is null and pg_
 select t.ok(pg_temp.turn('k14',13,13,'{"paused":true}') is null and pg_temp.bstate('batch-TEST-fence-d')='cancelled','a pause cancels it');
 select t.ok(pg_temp.turn('k15',14,14,'{"paused":false}') is null and pg_temp.bstate('batch-TEST-fence-d')='cancelled','lifting the pause does not revive it');
 
--- An erase cancels a queued batch and drops what it carried.
-select t.ok(pg_temp.batch_turn('k16',15,15,'batch-TEST-fence-e') is null and pg_temp.bstate('batch-TEST-fence-e')='queued','a batch before an erase');
-select t.ok(pg_temp.turn('k17',16,16,'{"erase":true}') is null,'an erase');
+-- Browser tasks: the same fault and the same fence. A task is minted through the real career_task_turn_commit_v1 (which
+-- runs the real career_host_commit) and stamped at the version that commit creates.
+create or replace function pg_temp.task_turn(p_key text, p_rev bigint, p_av bigint, p_name text) returns text language plpgsql as $$
+declare u text:='00000000-0000-4000-8000-000000000921'; th text:='00000000-0000-4000-8000-0000000009a1'; i jsonb;
+ posting jsonb:=jsonb_build_object('canonicalKey','test:fence-task','url','https://jobs.lever.co/test/fence-task');
+begin
+ i:=jsonb_build_object('version','career_task_intent/v1','intent_id',encode(sha256(convert_to(p_name,'UTF8')),'hex'),'user_id',u,
+  'thread_id',th,'turn_key',p_key,'request_hash',repeat('a',64),'action','prepare','task_id',null,'event_id',p_name,
+  'artifact_id','test-resume','resume_sha256',repeat('c',64),'destination',posting->>'url','authority_account_version',p_av+1,'privacy_epoch',0);
+ return public.career_task_turn_commit_v1(jsonb_build_object('p_user',u,'p_thread',th,'p_key',p_key,'p_hash',repeat('a',64),
+  'p_revision',p_rev,'p_account_version',p_av,
+  'p_snapshot',jsonb_build_object('scope',jsonb_build_object('userId',u),'stores',jsonb_build_object('posting',posting)),'p_patch','{}'::jsonb,
+  'p_input','TEST task '||p_key,'p_response',jsonb_build_object('reply','TEST reply','thread_id',th,
+   'task',jsonb_build_object('intent_id',i->>'intent_id','userId',u,'bindings',i))),i)->>'error';
+end $$;
+create or replace function pg_temp.tstate(text) returns text language sql as $$
+ select state from public.career_task_intents_v1 where user_id='00000000-0000-4000-8000-000000000921' and intent_id=pg_temp.bid($1) $$;
+create or replace function pg_temp.tpending(text) returns boolean language sql as $$
+ select exists(select 1 from jsonb_array_elements(public.career_task_pending_v1()->'intents') x where x->>'intentId'=pg_temp.bid($1)) $$;
+create or replace function pg_temp.tclaim(text) returns jsonb language sql as $$
+ select public.career_task_claim_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid($1),md5($1),null) $$;
+create or replace function pg_temp.tbegin(text, uuid) returns jsonb language sql as $$
+ select public.career_task_begin_effect_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid($1),$2,md5($1),'open',
+  encode(sha256(convert_to('effect:'||$1,'UTF8')),'hex'),
+  (select binding from public.career_task_intents_v1 where user_id='00000000-0000-4000-8000-000000000921' and intent_id=pg_temp.bid($1))) $$;
+create temp table tg(name text primary key, lease uuid, token uuid);
+
+select t.ok(pg_temp.task_turn('k16',15,15,'task-TEST-fence-a') is null and pg_temp.tstate('task-TEST-fence-a')='queued','a browser task is queued');
+select t.ok(pg_temp.turn('k17',16,16,'{}') is null,'an ordinary turn after the task');
+select t.ok(pg_temp.tstate('task-TEST-fence-a')='queued','the task is still queued after an ordinary turn');
+select t.ok(pg_temp.tpending('task-TEST-fence-a'),'the worker still sees the task pending');
+insert into tg(name,lease) select 'a',(pg_temp.tclaim('task-TEST-fence-a')->>'leaseToken')::uuid;
+select t.ok((select lease is not null from tg where name='a'),'the worker still claims the task');
+select t.ok(pg_temp.turn('k18',17,17,'{}') is null and pg_temp.tstate('task-TEST-fence-a')='claimed','a running task stays claimed through an ordinary turn');
+update tg set token=(pg_temp.tbegin('task-TEST-fence-a',lease)->>'token')::uuid where name='a';
+select t.ok((select token is not null from tg where name='a'),'and can still begin an effect');
+select t.ok(pg_temp.turn('k19',18,18,'{}') is null,'another ordinary turn between reserve and execution');
+select t.ok((public.career_task_consume_effect_v1('00000000-0000-4000-8000-000000000921',(select token from tg where name='a'))->>'consumed')='true',
+ 'the reserved effect is still consumable');
+select public.career_task_settle_effect_v1('00000000-0000-4000-8000-000000000921',(select token from tg where name='a'),'completed',null,null);
+select t.ok((public.career_task_finish_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('task-TEST-fence-a'),(select lease from tg where name='a'),
+ jsonb_build_object('version','career_task/v1','id',md5('task-TEST-fence-a'),'userId','00000000-0000-4000-8000-000000000921','status','review_ready')))->>'state'='completed',
+ 'and the task finishes completed');
+
+-- A stated-facts change still revokes: a running task with a started effect becomes uncertain, a queued one is cancelled,
+-- and every task function refuses a claim stamped before the change.
+select t.ok(pg_temp.task_turn('k20',19,19,'task-TEST-fence-b') is null,'a second task');
+insert into tg(name,lease) select 'b',(pg_temp.tclaim('task-TEST-fence-b')->>'leaseToken')::uuid;
+update tg set token=(pg_temp.tbegin('task-TEST-fence-b',lease)->>'token')::uuid where name='b';
+select public.career_task_consume_effect_v1('00000000-0000-4000-8000-000000000921',(select token from tg where name='b'));
+select t.ok(pg_temp.task_turn('k21',20,20,'task-TEST-fence-c') is null and pg_temp.tstate('task-TEST-fence-c')='queued','a third task, queued');
+select t.ok(pg_temp.turn('k22',21,21,jsonb_build_object('stated_facts',jsonb_build_object('v',1,'facts',jsonb_build_array(
+ jsonb_build_object('kind','school','value','TEST Institute','said','I go to TEST Institute','at',now()))))) is null,'a turn that changes a stated fact');
+select t.ok(pg_temp.tstate('task-TEST-fence-b')='uncertain' and pg_temp.tstate('task-TEST-fence-c')='cancelled',
+ 'the facts change makes the running task uncertain and cancels the queued one');
+-- An intent stamped before the change, still claimed and holding a reserved effect (as if the hook had not run).
+insert into public.career_task_intents_v1(user_id,intent_id,thread_id,turn_key,request_hash,event_hash,binding,authority_account_version,privacy_epoch,state,task_id,lease_token)
+values('00000000-0000-4000-8000-000000000921',pg_temp.bid('task-TEST-fence-old'),'00000000-0000-4000-8000-0000000009a1','k-task-old',repeat('a',64),
+ repeat('d',64),jsonb_build_object('action','prepare'),21,0,'claimed',md5('task-TEST-fence-old'),'00000000-0000-4000-8000-00000000f0a1');
+insert into public.career_task_effects_v1(user_id,intent_id,effect_key,task_id,operation,state,token)
+values('00000000-0000-4000-8000-000000000921',pg_temp.bid('task-TEST-fence-old'),repeat('e',64),md5('task-TEST-fence-old'),'open','reserved','00000000-0000-4000-8000-00000000f0a2');
+select t.must_fail($$select pg_temp.tclaim('task-TEST-fence-old')$$,'task authority revoked','a task stamped before the facts changed is not claimed');
+select t.must_fail($$select pg_temp.tbegin('task-TEST-fence-old','00000000-0000-4000-8000-00000000f0a1')$$,'task authority revoked','nor begins an effect');
+select t.must_fail($$select public.career_task_consume_effect_v1('00000000-0000-4000-8000-000000000921','00000000-0000-4000-8000-00000000f0a2')$$,
+ 'task effect revoked','nor consumes one');
+select t.ok((public.career_task_finish_v1('00000000-0000-4000-8000-000000000921',pg_temp.bid('task-TEST-fence-old'),'00000000-0000-4000-8000-00000000f0a1',
+ jsonb_build_object('version','career_task/v1','id',md5('task-TEST-fence-old'),'userId','00000000-0000-4000-8000-000000000921')))->>'state'='revoked','nor finishes');
+update public.career_task_intents_v1 set state='queued',lease_token=null where intent_id=pg_temp.bid('task-TEST-fence-old');
+select t.ok(not pg_temp.tpending('task-TEST-fence-old'),'nor is pending');
+delete from public.career_task_effects_v1 where intent_id=pg_temp.bid('task-TEST-fence-old');
+delete from public.career_task_intents_v1 where intent_id=pg_temp.bid('task-TEST-fence-old');
+
+-- A pause cancels a queued task.
+select t.ok(pg_temp.task_turn('k23',22,22,'task-TEST-fence-d') is null and pg_temp.tstate('task-TEST-fence-d')='queued','a task before a pause');
+select t.ok(pg_temp.turn('k24',23,23,'{"paused":true}') is null and pg_temp.tstate('task-TEST-fence-d')='cancelled','a pause cancels the task');
+select t.ok(pg_temp.turn('k25',24,24,'{"paused":false}') is null and pg_temp.tstate('task-TEST-fence-d')='cancelled','lifting the pause does not revive it');
+
+-- An erase cancels a queued batch and a queued task, and drops what they carried.
+select t.ok(pg_temp.batch_turn('k26',25,25,'batch-TEST-fence-e') is null and pg_temp.bstate('batch-TEST-fence-e')='queued','a batch before an erase');
+select t.ok(pg_temp.task_turn('k27',26,26,'task-TEST-fence-e') is null and pg_temp.tstate('task-TEST-fence-e')='queued'
+ and pg_temp.bstate('batch-TEST-fence-e')='queued','a task before an erase (the batch still queued)');
+select t.ok(pg_temp.turn('k28',27,27,'{"erase":true}') is null,'an erase');
 select t.ok((select state='cancelled' and private_input is null from public.career_batch_intents_v1 where run_id='batch-TEST-fence-e'),
- 'the erase cancels it and drops its request');
+ 'the erase cancels the batch and drops its request');
+select t.ok((select state='cancelled' and private_input is null from public.career_task_intents_v1 where intent_id=pg_temp.bid('task-TEST-fence-e')),
+ 'the erase cancels the task and drops its request');
 rollback;

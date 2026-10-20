@@ -23,6 +23,10 @@
 --    a pause, an epoch change, or authority_version moving past the version the batch was stamped with (the version its
 --    own commit created); career_batch_pending_v1 and career_batch_claim_v1 apply the same rule. The advisory lock and
 --    the erase purge are unchanged.
+-- 5. Task intents (browser tasks) had the same equality in their account hook, claim, effect begin and consume, finish and
+--    pending list; each now uses the rule in 4. A queued task survives an ordinary turn, and a running one keeps its
+--    lease and can still begin and consume its effects. A pause, an erase, an epoch change or an authority change still
+--    cancels or revokes it (a started effect still makes it 'uncertain').
 -- Follow-up (not here): when the agent's profile facts move from the thread to the person (audit F3), their changes join
 -- the authority keys.
 
@@ -112,3 +116,76 @@ begin
  update career_batch_intents_v1 set state='claimed',lease_token=gen_random_uuid(),expires_at=now()+interval '60 minutes',updated_at=now() where user_id=p_user and intent_id=p_intent returning * into i;
  return jsonb_build_object('claimed',true,'intentId',p_intent,'userId',p_user,'leaseToken',i.lease_token,'binding',i.binding,'request',i.private_input);
 end $$;
+
+-- 5. Task intents: the same rule as 4, in each place the task stack checked the stamp against `version`. Each body is the
+--    original (20261015234000) with only that comparison changed.
+create or replace function public.career_task_control_hook_v1() returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
+declare u uuid; epoch_changed boolean;
+begin
+ if coalesce(new.key,old.key)<>'career:account' then return null;end if;
+ u:=coalesce(new.user_id,old.user_id);
+ perform pg_advisory_xact_lock(hashtextextended(u::text,0));
+ epoch_changed:=tg_op='DELETE' or (tg_op='UPDATE' and coalesce((new.value->>'epoch')::bigint,0)<>coalesce((old.value->>'epoch')::bigint,0));
+ update career_task_intents_v1 i set state=case when exists(select 1 from career_task_effects_v1 e where e.user_id=i.user_id and e.intent_id=i.intent_id and e.state in ('started','uncertain')) then 'uncertain' else 'cancelled' end,updated_at=now()
+  where i.user_id=u and i.state in ('queued','claimed','uncertain') and (tg_op='DELETE' or new.value->'paused'='true'::jsonb or coalesce((new.value->>'authority_version')::bigint,0)>i.authority_account_version or i.privacy_epoch is distinct from coalesce((new.value->>'epoch')::bigint,0));
+ if epoch_changed then
+  update career_task_intents_v1 set private_input=null,result=null,
+   binding=jsonb_build_object('version','career_task_intent/v1','intent_id',intent_id,'user_id',user_id,'action',binding->>'action','task_id',task_id,'request_hash',request_hash),updated_at=now() where user_id=u;
+ end if;
+ return null;
+end $$;
+create or replace function public.career_task_claim_v1(p_user uuid,p_intent text,p_task text,p_lease uuid default null) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare i career_task_intents_v1;a jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ select * into i from career_task_intents_v1 where user_id=p_user and intent_id=p_intent for update;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if i.intent_id is null then raise exception 'task intent missing';end if;
+ if a is null or i.privacy_epoch is distinct from coalesce((a->>'epoch')::bigint,0) or i.authority_account_version<coalesce((a->>'authority_version')::bigint,0) or i.authority_account_version>coalesce((a->>'version')::bigint,0) or (i.binding->>'action'<>'reconcile' and a->'paused'='true'::jsonb) or i.expires_at<=now() or i.state not in ('queued','claimed') then raise exception 'task authority revoked';end if;
+ if coalesce(p_task,'') !~ '^[a-f0-9]{32}$' or (i.task_id is not null and i.task_id<>p_task) then raise exception 'task binding mismatch';end if;
+ if i.state='claimed' and (p_lease is null or p_lease is distinct from i.lease_token) then raise exception 'task claim busy';end if;
+ update career_task_intents_v1 set task_id=p_task,state='claimed',lease_token=coalesce(lease_token,gen_random_uuid()),updated_at=now() where user_id=p_user and intent_id=p_intent returning * into i;
+ return jsonb_build_object('version','career_task_intent/v1','intentId',p_intent,'userId',p_user,'taskId',i.task_id,'accountVersion',i.authority_account_version,'privacyEpoch',i.privacy_epoch,'leaseToken',i.lease_token,'binding',i.binding,'request',i.private_input);
+end $$;
+create or replace function public.career_task_begin_effect_v1(p_user uuid,p_intent text,p_lease uuid,p_task text,p_operation text,p_effect_key text,p_bindings jsonb) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare i career_task_intents_v1;a jsonb;e career_task_effects_v1;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ select * into i from career_task_intents_v1 where user_id=p_user and intent_id=p_intent for update;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if a is null or i.intent_id is null or i.state<>'claimed' or p_lease is distinct from i.lease_token or p_task is distinct from i.task_id or i.expires_at<=now() or i.privacy_epoch is distinct from coalesce((a->>'epoch')::bigint,0) or i.authority_account_version<coalesce((a->>'authority_version')::bigint,0) or i.authority_account_version>coalesce((a->>'version')::bigint,0) or (p_operation<>'destination_readback' and a->'paused'='true'::jsonb) then raise exception 'task authority revoked';end if;
+ if coalesce(p_operation,'') not in ('open','form','fill','answers','atReview','armForSubmit','submit','submissionState','destination_readback') or (i.binding->>'action'='prepare' and p_operation in ('armForSubmit','submit')) or (i.binding->>'action'='reconcile' and p_operation<>'destination_readback') then raise exception 'task operation not authorized';end if;
+ if coalesce(p_effect_key,'') !~ '^[a-f0-9]{64}$' or p_bindings is distinct from i.binding then raise exception 'task effect binding mismatch';end if;
+ if p_operation<>'destination_readback' and exists(select 1 from career_task_effects_v1 where user_id=p_user and task_id=p_task and state in ('started','uncertain')) then raise exception 'task effect outcome uncertain';end if;
+ if i.spent+i.reserved>=i.budget_limit then raise exception 'task budget exhausted';end if;
+ insert into career_task_effects_v1(user_id,intent_id,effect_key,task_id,operation,state) values(p_user,p_intent,p_effect_key,p_task,p_operation,'reserved') returning * into e;
+ update career_task_intents_v1 set reserved=reserved+1 where user_id=p_user and intent_id=p_intent;
+ return jsonb_build_object('token',e.token,'effectKey',e.effect_key,'state',e.state);
+end $$;
+create or replace function public.career_task_consume_effect_v1(p_user uuid,p_token uuid) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare e career_task_effects_v1;i career_task_intents_v1;a jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ select * into e from career_task_effects_v1 where user_id=p_user and token=p_token for update;
+ select * into i from career_task_intents_v1 where user_id=p_user and intent_id=e.intent_id;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if e.token is null or e.state<>'reserved' or i.state<>'claimed' or i.expires_at<=now() or a is null or i.authority_account_version<coalesce((a->>'authority_version')::bigint,0) or i.authority_account_version>coalesce((a->>'version')::bigint,0) or i.privacy_epoch is distinct from coalesce((a->>'epoch')::bigint,0) or (e.operation<>'destination_readback' and a->'paused'='true'::jsonb) then raise exception 'task effect revoked or already consumed';end if;
+ update career_task_effects_v1 set state='started' where user_id=p_user and token=p_token;
+ return jsonb_build_object('consumed',true,'token',p_token);
+end $$;
+create or replace function public.career_task_finish_v1(p_user uuid,p_intent text,p_lease uuid,p_result jsonb) returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare i career_task_intents_v1;a jsonb;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ select * into i from career_task_intents_v1 where user_id=p_user and intent_id=p_intent for update;
+ select value into a from career_watch_kv where user_id=p_user and key='career:account';
+ if i.intent_id is null or p_lease is distinct from i.lease_token then raise exception 'task result owner mismatch';end if;
+ if a is null or i.privacy_epoch is distinct from coalesce((a->>'epoch')::bigint,0) or i.authority_account_version<coalesce((a->>'authority_version')::bigint,0) or i.authority_account_version>coalesce((a->>'version')::bigint,0) or i.state not in ('claimed','completed') then return jsonb_build_object('state','revoked');end if;
+ if p_result->>'userId' is distinct from p_user::text or p_result->>'id' is distinct from i.task_id or p_result->>'version' is distinct from 'career_task/v1' or octet_length(p_result::text)>1048576 then raise exception 'invalid owned task result';end if;
+ if i.state='completed' and i.result is distinct from p_result then raise exception 'task result receipt conflict';end if;
+ update career_task_intents_v1 set state='completed',result=p_result,updated_at=now() where user_id=p_user and intent_id=p_intent;
+ return jsonb_build_object('state','completed');
+end $$;
+create or replace function public.career_task_pending_v1() returns jsonb language sql security invoker set search_path=public,pg_temp as $$
+ select jsonb_build_object('intents',coalesce(jsonb_agg(jsonb_build_object('userId',i.user_id,'intentId',i.intent_id,'binding',i.binding,'request',i.private_input)),'[]'::jsonb)) from (select i.* from career_task_intents_v1 i join career_watch_kv a on a.user_id=i.user_id and a.key='career:account' where i.state='queued' and i.expires_at>now() and i.authority_account_version>=coalesce((a.value->>'authority_version')::bigint,0) and i.authority_account_version<=coalesce((a.value->>'version')::bigint,0) and i.privacy_epoch=coalesce((a.value->>'epoch')::bigint,0) and (i.binding->>'action'='reconcile' or a.value->'paused' is distinct from 'true'::jsonb) order by i.created_at limit 50)i;
+$$;

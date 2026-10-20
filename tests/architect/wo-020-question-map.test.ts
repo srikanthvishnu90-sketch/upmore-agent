@@ -25,7 +25,11 @@ Deno.test("WO-020/1 against the blind hand labels: precision >= 97%, fill precis
   const s = score(sample as any, labels as any);
   assert(s.precision >= 0.97, `precision ${s.precision}`);
   assert(s.fill_precision >= 0.99, `fill precision ${s.fill_precision}`);
-  assert(s.recall >= 0.95, `recall ${s.recall}`);
+  // WO-052: recall 0.95 -> 0.94. An independent review of every fill found six labeled topics whose fact does not
+  // answer the question as asked (an NDA beside a non-compete, a data-sharing consent, a drug screen beside a background
+  // check, "do you plan to work remotely?", an AI notetaker, citizenship with the date it was obtained, "are you aware
+  // this role requires relocating?"): each is now asked. Topic recall pays for zero wrong answers, by design.
+  assert(s.recall >= 0.94, `recall ${s.recall}`);
 });
 
 Deno.test("WO-020/2 coverage on both captured samples meets WO-020's bar, and the committed report is today's", () => {

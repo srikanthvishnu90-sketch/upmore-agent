@@ -57,7 +57,8 @@ Deno.test("the person's own facts still map where the box asks for them", () => 
 });
 
 Deno.test("the resume answer goes only into a file upload, never typed into a text box", () => {
-  eq(classifyField("Link to your resume or portfolio", "input_text"), "website"); // the person's own link, never the file's hash
+  // WO-052: a portfolio is the person's work samples, not their website: asked (never the file's hash either).
+  eq(classifyField("Link to your resume or portfolio", "input_text"), "unknown");
   eq(classifyField("Resume", "text"), "unknown");
   eq(classifyField("Paste your CV here", "textarea"), "unknown");
   eq(classifyField("Resume/CV", "input_file"), "resume");

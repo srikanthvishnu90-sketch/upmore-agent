@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci.json` (CI run 39230110480 of question-capture.
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 547/1011 (54%) | 5/99 (5%) |
-| + the 10 most common other questions, answered once | 575/1011 (57%) | 6/99 (6%) |
-| + the 20 most common | 589/1011 (58%) | 9/99 (9%) |
-| + the 40 most common | 609/1011 (60%) | 9/99 (9%) |
+| The standard facts only | 542/1011 (54%) | 5/99 (5%) |
+| + the 10 most common other questions, answered once | 570/1011 (56%) | 6/99 (6%) |
+| + the 20 most common | 584/1011 (58%) | 9/99 (9%) |
+| + the 40 most common | 604/1011 (60%) | 9/99 (9%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
 | greenhouse | 40 | 512 | 258 (50%) | 1 | 2 |
-| lever | 30 | 286 | 140 (49%) | 3 | 5 |
-| ashby | 29 | 213 | 149 (70%) | 1 | 2 |
+| lever | 30 | 286 | 136 (48%) | 3 | 5 |
+| ashby | 29 | 213 | 148 (69%) | 1 | 2 |
 
-Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 41/99, at most 5 71/99, most 22.
+Questions left to ask per posting with the standard facts: median 3, none 5/99, at most 2 41/99, at most 5 72/99, most 22.
 
 ## The most common questions the standard facts do not answer
 
@@ -39,6 +39,7 @@ Questions left to ask per posting with the standard facts: median 3, none 5/99, 
 | 4 days in office expectation | 1 |
 | 4a. Have you attended a Woven by Toyota-sponsored event in the past? / ウーブン・バイ・トヨタが主催するイベントに参加されたことはありますか？ | 1 |
 | 5. Have you previously worked for, or is currently working, as an employee, vendor (gyomu-itaku), temporary staff (haken), etc., at Woven by Toyota? / 過去に、または現在 | 1 |
+| A design portfolio is required as part of the application process. Please provide a link to your portfolio below, along with a password if applicable, or upload | 1 |
 | ACKNOWLEDGMENT OF RECEIPT AND REVIEW
 
 I acknowledge that I received a copy of Axon’s Prohibited Possessor Questionnaire (“Questionnaire”) and that I read it, un | 1 |
@@ -63,6 +64,5 @@ You must be at least 18 years of age or older to work for this employer. | 1 |
 | Are you a participant of the following scholarship, fellowships, or initiatives we support? | 1 |
 | Are you a Singapore citizen? | 1 |
 | Are you a Singapore permanent resident? | 1 |
-| Are you a transitioning service member? | 1 |
 
-Unique unanswered wordings: 442; asked on only one posting: 431.
+Unique unanswered wordings: 447; asked on only one posting: 436.

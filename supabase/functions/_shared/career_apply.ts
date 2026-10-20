@@ -7,7 +7,7 @@
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
 import { answerKey, mapQuestion, norm as normQuestion } from "./question_map.ts";
-import { chooseOption, levelOption, yesNoFromFact, yesNoOf } from "./answer_options.ts";
+import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
 export interface Observation {
@@ -71,7 +71,7 @@ export function admitApplication(log: LogRow[], a: { user_id: string; job_id: st
 export interface FormSection { kind: string; row: number; part: string; anchor?: string; format?: string }
 export interface FormField {
   name: string; label: string; required: boolean; type: string; options: { label: string; value: string }[];
-  section?: FormSection; dial?: string; personal?: boolean;
+  section?: FormSection; dial?: string; personal?: boolean; widget?: string;
 }
 export function greenhouseQuestions(job: any): FormField[] {
   const out: FormField[] = [];
@@ -85,7 +85,7 @@ export function greenhouseQuestions(job: any): FormField[] {
 }
 
 const KEYS: [RegExp, string][] = [
-  [/first\s*(&|and)\s*last\s*name/i, "full_name"],
+  [/first\s*(name\s*)?(&|and)\s*last\s*name/i, "full_name"],
   [/^first\s*name|^given\s*name|^preferred\s*first/i, "first_name"],
   [/^last\s*name|^family\s*name|^surname/i, "last_name"],
   [/^(full\s*)?name$|^legal\s*name/i, "full_name"],
@@ -93,10 +93,12 @@ const KEYS: [RegExp, string][] = [
   [/\b(tele)?phone\b|\bcell\b|^mobile\b(?!\s*(app|development|device|engineer))|mobile\s*(phone|number)/i, "phone"],
   [/resume|\bcv\b|curriculum/i, "resume"],
   [/cover\s*letter/i, "cover_letter"],
-  [/how did you (hear|learn|find out)/i, "how_heard"],
+  // Before the links: "Hoe ben je met deze vacature in contact gekomen? (bijv. linkedin / ...)" asks how, not for a profile.
+  [/how did you (hear|learn|find out|come across)|hoe ben je\b.*\bgekomen|comment as-tu (entendu|connu|trouvé)|where did you (hear|find)/i, "how_heard"],
   [/linkedin/i, "linkedin"],
   [/github/i, "github"],
-  [/(personal\s*)?(website|portfolio)/i, "website"],
+  // A portfolio is work samples, not the person's website: asked (WO-052).
+  [/(personal\s*)?website/i, "website"],
   // "City" alone asks for the city, not "City, ST" (WO-048, Workday's address block).
   [/^city\s*[*:]?\s*$/i, "city"],
   [/(require|need).*(sponsor)|sponsorship|visa\s*status/i, "sponsorship"],
@@ -124,6 +126,10 @@ export function classifyField(label: string, type: string): string {
     if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
     // A phone's extension is not the phone number (WO-048, Workday's "Phone Extension").
     if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
+    // WO-052: "City, State, Zip" and "City, Country" ask for more than the place the person gave; a current, monthly,
+    // hourly or ranged pay is not the expected annual salary.
+    if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
+    if (key === "salary_expectation" && /current|present|monthly|per month|hourly|per hour|range|format|\$00/i.test(l)) continue;
     // The resume answer is the approved file itself: it goes into an upload, never typed into a box as text.
     if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
     // "a visa that does NOT require sponsorship" asks the opposite of the sponsorship fact: ask the person. Only the
@@ -173,15 +179,99 @@ const TEXT_FACTS = new Set(["full_name", "legal_name", "first_name", "last_name"
   "full_address", "city", "postal_code", "location", "linkedin", "github", "website", "current_employer", "current_title", "school",
   "major", "salary_expectation", "current_compensation", "signature", "references", "timezone"]);
 const PREFERENCE: Record<string, string> = { job_onsite: "onsite_ok", job_relocation: "relocation", job_travel: "travel_ok" };
+
+// WO-052 (an independent review of every fill on samples A and B): three answers that were right in general and wrong
+// for the question asked.
+// 1. Work rights are the person's for the country they stated. A question about another country's authorization or
+//    visa ("authorized to work in South Korea?", "¿Tienes permiso de trabajo en España?", "visa sponsorship in the UK?")
+//    is asked; "the US or Canada" may still take the US yes, never a sponsorship "no" for both.
+const FOREIGN = /\b(canad(a|ian)|united kingdom|\buk\b|britain|british|england|english employment|scotland|ireland|irish|german[y]?|deutschland|france|french|spain|spanish|españa|portugal|portuguese|italy|italian|italia|netherlands|nederland|dutch|belgi(um|an)|switzerland|swiss|austria\w*|swed(en|ish)|norw(ay|egian)|denmark|danish|finland|finnish|poland|polish|czech|hungar\w*|romania\w*|greece|greek|israel\w*|india|indian|china|chinese|hong kong|taiwan\w*|japan\w*|korea\w*|singapore\w*|australia\w*|new zealand|mexic\w*|méxico|brazil\w*|brasil|argentin\w*|colombia\w*|chile\w*|peru\w*|philippine\w*|filipino|indonesia\w*|malaysia\w*|vietnam\w*|thai(land)?|uae|united arab emirates|dubai|saudi|qatar\w*|south africa\w*|nigeria\w*|kenya\w*|egypt\w*|turk(ey|ish)|european union|\beu\b|europe\w*|emea|apac|latam)\b/i;
+const NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
+const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_person"]);
+export function otherCountry(fact: string, label: string): boolean {
+  if (!AUTH_FACTS.has(fact) || !FOREIGN.test(label)) return false;
+  return fact === "sponsorship" || !NAMES_US.test(label);
+}
+// 2. The person's yes to working on site is for where they live (onsite_ok, "a posting's city makes a screen"): an
+//    office the question names in another city ("in-office 5 days a week in Sunnyvale?", "our Louisville, CO HQ") is
+//    asked. The places a form names on its other office questions count too (Anthropic names SF/NYC one question
+//    earlier, then asks "our office 4 days/week?").
+const STATE_CODE = /,\s*([A-Z]{2})\b/g;
+const PLACE_WORDS = /\b(?:in|at|from|to|near|around|within|of)\s+(?:our\s+|the\s+)?((?:[A-Z][\w.'’-]+)(?:\s+[A-Z][\w.'’-]+){0,3})/g;
+const OUR_PLACE = /\bour\s+((?:[A-Z][\w.'’-]+\s+){1,3})(?:office|offices|hq|headquarters|campus|location|hub|studio)\b/gi;
+const NOT_PLACE = /^(the|our|a|an|us|u\.?s\.?a?|usa|united states( of america)?|america|north america|monday|tuesday|wednesday|thursday|friday|saturday|sunday|hybrid|office|hq|headquarters|remote|person|account|executive|team|engineering|sales|ai|english|eastern|pacific|central|mountain|est|pst|cst|mst|et|pt|ct|mt|i|we|you)$/i;
+export function placesNamed(label: string, company = ""): string[] {
+  const out: string[] = [];
+  const add = (x: string) => {
+    const v = x.replace(/['’]s$/, "").replace(/\s+(hq|headquarters|office|offices|campus|location)$/i, "").trim();
+    if (!v || NOT_PLACE.test(v) || v.split(/\s+/).every((w) => NOT_PLACE.test(w))) return;
+    if (company && normCompany(v) && (normCompany(v) === normCompany(company) || normCompany(company).startsWith(normCompany(v)))) return;
+    out.push(v);
+  };
+  for (const m of label.matchAll(/\b(NYC|SF|DC|LA|Bay Area|Tri-State|Silicon Valley)\b/g)) add(m[1]);
+  for (const m of label.matchAll(STATE_CODE)) if (STATE_NAMES[m[1].toLowerCase()]) add(m[1]);
+  for (const m of label.matchAll(PLACE_WORDS)) add(m[1]);
+  for (const m of label.matchAll(OUR_PLACE)) add(m[1]);
+  // "Noida hybrid mode", "SF office", "Austin HQ": a place named right before the way of working (WO-052, sample C).
+  for (const m of label.matchAll(/\b([A-Z][\w.'’-]+(?:\s+[A-Z][\w.'’-]+)?)\s+(?:hybrid|office|offices|onsite|on-site|in-office|hq|headquarters|campus)\b/g)) add(m[1]);
+  return out;
+}
+const STATE_NAMES: Record<string, string> = { al: "alabama", ak: "alaska", az: "arizona", ar: "arkansas", ca: "california", co: "colorado",
+  ct: "connecticut", de: "delaware", dc: "district of columbia", fl: "florida", ga: "georgia", hi: "hawaii", id: "idaho", il: "illinois",
+  in: "indiana", ia: "iowa", ks: "kansas", ky: "kentucky", la: "louisiana", me: "maine", md: "maryland", ma: "massachusetts", mi: "michigan",
+  mn: "minnesota", ms: "mississippi", mo: "missouri", mt: "montana", ne: "nebraska", nv: "nevada", nh: "new hampshire", nj: "new jersey",
+  nm: "new mexico", ny: "new york", nc: "north carolina", nd: "north dakota", oh: "ohio", ok: "oklahoma", or: "oregon", pa: "pennsylvania",
+  ri: "rhode island", sc: "south carolina", sd: "south dakota", tn: "tennessee", tx: "texas", ut: "utah", vt: "vermont", va: "virginia",
+  wa: "washington", wv: "west virginia", wi: "wisconsin", wy: "wyoming" };
+// Whether a named place is where the person lives: their city by name, or their state by code or name.
+function isHome(place: string, answers: Record<string, Answer>): boolean {
+  const p = place.toLowerCase();
+  const city = String(answers.city?.value ?? String(answers.location?.value ?? "").split(",")[0]).trim().toLowerCase();
+  const st = String(answers.state?.value ?? String(answers.location?.value ?? "").split(",")[1] ?? "").trim().toLowerCase();
+  if (city && (p === city || p.includes(city))) return true;
+  return !!st && (p === st || p === STATE_NAMES[st]);
+}
+const SITE_SCREENS = new Set(["job_onsite", "job_commute"]);
+// A form's places, read from its office and location questions.
+const SITE_TEXT = /\b(office|on-?site|in-?person|located|location|relocat|based|commut|hq|headquarters)\b/i;
+export function formPlaces(fields: { label: string }[], company: string): string[] {
+  return fields.filter((f) => SITE_TEXT.test(f.label) && f.label.length <= 300).flatMap((f) => placesNamed(f.label, company));
+}
+function awayFromHome(f: FormField, places: string[], answers: Record<string, Answer>): boolean {
+  const own = placesNamed(f.label);
+  const named = own.length ? own : places;
+  // A state code beside its city ("Louisville, CO") is the same place: home only if the city or the state is theirs.
+  return named.length > 0 && !named.some((x) => isHome(x, answers));
+}
+// WO-052: a typed pay answer in the employer's terms. "Please include currency" and a CTC (an Indian form's cost to
+// company) take the stated amount with the person's stated currency ("95000 USD"); without a stated currency, asked.
+function payShape(f: FormField, value: string, fact: string, answers: Record<string, Answer>): string | null {
+  if ((fact !== "salary_expectation" && fact !== "current_compensation") || !/\bcurrency\b|\bctc\b/i.test(f.label)) return value;
+  const code = /\b[A-Z]{3}\b/.exec(String(answers.salary_currency?.value ?? ""))?.[0];
+  return code && /^\d[\d,.]*$/.test(value.trim()) ? `${value.trim()} ${code}` : null;
+}
+// 3. "Authorized to work in the US without sponsorship?" is yes only when the person is authorized and needs none.
+const WITHOUT_SPONSOR = /\bwithout\b.{0,40}\bsponsor/i;
+function authorizedWithoutSponsorship(answers: Record<string, Answer>): Answer | null {
+  const w = answers.work_authorization, sp = answers.sponsorship;
+  if (!w || !sp) return null;
+  const a = yesNoOf(w.value), n = yesNoOf(sp.value);
+  if (a === "yes" && n === "no") return { value: "Yes", factId: w.factId };
+  if (a === "no" || n === "yes") return { value: "No", factId: n === "yes" ? sp.factId : w.factId };
+  return null;
+}
 const AFFILIATES = /\bsubsidiar|\baffiliat|\bparent compan|\bsister compan|\brelated (compan|entit)|\bgroup compan|\bfamily of compan|\bpredecessor/i;
 // The words of a company's name that could tie two companies together (not "group", "services", "inc").
 const GENERIC_NAME = new Set(["and", "the", "of", "group", "holdings", "holding", "global", "international", "services", "service", "solutions", "systems",
   "technologies", "technology", "tech", "partners", "industries", "enterprises", "usa", "america", "americas", "national", "united", "worldwide"]);
 const nameWords = (n: string) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
 const SPLIT = /\s*[;,\n]\s*/;
-function byMeaning(f: FormField, company: string, answers: Record<string, Answer>): Answer | null {
+function byMeaning(f: FormField, company: string, answers: Record<string, Answer>, places: string[] = []): Answer | null {
   const m = mapQuestion({ label: f.label, type: f.type, options: f.options });
   if (m.kind === "essay" || m.kind === "file" || m.kind === "unknown") return null;
+  // WO-052: the employer list derives "worked here before"; it is never typed as one employer, a title or a date.
+  if (m.fact === "former_employers" || otherCountry(m.fact, f.label)) return null;
+  if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers)) return null;
   // The person's own contact and identity facts never answer a question about someone else, by meaning either
   // ("Phone number of the person referring you"; WO-031, tests/fixtures/extension/answer-key.json).
   // (The person's own answer about their references is theirs to give: the references fact is exempt.)
@@ -214,8 +304,16 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
     // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
     if (pref && yesNoOf(pref.value)) a = pref;
+  } else if ((m.fact === "sponsorship" || m.fact === "work_authorization") && WITHOUT_SPONSOR.test(f.label)) {
+    a = authorizedWithoutSponsorship(answers) ?? undefined;
   } else {
     a = answers[m.fact];
+  }
+  // WO-052: an export-control list of U.S.-person categories ("A United States citizen or national", "A lawful permanent
+  // resident", ...): a stated U.S. citizenship is the first, and nothing else is chosen for the person.
+  if (m.fact === "us_person" && f.options.length && answers.citizenship) {
+    const c = usCitizenChoice(String(answers.citizenship.value), f.options);
+    if (c !== null) return { value: c, factId: answers.citizenship.factId };
   }
   if (!a) return null;
   const choice = f.options.length ? chooseOption(m.fact, String(a.value), f.options, f.label) : null;
@@ -243,11 +341,26 @@ const ASKED_YES_NO = /^(are|do|does|have|has|will|would|can|could|is|did|were|wa
 const DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
 const DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
 const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+// WO-052 (an independent review of every fill on samples A and B):
+// - A yes, a no or an "I agree" goes into a typed box only when the box asks a yes-or-no question, and only that: "If
+//   you were referred, by who?", "In what countries do you have the right to work?", "Please confirm your situation:",
+//   "Are you employed by Maven Clinic? If so, list your role" and "Are you local, or would you relocate?" are not.
+// - A box that asks for a date takes only a date ("Start date of your most recent employer": "2 weeks" is not one).
+const YES_NO_LIKE = /^(yes|no|y|n|true|false|i (agree|accept|acknowledge|consent|understand)\b.*|i am (not )?currently employed)$/i;
+const COMPOUND = /\bif (so|yes|not|no|applicable|you (are|were|have|do|did|answered|selected))\b[^?]{0,80}\b(list|provide|describe|explain|specify|enter|state|indicate|give|share|tell|include)\b|\bplease (list|provide|describe|explain|specify|share|confirm your)\b|,? or (would|are|do|will|have|can|could) you\b/;
+function asksYesNo(t: string): boolean {
+  if (COMPOUND.test(t)) return false;
+  const asked = t.split(/(?<=[.?!:])\s+/).filter((x) => x.trim().endsWith("?"));
+  const q = (asked.length ? asked[asked.length - 1] : t.split(/(?<=[.!:])\s+/).pop() ?? t).trim();
+  return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
+}
 export function fitsField(f: FormField, value: string): boolean {
-  if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return true;
+  // A dropdown widget's value is chosen later among its own options (chooseWidgetOption), never typed (WO-052, live run).
+  if (f.options.length || f.widget || f.type === "checkbox" || /file/.test(f.type)) return true;
   const t = normQuestion(f.label), v = String(value).trim();
   if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
-  if ((f.type === "date" || DATE_FORMAT.test(t)) && !DATE_VALUE.test(v)) return false;
+  if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
+  if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t))) && !DATE_VALUE.test(v)) return false;
   if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
   return true;
 }
@@ -270,7 +383,9 @@ function educationEnd(f: FormField, fields: FormField[], answers: Record<string,
   return value ? { value, factId: g.factId } : null;
 }
 
-const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said))\b/i;
+// WO-052: and a question that holds only under a condition on the person ("If you are under 18 years of age, can you
+// provide proof...?"): its answer is not the person's general one.
+const FOLLOW_UP = /^\s*(\(?\d+[a-z]?[.)]\s*)?if\s+(yes|no|so|not|other|applicable|you\s+(selected|answered|chose|checked|said)|you\s+(are|were)\s+(under|over|younger|older|a minor|not)\b)/i;
 
 // ------------------------------------------------------------------------------------------------ repeating sections
 // WO-048: a repeating section's rows (Workday's work experience, education, languages) are filled only from the person's
@@ -484,6 +599,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       for (const f of p.fields) if (f.section?.kind === kind && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
       rowsOf.set(kind, assignRows(kind, [...rows].map(([row, anchor]) => ({ row, anchor })), o.answers, p.fields));
     }
+    const places = formPlaces(p.fields, p.company);
     for (const f of p.fields) {
       if (fileAlternative(f, p.fields)) continue;
       if (f.personal) continue; // the person's own form: never planned (WO-048)
@@ -504,7 +620,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       // this posting, then this wording (a fact for every employer arrives in `answers` instead).
       const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ?? o.saved[normLabel(f.label)];
       const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true })] ?? o.saved[answerKey(f, p.job_id)] ??
-        (key !== "unknown" && key !== "eeo" && !followUp ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -515,7 +631,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       // A fact the keyword classifier picked that fits none of the options (the long "U.S. person" explanation names
       // "citizen") gives way to the meaning map, as no answer at all does (WO-042, Snowflake).
       if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
-        const m = byMeaning(f, p.company, o.answers);
+        const m = byMeaning(f, p.company, o.answers, places);
         if (m) { a = m; value = m.value; }
       }
       if (value !== null && f.dial !== undefined && a !== own && (key === "phone" || mapQuestion(f).fact === "phone")) value = nationalNumber(value, f.dial);
@@ -527,6 +643,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         const phone = String(o.answers.phone?.value ?? "").trim();
         if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
       }
+      if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
       if (value !== null && value !== "" && (a === own || fitsField(f, value))) { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;

@@ -1,0 +1,1224 @@
+{
+ "note": "WO-052: every fill an independent reviewer (who read only the persona and the fills, never the code) judged wrong or unsure on samples A and B, 2026-10-20. Each must no longer get the answer it got. Options are the first 60 the reviewer saw. Three unsure verdicts are not upheld (years of experience is relevant years by fact_schema): audit ids 70, 280, 356. Audit id 86 (Anthropic, \"our office 4 days/week\") depends on the form's other question naming SF/NYC: it is WO-052/4, with both fields.",
+ "cases": [
+  {
+   "audit_id": 58,
+   "verdict": "wrong",
+   "company": "stripe",
+   "type": "multi_value_single_select",
+   "label": "If this role offers the option to work from a remote location, do you plan to work remotely?",
+   "options": [
+    "Yes, I intend to work remotely.",
+    "No, I intend to work from an office location."
+   ],
+   "was": "Yes, I intend to work remotely.",
+   "why": "Persona never states a remote preference (onsite_ok=Yes, relocation=No); committing to 'I intend to work remotely' is an invented preference."
+  },
+  {
+   "audit_id": 66,
+   "verdict": "wrong",
+   "company": "Capco",
+   "type": "input_text",
+   "label": "Expected CTC",
+   "options": [],
+   "was": "95000",
+   "why": "Capco role is in Chennai (India) where CTC defaults to INR; a bare '95000' reads as INR 95,000. Persona currency is USD and must be stated."
+  },
+  {
+   "audit_id": 67,
+   "verdict": "wrong",
+   "company": "Capco",
+   "type": "input_text",
+   "label": "Current CTC",
+   "options": [],
+   "was": "85000",
+   "why": "Same as Expected CTC: bare '85000' on an India (Chennai) form misrepresents current compensation without the USD currency."
+  },
+  {
+   "audit_id": 78,
+   "verdict": "wrong",
+   "company": "Accenture",
+   "type": "multi_value_single_select",
+   "label": "How did you hear about us?",
+   "options": [
+    "Accenture Alumni Event",
+    "Accenture Alumni Site",
+    "Accenture Career Fair",
+    "Accenture Client",
+    "Accenture Presentation",
+    "Acquisition or Accenture Affiliate",
+    "Ad on Website",
+    "Alumni Email",
+    "Campus Career Fair",
+    "Career Center",
+    "Conference",
+    "Connection in the Company",
+    "Contractor to Fixed Term",
+    "Email",
+    "Employer Career Fair",
+    "Facebook",
+    "Former Employee",
+    "Glassdoor",
+    "Indeed",
+    "Instagram",
+    "LinkedIn",
+    "Naukri",
+    "Networking Event",
+    "oneTen",
+    "Professional Associations",
+    "Search Engine",
+    "Twitter",
+    "Virtual Event",
+    "Welcome.US",
+    "Youtube",
+    "Not Listed"
+   ],
+   "was": "Ad on Website",
+   "why": "Persona found the job on the company's careers site/website; 'Ad on Website' is a different source. No careers-site option exists, so 'Not Listed' (or ask) is the truthful choice."
+  },
+  {
+   "audit_id": 91,
+   "verdict": "wrong",
+   "company": "Anthropic",
+   "type": "multi_value_single_select",
+   "label": "Agreement to Arbitrate",
+   "options": [
+    "I understand and agree to the terms of the Agreement to Arbitrate set forth above."
+   ],
+   "was": "I understand and agree to the terms of the Agreement to Arbitrate set forth above.",
+   "why": "Binding Agreement to Arbitrate (waiver of right to sue) is not covered by the persona's standing agreements (privacy_ack, certify_true, ai_policy_ack); must ask the person."
+  },
+  {
+   "audit_id": 140,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "If you were referred, by who? If you were not referred, enter N/A.",
+   "options": [],
+   "was": "No",
+   "why": "Question says enter 'N/A' if not referred; answer 'No' is the wrong value/shape for a 'by who?' name field."
+  },
+  {
+   "audit_id": 149,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "Start date of current/most recent employer:",
+   "options": [],
+   "was": "2 weeks",
+   "why": "Asks the start date at current employer; '2 weeks' is the availability/notice fact, not a date. Persona has no employment start date - should ask."
+  },
+  {
+   "audit_id": 152,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "Second most recent employer:",
+   "options": [],
+   "was": "Example Analytics; Sample Retail",
+   "why": "Second most recent employer should be 'Sample Retail' only; answer dumps the whole former_employers list including the current employer."
+  },
+  {
+   "audit_id": 153,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "Start date of second most recent employer:",
+   "options": [],
+   "was": "2 weeks",
+   "why": "Start date of second employer answered '2 weeks' (availability), not a date; persona has no such date."
+  },
+  {
+   "audit_id": 154,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "End date of second most recent employer:",
+   "options": [],
+   "was": "Example Analytics; Sample Retail",
+   "why": "End date field filled with employer list 'Example Analytics; Sample Retail' - wrong shape and meaningless."
+  },
+  {
+   "audit_id": 155,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "Job title at second most recent employer:",
+   "options": [],
+   "was": "Example Analytics; Sample Retail",
+   "why": "Job title field filled with employer list; persona has no title for Sample Retail - should ask."
+  },
+  {
+   "audit_id": 159,
+   "verdict": "wrong",
+   "company": "DH Pace",
+   "type": "input_text",
+   "label": "I certify that the facts in this application are true and complete to the best of my knowledge and understand that if employed, falsified statements on this application shall be grounds for dismissal. I understand that just as I am free to resign at any time, the Employer reserves the right to terminate my employment at any time, with or without cause and without prior notice. I understand that no representative of the Employer has the authority to make any assurances to the contrary. Applicant's Electronic Signature:",
+   "options": [],
+   "was": "I agree",
+   "why": "Field is 'Applicant's Electronic Signature' (input_text); should be the signature 'Test Person', not 'I agree'."
+  },
+  {
+   "audit_id": 167,
+   "verdict": "wrong",
+   "company": "One Medical",
+   "type": "multi_value_single_select",
+   "label": "There is an expectation to float to our San Rafael office on an as needed basis. This is a full time position with 8 hour shifts (40 hours a week) landing between Monday and Saturday 7:30 AM - 6:00 PM. Is that something you are interested in?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to floating to the San Rafael, CA office and Mon-Sat shifts; person lives in Chicago with relocation=No. Not something the persona stated."
+  },
+  {
+   "audit_id": 171,
+   "verdict": "wrong",
+   "company": "Elastic",
+   "type": "input_text",
+   "label": "In what countries do you have the unrestricted right to work?",
+   "options": [],
+   "was": "Yes",
+   "why": "Asks which countries; 'Yes' is wrong shape. Should be 'United States'."
+  },
+  {
+   "audit_id": 197,
+   "verdict": "wrong",
+   "company": "OKX",
+   "type": "multi_value_single_select",
+   "label": "Are you available to work from our San Jose, California office at least 4 days per week?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to San Jose, CA office 4 days/week; person is in Chicago and relocation=No."
+  },
+  {
+   "audit_id": 215,
+   "verdict": "wrong",
+   "company": "Agoda",
+   "type": "multi_value_single_select",
+   "label": "Do you agree to Agoda’s use of personal data from your application to improve our recruitment experience? We may collaborate and share your data with third-party providers for recruitment purposes and you may ask to remove your data at any time.",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Optional consent to reuse data for 'improving recruitment' and share with third parties; beyond privacy_ack (and marketing_opt_in=No). Should not be agreed without asking."
+  },
+  {
+   "audit_id": 222,
+   "verdict": "wrong",
+   "company": "Canonical",
+   "type": "textarea",
+   "label": "Please share your rationale or evidence for the high school performance selections above. Make reference to provincial, state or nation-wide scoring systems, rankings, or recognition awards, or to competitive or selective college entrance results such as SAT or ACT scores, JAMB, matriculation results, IB results etc. We recognise every system is different but we will ask you to justify your selections above.",
+   "options": [],
+   "was": "Available on request",
+   "why": "Asks for rationale/evidence about high-school performance; 'Available on request' (references fact) answers a different question. No high-school facts in persona - should ask."
+  },
+  {
+   "audit_id": 223,
+   "verdict": "wrong",
+   "company": "Canonical",
+   "type": "textarea",
+   "label": "What was your bachelor's university degree result, or expected result if you have not yet graduated? Please include the grading system to help us understand your result e.g. ‘85 out of 100’, ‘2:1 (Grading system: first class, 2:1, 2:2, third class)’ or ‘GPA score of 3.8/4.0 (predicted)’. We have hired outstanding individuals who did not attend or complete university. If this describes you, please continue with your application and enter ‘no degree’.",
+   "options": [],
+   "was": "3.6",
+   "why": "Question requires the grading system (e.g. 'GPA 3.6/4.0'); bare '3.6' omits it and the degree result context."
+  },
+  {
+   "audit_id": 241,
+   "verdict": "wrong",
+   "company": "TEGNA",
+   "type": "multi_value_single_select",
+   "label": "Are you currently employed by TEGNA or any TEGNA subsidiaries?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Answered Yes to currently employed by TEGNA; current employer is Example Analytics. False."
+  },
+  {
+   "audit_id": 258,
+   "verdict": "wrong",
+   "company": "CGS Federal (Contact Government Services)",
+   "type": "text",
+   "label": "Please Enter Your Ideal Annual Compensation In $00.00 Formatting.",
+   "options": [],
+   "was": "95000",
+   "why": "Requested '$00.00' formatting; '95000' is wrong format (e.g. 95000.00)."
+  },
+  {
+   "audit_id": 274,
+   "verdict": "wrong",
+   "company": "Wing Assistant",
+   "type": "text",
+   "label": "Current Monthly Salary/Compensation (USD)",
+   "options": [],
+   "was": "95000",
+   "why": "Current MONTHLY comp: answered 95000 (the annual expected salary). Persona current comp is 85000/yr (~7083/mo). Wrong value and unit."
+  },
+  {
+   "audit_id": 275,
+   "verdict": "wrong",
+   "company": "Wing Assistant",
+   "type": "text",
+   "label": "Expected Monthly Salary/Compensation (USD)",
+   "options": [],
+   "was": "95000",
+   "why": "Expected MONTHLY comp: 95000 is the annual figure (~7917/mo). Wrong unit."
+  },
+  {
+   "audit_id": 276,
+   "verdict": "wrong",
+   "company": "Wing Assistant",
+   "type": "text",
+   "label": "Current Location (City, Country)",
+   "options": [],
+   "was": "Chicago, IL",
+   "why": "Asks City, Country; 'Chicago, IL' gives state not country (should be 'Chicago, United States')."
+  },
+  {
+   "audit_id": 278,
+   "verdict": "wrong",
+   "company": "Wing Assistant",
+   "type": "textarea",
+   "label": "Desired salary per month (in your local currency):",
+   "options": [],
+   "was": "95000",
+   "why": "Desired salary PER MONTH: 95000 is the annual figure. Wrong unit."
+  },
+  {
+   "audit_id": 282,
+   "verdict": "wrong",
+   "company": "Wing Assistant",
+   "type": "radio",
+   "label": "Wing Assistants are enrolled in a screen monitoring program for Quality Assurance purposes. Are you okay with this arrangement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Consent to screen-monitoring program is a job condition the persona never agreed to; not covered by standing agreements."
+  },
+  {
+   "audit_id": 296,
+   "verdict": "wrong",
+   "company": "Palantir",
+   "type": "radio",
+   "label": "As part of our interview process, we may use AI notetakers to transcribe conversations for accuracy and efficiency. Please see our candidate privacy policy for more information on how we process your data. Your decision to opt in or out of this tooling will not impact your candidacy.",
+   "options": [
+    "Yes, I consent",
+    "No, I do not consent"
+   ],
+   "was": "Yes, I consent",
+   "why": "Optional opt-in to AI notetakers recording/transcribing interviews; not covered by persona standing agreements (ai_policy_ack is about the application AI policy). Explicitly optional - should be asked or declined."
+  },
+  {
+   "audit_id": 324,
+   "verdict": "wrong",
+   "company": "Octopus Energy",
+   "type": "checkbox",
+   "label": "¿Tienes permiso de trabajo en España?",
+   "options": [
+    "Sí",
+    "No"
+   ],
+   "was": "Sí",
+   "why": "Asks if they have a work permit in Spain; person is a US citizen with US work authorization only. 'Sí' is false."
+  },
+  {
+   "audit_id": 326,
+   "verdict": "wrong",
+   "company": "AHEAD",
+   "type": "text",
+   "label": "What % of travel are you open to?",
+   "options": [],
+   "was": "Yes",
+   "why": "Asks what % of travel; 'Yes' is wrong shape and no percentage is in persona."
+  },
+  {
+   "audit_id": 331,
+   "verdict": "wrong",
+   "company": "AHEAD",
+   "type": "textarea",
+   "label": "Provide All Post-Secondary Education Attained - Formatted as: College Name; Degree Obtained (e.g.: University of Somewhere; Bachelor of Science). Please include only educational programs from which you graduated. **Any additional information provided, such as dates/year of graduation, will be disreg",
+   "options": [],
+   "was": "Example State University",
+   "why": "Requires 'College Name; Degree Obtained'; answer omits the degree (should be e.g. 'Example State University; Bachelor's in Statistics')."
+  },
+  {
+   "audit_id": 335,
+   "verdict": "wrong",
+   "company": "Woven",
+   "type": "radio",
+   "label": "1. Please rate your English Language proficiency. | 英語の習熟度を以下の選択肢からお選びください。",
+   "options": [
+    "Native Level | ネイティブレベル",
+    "Proficient User (TOEIC 850 above) | 上級レベル（TOEIC850点以上）",
+    "Business Fluent (TOEIC 700 above) | ビジネスレベル（TOEIC700点以上）",
+    "Conversational / Basic | 日常会話レベル",
+    "Limited / No English language ability | 初心者レベル以下"
+   ],
+   "was": "Limited / No English language ability | 初心者レベル以下",
+   "why": "Persona speaks English; picked 'Limited / No English language ability'. False."
+  },
+  {
+   "audit_id": 45,
+   "verdict": "unsure",
+   "company": "PLS",
+   "type": "multi_value_single_select",
+   "label": "Have you ever been prohibited or restricted in any way from working for any financial institution or financial services company by a governmental agency or other regulatory or licensing entity in any jurisdiction?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "No persona fact about regulatory/licensing bars from financial-services work (criminal_history only covers criminal record)."
+  },
+  {
+   "audit_id": 46,
+   "verdict": "unsure",
+   "company": "PLS",
+   "type": "multi_value_single_select",
+   "label": "Have you ever been discharged by an employer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "No persona fact on ever being discharged by an employer."
+  },
+  {
+   "audit_id": 71,
+   "verdict": "unsure",
+   "company": "Capco",
+   "type": "multi_value_single_select",
+   "label": "One of the rounds would be in-person face to face interview ,please confirm your availability for the same",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to an in-person interview for a Chennai role; persona does not state availability (relocation=No)."
+  },
+  {
+   "audit_id": 76,
+   "verdict": "unsure",
+   "company": "Accenture",
+   "type": "multi_value_single_select",
+   "label": "Have you entered into a non-disclosure or non-compete agreement or understanding of any kind?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Asks non-disclosure OR non-compete; persona only says non_compete=No. An NDA at the current employer is not settled."
+  },
+  {
+   "audit_id": 80,
+   "verdict": "unsure",
+   "company": "Accenture",
+   "type": "multi_value_single_select",
+   "label": "At your current employer, are you currently working on a project with Accenture or have you worked on a project with Accenture in the past 24 months?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "No persona fact about the current employer's projects with Accenture."
+  },
+  {
+   "audit_id": 96,
+   "verdict": "unsure",
+   "company": "rocketlab",
+   "type": "multi_value_single_select",
+   "label": "Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Includes drug screen and reference check; persona has background_check_ok=Yes only."
+  },
+  {
+   "audit_id": 99,
+   "verdict": "unsure",
+   "company": "Axon",
+   "type": "multi_value_single_select",
+   "label": "This role requires minimum 60% travel. Do you agree to this requirement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to minimum 60% travel; persona travel_ok=Yes is unquantified."
+  },
+  {
+   "audit_id": 109,
+   "verdict": "unsure",
+   "company": "Axon",
+   "type": "multi_value_single_select",
+   "label": "Are you an unlawful user of, or addicted to, marijuana or any depressant, stimulant, narcotic drug, or any other controlled substance?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Unlawful drug use: no persona fact; system asserted 'No' on a sensitive legal attestation."
+  },
+  {
+   "audit_id": 110,
+   "verdict": "unsure",
+   "company": "Axon",
+   "type": "multi_value_single_select",
+   "label": "Are you subject to a court order, including a Military Protection Order issued by a military judge or magistrate, restraining you from harassing, stalking, or threatening your child or an intimate partner or child of such partner?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Restraining/protection order: no persona fact."
+  },
+  {
+   "audit_id": 112,
+   "verdict": "unsure",
+   "company": "Axon",
+   "type": "multi_value_single_select",
+   "label": "Have you ever been adjudicated as a mental defective OR have you ever been committed to a mental institution?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Mental adjudication/commitment: no persona fact."
+  },
+  {
+   "audit_id": 156,
+   "verdict": "unsure",
+   "company": "DH Pace",
+   "type": "multi_value_single_select",
+   "label": "Were you discharged or asked to resign from your second most recent employer?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "No persona fact on whether discharged/asked to resign from Sample Retail."
+  },
+  {
+   "audit_id": 175,
+   "verdict": "unsure",
+   "company": "Okta",
+   "type": "multi_value_single_select",
+   "label": "To the best of your knowledge, do you have any family members / relatives or personal relationships at Okta or at any suppliers, partners, or vendors that have a business relationship with Okta? (For purposes of this question, a “family member / relative or personal relationship” is defined as close personal friends (including sexual and/or romantic relationships), close relatives (spouse, partner, children, cousins, aunts, uncles, nieces, nephews, grandparents or grandchildren), someone who lives in your household, or anyone else with whom you have a close enough personal relationship or connection that it could improperly bias your conduct or decision making or be perceived to be capable o",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Covers close friends, household members and relationships at Okta suppliers/partners/vendors; relative_here=No does not settle this."
+  },
+  {
+   "audit_id": 176,
+   "verdict": "unsure",
+   "company": "Okta",
+   "type": "multi_value_single_select",
+   "label": "Do you have any outside business activity(ies) (advisory, consulting, or board roles, or side businesses) that you would continue engaging in or plan to engage in if you joined Okta in this role?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "No persona fact on outside business activities/advisory/side businesses."
+  },
+  {
+   "audit_id": 183,
+   "verdict": "unsure",
+   "company": "relativity",
+   "type": "input_text",
+   "label": "If your location differs from the location posted on the job description, are you willing to commute and/or relocate for this role? If not, please explain:",
+   "options": [],
+   "was": "No",
+   "why": "relocation=No but willingness to commute not stated, and the question asks for an explanation if not; bare 'No' is unsupported."
+  },
+  {
+   "audit_id": 193,
+   "verdict": "unsure",
+   "company": "Zscaler",
+   "type": "multi_value_multi_select",
+   "label": "Zscaler Confidential Information",
+   "options": [
+    "I Agree"
+   ],
+   "was": "I Agree",
+   "why": "'Zscaler Confidential Information' agreement content unknown; not one of the persona's standing agreements."
+  },
+  {
+   "audit_id": 224,
+   "verdict": "unsure",
+   "company": "Canonical",
+   "type": "multi_value_single_select",
+   "label": "We require all colleagues to meet in person 2-4 times a year, at internal company events lasting between 1-2 weeks. We try to pick new and interesting locations that will likely require international travel and entry requirement visas and vaccinations. Are you willing and able to commit to this?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to 2-4 international trips/yr of 1-2 weeks with visas and vaccinations; travel_ok=Yes is unspecific."
+  },
+  {
+   "audit_id": 253,
+   "verdict": "unsure",
+   "company": "TSMG",
+   "type": "select",
+   "label": "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://tsmg.io/terms-and-conditions/) and Whistleblowers Policy (https://tsmg.io/whistleblowers-policy/).",
+   "options": [
+    "I agree"
+   ],
+   "was": "I agree",
+   "why": "Agrees to Terms & Conditions and Whistleblowers Policy in addition to Privacy Policy; only privacy is covered by standing agreements."
+  },
+  {
+   "audit_id": 307,
+   "verdict": "unsure",
+   "company": "Zoox",
+   "type": "textarea",
+   "label": "Export Control and Compliance: For the sole purpose of determining export licensing requirements, please list any countries of which you are a citizen or legal permanent resident, and when you obtained such status.",
+   "options": [],
+   "was": "United States",
+   "why": "Asks when citizenship status was obtained; persona has no such date (answer omits it)."
+  },
+  {
+   "audit_id": 353,
+   "verdict": "unsure",
+   "company": "Agile Defense",
+   "type": "textarea",
+   "label": "If hired, would you have any ongoing outside employment, consulting, or business activities that could conflict with this role or the company’s interests?",
+   "options": [],
+   "was": "No",
+   "why": "No persona fact on outside employment/consulting/business activities."
+  },
+  {
+   "audit_id": 360,
+   "verdict": "wrong",
+   "company": "Thomas & Hutton",
+   "type": "textarea",
+   "label": "City, State, Zip",
+   "options": [],
+   "was": "Chicago, IL",
+   "why": "Asks City, State AND Zip; answer omits the zip (60601). Incomplete value."
+  },
+  {
+   "audit_id": 366,
+   "verdict": "wrong",
+   "company": "Thomas & Hutton",
+   "type": "textarea",
+   "label": "Start Date",
+   "options": [],
+   "was": "2 weeks",
+   "why": "'Start Date' sits in the employer block (Job Title, Employer Name, Current Compensation) so it most likely asks when the person started at the current employer, which the persona doesn't have. Either way '2 weeks' isn't a date."
+  },
+  {
+   "audit_id": 403,
+   "verdict": "wrong",
+   "company": "Applied Intuition",
+   "type": "checkbox",
+   "label": "Are you open to being in-office 5 days a week in Sunnyvale?",
+   "options": [],
+   "was": "yes",
+   "why": "Says yes to 5 days in-office in Sunnyvale, but the person lives in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 414,
+   "verdict": "wrong",
+   "company": "Mistral AI",
+   "type": "textarea",
+   "label": "This position is based in our Palo Alto or New York office. We offer visa transfers and relocation assistance. Please confirm your situation:",
+   "options": [],
+   "was": "No",
+   "why": "Asks the person to describe their visa/relocation situation for Palo Alto/NY. A bare 'No' doesn't answer it (should be: US citizen, no visa needed; based in Chicago, not relocating)."
+  },
+  {
+   "audit_id": 424,
+   "verdict": "wrong",
+   "company": "Checkout.com",
+   "type": "textarea",
+   "label": "Visa status: What is your right to work or visa status?",
+   "options": [],
+   "was": "No",
+   "why": "Asks for right-to-work/visa status. 'No' isn't a status; the persona supports 'US citizen'."
+  },
+  {
+   "audit_id": 425,
+   "verdict": "wrong",
+   "company": "Checkout.com",
+   "type": "text",
+   "label": "Expected Salary: What are your yearly base salary expectations? Please include currency",
+   "options": [],
+   "was": "95000",
+   "why": "The question says to include currency; answer is '95000' with no currency (persona: USD)."
+  },
+  {
+   "audit_id": 446,
+   "verdict": "wrong",
+   "company": "Hadrian",
+   "type": "text",
+   "label": "First Name and Last Name",
+   "options": [],
+   "was": "Test",
+   "why": "Asks for First AND Last name; answer is first name only ('Test')."
+  },
+  {
+   "audit_id": 480,
+   "verdict": "wrong",
+   "company": "McAdams",
+   "type": "input_text",
+   "label": "This position is located at our Raleigh, NC, office. What is your current commute time? If you are not local to the area, when do you plan on relocating?",
+   "options": [],
+   "was": "No",
+   "why": "Asks commute time to the Raleigh office, or when the person plans to relocate. 'No' answers neither (the person is in Chicago and not relocating)."
+  },
+  {
+   "audit_id": 496,
+   "verdict": "wrong",
+   "company": "The New York Times",
+   "type": "multi_value_single_select",
+   "label": "Are you local to NYC or the Tri-State area and able to commute in for a Hybrid work schedule?",
+   "options": [
+    "Yes, local to NYC",
+    "No, but willing to relocate to NYC",
+    "No, not able to relocate"
+   ],
+   "was": "Yes, local to NYC",
+   "why": "Picked 'Yes, local to NYC'. False: the person is in Chicago. Correct option: 'No, not able to relocate'."
+  },
+  {
+   "audit_id": 503,
+   "verdict": "wrong",
+   "company": "Fashion Nova",
+   "type": "multi_value_single_select",
+   "label": "Will you be committed to working on-site in our Beverly Hills HQ location 5 days a week?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to 5 days on-site in Beverly Hills; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 506,
+   "verdict": "wrong",
+   "company": "Fashion Nova",
+   "type": "input_text",
+   "label": "We require this role to be on-site at our Beverly Hills HQ. Are you a local candidate, or would you be open to relocating to join us?",
+   "options": [],
+   "was": "No",
+   "why": "Either/or question (local, or open to relocating?). A bare 'No' is ambiguous; it should say not local and not open to relocation."
+  },
+  {
+   "audit_id": 519,
+   "verdict": "wrong",
+   "company": "Workstream",
+   "type": "multi_value_single_select",
+   "label": "This role is based in Utah and requires working from the office at least 3 days per week. Are you able and willing to meet this requirement?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to 3 days/week in the Utah office; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 522,
+   "verdict": "wrong",
+   "company": "ConnectDER",
+   "type": "input_text",
+   "label": "City, State, Zip Code",
+   "options": [],
+   "was": "Chicago, IL",
+   "why": "Asks City, State, Zip Code; answer omits the zip (60601)."
+  },
+  {
+   "audit_id": 529,
+   "verdict": "wrong",
+   "company": "StockX",
+   "type": "multi_value_single_select",
+   "label": "Are you willing to be onsite 3 days per week in Detroit?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to 3 days/week onsite in Detroit; the person is in Chicago and relocation = No (the next answer on this form even says No to relocation, a contradiction)."
+  },
+  {
+   "audit_id": 548,
+   "verdict": "wrong",
+   "company": "Mill",
+   "type": "multi_value_multi_select",
+   "label": "Onsite in San Bruno required",
+   "options": [
+    "I understand that this role requires a minimum of 2 days a week in office"
+   ],
+   "was": "I understand that this role requires a minimum of 2 days a week in office",
+   "why": "Agrees that onsite in San Bruno is required (min 2 days/week). The person is in Chicago and relocation = No; this commitment was never stated."
+  },
+  {
+   "audit_id": 550,
+   "verdict": "wrong",
+   "company": "Maven Clinic",
+   "type": "input_text",
+   "label": "Are you currently employed by Maven Clinic in any capacity? If so, please list current role.",
+   "options": [],
+   "was": "I am currently employed",
+   "why": "Asks whether the person currently works for Maven Clinic. 'I am currently employed' falsely suggests they do; answer should be No."
+  },
+  {
+   "audit_id": 561,
+   "verdict": "wrong",
+   "company": "IMC",
+   "type": "multi_value_single_select",
+   "label": "Confidentiality Acknowledgement",
+   "options": [
+    "I Agree"
+   ],
+   "was": "I Agree",
+   "why": "Agreed to a 'Confidentiality Acknowledgement'. The standing agreements cover only privacy, certification and AI policy, not a confidentiality agreement."
+  },
+  {
+   "audit_id": 570,
+   "verdict": "wrong",
+   "company": "IEM",
+   "type": "multi_value_single_select",
+   "label": "Do you have an unrestricted right to work and remain in the United States without sponsorship now or in the future?",
+   "options": [
+    "Yes",
+    "No",
+    "N/A"
+   ],
+   "was": "No",
+   "why": "Inverted. A US citizen does have an unrestricted right to work without sponsorship; answer should be Yes."
+  },
+  {
+   "audit_id": 573,
+   "verdict": "wrong",
+   "company": "IEM",
+   "type": "multi_value_single_select",
+   "label": "Certification & Attestation",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "'Certification & Attestation' answered No, but persona certify_true = 'I agree'. Should be Yes; No may disqualify the application."
+  },
+  {
+   "audit_id": 576,
+   "verdict": "wrong",
+   "company": "Trove Brands",
+   "type": "multi_value_single_select",
+   "label": "Are you legally authorized to work in the US without sponsorship?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Inverted. A US citizen is authorized to work in the US without sponsorship; answer should be Yes."
+  },
+  {
+   "audit_id": 578,
+   "verdict": "wrong",
+   "company": "Trove Brands",
+   "type": "multi_value_single_select",
+   "label": "Are you willing and able to work in office in Lehi, UT?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to in-office work in Lehi, UT; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 592,
+   "verdict": "wrong",
+   "company": "Butternut Box",
+   "type": "input_text",
+   "label": "Hoe ben je met deze vacature in contact gekomen? (bijv. linkedin / instagram / google/via een vriend)",
+   "options": [],
+   "was": "https://www.linkedin.com/in/test-person",
+   "why": "Asks how the person found the vacancy; answer is a LinkedIn profile URL. Should be the company website (how_heard)."
+  },
+  {
+   "audit_id": 607,
+   "verdict": "wrong",
+   "company": "Strada Education Foundation",
+   "type": "text",
+   "label": "Does your current work authorization have an expiration or end date? If yes, please provide the date.",
+   "options": [],
+   "was": "Yes",
+   "why": "Says Yes, their work authorization expires, with no date given. A US citizen's authorization doesn't expire; answer should be No."
+  },
+  {
+   "audit_id": 616,
+   "verdict": "wrong",
+   "company": "FiscalNote",
+   "type": "textarea",
+   "label": "Please share your compensation expectations (including currency) and please be as specific as possible. [Example: base salary, annual commission for relevant positions, etc]:",
+   "options": [],
+   "was": "95000",
+   "why": "Asks for compensation expectations including currency; answer '95000' has no currency (USD)."
+  },
+  {
+   "audit_id": 619,
+   "verdict": "wrong",
+   "company": "FiscalNote",
+   "type": "radio",
+   "label": "This position requires a daily on-site presence in our DC office at 1201 Pennsylvania Ave NW. Please confirm your availability for this work environment",
+   "options": [
+    "Yes, I can be present in the DC office daily.",
+    "No, I cannot be present in the DC office daily."
+   ],
+   "was": "Yes, I can be present in the DC office daily.",
+   "why": "Commits to being in the DC office daily; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 624,
+   "verdict": "wrong",
+   "company": "Kitware",
+   "type": "radio",
+   "label": "This position is on-site at Kitware’s Clifton Park, NY, headquarters.",
+   "options": [
+    "Yes, I am willing to work on-site at Kitware’s Clifton Park, NY, headquarters.",
+    "No, I am not willing to work on-site at Kitware’s Clifton Park, NY, headquarters."
+   ],
+   "was": "Yes, I am willing to work on-site at Kitware’s Clifton Park, NY, headquarters.",
+   "why": "Commits to on-site work at Clifton Park, NY; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 626,
+   "verdict": "wrong",
+   "company": "Endpoint Clinical",
+   "type": "select",
+   "label": "If you are under 18 years of age, can you provide required proof of you eligibility to work?",
+   "options": [
+    "Yes",
+    "No",
+    "Not Applicable"
+   ],
+   "was": "Yes",
+   "why": "Conditional on being under 18. The person is over 18, so the answer should be 'Not Applicable', not Yes."
+  },
+  {
+   "audit_id": 627,
+   "verdict": "wrong",
+   "company": "Endpoint Clinical",
+   "type": "select",
+   "label": "Are you currently on \"layoff\" status and subject to recall by another organization?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Says Yes to being on layoff status subject to recall. False: employment_status = 'I am currently employed'."
+  },
+  {
+   "audit_id": 654,
+   "verdict": "wrong",
+   "company": "Included Health",
+   "type": "radio",
+   "label": "I acknowledge that all information regarding the company, including its business, products, services, financial data, and trade secrets, disclosed during the interview process is confidential. I agree not to disclose, use, or reproduce this information except to evaluate employment with the company.",
+   "options": [
+    "I Acknowledge and Agree",
+    "I Do Not Acknowledge or Agree"
+   ],
+   "was": "I Acknowledge and Agree",
+   "why": "Agreed to an interview-process NDA (no disclosure or use of company information). The standing agreements don't cover this."
+  },
+  {
+   "audit_id": 662,
+   "verdict": "wrong",
+   "company": "Life.Church",
+   "type": "select",
+   "label": "Do you have relocation limitations?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Asks if the person has relocation limitations. They do (relocation = No), so the answer should be Yes; 'No' says they can relocate freely."
+  },
+  {
+   "audit_id": 666,
+   "verdict": "wrong",
+   "company": "Rigetti",
+   "type": "textarea",
+   "label": "Describe a process development or optimization project you have worked on. What was your role, what technical challenge did you address, and what was the outcome?",
+   "options": [],
+   "was": "1 Example St, Chicago, IL 60601",
+   "why": "Free-text essay about a process development/optimization project; the answer is a street address."
+  },
+  {
+   "audit_id": 667,
+   "verdict": "wrong",
+   "company": "AI Fund",
+   "type": "text",
+   "label": "This is a full-time, in-person role based in Mountain View, CA. Are you able to work in person from our Mountain View office?",
+   "options": [],
+   "was": "Yes",
+   "why": "Commits to in-person work in Mountain View, CA; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 671,
+   "verdict": "wrong",
+   "company": "Teleskope",
+   "type": "checkbox",
+   "label": "Are you currently based, or planning to be based in NYC and able to work on-site (hybrid) in the Financial District?",
+   "options": [],
+   "was": "yes",
+   "why": "Says yes to being based or planning to be based in NYC on-site; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 672,
+   "verdict": "wrong",
+   "company": "Unwrap",
+   "type": "checkbox",
+   "label": "This position requires working on-site in Santa Barbara, CA. Will you be able to meet this requirement?",
+   "options": [],
+   "was": "yes",
+   "why": "Commits to on-site work in Santa Barbara, CA; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 675,
+   "verdict": "wrong",
+   "company": "Outschool",
+   "type": "checkbox",
+   "label": "Are you legally authorized to work for any employer in South Korea?",
+   "options": [],
+   "was": "Yes",
+   "why": "Claims authorization to work in South Korea. The persona's work authorization is US (US citizen); nothing supports Korean work rights."
+  },
+  {
+   "audit_id": 676,
+   "verdict": "wrong",
+   "company": "Outschool",
+   "type": "checkbox",
+   "label": "Will you now or in the future require employer sponsorship to obtain or maintain a South Korean employment visa?",
+   "options": [],
+   "was": "No",
+   "why": "Says no South Korean visa sponsorship needed. A US citizen with no stated Korean status would need it."
+  },
+  {
+   "audit_id": 679,
+   "verdict": "wrong",
+   "company": "Highlight AI",
+   "type": "checkbox",
+   "label": "Are you open to working five days a week in person at our San Francisco office?",
+   "options": [],
+   "was": "yes",
+   "why": "Commits to 5 days/week in person in San Francisco; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 687,
+   "verdict": "wrong",
+   "company": "Nidus Technologies",
+   "type": "checkbox",
+   "label": "Are you legally authorized to work in the United States without sponsorship now or in the future?",
+   "options": [],
+   "was": "no",
+   "why": "Inverted. A US citizen is authorized to work in the US without sponsorship; answer should be Yes."
+  },
+  {
+   "audit_id": 699,
+   "verdict": "wrong",
+   "company": "Aurelian",
+   "type": "checkbox",
+   "label": "Are you authorized to work lawfully in the US without sponsorship?",
+   "options": [],
+   "was": "no",
+   "why": "Inverted. A US citizen is authorized to work in the US without sponsorship; answer should be Yes."
+  },
+  {
+   "audit_id": 703,
+   "verdict": "wrong",
+   "company": "Blissway",
+   "type": "checkbox",
+   "label": "Are you aware this position requires relocating to Denver, CO?",
+   "options": [],
+   "was": "no",
+   "why": "Asks whether the person is aware the role requires relocating to Denver. 'No' answers a different question (their willingness to relocate) and wrongly says they didn't know the posting's requirement."
+  },
+  {
+   "audit_id": 704,
+   "verdict": "wrong",
+   "company": "Relay Technologies",
+   "type": "checkbox",
+   "label": "Do you need visa sponsorship in the UK now or in the future?",
+   "options": [],
+   "was": "No",
+   "why": "Says no UK visa sponsorship needed. A US citizen with no UK right to work would need it (sponsorship = No was about the US)."
+  },
+  {
+   "audit_id": 718,
+   "verdict": "wrong",
+   "company": "H3X Technologies",
+   "type": "checkbox",
+   "label": "Are you able to work in person at our Louisville, CO HQ?",
+   "options": [],
+   "was": "yes",
+   "why": "Commits to in-person work at the Louisville, CO HQ; the person is in Chicago and relocation = No."
+  },
+  {
+   "audit_id": 378,
+   "verdict": "unsure",
+   "company": "Crest Industries",
+   "type": "textarea",
+   "label": "Enter three professional references with name, company, position, phone number, and email address.",
+   "options": [],
+   "was": "Available on request",
+   "why": "Form requires three references with contact details; persona has none (only 'Available on request'). Non-answer: should have asked the person."
+  },
+  {
+   "audit_id": 430,
+   "verdict": "unsure",
+   "company": "Whoop",
+   "type": "text",
+   "label": "A design portfolio is required as part of the application process. Please provide a link to your portfolio below, along with a password if applicable, or upload a file",
+   "options": [],
+   "was": "https://example.test",
+   "why": "Asks for a design portfolio link; persona has no portfolio (data analyst). Passing off the personal website as a design portfolio is unverified."
+  },
+  {
+   "audit_id": 452,
+   "verdict": "unsure",
+   "company": "EliseAI",
+   "type": "text",
+   "label": "Please provide a range of your compensation expectations.",
+   "options": [],
+   "was": "95000",
+   "why": "Asks for a range; persona has a single figure (95000). The person should choose the range."
+  },
+  {
+   "audit_id": 483,
+   "verdict": "unsure",
+   "company": "McAdams",
+   "type": "input_text",
+   "label": "What is your desired salary range? Example: (# - #)",
+   "options": [],
+   "was": "95000",
+   "why": "Asks for a range in '# - #' format; persona has a single figure. Wrong format, and the range isn't known."
+  },
+  {
+   "audit_id": 515,
+   "verdict": "unsure",
+   "company": "Juvare",
+   "type": "multi_value_single_select",
+   "label": "This position may require the successful completion of a pre-employment drug test where permitted by applicable law. Are you willing and able to comply with the Company’s applicable drug-testing requirements and federal drug-free workplace standards",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Commits to pre-employment drug testing; persona has no fact about drug testing (background_check_ok is a different thing)."
+  },
+  {
+   "audit_id": 574,
+   "verdict": "unsure",
+   "company": "IEM",
+   "type": "multi_value_multi_select",
+   "label": "Would you like to opt out of AI-powered Talent Matching?",
+   "options": [
+    "Yes - I would like to opt out of AI-powered Talent Matching. Please have my application reviewed by a recruiter or hiring manager without the use of AI-powered Talent Matching.",
+    "No - I consent to AI-powered Talent Matching to help identify how my background aligns with this opportunity. I understand that every application is also reviewed by a recruiter or hiring manager before any hiring decisions are made."
+   ],
+   "was": "No - I consent to AI-powered Talent Matching to help identify how my background aligns with this opportunity. I understand that every application is also reviewed by a recruiter or hiring manager before any hiring decisions are made.",
+   "why": "Consents to AI-powered talent matching. ai_policy_ack is an acknowledgement, not clearly consent to AI screening of the application; opting in or out is the person's choice."
+  },
+  {
+   "audit_id": 585,
+   "verdict": "unsure",
+   "company": "University of Chicago",
+   "type": "textarea",
+   "label": "Please list the names and emails of two references. We will inform you before contacting references.",
+   "options": [],
+   "was": "Available on request",
+   "why": "Asks for two references' names and emails; persona has none. 'Available on request' doesn't answer it."
+  },
+  {
+   "audit_id": 604,
+   "verdict": "unsure",
+   "company": "SpryPoint",
+   "type": "text",
+   "label": "What is your expected salary range for a full-time permanent position at SpryPoint?",
+   "options": [],
+   "was": "95000",
+   "why": "Asks for a salary range; persona has a single figure (95000)."
+  },
+  {
+   "audit_id": 622,
+   "verdict": "unsure",
+   "company": "Kitware",
+   "type": "radio",
+   "label": "I acknowledge that I've read the required qualifications of this position.",
+   "options": [
+    "Yes, I meet all of the required qualifications.",
+    "No, I do not meet all of the required qualifications.",
+    "I meet some of the required qualifications."
+   ],
+   "was": "Yes, I meet all of the required qualifications.",
+   "why": "Claims 'I meet all of the required qualifications'. Persona facts can't confirm this for the role."
+  },
+  {
+   "audit_id": 623,
+   "verdict": "unsure",
+   "company": "Kitware",
+   "type": "radio",
+   "label": "I am willing and able to apply for and maintain a TS/SCI security clearance.",
+   "options": [
+    "Yes, I am willing.",
+    "No, I am not willing.",
+    "I currently hold a clearance.",
+    "I previously held a clearance and am willing to again."
+   ],
+   "was": "No, I am not willing.",
+   "why": "Says 'No, I am not willing' to get a TS/SCI clearance. Persona only says there's no current clearance (None), nothing about willingness; this answer likely disqualifies."
+  },
+  {
+   "audit_id": 637,
+   "verdict": "unsure",
+   "company": "Simulmedia",
+   "type": "textarea",
+   "label": "Will you require relocation for this position?",
+   "options": [],
+   "was": "No",
+   "why": "Asks whether relocation will be required. Persona relocation = No means unwilling, not 'no relocation needed'; the true answer depends on the job's location (Simulmedia is NYC-based), so the person should be asked."
+  },
+  {
+   "audit_id": 665,
+   "verdict": "unsure",
+   "company": "Rigetti",
+   "type": "radio",
+   "label": "1. Which best describes your education?",
+   "options": [
+    "PhD in a relevant engineering or science discipline",
+    "Master's in a relevant engineering or science discipline",
+    "Bachelor's in a relevant engineering or science discipline",
+    "Other"
+   ],
+   "was": "Bachelor's in a relevant engineering or science discipline",
+   "why": "Picks 'Bachelor's in a relevant engineering or science discipline'. A Statistics BA's relevance to this process-development role isn't established; 'Other' may be the honest answer."
+  },
+  {
+   "audit_id": 702,
+   "verdict": "unsure",
+   "company": "Blissway",
+   "type": "number",
+   "label": "What was (or currently is) your PPA?",
+   "options": [],
+   "was": "3.6",
+   "why": "Asks for 'PPA', an unknown term; the system assumed it means GPA. Should have asked."
+  }
+ ]
+}

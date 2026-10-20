@@ -33,12 +33,16 @@ export function bindFields(fields: any[]) {
     const opts = group
       ? rows.map((r, i) => ({ label: r.label, value: distinct ? values[i] : r.label, selector: r.selector, ref: r.ref }))
       : f.options || [];
+    const widget = /select__input/.test(f.cls || "") ? "react-select" : null;
     schema.push({
       name,
       label: label || name,
       type,
       required: rows.some((r) => r.required),
       options: opts.map((r: any) => ({ label: r.label, value: r.value })),
+      // WO-052: a dropdown whose options load only when its menu opens is answered later, on the employer's own options
+      // (chooseWidgetOption); the planner must not read it as a typed box.
+      ...(widget ? { widget } : {}),
     });
     bindings[name] = {
       field_id: name,
@@ -54,7 +58,7 @@ export function bindFields(fields: any[]) {
       selector: f.selector,
       elementRefs: rows.map((r) => r.ref),
       options: opts,
-      widget: /select__input/.test(f.cls || "") ? "react-select" : null,
+      widget,
       profile_key: classifyField(label, type),
     };
   }

@@ -139,3 +139,22 @@ but the value is Workday's, so it is not Trainee's. "Coverage" counts a row whos
   "Next") is not recognized as a sign-in page.
 - Approved draft steps are kept only on this computer (no queue record, no screenshot); only the final Submit is recorded.
 - The review card masks long numbers it cannot tie to a confirmed fact or a date (as "typed by you").
+
+## Architect review: the 4 sealed tenants, scored once (2026-10-20)
+Sealed TEST Workday-shaped tenants s1-s4 (written from public sources by a separate writer who never read the extension or
+planner; sha256 of the sealed tar cef21e45...), scored once on a1a550f1 with `evals/apply/workday-fill.cjs`. VERIFIED-S on
+TEST pages; real Workday NOT_RUN.
+
+| Tenant | Trainee's fills correct / should fill | Correct on the form incl. Workday's own fills | Trainee precision | Wrong | Never-violations | Outcome |
+|---|---|---|---|---|---|---|
+| s1 (sign-in first) | 0 / 0 | n/a | n/a | 0 | 0 | the eval's test person could not click Sign In (harness); the extension correctly left the sign-in page alone |
+| s2 | 30 / 44 (68.2%) | 41 / 44 (93.2%): 11 values were set by Workday's own resume parse | 100% (27/27) | 0 | 0 | reached review, not submitted |
+| s3 | 37 / 41 (90.2%) | 39 / 41 (95.1%) | 100% (34/34) | 0 | 0 | reached review, not submitted |
+| s4 | 15 / 16 on page 1 | n/a | 100% (12/12) | 0 | 0 | stopped on page 1: a required "How did you hear" search widget was left unanswered, so the rest was never reached |
+
+Across what was reached: **0 wrong answers, 0 fields the person must fill touched, nothing submitted**; Trainee's own fills
+73 of 73 correct. Misses: a "previous employee of X or any of its subsidiaries" radio, "local to Chicago or willing to
+relocate" (asked; the key says Yes), an English proficiency list, a LinkedIn link in a generic URL field, "when could you
+start" ("Within 2 weeks"), and the how-heard search widget that stopped s4. Coverage against the 70% target is met on the
+two tenants that ran end to end (counting only Trainee's fills: 68.2% and 90.2%; on the form: 93.2% and 95.1%), not shown
+on s1 and s4. The sealed set is now spent: its misses were read for the next round.

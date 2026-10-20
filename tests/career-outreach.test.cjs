@@ -364,21 +364,22 @@ test("W3 (a) replay: every _w01-lib fact shape renders a grammatical personaliza
     assert.doesNotMatch(d.body, /\ba a\b|\bthe a\b/, kind);
   }
 });
-// W3 (b) replay: the four _w01-lib USERS fixtures' experience strings. No
+// W3 (b) replay: four USERS fixtures' experience strings (synthetic
+// stand-ins in the _w01-lib shapes — scrub follow-up 2026-10-20). No
 // body may contain "I'm currently a " (the SC-013 defect: "I'm currently a
 // sophomore summer analyst stint ...").
 test("W3 (b) replay: experience-line composition is grammatical for all four _w01-lib USERS fixtures", () => {
   const users = {
-    alex: { name: "Alex Testcase (TEST)", school: "TEST University", year: "sophomore", year_label: "'28", experience: "building a reporting dashboard used by 200 users at a campus systems job" },
-    jordanWharton: { name: "Jordan Lee (TEST)", school: "Wharton School, University of Pennsylvania", year: "junior", year_label: "'27", experience: "a sophomore summer analyst stint at a boutique bank, where I built merger models on two live deals" },
+    alex: { name: "Alex Testcase (TEST)", school: "TEST University", year: "sophomore", year_label: "'28", experience: "building a shift-scheduling tool used by 300 students at a campus recreation center" },
+    jordanWharton: { name: "Jordan Lee (TEST)", school: "Wharton School, University of Pennsylvania", year: "junior", year_label: "'27", experience: "a summer operations internship at a regional freight company, where I built routing models on three live accounts" },
     samFreshman: { name: "Sam Ortiz (TEST)", school: "large state university (TEST)", year: "freshman", year_label: "'29", experience: "a member of my school's finance club" },
-    morganVP: { name: "Morgan Hale (TEST)", school: "TEST University", year: "", year_label: "", experience: "nine years in investment banking, most recently as a VP leading sell-side processes" },
+    morganVP: { name: "Morgan Hale (TEST)", school: "TEST University", year: "", year_label: "", experience: "eleven years in commercial real estate, most recently as a director leading portfolio acquisitions" },
   };
   for (const [k, u] of Object.entries(users)) assert.doesNotMatch(M.draftFor(cand({}), u).body, /I'm currently a /, k);
-  assert.ok(M.draftFor(cand({}), users.alex).body.includes("I'm currently building a reporting dashboard used by 200 users at a campus systems job."));
-  assert.ok(M.draftFor(cand({}), users.jordanWharton).body.includes("Most recently, I completed a sophomore summer analyst stint at a boutique bank, where I built merger models on two live deals."));
+  assert.ok(M.draftFor(cand({}), users.alex).body.includes("I'm currently building a shift-scheduling tool used by 300 students at a campus recreation center."));
+  assert.ok(M.draftFor(cand({}), users.jordanWharton).body.includes("Most recently, I completed a summer operations internship at a regional freight company, where I built routing models on three live accounts."));
   assert.ok(M.draftFor(cand({}), users.samFreshman).body.includes("I'm a member of my school's finance club."));
-  assert.ok(M.draftFor(cand({}), users.morganVP).body.includes("I have nine years in investment banking, most recently as a VP leading sell-side processes."));
+  assert.ok(M.draftFor(cand({}), users.morganVP).body.includes("I have eleven years in commercial real estate, most recently as a director leading portfolio acquisitions."));
   assert.doesNotMatch(M.draftFor(cand({}), users.morganVP).body, /I'm currently/);
 });
 // W3 (c) replay: article agreement (a -> an before a vowel sound) on the

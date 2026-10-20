@@ -256,8 +256,9 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
   const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
   if (exact.length) return exact[0].value;
   // WO-058 (sealed-wd3 t2): a leaf under categories ("Mathematics & Statistics > Statistics", Workday's prompt) is the
-  // person's own words when its leaf is; two leaves of that name under two categories: asked.
-  const leaf = options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
+  // person's own words when its leaf is; two leaves of that name under two categories: asked. How the person heard has its
+  // own reading of a nested list below ("LinkedIn" beside "LinkedIn Jobs" is the person's to pick, WO-048).
+  const leaf = fact === "how_heard" ? [] : options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
   if (leaf.length === 1) return leaf[0].value;
   if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
   // A derived yes or no lands only on a yes or no option; a list with no yes ("Master's | Bachelor's | ... | Not

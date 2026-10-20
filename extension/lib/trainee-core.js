@@ -853,7 +853,7 @@
   var DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
   function authorizationAsked(t) {
     const asked = t.replace(/\b(?:[a-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024")).split(/(?<=[.?!])\s+/).filter((x) => x.includes("?")).pop() ?? "";
-    return /\b(authori[sz]ed|eligible) to work\b/.test(asked) && !/sponsor|visa/.test(asked);
+    return /\b(authori[sz]ed|eligible|entitled) to work\b|\bright to work\b|\bwork authori[sz]ation\b|\bauthori[sz]ation to work\b/.test(asked) && !/sponsor|visa/.test(asked);
   }
   var BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)|credit (check|report|histor)|reference check|in consideration of (my|your|the) employment/;
   var ackOpt = (x) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
@@ -1076,10 +1076,15 @@
     [
       "website",
       /\b(portfolio|personal (web)?site|website)\b(?!.*\b(upload|file)\b)/,
-      (q) => !LONG_TYPES.has(String(q.type))
+      (q, t) => !LONG_TYPES.has(String(q.type)) && !/\b(academic|program|department|school|university|college|company|employer|organi[sz]ation)\b/.test(t)
     ],
     // Work history.
     // WO-052 (sample C): "Current job title & company" asks for two things; the title alone is half an answer: asked.
+    // WO-059 (sample H, Latitude AI): "Title Held at Most Recent Employer" is the title, not the employer.
+    [
+      "current_title",
+      /\b(job )?title( held)?\b.{0,15}\b(at|with|for) (your )?(current|most recent|last|present) (employer|company|job)\b/
+    ],
     [
       "current_title",
       /^(current|your) (job )?title\b|\bcurrent or previous job title\b|^job title\b(?!.*second)/,
@@ -1168,6 +1173,10 @@
       /^degree[\s*:]*$/
     ],
     [
+      "unknown",
+      /\b(another|other|different|previous|former|maiden) name\b|\bunder (a |any )?(different|other) name\b/
+    ],
+    [
       "school",
       /^(school|college|university)[\s*:]*$/
     ],
@@ -1182,6 +1191,10 @@
     [
       "major",
       /^major\b|\byour major\b|\bmajor ?\/ ?area\b|\barea of study\b|\bfield of study\b|\bhighest level degree in\b/
+    ],
+    [
+      "unknown",
+      /\b(currently enrolled|enrolled in|current (degree )?program)\b/
     ],
     [
       "graduation_date",
@@ -1257,6 +1270,12 @@
       "clearance_eligibility",
       /\b(willing|able) (and able )?to (apply for|obtain|get)\b.*\bclearance\b/
     ],
+    // WO-059 (sample H): "are you able obtain", "do you meet the requirements to obtain and maintain a clearance": whether the
+    // person could get one is theirs to say; holding none does not answer it.
+    [
+      "clearance_eligibility",
+      /\b(able|ability|requirements?|qualify|qualified)\b.{0,12}\b(obtain|get|apply for)\b.{0,80}\bclearance\b/
+    ],
     [
       "clearance_eligibility",
       /\beligib\w*\b.{0,60}\bclearance\b|\bclearance\b.{0,30}\beligib/
@@ -1281,6 +1300,10 @@
       "citizenship",
       /\bcitizen(ship)?\b|\bnationality\b|\bpermanent resident\b|\bcitizenship ?\/ ?employment eligibility\b/,
       (q, t) => !/renounced|\bwhen\b|obtained|\bdates?\b/.test(t)
+    ],
+    [
+      "unknown",
+      /\bat[- ]will\b/
     ],
     [
       "work_authorization",
@@ -1367,7 +1390,7 @@
     [
       "referral",
       /\breferr(ed|al|ing)\b/,
-      (q, t) => !/government official|public official|politically exposed|public function/.test(t)
+      (q, t) => !/government official|public official|politically exposed|public function|personally know|know (anyone|someone|a current)|acquainted/.test(t)
     ],
     [
       "relative_here",
@@ -1388,12 +1411,12 @@
     [
       "worked_here_before",
       /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/,
-      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client|agency|vendor|third[- ]party/.test(t + " " + opts(q))
+      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client|agency|vendor|third[- ]party|partner|reseller|customer/.test(t + " " + opts(q))
     ],
     // WO-058: work through an agency, a vendor or a third party for this employer is not on the person's employer list.
     [
       "unknown",
-      /\b(employed|worked|work|services)\b.*\b(by|for|with|through|to)\b.*\b(staffing|agency|vendor|third[- ]party|contractor)\b/
+      /\b(employed|worked|work|services)\b.*\b(by|for|with|through|to)\b.*\b(staffing|agency|vendor|third[- ]party|contractor|partner|reseller|customer)\b/
     ],
     [
       "how_heard",
@@ -2039,7 +2062,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options);
     const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
     if (exact.length) return exact[0].value;
-    const leaf = options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
+    const leaf = fact === "how_heard" ? [] : options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
     if (leaf.length === 1) return leaf[0].value;
     if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
     if (derived) {
@@ -2631,6 +2654,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
       if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
       if (key === "location" && /relocat|commut/i.test(l)) continue;
+      if (key === "work_authorization" && /\bat[- ]will\b|\bpermanent\b/i.test(l)) continue;
+      if (key === "website" && /\b(academic|program|department|school|university|college|company|employer|organi[sz]ation)\b/i.test(l)) continue;
       if ((key === "email" || key === "phone") && /e-?mail/i.test(l) && /phone|mobile|number/i.test(l)) continue;
       if (key === "phone" && /\b(sms|text messages?|texts)\b/i.test(l)) continue;
       if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
@@ -2913,8 +2938,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     let a;
     if (m.fact === "worked_here_before" && answers.former_employers) {
       const co = normCompany(company);
+      if (/\bworked with\b/i.test(f.label) && !(co && normCompany(f.label).includes(co)) && !/\b(us|our|we)\b/i.test(f.label)) return null;
       const listed = String(answers.former_employers.value).split(SPLIT).map(normCompany).filter(Boolean);
-      const here = !!co && listed.some((x) => x === co || co.includes(x) || x.includes(co));
+      const words = (x) => ` ${x} `;
+      if (co && listed.some((x) => x !== co && (words(x).includes(words(co)) || words(co).includes(words(x))))) return null;
+      const here = !!co && listed.some((x) => x === co);
       const named = normCompany([
         f.label,
         ...f.options.map((o) => o.label)
@@ -2940,6 +2968,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       a = {
         value: "Yes",
         factId: answers.current_employer.factId
+      };
+    } else if (m.fact === "work_authorization" && /\bpermanent\b/i.test(askedPart(f.label))) {
+      if (!(answers.citizenship && NAMES_US.test(String(answers.citizenship.value))) || postingCountry(posting) === "abroad") return null;
+      a = {
+        value: "Yes",
+        factId: answers.citizenship.factId
       };
     } else if (m.kind === "screen") {
       const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
@@ -3320,7 +3354,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           needs.set(k2, n2);
           continue;
         }
-        const key = classifyField(f.label, f.type);
+        const keyed = classifyField(f.label, f.type);
+        const key = keyed === "full_name" && /^\s*name\s*[*:]?\s*$/i.test(f.label) && p.fields.some((x) => x !== f && classifyField(x.label, x.type) === "last_name") ? "first_name" : keyed;
         const followUp = FOLLOW_UP.test(f.label);
         const here = factStaysHere(f, p.location, o.answers);
         const own = o.saved[answerKey(f, p.job_id, {

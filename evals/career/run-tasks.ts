@@ -45,7 +45,7 @@ export type Verdict = { pass: boolean; failed: string[]; score: number; note: st
 export function productPool(shelf: Shelf): any[] {
   return shelf.postings.map((p) => ({
     job_id: p.id, ats_id: p.id.split(":").slice(2).join(":"), company: p.company, title: p.title, location: p.location, url: p.url,
-    description: p.text, department: p.department, posted_at: p.posted_at, provider: p.ats, board: p.board,
+    description: p.text, department: p.department, posted_at: p.posted_at, provider: p.ats, board: p.board, pay: p.pay ?? null,
     first_seen_at: p.posted_at || shelf.fetched_at, last_seen_at: shelf.fetched_at, closed_at: null, ...derived(p),
   }));
 }

@@ -447,6 +447,8 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
   const { memoryPostingsDb } = await import("../../supabase/functions/_shared/career_ingest.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
   const { memoryWantStore } = await import("../../supabase/functions/_shared/career_apply_want.ts");
+  const { memoryStandingStore } = await import("../../supabase/functions/_shared/agent/memory.ts");
+  const { memoryPersonaStore, memoryResumeStore, edgeRenderer } = await import("../../supabase/functions/_shared/career_tailor.ts");
   const host = (CareerHost as any).createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   if (o.kind === "agent" && !o.model) throw new Error("the agent brain needs a model");
   const pool = productPool(o.shelf), rpool = routerPool(o.shelf);
@@ -455,6 +457,9 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
   return async (turns) => {
     // WO-066/068: the apply queue and one-posting reader, as agent-chat wires them in production.
     const store = memoryStore(), alerts = memoryAlertStore(), db = memoryPostingsDb(), wants = memoryWantStore();
+    // Standing instructions and resume tailoring, as agent-chat wires them in production (run 5: remember_instruction and
+    // tailor_resume failed here only because the harness left them out).
+    const memory = memoryStandingStore(), personas = memoryPersonaStore(), resumes = memoryResumeStore();
     await db.putMany(pool);
     let now = T0;
     const replies: string[] = [], meta: TurnMeta[] = [];
@@ -466,7 +471,9 @@ export async function traineeTaskBrain(o: { kind: "agent" | "router"; shelf: She
       try {
         if (o.kind === "agent") {
           const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now,
-            model: o.model!, postings: (q) => db.search(searchWords(q), 150), alerts, wants, posting: (id) => db.get(id) });
+            model: o.model!, postings: (q) => db.search(searchWords(q), 150), alerts, wants, posting: (id) => db.get(id),
+            memory, known: { standing: await memory.standing(a.userId), alerts: null, pipeline: null },
+            tailor: { posting: (id) => db.get(id), personas, resumes, render: edgeRenderer() } });
           m.tool_calls = t.tool_calls; m.pending_approvals = t.pending_approvals; m.stopped = t.stopped;
           if (t.stopped === "model_error") throw new Error("agent model unavailable");
           reply = t.reply;
@@ -580,7 +587,7 @@ if (import.meta.main) {
     label, kind: "tasks-live", set: "tasks-live", brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
     shelf: { run_id: shelf.run_id, file: `shelf-${shelf.run_id}.json`, seed, fetched_at: shelf.fetched_at, postings: shelf.postings.length, boards_ok: shelf.boards.filter((b) => b.status === "ok").length, boards: shelf.boards.length },
     harness: brainName === "agent"
-      ? "agentTurn (trunk career_brain.ts) through handleInbound; postings = the live shelf in memoryPostingsDb, searched as production does (search(searchWords(q), 150), ranked by search_jobs' searchPostings); alerts = memoryAlertStore(). Not wired here (as in run-conversations.ts): memory, events, mail, interviews, digest, outreach, tailor, hired."
+      ? "agentTurn (trunk career_brain.ts) through handleInbound; postings = the live shelf in memoryPostingsDb, searched as production does (search(searchWords(q), 150), ranked by search_jobs' searchPostings); alerts = memoryAlertStore(). Standing instructions (memoryStandingStore, read back into the prompt each turn) and tailoring (memory persona and resume stores, edgeRenderer) as production wires them. Not wired here: events, mail, interviews, digest, outreach, hired."
       : "CareerHost router (trunk career_host.js) through handleInbound; the live shelf passed as createTurnCtx({ postings }) with source_kind live_public and observed_at = the shelf's fetch time. The deployed commit 4b4e7981's router is not run here (follow-up).",
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before,

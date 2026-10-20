@@ -1,6 +1,6 @@
 # WO-039: the cloud worker, gated in the database
 
-Status: built on `wo/039-cloud-worker` (not merged) · Decisions: D-003, D-007, D-010, D-011, D-013, D-014, D-017, D-022 ·
+Status: merged (343c9815), kill switch off · Decisions: D-003, D-007, D-010, D-011, D-013, D-014, D-017, D-022 ·
 Migration: `20261021080000_career_apply_cloud.sql`
 
 ## What

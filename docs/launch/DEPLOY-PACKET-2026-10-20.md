@@ -1,7 +1,40 @@
 # Deploy packet: trunk to production (WO-062, drafted 2026-10-20)
 
-**Status: waiting on the owner's word.** Nothing here has been run against production. Per the brief, a deploy word
-covers exactly the commit named with it, and nothing more.
+**Status: WORD GIVEN on `ea365d5a`; the run is the owner's, from the owner's own shell.**
+
+## The word (owner, 2026-10-20, verbatim)
+> "Deploy the packet as updated to trunk commit ea365d5a, including WO-069's pay migration. Run the gauntlet after, and
+> record it. This word covers exactly this commit and this packet. If the commit changes by even one character, the word
+> does not carry — name the new commit in the reports log and I will word it fresh."
+
+- **Commit:** `ea365d5a` (WO-079 #98). Trunk has since moved to `dc8e5802` (a privacy scrub of test fixtures; it ships
+  no function or migration). **The word does not carry to it.** The deploy runs from a detached checkout of `ea365d5a`
+  exactly. Any later trunk commit is named in `docs/architect/reports/` for a fresh word.
+- **Dry run at `ea365d5a`** (architect, 2026-10-20):
+  `SUPABASE_PROJECT_REF=mrwngntwmnaqrqhupvlt bash scripts/launch/trainee-go-live.sh --dry-run` passed all 6 steps:
+  - the migrations through `20261022110000_career_postings_pay` (WO-069), in file order, each checked by its table or
+    function mark;
+  - functions agent-chat (staged career-only, JWT on), career-ingest, career-proactive, trainee-deliver,
+    trainee-inbound, career-voice, trainee-telegram and trainee-whatsapp;
+  - the 3 schedules;
+  - the smoke step.
+- **Not in this deploy, by the script at this commit:** `career-essay-draft` (the extension card's "Draft from my
+  facts"). Until a later commit adds it and is worded, that button answers "Drafting on the card isn't on yet" and
+  nothing else breaks. Also not in this deploy: the cross-user extension fix (PR #99), corrections (PR #102), the T09
+  stop (PR #103) and emailed codes (WO-084). Each needs its own word on its own commit.
+- **Who runs it:** the owner, from their own shell, with their own Supabase access token. No agent runs a deploy
+  (script header; the agent's Supabase access to this project is denied).
+
+```
+git fetch origin && git checkout --detach ea365d5a
+git rev-parse HEAD   # must print ea365d5a…, or stop
+SUPABASE_PROJECT_REF=mrwngntwmnaqrqhupvlt bash scripts/launch/trainee-go-live.sh
+```
+
+- **After it:** the architect runs the gauntlet below and records it in `docs/architect/reports/`, VERIFIED-LIVE only
+  for what was actually seen on the live project.
+
+## The packet as drafted
 
 - **Project:** Upmore, `mrwngntwmnaqrqhupvlt`, addressed by ref. Never the sporv or ring projects.
 - **Commit:** `<trunk commit after #90, #91 and #92 merge>`, filled in when the chain is merged and its gate is green.

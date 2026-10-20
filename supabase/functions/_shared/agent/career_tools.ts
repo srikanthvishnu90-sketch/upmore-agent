@@ -2,7 +2,7 @@
 // career state the CareerHost persists (ctx.state is the host's turn ctx: profile, trackStore, …). Tools return data; the
 // model writes the words. No reply prose lives here.
 import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
-import type { ToolSpec, ToolCtx } from "./loop.ts";
+import { AskPerson, type ToolSpec, type ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
@@ -388,7 +388,7 @@ export function careerTools(deps: {
         if (!r.ok && r.refused === "no_confirmed_facts") {
           const drafts = (profileOf(c).facts || []).filter((f: any) => f.needs_confirmation && ["experience", "education", "project"].includes(String(f.kind)))
             .slice(0, 6).map((f: any) => `- ${String(f.text || f.title || "").slice(0, 160)}`);
-          throw new Error(drafts.length
+          throw new AskPerson(drafts.length
             ? `not made yet: there are no confirmed experience, project or education facts on file (a resume uses confirmed facts only). Nothing was stored or sent. Drafts waiting for their yes:\n${drafts.join("\n")}\nAsk them to check these and reply yes (or correct them), then make it after that yes. Do not call another tool this turn.`
             : `not made: there are no confirmed experience, project or education facts on file. Ask them for their work experience and education in their own words; nothing is invented. Do not call another tool this turn. Nothing was stored or sent.`);
         }

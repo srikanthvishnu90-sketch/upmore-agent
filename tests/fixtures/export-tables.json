@@ -536,6 +536,18 @@
    "order": ["at", "id"]
   },
   {
+   "table": "career_interviews",
+   "order": ["seen_at", "id"]
+  },
+  {
+   "table": "career_digest_prefs",
+   "order": ["updated_at"]
+  },
+  {
+   "table": "career_outreach_drafts",
+   "order": ["created_at", "id"]
+  },
+  {
    "table": "channel_contacts",
    "order": [
     "created_at",

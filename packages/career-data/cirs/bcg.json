@@ -227,6 +227,14 @@
       "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
       "as_of": "2026-10-12",
       "kind": "norm"
+    },
+    {
+      "statement": "Candidate-led case study interview: structure the problem, ask questions, analyse data, calculate, and reason to a recommendation where there is not always a single right answer.",
+      "source_url": "https://careers.bcg.com/global/en/case-interview-preparation",
+      "source_type": "official",
+      "as_of": "2026-10-12",
+      "kind": "norm",
+      "note": "WO-035: the style above, from BCG's official case-preparation page, restated as the statement (the entry above carries only its pointer note as the statement)."
     }
   ],
   "values_culture_signals": [

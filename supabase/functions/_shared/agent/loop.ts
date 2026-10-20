@@ -8,7 +8,9 @@
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
 // the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[] } }
+// `show` (WO-033): a tool whose output the person must read exactly (a batch of outreach drafts, each in full) sets it;
+// the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it.
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -24,6 +26,7 @@ export interface TurnResult {
   tool_calls: { name: string; ok: boolean; effect: Effect | null }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error";
+  show?: { intent: string; text: string };
 }
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";
@@ -53,12 +56,17 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     steps++;
     let res;
     try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS }); }
-    catch { return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" }; }
+    catch {
+      const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" };
+    }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
     if (!uses.length) {
       const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
-      return { reply, steps, tool_calls, pending_approvals, stopped: "final" };
+      const show = o.ctx.turn?.show;
+      return { reply: show ? show.text : reply, steps, tool_calls, pending_approvals, stopped: "final", ...(show ? { show } : {}) };
     }
     messages.push({ role: "assistant", content });
     const results: any[] = [];
@@ -83,5 +91,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     }
     messages.push({ role: "user", content: results });
   }
+  const show = o.ctx.turn?.show;
+  if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
   return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, stopped: "max_steps" };
 }

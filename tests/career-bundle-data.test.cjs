@@ -20,6 +20,7 @@ const expected = {
   CAREER_INTERVIEW_BANKS_JSON: () => Object.fromEntries(fs.readdirSync(dir('interview-banks')).filter((f) => f.endsWith('.md')).sort()
     .map((f) => [f.replace(/\.md$/, ''), fs.readFileSync(path.join(dir('interview-banks'), f), 'utf8')])),
   CAREER_KB_JSON: () => readJson(dir('kb-aggregates.json')),
+  CAREER_PATTERNS_JSON: () => readJson(dir('interview-patterns.json')),
 };
 
 test('every career data const inflates to exactly its source data', () => {

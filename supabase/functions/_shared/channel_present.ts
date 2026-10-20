@@ -13,24 +13,29 @@
 // THE REPLY CONTRACT (verified 2026-10-19 against agent-chat's
 // handler-career.ts): the response is
 //   { thread_id, reply, action, capabilities, turn_key, reminders,
-//     task?, batch?, meta }
+//     task?, batch?, meta, artifacts? }
 // `reply` is the canonical text (markdown-flavoured: **bold**, *italic*,
 // ~~strike~~, `code`, [label](url), "- " lists, "# " headings, ```
 // fences — the dialect the career modules speak). `reminders` only add
-// speak_line strings to `reply`. There is NO document/artifact field.
+// speak_line strings to `reply`. `artifacts` is the document field
+// (CHANNEL-DOC-1, landed 2026-10-20 — below).
 //
-// GAP CHANNEL-DOC-1 (named follow-up, owned by the agent-chat contract):
-// the core can produce documents a user should receive as files (a
-// tailored resume PDF/DOCX from module 148's render path), but the reply
-// contract carries no way to hand one to a channel. Proposed contract
-// addition, to land with the core — NOT faked here:
+// CHANNEL-DOC-1 (named follow-up, LANDED 2026-10-20, LANE B): the
+// reply contract now carries the document hand-off:
 //   artifacts?: [{ kind: "document", filename: string, mime: string,
-//                  url: string /* https, short-lived, owner-scoped */ }]
-// extractArtifacts() below reads exactly that proposed shape, and both
-// bridges carry working document senders behind it (Telegram
-// sendDocument by URL; WhatsApp via the Twilio MediaUrl parameter).
-// On today's contract the field is absent, extraction returns [], and
-// no document is ever sent or claimed — a fixture pins that.
+//                  ref: string /* opaque id in channel_artifacts —
+//                  the owner-scoped bytes store; see
+//                  channel_artifacts.ts */ }]
+// The bytes live in the product's own store, scoped to the turn's
+// user (and thread); they are never a public URL and never ride the
+// reply itself. extractArtifacts() below reads that shape and keeps
+// the earlier direct-url shape ({ ..., url: https://... }) accepted
+// for any surface that already holds a hosted file URL. The bridges
+// resolve a ref owner-scoped at send time (Telegram uploads the bytes
+// via sendDocument; WhatsApp mints a signed, expiring URL on its own
+// function for Twilio's MediaUrl); a ref that resolves to nothing
+// sends nothing and the failure is spoken — a document is never
+// claimed sent that was not.
 //
 // ------------------------------------------------------------------
 // APPROVALS. The hash-bound approval the core presents conversationally
@@ -80,6 +85,8 @@ export const VOICE = {
   choiceFooter: "Reply with a number:\n1 — Approve this batch\n2 — Not now",
   approveButton: "Approve this batch",
   declineButton: "Not now",
+  docAttachFailed:
+    "That file didn't go through — it's saved on your record; ask me to send it again and I'll retry.",
 } as const;
 
 // ------------------------------------------------------------------
@@ -511,23 +518,26 @@ export async function takeApproval(
 }
 
 // ------------------------------------------------------------------
-// Document artifacts — GAP CHANNEL-DOC-1 (header). Reads the proposed
-// contract field; on today's contract this always returns [].
+// Document artifacts — CHANNEL-DOC-1 (landed; see header). Reads the
+// reply's artifacts[]: the bytes-ref shape the core now emits, and
+// the legacy direct-url shape stays accepted.
 
-export interface ChannelArtifact { kind: "document"; url: string; filename?: string; mime?: string }
+export interface ChannelArtifact { kind: "document"; ref?: string; url?: string; filename?: string; mime?: string }
 
 export function extractArtifacts(chat: any): ChannelArtifact[] {
   const list = Array.isArray(chat?.artifacts) ? chat.artifacts : [];
   const out: ChannelArtifact[] = [];
   for (const a of list) {
     if (!a || a.kind !== "document") continue;
-    if (typeof a.url !== "string" || !a.url.startsWith("https://")) continue;
-    out.push({
+    const entry: ChannelArtifact = {
       kind: "document",
-      url: a.url,
       filename: typeof a.filename === "string" ? a.filename : undefined,
       mime: typeof a.mime === "string" ? a.mime : undefined,
-    });
+    };
+    if (typeof a.ref === "string" && a.ref) entry.ref = a.ref;
+    else if (typeof a.url === "string" && a.url.startsWith("https://")) entry.url = a.url;
+    else continue;
+    out.push(entry);
   }
   return out;
 }

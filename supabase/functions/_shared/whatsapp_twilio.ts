@@ -55,6 +55,7 @@ import {
   presentReply,
   takeApproval,
 } from "./channel_present.ts";
+import { fetchArtifactBytes, signedArtifactUrl, verifyArtifactUrl } from "./channel_artifacts.ts";
 
 export const WHATSAPP_LIMIT = 4096; // WhatsApp message text limit
 
@@ -136,8 +137,33 @@ export function createTwilioSend(
   };
 }
 
+// CHANNEL-DOC-1 — the artifact media route. Twilio fetches the
+// MediaUrl itself, so the bytes-ref contract becomes a SIGNED,
+// EXPIRING URL on this very function: the signature binds (artifact,
+// owner, expiry) and is verified before the Twilio signature gate's
+// world is even entered — a GET is never an inbound message. Fails
+// closed at every doubt: bad/absent signature or expired -> 403;
+// validly signed but the artifact is gone or foreign -> 404; and no
+// bytes ever leave without both checks passing.
+async function serveArtifact(req: Request, deps: ChannelDeps): Promise<Response> {
+  const v = await verifyArtifactUrl(deps.env, req.url);
+  if (!v) return json({ error: "forbidden" }, 403);
+  const got = await fetchArtifactBytes(deps.createAdmin(), { userId: v.userId, ref: v.ref });
+  if (!got) return json({ error: "not found" }, 404);
+  const safeName = got.filename.replace(/["\r\n]/g, "_");
+  return new Response(got.bytes, {
+    status: 200,
+    headers: {
+      "Content-Type": got.mime,
+      "Content-Disposition": `attachment; filename="${safeName}"`,
+      "Cache-Control": "private, no-store",
+    },
+  });
+}
+
 export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok");
+  if (req.method === "GET") return serveArtifact(req, deps);
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
   try {
     const params = parseForm(await req.text().catch(() => ""));
@@ -246,10 +272,22 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
     }
     await sendParts(deps, parts, (part) => send(parsed.from, part));
 
-    // Documents as files (gap CHANNEL-DOC-1: inert on today's contract).
+    // Documents as files (CHANNEL-DOC-1, landed). A bytes-ref artifact
+    // goes out as media on a signed, expiring URL served by this
+    // function itself (the GET route above) — owner-bound, minutes of
+    // life, never a permanent public link; a legacy url artifact rides
+    // as-is. When no URL can be minted (no signing secret configured)
+    // nothing is sent and the failure is spoken instead.
     for (const art of extractArtifacts(outcome.chat)) {
       try {
-        await send(parsed.from, art.filename ?? "Document", [art.url]);
+        if (art.ref) {
+          const base = `${deps.env("SUPABASE_URL") ?? ""}/functions/v1/whatsapp-inbound`;
+          const mediaUrl = await signedArtifactUrl(deps.env, { base, ref: art.ref, userId });
+          if (!mediaUrl) { await send(parsed.from, VOICE.docAttachFailed); continue; }
+          await send(parsed.from, art.filename ?? "Document", [mediaUrl]);
+        } else if (art.url) {
+          await send(parsed.from, art.filename ?? "Document", [art.url]);
+        }
       } catch (e) {
         console.warn("whatsapp-inbound media send failed:", String((e as Error)?.message ?? e).slice(0, 160));
       }

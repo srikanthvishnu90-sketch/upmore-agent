@@ -37462,8 +37462,83 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Revised — the draft on record now reads like this.", facts: [revised, `What changed: ${changes.join("; ")}. The original wording stays on the draft's revision record, and sends are still 0 — a revision never sends anything.`], nextStep: "Approve the plan when you are ready and this is the draft the first wave uses." });
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
   }
+  // CHANNEL-DOC-1 (LANE B, 2026-10-20): a DOCUMENT-DELIVERY ask — a
+  // document named and asked for delivery TO THE USER in this
+  // conversation ("send me the PDF as a file in this chat"). The
+  // channel battery (CB-0495–0497, 2026-10-19) measured the failure:
+  // the ask fell into handleSendAttempt below — its gate reads any
+  // "send … this" as a campaign wave — and the user was told "no wave
+  // could go out" about their own resume, while the reply contract
+  // carried no document at all. A send to a THIRD PARTY ("send my
+  // resume to the recruiter") is never a delivery ask, and neither is
+  // the wave itself ("send the first wave" names no document).
+  function isDocumentDeliveryAsk(t) {
+    if (!/\b(resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/.test(t)) return false;
+    if (/\b(send|email|mail|forward)\b[^.?!]*\bto (the |my |a |an |that |this )?(recruiter|hiring|manager|team|company|firm|employer)\b/.test(t)) return false;
+    if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(t)) return false;
+    // A NAMED recipient is a third party too: "send Alex my resume"
+    // is an outreach draft with the resume attached (124's path,
+    // gauntlet C23), never a delivery to the user — a word between
+    // the verb and the determiner that is not delivery filler is a
+    // person's name, and "…to <anyone but me/this chat>" likewise.
+    const named = t.match(/\b(?:send|email|mail|give|share|forward)\s+([a-z]+)\s+(?:my|the|that|this)\s+(?:resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/);
+    if (named && !/^(me|my|the|that|this|a|an)$/.test(named[1])) return false;
+    if (/\b(send|email|mail|forward)\b[^.?!]*\bto\s+(?!me\b|this\b)[a-z]/.test(t)) return false;
+    return /\b(send|give|share|attach|drop|post|text|email)\b[^.?!]*\b(me|here)\b/.test(t)
+      || /\bin this chat\b/.test(t)
+      || /\b(send|give|share|attach)\s+(me\s+)?(my|the|that|this)\s+(resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/.test(t);
+  }
+  function handleDocumentDelivery(text, ctx) {
+    const t = lc(text);
+    if (!isDocumentDeliveryAsk(t)) return null;
+    // A tailor cue in the same breath belongs to the tailor branch —
+    // the stand-down below lets the combined ask reach it, and the
+    // document it renders rides that turn's result (the agent-chat
+    // handler materializes it into the reply's artifacts[]). This
+    // handler owns the PURE delivery ask only.
+    if (/\btailor\b/.test(t) || /\bmake my resume\b/.test(t)) return null;
+    const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    const stash = profile && Array.isArray(profile._careerRouterArtifacts) ? profile._careerRouterArtifacts : [];
+    let art = null;
+    for (let i = stash.length - 1; i >= 0; i--) {
+      const a = stash[i];
+      if (a && a.pdf && typeof a.pdf.base64 === "string" && a.pdf.base64) { art = a; break; }
+    }
+    if (!art) {
+      // No byte-carrying document exists on this thread: say exactly
+      // that, in product voice, and offer the step that creates one.
+      // Nothing is claimed attached, and no outreach-wave language
+      // leaks in — the user asked for their file, not a campaign.
+      const reply = compose({
+        headline: "There is no document file on this conversation yet to send you.",
+        facts: ["A file exists here only once a resume has been tailored in this chat — tailoring renders the PDF from your confirmed facts, and the file then rides with my reply."],
+        nextStep: "Name the role (or paste the posting) and I will tailor your resume and send the PDF here.",
+      });
+      return { intent: "career_document_delivery", reply, resultStatus: "awaiting_user", sends: 0, documents: [] };
+    }
+    const doc = {
+      kind: "document", format: "pdf",
+      filename: typeof art.pdf.filename === "string" && art.pdf.filename ? art.pdf.filename : "Resume.pdf",
+      mime: typeof art.pdf.contentType === "string" && art.pdf.contentType ? art.pdf.contentType : "application/pdf",
+      base64: art.pdf.base64,
+      sha256: typeof art.pdf.sha256 === "string" ? art.pdf.sha256 : null,
+    };
+    const forLine = art.company ? ` for ${art.company}` : "";
+    const facts = [`Document: ${doc.filename} — the tailored cut${forLine}, rendered from your confirmed facts.`];
+    if (/\bdocx\b/.test(t) && !/\bpdf\b/.test(t)) facts.push("You asked for the DOCX — the file I can send in this chat is the PDF, attached; the DOCX renders with the application packet.");
+    const reply = compose({
+      headline: `Your tailored resume${forLine} — the PDF is attached to this message.`,
+      facts,
+      nextStep: "Want a different cut for another role, or the packet prepared next?",
+    });
+    return { intent: "career_document_delivery", reply, resultStatus: "prepared", sends: 0, documents: [doc] };
+  }
   function handleSendAttempt(text, ctx) {
     const t = lc(text);
+    // CHANNEL-DOC-1: a document asked for delivery to the user in this
+    // chat is not a campaign send — the document route (pure asks) or
+    // the tailor branch (combined asks) owns it; never the wave gate.
+    if (isDocumentDeliveryAsk(t)) return null;
     if (/\bcaps?\b|\bhow does\b|\bwhy\b[^.]*\?/.test(t)) return null; // a rules question is not a send command
     // Sending NEW content (a blurb, an intro, a note) to someone is a
     // drafting/intro task, not the campaign wave — this handler owns
@@ -44049,6 +44124,8 @@ const CareerRouter = (() => {
       if (ct) return ct;
       const pr2 = handleProductRules(text, c);
       if (pr2) return pr2;
+      const dd = handleDocumentDelivery(text, c);
+      if (dd) return dd;
       const sa = handleSendAttempt(text, c);
       if (sa) return sa;
     }

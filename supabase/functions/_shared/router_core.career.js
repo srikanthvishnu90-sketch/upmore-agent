@@ -18995,6 +18995,75 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
     return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // FIX LANE T1 (TG-LONGPLAN-FALLBACK, live Telegram battery
+  // 2026-10-20 turn 4): "Give me a complete plan for preparing for a
+  // finance internship interview over the next two weeks, day by
+  // day." matched NO prep shape — the session claim wants practice
+  // openers, the extras gate wants its fixed phrase list — and fell
+  // to the generic fallback, although the prep capability answers it
+  // directly. The plan is composed FROM that capability (127): drill
+  // days name the question bank's own questions for the track, the
+  // penultimate day is a full timed mock, the last day is the day-of
+  // discipline. The gate is the ask's own shape — a plan, for
+  // preparing, for an interview, over a stated horizon — nothing
+  // narrower (a phrase list) and nothing wider (any "plan").
+  // RE-DRIVE 2026-10-20 16:16 CDT: the same ask in "get ready" words
+  // ("…a plan for this week to get ready for data analyst interviews
+  // in two weeks.") never reached this handler at all — the A3
+  // people-ask gate upstream read "get" + "analysts" as a sourcing
+  // ask and answered with the networking list build. The prep
+  // markers here now include "get ready" / "prep", and the A3 gate
+  // stands down on interview-prep shapes (see its LF-02 comment
+  // block) — neither half alone fixes the turn.
+  function handlePrepPlan(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const t = lc(text);
+    if (!/\bplan\b/.test(t) || !/\binterviews?\b/.test(t) || !/\bprepar|\bget(ting)? ready\b|\bprep\b/.test(t)) return null;
+    if (!/day[ -]by[ -]day/.test(t) && !/\b(next|coming)\b[^.]*\b(days?|weeks?)\b/.test(t) && !/\b\d+\s*(days?|weeks?)\b/.test(t) && !/\b(a|one|two|three|four)\s+weeks?\b/.test(t) && !/\bover the\b[^.]*\b(days?|weeks?)\b/.test(t)) return null;
+    let days = 7;
+    const wm = t.match(/\b(\d+)\s*weeks?\b/), dm = t.match(/\b(\d+)\s*days?\b/);
+    if (/\btwo weeks?\b/.test(t)) days = 14;
+    else if (/\bthree weeks?\b/.test(t)) days = 21;
+    else if (/\bfour weeks?\b/.test(t)) days = 28;
+    else if (wm) days = Math.min(28, 7 * Number(wm[1]));
+    else if (dm) days = Math.min(28, Math.max(3, Number(dm[1])));
+    if (days < 3) days = 3;
+    const roleFamily = /\bfinance|banking|\bbank\b|\bdcf\b|\bquant\b/.test(t) ? "finance"
+      : /\bsoftware|\bcoding\b|\bswe\b|\bengineer/.test(t) ? "swe"
+      : /\bproduct management\b|\bpm prep\b/.test(t) ? "product" : null;
+    let stories = [];
+    try { stories = (Prep.buildStoryBank && ctx.profile) ? (Prep.buildStoryBank(ctx.profile).stories || []) : []; } catch { stories = []; }
+    let bank = null;
+    try { bank = Prep.questionBank({ roleFamily, cir: cirFor(text, ctx), stories }); } catch { bank = null; }
+    const rows = ((bank && (bank.questions || bank)) || []).map((q) => (typeof q === "string" ? { q } : q)).filter((q) => q && s(q.q).trim());
+    const tech = rows.filter((q) => q.round !== "behavioral");
+    const behav = rows.filter((q) => q.round === "behavioral");
+    let ti = 0, bi = 0;
+    const lines = [];
+    for (let d = 1; d <= days; d++) {
+      if (d === days) {
+        lines.push(`Day ${d} — Interview day: the checklist is done the night before (logistics, links, tech check, materials), then sleep — today is delivery, not more input. Walk in with two questions of your own ready.`);
+      } else if (d === 1) {
+        const q = tech[0] || behav[0];
+        lines.push(q ? `Day 1 — Baseline: answer this cold, out loud, timed: "${s(q.q)}" Write down exactly where it broke — that list runs the rest of the plan.` : "Day 1 — Baseline: take one full practice run cold and timed, and write down exactly where it broke — that list runs the rest of the plan.");
+        if (tech.length) ti = 1;
+      } else if (d === days - 1) {
+        lines.push(`Day ${d} — Full mock: one timed run end to end with no notes — technicals first, then behavioral — scored against the gaps from day 1.`);
+      } else if (d % 3 === 2) {
+        const q = tech.length ? tech[ti++ % tech.length] : null;
+        lines.push(q ? `Day ${d} — Technicals drill: "${s(q.q)}" Method first, numbers second, until the structure is automatic.` : `Day ${d} — Technicals drill: work the track's core technical set, method first and numbers second, until the structure is automatic.`);
+      } else if (d % 3 === 0) {
+        const q = behav.length ? behav[bi++ % behav.length] : null;
+        lines.push(q ? `Day ${d} — Behavioral: build one STAR story against "${s(q.q)}" — the situation, your action, and the number it moved.` : `Day ${d} — Behavioral: build one STAR story end to end — the situation, your action, and the number it moved — and say it out loud twice.`);
+      } else {
+        lines.push(`Day ${d} — The role itself: pull the target posting apart — the requirements it repeats are the questions it will ask — and map one of your stories to each.`);
+      }
+    }
+    const trackWord = roleFamily === "finance" ? "finance " : roleFamily === "swe" ? "software " : roleFamily === "product" ? "product " : "";
+    const whatFor = /\binternship\b/.test(t) ? `${trackWord}internship interview` : `${trackWord}interviews`;
+    const reply = [`Your ${days}-day plan for the ${whatFor}, day by day.`, ...lines, "Day 1 can start right now — say \"drill me\" and the first question runs timed."].join("\n");
+    return { intent: "prep_plan", reply, resultStatus: "prepared", sends: 0, payload: { kind: "prep_plan", days, role_family: roleFamily } };
+  }
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
@@ -23765,6 +23834,39 @@ const CareerRouter = (() => {
     if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
     m = raw.match(new RegExp(`\\b(?:the|that|this)\\s+(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${CO}`, "i"));
     if (m) return { role: m[1].replace(/[\s,]+$/, "").trim(), company: namedRoleCompanyOf(m[2]) };
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, live Telegram battery
+    // 2026-10-20 turn 5): the possessive frame — "Gusto's finance
+    // internship" — names company and role with no "at X" / "role at
+    // X" frame at all, so every pattern above missed it: the host's
+    // targeted pool supplement (which keys off this parser) never
+    // fired for the shape, and no route could resolve the posting
+    // the shelf holds. The company must be capitalized — a lowercase
+    // possessive is a common noun's, not a firm's — and the role
+    // must end in a role noun. "internship" normalizes to "intern"
+    // so the title-token scoring sees the posting's own word.
+    // NOTE: no /i flag — the company's capitalization IS the gate;
+    // case-insensitive matching lets the group swallow leading
+    // lowercase words ("apply to Gusto's…" parsed the company as
+    // "apply to Gusto" — caught by this lane's own guard).
+    m = raw.match(/\b([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,3})['’]s\s+(?:the\s+|The\s+)?([A-Za-z][A-Za-z -]*?)\s+([Ii]nternship|[Rr]ole|[Jj]ob|[Pp]osition|[Oo]pening)\b/);
+    if (m) {
+      const role = `${m[2]} ${m[3]}`.replace(/\binternship\b/gi, "intern").replace(/\s+/g, " ").trim();
+      return { company: namedRoleCompanyOf(m[1]), role };
+    }
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, re-drive 2026-10-20
+    // 16:17 CDT): the company-first demonstrative frame — "that
+    // Gusto data analyst role" — names the company BEFORE the role
+    // words, with no preposition and no possessive; every frame
+    // above missed it, no target resolved, and the turn was read as
+    // a send attempt ("send me the link…") and answered with a
+    // batch-status text. Case-sensitive for the same reason as the
+    // possessive frame, and a city is never a company (the
+    // companyFromText FACT_CITIES discipline).
+    m = raw.match(/\b(?:the|that|this)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|\d+)){0,2})\s+([A-Za-z][A-Za-z -]*?)\s+([Ii]nternship|[Rr]ole|[Jj]ob|[Pp]osition|[Oo]pening)\b/);
+    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) {
+      const role = `${m[2]} ${m[3]}`.replace(/\binternship\b/gi, "intern").replace(/\s+/g, " ").trim();
+      return { company: namedRoleCompanyOf(m[1]), role };
+    }
     return null;
   }
   function stagePostingFromLink(text, ctx) {
@@ -23802,6 +23904,54 @@ const CareerRouter = (() => {
   function namedApplyContextOf(ctx) {
     const m = threadMirrorOf(ctx);
     return (m && m.namedApply && typeof m.namedApply === "object") ? m.namedApply : null;
+  }
+  // FIX LANE T1 (TG-START-FALLBACK, live Telegram battery 2026-10-20
+  // turn 0): platform commands and bare greetings had NO route —
+  // "/start", the first message every Telegram user sends, fell to
+  // the generic fallback (or to silence), so the product's first
+  // word on a channel was "I didn't catch that." The claim is
+  // whole-turn by construction: the message must be NOTHING but the
+  // command or the greeting, so a greeting that carries an ask
+  // ("Hi! I'm looking for…") keeps its standing owner.
+  function handleGreeting(text, ctx) {
+    const raw = s(text).trim();
+    const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
+    const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
+    if (!isStart && !isGreeting) return null;
+    const reply = compose({
+      headline: "Hi — I'm Trainee, your career agent.",
+      facts: [
+        "I find roles that fit you, tailor your resume to each posting, prep you for interviews, and keep track of every application — all right here in this chat.",
+        "What you tell me about your search stays on your record — your target firms, your contacts, your deadlines — and you can ask me what I have on record any time, and correct anything that is wrong.",
+      ],
+      nextStep: "Tell me the role and field you're after — or just say \"find jobs\" — and I'll start there.",
+    });
+    return { intent: "career_greeting", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED, live Telegram battery
+  // 2026-10-20 turn 5): a LINK ask for a named role — "Where can I
+  // apply to Gusto's finance internship? Give me the link." — is not
+  // an apply instruction and not a company-file question: it asks
+  // for the posting itself. It fell to the company-intel branch,
+  // which answered "no company file yet" and served no link,
+  // although the served pool held the exact posting and its URL.
+  // This route serves the posting FIRST; the company-file-absence
+  // note, when there is no file, rides after it — never instead of
+  // it. Nothing resolves → null: the standing owners keep the turn.
+  function handleNamedPostingLink(text, ctx) {
+    const t = lc(text);
+    if (!/\bgive me the link\b|\bthe link\b|\bapply link\b|\bwhere (can|do|should) i apply\b|\blink to\b/.test(t)) return null;
+    const target = namedRoleTargetOf(text, ctx);
+    if (!target || !target.company) return null;
+    const posting = resolveNamedPosting(target, ctx);
+    if (!posting || !posting.url) return null;
+    const co = posting.company || target.company;
+    const facts = [`${posting.title || target.role} at ${co} — apply here: ${posting.url}`];
+    const meta = [posting.location, posting.posted_at || posting.postedAt].filter(Boolean).join(" · ");
+    if (meta) facts.push(`Posting details: ${meta}.`);
+    if (!cirFor(text, ctx)) facts.push(`${co} has no company file yet, so no dossier exists on record for this firm — the posting above is the board's own listing, and nothing has been invented around it.`);
+    const reply = compose({ headline: `The posting you asked for — ${posting.title || target.role} at ${co}.`, facts, nextStep: "Say \"apply\" with the role named and I will prepare the application from this posting." });
+    return { intent: "named_role_link", reply, resultStatus: "prepared", sends: 0 };
   }
   function handleNamedRoleApply(text, ctx) {
     const BatchApply = getBatchApply();
@@ -24012,6 +24162,12 @@ const CareerRouter = (() => {
     // is still re-derived each turn (corrections re-aim it, erasures
     // drop it); a real profile is left standing.
     { const bp = profileFromStatedFacts(c); if (bp) { if (!c.profile || c.profile._fromStatedFacts) c.profile = bp; } else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
+    // FIX LANE T1 (TG-START-FALLBACK): a channel command ("/start")
+    // or a bare greeting is a whole-turn shape — it carries no other
+    // intent — so it is claimed first, before every content route:
+    // on Telegram "/start" is the first message every user sends,
+    // and the generic fallback was the product's first word.
+    { const gr = handleGreeting(text, c); if (gr) return gr; }
     // DEPTH LANE A (LF-01h): an explicit memory invocation — "draft
     // it from what you know about me" — is the most specific claim a
     // turn can carry: the user is ordering the record's USE. It is
@@ -24042,6 +24198,13 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED): a LINK ask for a named
+    // role is served the posting itself (with its URL) here, before
+    // the apply machinery and the company-intel branch — the apply
+    // route reads it as no instruction at all, and intel answered
+    // it with the company-file absence and no link.
+    const namedLink = handleNamedPostingLink(text, c);
+    if (namedLink) return namedLink;
     // LANE A v2: a SINGLE named-role apply (by name / link / pasted
     // posting / count-1 shape) reaches the apply machinery here —
     // ahead of recommendations and the discovery tail, which read
@@ -24422,9 +24585,18 @@ const CareerRouter = (() => {
     // on the record's firm. Role-evidence shapes stand this gate
     // down; the intel branch's KB role branch answers them with the
     // library's numbers and n.
+    // FIX LANE T1 (TG-LONGPLAN-FALLBACK, re-drive 2026-10-20 16:16
+    // CDT): the same theft, one family over — an INTERVIEW-PREP ask
+    // ("Give me a plan for this week to get ready for data analyst
+    // interviews in two weeks.") carries the sourcing verb "get" and
+    // the people noun "analysts", so this gate planned it as a
+    // networking list and the prep capability never saw it.
+    // Interview-prep shapes stand this gate down the same way;
+    // handlePrepPlan, in the prep zone, owns them.
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
+      && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
@@ -24776,6 +24948,17 @@ const CareerRouter = (() => {
       const fin = /\bfinance|bank|banking|ibd\b/.test(t) || (ctx.discovery && /finance|bank/i.test(s(ctx.discovery.lastIntelCompany)));
       const reply = compose({ headline: "For a first round: dress one notch above the room you are walking into.", facts: [fin ? "In finance that means a suit — jacket, trousers or skirt, button-down or blouse, closed shoes — even when the invite says business casual; first rounds are scored on polish before they are scored on answers." : "The safe default is business formal — suit, button-down or blouse, closed shoes — and for tech or startups, clean business casual: no tie needed, but nothing you would wear to class.", "Fit and condition carry more weight than labels: pressed, clean shoes, nothing distracting. When a company's file or invite names a dress code, that instruction wins over any general rule."], nextStep: "Tell me the company and round, and I will tune this to their file if one exists." });
       return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0 };
+    }
+    // FIX LANE T1 (TG-LONGPLAN-FALLBACK): a complete-plan ask for
+    // interview preparation over a stated horizon reaches the prep
+    // capability here — the extras gate below keys on its fixed
+    // phrase list ("prep set", "question bank", …), which this
+    // natural shape never says, so the battery's plan ask fell to
+    // the generic fallback. handlePrepPlan self-gates on the ask's
+    // shape (plan + preparing + interview + horizon).
+    {
+      const pp = handlePrepPlan(text, c);
+      if (pp) return pp;
     }
     if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
       // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — the
@@ -25866,6 +26049,52 @@ const CareerRouter = (() => {
       const lines = pool.map((f) => `${factLine(f)}.`);
       const reply = compose({ headline: company ? `Here is what I have on record about your ${company} plans — your words, as stated.` : "Here is what I have on record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
       return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (e) FIX LANE T1 (TG-RECALL-ABSENT, live Telegram battery
+    // 2026-10-20, turns 3→7): the compound question in the user's
+    // own framing — "What firm did I say I'm targeting, and who is
+    // my contact there?" — matched none of (a)–(d): (d) wants "who
+    // is my RECRUITER contact", the direct read-back wants "what's
+    // my target firm", and bare "my contact" is nobody's shape. Four
+    // minutes after the plant committed both facts in the same
+    // thread, the turn fell to the generic fallback. This branch
+    // resolves the two stated-fact kinds the framing asks about —
+    // the target firm, and the recruiter contact keyed to it (or to
+    // a company the ask itself names) — under (d)'s CB-0443
+    // discipline: it claims ONLY when at least one asked fact
+    // resolves, and a half that was asked but is not on record is
+    // stated as absent, never filled.
+    {
+      const firmAsk = /\bwhat (firm|company) did i say\b/.test(t) || /\bwhich (firm|company) did i say\b/.test(t) || /\bwhat (firm|company) am i targeting\b/.test(t) || /\bwhich (firm|company) am i targeting\b/.test(t);
+      const contactAsk = /\bwho is my (contact|person)\b/.test(t) || /\bwho'?s my (contact|person)\b/.test(t);
+      if (firmAsk || contactAsk) {
+        const tf = all.find((f) => f.kind === "target_firm");
+        const firm = tf ? tf.value : null;
+        const namedM = s(text).match(/\b(?:at|for)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/);
+        const coName = (namedM ? namedM[1].replace(/[?.!,]+$/, "") : null) || firm;
+        let contact = null;
+        if (contactAsk) {
+          const key = coKey(coName || "");
+          let hits = all.filter((f) => f.kind === "recruiter_contact" && !!key && coKey(f.key) === key);
+          if (!hits.length && key) {
+            // A stored key carrying a swallowed trailing word (the
+            // record's own garble shape) still resolves when it is
+            // the ONLY key that extends the asked company.
+            const slack = all.filter((f) => f.kind === "recruiter_contact" && coKey(f.key).startsWith(`${key} `));
+            if (slack.length === 1) hits = slack;
+          }
+          if (!hits.length && !coName) hits = all.filter((f) => f.kind === "recruiter_contact");
+          if (hits.length === 1) contact = hits[0].value;
+          else if (hits.length > 1) contact = hits.map((h) => `${h.value} (at ${h.key})`).join("; ");
+        }
+        if ((firmAsk && firm) || (contactAsk && contact)) {
+          const lines = [];
+          if (firmAsk) lines.push(firm ? `the firm you said you're targeting is ${firm}.` : "You haven't named a target firm on your record yet.");
+          if (contactAsk) lines.push(contact ? `your contact${coName ? ` at ${coName}` : ""} is ${contact}.` : "No recruiter contact is on record yet.");
+          const reply = compose({ headline: "From your record — your words, as stated.", facts: lines, nextStep: "Correct either one the same way you stated it, or tell me what to run on it first." });
+          return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
     }
     return null;
   }

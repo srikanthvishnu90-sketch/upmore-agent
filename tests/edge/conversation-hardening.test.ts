@@ -2,7 +2,7 @@
 // always said, an empty brain reply saves nothing, and a forgotten person's queued messages go with them. The
 // simulator's attachment isolation needs process and file permissions, so it is tested in
 // tests/architect/wo-004-simulator-isolation.test.ts. Run: deno test --no-check tests/edge/conversation-hardening.test.ts
-import { CUT_NOTE, handleInbound, memoryStore, toBubbles, SAFE_ERROR_REPLY, type Brain } from "../../supabase/functions/_shared/conversation.ts";
+import { CUT_NOTE, handleInbound, MAX_BUBBLES, memoryStore, OUTBOX_CHARS, toBubbles, SAFE_ERROR_REPLY, type Brain } from "../../supabase/functions/_shared/conversation.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
@@ -21,10 +21,15 @@ Deno.test("WO-004/H1 any reply: at most 4 bubbles, none over 700 characters (a b
     const reply = parts.join(" ");
     if (!reply.trim()) continue;
     const b = toBubbles(reply);
-    assert(b.length >= 1 && b.length <= 4, `case ${i}: ${b.length} bubbles`);
+    assert(b.length >= 1 && b.length <= MAX_BUBBLES, `case ${i}: ${b.length} bubbles`);
     for (const x of b) assert(x.length <= 700 || isLink(x), `case ${i}: a ${x.length}-character bubble`);
     const kept = b.join("").replace(/\s+/g, "").length, given = reply.replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, "").length;
     if (kept < given * 0.98) assert(b.some((x) => x.includes(CUT_NOTE)), `case ${i}: content was dropped without saying so`);
+    // What the outbox can hold is never cut: every character arrives and no cut note is added.
+    if (reply.replace(/<!--[\s\S]*?-->/g, "").trim().length <= OUTBOX_CHARS) {
+      assert(!b.join(" ").includes(CUT_NOTE), `case ${i}: a ${reply.length}-character reply was cut`);
+      assert(kept >= given, `case ${i}: ${given - kept} characters lost`);
+    }
   }
 });
 

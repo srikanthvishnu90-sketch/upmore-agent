@@ -57,3 +57,23 @@ alter default privileges in schema public grant execute on functions to anon, au
 
 -- Existing realtime publication used by the actual production reminders migration.
 create publication supabase_realtime;
+
+-- Supabase Storage (WO-028): the bucket and object tables and the folder helper, as the platform ships them, with row
+-- level security on and the platform's grants, so a migration's storage policies are tested as they run there.
+create schema storage;
+create table storage.buckets (
+  id text primary key, name text not null unique, owner uuid, public boolean default false,
+  file_size_limit bigint, allowed_mime_types text[], created_at timestamptz default now(), updated_at timestamptz default now());
+create table storage.objects (
+  id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text, owner uuid,
+  metadata jsonb, created_at timestamptz default now(), updated_at timestamptz default now(), unique (bucket_id, name));
+alter table storage.objects enable row level security;
+create function storage.foldername(name text) returns text[] language plpgsql immutable as $$
+declare _parts text[];
+begin
+  select string_to_array(name, '/') into _parts;
+  return _parts[1:array_length(_parts, 1) - 1];
+end $$;
+grant usage on schema storage to anon, authenticated, service_role;
+grant all on storage.buckets, storage.objects to anon, authenticated, service_role;
+grant execute on function storage.foldername(text) to anon, authenticated, service_role;

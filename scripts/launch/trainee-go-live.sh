@@ -63,9 +63,12 @@ MIGRATIONS=(
   20261020040000_career_apply_card_push.sql
   20261020050000_career_apply_daily_limit.sql
   20261020060000_career_apply_questions.sql
+  20261020070000_career_apply_questions_ai_policy.sql
+  20261020100000_career_mail_tracking.sql
   20261020110000_career_connector.sql
   20261020120000_career_events.sql
   20261020120100_career_events_erase.sql
+  20261020130000_career_resume_tailoring.sql
   20261021030000_career_hired_backgrounds.sql
 )
 MIGRATION_MARK=(
@@ -80,9 +83,12 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_card_push_for')"
   "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit')"
   "to_regclass('public.career_apply_questions') is not null"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_apply_questions' and column_name = 'ai_policy')"
+  "to_regclass('public.career_mail_events') is not null"
   "to_regclass('public.connector_intros') is not null"
   "to_regclass('public.career_events') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%career_events%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_resume_tag')"
   "to_regclass('public.career_pdl_calls') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

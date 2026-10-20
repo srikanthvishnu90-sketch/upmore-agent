@@ -8,7 +8,9 @@
 // (read by 134 statedDates, the same reader the chat answer uses) and whether that date is past on the run date.
 //
 // Politeness, and what it never does:
-//   - one request per host at a time, and at least 1 second between the end of one request to a host and the next;
+//   - one request per site (registrable domain) at a time, and at least 1 second between the end of one request to a
+//     site and the next; at most 8 sites at once;
+//   - robots.txt is honored: a page it disallows for this agent (or for "*") is not fetched, and is reported as skipped;
 //   - an honest User-Agent naming this repository, a timeout, GET only, no cookies, no login, no proxy, no stealth;
 //   - LinkedIn and Indeed are never fetched, not even through a redirect: they are reported as skipped;
 //   - a bot check (captcha) is reported as blocked and never solved.
@@ -29,13 +31,59 @@ const USER_AGENT = `UpmoreTrainee-source-check/1.0 (+https://github.com/${proces
 const MIN_GAP_MS = 1000;
 const TIMEOUT_MS = 20000;
 const MAX_REDIRECTS = 5;
+const MAX_HOSTS_AT_ONCE = 8;
 const BODY_LIMIT = 256 * 1024; // enough to see a bot-check page; the rest is never read
 const FILES = { guide: "packages/career-data/firm-guide.json", patterns: "packages/career-data/interview-patterns.json" };
 
-// LinkedIn and Indeed are never automated (owner rule), so their pages are never fetched.
-const NEVER = [/(^|\.)linkedin\.com$/i, /(^|\.)lnkd\.in$/i, /(^|\.)indeed\.com$/i, /(^|\.)indeed\.[a-z]{2,3}(\.[a-z]{2})?$/i];
-function neverFetch(host) { return NEVER.some((re) => re.test(String(host || ""))); }
-function hostOf(url) { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } }
+// LinkedIn and Indeed are never automated (owner rule), so their pages are never fetched: linkedin.<any TLD> and its
+// subdomains, its CDN licdn.com, its short links lnkd.in, indeed.<any TLD> (indeed.com, indeed.jobs, indeed.co.uk ...)
+// and its subdomains, and indeedjobs.com. The host is normalized first (lower case, percent-decoded, trailing dots
+// stripped), so "www.linkedin.com." and "www.linkedin.com%2e" are LinkedIn too.
+const NEVER = [/(^|\.)linkedin\.[a-z]{2,}(\.[a-z]{2,})?$/, /(^|\.)licdn\.com$/, /(^|\.)lnkd\.in$/, /(^|\.)indeed\.[a-z]{2,}(\.[a-z]{2,})?$/, /(^|\.)indeedjobs\.com$/];
+function normHost(host) {
+  let h = String(host || "").trim().toLowerCase();
+  for (let i = 0; i < 3 && /%[0-9a-f]{2}/i.test(h); i++) { try { h = decodeURIComponent(h); } catch { break; } }
+  return h.replace(/^\[|\]$/g, "").replace(/\.+$/, "");
+}
+function neverFetch(host) { const h = normHost(host); return NEVER.some((re) => re.test(h)); }
+function hostOf(url) { try { return normHost(new URL(url).hostname); } catch { return ""; } }
+// The registrable domain the politeness gate is keyed on, so jobs.x.com and www.x.com share one queue. A short list of
+// two-part public suffixes covers the hosts in the data; anything else is its last two labels.
+const TWO_PART = /\.(?:co|com|ac|org|net|gov|edu)\.[a-z]{2}$/;
+function siteOf(host) {
+  const h = normHost(host);
+  if (/^[\d.]+$/.test(h) || h.includes(":")) return h;
+  const labels = h.split(".");
+  return labels.slice(TWO_PART.test(h) ? -3 : -2).join(".");
+}
+
+// robots.txt, read once per origin through the same gate. The group for this agent (UpmoreTrainee-source-check), else
+// "*"; the longest matching rule wins, Allow on a tie; "*" and "$" as in RFC 9309. A missing robots.txt (4xx) allows
+// everything; one that cannot be read (5xx, a network error) allows nothing, so the page is skipped.
+const AGENT_TOKEN = "upmoretrainee-source-check";
+function robotsAllows(txt, pathAndQuery) {
+  const groups = [];
+  let cur = null, lastWasAgent = false;
+  for (const raw of String(txt || "").split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, "").trim();
+    const m = line.match(/^([a-z-]+)\s*:\s*(.*)$/i);
+    if (!m) continue;
+    const key = m[1].toLowerCase(), val = m[2].trim();
+    if (key === "user-agent") { if (!lastWasAgent) { cur = { agents: [], rules: [] }; groups.push(cur); } cur.agents.push(val.toLowerCase()); lastWasAgent = true; continue; }
+    lastWasAgent = false;
+    if (cur && (key === "allow" || key === "disallow")) cur.rules.push({ allow: key === "allow", path: val });
+  }
+  const mine = groups.filter((g) => g.agents.some((a) => a !== "*" && AGENT_TOKEN.startsWith(a.split("/")[0])));
+  const rules = (mine.length ? mine : groups.filter((g) => g.agents.includes("*"))).flatMap((g) => g.rules);
+  let best = null;
+  for (const r of rules) {
+    if (!r.path) continue; // "Disallow:" with nothing allows everything
+    const re = new RegExp("^" + r.path.replace(/[.+?^{}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*"));
+    if (!re.test(pathAndQuery)) continue;
+    if (!best || r.path.length > best.path.length || (r.path.length === best.path.length && r.allow)) best = r;
+  }
+  return !best || best.allow;
+}
 
 // A bot-check page: Cloudflare's challenge, PerimeterX, Incapsula, DataDome, Akamai and the generic "verify you are
 // human". A form's reCAPTCHA script on an ordinary 200 page is not one.
@@ -99,7 +147,34 @@ function classify(httpStatus, body, redirected) {
 }
 const same = (a, b) => String(a).replace(/\/+$/, "") === String(b).replace(/\/+$/, "");
 
-async function checkUrl(url, { fetchImpl, gate, timeoutMs = TIMEOUT_MS, now = () => new Date() }) {
+const fetchInit = (timeoutMs) => ({
+  method: "GET", redirect: "manual", credentials: "omit",
+  headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.5", "accept-language": "en" },
+  signal: AbortSignal.timeout(timeoutMs),
+});
+// robots.txt per origin, fetched once (through the gate, so it counts toward the 1 s spacing) and cached.
+function robotsReader({ fetchImpl, gate, timeoutMs = TIMEOUT_MS }) {
+  const cache = new Map();
+  const load = async (origin) => {
+    try {
+      return await gate(siteOf(new URL(origin).hostname), async () => {
+        const r = await fetchImpl(`${origin}/robots.txt`, fetchInit(timeoutMs));
+        if (r.status >= 200 && r.status < 300) return { txt: await readSome(r) };
+        if (r.status >= 500) return { none: `robots.txt could not be read (HTTP ${r.status}), so nothing on this host is fetched` };
+        return { txt: "" }; // 3xx and 4xx: no rules
+      });
+    } catch (e) { return { none: `robots.txt could not be read (${String((e && e.cause && e.cause.code) || (e && e.name) || e)}), so nothing on this host is fetched` }; }
+  };
+  return async (url) => {
+    const u = new URL(url);
+    if (!cache.has(u.origin)) cache.set(u.origin, load(u.origin));
+    const r = await cache.get(u.origin);
+    if (r.none) return { allowed: false, note: r.none };
+    return robotsAllows(r.txt, u.pathname + u.search) ? { allowed: true } : { allowed: false, note: `robots.txt disallows ${u.pathname}` };
+  };
+}
+
+async function checkUrl(url, { fetchImpl, gate, robots = null, timeoutMs = TIMEOUT_MS, now = () => new Date() }) {
   const hops = [];
   let cur = url;
   const done = (o) => ({ url, status: o.status, http_status: o.http_status ?? null, final_url: o.final_url ?? cur, redirects: hops, fetched_at: now().toISOString(), ...(o.note ? { note: o.note } : {}) });
@@ -107,14 +182,11 @@ async function checkUrl(url, { fetchImpl, gate, timeoutMs = TIMEOUT_MS, now = ()
     const host = hostOf(cur);
     if (!host || !/^https?:$/.test(new URL(cur).protocol)) return done({ status: "error", note: "not an http(s) URL" });
     if (neverFetch(host)) return done({ status: "skipped", note: `${host} is never fetched (LinkedIn and Indeed are not automated)` });
+    if (robots) { const rb = await robots(cur); if (!rb.allowed) return done({ status: "skipped", note: rb.note }); }
     let res, body = "";
     try {
-      res = await gate(host, async () => {
-        const r = await fetchImpl(cur, {
-          method: "GET", redirect: "manual", credentials: "omit",
-          headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.5", "accept-language": "en" },
-          signal: AbortSignal.timeout(timeoutMs),
-        });
+      res = await gate(siteOf(host), async () => {
+        const r = await fetchImpl(cur, fetchInit(timeoutMs));
         body = r.status >= 300 && r.status < 400 ? "" : await readSome(r);
         return r;
       });
@@ -136,17 +208,22 @@ async function checkUrl(url, { fetchImpl, gate, timeoutMs = TIMEOUT_MS, now = ()
   return done({ status: "error", note: `more than ${MAX_REDIRECTS} redirects` });
 }
 
-// Every date the firm guide states, and whether it is past on the run date (134 statedDates, as the chat answer reads).
+// Every date the firm guide states, and whether it is past on the run date (134 programDates, as the chat answer reads
+// them: a day is past once it is over everywhere). A date stated without a year is listed with date null, never given one.
 function firmDates(guide, runDate, paths) {
   const P = paths || require(path.join(ROOT, "packages/domain/134-career-paths.js"));
-  const today = runDate.toISOString().slice(0, 10);
   const out = [];
   for (const f of (guide && guide.firms) || []) {
     const rows = [
       ...(f.programs || []).map((p) => ({ where: `program: ${p.name}`, text: p.timeline, url: p.source_url })),
       ...(f.requirements || []).map((r) => ({ where: `requirement ${r.id}`, text: r.text, url: r.source_url })),
     ];
-    for (const r of rows) for (const d of P.statedDates(r.text || "")) out.push({ firm_id: f.firm_id, where: r.where, source_url: r.url, said: d.said, date: d.date, kind: d.kind, past: d.date < today });
+    for (const r of rows) {
+      const d = P.programDates(r.text || "", runDate.getTime());
+      const past = new Set(d.past.map((x) => x.said));
+      for (const x of d.stated) out.push({ firm_id: f.firm_id, where: r.where, source_url: r.url, said: x.said, date: x.date, kind: x.kind, past: past.has(x.said) });
+      for (const x of d.undated) out.push({ firm_id: f.firm_id, where: r.where, source_url: r.url, said: x.said, date: null, kind: x.kind, past: null, note: "no year stated" });
+    }
   }
   return out;
 }
@@ -156,17 +233,18 @@ async function runChecks({ guide, patterns, fetchImpl, now = () => new Date(), s
   const runDate = now();
   const urls = collectUrls(guide, patterns);
   const gate = hostGate({ minGapMs, sleep, clock });
-  // Hosts are worked through a few at a time; each host's URLs go one after another through the gate.
+  const robots = robotsReader({ fetchImpl, gate, timeoutMs });
+  // Sites are worked through a few at a time; each site's URLs go one after another through the gate.
   const byHost = new Map();
-  for (const u of urls) { const h = hostOf(u.url); if (!byHost.has(h)) byHost.set(h, []); byHost.get(h).push(u); }
+  for (const u of urls) { const h = siteOf(hostOf(u.url)); if (!byHost.has(h)) byHost.set(h, []); byHost.get(h).push(u); }
   const queue = [...byHost.values()];
   const results = new Map();
   const worker = async () => {
     for (let list = queue.shift(); list; list = queue.shift()) {
-      for (const u of list) results.set(u.url, { ...(await checkUrl(u.url, { fetchImpl, gate, timeoutMs, now })), used_by: u.used_by });
+      for (const u of list) results.set(u.url, { ...(await checkUrl(u.url, { fetchImpl, gate, robots, timeoutMs, now })), used_by: u.used_by });
     }
   };
-  await Promise.all(Array.from({ length: Math.max(1, hostsAtOnce) }, worker));
+  await Promise.all(Array.from({ length: Math.min(MAX_HOSTS_AT_ONCE, Math.max(1, Math.floor(Number(hostsAtOnce)) || 1)) }, worker));
   const rows = urls.map((u) => results.get(u.url));
   const summary = Object.fromEntries(STATUSES.map((s) => [s, rows.filter((r) => r.status === s).length]));
   const dates = firmDates(guide, runDate, paths);
@@ -197,6 +275,7 @@ function summaryText(report) {
   ];
   for (const r of report.urls.filter((x) => x.status !== "live")) lines.push(`- ${r.status}${r.http_status ? ` (${r.http_status})` : ""}: ${r.url}${r.status === "redirected" ? ` -> ${r.final_url}` : ""}${r.note ? ` (${r.note})` : ""}`);
   for (const d of report.firm_dates.filter((x) => x.past)) lines.push(`- past ${d.kind}: ${d.firm_id}, ${d.where}: ${d.said}`);
+  for (const d of report.firm_dates.filter((x) => x.date === null)) lines.push(`- no year stated (${d.kind}): ${d.firm_id}, ${d.where}: ${d.said}`);
   lines.push("Nothing was edited. To use this check in the chat, a person copies it into packages/career-data/source-checks.json (--from-report ... --write-checks ...) and rebuilds the bundles.");
   return lines.join("\n");
 }
@@ -229,5 +308,5 @@ async function main(argv) {
   console.log(`report: ${out}`);
 }
 
-module.exports = { USER_AGENT, MIN_GAP_MS, NEVER, neverFetch, collectUrls, hostGate, classify, checkUrl, firmDates, runChecks, checksFile, summaryText, FILES };
+module.exports = { USER_AGENT, MIN_GAP_MS, MAX_HOSTS_AT_ONCE, NEVER, neverFetch, normHost, siteOf, robotsAllows, robotsReader, collectUrls, hostGate, classify, checkUrl, firmDates, runChecks, checksFile, summaryText, FILES };
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error(e && e.stack || e); process.exit(1); });

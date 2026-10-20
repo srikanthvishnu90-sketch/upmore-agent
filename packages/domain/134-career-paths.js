@@ -440,26 +440,35 @@ function careerFirmGuide() {
 }
 
 // WO-041: source freshness. The dates a firm-guide timeline states, read from its words: "the deadline was August 11,
-// 2026", "open 31 August to 11 October 2026", "listed a March 29, 2026 deadline". Only a full day, month and year is a
-// date here; "graduating December 2026" is a window, not a date. Each date is kept as said and as YYYY-MM-DD, with what
-// the words say it is (a deadline, an opening, or just a date). The checker (scripts/career/check-sources.cjs) and the
-// chat answer (career_path.ts) read dates through this one function, so both call the same dates past.
+// 2026", "open 31 August to 11 October 2026", "Sept. 1–Oct. 11, 2026", "a March 29, 2026 deadline", "2026-10-11",
+// "10/11/2026" (US order, month first), "Deadline: September 2026" (a month-only deadline, over at the month's end).
+// "graduating December 2026" is a window, not a date, and is not read. A date said without a year ("close October 1")
+// is never given one: it is kept apart, as undated. Each date is kept as said and as YYYY-MM-DD, with what the words say
+// it is (a deadline, an opening, or just a date). The checker (scripts/career/check-sources.cjs) and the chat answer
+// (career_path.ts) read dates through these functions, so both call the same dates past.
 const _CAREER_FRESH_MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
 const _CAREER_FRESH_MONTH = "(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\\.?";
-const _CAREER_FRESH_DEADLINE = /\b(deadline|due|close[sd]?|closing|until|apply by)\b/gi;
-const _CAREER_FRESH_OPENS = /\b(open(?:s|ed|ing)?|launch(?:es|ed)?|start(?:s|ed)?)\b/gi;
-function _careerFreshIso(y, mon, d) {
+const _CAREER_FRESH_DAY = "(\\d{1,2})(?:st|nd|rd|th)?";
+const _CAREER_FRESH_SEP = "(?:\\s*[-–—]\\s*|\\s+(?:to|through|until|till)\\s+)";
+const _CAREER_FRESH_DEADLINE = /\b(deadline|due|close[sd]?|closing|apply by)\b/gi;
+const _CAREER_FRESH_OPENS = /\b(open(?:s|ed|ing)?)\b/gi;
+function _careerFreshMonth(mon) {
   const key = String(mon).toLowerCase().replace(/\.$/, "");
-  const m = _CAREER_FRESH_MONTHS[key] || _CAREER_FRESH_MONTHS[key.slice(0, 3)];
-  const day = Number(d), year = Number(y);
-  if (!m || !day) return null;
-  const t = new Date(Date.UTC(year, m - 1, day));
-  if (t.getUTCFullYear() !== year || t.getUTCMonth() !== m - 1 || t.getUTCDate() !== day) return null; // "February 30" is no date
+  return _CAREER_FRESH_MONTHS[key] || _CAREER_FRESH_MONTHS[key.slice(0, 3)] || null;
+}
+function _careerFreshIso(y, m, d) {
+  const day = Number(d), year = Number(y), month = Number(m);
+  if (!month || !day || !year) return null;
+  const t = new Date(Date.UTC(year, month - 1, day));
+  if (t.getUTCFullYear() !== year || t.getUTCMonth() !== month - 1 || t.getUTCDate() !== day) return null; // "February 30" is no date
   return t.toISOString().slice(0, 10);
 }
-// The last keyword before a date, in the words since the previous date (so "opened July 1, 2026 and the deadline was
-// August 11, 2026" reads as an opening, then a deadline); else a keyword just after it ("a March 29, 2026 deadline").
+// The words just before a date decide what it is: "to/until/by <date>" ends a window, "from <date>" opens one;
+// otherwise the last keyword since the previous date ("opened July 1, 2026 and the deadline was August 11, 2026"),
+// else a keyword just after it ("a March 29, 2026 deadline").
 function _careerFreshKind(before, after) {
+  if (/\b(?:to|through|until|till|by)\s*$/i.test(before)) return "deadline";
+  if (/\bfrom\s*$/i.test(before)) return "opens";
   let best = null, at = -1;
   for (const [kind, re] of [["deadline", _CAREER_FRESH_DEADLINE], ["opens", _CAREER_FRESH_OPENS]]) {
     re.lastIndex = 0; let m;
@@ -469,45 +478,82 @@ function _careerFreshKind(before, after) {
   if (/^\W{0,3}(deadline|due|close)/i.test(after)) return "deadline";
   return "date";
 }
-function careerStatedDates(text) {
+// Every date the text states, dated (day or month) and undated (no year), in reading order.
+function _careerFreshTokens(text) {
   const t = String(text == null ? "" : text);
-  const M = _CAREER_FRESH_MONTH;
-  const found = [];
-  const add = (index, said, iso, kind) => { if (iso && !found.some((f) => f.index === index)) found.push({ index, said, date: iso, kind }); };
-  // A range with the year once, at its end: "31 August to 11 October 2026", "July 1 to August 11, 2026".
-  const ranges = [
-    [new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+${M}\\s+(?:to|through|until|-|–)\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s+${M},?\\s+(20\\d\\d)\\b`, "gi"), (m) => [[m[1], m[2], m[5]], [m[3], m[4], m[5]]]],
-    [new RegExp(`\\b${M}\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:to|through|until|-|–)\\s+${M}\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(20\\d\\d)\\b`, "gi"), (m) => [[m[2], m[1], m[5]], [m[4], m[3], m[5]]]],
-  ];
-  const covered = [];
-  for (const [re, parts] of ranges) {
-    let m;
-    while ((m = re.exec(t))) {
-      const [[d1, m1, y], [d2, m2]] = parts(m);
-      add(m.index, m[0].split(/\s+(?:to|through|until|-|–)\s+/i)[0] + " " + y, _careerFreshIso(y, m1, d1), "opens");
-      add(m.index + 1, m[0].split(/\s+(?:to|through|until|-|–)\s+/i)[1], _careerFreshIso(y, m2, d2), "deadline");
-      covered.push([m.index, m.index + m[0].length]);
-    }
-  }
-  const singles = [
-    [new RegExp(`\\b${M}\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(20\\d\\d)\\b`, "gi"), (m) => [m[2], m[1], m[3]]],
-    [new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+${M},?\\s+(20\\d\\d)\\b`, "gi"), (m) => [m[1], m[2], m[3]]],
-  ];
-  const all = [];
-  for (const [re, parts] of singles) { let m; while ((m = re.exec(t))) if (!covered.some(([a, b]) => m.index >= a && m.index < b)) all.push({ m, p: parts(m) }); }
-  all.sort((a, b) => a.m.index - b.m.index);
+  const M = _CAREER_FRESH_MONTH, D = _CAREER_FRESH_DAY, SEP = _CAREER_FRESH_SEP;
+  const toks = [];
+  const free = (a, b) => !toks.some((x) => a < x.end && b > x.start);
+  const scan = (re, fn) => { let m; re.lastIndex = 0; while ((m = re.exec(t))) { const a = m.index, b = a + m[0].length; if (free(a, b)) { const out = fn(m); if (out) for (const o of [].concat(out)) toks.push({ start: a, end: b, ...o }); } } };
+  const sepSplit = (s) => { const i = s.search(new RegExp(SEP, "i")); const mm = s.slice(i).match(new RegExp(`^${SEP}`, "i")); return [s.slice(0, i).trim(), s.slice(i + mm[0].length).trim()]; };
+  // Ranges with the year once, at their end, or on both sides.
+  scan(new RegExp(`\\b${D}\\s+(?:of\\s+)?${M}(?:,?\\s+(20\\d\\d))?${SEP}${D}\\s+(?:of\\s+)?${M},?\\s+(20\\d\\d)\\b`, "gi"), (m) => {
+    const [a, b] = sepSplit(m[0]);
+    return [{ said: m[3] ? a : `${a} ${m[6]}`, date: _careerFreshIso(m[3] || m[6], _careerFreshMonth(m[2]), m[1]), role: "first", sub: 0 },
+      { said: b, date: _careerFreshIso(m[6], _careerFreshMonth(m[5]), m[4]), role: "second", sub: 1 }];
+  });
+  scan(new RegExp(`\\b${M}\\s+${D}(?:,?\\s+(20\\d\\d))?${SEP}${M}\\s+${D},?\\s+(20\\d\\d)\\b`, "gi"), (m) => {
+    const [a, b] = sepSplit(m[0]);
+    return [{ said: m[3] ? a : `${a}, ${m[6]}`, date: _careerFreshIso(m[3] || m[6], _careerFreshMonth(m[1]), m[2]), role: "first", sub: 0 },
+      { said: b, date: _careerFreshIso(m[6], _careerFreshMonth(m[4]), m[5]), role: "second", sub: 1 }];
+  });
+  scan(new RegExp(`\\b${M}\\s+${D}${SEP}${D},?\\s+(20\\d\\d)\\b`, "gi"), (m) => {
+    const [a, b] = sepSplit(m[0]);
+    return [{ said: `${a}, ${m[4]}`, date: _careerFreshIso(m[4], _careerFreshMonth(m[1]), m[2]), role: "first", sub: 0 },
+      { said: `${m[1]} ${b}`, date: _careerFreshIso(m[4], _careerFreshMonth(m[1]), m[3]), role: "second", sub: 1 }];
+  });
+  // Single dates with a year.
+  scan(new RegExp(`\\b${M}\\s+${D},?\\s+(20\\d\\d)\\b`, "gi"), (m) => ({ said: m[0], date: _careerFreshIso(m[3], _careerFreshMonth(m[1]), m[2]) }));
+  scan(new RegExp(`\\b${D}\\s+(?:of\\s+)?${M},?\\s+(20\\d\\d)\\b`, "gi"), (m) => ({ said: m[0], date: _careerFreshIso(m[3], _careerFreshMonth(m[2]), m[1]) }));
+  scan(/\b(20\d\d)-(\d{2})-(\d{2})\b/g, (m) => ({ said: m[0], date: _careerFreshIso(m[1], m[2], m[3]) }));
+  scan(/\b(\d{1,2})\/(\d{1,2})\/(20\d\d)\b/g, (m) => ({ said: m[0], date: _careerFreshIso(m[3], m[1], m[2]) }));
+  // A month with a year and no day: a date only when the words make it a deadline ("Deadline: September 2026").
+  scan(new RegExp(`\\b${M},?\\s+(20\\d\\d)\\b`, "gi"), (m) => {
+    const tail = t.slice(Math.max(0, m.index - 40), m.index);
+    if (!/\b(deadline|due|close[sd]?|closing|by)\b[^.;()]{0,25}$/i.test(tail) || /graduat/i.test(tail.slice(tail.search(/\b(deadline|due|close[sd]?|closing|by)\b[^.;()]{0,25}$/i)))) return null;
+    const mon = _careerFreshMonth(m[1]), y = Number(m[2]);
+    const last = new Date(Date.UTC(y, mon, 0)).getUTCDate();
+    return { said: m[0], date: _careerFreshIso(y, mon, last), precision: "month", kind: "deadline" };
+  });
+  // A day and month with no year: kept, never given a year.
+  scan(new RegExp(`\\b${M}\\s+${D}\\b(?!\\s*[-–—/]\\s*\\d)`, "gi"), (m) => ({ said: m[0], date: null, undated: true }));
+  scan(new RegExp(`\\b${D}\\s+(?:of\\s+)?${M}(?![a-z])`, "gi"), (m) => ({ said: m[0], date: null, undated: true }));
+  toks.sort((a, b) => a.start - b.start || (a.sub || 0) - (b.sub || 0));
   let prevEnd = 0;
-  for (const { m, p } of all) {
-    const from = Math.max(prevEnd, m.index - 80);
-    add(m.index, m[0], _careerFreshIso(p[2], p[1], p[0]), _careerFreshKind(t.slice(from, m.index), t.slice(m.index + m[0].length, m.index + m[0].length + 20)));
-    prevEnd = m.index + m[0].length;
+  const out = [];
+  for (const x of toks) {
+    if (!x.date && !x.undated) continue; // a bad calendar day
+    const before = t.slice(Math.max(prevEnd, x.start - 80), x.start), after = t.slice(x.end, x.end + 20);
+    const kind = x.kind || (x.role === "first" ? (/\b(?:close[sd]?|deadline|due)\b[^.;]{0,20}$/i.test(before) ? "deadline" : "opens") : x.role === "second" ? "deadline" : _careerFreshKind(before, after));
+    out.push({ said: x.said, date: x.date, kind, ...(x.precision ? { precision: x.precision } : {}), ...(x.undated ? { undated: true } : {}) });
+    if (x.role !== "first") prevEnd = x.end;
   }
-  return found.sort((a, b) => a.index - b.index).map(({ said, date, kind }) => ({ said, date, kind }));
+  // A range whose first end is a deadline word ("closes 1 May to ...") keeps only its last date as the deadline.
+  return out;
 }
-// The stated dates already past on the day `now` falls on (UTC). The day itself is not past.
+function careerStatedDates(text) {
+  return _careerFreshTokens(text).filter((d) => !d.undated).map(({ said, date, kind, precision }) => ({ said, date, kind, ...(precision ? { precision } : {}) }));
+}
+function careerUndatedDates(text) {
+  return _careerFreshTokens(text).filter((d) => d.undated).map(({ said, kind }) => ({ said, kind }));
+}
+// A stated day is past only once it is over everywhere on Earth (UTC-12), so "October 20, 2026 at 11:59 PM ET" has not
+// passed at 2026-10-21T00:30Z. A month-only deadline is past once its last day is.
+function _careerFreshCutoff(now) {
+  const ms = typeof now === "number" ? now : now instanceof Date ? now.getTime() : Date.now();
+  return new Date(ms - 12 * 3600_000).toISOString().slice(0, 10);
+}
 function careerPastDates(text, now) {
-  const today = new Date(typeof now === "number" ? now : now instanceof Date ? now.getTime() : Date.now()).toISOString().slice(0, 10);
-  return careerStatedDates(text).filter((d) => d.date < today);
+  const cutoff = _careerFreshCutoff(now);
+  return careerStatedDates(text).filter((d) => d.date < cutoff);
+}
+// Everything a timeline says about time: its dated dates, those past, its undated dates, and whether it is closed: at
+// least one dated date, every one of them past, one of them not just an opening, and no undated date that could be
+// later. An opening date alone ("opened July 1, 2022") closes nothing.
+function careerProgramDates(text, now) {
+  const stated = careerStatedDates(text), past = careerPastDates(text, now), undated = careerUndatedDates(text);
+  const closed = stated.length > 0 && past.length === stated.length && stated.some((d) => d.kind !== "opens") && !undated.length;
+  return { stated, past, undated, closed };
 }
 
 // The last page check of every source URL in firm-guide.json and interview-patterns.json
@@ -536,5 +582,5 @@ function careerSourceStatus(url, checks) {
 }
 
 const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, listPaths, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead, firmGuide: careerFirmGuide,
-  statedDates: careerStatedDates, pastDates: careerPastDates, sourceChecks: careerSourceChecks, sourceStatus: careerSourceStatus };
+  statedDates: careerStatedDates, undatedDates: careerUndatedDates, pastDates: careerPastDates, programDates: careerProgramDates, sourceChecks: careerSourceChecks, sourceStatus: careerSourceStatus };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;

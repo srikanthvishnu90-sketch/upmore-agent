@@ -79,7 +79,8 @@ export function interviewerInstructions(s: MockState, o: { lib?: any[]; firms?: 
     for (const p of firm.patterns || []) {
       const src = sourceOf(p, o.checks);
       if (src.status === "gone") continue;
-      lines.push(`- patterns: "${p.text}" (${p.source_type}, ${p.source_url})${src.verified ? "" : " [unverified: page not opened by a source check; do not present it as the firm's words]"}`);
+      const why = src.status === "unverified" ? "page not opened by a source check" : `the page could not be opened at the ${src.checked} source check (${src.status})`;
+      lines.push(`- patterns: "${p.text}" (${p.source_type}, ${p.source_url})${src.verified ? "" : ` [unverified: ${why}; do not present it as the firm's words]`}`);
     }
   } else if (company) {
     lines.push(`There is no record of ${company} on file. Say nothing about how ${company} hires or interviews; if asked, say there is no record of it on file.`);

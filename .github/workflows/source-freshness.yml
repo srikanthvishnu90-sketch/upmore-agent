@@ -1,6 +1,6 @@
 # WO-041: are the firm guide's and the interview patterns' sources still there, and which stated dates have passed?
-# Runs scripts/career/check-sources.cjs (Node, no dependencies): one request per host at a time, at least 1 second apart,
-# an honest User-Agent, no cookies, no login, no proxy; LinkedIn and Indeed are never fetched; a bot check is reported,
+# Runs scripts/career/check-sources.cjs (Node, no dependencies): one request per site at a time, at least 1 second apart,
+# robots.txt honored, an honest User-Agent, no cookies, no login, no proxy; LinkedIn and Indeed are never fetched; a bot check is reported,
 # never solved. The build sandbox cannot reach these hosts; CI can. The job only reports: it has read-only permission,
 # commits nothing and edits no data. A person reads the report and, to use it in the chat, copies it into
 # packages/career-data/source-checks.json (see the WO-041 doc).
@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: "22.23.3" }
       - name: Check every source URL (report only)
         run: |
@@ -34,7 +34,7 @@ jobs:
             --out source-check-report.json \
             --checks-out source-checks.json \
             --summary "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: source-check-report
           path: |

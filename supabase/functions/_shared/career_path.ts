@@ -12,7 +12,9 @@
 // is derived from a gap between a confirmed fact and a stated requirement and cites both; there are no generic tips.
 // WO-041: a date a program's timeline states that is already past when the answer is given is said to have passed, with
 // "the next cycle's date is not published yet" (the next date is never guessed), and "apply inside its window" is never
-// a move for a program whose deadline has passed. A program page the last source check found gone is said so.
+// a move for a closed program (every date it states past). A date stated without a year is said to have none, never
+// given one. A program page the last source check found gone is said so, and statements from pages no check has opened
+// are labeled unverified.
 import { CareerPaths } from "./router_core.career.js";
 import { hasWord, MAX_MESSAGE, MIN_N, payData, type OfferData } from "./career_offer.ts";
 import { type HiredResult, hiredText } from "./career_hired.ts";
@@ -49,7 +51,16 @@ export function pastDatesOf(p: { timeline?: string | null }, now: number): State
   const deadlines = (paths.statedDates(p.timeline ?? "") as StatedDate[]).filter((d) => d.kind === "deadline").length;
   return deadlines > past.filter((d) => d.kind === "deadline").length ? past.filter((d) => d.kind !== "opens") : past;
 }
-const pastDeadline = (p: any, now: number) => pastDatesOf(p, now).some((d) => d.kind === "deadline");
+// Closed: every dated date the timeline states is past, one is not just an opening, and none is said without a year
+// (134 programDates). A date said without a year ("close October 1") is never given one.
+const closedOf = (p: any, now: number): boolean => !!p?.timeline && paths.programDates(p.timeline, now).closed;
+const undatedOf = (p: any): { said: string; kind: string }[] => paths.undatedDates(p?.timeline ?? "");
+export function undatedLine(p: any): string | null {
+  const u = undatedOf(p);
+  if (!u.length) return null;
+  const list = u.map((d) => d.said).join(" and ");
+  return `${list} ${u.length === 1 ? "is" : "are"} stated without a year, so I can't tell whether ${u.length === 1 ? "it has" : "they have"} passed; check the page.`;
+}
 const dateWords = (d: StatedDate) => d.kind === "deadline" ? `the deadline ${d.said}` : d.kind === "opens" ? `the opening date ${d.said}` : d.said;
 // "As of 2026-10-20, the deadline 11 October 2026 has passed. The next cycle's date is not published yet in my sources;
 // I won't guess it." It names no date the data does not state.
@@ -59,6 +70,23 @@ export function pastLine(past: StatedDate[], now: number): string | null {
   const words = past.map(dateWords);
   const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
   return `As of ${today}, ${list} ${past.length === 1 ? "has" : "have"} passed. The next cycle's date is not published yet in my sources; I won't guess it.`;
+}
+// "Unverified: ..." for the cited pages the last source check did not open (live or redirected), grouped by why; null
+// when every cited page was opened. Gone pages are said on their own line by the caller.
+export function unverifiedSources(urls: string[], checks: any): string | null {
+  const unopened: string[] = [], refused: string[] = [];
+  let when: string | null = null;
+  for (const u of [...new Set(urls)]) {
+    const s = paths.sourceStatus(u, checks);
+    if (s.verified || s.status === "gone") continue;
+    if (s.status === "unverified") unopened.push(host(u));
+    else { refused.push(host(u)); when = s.checked; }
+  }
+  const out: string[] = [];
+  const hosts = (h: string[]) => [...new Set(h)].join(", ");
+  if (unopened.length) out.push(`Unverified: the statements from ${hosts(unopened)} are search summaries of the cited pages; no source check has opened those pages yet.`);
+  if (refused.length) out.push(`Unverified: the pages from ${hosts(refused)} could not be opened at the ${when} source check.`);
+  return out.length ? out.join(" ") : null;
 }
 const short = (t: string, n = 110) => (t.length <= n ? t : t.slice(0, t.lastIndexOf(" ", n - 3)).replace(/[,;:.]$/, "") + "...");
 
@@ -203,14 +231,22 @@ export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { c
     ...open.filter((c) => c.status === "unknown"),
   ].slice(0, MAX_MOVES);
   // Applying in the window is a move only when the firm's own page states a timeline and the tracker shows no
-  // application there yet: it cites that page and that gap. A program whose stated deadline has passed is never "apply
-  // inside its window"; when it is the only timed one, the move says its deadline passed and the next date is unknown.
+  // application there yet: it cites that page and that gap. A closed program (every stated date past) is never "apply
+  // inside its window", nor is one whose date has no year; when such a program is the only timed one, the move says
+  // its dates passed and the next date is unknown, or that the year is not stated.
   const applied = tracked.some((t) => hasWord(String(t.company ?? ""), lc(firm.name)) || (firm.aliases || []).some((a: string) => lc(t.company).trim() === a));
   const timedAll = programs.filter((p: any) => p.timeline && !blocked.has(p.name));
-  const timed = timedAll.find((p: any) => !pastDeadline(p, now)) ?? timedAll[0];
-  const closedDeadline = (name: string): StatedDate | null => {
+  const timed = timedAll.find((p: any) => !closedOf(p, now) && !undatedOf(p).length) ?? timedAll[0];
+  const timelineAction = (name: string): string => {
     const p = programs.find((x: any) => x.name === name);
-    return p ? pastDatesOf(p, now).filter((d) => d.kind === "deadline").pop() ?? null : null;
+    if (p && closedOf(p, now)) {
+      const last = (paths.pastDates(p.timeline, now) as StatedDate[]).filter((d) => d.kind !== "opens").pop()!;
+      return last.kind === "deadline"
+        ? `The ${name} deadline (${last.said}) has passed, and the next cycle's date is not published yet: watch its page and apply when it opens.`
+        : `The ${name} dates on file (the last is ${last.said}) have passed, and the next cycle's date is not published yet: watch its page and apply when it opens.`;
+    }
+    if (p && undatedOf(p).length) return `${name} states ${undatedOf(p).map((d) => d.said).join(" and ")} without a year, so I can't tell whether its window is open: check its page before you apply.`;
+    return `Apply to ${name} inside its window.`;
   };
   if (picked.length < MAX_MOVES && timed && !applied) {
     picked.push({ requirement: { id: `${firm.firm_id}-timeline`, program: timed.name, kind: "timeline", text: timed.timeline, source_url: timed.source_url, checked_at: timed.checked_at },
@@ -219,11 +255,7 @@ export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { c
   for (const c of open) if (picked.length < MAX_MOVES && c.status === "met") picked.push(c);
   return picked.slice(0, MAX_MOVES).map((c, i) => ({
     rank: i + 1,
-    action: c.requirement.kind === "timeline"
-      ? (closedDeadline(c.requirement.program)
-        ? `The ${c.requirement.program} deadline (${closedDeadline(c.requirement.program)!.said}) has passed, and the next cycle's date is not published yet: watch its page and apply when it opens.`
-        : `Apply to ${c.requirement.program} inside its window.`)
-      : actionFor(c, firm.name),
+    action: c.requirement.kind === "timeline" ? timelineAction(c.requirement.program) : actionFor(c, firm.name),
     requirement: { id: c.requirement.id, text: c.requirement.text, program: c.requirement.program, source_url: c.requirement.source_url, checked_at: c.requirement.checked_at },
     status: c.status, fact: c.fact ? { id: c.fact.id, text: c.fact.text } : null, gap: c.gap,
   }));
@@ -291,10 +323,17 @@ export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; trac
     : { kind: "none", reason: `${firm.name} publishes no acceptance rate`, decided_by: decided };
 
   const head: string[] = [`Getting into ${firm.name}${o.role ? ` as ${o.role}` : ""}, from what is on file:`];
+  // The firm's own statements cited here are search summaries until a source check opens their pages: said once, up
+  // front, as for the interview patterns.
+  const cited = [...programs.slice(0, 2).map((p: any) => p.source_url), ...moves.map((m) => m.requirement.source_url), ...(probability.kind === "base_rate" ? [probability.source_url] : [])];
+  const note = unverifiedSources(cited, checks);
+  if (note) head.push(note);
   for (const p of programs.slice(0, 2)) {
     head.push(`${p.name}: ${short(p.timeline || "no timeline on its page", 220)} (${cite(p)})`);
     const past = pastLine(pastDatesOf(p, now), now);
     if (past) head.push(past);
+    const undated = undatedLine(p);
+    if (undated) head.push(undated);
     const src = paths.sourceStatus(p.source_url, checks);
     if (src.status === "gone") head.push(`That page answered ${src.http_status ?? "gone"} at the ${src.checked} source check, so this program may no longer be listed there.`);
   }

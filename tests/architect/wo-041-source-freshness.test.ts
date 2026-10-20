@@ -25,6 +25,12 @@ const checks = (urls: Record<string, string>, http: Record<string, number> = {})
   urls: Object.fromEntries(Object.entries(urls).map(([u, status]) => [u, { status, http_status: http[u] ?? (status === "gone" ? 404 : status === "blocked" ? 403 : 200), final_url: u, fetched_at: "2026-10-26T06:17:05.000Z" }])),
 });
 const firm = (id: string) => GUIDE.firms.find((f: any) => f.firm_id === id);
+// The guide with every program of one firm given one timeline: the date forms a future re-collection could bring.
+function withTimeline(id: string, timeline: string) {
+  const g = structuredClone(GUIDE);
+  for (const p of g.firms.find((f: any) => f.firm_id === id).programs) p.timeline = timeline;
+  return g;
+}
 const PASSED = /The next cycle's date is not published yet in my sources; I won't guess it\./;
 function plainText(messages: string[], where: string) {
   for (const m of messages) {
@@ -55,9 +61,15 @@ Deno.test("WO-041/R1 a deadline already past is said to have passed, and the nex
   const open = pathAnswer({ firm: "Evercore", facts: [], now: at("2026-10-05"), checks: NONE });
   assert(!/passed/.test(open.messages.join("\n")), open.messages.join("\n"));
   eq(open.programs[0].past_dates, []);
-  // The deadline day itself has not passed; the day after it has.
+  // The deadline day itself has not passed, nor the next morning in UTC (it is still October 11 west of it); once the
+  // day is over everywhere (12:00Z the next day) it has.
   assert(!/passed/.test(pathAnswer({ firm: "Evercore", facts: [], now: Date.parse("2026-10-11T23:59:00Z"), checks: NONE }).messages.join("\n")));
-  assert(/the opening date 31 August 2026 and the deadline 11 October 2026 have passed/.test(pathAnswer({ firm: "Evercore", facts: [], now: Date.parse("2026-10-12T00:01:00Z"), checks: NONE }).messages.join("\n")));
+  assert(!/passed/.test(pathAnswer({ firm: "Evercore", facts: [], now: Date.parse("2026-10-12T00:01:00Z"), checks: NONE }).messages.join("\n")));
+  assert(/the opening date 31 August 2026 and the deadline 11 October 2026 have passed/.test(pathAnswer({ firm: "Evercore", facts: [], now: Date.parse("2026-10-12T12:00:00Z"), checks: NONE }).messages.join("\n")));
+  // "11:59 PM ET": at 00:30Z the next day there are 3.5 hours left in ET, so it has not passed.
+  const et = withTimeline("evercore", "The deadline is October 20, 2026 at 11:59 PM ET.");
+  assert(!/passed/.test(pathAnswer({ firm: "Evercore", facts: [], guide: et, now: Date.parse("2026-10-21T00:30:00Z"), checks: NONE }).messages.join("\n")));
+  assert(/the deadline October 20, 2026 has passed/.test(pathAnswer({ firm: "Evercore", facts: [], guide: et, now: Date.parse("2026-10-21T12:00:00Z"), checks: NONE }).messages.join("\n")));
   // McKinsey's two programs, Bain's ACI: each past date in its own words.
   const mck = pathAnswer({ firm: "McKinsey", facts: [], now: NOW, checks: NONE }).messages.join("\n");
   assert(mck.includes("As of 2026-10-20, the opening date July 1, 2026 and the deadline August 11, 2026 have passed."), mck);
@@ -122,6 +134,7 @@ Deno.test("WO-041/R4 the brain tool answers on the turn's clock", async () => {
   const ask = (now: number) => tools.career_path_answer.run({ firm: "Evercore" }, { userId: "u1", threadId: "t1", now, state: {}, turn: { message: "how do I get into evercore", added: [] as string[] } }) as Promise<any>;
   assert(PASSED.test((await ask(NOW)).messages.join("\n")), "after the deadline");
   assert(!PASSED.test((await ask(at("2026-09-01"))).messages.join("\n")), "before it");
+  assert(/add no odds, hiring stories or dates they don't state/.test(tools.career_path_answer.description), "the model is told to add no date");
 });
 
 Deno.test("WO-041/R5 a program page the last check found gone is said so", () => {
@@ -130,7 +143,7 @@ Deno.test("WO-041/R5 a program page the last check found gone is said so", () =>
   assert(r.messages.join("\n").includes("That page answered 404 at the 2026-10-26 source check, so this program may no longer be listed there."), r.messages.join("\n"));
   eq(r.programs[0].source_status, "gone");
   const live = pathAnswer({ firm: "Evercore", facts: [], now: NOW, checks: checks({ [url]: "live" }) });
-  assert(!/source check/.test(live.messages.join("\n")));
+  assert(!/answered 404/.test(live.messages.join("\n")));
   eq(pathAnswer({ firm: "Evercore", facts: [], now: NOW, checks: NONE }).programs[0].source_status, "unverified");
 });
 
@@ -169,6 +182,11 @@ Deno.test("WO-041/R7 a pattern no check has opened, or that refused the check, i
   // Refused: said with the check's date and what happened.
   const blocked = start({ role: "software engineer", company: "Meta", now: NOW, checks: checks({ [OFFICIAL.source_url]: "blocked", [REPORTED.source_url]: "blocked" }) });
   assert(companyQ(blocked.state)!.includes("Unverified: the page could not be opened at the 2026-10-26 source check (blocked)."), companyQ(blocked.state)!);
+  // The voice interviewer is told the same, for a refused page and a failed one.
+  const refused = checks({ [OFFICIAL.source_url]: "blocked", [REPORTED.source_url]: "error" }, { [REPORTED.source_url]: 500 });
+  const v = interviewerInstructions(blocked.state, { checks: refused });
+  assert(v.includes(`(${OFFICIAL.source_type}, ${OFFICIAL.source_url}) [unverified: the page could not be opened at the 2026-10-26 source check (blocked); do not present it as the firm's words]`), v);
+  assert(v.includes(`(${REPORTED.source_type}, ${REPORTED.source_url}) [unverified: the page could not be opened at the 2026-10-26 source check (error); do not present it as the firm's words]`), v);
   // Opened: no label, by text or voice.
   const live = checks({ [OFFICIAL.source_url]: "live", [REPORTED.source_url]: "redirected" });
   const ok = start({ role: "software engineer", company: "Meta", now: NOW, checks: live });
@@ -192,4 +210,57 @@ Deno.test("WO-041/R8 the bundle carries the source checks (Deno has no packages/
   assert(/^const CAREER_SOURCE_CHECKS_JSON = __careerData\("/m.test(bundle), "compressed into the career bundle");
   const file = JSON.parse(await Deno.readTextFile(new URL("packages/career-data/source-checks.json", root)));
   eq(P.sourceChecks(), file, "134 sourceChecks reads the committed file from the bundle");
+});
+
+Deno.test("WO-041/R9 every way a timeline writes a date: a closed program is never 'apply inside its window', a yearless date is never given a year", () => {
+  const apply = /^Apply to .+ inside its window\.$/;
+  const econ = [{ id: "F-001", kind: "education", text: "BS Economics at Rutgers, graduating May 2027" }];
+  const closed: [string, string][] = [
+    ["Applications open Sept. 1–Oct. 11, 2026.", "Oct. 11, 2026"],
+    ["Applications open Sept 1 - Oct 11, 2026.", "Oct 11, 2026"],
+    ["Applications were accepted from August 31, 2025 to October 11, 2025.", "October 11, 2025"],
+    ["Apply by 10/11/2026.", "10/11/2026"],
+    ["Deadline: 2026-10-11.", "2026-10-11"],
+    ["Deadline: September 2026.", "September 2026"],
+    ["Applications close 11th of October 2026.", "11th of October 2026"],
+    ["Applications close on 1 May 2026, and the programme starts 7 September 2026.", "1 May 2026"],
+  ];
+  for (const [tl, said] of closed) {
+    const r = pathAnswer({ firm: "Evercore", facts: econ, guide: withTimeline("evercore", tl), now: NOW, checks: NONE });
+    const text = r.messages.join("\n");
+    assert(!r.moves.some((m) => apply.test(m.action)), `${tl}: ${r.moves.map((m) => m.action).join(" / ")}`);
+    assert(PASSED.test(text) && text.includes(said), `${tl}: no passed line naming ${said}\n${text}`);
+    const tm = r.moves.find((m) => m.requirement.id === "evercore-timeline");
+    assert(!tm || /has passed|have passed/.test(tm.action), `${tl}: ${tm?.action}`);
+  }
+  // Still open: a deadline ahead, or only an opening date behind.
+  for (const tl of ["The internship starts June 1, 2026; applications are due January 15, 2027.", "Applications opened August 1, 2026 and remain open until positions are filled."]) {
+    const r = pathAnswer({ firm: "Evercore", facts: econ, guide: withTimeline("evercore", tl), now: NOW, checks: NONE });
+    assert(r.moves.some((m) => apply.test(m.action)), `${tl}: ${r.moves.map((m) => m.action).join(" / ")}`);
+  }
+  // No year: said so, never given one, and no "apply inside its window".
+  const r = pathAnswer({ firm: "Evercore", facts: econ, guide: withTimeline("evercore", "Applications for Fall 2026 close October 1."), now: NOW, checks: NONE });
+  const text = r.messages.join("\n");
+  assert(text.includes("October 1 is stated without a year, so I can't tell whether it has passed; check the page."), text);
+  assert(!/October 1, 20\d\d|1 October 20\d\d|20\d\d-10-01/.test(text), `a year was given: ${text}`);
+  assert(!r.moves.some((m) => apply.test(m.action)), r.moves.map((m) => m.action).join(" / "));
+  assert(r.moves.some((m) => /without a year/.test(m.action)), r.moves.map((m) => m.action).join(" / "));
+});
+
+Deno.test("WO-041/R10 the firm's own statements are labeled unverified until a source check opens their pages", () => {
+  const r = pathAnswer({ firm: "McKinsey", facts: [], now: NOW, checks: NONE });
+  eq(r.messages[0].split("\n")[1], "Unverified: the statements from mckinsey.com are search summaries of the cited pages; no source check has opened those pages yet.");
+  const cited = [...r.programs.slice(0, 2).map((p) => p.source_url), ...r.moves.map((m) => m.requirement.source_url)];
+  const allLive = pathAnswer({ firm: "McKinsey", facts: [], now: NOW, checks: checks(Object.fromEntries(cited.map((u) => [u, "live"]))) });
+  assert(!/Unverified/.test(allLive.messages.join("\n")), allLive.messages[0]);
+  const refused = pathAnswer({ firm: "McKinsey", facts: [], now: NOW, checks: checks(Object.fromEntries(cited.map((u) => [u, "blocked"]))) });
+  assert(refused.messages.join("\n").includes("Unverified: the pages from mckinsey.com could not be opened at the 2026-10-26 source check."), refused.messages[0]);
+  // A base rate's press page counts too.
+  const gs = pathAnswer({ firm: "Goldman Sachs", facts: [], now: NOW, checks: NONE }).messages.join("\n");
+  assert(/Unverified: the statements from [^\n]*fortune\.com/.test(gs), gs);
+  // Every firm, while no check has run, says it once.
+  for (const f of GUIDE.firms) {
+    const t = pathAnswer({ firm: f.name, facts: [], now: NOW, checks: NONE }).messages.join("\n");
+    eq((t.match(/Unverified: /g) || []).length, 1, f.name);
+  }
 });

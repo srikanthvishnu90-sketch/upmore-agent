@@ -5,7 +5,11 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, placesNamed, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import {
+  HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, STANDING_CLASSES, STANDING_INPUTS, STANDING_PROMPT, STANDING_TITLE, standingApplies, type StandingClass, standingKey,
+} from "../../supabase/functions/_shared/standing_answers.ts";
+export { canonicalCountry, HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, standingSummaries } from "../../supabase/functions/_shared/standing_answers.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
@@ -177,6 +181,8 @@ export interface PreparedPosting { jobId: string; company: string; url?: string;
 export interface AskedAt { jobId: string; company: string; label: string; type: string; options: string[]; misfit: boolean }
 export interface PanelQuestion {
   key: string; kind: string; label: string; type: string; options: string[]; similar: number; postings: AskedAt[]; perPosting: boolean; selected: null;
+  // WO-074: a standing answer's class: the panel draws its short form (`inputs` taps) in place of the questions it stands for.
+  standing?: StandingClass; inputs?: number; choices?: { label: string; value: string }[]; covers?: string[];
 }
 export type LeftReason = "identity" | "personal" | "essay" | "file" | "agreement";
 function leftForCard(n: OpenQuestion): LeftReason | null {
@@ -190,9 +196,19 @@ function leftForCard(n: OpenQuestion): LeftReason | null {
   if (n.options?.length && n.options.every((l) => /^\s*(i\s+)?(will read|accept|agree|acknowledge|understand|consent|confirm|certify|attest)\b/i.test(l))) return "agreement";
   return null;
 }
+// WO-074: a standing answer is offered in this same panel, as one more item saved by the same Save, for the questions it
+// could settle (standing_answers.ts standingApplies: its class by rules, this posting's country or place known, a yes/no
+// shape). It `covers` the entries every one of whose postings asks a question of its class; while it is offered, the panel
+// shows it in their place, and if the person skips it they are shown again. It is offered only when the person has not
+// given that statement yet and only when it costs fewer taps than the entries it covers (a 2-input statement for 2 or more
+// entries). A covered question the statement then does not settle at its posting is asked on that card, as before.
+const standingOf = (n: { label: string; type: string; options: string[] }, p: PreparedPosting, answers: Record<string, unknown>) =>
+  standingApplies({ label: n.label, type: n.type, options: (n.options || []).map((l) => ({ label: l })) },
+    { company: p.company, location: p.location, named: placesNamed(n.label, p.company), answers: answers as Record<string, { value: unknown }> });
 export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: Record<string, unknown>; answered: Set<string> }) {
   const by = new Map<string, Omit<PanelQuestion, "label" | "type" | "options" | "similar" | "selected">>();
   const left: { jobId: string; label: string; why: LeftReason }[] = [];
+  const cls = new Map<string, (StandingClass | null)[]>(); // key -> the standing class of each posting's question under it
   for (const p of o.postings) {
     const keep: OpenQuestion[] = [];
     for (const n of p.needs) {
@@ -208,6 +224,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
       const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [], perPosting: String(r.key).startsWith("job:") };
       g.postings.push({ jobId: p.jobId, company: p.company, label: r.label, type: r.type, options: r.options, misfit: !!r.misfit });
       by.set(r.key, g);
+      cls.set(r.key, [...(cls.get(r.key) ?? []), standingOf(r, p, o.answers)]);
     }
   }
   const questions: PanelQuestion[] = [...by.values()].map((g) => {
@@ -221,7 +238,18 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
   });
   // Asked by the most postings first; otherwise in queue order (sort is stable).
   questions.sort((a, b) => b.postings.length - a.postings.length);
-  return { questions, left };
+  const standing: PanelQuestion[] = [];
+  for (const c of STANDING_CLASSES) {
+    if (o.answered.has(standingKey(c))) continue;
+    const covered = questions.filter((q) => (cls.get(q.key) ?? []).every((x) => x === c));
+    if (covered.length < STANDING_INPUTS[c]) continue;
+    // A one-pick class carries its choices, each the whole statement it stands for; the others are typed (panel.js).
+    const choices = c === "how_heard" ? HOW_HEARD_CHOICES.map((x) => ({ label: x.label, value: JSON.stringify({ channels: x.channels }) }))
+      : c === "relatives_at_employer" ? [{ label: RELATIVES_NONE, value: JSON.stringify({ none: true }) }] : undefined;
+    standing.push({ key: standingKey(c), kind: "standing", label: STANDING_PROMPT[c], type: "standing", options: [], similar: 0, selected: null, perPosting: false,
+      postings: covered.flatMap((q) => q.postings), covers: covered.map((q) => q.key), standing: c, inputs: STANDING_INPUTS[c], ...(choices ? { choices } : {}) });
+  }
+  return { questions, left, standing };
 }
 // The person's picks as the rows the store already takes: per posting, the questions (career_apply_questions_put_own, so
 // the row names that posting) and the answers (career_apply_questions_answer_from_form_own, under the same key the text
@@ -234,6 +262,21 @@ export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: st
     const q = o.questions.find((x) => x.key === pick.key);
     const answer = String(pick.answer ?? "").replace(/\s+/g, " ").trim();
     if (!q || !answer) continue;
+    // WO-074: a standing answer is kept only as a complete statement of its class (the panel composes it from the
+    // person's own picks); it is the person's for every employer, under its class key.
+    if (q.standing) {
+      if (answer.length > 2000 || !parseStanding(q.standing, answer)) {
+        refused.push({ key: q.key, why: "not a complete standing answer" });
+        continue;
+      }
+      const at = q.postings[0];
+      const g = groups.get(at.jobId) ?? { posting: at.jobId, questions: [], answers: [] };
+      const row = { key: q.key, kind: "fact", label: STANDING_PROMPT[q.standing], type: "standing", options: [] as string[], company: at.company };
+      g.questions.push({ ...row, misfit: false });
+      g.answers.push({ ...row, answer });
+      groups.set(at.jobId, g);
+      continue;
+    }
     const why = answer.length > 2000 || answer === MASKED || looksLikeIdNumber(answer) ? "not an answer Trainee keeps"
       : q.options.length && !q.options.includes(answer) ? "not one of the employer's options"
       : !q.perPosting && (q.postings.some((a) => namesEmployer(answer, a.company)) || (q.key === "fact:how_heard" && !howHeardChannel(answer)))
@@ -357,6 +400,7 @@ export interface WorkdayCard {
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
   blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[];
+  standing?: Partial<Record<StandingClass, string>>;
 }) {
   if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
@@ -365,7 +409,10 @@ export function cardLines(o: {
   for (const f of o.payload.fields) {
     const ids = draftFactIds(f.factId);
     // WO-054: an answer the person gave in the panel before the session says so, so they check it here.
-    const from = f.source === "trainee" ? (o.before?.includes(f.name) ? " (your answer, answered before the session)" : "") : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
+    // WO-074: an answer derived from a standing answer says which one, in the person's own terms.
+    const cls = f.source === "trainee" && typeof f.factId === "string" && f.factId.startsWith("standing:") ? f.factId.split(":")[1] as StandingClass : null;
+    const from = cls ? ` (from your standing answer: ${o.standing?.[cls] ?? STANDING_TITLE[cls] ?? cls})`
+      : f.source === "trainee" ? (o.before?.includes(f.name) ? " (your answer, answered before the session)" : "") : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
       : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }

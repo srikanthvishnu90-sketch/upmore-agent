@@ -1596,6 +1596,53 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return m.kind === "essay" || m.kind === "derived" || m.kind === "screen" && m.fact !== "job_experience" ? job : wording;
   }
+  function askedSentence(label) {
+    const kept = String(label ?? "").replace(/\b(?:[A-Za-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024"));
+    const parts = kept.split(/(?<=[.?!])\s+/).filter((x) => x.trim()).map((x) => x.replace(/․/g, "."));
+    return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? String(label ?? "");
+  }
+  var SA_HOW = /\bhow did you (first |initially )?(hear|come across|find out|learn|come to know)\b|\bhow'?d you (first )?(hear|find out|learn)\b|\bhow did you find (us|this|the|our)\b|\bwhere did you (first )?(hear|find|learn|see)\b|\bhow (did you )?hear\b|\bhow you heard\b|\bwhere you heard\b|\bi heard about\b.{0,40}\bthrough\b|^(applicant |candidate |application |job )?source\??$/;
+  var SA_HOW_NOT = /referr|\bwho\b|\bname\b|\bif (you )?(selected|chose|answered|checked|other|yes|so)\b|\bplease (specify|indicate|describe|explain|list)\b|\bspecify\b|\bemployee\b/;
+  var SA_REL = /\b(relatives?|family members?|immediate family|family|spouses?|spousal equivalent|in-laws?|domestic partners?|significant others?|household members?|close personal relationships?|personal relationships?|related to (anyone|any)\b)/;
+  var SA_REL_WORK = /\bemploy\w*|\bwork(s|ing)? (at|for|with|here)\b|\bemployees?\b|\bstaff\b/;
+  var SA_REL_NOT = /friend|roommate|acquaint|know anyone|know someone|personally know|\bcontacts?\b|connections?|social relationship|supplier|vendor|customer|client|business|government|official|public|practic|health ?care|purchase|affiliat|subsidiar|related (entit|compan)|parent compan|group compan|sister compan|competitor|investment|outside|conflict|referr|\bnames?\b|\bwho\b|\bwhom\b|\blist\b|provide|specify|explain|details?|describe|department|title|relationship to you|\bhad\b|\bformer|\bpast\b|previous|ever been|household(?! members?)|\bif (yes|so)\b|\bplease\b/;
+  var SA_AUTH = /\b(authori[sz]ed|eligible|entitled|permitted|allowed)\b.{0,30}\b(work|employment)\b|\bright to work\b|\bwork authori[sz]ation\b|\bpermiso de trabajo\b/;
+  var SA_SPONSOR = /\b(require|need|requiring)\b.{0,80}\b(sponsor\w*|visa|work permit|work authori[sz]ation|immigration)\b|\bsponsor\w*\b.{0,40}\b(require|need)/;
+  var SA_RIGHTS_NOT = /\bwhat\b|\bwhich (type|kind|visa|status|countr\w*|one|of)\b|\btype\b|\bkind of\b|\bdescribe|\bexplain|\bdetails?\b|\bspecify|\bplease (provide|list|indicate|confirm your|note|select)\b|\bif (yes|so|no|not|you|applicable)\b|\bunder 18\b|\bminor\b|\bpermanent\w*\b|\btemporary\b|\bexpir|\btransfer|\bgreen card\b|\bcitizen|\bnationality\b|\bresiden|\bcpt\b|\bopt\b|\bstem\b|\brelocation\b|\bminimum\b|\bat least\b|\bboth\b|\band\/or\b|\bor would\b|\blive and work\b|\bcontract\w*\b/;
+  var SA_OFFICE = /\bon-?site\b|\bin-?office\b|\bin the office\b|\bin office\b|\bin[- ]person\b|\bhybrid\b|\boffice\b|\bheadquarters\b|\bhq\b/;
+  var SA_OFFICE_ASK = /\b(are|will|would|can|could|do|does|is)\b[^?]*\byou\b|\bcomfortable\b|\bopen to\b|\bwilling\b|\bable\b|\bavailable\b|\bcommit\b|\bwork for you\b/;
+  var SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b/;
+  var SA_OFFICE_NOT = /relocat|commut|interview|travel|occasional|\bintern|probation|first \d+ days|customer|client|\bwfh\b|work from home|remote (day|work|flexib)|\bstudio\b|\bcampus\b|\bwarehouse\b|\bplant\b|\bfield\b/;
+  var yesNoish = (q) => {
+    const o = (q.options || []).map((x) => String(x.label).trim());
+    if (!o.length) return /checkbox|boolean|text|input|textarea/.test(String(q.type ?? "input_text"));
+    return o.every((x) => /^(yes|no|sí|si|oui|non)\b/i.test(x));
+  };
+  function standingClass(q) {
+    const t = norm(q.label);
+    if (!t || t.length > 600 || /file/.test(String(q.type))) return null;
+    const asked = norm(askedSentence(q.label));
+    if (SA_HOW.test(t) && !SA_HOW_NOT.test(t)) return {
+      cls: "how_heard",
+      why: "how_heard: how or where the person heard of the job"
+    };
+    if (SA_REL.test(t) && SA_REL_WORK.test(t) && !SA_REL_NOT.test(t) && yesNoish(q)) return {
+      cls: "relatives_at_employer",
+      why: "relatives: relatives or close relationships employed here"
+    };
+    if ((SA_AUTH.test(asked) || SA_SPONSOR.test(asked)) && !SA_RIGHTS_NOT.test(t)) return {
+      cls: "work_rights",
+      why: "work_rights: authorized to work, or sponsorship needed, in one place"
+    };
+    const question = /\?/.test(q.label) || !!q.options?.length && yesNoish(q);
+    if (SA_OFFICE.test(t) && SA_OFFICE_ASK.test(asked) && question && !SA_OFFICE_NOT_ASKED.test(asked) && !SA_OFFICE_NOT.test(t)) {
+      return {
+        cls: "office",
+        why: "office: working on site or in the office, at a place, some days a week"
+      };
+    }
+    return null;
+  }
 
   // supabase/functions/_shared/answer_options.ts
   var low = (s) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
@@ -1606,8 +1653,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const t = low(v);
     return NO.test(t) ? "no" : YES.test(t) ? "yes" : null;
   }
-  function byYesNo(want, options) {
-    const hit = options.filter((o) => yesNoOf(o.label) === want);
+  function byYesNo(want, options2) {
+    const hit = options2.filter((o) => yesNoOf(o.label) === want);
     if (hit.length === 1) return hit[0].value;
     const plain2 = hit.filter((o) => /^(yes|no|sí|si|ja|nee|oui|non|はい|いいえ)[.!]?$/i.test(o.label.trim()));
     return only(plain2);
@@ -1729,10 +1776,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const n = Number(m[1]), u = m[2] ?? (unit === "weeks" ? "week" : "year");
     return unit === "weeks" ? n * (u === "month" ? 4.345 : u === "day" ? 1 / 7 : u === "year" ? 52 : 1) : n * (u === "month" ? 1 / 12 : 1);
   }
-  function bySpan(value, options, unit) {
+  function bySpan(value, options2, unit) {
     const v = amount(value, unit);
     if (v === null) return null;
-    const spans = options.map((o) => ({
+    const spans = options2.map((o) => ({
       o,
       s: span(o.label, unit)
     })).filter((x) => x.s);
@@ -1752,10 +1799,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const n = Number(m[1].replace(/,/g, ""));
     return m[2] ? n * 1e3 : n;
   };
-  function byPayRange(value, options) {
+  function byPayRange(value, options2) {
     const v = money(String(value).replace(/\s*(usd|dollars|per year|a year|\/ ?(yr|year))\s*$/i, ""));
     if (v === null || v < 1e3) return null;
-    const ranges = options.map((o) => {
+    const ranges = options2.map((o) => {
       const t = low(o.label).replace(/–|—/g, "-").replace(/\s*(usd|per year|annually|\/ ?(yr|year))\s*$/, "");
       let m = /^(.+?)\s*(?:-|to)\s*(.+)$/.exec(t);
       if (m && money(m[1]) !== null && money(m[2]) !== null) return {
@@ -1779,9 +1826,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }).filter((x) => !!x);
     return only(ranges.filter((r) => v >= r.lo && v <= r.hi).map((r) => r.o));
   }
-  function usCitizenChoice(citizenship, options) {
+  function usCitizenChoice(citizenship, options2) {
     if (!US.test(low(citizenship))) return null;
-    return only(options.filter((o) => /\b(u\.?s\.?a?|united states( of america)?) citizen/.test(low(o.label)) && !/\bnot\b|\bnon-|^no\b/.test(low(o.label))));
+    return only(options2.filter((o) => /\b(u\.?s\.?a?|united states( of america)?) citizen/.test(low(o.label)) && !/\bnot\b|\bnon-|^no\b/.test(low(o.label))));
   }
   var LANGUAGES = [
     [
@@ -2045,71 +2092,71 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return null;
   }
-  function levelOption(level, options) {
+  function levelOption(level, options2) {
     const lv = low(level);
     const not = (l) => /\bnot\b|\bnon-?(native|fluent)\b/.test(l);
     if (/^(native|bilingual|mother tongue|first language)$/.test(lv)) {
-      const nat = options.filter((o) => /\bnative\b|\bbilingual\b|\bmother tongue\b|\bfirst language\b/.test(low(o.label)) && !not(low(o.label)));
+      const nat = options2.filter((o) => /\bnative\b|\bbilingual\b|\bmother tongue\b|\bfirst language\b/.test(low(o.label)) && !not(low(o.label)));
       if (nat.length) return only(nat);
     }
-    if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
+    if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options2.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
     return null;
   }
-  function chooseOption(fact, value, options, question = "") {
-    if (!options.length) return null;
+  function chooseOption(fact, value, options2, question = "") {
+    if (!options2.length) return null;
     const v = low(value);
     const derived = question ? yesNoFromFact(fact, value, question) : null;
-    if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options);
-    const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
+    if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options2);
+    const exact = options2.filter((o) => low(o.label) === v || low(o.value) === v);
     if (exact.length) return exact[0].value;
-    const leaf = fact === "how_heard" ? [] : options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
-    if (leaf.length === 1) return leaf[0].value;
-    if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
+    const leaf2 = fact === "how_heard" ? [] : options2.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
+    if (leaf2.length === 1) return leaf2[0].value;
+    if (DECLINE.test(v) || v === "decline") return only(options2.filter((o) => DECLINE.test(low(o.label))));
     if (derived) {
-      const yn2 = byYesNo(derived, options);
-      if (yn2 || options.some((o) => yesNoOf(o.label) === "yes")) return yn2;
+      const yn2 = byYesNo(derived, options2);
+      if (yn2 || options2.some((o) => yesNoOf(o.label) === "yes")) return yn2;
     }
     switch (fact) {
       case "how_heard": {
         const rule = HOW_HEARD.find(([v2]) => v2.test(v));
         if (!rule) return null;
-        const hit = (re) => options.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop())) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)) && !/universit|college|school|campus|student|handshake/.test(low(o.label)));
+        const hit = (re) => options2.filter((o) => (re.test(low(o.label)) || re.test(low(o.label).split(/\s+>\s+/).pop())) && !/\bads?\b|advert|sponsored|banner/.test(low(o.label)) && !/universit|college|school|campus|student|handshake/.test(low(o.label)));
         const named = hit(rule[1]);
         if (named.length || !rule[2]) return only(named);
         return only(hit(rule[2]).filter((o) => !/\bother\b/.test(low(o.label))));
       }
       case "languages": {
-        if (options.every((o) => yesNoOf(o.label))) break;
-        if (derived === "no") return only(options.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
+        if (options2.every((o) => yesNoOf(o.label))) break;
+        if (derived === "no") return only(options2.filter((o) => /\b(no|none|not)\b.*\b(ability|knowledge|proficiency|skills?)\b|^none\b|^no\b/.test(low(o.label))));
         const named = LANGUAGE_NAMES.filter((l) => new RegExp(`\\b${l}\\b`).test(low(question)));
         if (!named.length) break;
         if (named.length !== 1) return null;
         const level = String(value).split(/\s*[;,\n]\s*/).map((x) => /^([^()]+?)\s*(?:\(([^)]*)\))?$/.exec(x.trim())).find((m) => m && low(m[1]) === named[0])?.[2];
-        return levelOption(level ?? "", options);
+        return levelOption(level ?? "", options2);
       }
       case "graduation_date": {
         const y = /\b(19|20)\d{2}\b/.exec(v)?.[0];
-        if (y && options.every((o) => /^\s*(19|20)\d{2}\s*$/.test(o.label))) return only(options.filter((o) => o.label.trim() === y));
+        if (y && options2.every((o) => /^\s*(19|20)\d{2}\s*$/.test(o.label))) return only(options2.filter((o) => o.label.trim() === y));
         break;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+        const free = options2.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
         if (free.length === 1) return free[0].value;
         break;
       }
       case "education_level": {
         const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
         if (!re) return null;
-        if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
-        const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+        if (options2.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
+        const hits = options2.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
         const core = (l) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
         if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
         return only(hits);
       }
       case "state": {
         const full = STATES[v] ?? v;
-        return only(options.filter((o) => {
+        return only(options2.filter((o) => {
           const l = low(o.label).replace(/\s*,\s*(united states( of america)?|usa|us)$/, "");
           return l === full || STATES[l] === full;
         }));
@@ -2119,7 +2166,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         const [city, st] = v.split(/\s*,\s*/);
         if (!city) return null;
         const full = st ? STATES[st] ?? st : null;
-        return only(options.filter((o) => {
+        return only(options2.filter((o) => {
           const parts = low(o.label).split(/\s*,\s*/);
           return parts[0] === city && (!full || parts[1] === full || STATES[parts[1]] === full);
         }));
@@ -2127,31 +2174,31 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       case "country":
       case "citizenship":
         if (US.test(v)) {
-          const itself = options.filter((o) => US.test(low(o.label)));
+          const itself = options2.filter((o) => US.test(low(o.label)));
           if (itself.length === 1) return itself[0].value;
-          const whole = options.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
-          if (whole.length === 1 && options.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
-          return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label)))) ?? usCitizenChoice(v, options);
+          const whole = options2.filter((o) => US.test(low(o.label).replace(/\s*\(\+\d{1,4}\)$/, "")));
+          if (whole.length === 1 && options2.filter((o) => /^united states\b/.test(low(o.label))).length > 1) return whole[0].value;
+          return only(options2.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label)))) ?? usCitizenChoice(v, options2);
         }
-        return only(options.filter((o) => low(o.label).startsWith(v)));
+        return only(options2.filter((o) => low(o.label).startsWith(v)));
       case "notice_period":
       case "start_date":
-        return bySpan(value, options, "weeks");
+        return bySpan(value, options2, "weeks");
       case "years_experience":
-        return bySpan(value, options, "years");
+        return bySpan(value, options2, "years");
       case "salary_expectation":
-        return byPayRange(value, options);
+        return byPayRange(value, options2);
       case "pronouns": {
         const p = /she/.test(v) ? /she/ : /he\/him|^he/.test(v) ? /\bhe\b/ : /they/.test(v) ? /they/ : null;
-        return p ? only(options.filter((o) => p.test(low(o.label)))) : null;
+        return p ? only(options2.filter((o) => p.test(low(o.label)))) : null;
       }
       case "security_clearance":
-        if (/^(none|no|n\/a)$/.test(v)) return only(options.filter((o) => /^none\b|do not.*(hold|have)|never held|not.*hold|^n\/a|^no\b/.test(low(o.label))));
-        return only(options.filter((o) => low(o.label).includes(v)));
+        if (/^(none|no|n\/a)$/.test(v)) return only(options2.filter((o) => /^none\b|do not.*(hold|have)|never held|not.*hold|^n\/a|^no\b/.test(low(o.label))));
+        return only(options2.filter((o) => low(o.label).includes(v)));
     }
     const yn = yesNoOf(v);
-    if (yn) return byYesNo(yn, options);
-    return only(options.filter((o) => low(o.label).includes(v) && v.length >= 3));
+    if (yn) return byYesNo(yn, options2);
+    return only(options2.filter((o) => low(o.label).includes(v) && v.length >= 3));
   }
 
   // supabase/functions/_shared/posting_place.ts
@@ -2465,6 +2512,758 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return parts.every((p) => p.country === "us") ? "us" : "";
   }
 
+  // supabase/functions/_shared/standing_answers.ts
+  var STANDING_CLASSES = [
+    "how_heard",
+    "relatives_at_employer",
+    "work_rights",
+    "office"
+  ];
+  var standingKey = (c) => `standing:${c}`;
+  var STANDING_KEY = /^standing:(how_heard|relatives_at_employer|work_rights|office)$/;
+  var STANDING_PROMPT = {
+    how_heard: 'How do you usually find the jobs you apply to? (used for every "How did you hear about us?")',
+    relatives_at_employer: "Relatives or close relationships at the companies you apply to (used for every relatives question)",
+    work_rights: "Where may you work without visa sponsorship? (used for work-rights questions about other countries)",
+    office: "Where can you work on site, and up to how many days a week? (used for office questions)"
+  };
+  var STANDING_TITLE = {
+    how_heard: "how you find jobs",
+    relatives_at_employer: "relatives at the employer",
+    work_rights: "work rights by country",
+    office: "office and place"
+  };
+  var STANDING_INPUTS = {
+    how_heard: 1,
+    relatives_at_employer: 1,
+    work_rights: 2,
+    office: 2
+  };
+  var CHANNEL_NAME = {
+    company_site: "Company careers website",
+    job_board: "Job board",
+    linkedin: "LinkedIn",
+    indeed: "Indeed",
+    glassdoor: "Glassdoor",
+    search_engine: "Search engine"
+  };
+  var HOW_HEARD_CHOICES = [
+    {
+      label: "The company's own careers website",
+      channels: [
+        "company_site"
+      ]
+    },
+    {
+      label: "The company's careers website or a job board",
+      channels: [
+        "company_site",
+        "job_board"
+      ]
+    },
+    {
+      label: "A job board",
+      channels: [
+        "job_board"
+      ]
+    },
+    {
+      label: "LinkedIn",
+      channels: [
+        "linkedin"
+      ]
+    },
+    {
+      label: "Indeed",
+      channels: [
+        "indeed"
+      ]
+    },
+    {
+      label: "Glassdoor",
+      channels: [
+        "glassdoor"
+      ]
+    }
+  ];
+  var RELATIVES_NONE = "No relatives or close relationships at companies I apply to; I'll tell Trainee if that changes";
+  function parseStanding(cls, text) {
+    let v;
+    try {
+      v = JSON.parse(String(text ?? ""));
+    } catch {
+      return null;
+    }
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    if (cls === "how_heard") {
+      const ch = v.channels;
+      if (!Array.isArray(ch) || !ch.length || ch.length > 3 || new Set(ch).size !== ch.length || !ch.every((c) => Object.hasOwn(CHANNEL_NAME, c))) return null;
+      return {
+        channels: ch
+      };
+    }
+    if (cls === "relatives_at_employer") return v.none === true ? {
+      none: true
+    } : null;
+    if (cls === "work_rights") {
+      const cs = Array.isArray(v.countries) ? v.countries.map((c) => canonicalCountry(String(c))) : [];
+      if (!cs.length || cs.length > 20 || cs.some((c) => !c) || typeof v.complete !== "boolean" || ![
+        "yes",
+        "no"
+      ].includes(v.sponsorshipElsewhere)) return null;
+      return {
+        countries: [
+          ...new Set(cs)
+        ],
+        complete: v.complete,
+        sponsorshipElsewhere: v.sponsorshipElsewhere
+      };
+    }
+    if (cls === "office") {
+      const ps = Array.isArray(v.places) ? v.places.map((p) => String(p ?? "").replace(/\s+/g, " ").trim()).filter(Boolean) : [];
+      if (!ps.length || ps.length > 10 || ps.some((p) => !placeOf(p)) || !Number.isInteger(v.maxDays) || v.maxDays < 1 || v.maxDays > 5) return null;
+      return {
+        places: ps,
+        maxDays: v.maxDays
+      };
+    }
+    return null;
+  }
+  function standingSummary(cls, st) {
+    if (cls === "how_heard") return st.channels.map((c) => CHANNEL_NAME[c]).join(" or ");
+    if (cls === "relatives_at_employer") return RELATIVES_NONE;
+    if (cls === "work_rights") {
+      const w = st;
+      return `may work without sponsorship in ${w.countries.join(", ")}${w.complete ? " (every such country)" : ""}; elsewhere ${w.sponsorshipElsewhere === "yes" ? "needs" : "does not need"} sponsorship`;
+    }
+    const o = st;
+    return `on site in ${o.places.join("; ")}, up to ${o.maxDays} day${o.maxDays === 1 ? "" : "s"} a week`;
+  }
+  function standingSummaries(saved) {
+    const out = {};
+    for (const c of STANDING_CLASSES) {
+      const st = parseStanding(c, saved?.[standingKey(c)]?.value);
+      if (st) out[c] = standingSummary(c, st);
+    }
+    return out;
+  }
+  var COUNTRIES = [
+    [
+      "United States",
+      /\b[Uu]nited [Ss]tates( of [Aa]merica)?\b|\bUNITED STATES\b|\bU\.S\.A?\.?(?![a-z])|\bUSA\b|\bUS\b|\bAmerica\b/
+    ],
+    [
+      "United Kingdom",
+      /\bunited kingdom\b|\bU\.?K\.?\b|\bgreat britain\b|\bbritain\b|\bbritish\b|\bengland\b|\bscotland\b|\bwales\b|\bnorthern ireland\b/i
+    ],
+    [
+      "Canada",
+      /\bcanad(a|ian)\b/i
+    ],
+    [
+      "Ireland",
+      /\bireland\b(?<!northern ireland)|\birish\b/i
+    ],
+    [
+      "Germany",
+      /\bgermany\b|\bdeutschland\b/i
+    ],
+    [
+      "France",
+      /\bfrance\b/i
+    ],
+    [
+      "Spain",
+      /\bspain\b|\bespaña\b/i
+    ],
+    [
+      "Portugal",
+      /\bportugal\b/i
+    ],
+    [
+      "Italy",
+      /\bitaly\b|\bitalia\b/i
+    ],
+    [
+      "Netherlands",
+      /\bnetherlands\b|\bnederland\b|\bholland\b/i
+    ],
+    [
+      "Belgium",
+      /\bbelgium\b/i
+    ],
+    [
+      "Switzerland",
+      /\bswitzerland\b|\bswiss\b/i
+    ],
+    [
+      "Austria",
+      /\baustria\b/i
+    ],
+    [
+      "Sweden",
+      /\bsweden\b/i
+    ],
+    [
+      "Norway",
+      /\bnorway\b/i
+    ],
+    [
+      "Denmark",
+      /\bdenmark\b/i
+    ],
+    [
+      "Finland",
+      /\bfinland\b/i
+    ],
+    [
+      "Poland",
+      /\bpoland\b/i
+    ],
+    [
+      "Czechia",
+      /\bczechia\b|\bczech republic\b/i
+    ],
+    [
+      "Hungary",
+      /\bhungary\b/i
+    ],
+    [
+      "Romania",
+      /\bromania\b/i
+    ],
+    [
+      "Bulgaria",
+      /\bbulgaria\b/i
+    ],
+    [
+      "Greece",
+      /\bgreece\b/i
+    ],
+    [
+      "Estonia",
+      /\bestonia\b/i
+    ],
+    [
+      "Israel",
+      /\bisrael\b/i
+    ],
+    [
+      "India",
+      /\bindia\b/i
+    ],
+    [
+      "China",
+      /\b(mainland )?china\b|\bprc\b/i
+    ],
+    [
+      "Hong Kong",
+      /\bhong kong\b/i
+    ],
+    [
+      "Taiwan",
+      /\btaiwan\b/i
+    ],
+    [
+      "Japan",
+      /\bjapan\b/i
+    ],
+    [
+      "South Korea",
+      /\bsouth korea(n)?\b|\bkorea\b/i
+    ],
+    [
+      "Singapore",
+      /\bsingapore\b/i
+    ],
+    [
+      "Australia",
+      /\baustralia\b/i
+    ],
+    [
+      "New Zealand",
+      /\bnew zealand\b/i
+    ],
+    [
+      "Mexico",
+      /\bmexico\b|\bméxico\b/i
+    ],
+    [
+      "Brazil",
+      /\bbrazil\b|\bbrasil\b/i
+    ],
+    [
+      "Argentina",
+      /\bargentina\b/i
+    ],
+    [
+      "Colombia",
+      /\bcolombia\b/i
+    ],
+    [
+      "Chile",
+      /\bchile\b/i
+    ],
+    [
+      "Philippines",
+      /\bphilippines\b/i
+    ],
+    [
+      "Vietnam",
+      /\bvietnam\b|\bviet nam\b/i
+    ],
+    [
+      "Indonesia",
+      /\bindonesia\b/i
+    ],
+    [
+      "Malaysia",
+      /\bmalaysia\b/i
+    ],
+    [
+      "Thailand",
+      /\bthailand\b/i
+    ],
+    [
+      "United Arab Emirates",
+      /\bunited arab emirates\b|\bUAE\b/
+    ],
+    [
+      "Saudi Arabia",
+      /\bsaudi arabia\b/i
+    ],
+    [
+      "Qatar",
+      /\bqatar\b/i
+    ],
+    [
+      "South Africa",
+      /\bsouth africa\b/i
+    ],
+    [
+      "Nigeria",
+      /\bnigeria\b/i
+    ],
+    [
+      "Kenya",
+      /\bkenya\b/i
+    ],
+    [
+      "Egypt",
+      /\begypt\b/i
+    ],
+    [
+      "Turkey",
+      /\bturkey\b|\btürkiye\b/i
+    ]
+  ];
+  var REGION = /\beuropean union\b|\bEU\b|\bEEA\b|\beurope\b|\bemea\b|\bapac\b|\blatam\b|\bschengen\b|\bnorth america\b/i;
+  var CITY_COUNTRY = [
+    [
+      /\blondon\b|\bmanchester\b|\bbristol\b|\bedinburgh\b|\bglasgow\b|\bbelfast\b|\bnottingham\b|\bbournemouth\b|\bwinnersh\b|\bchiswick\b|\bcamden\b/i,
+      "United Kingdom"
+    ],
+    [
+      /\btoronto\b|\bvancouver, bc\b|\bmontr[eé]al\b|\bedmonton\b|\bcalgary\b|\bottawa\b|\bmississauga\b|\bwaterloo, on\b/i,
+      "Canada"
+    ],
+    [
+      /\bberlin\b|\bmunich\b|\bmünchen\b|\bhamburg\b|\bfrankfurt\b/i,
+      "Germany"
+    ],
+    [
+      /\bamsterdam\b|\brotterdam\b/i,
+      "Netherlands"
+    ],
+    [
+      /\bparis\b(?!, (tx|texas))/i,
+      "France"
+    ],
+    [
+      /\bmadrid\b|\bbarcelona\b|\bvalencia\b/i,
+      "Spain"
+    ],
+    [
+      /\blisbon\b|\bporto\b/i,
+      "Portugal"
+    ],
+    [
+      /\bdublin\b(?!, (ca|oh|california|ohio))/i,
+      "Ireland"
+    ],
+    [
+      /\btel aviv\b/i,
+      "Israel"
+    ],
+    [
+      /\bbangalore\b|\bbengaluru\b|\bhyderabad\b|\bpune\b|\bmumbai\b|\bdelhi\b|\bnoida\b|\bgurgaon\b|\bgurugram\b|\bchennai\b/i,
+      "India"
+    ],
+    [
+      /\btokyo\b|\bosaka\b/i,
+      "Japan"
+    ],
+    [
+      /\bseoul\b|\bbusan\b/i,
+      "South Korea"
+    ],
+    [
+      /\bsydney\b|\bmelbourne\b(?!, (fl|florida))|\bcanberra\b/i,
+      "Australia"
+    ],
+    [
+      /\bdubai\b|\babu dhabi\b/i,
+      "United Arab Emirates"
+    ],
+    [
+      /\briyadh\b/i,
+      "Saudi Arabia"
+    ],
+    [
+      /\bs[ãa]o paulo\b/i,
+      "Brazil"
+    ],
+    [
+      /\bmexico city\b/i,
+      "Mexico"
+    ],
+    [
+      /\bbogot[áa]\b/i,
+      "Colombia"
+    ],
+    [
+      /\bbuenos aires\b/i,
+      "Argentina"
+    ],
+    [
+      /\bwarsaw\b|\bkrak[oó]w\b/i,
+      "Poland"
+    ],
+    [
+      /\bz[uü]rich\b|\bgeneva\b|\bzug\b/i,
+      "Switzerland"
+    ],
+    [
+      /\bstockholm\b/i,
+      "Sweden"
+    ],
+    [
+      /\bcopenhagen\b/i,
+      "Denmark"
+    ],
+    [
+      /\boslo\b/i,
+      "Norway"
+    ],
+    [
+      /\bhelsinki\b/i,
+      "Finland"
+    ],
+    [
+      /\bprague\b/i,
+      "Czechia"
+    ],
+    [
+      /\bvienna\b/i,
+      "Austria"
+    ],
+    [
+      /\bmanila\b/i,
+      "Philippines"
+    ],
+    [
+      /\bjakarta\b/i,
+      "Indonesia"
+    ],
+    [
+      /\bshanghai\b|\bbeijing\b|\bshenzhen\b/i,
+      "China"
+    ],
+    [
+      /\btaipei\b/i,
+      "Taiwan"
+    ],
+    [
+      /\bbudapest\b/i,
+      "Hungary"
+    ],
+    [
+      /\bsofia\b/i,
+      "Bulgaria"
+    ],
+    [
+      /\bho chi minh\b|\bhanoi\b/i,
+      "Vietnam"
+    ]
+  ];
+  var CODE_COUNTRY = {
+    GB: "United Kingdom",
+    UK: "United Kingdom",
+    ES: "Spain",
+    IE: "Ireland",
+    DE: "Germany",
+    FR: "France",
+    PT: "Portugal",
+    IT: "Italy",
+    BE: "Belgium",
+    CH: "Switzerland",
+    AT: "Austria",
+    SE: "Sweden",
+    NO: "Norway",
+    DK: "Denmark",
+    FI: "Finland",
+    PL: "Poland",
+    CZ: "Czechia",
+    HK: "Hong Kong",
+    SG: "Singapore",
+    JP: "Japan",
+    KR: "South Korea",
+    AU: "Australia",
+    NZ: "New Zealand",
+    MX: "Mexico",
+    BR: "Brazil",
+    IN: "India",
+    ON: "Canada",
+    BC: "Canada",
+    QC: "Canada",
+    AB: "Canada",
+    NS: "Canada",
+    MB: "Canada",
+    SK: "Canada",
+    NB: "Canada"
+  };
+  function canonicalCountry(name) {
+    const v = String(name ?? "").replace(/\s+/g, " ").trim();
+    if (!v || v.length > 60 || REGION.test(v)) return null;
+    const u = /^(us|usa|u\.s\.?|u\.s\.a\.?|united states( of america)?)$/i.test(v) ? "United States" : v;
+    const hits = COUNTRIES.filter(([, re]) => re.test(u));
+    return hits.length === 1 ? hits[0][0] : null;
+  }
+  function countriesNamed(text) {
+    const t = String(text ?? "");
+    return {
+      countries: COUNTRIES.filter(([, re]) => re.test(t)).map(([c]) => c),
+      region: REGION.test(t)
+    };
+  }
+  function postingCountryName(location2) {
+    const chunks = String(location2 ?? "").split(/\s*(?:;|\||•|·|\n)\s*/).filter((x) => x.trim());
+    if (!chunks.length) return null;
+    const found = /* @__PURE__ */ new Set();
+    for (const chunk of chunks) {
+      const parts = postingPlaces(chunk);
+      const c = postingCountry(parts);
+      if (c === "us") {
+        found.add("United States");
+        continue;
+      }
+      if (c !== "abroad") return null;
+      const named = countriesNamed(chunk).countries.filter((x) => x !== "United States");
+      const cities = CITY_COUNTRY.filter(([re]) => re.test(chunk)).map(([, x]) => x);
+      const codes = [
+        ...chunk.matchAll(/(?:^|[\s,(-])([A-Z]{2})(?=$|[\s,)-])/g)
+      ].map((m) => CODE_COUNTRY[m[1]]).filter(Boolean);
+      const all = /* @__PURE__ */ new Set([
+        ...named,
+        ...cities,
+        ...codes
+      ]);
+      if (all.size !== 1) return null;
+      found.add([
+        ...all
+      ][0]);
+    }
+    return found.size === 1 ? [
+      ...found
+    ][0] : null;
+  }
+  var CITY_ALIAS = {
+    nyc: "new york",
+    "new york city": "new york",
+    sf: "san francisco",
+    "san fran": "san francisco",
+    la: "los angeles",
+    dc: "washington"
+  };
+  var STATE_BY_NAME2 = Object.fromEntries(Object.entries(STATE_NAMES).map(([c, n]) => [
+    n,
+    c
+  ]));
+  var cityKey = (s) => {
+    const c = String(s ?? "").toLowerCase().replace(/^greater\s+/, "").replace(/\s+(hq|headquarters|office|offices|campus|area|metro|bay area)$/, "").replace(/[.]/g, "").replace(/\s+/g, " ").trim();
+    return CITY_ALIAS[c] ?? c;
+  };
+  var stateCode = (s) => {
+    const v = String(s ?? "").toLowerCase().replace(/\./g, "").trim();
+    return STATE_NAMES[v] ? v : STATE_BY_NAME2[v] ?? "";
+  };
+  function placeOf(p) {
+    const [city, st] = String(p ?? "").split(",").map((x) => x.trim());
+    if (!city || !/^[A-Za-zÀ-ÿ .'’-]{2,40}$/.test(city)) return null;
+    return {
+      city: cityKey(city),
+      state: st ? stateCode(st) : ""
+    };
+  }
+  var samePlace = (a, b) => a.city === b.city && (!a.state || !b.state || a.state === b.state);
+  var options = (q) => (q.options || []).map((o) => ({
+    label: String(o.label),
+    value: String(o.value ?? o.label)
+  }));
+  function yesNoOnto(q, want) {
+    const o = options(q);
+    if (!o.length) return want === "yes" ? "Yes" : "No";
+    if (!o.every((x) => yesNoOf(x.label))) return null;
+    const hit = o.filter((x) => yesNoOf(x.label) === want);
+    if (hit.length === 1) return hit[0].value;
+    const plain2 = hit.filter((x) => /^(yes|no)[.!]?$/i.test(x.label.trim()));
+    return plain2.length === 1 ? plain2[0].value : null;
+  }
+  var yesNoShaped = (q) => !options(q).length || options(q).every((x) => yesNoOf(x.label));
+  var AUTH = /\b(authori[sz]ed|eligible|entitled|permitted|allowed)\b.{0,30}\b(work|employment)\b|\bright to work\b|\bwork authori[sz]ation\b|\bpermiso de trabajo\b/;
+  var SPONSOR = /\b(require|need|requiring)\b.{0,80}\b(sponsor\w*|visa|work permit|work authori[sz]ation|immigration)\b|\bsponsor\w*\b.{0,40}\b(require|need)/;
+  var WITHOUT = /\bwithout\b.{0,40}\b(sponsor|visa)/;
+  var US_VISA_WORDS = /\bh-?1b?\b|\btn visa\b|\bf-?1\b|\bo-?1\b|\bgreen card\b/i;
+  function rightsAsked(q, ctx) {
+    const asked = norm(askedSentence(q.label));
+    const without = WITHOUT.test(asked), auth = AUTH.test(asked), sponsor = SPONSOR.test(asked) && !without;
+    if (auth && sponsor) return null;
+    if (!auth && !sponsor && !without) return null;
+    if (sponsor && /\bnot\b|\bno longer\b/.test(asked.split("?")[0])) return null;
+    const inAsked = countriesNamed(askedSentence(q.label)), inLabel = countriesNamed(q.label);
+    if (inAsked.region || inLabel.region) return null;
+    const posting = postingCountryName(ctx.location);
+    let country;
+    if (inAsked.countries.length) country = inAsked.countries.length === 1 ? inAsked.countries[0] : null;
+    else country = posting && inLabel.countries.every((c) => c === posting) ? posting : null;
+    if (!country) return null;
+    if (country !== "United States" && US_VISA_WORDS.test(q.label)) return null;
+    const home = canonicalCountry(String(ctx.answers?.country?.value ?? "")) ?? "United States";
+    if (country === home) return null;
+    return {
+      country,
+      ask: auth || without ? "auth" : "sponsor"
+    };
+  }
+  var NUM = {
+    one: "1",
+    two: "2",
+    three: "3",
+    four: "4",
+    five: "5"
+  };
+  function daysAsked(label) {
+    const t = norm(label).replace(/\b(one|two|three|four|five)\b/g, (w) => NUM[w]);
+    if (/\bdaily\b|\bevery day\b|\bmonday\s*(-|–|to|through|thru)\s*friday\b|\bfull[- ]?time\b|\bfully (on-?site|onsite|in[- ]?person|in[- ]?office)\b|\b100\s*%|\bfive days\b/.test(t)) return 5;
+    const nums = [];
+    for (const m of t.matchAll(/\b([1-5])(?:\s*(?:-|–|to|or)\s*([1-5]))?\s*(?:x|\+)?\s*-?\s*(?:days?\b|x\b|x\s*\/|times\b)/g)) nums.push(Number(m[1]), Number(m[2] ?? m[1]));
+    if (nums.length) return Math.max(...nums);
+    const weekdays = (t.match(/\b(mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|mon|tue|tues|wed|thu|thur|thurs|fri)\b/g) ?? []).length;
+    return weekdays >= 2 ? Math.min(weekdays, 5) : null;
+  }
+  var PLACE_NOISE = /\b(is|in|are|at|to|be|we|you|team|teams|work|working|our|the|a|an|this|that|days?|week|per|will|can|role|position|job)\b/i;
+  function officePlaces(ctx) {
+    const named = (ctx.named ?? []).map((x) => x.trim()).filter((x) => x && !PLACE_NOISE.test(x));
+    if (named.length) {
+      const states = named.filter((x) => stateCode(x)), cities = named.filter((x) => !stateCode(x));
+      if (!cities.length) return null;
+      return cities.map((c) => ({
+        city: cityKey(c),
+        state: states.length === 1 ? stateCode(states[0]) : ""
+      }));
+    }
+    const parts = postingPlaces(ctx.location ?? "");
+    if (!parts.length || parts.some((p) => p.remote || !p.city)) return null;
+    return parts.map((p) => ({
+      city: cityKey(p.city),
+      state: p.state
+    }));
+  }
+  var ORG_STOP = /^(i|if|yes|no|n\/a|na|please|do|are|is|have|has|does|will|would|can|our|the|this|company|companies|employee|employees|current|currently|any|note|for|example|e\.g|a|an|and|or|to|of|we|you|your|in|at|by|us|u\.s|usa|relatives?|family|members?|spouses?|immediate|household|close|personal|relationships?|partners?|in-laws?|significant|other|others|domestic|related|anyone|someone|including|marriage|employed|working|work)$/i;
+  function namesOtherOrg(label, company) {
+    const c = String(company ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    for (const s of String(label ?? "").match(/\b[A-Z][\w&.'’-]*(?:\s+(?:[A-Z][\w&.'’-]*|&|of))*/g) ?? []) {
+      const words = s.split(/\s+/).filter((w) => !ORG_STOP.test(w.replace(/[^\w\/.-]/g, "").replace(/\.$/, "")));
+      const n = words.join("").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (n.length < 2) continue;
+      if (c && (c.includes(n) || n.includes(c))) continue;
+      return true;
+    }
+    return false;
+  }
+  var OPT_EXCLUDE = /\bads?\b|advert|sponsored|banner|universit|college|school|campus|student|handshake|\bother\b|third[- ]party|\bjob site\b/;
+  var nameWords = (company) => String(company ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !/^(the|and|inc|llc|ltd|corp|group|company|technologies|technology|labs|software|systems|health|global)$/.test(w));
+  var leaf = (l) => String(l).toLowerCase().split(/\s+>\s+/).pop().trim();
+  var CHANNEL_OPTION = {
+    job_board: /^(job ?boards?|online job (boards?|search|postings?)|job (search )?sites?|third[- ]party (career|job) (sites?|boards?))\b/,
+    linkedin: /^linked ?in(\s*[-–:]?\s*(jobs?|job (postings?|search|board)))?$/,
+    indeed: /^indeed( jobs?)?$/,
+    glassdoor: /^glassdoor( jobs?| job search)?$/,
+    search_engine: /^(search engine|web search|internet search|online search|google( search)?)\b(?!.*\bjobs?\b)/
+  };
+  function channelOptions(ch, q, company) {
+    const o = options(q);
+    if (ch === "company_site") {
+      const v = chooseOption("how_heard", "Company website", o, q.label);
+      if (v !== null) return o.filter((x) => x.value === v);
+      const words = nameWords(company);
+      const compact = String(company ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return o.filter((x) => {
+        const l = leaf(x.label);
+        if (!/\b(web ?site|site|career(s)?( page| site| website)?)\b/.test(l) || OPT_EXCLUDE.test(l)) return false;
+        const flat = l.replace(/[^a-z0-9]/g, "");
+        return words.some((w) => new RegExp(`\\b${w}\\b`).test(l)) || compact.length >= 3 && flat.includes(compact);
+      });
+    }
+    return o.filter((x) => CHANNEL_OPTION[ch].test(leaf(x.label)) && (ch !== "job_board" || !/\bother\b/.test(leaf(x.label))));
+  }
+  function standingApplies(q, ctx) {
+    const c = standingClass(q)?.cls ?? null;
+    if (!c) return null;
+    if (c === "how_heard") return c;
+    if (!yesNoShaped(q)) return null;
+    if (c === "relatives_at_employer") return namesOtherOrg(q.label, ctx.company) ? null : c;
+    if (c === "work_rights") return rightsAsked(q, ctx) ? c : null;
+    return officePlaces(ctx) ? c : null;
+  }
+  function standingAnswer(q, saved, ctx) {
+    const cls = standingApplies(q, ctx);
+    if (!cls) return null;
+    const row = saved?.[standingKey(cls)];
+    const st = row ? parseStanding(cls, row.value) : null;
+    if (!row || !st) return null;
+    const out = (value) => value === null ? null : {
+      value,
+      factId: `standing:${cls}:${row.factId}`.slice(0, 200),
+      cls
+    };
+    if (cls === "how_heard") {
+      const s = st;
+      if (!options(q).length) return out(CHANNEL_NAME[s.channels[0]]);
+      for (const ch of s.channels) {
+        const hit = channelOptions(ch, q, ctx.company);
+        if (hit.length === 1) return out(hit[0].value);
+        if (hit.length > 1) return null;
+      }
+      return null;
+    }
+    if (cls === "relatives_at_employer") return out(yesNoOnto(q, "no"));
+    if (cls === "work_rights") {
+      const w = st, r = rightsAsked(q, ctx);
+      const listed = w.countries.includes(r.country);
+      if (!listed && !w.complete) return null;
+      if (r.ask === "auth") return out(yesNoOnto(q, listed ? "yes" : "no"));
+      return out(yesNoOnto(q, listed ? "no" : w.sponsorshipElsewhere));
+    }
+    const o = st;
+    const days = daysAsked(q.label) ?? 5;
+    if (days > o.maxDays) return null;
+    const mine = o.places.map(placeOf).filter((p) => !!p);
+    const asked = officePlaces(ctx);
+    if (!asked.every((a) => mine.some((m) => samePlace(a, m)))) return null;
+    return out(yesNoOnto(q, "yes"));
+  }
+
   // supabase/functions/_shared/career_apply.ts
   var SUCCESS = /(application (?:has been |was )?(?:submitted|received)|thank you for (?:applying|your application)|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i;
   var ID = /(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]?|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i;
@@ -2674,13 +3473,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var normLabel = (l) => String(l || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   var yesNo = (v) => /^(y|yes|true)$/i.test(v.trim()) ? "yes" : /^(n|no|false)$/i.test(v.trim()) ? "no" : null;
-  function matchOption(value, options) {
+  function matchOption(value, options2) {
     const v = value.trim().toLowerCase();
-    const exact = options.find((o) => o.label.trim().toLowerCase() === v || o.value.trim().toLowerCase() === v);
+    const exact = options2.find((o) => o.label.trim().toLowerCase() === v || o.value.trim().toLowerCase() === v);
     if (exact) return exact.value;
     const yn = yesNo(value);
     if (yn) {
-      const o = options.find((x) => yesNo(x.label) === yn);
+      const o = options2.find((x) => yesNo(x.label) === yn);
       if (o) return o.value;
     }
     return null;
@@ -2812,7 +3611,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     });
     return m.kind === "fact" && (otherCountry(m.fact, q.label, location2, homeInUs(answers)) || beyondFact(m.fact, q));
   }
-  var byNationalityList = (options) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
+  var byNationalityList = (options2) => options2.some((o) => /nationality|citizen/i.test(o.label)) && options2.some((o) => /permit|visa/i.test(o.label));
   function beyondFact(fact, f) {
     if ((fact === "relocation" || fact === "job_relocation") && /multi_select|multiselect/.test(f.type)) return true;
     if (fact === "security_clearance" && (f.options ?? []).some((o) => /\b(expired|inactive|previously held|lapsed)\b/i.test(o.label))) return true;
@@ -2915,7 +3714,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     "united",
     "worldwide"
   ]);
-  var nameWords = (n) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
+  var nameWords2 = (n) => n.split(" ").filter((w) => w.length >= 3 && !GENERIC_NAME.has(w));
   var SPLIT = /\s*[;,\n]\s*/;
   function byMeaning(f, company, answers, places = [], posting = [], location2) {
     const m = mapQuestion({
@@ -2950,8 +3749,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (!here && listed.some((x) => new RegExp(`(^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`).test(named))) return null;
       if (!here && AFFILIATES.test(f.label)) {
         if (workEntries(answers).some((e) => !listed.includes(normCompany(e.employer)))) return null;
-        const theirs = new Set(nameWords(co));
-        if (!theirs.size || listed.some((x) => nameWords(x).some((w) => theirs.has(w)))) return null;
+        const theirs = new Set(nameWords2(co));
+        if (!theirs.size || listed.some((x) => nameWords2(x).some((w) => theirs.has(w)))) return null;
       }
       a = {
         value: here ? "Yes" : "No",
@@ -3211,8 +4010,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const v = value.toLowerCase(), say = (o) => o.label.replace(/\s+/g, " ").trim().toLowerCase();
     const exact = f.options.find((o) => say(o) === v);
     if (exact) return exact.value;
-    const leaf = f.options.filter((o) => / > /.test(o.label) && say(o).split(/\s+>\s+/).pop() === v);
-    return leaf.length === 1 ? leaf[0].value : null;
+    const leaf2 = f.options.filter((o) => / > /.test(o.label) && say(o).split(/\s+>\s+/).pop() === v);
+    return leaf2.length === 1 ? leaf2[0].value : null;
   };
   var FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
   function sectionAnswer(f, entry, answers, fields) {
@@ -3387,6 +4186,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
             value = m.value;
           }
         }
+        if (value === null && !own && !followUp) {
+          const s = standingAnswer({
+            label: f.label,
+            type: f.type,
+            options: f.options
+          }, o.saved, {
+            company: p.company,
+            location: p.location,
+            named: placesNamed(f.label, p.company),
+            answers: o.answers
+          });
+          if (s) {
+            a = s;
+            value = s.value;
+          }
+        }
         if (value !== null && f.dial !== void 0 && a !== own && (key === "phone" || mapQuestion(f).fact === "phone")) value = nationalNumber(value, f.dial);
         if (value !== null && a !== own && f.options.length && /\b(phone|dial(l?ing)?) code\b|\bcountry (phone |calling )?code\b/i.test(f.label)) {
           const shown2 = f.options.find((x) => x.value === value)?.label ?? value;
@@ -3549,7 +4364,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (r.key.startsWith("fact:")) {
         const f = r.key.slice(5);
         if (!Object.hasOwn(answers, f)) answers[f] = a;
-      } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key)) saved[r.key] = a;
+      } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key) || STANDING_KEY.test(r.key)) saved[r.key] = a;
     }
     return {
       ...facts,
@@ -3568,12 +4383,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const q of Array.isArray(result?.questions) ? result.questions : []) {
       const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
       if (!label || NEVER_BY_TEXT.test(label)) continue;
-      const options = (Array.isArray(q.options) ? q.options : []).map((x) => String(x).slice(0, 300)).slice(0, 60);
+      const options2 = (Array.isArray(q.options) ? q.options : []).map((x) => String(x).slice(0, 300)).slice(0, 60);
       const type = String(q.type || "input_text").slice(0, 40);
       const shape = {
         label,
         type,
-        options: options.map((l) => ({
+        options: options2.map((l) => ({
           label: l
         }))
       };
@@ -3589,7 +4404,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         kind: m.kind,
         label,
         type,
-        options,
+        options: options2,
         company: result?.company ? String(result.company).slice(0, 200) : null,
         misfit: o.answered.has(key),
         ...m.kind === "essay" && aiPolicy ? {
@@ -3685,11 +4500,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     BEFORE_CLICK: () => BEFORE_CLICK,
     DRAFT_PREFIX: () => DRAFT_PREFIX,
     EVIDENCE_LIMIT: () => EVIDENCE_LIMIT,
+    HOW_HEARD_CHOICES: () => HOW_HEARD_CHOICES,
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
     NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
     OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
     OWN_WORDS_UNREAD: () => OWN_WORDS_UNREAD,
+    RELATIVES_NONE: () => RELATIVES_NONE,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     WORKDAY_PAGE_SET: () => WORKDAY_PAGE_SET,
     WORKDAY_PERSONAL: () => WORKDAY_PERSONAL,
@@ -3699,6 +4516,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     approvalHash: () => approvalHash,
     beforeSession: () => beforeSession,
     blockers: () => blockers,
+    canonicalCountry: () => canonicalCountry,
     cardLines: () => cardLines,
     cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
@@ -3714,6 +4532,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
     outcomeOf: () => outcomeOf,
+    parseStanding: () => parseStanding,
     payloadText: () => payloadText,
     planForm: () => planForm,
     postingKey: () => postingKey,
@@ -3723,6 +4542,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     scrubIdentity: () => scrubIdentity,
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
+    standingSummaries: () => standingSummaries,
     tenantOf: () => tenantOf,
     workdayDraftLine: () => workdayDraftLine,
     workdayEmployer: () => workdayEmployer,
@@ -3903,7 +4723,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
     if (!labels.length) return null;
     const dial = labels.length > 20 && labels.filter((l) => /\s\+\d{1,4}$/.test(l)).length > labels.length * 0.8;
-    const options = labels.map((l) => ({
+    const options2 = labels.map((l) => ({
       label: dial ? l.replace(/\s\+\d{1,4}$/, "") : l,
       value: l
     }));
@@ -3919,7 +4739,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       schema: [
         {
           ...o.field,
-          options
+          options: options2
         },
         ...rest
       ],
@@ -4002,9 +4822,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (n.options?.length && n.options.every((l) => /^\s*(i\s+)?(will read|accept|agree|acknowledge|understand|consent|confirm|certify|attest)\b/i.test(l))) return "agreement";
     return null;
   }
+  var standingOf = (n, p, answers) => standingApplies({
+    label: n.label,
+    type: n.type,
+    options: (n.options || []).map((l) => ({
+      label: l
+    }))
+  }, {
+    company: p.company,
+    location: p.location,
+    named: placesNamed(n.label, p.company),
+    answers
+  });
   function answerOnceQuestions(o) {
     const by = /* @__PURE__ */ new Map();
     const left = [];
+    const cls = /* @__PURE__ */ new Map();
     for (const p of o.postings) {
       const keep = [];
       for (const n of p.needs) {
@@ -4047,6 +4880,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           misfit: !!r.misfit
         });
         by.set(r.key, g);
+        cls.set(r.key, [
+          ...cls.get(r.key) ?? [],
+          standingOf(r, p, o.answers)
+        ]);
       }
     }
     const questions = [
@@ -4073,9 +4910,46 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       };
     });
     questions.sort((a, b) => b.postings.length - a.postings.length);
+    const standing = [];
+    for (const c of STANDING_CLASSES) {
+      if (o.answered.has(standingKey(c))) continue;
+      const covered = questions.filter((q) => (cls.get(q.key) ?? []).every((x) => x === c));
+      if (covered.length < STANDING_INPUTS[c]) continue;
+      const choices = c === "how_heard" ? HOW_HEARD_CHOICES.map((x) => ({
+        label: x.label,
+        value: JSON.stringify({
+          channels: x.channels
+        })
+      })) : c === "relatives_at_employer" ? [
+        {
+          label: RELATIVES_NONE,
+          value: JSON.stringify({
+            none: true
+          })
+        }
+      ] : void 0;
+      standing.push({
+        key: standingKey(c),
+        kind: "standing",
+        label: STANDING_PROMPT[c],
+        type: "standing",
+        options: [],
+        similar: 0,
+        selected: null,
+        perPosting: false,
+        postings: covered.flatMap((q) => q.postings),
+        covers: covered.map((q) => q.key),
+        standing: c,
+        inputs: STANDING_INPUTS[c],
+        ...choices ? {
+          choices
+        } : {}
+      });
+    }
     return {
       questions,
-      left
+      left,
+      standing
     };
   }
   function answerOnceRows(o) {
@@ -4085,6 +4959,39 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const q = o.questions.find((x) => x.key === pick2.key);
       const answer = String(pick2.answer ?? "").replace(/\s+/g, " ").trim();
       if (!q || !answer) continue;
+      if (q.standing) {
+        if (answer.length > 2e3 || !parseStanding(q.standing, answer)) {
+          refused.push({
+            key: q.key,
+            why: "not a complete standing answer"
+          });
+          continue;
+        }
+        const at2 = q.postings[0];
+        const g2 = groups.get(at2.jobId) ?? {
+          posting: at2.jobId,
+          questions: [],
+          answers: []
+        };
+        const row = {
+          key: q.key,
+          kind: "fact",
+          label: STANDING_PROMPT[q.standing],
+          type: "standing",
+          options: [],
+          company: at2.company
+        };
+        g2.questions.push({
+          ...row,
+          misfit: false
+        });
+        g2.answers.push({
+          ...row,
+          answer
+        });
+        groups.set(at2.jobId, g2);
+        continue;
+      }
       const why = answer.length > 2e3 || answer === MASKED || looksLikeIdNumber(answer) ? "not an answer Trainee keeps" : q.options.length && !q.options.includes(answer) ? "not one of the employer's options" : !q.perPosting && (q.postings.some((a) => namesEmployer(answer, a.company)) || q.key === "fact:how_heard" && !howHeardChannel(answer)) ? "it names one employer, so it is answered on that card" : null;
       if (why) {
         refused.push({
@@ -4216,7 +5123,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     lines.push("Every answer exactly as it will be sent:");
     for (const f of o.payload.fields) {
       const ids = draftFactIds(f.factId);
-      const from = f.source === "trainee" ? o.before?.includes(f.name) ? " (your answer, answered before the session)" : "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
+      const cls = f.source === "trainee" && typeof f.factId === "string" && f.factId.startsWith("standing:") ? f.factId.split(":")[1] : null;
+      const from = cls ? ` (from your standing answer: ${o.standing?.[cls] ?? STANDING_TITLE[cls] ?? cls})` : f.source === "trainee" ? o.before?.includes(f.name) ? " (your answer, answered before the session)" : "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
       lines.push(`${MARK[mapQuestion({
         label: f.label
       }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
@@ -5344,7 +6252,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       for (let i = 2; taken.has(name); i++) name = `${base}~${i}`;
       taken.add(name);
       keep(name, control);
-      const options = optionEls2.length ? optionEls2.map((o, i) => {
+      const options2 = optionEls2.length ? optionEls2.map((o, i) => {
         const l = o.id ? doc().querySelector(`label[for="${cssEsc(o.id)}"]`) : o.closest("label");
         const ol = wdText(l?.textContent || o.getAttribute("aria-label") || o.value);
         keep(`${name}#${i}`, o);
@@ -5358,14 +6266,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         value: l,
         selector: ""
       }));
-      if (new Set(options.map((o) => o.value)).size !== options.length) options.forEach((o) => o.value = o.label);
+      if (new Set(options2.map((o) => o.value)).size !== options2.length) options2.forEach((o) => o.value = o.label);
       const isPhone = !section && type === "text" && (/--phoneNumber$/.test(String(control.id || "")) || /^phone number$/i.test(label));
       schema.push({
         name,
         label: label || name,
         type,
         required,
-        options: options.map((o) => ({
+        options: options2.map((o) => ({
           label: o.label,
           value: o.value
         })),
@@ -5383,7 +6291,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         field_id: name,
         inputType,
         selector: "wd:" + name,
-        options: optionEls2.length ? options : [],
+        options: optionEls2.length ? options2 : [],
         widget,
         elementRefs: []
       };

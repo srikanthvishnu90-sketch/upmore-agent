@@ -58,11 +58,14 @@ done
 # file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
 # 20261019 on is not listed here, so a new one cannot ship without go-live applying it.
 MIGRATIONS=(
-  20261019000000_career_postings.sql
-  20261019010000_career_alerts.sql
+  20261019000000_channel_threads.sql
+  20261019000001_career_postings.sql
+  20261019010000_channel_pending_approvals.sql
+  20261019010001_career_alerts.sql
   20261019020000_channel_delivery.sql
   20261019030000_channel_inbound.sql
-  20261020000000_career_apply_jobs.sql
+  20261020000000_channel_artifacts.sql
+  20261020000001_career_apply_jobs.sql
   20261020010000_career_apply_own_worker.sql
   20261020020000_career_apply_receipts.sql
   20261020030000_career_apply_cards.sql
@@ -92,10 +95,13 @@ MIGRATIONS=(
   20261022110000_career_postings_pay.sql
 )
 MIGRATION_MARK=(
+  "to_regclass('public.channel_threads') is not null"
   "to_regclass('public.career_ingest_state') is not null"
+  "to_regclass('public.channel_pending_approvals') is not null"
   "to_regclass('public.career_proactive_runs') is not null"
   "exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')"
+  "to_regclass('public.channel_artifacts') is not null"
   "to_regclass('public.career_apply_jobs') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_claim_own')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'receipts')"

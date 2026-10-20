@@ -1,4 +1,4 @@
--- Career postings (20261019000000_career_postings.sql, WO-006): signed-in people read open postings; only the service
+-- Career postings (20261019000001_career_postings.sql, WO-006): signed-in people read open postings; only the service
 -- role writes them; the ingest state is the service role's alone; the constraints keep a posting a real, linkable job;
 -- full-text search stems ("nurse" finds "Nursing") and ranks the title first.
 begin;

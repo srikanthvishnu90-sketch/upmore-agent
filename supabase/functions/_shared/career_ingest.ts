@@ -176,7 +176,7 @@ export function memoryPostingsDb(): PostingsDb {
 }
 
 // ------------------------------------------------------------------------------------------------ Supabase store
-// The tables: supabase/migrations/20261019000000_career_postings.sql (pay: 20261022110000). `admin` is a service-role client.
+// The tables: supabase/migrations/20261019000001_career_postings.sql (pay: 20261022110000). `admin` is a service-role client.
 const COLUMNS = ["job_id", "provider", "board", "ats_id", "company", "title", "location", "url", "description", "department",
   "posted_at", "remote", "role_family", "seniority_band", "apply_email", "pay", "first_seen_at", "last_seen_at", "closed_at"] as const;
 const LIST_COLUMNS = COLUMNS.filter((c) => c !== "description").join(",");
@@ -371,7 +371,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     const normalized: any[] = normalize(json, b.board, b.company);
     const token = b.board.toLowerCase();
     const postings: FeedPosting[] = [];
-    // Every row must fit the table's constraints (20261019000000_career_postings.sql): one bad row would otherwise fail
+    // Every row must fit the table's constraints (20261019000001_career_postings.sql): one bad row would otherwise fail
     // its board's write on every run. A posting without an https link or a title is not a job anyone can apply to.
     normalized.forEach((p, i) => {
       const atsId = String(RAW_ID[b.provider](raw[i]) ?? "");

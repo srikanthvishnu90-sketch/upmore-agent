@@ -1,4 +1,4 @@
--- Career alerts (20261019010000_career_alerts.sql, WO-007b): a person reads only their own settings and outbox and
+-- Career alerts (20261019010001_career_alerts.sql, WO-007b): a person reads only their own settings and outbox and
 -- writes neither; the outbox holds one row per person and key, ever; the settings shape and caps hold in the database
 -- as in code; the run log is the service role's alone.
 begin;

@@ -22,3 +22,22 @@ test('the outbox kind list only ever grows', () => {
     kinds.forEach((k) => seen.add(k));
   }
 });
+
+// The key check names the same kinds as key prefixes ('status:...'), and it drifted the same way: the voice mock's key
+// check also dropped 'status' and 'followup' (review 2026-10-20), which the kind test alone did not see.
+const keyLists = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort().flatMap((f) => {
+  const sql = fs.readFileSync(path.join(dir, f), 'utf8');
+  return [...sql.matchAll(/career_outbox_key_check\s+check\s*\(\s*key\s*~\s*'\^\(([a-z_|]+)\):/gi)].map((m) => ({ file: f, kinds: m[1].split('|') }));
+});
+
+test('the outbox key prefixes only ever grow, and every kind has its prefix', () => {
+  assert.ok(keyLists.length >= 2, 'the key prefixes are defined by the migrations');
+  const seen = new Set();
+  for (const { file, kinds } of keyLists) {
+    const lost = [...seen].filter((k) => !kinds.includes(k));
+    assert.deepEqual(lost, [], `${file} drops outbox key prefixes an earlier migration allowed`);
+    kinds.forEach((k) => seen.add(k));
+  }
+  const lastKinds = lists[lists.length - 1].kinds, lastKeys = keyLists[keyLists.length - 1].kinds;
+  assert.deepEqual([...lastKinds].sort(), [...lastKeys].sort(), 'the latest kind list and key prefixes name the same kinds');
+});

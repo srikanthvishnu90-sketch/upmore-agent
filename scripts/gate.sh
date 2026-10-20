@@ -20,8 +20,12 @@ step() {
     cat "$out"
     printf 'STEP %s FAILED (exit %s)\n' "$label" "$status" >&2
     results+=("FAILED  $label (exit $status)")
-    # The failed tests by name, wherever they are in a long log (a CI log read from its tail may not reach them).
-    details+=("--- $label, its failed tests:" "$(grep -E '^[[:space:]]*not ok |=> [^ ]+:[0-9]+:[0-9]+|^[[:space:]]+(location|error):' "$out" | head -n 60)")
+    # The failed tests by name, wherever they are in a long log (a CI log read from its tail may not reach them), each
+    # with its whole TAP block: a multi-line error (an assertion's diff, a call log) was cut at "error: |-" (2026-10-20).
+    details+=("--- $label, its failed tests:" "$(awk '/=> [^ ]+:[0-9]+:[0-9]+/ { print; next }
+      /^[[:space:]]*not ok / { block = 1 }
+      block { print }
+      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | head -n 200)")
     details+=("--- $label, its last 20 lines:" "$(tail -n 20 "$out")")
     failed=1
   fi

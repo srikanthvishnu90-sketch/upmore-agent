@@ -2,33 +2,33 @@
  "report": {
   "wo": "WO-042",
   "kind": "live fill, never sent",
-  "measured_at": "2026-10-20T06:37:47.144Z",
+  "measured_at": "2026-10-20T06:43:36.546Z",
   "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
   "forms": 17,
   "reachable": 17,
   "carded": 17,
   "all": {
-   "correct": 194,
+   "correct": 195,
    "wrong": 0,
-   "missed": 9,
+   "missed": 8,
    "unkeyed": 19,
    "precision": 1,
-   "coverage": 0.9556650246305419,
+   "coverage": 0.9605911330049262,
    "widgets": {
     "should": 42,
-    "correct": 36
+    "correct": 37
    }
   },
   "greenhouse": {
-   "correct": 70,
+   "correct": 71,
    "wrong": 0,
-   "missed": 6,
+   "missed": 5,
    "unkeyed": 9,
    "precision": 1,
-   "coverage": 0.9210526315789473,
+   "coverage": 0.9342105263157895,
    "widgets": {
     "should": 42,
-    "correct": 36
+    "correct": 37
    }
   },
   "lever": {
@@ -58,15 +58,15 @@
   "aborted_requests": 169,
   "aborted_hosts": [
    "c.spl.greenhouse.io",
-   "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
+   "csp.withgoogle.com",
    "jobs.lever.co",
    "api.hcaptcha.com",
    "api2.hcaptcha.com",
    "hcaptcha.com",
    "platform.linkedin.com",
    "www.google-analytics.com",
-   "jobs.ashbyhq.com",
-   "csp.withgoogle.com"
+   "jobs.ashbyhq.com"
   ],
   "allowed_graphql_reads": [
    "cloudflare-challenge-beacon",
@@ -87,23 +87,23 @@
    "url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
-   "ms_goto_dcl": 268,
-   "ms_goto_load": 319,
-   "ms_fill_click_to_card": 572,
+   "ms_goto_dcl": 280,
+   "ms_goto_load": 336,
+   "ms_fill_click_to_card": 773,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478080868,
-    "context": 1792478080383,
-    "dcl": 1792478080186,
+    "card": 1792478423715,
+    "context": 1792478423103,
+    "dcl": 1792478422843,
     "fields": 10,
-    "fill": 1792478080864,
-    "first_card": 1792478080868,
-    "nav": 1792478079938,
-    "plan": 1792478080396,
-    "prepare": 1792478080351,
-    "read": 1792478080387,
-    "script": 1792478080251,
+    "fill": 1792478423711,
+    "first_card": 1792478423715,
+    "nav": 1792478422587,
+    "plan": 1792478423119,
+    "prepare": 1792478423075,
+    "read": 1792478423109,
+    "script": 1792478422914,
     "visibility_at_prepare": "visible",
     "widgets": 2
    },
@@ -338,23 +338,26 @@
    "url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
-   "ms_goto_dcl": 271,
-   "ms_goto_load": 375,
-   "ms_fill_click_to_card": 2052,
+   "ms_goto_dcl": 253,
+   "ms_goto_load": 339,
+   "ms_fill_click_to_card": 3225,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478095940,
-    "context": 1792478094057,
-    "dcl": 1792478093781,
+    "card": 1792478440009,
+    "context": 1792478437011,
+    "dcl": 1792478436684,
     "fields": 35,
-    "fill": 1792478095932,
-    "first_card": 1792478095940,
-    "nav": 1792478093513,
-    "plan": 1792478094088,
-    "prepare": 1792478094027,
-    "read": 1792478094068,
-    "script": 1792478093884,
+    "fill": 1792478440000,
+    "first_card": 1792478440009,
+    "nav": 1792478436437,
+    "plan": 1792478437047,
+    "prepare": 1792478436954,
+    "read": 1792478437020,
+    "script": 1792478436769,
+    "slow": {
+     "school--0": 1154
+    },
     "visibility_at_prepare": "visible",
     "widgets": 15
    },
@@ -895,26 +898,27 @@
    "url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
-   "ms_goto_dcl": 344,
-   "ms_goto_load": 403,
-   "ms_fill_click_to_card": 3737,
+   "ms_goto_dcl": 215,
+   "ms_goto_load": 290,
+   "ms_fill_click_to_card": 4658,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478118411,
-    "context": 1792478114769,
-    "dcl": 1792478114589,
+    "card": 1792478463345,
+    "context": 1792478458788,
+    "dcl": 1792478458560,
     "fields": 30,
-    "fill": 1792478118404,
-    "first_card": 1792478118411,
-    "nav": 1792478114249,
-    "plan": 1792478114787,
-    "prepare": 1792478114754,
-    "read": 1792478114775,
-    "script": 1792478114645,
+    "fill": 1792478463335,
+    "first_card": 1792478463345,
+    "nav": 1792478458349,
+    "plan": 1792478458809,
+    "prepare": 1792478458764,
+    "read": 1792478458795,
+    "script": 1792478458634,
     "slow": {
-     "candidate-location": 542,
-     "question_37413373002[]": 1069
+     "candidate-location": 480,
+     "question_37413373002[]": 1070,
+     "school--0": 1134
     },
     "visibility_at_prepare": "visible",
     "widgets": 20
@@ -1405,30 +1409,33 @@
    "url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
-   "ms_goto_dcl": 295,
-   "ms_goto_load": 365,
-   "ms_fill_click_to_card": 2453,
+   "ms_goto_dcl": 327,
+   "ms_goto_load": 408,
+   "ms_fill_click_to_card": 3768,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478139509,
-    "context": 1792478137169,
-    "dcl": 1792478136974,
+    "card": 1792478485827,
+    "context": 1792478482200,
+    "dcl": 1792478481973,
     "fields": 32,
-    "fill": 1792478139499,
-    "first_card": 1792478139509,
-    "nav": 1792478136688,
-    "plan": 1792478137188,
-    "prepare": 1792478137152,
-    "read": 1792478137173,
-    "script": 1792478137047,
+    "fill": 1792478485818,
+    "first_card": 1792478485827,
+    "nav": 1792478481653,
+    "plan": 1792478482224,
+    "prepare": 1792478482178,
+    "read": 1792478482206,
+    "script": 1792478482053,
+    "slow": {
+     "discipline--0": 528,
+     "school--0": 1144
+    },
     "visibility_at_prepare": "visible",
     "widgets": 21
    },
    "blockers": [
     "\"Cover Letter\" is required and not answered yet.",
     "\"School\" is required and not answered yet.",
-    "\"Discipline\" is required and not answered yet.",
     "\"CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.\" is required and not answered yet.",
     "\"EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below ...\" is required and not answered yet.",
     "\"What is your top location preference?\" is required and not answered yet.",
@@ -1438,7 +1445,6 @@
    "open_required": [
     "Cover Letter",
     "School",
-    "Discipline",
     "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.",
     "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below ...",
     "What is your top location preference?",
@@ -1542,9 +1548,9 @@
      "widget": "react-select",
      "required": true,
      "want": "Statistics",
-     "got": null,
-     "source": null,
-     "verdict": "missed"
+     "got": "Statistics",
+     "source": "trainee",
+     "verdict": "correct"
     },
     {
      "name": "end-month--0",
@@ -1758,9 +1764,9 @@
     }
    ],
    "verdicts": {
-    "correct": 18,
+    "correct": 19,
     "empty_ok": 9,
-    "missed": 2,
+    "missed": 1,
     "unkeyed": 2
    },
    "changed_since_capture": {
@@ -1942,25 +1948,25 @@
    "url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
    "http_status": 200,
    "final_url": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
-   "ms_goto_dcl": 244,
-   "ms_goto_load": 337,
-   "ms_fill_click_to_card": 1678,
+   "ms_goto_dcl": 202,
+   "ms_goto_load": 314,
+   "ms_fill_click_to_card": 1853,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478159893,
-    "context": 1792478158360,
-    "dcl": 1792478158080,
+    "card": 1792478506384,
+    "context": 1792478504728,
+    "dcl": 1792478504382,
     "fields": 26,
-    "fill": 1792478159887,
-    "first_card": 1792478159893,
-    "nav": 1792478157843,
-    "plan": 1792478158379,
-    "prepare": 1792478158317,
-    "read": 1792478158365,
-    "script": 1792478158171,
+    "fill": 1792478506377,
+    "first_card": 1792478506384,
+    "nav": 1792478504186,
+    "plan": 1792478504756,
+    "prepare": 1792478504673,
+    "read": 1792478504737,
+    "script": 1792478504483,
     "slow": {
-     "candidate-location": 507
+     "candidate-location": 471
     },
     "visibility_at_prepare": "visible",
     "widgets": 17
@@ -2401,25 +2407,25 @@
    "url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
-   "ms_goto_dcl": 301,
-   "ms_goto_load": 481,
-   "ms_fill_click_to_card": 3559,
+   "ms_goto_dcl": 278,
+   "ms_goto_load": 502,
+   "ms_fill_click_to_card": 1069,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478182228,
-    "context": 1792478178802,
-    "dcl": 1792478178480,
+    "card": 1792478526342,
+    "context": 1792478525393,
+    "dcl": 1792478524982,
     "fields": 18,
-    "fill": 1792478182220,
-    "first_card": 1792478182228,
-    "nav": 1792478178187,
-    "plan": 1792478178825,
-    "prepare": 1792478178782,
-    "read": 1792478178807,
-    "script": 1792478178660,
+    "fill": 1792478526333,
+    "first_card": 1792478526342,
+    "nav": 1792478524714,
+    "plan": 1792478525419,
+    "prepare": 1792478525374,
+    "read": 1792478525400,
+    "script": 1792478525207,
     "slow": {
-     "location": 3161
+     "location": 674
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -2631,18 +2637,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478182031,
+     "at": 1792478526143,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 2612
+     "ms": 127
     },
     {
-     "at": 1792478183233,
+     "at": 1792478527360,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 140
+     "ms": 149
     }
    ]
   },
@@ -2652,25 +2658,25 @@
    "url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
-   "ms_goto_dcl": 210,
-   "ms_goto_load": 368,
-   "ms_fill_click_to_card": 1114,
+   "ms_goto_dcl": 256,
+   "ms_goto_load": 466,
+   "ms_fill_click_to_card": 1125,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478187259,
-    "context": 1792478186239,
-    "dcl": 1792478185935,
+    "card": 1792478531479,
+    "context": 1792478530483,
+    "dcl": 1792478530110,
     "fields": 16,
-    "fill": 1792478187250,
-    "first_card": 1792478187259,
-    "nav": 1792478185734,
-    "plan": 1792478186261,
-    "prepare": 1792478186219,
-    "read": 1792478186245,
-    "script": 1792478186095,
+    "fill": 1792478531466,
+    "first_card": 1792478531479,
+    "nav": 1792478529860,
+    "plan": 1792478530509,
+    "prepare": 1792478530460,
+    "read": 1792478530491,
+    "script": 1792478530316,
     "slow": {
-     "location": 712
+     "location": 673
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -2861,18 +2867,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478187057,
+     "at": 1792478531262,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 181
+     "ms": 134
     },
     {
-     "at": 1792478188216,
+     "at": 1792478532509,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 127
+     "ms": 155
     }
    ]
   },
@@ -2882,25 +2888,25 @@
    "url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
-   "ms_goto_dcl": 217,
-   "ms_goto_load": 359,
-   "ms_fill_click_to_card": 1046,
+   "ms_goto_dcl": 290,
+   "ms_goto_load": 815,
+   "ms_fill_click_to_card": 1683,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478192175,
-    "context": 1792478191221,
-    "dcl": 1792478190928,
+    "card": 1792478537542,
+    "context": 1792478535936,
+    "dcl": 1792478535280,
     "fields": 14,
-    "fill": 1792478192168,
-    "first_card": 1792478192175,
-    "nav": 1792478190721,
-    "plan": 1792478191242,
-    "prepare": 1792478191200,
-    "read": 1792478191227,
-    "script": 1792478191072,
+    "fill": 1792478537533,
+    "first_card": 1792478537542,
+    "nav": 1792478534997,
+    "plan": 1792478535959,
+    "prepare": 1792478535923,
+    "read": 1792478535943,
+    "script": 1792478535492,
     "slow": {
-     "location": 754
+     "location": 1398
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -3071,18 +3077,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478192020,
+     "at": 1792478537410,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 185
+     "ms": 856
     },
     {
-     "at": 1792478193149,
+     "at": 1792478538591,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 145
+     "ms": 202
     }
    ]
   },
@@ -3092,25 +3098,25 @@
    "url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
-   "ms_goto_dcl": 682,
-   "ms_goto_load": 891,
-   "ms_fill_click_to_card": 1098,
+   "ms_goto_dcl": 271,
+   "ms_goto_load": 519,
+   "ms_fill_click_to_card": 1154,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478197664,
-    "context": 1792478196662,
-    "dcl": 1792478196312,
-    "fields": 27,
-    "fill": 1792478197653,
-    "first_card": 1792478197664,
-    "nav": 1792478195633,
-    "plan": 1792478196691,
-    "prepare": 1792478196639,
-    "read": 1792478196672,
-    "script": 1792478196517,
+    "card": 1792478542755,
+    "context": 1792478541725,
+    "dcl": 1792478541299,
+    "fields": 28,
+    "fill": 1792478542740,
+    "first_card": 1792478542755,
+    "nav": 1792478541032,
+    "plan": 1792478541763,
+    "prepare": 1792478541696,
+    "read": 1792478541739,
+    "script": 1792478541521,
     "slow": {
-     "location": 672
+     "location": 678
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -3395,19 +3401,27 @@
      "got": null,
      "source": null,
      "verdict": "empty_ok"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, Shield AI can contact me about future job opportunities for up to 1 yearPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": null,
+     "got": null,
+     "source": null,
+     "verdict": "empty_ok"
     }
    ],
    "verdicts": {
     "correct": 13,
-    "empty_ok": 11,
+    "empty_ok": 12,
     "any": 1,
     "missed": 2
    },
    "changed_since_capture": {
     "new_fields": [],
-    "gone_fields": [
-     "consent[marketing]"
-    ]
+    "gone_fields": []
    },
    "place_probe_trusted": {
     "lever": [
@@ -3419,18 +3433,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478197393,
+     "at": 1792478542506,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 101
+     "ms": 137
     },
     {
-     "at": 1792478198640,
+     "at": 1792478543793,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 126
+     "ms": 156
     }
    ]
   },
@@ -3440,25 +3454,25 @@
    "url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
-   "ms_goto_dcl": 226,
-   "ms_goto_load": 293,
-   "ms_fill_click_to_card": 1033,
+   "ms_goto_dcl": 4069,
+   "ms_goto_load": 4363,
+   "ms_fill_click_to_card": 1134,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478202510,
-    "context": 1792478201537,
-    "dcl": 1792478201368,
+    "card": 1792478551785,
+    "context": 1792478550789,
+    "dcl": 1792478550356,
     "fields": 28,
-    "fill": 1792478202500,
-    "first_card": 1792478202510,
-    "nav": 1792478201151,
-    "plan": 1792478201567,
-    "prepare": 1792478201528,
-    "read": 1792478201546,
-    "script": 1792478201437,
+    "fill": 1792478551772,
+    "first_card": 1792478551785,
+    "nav": 1792478546292,
+    "plan": 1792478550825,
+    "prepare": 1792478550772,
+    "read": 1792478550799,
+    "script": 1792478550562,
     "slow": {
-     "location": 676
+     "location": 684
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -3778,27 +3792,16 @@
     "gone_fields": []
    },
    "place_probe_trusted": {
-    "lever": [
-     "Chicago, IL, USA",
-     "Chicago, ND, USA",
-     "Chicago, OH, USA"
-    ],
+    "lever": [],
     "options": []
    },
    "place_lookups": [
     {
-     "at": 1792478202282,
+     "at": 1792478551551,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 123
-    },
-    {
-     "at": 1792478203744,
-     "host": "jobs.lever.co",
-     "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
-     "status": 200,
-     "ms": 349
+     "ms": 129
     }
    ]
   },
@@ -3808,25 +3811,25 @@
    "url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
    "http_status": 200,
    "final_url": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
-   "ms_goto_dcl": 216,
-   "ms_goto_load": 410,
-   "ms_fill_click_to_card": 1057,
+   "ms_goto_dcl": 374,
+   "ms_goto_load": 554,
+   "ms_fill_click_to_card": 1150,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792478207531,
-    "context": 1792478206552,
-    "dcl": 1792478206226,
+    "card": 1792478557128,
+    "context": 1792478556082,
+    "dcl": 1792478555726,
     "fields": 28,
-    "fill": 1792478207520,
-    "first_card": 1792478207531,
-    "nav": 1792478206012,
-    "plan": 1792478206586,
-    "prepare": 1792478206533,
-    "read": 1792478206564,
-    "script": 1792478206417,
+    "fill": 1792478557115,
+    "first_card": 1792478557128,
+    "nav": 1792478555362,
+    "plan": 1792478556130,
+    "prepare": 1792478556061,
+    "read": 1792478556103,
+    "script": 1792478555905,
     "slow": {
-     "location": 636
+     "location": 679
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -4134,18 +4137,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478207293,
+     "at": 1792478556874,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago",
      "status": 200,
-     "ms": 92
+     "ms": 124
     },
     {
-     "at": 1792478208621,
+     "at": 1792478558247,
      "host": "jobs.lever.co",
      "path": "/searchLocations?text=Chicago%2C%20IL%2C%20USAChicago",
      "status": 200,
-     "ms": 148
+     "ms": 152
     }
    ]
   },
@@ -4155,25 +4158,25 @@
    "url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/openai/8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3/application",
-   "ms_goto_dcl": 1055,
-   "ms_goto_load": 1532,
-   "ms_fill_click_to_card": 1291,
+   "ms_goto_dcl": 342,
+   "ms_goto_load": 969,
+   "ms_fill_click_to_card": 1662,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478213937,
-    "context": 1792478212740,
-    "dcl": 1792478212151,
+    "card": 1792478563391,
+    "context": 1792478561838,
+    "dcl": 1792478561083,
     "fields": 13,
-    "fill": 1792478213932,
-    "first_card": 1792478213937,
-    "nav": 1792478211100,
-    "plan": 1792478213254,
-    "prepare": 1792478212728,
-    "read": 1792478213245,
-    "script": 1792478212357,
+    "fill": 1792478563356,
+    "first_card": 1792478563391,
+    "nav": 1792478560746,
+    "plan": 1792478562655,
+    "prepare": 1792478561822,
+    "read": 1792478562638,
+    "script": 1792478561291,
     "slow": {
-     "_systemfield_location": 490
+     "_systemfield_location": 415
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -4286,7 +4289,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "a9838b64-b8b4-43da-9202-58f423824d1d__systemfield_eeoc_gender",
+     "name": "9aba1d48-1602-4dfc-869f-7154a2922220__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -4296,7 +4299,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "a9838b64-b8b4-43da-9202-58f423824d1d__systemfield_eeoc_race",
+     "name": "9aba1d48-1602-4dfc-869f-7154a2922220__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -4306,7 +4309,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "a9838b64-b8b4-43da-9202-58f423824d1d__systemfield_eeoc_veteran_status",
+     "name": "9aba1d48-1602-4dfc-869f-7154a2922220__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -4357,7 +4360,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 2,
+    "fresh_lookup_ms": 1,
     "fresh_lookup_first": "27",
     "hidden_after_blur": null
    },
@@ -4373,18 +4376,18 @@
    },
    "place_lookups": [
     {
-     "at": 1792478213319,
+     "at": 1792478562428,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 119
+     "ms": 27
     },
     {
-     "at": 1792478213793,
+     "at": 1792478563173,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 114
+     "ms": 50
     }
    ]
   },
@@ -4394,25 +4397,25 @@
    "url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/airwallex/cba0ab2e-5ab8-416b-ac9b-115638e3c65c/application",
-   "ms_goto_dcl": 274,
-   "ms_goto_load": 794,
-   "ms_fill_click_to_card": 1062,
+   "ms_goto_dcl": 219,
+   "ms_goto_load": 731,
+   "ms_fill_click_to_card": 1178,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792478223439,
-    "context": 1792478222489,
-    "dcl": 1792478221861,
+    "card": 1792478573034,
+    "context": 1792478571970,
+    "dcl": 1792478571323,
     "fields": 13,
-    "fill": 1792478223435,
-    "first_card": 1792478223439,
-    "nav": 1792478221592,
-    "plan": 1792478222752,
-    "prepare": 1792478222477,
-    "read": 1792478222743,
-    "script": 1792478222070,
+    "fill": 1792478573019,
+    "first_card": 1792478573034,
+    "nav": 1792478571109,
+    "plan": 1792478572317,
+    "prepare": 1792478571955,
+    "read": 1792478572309,
+    "script": 1792478571531,
     "slow": {
-     "_systemfield_location": 448
+     "_systemfield_location": 392
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -4582,7 +4585,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 504,
+    "fresh_lookup_ms": 403,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -4598,25 +4601,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792478222812,
+     "at": 1792478572093,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 94
+     "ms": 26
     },
     {
-     "at": 1792478223265,
+     "at": 1792478572800,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 91
+     "ms": 41
     },
     {
-     "at": 1792478227730,
+     "at": 1792478577247,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 106
+     "ms": 34
     }
    ]
   },
@@ -4626,23 +4629,23 @@
    "url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/lilt-production/959498b8-a18e-457b-9e93-07662c38f3d3/application",
-   "ms_goto_dcl": 281,
-   "ms_goto_load": 772,
-   "ms_fill_click_to_card": 523,
+   "ms_goto_dcl": 72,
+   "ms_goto_load": 597,
+   "ms_fill_click_to_card": 613,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478232564,
-    "context": 1792478232155,
-    "dcl": 1792478231554,
+    "card": 1792478582024,
+    "context": 1792478581537,
+    "dcl": 1792478580873,
     "fields": 10,
-    "fill": 1792478232560,
-    "first_card": 1792478232564,
-    "nav": 1792478231276,
-    "plan": 1792478232420,
-    "prepare": 1792478232144,
-    "read": 1792478232410,
-    "script": 1792478231762,
+    "fill": 1792478582018,
+    "first_card": 1792478582024,
+    "nav": 1792478580810,
+    "plan": 1792478581865,
+    "prepare": 1792478581521,
+    "read": 1792478581852,
+    "script": 1792478581081,
     "visibility_at_prepare": "visible",
     "widgets": 0
    },
@@ -4784,25 +4787,25 @@
    "url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/snowflake/479e06f1-273d-4a1b-af56-6543761ebd75/application",
-   "ms_goto_dcl": 407,
-   "ms_goto_load": 913,
-   "ms_fill_click_to_card": 1290,
+   "ms_goto_dcl": 353,
+   "ms_goto_load": 870,
+   "ms_fill_click_to_card": 1344,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478239942,
-    "context": 1792478238773,
-    "dcl": 1792478238159,
+    "card": 1792478589410,
+    "context": 1792478588188,
+    "dcl": 1792478587541,
     "fields": 11,
-    "fill": 1792478239934,
-    "first_card": 1792478239942,
-    "nav": 1792478237756,
-    "plan": 1792478239289,
-    "prepare": 1792478238761,
-    "read": 1792478239278,
-    "script": 1792478238367,
+    "fill": 1792478589398,
+    "first_card": 1792478589410,
+    "nav": 1792478587192,
+    "plan": 1792478588713,
+    "prepare": 1792478588171,
+    "read": 1792478588694,
+    "script": 1792478587748,
     "slow": {
-     "_systemfield_location": 455
+     "_systemfield_location": 395
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -4895,7 +4898,7 @@
      "verdict": "correct"
     },
     {
-     "name": "0e8e5cd6-0ec0-41a6-9c9e-b8682aaf64f1_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "name": "3e0ec0dd-d6bf-4dd9-827f-3e50f45cfdc8_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
      "label": "A “U.S. person” is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee",
      "widget": null,
      "required": true,
@@ -4905,7 +4908,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "0e8e5cd6-0ec0-41a6-9c9e-b8682aaf64f1_5c859149-0940-42e7-8962-ec82679d8074",
+     "name": "3e0ec0dd-d6bf-4dd9-827f-3e50f45cfdc8_5c859149-0940-42e7-8962-ec82679d8074",
      "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked ",
      "widget": null,
      "required": true,
@@ -4965,7 +4968,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 407,
+    "fresh_lookup_ms": 404,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -4981,25 +4984,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792478239303,
+     "at": 1792478588567,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 94
+     "ms": 25
     },
     {
-     "at": 1792478239812,
+     "at": 1792478589260,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 114
+     "ms": 42
     },
     {
-     "at": 1792478244226,
+     "at": 1792478593664,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 102
+     "ms": 22
     }
    ]
   },
@@ -5009,25 +5012,25 @@
    "url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/Crusoe/b1b99030-d393-4329-80fe-5bc2e4c93b03/application",
-   "ms_goto_dcl": 237,
-   "ms_goto_load": 926,
-   "ms_fill_click_to_card": 962,
+   "ms_goto_dcl": 269,
+   "ms_goto_load": 798,
+   "ms_fill_click_to_card": 1071,
    "status": "ready",
    "message": "Read every answer, then approve.",
    "timing": {
-    "card": 1792478249594,
-    "context": 1792478248706,
-    "dcl": 1792478247903,
+    "card": 1792478599131,
+    "context": 1792478598152,
+    "dcl": 1792478597482,
     "fields": 12,
-    "fill": 1792478249587,
-    "first_card": 1792478249594,
-    "nav": 1792478247670,
-    "plan": 1792478248968,
-    "prepare": 1792478248693,
-    "read": 1792478248961,
-    "script": 1792478248110,
+    "fill": 1792478599120,
+    "first_card": 1792478599131,
+    "nav": 1792478597225,
+    "plan": 1792478598426,
+    "prepare": 1792478598137,
+    "read": 1792478598410,
+    "script": 1792478597692,
     "slow": {
-     "_systemfield_location": 451
+     "_systemfield_location": 388
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -5126,7 +5129,7 @@
      "verdict": "empty_ok"
     },
     {
-     "name": "9c10923c-83e6-46e0-9e4d-82a15c9483de__systemfield_eeoc_gender",
+     "name": "fada7c0e-71c2-4a1a-983c-4f6728e0d560__systemfield_eeoc_gender",
      "label": "Gender",
      "widget": null,
      "required": false,
@@ -5136,7 +5139,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9c10923c-83e6-46e0-9e4d-82a15c9483de__systemfield_eeoc_race",
+     "name": "fada7c0e-71c2-4a1a-983c-4f6728e0d560__systemfield_eeoc_race",
      "label": "Race",
      "widget": null,
      "required": false,
@@ -5146,7 +5149,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9c10923c-83e6-46e0-9e4d-82a15c9483de__systemfield_eeoc_veteran_status",
+     "name": "fada7c0e-71c2-4a1a-983c-4f6728e0d560__systemfield_eeoc_veteran_status",
      "label": "Veteran Status",
      "widget": null,
      "required": false,
@@ -5195,7 +5198,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 505,
+    "fresh_lookup_ms": 405,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -5211,32 +5214,32 @@
    },
    "place_lookups": [
     {
-     "at": 1792478249016,
+     "at": 1792478598705,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 97
+     "ms": 382
     },
     {
-     "at": 1792478249506,
+     "at": 1792478599012,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 101
+     "ms": 31
     },
     {
-     "at": 1792478250040,
+     "at": 1792478599630,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 101
+     "ms": 140
     },
     {
-     "at": 1792478253852,
+     "at": 1792478603367,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 110
+     "ms": 72
     }
    ]
   },
@@ -5246,25 +5249,25 @@
    "url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
    "http_status": 200,
    "final_url": "https://jobs.ashbyhq.com/harvey/977e6184-2dc4-422b-8ab3-bc26bb73f778/application",
-   "ms_goto_dcl": 300,
-   "ms_goto_load": 815,
-   "ms_fill_click_to_card": 1078,
+   "ms_goto_dcl": 218,
+   "ms_goto_load": 763,
+   "ms_fill_click_to_card": 1088,
    "status": "blocked",
    "message": "Not ready to approve yet.",
    "timing": {
-    "card": 1792478259287,
-    "context": 1792478258325,
-    "dcl": 1792478257699,
+    "card": 1792478608765,
+    "context": 1792478607770,
+    "dcl": 1792478607098,
     "fields": 14,
-    "fill": 1792478259277,
-    "first_card": 1792478259287,
-    "nav": 1792478257403,
-    "plan": 1792478258593,
-    "prepare": 1792478258311,
-    "read": 1792478258580,
-    "script": 1792478257906,
+    "fill": 1792478608753,
+    "first_card": 1792478608765,
+    "nav": 1792478606886,
+    "plan": 1792478608057,
+    "prepare": 1792478607754,
+    "read": 1792478608032,
+    "script": 1792478607308,
     "slow": {
-     "_systemfield_location": 451
+     "_systemfield_location": 389
     },
     "visibility_at_prepare": "visible",
     "widgets": 0
@@ -5369,7 +5372,7 @@
      "verdict": "correct"
     },
     {
-     "name": "9b13878f-04ce-4512-bcef-5dd2a8343c9f_eebeac06-e08c-4eee-b866-81971c178736",
+     "name": "ae55a7c3-7139-454f-9077-b1dce3461607_eebeac06-e08c-4eee-b866-81971c178736",
      "label": "Will you now or will you in the future require employment visa sponsorship?",
      "widget": null,
      "required": true,
@@ -5379,7 +5382,7 @@
      "verdict": "unkeyed"
     },
     {
-     "name": "9b13878f-04ce-4512-bcef-5dd2a8343c9f_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "name": "ae55a7c3-7139-454f-9077-b1dce3461607_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
      "label": "This role is tied to the office location listed in the job posting. Team members are expected to wor",
      "widget": null,
      "required": true,
@@ -5455,7 +5458,7 @@
      "controls": ":r0:"
     },
     "typed_kept_after_blur": "",
-    "fresh_lookup_ms": 504,
+    "fresh_lookup_ms": 404,
     "fresh_lookup_first": "Evanston, Illinois, United States",
     "hidden_after_blur": null
    },
@@ -5471,25 +5474,25 @@
    },
    "place_lookups": [
     {
-     "at": 1792478258547,
+     "at": 1792478607849,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 90
+     "ms": 27
     },
     {
-     "at": 1792478259106,
+     "at": 1792478608518,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 107
+     "ms": 39
     },
     {
-     "at": 1792478263582,
+     "at": 1792478612955,
      "host": "jobs.ashbyhq.com",
      "path": "/api/non-user-graphql?op=ApiAutocompleteGeoLocation",
      "status": 200,
-     "ms": 108
+     "ms": 33
     }
    ]
   }
@@ -5502,7 +5505,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5512,7 +5515,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5522,7 +5525,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5532,7 +5535,7 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5542,7 +5545,12 @@
   },
   {
    "method": "POST",
-   "host": "grnhse-prod-jben-us-west-2.s3.us-west-2.amazonaws.com",
+   "host": "csp.withgoogle.com",
+   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
+  },
+  {
+   "method": "POST",
+   "host": "grnhse-prod-jben-us-east-1.s3.amazonaws.com",
    "path": "/"
   },
   {
@@ -5657,58 +5665,58 @@
   },
   {
    "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
    "host": "jobs.lever.co",
    "path": "/parseResume"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "api2.hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
-  },
-  {
-   "method": "POST",
-   "host": "hcaptcha.com",
-   "path": "/checksiteconfig"
   },
   {
    "method": "GET",
@@ -6010,23 +6018,23 @@
    "host": "jobs.ashbyhq.com",
    "path": "/api/non-user-graphql",
    "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
-    "ApiSetFormValue"
-   ]
-  },
-  {
-   "method": "POST",
-   "host": "jobs.ashbyhq.com",
-   "path": "/api/non-user-graphql",
-   "ops": [
     "ApiCreateFileUploadHandle"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
+   ]
+  },
+  {
+   "method": "POST",
+   "host": "jobs.ashbyhq.com",
+   "path": "/api/non-user-graphql",
+   "ops": [
+    "ApiSetFormValue"
    ]
   },
   {
@@ -6588,11 +6596,6 @@
    "ops": [
     "ApiSetFormValue"
    ]
-  },
-  {
-   "method": "POST",
-   "host": "csp.withgoogle.com",
-   "path": "/csp/frame-ancestors/38fac9d5b82543fc4729580d18ff2d3d"
   },
   {
    "method": "POST",

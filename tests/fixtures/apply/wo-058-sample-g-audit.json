@@ -1,0 +1,200 @@
+{
+ "note": "WO-058: every fill an independent reviewer (who read only the persona, each posting's location and the fills, never the code) judged wrong or not settled on sealed sample G (captured by CI run 39442366230, 2026-10-20, scored once on trunk 2fc9e4f9, now spent). Each must no longer get the answer it got. Labels are as the reviewer saw them (whitespace collapsed, at most 700 characters); options are the first 60.",
+ "cases": [
+  {
+   "audit_id": "G1-55",
+   "verdict": "wrong",
+   "company": "AvidXchange",
+   "location": "Charlotte, North Carolina, United States; Virtual",
+   "type": "multi_value_single_select",
+   "label": "Have you ever been employed or worked with a staffing/contract agency to provide services for AvidXchange in the past?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "No",
+   "why": "Employer list says nothing about working through a staffing/contract agency for AvidXchange; vendor/agency history is not established, so 'No' is invented."
+  },
+  {
+   "audit_id": "G1-57",
+   "verdict": "wrong",
+   "company": "AvidXchange",
+   "location": "Charlotte, North Carolina, United States; Virtual",
+   "type": "input_text",
+   "label": "Primary Address Line 1",
+   "options": [],
+   "was": "1 Example St, Chicago, IL 60601",
+   "why": "Address Line 1 field filled with the full address instead of just '1 Example St'."
+  },
+  {
+   "audit_id": "G1-58",
+   "verdict": "wrong",
+   "company": "AvidXchange",
+   "location": "Charlotte, North Carolina, United States; Virtual",
+   "type": "input_text",
+   "label": "Primary Address City",
+   "options": [],
+   "was": "1 Example St, Chicago, IL 60601",
+   "why": "City field filled with the full address instead of 'Chicago'."
+  },
+  {
+   "audit_id": "G1-59",
+   "verdict": "wrong",
+   "company": "AvidXchange",
+   "location": "Charlotte, North Carolina, United States; Virtual",
+   "type": "input_text",
+   "label": "Primary Address Zip Code",
+   "options": [],
+   "was": "1 Example St, Chicago, IL 60601",
+   "why": "Zip code field filled with the full address instead of '60601'."
+  },
+  {
+   "audit_id": "G1-74",
+   "verdict": "wrong",
+   "company": "US Conec",
+   "location": "Hickory, North Carolina, United States",
+   "type": "input_text",
+   "label": "Where are you located currently? Are you able/willing to relocate or commute for this position?",
+   "options": [],
+   "was": "Chicago, IL",
+   "why": "Answers only the location half; omits that they will not relocate and cannot commute from Chicago to Hickory, NC."
+  },
+  {
+   "audit_id": "G1-99",
+   "verdict": "wrong",
+   "company": "Freedom Technology Solutions Group",
+   "location": "Laurel, MD",
+   "type": "textarea",
+   "label": "What is the best phone number and email to reach you?",
+   "options": [],
+   "was": "test.person@example.test",
+   "why": "Asked for both phone and email; only the email was given."
+  },
+  {
+   "audit_id": "G1-118",
+   "verdict": "wrong",
+   "company": "gongio",
+   "location": "Salt Lake City",
+   "type": "textarea",
+   "label": "So far this year, what percentage of what you've closed was net-new logos vs. renewals/expansion? And of those new logos, how many did you source yourself?",
+   "options": [],
+   "was": "Company website",
+   "why": "A sales new-logo/renewal question was answered with 'Company website', which answers a different question."
+  },
+  {
+   "audit_id": "G2-138",
+   "verdict": "wrong",
+   "company": "World Wide Professional Solutions",
+   "location": "Peoria, AZ",
+   "type": "text",
+   "label": "Please provide your Home Address: City, State and Zip Code",
+   "options": [],
+   "was": "1 Example St, Chicago, IL 60601",
+   "why": "Field asks only City, State and Zip but the answer repeats the street address."
+  },
+  {
+   "audit_id": "G2-156",
+   "verdict": "not_settled",
+   "company": "Colibri Group",
+   "location": "1 Remote",
+   "type": "checkbox",
+   "label": "Applicant's Statement",
+   "options": [],
+   "was": "yes",
+   "why": "Content of the 'Applicant's Statement' is not shown; it may contain agreements beyond certify/privacy/AI-use."
+  },
+  {
+   "audit_id": "G2-177",
+   "verdict": "wrong",
+   "company": "Tevora",
+   "location": "Seattle, WA; Tacoma, WA",
+   "type": "text",
+   "label": "By providing your mobile number and consenting, you agree to receive SMS/text messages from Tevora agreeing to our Privacy Policy for purposes related to your job application and recruitment process. Message frequency may vary. Standard message and data rates may apply. Consent is not a condition of",
+   "options": [],
+   "was": "+1 555 010 0000",
+   "why": "Entering the phone number in this SMS-consent field opts in to texts, which the applicant declined."
+  },
+  {
+   "audit_id": "G2-181",
+   "verdict": "wrong",
+   "company": "Kabam",
+   "location": "Montreal",
+   "type": "checkbox",
+   "label": "Kabam respects your personal privacy. The personal information you provide in your application is kept in a secure database. The collection and subsequent use or disclosure of your information is limited to generally accepted employment-related purposes to those with a need to know. This includes in",
+   "options": [
+    "I certify that, to the best of my knowledge, the information I have provided on my resume and/or profile, is complete and accurate in every respect. I understand that a false statement or omission of facts therein may disqualify me from employment or result in my subsequent discharge for cause if I ",
+    "I acknowledge that should I be considered for employment with Kabam, by submitting this application I am consenting to reference checks, background checks, and/or credit checks as required within the interview process. I understand that a Talent Acquisition Partner at Kabam will inform me in advance"
+   ],
+   "was": "I acknowledge that should I be considered for employment with Kabam, by submitting this application I am consenting to reference checks, background checks, and/or credit checks as required within the interview process. I understand that a Talent Acquisition Partner at Kabam will inform me in advance",
+   "why": "Selects consent to reference/background/credit checks (credit checks not agreed) and leaves out the certification option the applicant would tick."
+  },
+  {
+   "audit_id": "G2-187",
+   "verdict": "not_settled",
+   "company": "Western Aircraft",
+   "location": "Boise, ID",
+   "type": "radio",
+   "label": "Statement Certification: I certify that the statements made in this application are true and correct and understand that falsification of such statements and information is grounds for immediate dismissal in accordance with Western Aircraft, Inc. policy. In consideration of my employment, I agree to",
+   "options": [
+    "I agree with this statement."
+   ],
+   "was": "I agree with this statement.",
+   "why": "Beyond certifying truth, the statement adds 'In consideration of my employment, I agree to...' terms the applicant has not accepted."
+  },
+  {
+   "audit_id": "G2-201",
+   "verdict": "wrong",
+   "company": "PointClickCare",
+   "location": "Mississauga, Ontario",
+   "type": "textarea",
+   "label": "What programming languages are you most proficient in?",
+   "options": [],
+   "was": "English",
+   "why": "Asks for programming languages; 'English' is a spoken language and answers a different question."
+  },
+  {
+   "audit_id": "G2-224",
+   "verdict": "not_settled",
+   "company": "Allegiant Air",
+   "location": "Appleton, WI",
+   "type": "radio",
+   "label": "Have you ever been employed by an Allegiant company, Sun Country, or through a Third Party Contractor Agency onsite?",
+   "options": [
+    "Current Allegiant Team Member",
+    "Former Allegiant Team Member",
+    "Current Sun Country Team Member",
+    "Previous Sun Country Team Member",
+    "Yes, I have worked for both Allegiant and Sun Country",
+    "Worked for a contractor/vendor supporting Allegiant or Sun Country ( current or former)",
+    "No, I have not worked for any of the above"
+   ],
+   "was": "No, I have not worked for any of the above",
+   "why": "The question also covers work for a contractor/vendor supporting Allegiant or Sun Country, and the persona does not say whether that applies."
+  },
+  {
+   "audit_id": "G2-225",
+   "verdict": "not_settled",
+   "company": "Allegiant Air",
+   "location": "Appleton, WI",
+   "type": "checkbox",
+   "label": "Do you consent to Allegiant sharing your application and candidate information with Sun Country Airlines, an affiliated subsidiary of Allegiant Travel Company, for employment consideration?",
+   "options": [
+    "Yes",
+    "No"
+   ],
+   "was": "Yes",
+   "why": "Consent to share the application with Sun Country is a data-sharing agreement beyond privacy/certify/AI-use that the applicant has not addressed."
+  },
+  {
+   "audit_id": "G2-250",
+   "verdict": "wrong",
+   "company": "Nexxen",
+   "location": "New York, NY",
+   "type": "checkbox",
+   "label": "Candidates must be authorized to work in the U.S. without current or future sponsorship by Nexxen. Are you legally authorized to work for ANY employer in the United States?",
+   "options": [],
+   "was": "no",
+   "why": "Applicant is a US citizen authorized to work for any US employer; 'no' is false."
+  }
+ ]
+}

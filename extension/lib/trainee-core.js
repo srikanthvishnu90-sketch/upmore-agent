@@ -851,7 +851,11 @@
   var yesNoOnly = (q) => !q.options?.length || /^(yes|no|sí|si|ja|nee|はい|いいえ|n\/a|not sure|i'?m not sure| \| )+$/i.test(opts(q).replace(/[.\s]+/g, " ").replace(/ \| /g, " | ").trim()) || q.options.every((o) => /^(yes|no)\b/i.test(String(o.label).trim()));
   var WHY = /\bwhy\b(?!.*\b(good|great) fit\b)(?!.*\bwhy you'?re\b)|pourquoi|por qué|\binterest(s|ed)? you\b|\bexcites? you\b|\bexcited about\b|\bresonate|\bdrew you|\bwhat interested you\b|\bwhy are you interested\b|\bwhy do you want\b|\bmakes you excited\b|\bwhat makes you want\b/;
   var DESCRIBE = /\b(describe|tell us|share|walk us through|give an example|provide an example|example of|explain|what is one|what's something|what are you most proud|most proud|hardest|exceptional|achieve|accomplish|built|project|summary about yourself|good fit|great fit|why you'?re|what attributes|philosophy|how do you|how have you|what skills|what relevant|elaborate|brief comment|in \d+ (words|sentences)|in fewer than|in 1-3)\b/;
-  var BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)/;
+  function authorizationAsked(t) {
+    const asked = t.replace(/\b(?:[a-z]\.){2,}/g, (a) => a.replace(/\./g, "\u2024")).split(/(?<=[.?!])\s+/).filter((x) => x.includes("?")).pop() ?? "";
+    return /\b(authori[sz]ed|eligible) to work\b/.test(asked) && !/sponsor|visa/.test(asked);
+  }
+  var BEYOND_CONSENT = /marketing|disclos(ed|e) to (other|our|its|any)|\b(group|sister|affiliated) (entities|companies)\b|other [\w& -]{0,30}\bentities\b|considered for (all|other|any)|arbitrat|confidential|non-?disclosure|\bnda\b|terms (and|&) conditions|terms of (use|service)|whistle|third[- ]part|\bshare (your|my|the)? ?(data|information)|share your data|collaborate and share|improve our|future (opportunit|vacanc|role|position)|talent (pool|community|matching)|retain|notetaker|record|transcri|monitor|qualifications|drug|substance|at[- ]will|\bi (also|further) agree|further (agree|understood)|credit (check|report|histor)|reference check|in consideration of (my|your|the) employment/;
   var ackOpt = (x) => /^(i )?(acknowledge|agree|accept|understand|consent|confirm)|^acknowledge\/confirm|^read and understood|^i will read/.test(x);
   function ackShaped(q, t) {
     const o = (q.options || []).map((x) => String(x.label).toLowerCase().trim());
@@ -993,13 +997,13 @@
     ],
     [
       "street_address",
-      /\bstreet address\b|^address line 1\b|^street\b/,
+      /\bstreet address\b|^(primary |home |mailing |permanent )?address line 1\b|^street\b/,
       (q, t) => !/\bcity\b.*\bstate\b|\bzip\b|full street address/.test(t)
     ],
     [
       "full_address",
       /\b(full |physical |residential |home |legal |permanent |primary residence |current residential |complete current residential )?address\b/,
-      (q, t) => !/e-?mail|ip address|work address|\b(staying|living|located|residing) in (?!the (u\.?s\.?|united states))[a-z]/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)
+      (q, t) => !/e-?mail|ip address|work address|\baddress:? ?-? ?(city|town|zip|postal|post ?code|state|province|country|line ?[1-3])\b|\b(staying|living|located|residing) in (?!the (u\.?s\.?|united states))[a-z]/.test(t) && t.length <= 100 && !/\b(did|do|will|would|to|you|we|they) address\b/.test(t)
     ],
     [
       "unknown",
@@ -1011,7 +1015,7 @@
     ],
     [
       "city",
-      /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b|\blocation:? city\??$/,
+      /\bwhat city do you (currently )?(live|reside)|which city are you|^city\b|^ville\b|\blocation:? city\??$|^(primary |home |mailing |permanent )?address city\b/,
       (q, t) => !/\bstate\b/.test(t)
     ],
     [
@@ -1203,7 +1207,8 @@
     ],
     [
       "languages",
-      /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/
+      /\bnative \w+ (translator|speaker)\b|\blanguages?\b.*\b(speak|fluent|proficien|communicate)|\b(fluent|fluency|proficien\w*) in\b|\bproficiency\b.*\blanguage|\blanguage (skill|proficiency)\b|\bspreek je\b|\bdo you speak\b|\bbusiness fluency\b|\bnative (level )?fluency\b|\blanguage\b.*\bproficiency\b/,
+      (q, t) => !/\b(programming|coding|computer|scripting|query) languages?\b/.test(t)
     ],
     [
       "drivers_license",
@@ -1270,7 +1275,7 @@
     [
       "sponsorship",
       /\bsponsor(ship)?\b|\bvisa\b(?!.*\btransfer)|\bwork permit\b|\bimmigration case\b|\bright to work support\b|\bnonimmigrant\b/,
-      (q, t) => !/^(are|is) you (currently |now )?(legally )?authori[sz]ed to work\b[^?]*\?/.test(t) || /^[^?]*\bsponsor/.test(t)
+      (q, t) => (!/^(are|is) you (currently |now )?(legally )?authori[sz]ed to work\b[^?]*\?/.test(t) || /^[^?]*\bsponsor/.test(t)) && !authorizationAsked(t)
     ],
     [
       "citizenship",
@@ -1323,6 +1328,11 @@
       (q, t) => !/drug|substance|reference check|monitor/.test(t)
     ],
     // Consent.
+    // WO-058: sharing the application with another company (an affiliate, a sister airline) is the person's own call.
+    [
+      "unknown",
+      /\b(consent|agree|authori[sz]e|permit|allow)\b.{0,40}\bshar(e|ing)\b.{0,80}\b(with|to)\b/
+    ],
     [
       "sms_opt_in",
       /\b(text|sms|whatsapp)\b.*\b(message|communication|update|opt|consent|contact)|\bopt[- ]in to (text|receive text)|\bsms consent\b|\bcontact you by text\b/
@@ -1339,7 +1349,7 @@
     [
       "certify_true",
       /\bcertif(y|ication)\b.*\b(true|accurate|correct|complete)|\btrue and (complete|correct)|\baccurate to the best\b|\bapplicant'?s? statement\b/,
-      (q, t) => !BEYOND_CONSENT.test(t + " " + opts(q))
+      (q, t) => !BEYOND_CONSENT.test(t + " " + opts(q)) && !/^applicant'?s? statement:?$/.test(t)
     ],
     // A bare heading ("Certification & Attestation", "Affirmation") does not say what is attested: the person reads it
     // (WO-052, IEM).
@@ -1378,11 +1388,16 @@
     [
       "worked_here_before",
       /\bhave you previously been (employed|working|engaged)\b.*\b(by|for|at|with)\b|\b(worked|employed|employee|contractor|work)\b.*\b(for|at|by|with|of)\b.*\b(before|past|previously|currently|now or have you ever|ever been|in any capacity|history)\b|\bemployment history\b|\bhistory with\b|\bhave you (ever )?(been )?(previously )?(employed|worked)\b.*\b(by|for|at|with)\b|\bwere you (ever )?(employed|an employee)\b.*\b(by|of|at)\b|\bhave you worked (at|for|with)\b|\bare you (a |an )?(current|former) (employee|contractor)|\bcurrently (an |a )?(intern|employee|contractor)\b|\bi am a (currently an|former) employee\b|\bcurrent employee of\b|\bcurrent contractor for\b|\bare you currently employed by\b|\bpresently employed by\b|\bwork for a member firm\b|\bex-employee\b|\b(were|are|have) you (ever )?(been )?(a |an )?(previous|former|prior|past) (employee|contractor|worker|intern)\b.*\b(of|at|for|with|by)\b/,
-      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client/.test(t)
+      (q, t) => !/government|relative|family|second most recent|reason for leaving|end date|how many|number of|project|client|agency|vendor|third[- ]party/.test(t + " " + opts(q))
+    ],
+    // WO-058: work through an agency, a vendor or a third party for this employer is not on the person's employer list.
+    [
+      "unknown",
+      /\b(employed|worked|work|services)\b.*\b(by|for|with|through|to)\b.*\b(staffing|agency|vendor|third[- ]party|contractor)\b/
     ],
     [
       "how_heard",
-      /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|\bsource\b(?!.*referral)/,
+      /\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b|\bwhere did you (hear|find)\b|\bhow (did you )?hear\b|\bcomment as-tu entendu\b|\bwhere you heard\b|\bheard about this position\b|\bhow you heard\b|^(applicant |candidate |job |application )?source\b(?!.*referral)|\b(applicant|candidate|application|job|referral) source\b/,
       (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)
     ],
     // "Available on request" answers only a question about references, never a request to list them (WO-052).
@@ -1415,6 +1430,11 @@
       "unknown",
       /\b(are|do) you (currently )?(local to|live in|living in|based in|reside in|near) (?!or\b)[a-z].*\bor\b.*\brelocat|\brelocat\w*\b.*\bor\b.*\b(local to|live in|living in|based in|reside in) (?!or\b)[a-z]/
     ],
+    // WO-058: "Where are you located currently? Are you able/willing to relocate or commute?" asks both; neither fact alone.
+    [
+      "unknown",
+      /\bwhere (are|do) you\b[^?]*\b(located|live|based|reside)\b[^?]*\?.*\b(relocat|commut)/
+    ],
     [
       "job_commute",
       /\bcommut\w*\b.*\b(distance|range)\b|\breside within\b|\bwithin \d+ (miles|km|kilometers)\b|\b(live|reside|located|based) (near|close to|nearby)\b|\bwithin (a )?commut/,
@@ -1438,7 +1458,7 @@
     ],
     [
       "job_travel",
-      /\btravel\b/,
+      /\btravel\b(?! (company|inc|group|corp|holdings))/,
       (q, t) => (!/open to travel\?$|^what % of travel/.test(t) || /\brequires?\b/.test(t)) && !/\bin-?office\b|\bhybrid\b|\bon-?site\b|\bfully remote\b|\bwork(ing)? (fully )?remote(ly)?\b|\bdays (a|per) week\b/.test(t)
     ],
     [
@@ -2608,6 +2628,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (CONTACT.has(key) && (!FREE_TEXT.test(type) || SOMEONE_ELSE.test(l))) continue;
       if (key === "phone" && /\bext(ension)?\b/i.test(l)) continue;
       if ((key === "location" || key === "city") && /zip|postal|country/i.test(l)) continue;
+      if (key === "location" && /relocat|commut/i.test(l)) continue;
+      if ((key === "email" || key === "phone") && /e-?mail/i.test(l) && /phone|mobile|number/i.test(l)) continue;
+      if (key === "phone" && /\b(sms|text messages?|texts)\b/i.test(l)) continue;
       if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
       if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
       if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;

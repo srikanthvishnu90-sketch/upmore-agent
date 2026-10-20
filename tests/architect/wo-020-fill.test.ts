@@ -104,7 +104,10 @@ Deno.test("WO-020/F6 fill coverage meets the bar and the committed report is tod
   // WO-056 (sealed sample E, scored once): 4 more on A are asked: a clearance list that tells "Expired" from "Never held"
   // (SpaceX, CesiumAstro), a conflict of interest that is not a non-compete (Anduril), "a WPP agency" (any company in
   // WPP's group, not settled by the person's own list): A 75.3% -> 74.9%; B unchanged.
-  assert(a.rate >= 0.748 && b.rate >= 0.772, `${a.rate} ${b.rate}`);
-  assert(a.ready >= 21 && b.ready >= 38, `${a.ready} ${b.ready}`);
+  // WO-058 (sealed sample G, scored once): work for this employer through an agency, a vendor or a third party is not on
+  // the person's employer list (SpaceX's and xAI's lists offer "contracted by a third-party employer"; "a WPP agency" on
+  // B), and "Additional information (for source)" is not how they heard: A 74.9% -> 74.7%, B 77.2% -> 77.1% (ready 38 -> 37).
+  assert(a.rate >= 0.746 && b.rate >= 0.770, `${a.rate} ${b.rate}`);
+  assert(a.ready >= 21 && b.ready >= 37, `${a.ready} ${b.ready}`);
   assert(REPORT.includes(`| ${a.postings} | ${a.required} | ${a.filled} (`) && REPORT.includes(`| ${b.postings} | ${b.required} | ${b.filled} (`), "docs/apply/fill-coverage.md is stale: regenerate it");
 });

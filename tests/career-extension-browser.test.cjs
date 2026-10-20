@@ -1479,8 +1479,11 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     assert.ok(world.state.formAnswerCalls.length > calls, "stored through career_apply_questions_answer_from_form_own");
     assert.ok(world.state.answers.some((a) => a.key === "fact:sponsorship" && a.answer === "No"));
     // The queue fills each posting: sponsorship on every card from the panel's answer, marked; nothing goes without a tap.
+    // WO-076: the queue is ordered by what each form still needs (ready first), so the cards come in the queue's order.
+    const order = (await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue)).items.map((x) => x.url);
+    assert.deepEqual([...order].sort(), [...urls].sort());
     await panel.click("#q-start");
-    for (const url of urls) {
+    for (const url of order) {
       await waitFor(() => page.url() === url, 15000);
       const card = await waitCard(tabId, (c) => c.url === url && ["ready", "blocked"].includes(c.status), 20000);
       const f = card.payload.fields.find((x) => /sponsorship/i.test(x.label));
@@ -1502,6 +1505,87 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// WO-076: ready first. Six of Trainee's picks wait (3 ready, 3 not), the not-ready ones first in the order chat gave.
+// Pulling them plans each Greenhouse posting from the board's public API before any tab opens; Prepare reads only the
+// postings not known yet (Lever, Ashby) in hidden tabs. Then the queue's first cards are the 3 ready ones, and the panel
+// asks only the other 3 postings' questions. No new tap: the same Add Trainee's picks, Prepare and Start.
+test("ready first: of 6 picks (3 ready, 3 not), Prepare's first cards are the 3 ready; the panel asks only the others' questions", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const saved = world.state.answers;
+  world.state.answers = saved.filter((a) => a.key !== "fact:sponsorship");
+  const BASE = [
+    { name: "first_name", label: "First Name", required: true, type: "input_text" },
+    { name: "last_name", label: "Last Name", required: true, type: "input_text" },
+    { name: "email", label: "Email", required: true, type: "input_text" },
+    { name: "phone", label: "Phone", required: true, type: "input_text" },
+    { name: "resume", label: "Resume/CV", required: true, type: "input_file" },
+  ];
+  const SPONS = { name: "question_76001", label: "Will you now or in the future require visa sponsorship?", required: true, type: "multi_value_single_select", options: ["Yes", "No"] };
+  const ready = [1, 2, 3].map((k) => world.greenhouseTest({ board: `ready${k}-test`, id: String(7600000 + k), fields: BASE }));
+  const oneOpen = world.greenhouseTest({ board: "oneopen-test", id: "7600004", fields: [...BASE, SPONS] });
+  const lever = world.cloneUrl("lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d", 76);
+  const ashby = world.cloneUrl("ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03", 77);
+  const given = [lever, oneOpen, ready[0], ashby, ready[1], ready[2]];
+  const key = (u) => sw.evaluate((x) => globalThis.TraineeCore.postingKey(x), u);
+  world.state.wanted = [];
+  for (const url of given) world.state.wanted.push({ posting_key: await key(url), url, company: "TEST", title: "TEST", state: "waiting" });
+  world.state.boardApiCalls = [];
+  world.state.pageGets = [];
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?ready-first=1");
+  const tabId = await tabIdOf(page.url());
+  const panel = await openPanel(tabId);
+  try {
+    await sw.evaluate(async () => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await panel.click("#q-picks");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 15000 });
+    const q = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    // Planned before any tab: the board API was read once for each Greenhouse posting, and no Greenhouse page was opened.
+    assert.equal(world.state.boardApiCalls.length, 4, JSON.stringify(world.state.boardApiCalls));
+    assert.ok(world.state.boardApiCalls.every((p) => /^\/v1\/boards\/[a-z0-9-]+\/jobs\/\d+\?questions=true$/.test(p)));
+    assert.deepEqual(world.state.pageGets, [], "no Greenhouse page is opened to plan it");
+    assert.deepEqual(q.items.map((x) => x.url), [...ready, oneOpen, lever, ashby], "ready, one open question, then not known yet; the order given within each");
+    assert.deepEqual(q.items.map((x) => (x.plan?.known ? x.plan.open : null)), [0, 0, 0, 1, null, null]);
+    // Prepare: only the postings not known yet are read in hidden tabs.
+    await panel.click("#q-prepare");
+    await panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length > 0, null, { timeout: 60000 });
+    const ao = (await panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+    assert.equal(ao.status, "ready");
+    assert.equal(ao.total, 2, "Lever and Ashby read; Greenhouse planned from its API");
+    assert.deepEqual(world.state.pageGets, [], "still no Greenhouse page opened");
+    assert.deepEqual([ao.day.sends, ao.day.ready, ao.day.one + ao.day.more, ao.day.unknown], [6, 3, 3, 0], JSON.stringify(ao.day));
+    const readyIds = await Promise.all(ready.map(key)), otherIds = await Promise.all([oneOpen, lever, ashby].map(key));
+    const askedFor = new Set(ao.questions.flatMap((qq) => qq.postings.map((p) => p.jobId)));
+    assert.deepEqual([...askedFor].sort(), [...otherIds].sort(), `the panel asks the 3 not-ready postings' questions, and only theirs: ${JSON.stringify([...askedFor])}`);
+    assert.ok(!readyIds.some((id) => askedFor.has(id)), "nothing is asked for a ready posting");
+    const spons = ao.questions.find((qq) => qq.key === "fact:sponsorship");
+    assert.ok(spons && spons.postings.length === 3, JSON.stringify(ao.questions.map((qq) => qq.key)));
+    console.log(`ready first: today's ${ao.day.sends}: ${ao.day.ready} ready, ${ao.day.one + ao.day.more} need an answer; the panel asks ${ao.questions.length} question(s) for ${askedFor.size} postings; board API reads ${world.state.boardApiCalls.length}, hidden tabs ${ao.total}`);
+    // The same Start: the first three cards are the ready postings, each ready to approve as it is.
+    const q2 = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    assert.deepEqual(q2.items.slice(0, 3).map((x) => x.url), ready);
+    await panel.click("#q-start");
+    for (const url of ready) {
+      await waitFor(() => page.url() === url, 15000);
+      const card = await waitCard(tabId, (c) => c.url === url && ["ready", "blocked"].includes(c.status), 20000);
+      assert.equal(card.status, "ready", `${url}: ${JSON.stringify(card.blockers)} ${JSON.stringify(card.lines)}`);
+      assert.deepEqual(card.openRequired || [], []);
+      await panel.click("#q-skip");
+    }
+    // Then the postings that needed the person (their order is by what is left after the panel; the same Start runs on).
+    await waitFor(() => [oneOpen, lever, ashby].includes(page.url()), 15000);
+    assert.equal(world.state.submits.length, 0, "nothing was sent: every card waits for its tap");
+    assert.equal(world.state.begins.length, 0);
+  } finally {
+    world.state.answers = saved;
+    await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await sw.evaluate(() => chrome.storage.session.remove(["answer_once", "answered_before"]));
+    await panel.close();
+    await page.close();
+  }
+});
+
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

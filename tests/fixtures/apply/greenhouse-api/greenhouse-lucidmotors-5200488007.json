@@ -1,0 +1,299 @@
+{
+ "id": 5200488007,
+ "absolute_url": "https://job-boards.greenhouse.io/lucidmotors/jobs/5200488007",
+ "location": {
+  "name": "Costa Mesa, CA"
+ },
+ "questions": [
+  {
+   "label": "First Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "first_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Last Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "last_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Email",
+   "required": true,
+   "fields": [
+    {
+     "name": "email",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Phone",
+   "required": true,
+   "fields": [
+    {
+     "name": "phone",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Resume/CV",
+   "required": true,
+   "fields": [
+    {
+     "name": "resume",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "resume_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Cover Letter",
+   "required": false,
+   "fields": [
+    {
+     "name": "cover_letter",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "cover_letter_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "LinkedIn Profile",
+   "required": false,
+   "fields": [
+    {
+     "name": "question_12593088007",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "How did you learn about this opportunity?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593089007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "LinkedIn",
+       "value": "34456146007"
+      },
+      {
+       "label": "Indeed",
+       "value": "34456147007"
+      },
+      {
+       "label": "Social media post (not LinkedIn)",
+       "value": "34456148007"
+      },
+      {
+       "label": "Betterteam",
+       "value": "34456149007"
+      },
+      {
+       "label": "Job Board (Other)",
+       "value": "34456150007"
+      },
+      {
+       "label": "Employee referral",
+       "value": "34456151007"
+      },
+      {
+       "label": "College / University recruitment",
+       "value": "34456152007"
+      },
+      {
+       "label": "Career Fair or Hiring Event",
+       "value": "34456153007"
+      },
+      {
+       "label": "Lucid Careers Page",
+       "value": "34456154007"
+      },
+      {
+       "label": "Other",
+       "value": "34456155007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Are you a current contractor for Lucid, or any of its entities?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593090007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "34456156007"
+      },
+      {
+       "label": "No",
+       "value": "34456157007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Have you previously worked for Lucid, or any of its entities, as a contractor?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593091007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Currently a contractor",
+       "value": "34456158007"
+      },
+      {
+       "label": "Previously a contractor",
+       "value": "34456159007"
+      },
+      {
+       "label": "Previously an employee",
+       "value": "34456160007"
+      },
+      {
+       "label": "Never been a contractor or an employee",
+       "value": "34456161007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "What is your highest level of education completed?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593092007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Some High School",
+       "value": "34456162007"
+      },
+      {
+       "label": "High School Diploma/GED",
+       "value": "34456163007"
+      },
+      {
+       "label": "Bachelors Degree",
+       "value": "34456164007"
+      },
+      {
+       "label": "Masters Degree",
+       "value": "34456165007"
+      },
+      {
+       "label": "PHD",
+       "value": "34456166007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Are you currently authorized to work in the United States of America?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593093007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "34456167007"
+      },
+      {
+       "label": "No",
+       "value": "34456168007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Do you now or in the future require visa sponsorship?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593094007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "34456169007"
+      },
+      {
+       "label": "No",
+       "value": "34456170007"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "label": "What is your expected compensation range?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593095007",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "label": "Would you like to receive communications via SMS and/or WhatsApp to the number provided on your application? Message & data rates may apply and message frequency may vary. If you select no, we will only communicate with you via email and/or telephone calls. If you select yes and change your mind, you can always reply STOP to opt out.",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_12593096007",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": "1"
+      },
+      {
+       "label": "No",
+       "value": "0"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

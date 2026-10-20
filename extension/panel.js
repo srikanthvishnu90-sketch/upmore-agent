@@ -123,7 +123,8 @@ function renderAnswerOnce(ao) {
   if (ao.status === "reading") return text($("ao-msg"), `Reading posting ${ao.read} of ${ao.total} in the background. Nothing is filled or sent.`);
   const left = Object.entries(ao.left || {}).map(([k, v]) => `${v} ${LEFT[k] || k}`);
   text($("ao-msg"), [
-    `Read ${ao.postings} of ${ao.total} postings: ${ao.questions.length} question${ao.questions.length === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
+    // WO-076: Greenhouse postings are planned from the board's own API, so only the others are read in hidden tabs.
+    `${ao.total ? `Read ${ao.read} of ${ao.total} postings in the background. ` : ""}${ao.postings} of today's postings need you: ${ao.questions.length} question${ao.questions.length === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
     ...(ao.notes || []), ...(ao.failed || []).map((f) => `Not read: ${f.url} (${f.why}); its questions are asked on its card.`),
     left.length ? `Left for the cards: ${left.join(", ")}.` : "",
     ao.saved.length ? `${ao.saved.length} answer${ao.saved.length === 1 ? "" : "s"} saved. Each fills every posting whose own options fit it; you approve each card as always.` : "",

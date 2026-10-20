@@ -27,9 +27,9 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
-import { queueWants, type WantStore } from "../career_apply_want.ts";
+import { CANDIDATES_PER_SEND, queueWants, type WantStore } from "../career_apply_want.ts";
 import { payFrom } from "../posting_pay.ts";
-import type { Limits } from "../career_apply.ts";
+import { type Limits, MAX_DAILY as MAX_DAILY_APPLY } from "../career_apply.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -178,14 +178,16 @@ export function careerTools(deps: {
     },
     {
       name: "queue_applications", effect: "write_own",
-      description: "Start applying: put the postings the person chose (links exactly as search_jobs returned them) in their own apply queue, up to their daily limit. Nothing is sent: the Trainee extension prepares each in their browser and shows a card, and each goes only after they approve it. Say how many were queued, what was refused and why.",
+      description: "Start applying: queue the postings the person chose (links as search_jobs returned them, best fit first) as candidates, up to 4× their daily limit. Nothing is sent: sends stay at the daily limit, the Trainee extension prepares the ones it can finish first, and each goes only after they approve its card. Say how many were queued and what was refused and why; never say how many are ready.",
       input_schema: obj({ postings: { type: "array", description: "The postings to apply to, from search_jobs", items: obj({ url: str("The posting's link as search_jobs returned it"), job_id: str("The posting's job_id as search_jobs returned it (always pass it: an employer's own careers-page link is opened at its board's form)"), company: str("Employer"), title: str("Job title") }, ["url"]) } }, ["postings"]),
       run: async (i, c) => {
         if (!deps.wants) throw new Error("applying from chat is not connected here; say so, and that the person can paste posting links into the Trainee extension's queue");
-        const picks = Array.isArray(i.postings) ? i.postings.slice(0, 100) : [];
+        // WO-076: up to 4× the highest daily limit in one call (the candidates), never more.
+        const picks = Array.isArray(i.postings) ? i.postings.slice(0, CANDIDATES_PER_SEND * MAX_DAILY_APPLY) : [];
         const r = await queueWants(deps.wants, c.userId, picks, c.now, { limits: deps.limits, tz: deps.tz });
         await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: r.refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
-        return { ...r, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card." };
+        return { ...r, ready_known: false,
+          note: `Nothing is sent yet. These are candidates: at most ${r.limit} applications go a day (the person's daily limit), and the Trainee extension prepares first the forms it can finish from their confirmed facts. Each goes only after they approve its card. How many are ready to approve is known only once the extension reads them.` };
       },
     },
     {

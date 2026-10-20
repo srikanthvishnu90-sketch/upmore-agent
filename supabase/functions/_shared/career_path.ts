@@ -10,6 +10,11 @@
 // hired, and the answer says that in words. A probability is given only from a base rate X published, with
 // its source; otherwise the answer says no honest number exists and what would decide it. Each of the (up to) 3 moves
 // is derived from a gap between a confirmed fact and a stated requirement and cites both; there are no generic tips.
+// WO-041: a date a program's timeline states that is already past when the answer is given is said to have passed, with
+// "the next cycle's date is not published yet" (the next date is never guessed), and "apply inside its window" is never
+// a move for a closed program (every date it states past). A date stated without a year is said to have none, never
+// given one. A program page the last source check found gone is said so, and statements from pages no check has opened
+// are labeled unverified.
 import { CareerPaths } from "./router_core.career.js";
 import { hasWord, MAX_MESSAGE, MIN_N, payData, type OfferData } from "./career_offer.ts";
 import { type HiredResult, hiredText } from "./career_hired.ts";
@@ -18,6 +23,7 @@ export const MAX_MOVES = 3;
 export function hiredDataLine(name: string): string { return `I don't have data on who ${name} actually hired yet.`; }
 
 export interface Fact { id: string; kind?: string; text: string }
+export interface StatedDate { said: string; date: string; kind: "deadline" | "opens" | "date" }
 export interface Requirement { id: string; program: string; kind: string; text: string; source_url: string; checked_at: string; any?: string[]; not?: string[]; count?: number; min?: number; from?: string | null; to?: string | null }
 export type Status = "met" | "unmet" | "unknown";
 export interface Check { requirement: Requirement; status: Status; fact: Fact | null; gap: string | null }
@@ -25,7 +31,7 @@ export interface Move { rank: number; action: string; requirement: { id: string;
 export interface PathResult {
   status: "answered" | "no_record";
   firm: { id: string; name: string } | null;
-  programs: { name: string; timeline: string | null; source_url: string; checked_at: string }[];
+  programs: { name: string; timeline: string | null; source_url: string; checked_at: string; past_dates: StatedDate[]; source_status: string }[];
   lca: { period: string; cases: number; median: number | null; n: number | null; top_titles: { title: string; cases: number }[]; source_url: string } | null;
   hired_data: string;
   hired: { status: "NOT_WIRED" | "ok" | "unavailable"; n: number | null };
@@ -37,6 +43,51 @@ export interface PathResult {
 const lc = (s: unknown) => String(s ?? "").toLowerCase();
 function host(url: string): string { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } }
 const cite = (r: { source_url: string; checked_at: string }) => `${host(r.source_url)}, checked ${r.checked_at}`;
+const paths = CareerPaths as any;
+// The dates a program's timeline states that are past on `now`'s day (UTC), read by 134 statedDates. A past opening
+// date of a window whose stated deadline is still ahead is not news, so it is left out.
+export function pastDatesOf(p: { timeline?: string | null }, now: number): StatedDate[] {
+  const past: StatedDate[] = paths.pastDates(p.timeline ?? "", now);
+  const deadlines = (paths.statedDates(p.timeline ?? "") as StatedDate[]).filter((d) => d.kind === "deadline").length;
+  return deadlines > past.filter((d) => d.kind === "deadline").length ? past.filter((d) => d.kind !== "opens") : past;
+}
+// Closed: every dated date the timeline states is past, one is not just an opening, and none is said without a year
+// (134 programDates). A date said without a year ("close October 1") is never given one.
+const closedOf = (p: any, now: number): boolean => !!p?.timeline && paths.programDates(p.timeline, now).closed;
+const undatedOf = (p: any): { said: string; kind: string }[] => paths.undatedDates(p?.timeline ?? "");
+export function undatedLine(p: any): string | null {
+  const u = undatedOf(p);
+  if (!u.length) return null;
+  const list = u.map((d) => d.said).join(" and ");
+  return `${list} ${u.length === 1 ? "is" : "are"} stated without a year, so I can't tell whether ${u.length === 1 ? "it has" : "they have"} passed; check the page.`;
+}
+const dateWords = (d: StatedDate) => d.kind === "deadline" ? `the deadline ${d.said}` : d.kind === "opens" ? `the opening date ${d.said}` : d.said;
+// "As of 2026-10-20, the deadline 11 October 2026 has passed. The next cycle's date is not published yet in my sources;
+// I won't guess it." It names no date the data does not state.
+export function pastLine(past: StatedDate[], now: number): string | null {
+  if (!past.length) return null;
+  const today = new Date(now).toISOString().slice(0, 10);
+  const words = past.map(dateWords);
+  const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
+  return `As of ${today}, ${list} ${past.length === 1 ? "has" : "have"} passed. The next cycle's date is not published yet in my sources; I won't guess it.`;
+}
+// "Unverified: ..." for the cited pages the last source check did not open (live or redirected), grouped by why; null
+// when every cited page was opened. Gone pages are said on their own line by the caller.
+export function unverifiedSources(urls: string[], checks: any): string | null {
+  const unopened: string[] = [], refused: string[] = [];
+  let when: string | null = null;
+  for (const u of [...new Set(urls)]) {
+    const s = paths.sourceStatus(u, checks);
+    if (s.verified || s.status === "gone") continue;
+    if (s.status === "unverified") unopened.push(host(u));
+    else { refused.push(host(u)); when = s.checked; }
+  }
+  const out: string[] = [];
+  const hosts = (h: string[]) => [...new Set(h)].join(", ");
+  if (unopened.length) out.push(`Unverified: the statements from ${hosts(unopened)} are search summaries of the cited pages; no source check has opened those pages yet.`);
+  if (refused.length) out.push(`Unverified: the pages from ${hosts(refused)} could not be opened at the ${when} source check.`);
+  return out.length ? out.join(" ") : null;
+}
 const short = (t: string, n = 110) => (t.length <= n ? t : t.slice(0, t.lastIndexOf(" ", n - 3)).replace(/[,;:.]$/, "") + "...");
 
 // ---------- reading the person's confirmed facts against one requirement ----------
@@ -163,7 +214,7 @@ export function programsFor(firm: any, role: string): any[] {
   return hits.length ? hits : firm.programs || [];
 }
 
-export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { company?: string }[]): Move[] {
+export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { company?: string }[], now: number = Date.now()): Move[] {
   const names = new Set(programs.map((p: any) => p.name));
   const reqs: Requirement[] = (firm.requirements || []).filter((q: Requirement) => names.has(q.program));
   const byKind = (a: Check, b: Check) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || KIND_ORDER.indexOf(a.requirement.kind) - KIND_ORDER.indexOf(b.requirement.kind);
@@ -180,9 +231,23 @@ export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { c
     ...open.filter((c) => c.status === "unknown"),
   ].slice(0, MAX_MOVES);
   // Applying in the window is a move only when the firm's own page states a timeline and the tracker shows no
-  // application there yet: it cites that page and that gap.
+  // application there yet: it cites that page and that gap. A closed program (every stated date past) is never "apply
+  // inside its window", nor is one whose date has no year; when such a program is the only timed one, the move says
+  // its dates passed and the next date is unknown, or that the year is not stated.
   const applied = tracked.some((t) => hasWord(String(t.company ?? ""), lc(firm.name)) || (firm.aliases || []).some((a: string) => lc(t.company).trim() === a));
-  const timed = programs.find((p: any) => p.timeline && !blocked.has(p.name));
+  const timedAll = programs.filter((p: any) => p.timeline && !blocked.has(p.name));
+  const timed = timedAll.find((p: any) => !closedOf(p, now) && !undatedOf(p).length) ?? timedAll[0];
+  const timelineAction = (name: string): string => {
+    const p = programs.find((x: any) => x.name === name);
+    if (p && closedOf(p, now)) {
+      const last = (paths.pastDates(p.timeline, now) as StatedDate[]).filter((d) => d.kind !== "opens").pop()!;
+      return last.kind === "deadline"
+        ? `The ${name} deadline (${last.said}) has passed, and the next cycle's date is not published yet: watch its page and apply when it opens.`
+        : `The ${name} dates on file (the last is ${last.said}) have passed, and the next cycle's date is not published yet: watch its page and apply when it opens.`;
+    }
+    if (p && undatedOf(p).length) return `${name} states ${undatedOf(p).map((d) => d.said).join(" and ")} without a year, so I can't tell whether its window is open: check its page before you apply.`;
+    return `Apply to ${name} inside its window.`;
+  };
   if (picked.length < MAX_MOVES && timed && !applied) {
     picked.push({ requirement: { id: `${firm.firm_id}-timeline`, program: timed.name, kind: "timeline", text: timed.timeline, source_url: timed.source_url, checked_at: timed.checked_at },
       status: "unmet", fact: null, gap: `no application to ${firm.name} on your tracker` });
@@ -190,7 +255,7 @@ export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { c
   for (const c of open) if (picked.length < MAX_MOVES && c.status === "met") picked.push(c);
   return picked.slice(0, MAX_MOVES).map((c, i) => ({
     rank: i + 1,
-    action: c.requirement.kind === "timeline" ? `Apply to ${c.requirement.program} inside its window.` : actionFor(c, firm.name),
+    action: c.requirement.kind === "timeline" ? timelineAction(c.requirement.program) : actionFor(c, firm.name),
     requirement: { id: c.requirement.id, text: c.requirement.text, program: c.requirement.program, source_url: c.requirement.source_url, checked_at: c.requirement.checked_at },
     status: c.status, fact: c.fact ? { id: c.fact.id, text: c.fact.text } : null, gap: c.gap,
   }));
@@ -223,8 +288,10 @@ export function findFirm(said: string, g: any): any | null {
   return best;
 }
 
-export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; tracked?: { company?: string }[]; guide?: any; data?: OfferData; hired?: HiredResult | null }): PathResult {
+export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; tracked?: { company?: string }[]; guide?: any; data?: OfferData; hired?: HiredResult | null; now?: number; checks?: any }): PathResult {
   const g = o.guide ?? (CareerPaths as any).firmGuide();
+  const now = typeof o.now === "number" && Number.isFinite(o.now) ? o.now : Date.now();
+  const checks = o.checks ?? paths.sourceChecks();
   const data = o.data ?? payData();
   const firm = findFirm(String(o.firm ?? ""), g);
   const asked = String(o.firm ?? "").trim() || "that company";
@@ -234,7 +301,7 @@ export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; trac
     return { status: "no_record", firm: null, programs: [], lca: null, hired_data: hiredDataLine(asked), hired: { status: o.hired?.status ?? "NOT_WIRED", n: null }, probability: { kind: "none", reason: "no record of this firm", decided_by: [] }, moves: [], messages: fit(lines) };
   }
   const programs = programsFor(firm, o.role ?? "");
-  const moves = movesFor(firm, programs, o.facts || [], o.tracked || []);
+  const moves = movesFor(firm, programs, o.facts || [], o.tracked || [], now);
   // X's H-1B filings: what titles they file for and what they filed, all titles together (not one role's pay).
   const agg = (data?.lca_companies?.companies || []).find((c: any) => c.company_id === firm.lca_company_id);
   const lca = agg ? {
@@ -256,7 +323,20 @@ export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; trac
     : { kind: "none", reason: `${firm.name} publishes no acceptance rate`, decided_by: decided };
 
   const head: string[] = [`Getting into ${firm.name}${o.role ? ` as ${o.role}` : ""}, from what is on file:`];
-  for (const p of programs.slice(0, 2)) head.push(`${p.name}: ${short(p.timeline || "no timeline on its page", 220)} (${cite(p)})`);
+  // The firm's own statements cited here are search summaries until a source check opens their pages: said once, up
+  // front, as for the interview patterns.
+  const cited = [...programs.slice(0, 2).map((p: any) => p.source_url), ...moves.map((m) => m.requirement.source_url), ...(probability.kind === "base_rate" ? [probability.source_url] : [])];
+  const note = unverifiedSources(cited, checks);
+  if (note) head.push(note);
+  for (const p of programs.slice(0, 2)) {
+    head.push(`${p.name}: ${short(p.timeline || "no timeline on its page", 220)} (${cite(p)})`);
+    const past = pastLine(pastDatesOf(p, now), now);
+    if (past) head.push(past);
+    const undated = undatedLine(p);
+    if (undated) head.push(undated);
+    const src = paths.sourceStatus(p.source_url, checks);
+    if (src.status === "gone") head.push(`That page answered ${src.http_status ?? "gone"} at the ${src.checked} source check, so this program may no longer be listed there.`);
+  }
   if (lca) {
     head.push(`Their H-1B filings (DOL LCA, ${lca.period}): ${lca.cases} cases, most often ${lca.top_titles.map((t) => `${t.title} (${t.cases})`).join(", ")}.` +
       (lca.median != null ? ` Median filed wage across all titles ${usd(lca.median)} (n=${lca.n}); employers' filed wages for visa workers, not offers.` : ""));
@@ -277,7 +357,8 @@ export function pathAnswer(o: { firm: string; role?: string; facts: Fact[]; trac
   const messages = [...fit(head), ...fit(body), ...fit(["Sources:", ...urls])];
   return {
     status: "answered", firm: { id: firm.firm_id, name: firm.name },
-    programs: programs.map((p: any) => ({ name: p.name, timeline: p.timeline ?? null, source_url: p.source_url, checked_at: p.checked_at })),
+    programs: programs.map((p: any) => ({ name: p.name, timeline: p.timeline ?? null, source_url: p.source_url, checked_at: p.checked_at,
+      past_dates: pastDatesOf(p, now), source_status: paths.sourceStatus(p.source_url, checks).status })),
     lca, hired_data: hiredLine, hired: { status: o.hired?.status ?? "NOT_WIRED", n: o.hired?.status === "ok" ? o.hired.aggregates.n : null }, probability, moves, messages,
   };
 }

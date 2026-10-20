@@ -291,7 +291,7 @@ export function careerTools(deps: {
     },
     {
       name: "career_path_answer", effect: "read",
-      description: "Use for \"how do I get into <firm>\" and \"what are my chances at <firm>\". Answers only from data on file: the firm's programs, timelines and stated requirements with sources, its H-1B filings, a published base rate if any, and 3 moves from gaps between the person's confirmed facts and those requirements. Send its messages as written; add no odds or hiring stories.",
+      description: "Use for \"how do I get into <firm>\" and \"what are my chances at <firm>\". Answers only from data on file: the firm's programs, timelines and stated requirements with sources, its H-1B filings, a published base rate if any, and 3 moves from gaps between the person's confirmed facts and those requirements. Send its messages as written; add no odds, hiring stories or dates they don't state.",
       input_schema: obj({ firm: str("The firm as the person named it, e.g. 'Palantir'"), role: str("The role or program they want, if said, e.g. 'software engineer', 'summer analyst'") }, ["firm"]),
       run: async (i, c) => {
         const facts = CareerProfile.confirmedFacts(profileOf(c)).map((f: any) => ({ id: String(f.id), kind: f.kind, text: String(f.text ?? "") }));
@@ -303,7 +303,7 @@ export function careerTools(deps: {
           try { hired = await deps.hired.backgrounds({ firm_id: firm.firm_id, name: firm.name }, role, c.now); }
           catch (e) { console.error("hired backgrounds:", (e as Error)?.message ?? e); hired = { status: "unavailable", reason: "could not be read" }; }
         }
-        return pathAnswer({ firm: String(i.firm ?? ""), role, facts, tracked: trackOf(c).rows || [], hired });
+        return pathAnswer({ firm: String(i.firm ?? ""), role, facts, tracked: trackOf(c).rows || [], hired, now: c.now });
       },
     },
     {

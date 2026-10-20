@@ -2,7 +2,7 @@ begin;
 reset role;
 insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000901','apply-test@example.test'),('00000000-0000-4000-8000-000000000902','other@example.test');
 insert into profiles(id) values('00000000-0000-4000-8000-000000000901'),('00000000-0000-4000-8000-000000000902');
-set role service_role;
+-- WO-039: the 009b-1 pool claim (career_apply_claim) is granted to no one, so this test drives it as the database owner.
 insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-000000000901','career:account','{"epoch":1,"version":1,"paused":false}');
 create temp table apply_input as select jsonb_build_object('version',1,'user_id','00000000-0000-4000-8000-000000000901','job_id','TEST-1','company','Test Employer','url','https://jobs.lever.co/test/TEST-1','fields','[]'::jsonb,'privacy_epoch',1,'account_version',1,'expires_at',now()+interval '1 hour') p;
 create temp table apply_claim as select * from career_apply_claim(now(),1);
@@ -39,7 +39,9 @@ do $$declare s text;p jsonb;j career_apply_jobs;h text;begin
   perform career_apply_enqueue(p,h,h,15);select * into j from career_apply_claim(now(),1);perform career_apply_finish(j.id,j.lease_token,s,jsonb_build_object('reason','TEST outcome'));
  end loop;
 end $$;
-select t.ok((select count(distinct state)=6 from career_apply_jobs where job_id<>'TEST-1'),'all six final states persist');
+-- WO-032 (20261021075000): a page's "confirmed" is evidence; the row waits, submitted_unconfirmed, for the employer's email.
+select t.ok((select count(distinct state)=5 and bool_and(state<>'confirmed') from career_apply_jobs where job_id<>'TEST-1'),'all final states persist; none is confirmed by a page');
+select t.ok((select state='submitted_unconfirmed' and evidence->>'page_confirmation'='true' from career_apply_jobs where job_id='TEST-confirmed'),'the page''s confirmation is kept as evidence');
 reset role;
 select t.as_user('00000000-0000-4000-8000-000000000902');set role authenticated;
 select t.ok((select count(*)=0 from career_apply_jobs),'other owner sees no rows');

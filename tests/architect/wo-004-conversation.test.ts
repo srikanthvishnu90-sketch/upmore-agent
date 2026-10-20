@@ -2,7 +2,7 @@
 // One conversation interface every channel uses: the text simulator now, LoopMessage last (WO-013).
 // A person is identified by their contact (phone or email); the first text creates them (text-first signup).
 // Contract in docs/architect/work-orders/WO-004-conversation-simulator.md. Run: deno test -A --no-check tests/architect/
-import { handleInbound, toBubbles, memoryStore, SAFE_ERROR_REPLY, type Brain } from "../../supabase/functions/_shared/conversation.ts";
+import { CUT_NOTE, handleInbound, MAX_BUBBLES, toBubbles, memoryStore, SAFE_ERROR_REPLY, type Brain } from "../../supabase/functions/_shared/conversation.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
@@ -81,12 +81,13 @@ Deno.test("WO-004/6 a brain failure answers with SAFE_ERROR_REPLY, keeps the per
   assert(!/sent|submitted|applied/i.test(SAFE_ERROR_REPLY) || /nothing/i.test(SAFE_ERROR_REPLY), "honest");
 });
 
-Deno.test("WO-004/7 toBubbles: texting-sized, a bare link gets its own bubble, never more than 4, nothing lost from short replies", () => {
+Deno.test("WO-004/7 toBubbles: texting-sized, a bare link gets its own bubble, never more than MAX_BUBBLES, nothing lost", () => {
   eq(toBubbles("Short answer."), ["Short answer."]);
   const withLink = toBubbles("Here's the posting.\nhttps://boards.greenhouse.io/stripe/jobs/123\nWant me to tailor your resume?");
   assert(withLink.includes("https://boards.greenhouse.io/stripe/jobs/123"), "the link stands alone");
   const long = toBubbles(Array.from({ length: 40 }, (_, i) => `Sentence number ${i} is here to make this reply long.`).join(" "));
-  assert(long.length <= 4, "at most 4 bubbles");
+  assert(long.length <= MAX_BUBBLES, "at most MAX_BUBBLES bubbles");
+  assert(!long.join(" ").includes(CUT_NOTE), "a reply the outbox can hold is never cut (2026-10-20: an approval card is approved whole)");
   assert(long.every((b) => b.length <= 700), "each bubble at most 700 characters");
   eq(toBubbles("Hi <!-- internal note --> there.").length, 1);
   assert(!toBubbles("Hi <!-- internal note --> there.").join(" ").includes("internal note"), "HTML comments never reach the person");

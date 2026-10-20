@@ -66,6 +66,10 @@ const CareerHost = (() => {
     // guards the submit. Without this key a prepared batch would die
     // with the turn and the "yes" could never resume it.
     "batchApplyState",
+    // WO-036: an offer the person texted with a piece missing (company, base, city or title), kept so the agent
+    // brain's offer_benchmark asks for it once and reads the answer with the rest. Cleared once benchmarked; an
+    // erase resets the stores.
+    "offerBenchmark",
   ];
 
   function cloneJson(v) {

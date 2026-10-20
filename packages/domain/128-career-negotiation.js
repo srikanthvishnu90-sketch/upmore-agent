@@ -255,6 +255,72 @@ const CareerNegotiation = (() => {
     return { deadlines: sorted, collision: collide, steps, as_of: new Date(now).toISOString() };
   }
 
-  return { DISCLAIMER, createStore, parseOffer, parseDate, parseMoney, storeOffer, extractFigures, benchmark, totalComp, compareOffers, bonusAmount, approvalCard, counterStrategy, roleplayTurn, extensionDraft, trackExtension, declineDraft, deadlinePlan };
+  // ---------- WO-036: public pay data and the script from the person's own facts ----------
+  // The public pay data the offer benchmark reads: DOL LCA filed wages per company/SOC/metro, BLS OEWS metro wages,
+  // the BLS national records already on file, the per-company LCA aggregate and the maps between them. Node reads
+  // packages/career-data/datasets from disk; the Deno bundle embeds the same files as CAREER_PAY_JSON (BUG-174 pattern).
+  let _pay = null;
+  function payData() {
+    if (_pay) return _pay;
+    try {
+      const fs = require("fs"); const path = require("path");
+      const dir = path.join(__dirname, "..", "career-data", "datasets");
+      const read = (f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      _pay = { maps: read("pay-maps.json"), lca_wages: read("dol-lca-wages.json"), oews_metro: read("bls-oews-metro.json"), bls_national: read("bls-labor-data.json"), lca_companies: read("dol-lca-fy2025q4-cir-companies.json") };
+    } catch { _pay = null; }
+    if (!_pay) { try { if (typeof CAREER_PAY_JSON !== "undefined" && CAREER_PAY_JSON) _pay = CAREER_PAY_JSON; } catch { _pay = null; } }
+    return _pay;
+  }
+  // A counter draft and a call script built ONLY from what the person stated: their offer, a competing offer they
+  // named (company and number in their words), their actual deadline, and a public benchmark already labeled by the
+  // caller. Nothing else is claimed: no competing offer, no "first choice", no "ready to sign" unless they said it.
+  // Nothing is sent: the draft is returned for the person to read, change and send themselves.
+  function factScript(offer, opts) {
+    opts = opts || {};
+    const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+    const o = offer || {};
+    const role = o.role || "role";
+    const competing = (opts.competing || []).filter((c) => c && c.said && Number.isFinite(c.base));
+    const best = competing.slice().sort((a, b) => b.base - a.base)[0] || null;
+    const bench = opts.benchmark && Number.isFinite(opts.benchmark.median) ? opts.benchmark : null;
+    const base = Number.isFinite(o.base) ? o.base : null;
+    // One question in the email; the call script says the same asks as statements, so the whole text asks once.
+    let ask, askSay, because = [];
+    if (best && base != null && best.base > base) {
+      because.push(`I have another offer${best.company ? ` from ${best.company}` : ""} with a base of ${usd(best.base)}.`);
+      ask = `Could you bring the base to ${usd(best.base)}?`; askSay = `Ask them to bring the base to ${usd(best.base)}.`;
+    } else if (bench && base != null && bench.median > base) {
+      because.push(`${bench.cite} shows a median of ${usd(bench.median)}.`);
+      ask = `Could you bring the base closer to ${usd(bench.median)}?`; askSay = `Ask them to bring the base closer to ${usd(bench.median)}.`;
+    } else {
+      if (best) because.push(`I have another offer${best.company ? ` from ${best.company}` : ""} with a base of ${usd(best.base)}.`);
+      ask = "Is there flexibility on the base or the signing bonus?"; askSay = "Ask whether the base or the signing bonus can move.";
+    }
+    const fallback = o.signing != null ? `If the base is set, a higher signing bonus than ${usd(o.signing)} would also help.` : "If the base is set, a signing bonus would also help.";
+    const deadline = opts.deadline && opts.deadline.text ? String(opts.deadline.text) : null;
+    const stated = [base != null ? `a base of ${usd(base)}` : null, o.signing != null ? `a ${usd(o.signing)} signing bonus` : null].filter(Boolean).join(" and ");
+    const email = [
+      `Subject: ${role[0].toUpperCase() + role.slice(1)} offer${o.company ? `, ${o.company}` : ""}`,
+      "",
+      "Hi,",
+      "",
+      `Thank you for the offer for the ${role} role${stated ? `, with ${stated}` : ""}. Before I decide, I'd like to talk about the pay.`,
+      ...because,
+      `${ask} ${fallback}`,
+      deadline ? `I'll get back to you by ${deadline}.` : null,
+      "",
+      "Thanks,",
+    ].filter((x) => x !== null).join("\n");
+    const call = [
+      `Open: Thank you for the offer. Before I decide I'd like to talk about the pay.`,
+      ...because.map((b) => `Why: ${b}`),
+      askSay,
+      `If they say the base is fixed: ${fallback}`,
+      deadline ? `Close: I'll get back to you by ${deadline}.` : `Close: find out when they need your answer.`,
+    ].join("\n");
+    return { email, call, sends: false, used: { competing: best ? [best] : [], deadline, benchmark: bench ? bench.cite : null } };
+  }
+
+  return { DISCLAIMER, payData, factScript, createStore, parseOffer, parseDate, parseMoney, storeOffer, extractFigures, benchmark, totalComp, compareOffers, bonusAmount, approvalCard, counterStrategy, roleplayTurn, extensionDraft, trackExtension, declineDraft, deadlinePlan };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerNegotiation;

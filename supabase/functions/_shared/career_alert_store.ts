@@ -17,7 +17,7 @@ export interface AlertStore {
 }
 // first_seen_at (WO-037, alerts only): when Trainee first saw the posting, kept with the alert so the latency from
 // first seen to delivered can be reported (career_alert_latency).
-export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt"; text: string; at: number; first_seen_at?: string }): Promise<boolean> } // false: that key was already queued or sent
+export interface Outbox { enqueue(userId: string, m: { key: string; kind: "alert" | "report" | "receipt" | "status" | "followup" | "brief" | "digest"; text: string; at: number; first_seen_at?: string }): Promise<boolean> } // false: that key was already queued or sent
 
 // The person's words, checked: what the tools accept and what the table's constraint accepts are the same rules.
 export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DEFAULT_PREFS): { ok: true; prefs: AlertPrefs } | { ok: false; error: string } {

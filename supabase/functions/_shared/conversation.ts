@@ -25,7 +25,12 @@ export interface ConversationStore {
 
 export const SAFE_ERROR_REPLY = "Something went wrong on my side, so nothing was saved, sent or submitted. Send that again in a minute.";
 export const HISTORY_TURNS = 20;
-const MAX_BUBBLES = 4;
+// Nothing the outbox holds (at most OUTBOX_CHARS) is ever cut: an approval card is approved whole, so it must arrive
+// whole, and a daily report keeps every posting it lists. MAX_BUBBLES is the proven bound for OUTBOX_CHARS at
+// BUBBLE_CHARS (any two neighbouring text bubbles hold more than BUBBLE_CHARS between them, plus at most two link
+// bubbles and the text they split); only longer text, which never reaches a person through the outbox, is cut.
+export const OUTBOX_CHARS = 4000;
+export const MAX_BUBBLES = 16;
 const BUBBLE_CHARS = 700;
 
 // A contact is normalized once: emails lowercased; phone numbers to +digits. Never guess a country code.
@@ -39,28 +44,44 @@ export function normalizeContact(contact: string): string {
 
 // ---- bubble formatting (first written for the retired imessage-inbound test bridge) ----
 // Short texting-sized bubbles on sentence boundaries; each bare URL gets its
-// own bubble so iMessage renders a link preview card; at most 4 bubbles.
+// own bubble so iMessage renders a link preview card; nothing the outbox holds is cut.
 const URL_RE = /https?:\/\/[^\s<>"']+/g;
-const isLinkBubble = (s: string) => /^https?:\/\/\S+$/.test(s.trim());
+const isBareLink = (s: string) => /^https?:\/\/\S+$/.test(s.trim());
 
-function splitLong(text: string, max: number): string[] {
+// Exported for the WhatsApp and Telegram adapters (WO-038), which pack messages at their own size with the same rules.
+export function splitLong(text: string, max: number): string[] {
   const t = text.trim();
   if (t.length <= max) return [t];
   // Chunk on existing line breaks first (the model structures replies with
   // newlines), then word-wrap overlong lines. Cuts happen ONLY at spaces,
   // so numbers (15.49), domains (netflix.com) and URLs are never split.
+  // Whole lines travel together while they fit, so a list stays a list (a posting and its link in one bubble).
   const out: string[] = [];
+  let buf = "";
+  const add = (piece: string) => {
+    if (buf && buf.length + 1 + piece.length <= max) { buf += "\n" + piece; return; }
+    // A link that does not fit takes the line it belongs to (the posting above it) into the next bubble.
+    const nl = buf.lastIndexOf("\n");
+    if (isBareLink(piece) && nl > 0 && buf.length - nl + piece.length <= max) {
+      out.push(buf.slice(0, nl));
+      buf = `${buf.slice(nl + 1)}\n${piece}`;
+      return;
+    }
+    if (buf) out.push(buf);
+    buf = piece;
+  };
   for (const line of t.split("\n")) {
     let rest = line.trim();
     if (!rest) continue;
     while (rest.length > max) {
       let cut = rest.lastIndexOf(" ", max);
       if (cut < max * 0.4) cut = max; // no good break: hard cut (rare)
-      out.push(rest.slice(0, cut).trim());
+      add(rest.slice(0, cut).trim());
       rest = rest.slice(cut).trim();
     }
-    if (rest) out.push(rest);
+    if (rest) add(rest);
   }
+  if (buf) out.push(buf);
   return out.length ? out : [t.slice(0, max)];
 }
 
@@ -68,10 +89,13 @@ function splitLong(text: string, max: number): string[] {
 // never cut, so a link bubble is as long as its link). A reply that does not fit is cut at a word and the last bubble
 // says so; content is never dropped silently.
 export const CUT_NOTE = "(That's where I had to stop. Ask me for the rest.)";
-function packBubbles(segments: string[]): string[] {
+// previews=false (more than two links): a bare link is ordinary text, packed with its neighbours, since no preview cards
+// are drawn for a wall of links anyway.
+function packBubbles(segments: string[], previews = true): string[] {
+  const isLinkBubble = (s: string) => previews && isBareLink(s);
   const sized: string[] = [];
   for (const s of segments) {
-    if (isLinkBubble(s) || s.length <= BUBBLE_CHARS) sized.push(s);
+    if (isBareLink(s) || s.length <= BUBBLE_CHARS) sized.push(s);
     else sized.push(...splitLong(s, BUBBLE_CHARS));
   }
   // Join neighbouring text bubbles while the joined bubble still fits, so short paragraphs travel together.
@@ -84,7 +108,7 @@ function packBubbles(segments: string[]): string[] {
   if (packed.length <= MAX_BUBBLES) return packed;
   const keep = packed.slice(0, MAX_BUBBLES);
   let j = keep.length - 1;
-  while (j >= 0 && isLinkBubble(keep[j])) j--;
+  while (j >= 0 && isBareLink(keep[j])) j--;
   if (j < 0) { keep[keep.length - 1] = CUT_NOTE; return keep; }
   const room = BUBBLE_CHARS - CUT_NOTE.length - 1;
   let text = keep[j];
@@ -93,13 +117,23 @@ function packBubbles(segments: string[]): string[] {
   return keep;
 }
 
+// What the outbox may hold: text over OUTBOX_CHARS is cut at a word and says so, never silently (a reply is the only
+// text that can be that long; a card is built under the same limit).
+export function fitOutbox(text: string): string {
+  const t = String(text ?? "").trim();
+  if (t.length <= OUTBOX_CHARS) return t;
+  const room = OUTBOX_CHARS - CUT_NOTE.length - 1;
+  const cut = t.lastIndexOf(" ", room);
+  return `${t.slice(0, cut > room * 0.5 ? cut : room).trimEnd()} ${CUT_NOTE}`;
+}
+
 export function toBubbles(reply: string): string[] {
   // Strip hidden markers (exec-offer etc.) — they'd render as raw text in iMessage.
   const clean = reply.replace(/<!--[\s\S]*?-->/g, "").trim();
   if (!clean) return [];
   const urls = clean.match(URL_RE) ?? [];
   // Many links: no preview cards (a wall of them), plain texting-sized text instead.
-  if (urls.length > 2) return packBubbles(clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean));
+  if (urls.length > 2) return packBubbles(clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean), false);
   const raw: string[] = [];
   for (const para of clean.split(/\n\s*\n/)) {
     let buf = "";

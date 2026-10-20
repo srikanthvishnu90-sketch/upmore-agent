@@ -9,6 +9,7 @@
 //   directoryBoards     packages/career-data/board-directory.json -> the live boards
 // Network and storage are injected; nothing here deploys, schedules or spends.
 import { CareerJobs } from "./router_core.career.js";
+import { applyEmailOf } from "./apply_email.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
@@ -16,6 +17,7 @@ export interface Board { company: string; provider: string; board: string; etag?
 export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
+  apply_email?: string | null; // WO-032: the address the posting asks applications to be emailed to (apply_email.ts)
 }
 // A feed returns its postings; `complete: false` says the board has more than was read (closes nothing). WO-037:
 // `not_modified` says the board answered 304 to a conditional request (nothing changed since the last read); etag and
@@ -48,7 +50,7 @@ const TEXT_DEFAULTS = new Set(["location", "description", "department"]); // nev
 
 // ------------------------------------------------------------------------------------------------ the run
 // The fields that, when a board changes them, rewrite the stored posting; anything else seen again is only touched.
-const CONTENT = ["company", "title", "location", "url", "description", "department", "posted_at", "ats_id", "remote", "role_family", "seniority_band"] as const;
+const CONTENT = ["company", "title", "location", "url", "description", "department", "posted_at", "ats_id", "remote", "role_family", "seniority_band", "apply_email"] as const;
 // Postgres hands timestamps back in its own format ("+00:00"), so a time compares as a time.
 const sameValue = (k: string, x: any, y: any) => k === "posted_at" ? (x ? Date.parse(x) : null) === (y ? Date.parse(y) : null) : (x ?? (TEXT_DEFAULTS.has(k) ? "" : null)) === (y ?? (TEXT_DEFAULTS.has(k) ? "" : null));
 const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
@@ -175,7 +177,7 @@ export function memoryPostingsDb(): PostingsDb {
 // ------------------------------------------------------------------------------------------------ Supabase store
 // The tables: supabase/migrations/20261019000000_career_postings.sql. `admin` is a service-role client.
 const COLUMNS = ["job_id", "provider", "board", "ats_id", "company", "title", "location", "url", "description", "department",
-  "posted_at", "remote", "role_family", "seniority_band", "first_seen_at", "last_seen_at", "closed_at"] as const;
+  "posted_at", "remote", "role_family", "seniority_band", "apply_email", "first_seen_at", "last_seen_at", "closed_at"] as const;
 const LIST_COLUMNS = COLUMNS.filter((c) => c !== "description").join(",");
 // Requests stay small: 100 ids keep an in() list well inside gateway URL limits; 100 rows of up to 20 KB of text keep a
 // write body around 2 MB at worst.
@@ -313,10 +315,12 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
       const atsId = String(RAW_ID[b.provider](raw[i]) ?? "");
       const title = clip(p.title, 500), url = String(p.url || "");
       if (!atsId || !title || !/^https:\/\//.test(url) || url.length > 2000) return;
+      const description = decodeEntities(String(p.jd_text || "")).slice(0, MAX_DESCRIPTION);
       postings.push({
         job_id: `${b.provider}:${token}:${atsId}`, ats_id: atsId, company: clip(p.company || b.company, 300) || b.board, title,
-        location: clip(p.location, 1000), url, description: decodeEntities(String(p.jd_text || "")).slice(0, MAX_DESCRIPTION),
+        location: clip(p.location, 1000), url, description,
         department: clip(p.department, 300), posted_at: p.posted_at || null, remote: p.remote, role_family: p.role_family, seniority_band: p.seniority_band,
+        apply_email: applyEmailOf({ description, url }),
       });
     });
     if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };

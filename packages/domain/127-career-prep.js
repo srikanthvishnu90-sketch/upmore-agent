@@ -17,6 +17,7 @@
    Functions:
      normalizeCir(cir)                 tolerant reader for the 15 merged CIR shapes
      cirLibrary()                      every company record on file (disk in Node, embedded in the bundle)
+     interviewPatterns()               the 50 firms the mock covers and their sourced interview patterns (WO-035)
      composeBrief({cir, jdText, role, round})   PREP-001 brief: bar, stages, emphasis
      questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged;
                                        for a named sector the wired interview bank
@@ -116,6 +117,27 @@ const CareerPrep = (() => {
     }
     if (list.length) _cirLib = list;
     return list;
+  }
+
+  // ---------- The 50 firms' interview patterns (WO-035) ----------
+  // packages/career-data/interview-patterns.json, read the same way: from disk
+  // in Node, from the CAREER_PATTERNS_JSON const in the bundle. A firm with a
+  // full record (cirLibrary) takes its patterns from that record; the firms
+  // without one carry their own sourced patterns here. A question is listed
+  // under a firm only when a source attributes it to that firm.
+  let _patterns = null;
+  function interviewPatterns() {
+    if (_patterns) return _patterns;
+    let data = null;
+    try {
+      const fs = require("fs"); const path = require("path");
+      data = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "career-data", "interview-patterns.json"), "utf8"));
+    } catch { data = null; }
+    if (!data) {
+      try { if (typeof CAREER_PATTERNS_JSON !== "undefined" && CAREER_PATTERNS_JSON && Array.isArray(CAREER_PATTERNS_JSON.firms)) data = CAREER_PATTERNS_JSON; } catch { data = null; }
+    }
+    if (data && Array.isArray(data.firms)) { _patterns = data; return data; }
+    return { version: 1, firms: [] };
   }
 
   // ---------- JD emphasis (grounded only in text the caller supplies) ----------
@@ -1193,7 +1215,7 @@ const CareerPrep = (() => {
       survival_rules: ["Depth over breadth in the final round: follow-ups on your own resume are the test, per the CIR stage record", "If a technical stalls, state your structure out loud and work it — silent freezing is the failure mode, not a wrong first step", "Names + one specific per interviewer, written down immediately"], sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
   }
 
-  return { normalizeCir, findCir, cirLibrary, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
+  return { normalizeCir, findCir, cirLibrary, interviewPatterns,jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,

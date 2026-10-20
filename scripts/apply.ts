@@ -14,6 +14,7 @@ import {
   planBatch,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
+import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
@@ -709,7 +710,10 @@ export async function runApply(args: string[]) {
           const all = f.options || [];
           return { label: n.label, type: String(f.type || "input_text"), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
         });
-        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, fields: p.needs.map((n: any) => n.label), questions });
+        // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
+        // them before it ever drafts a written answer for this posting.
+        const ai_policy = aiPolicyStatements(current.schema.map((f: any) => f.label));
+        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, fields: p.needs.map((n: any) => n.label), questions, ...(ai_policy.length ? { ai_policy } : {}) });
       }
       const fields = p.ready[0].fields, before = await hashApplyPayload(current.schema);
       for (const f of fields) {

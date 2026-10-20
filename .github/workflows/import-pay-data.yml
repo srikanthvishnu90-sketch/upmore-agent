@@ -1,0 +1,77 @@
+# WO-036: import the public pay data the offer benchmark reads (DOL H-1B LCA filed wages, BLS OEWS metro wages). The
+# build sandbox cannot reach dol.gov or bls.gov; CI can. Public files only, no key, no login. The newest file that
+# exists is used and its period is written into the dataset, never guessed. Only aggregates are kept (the importers
+# drop every raw row). On a pull request from this repository the two dataset files are committed back to the PR
+# branch; the architect then rebuilds the bundles (the career bundle embeds the data) and pushes, which runs CI.
+name: import-pay-data
+on:
+  pull_request:
+    paths:
+      - .github/workflows/import-pay-data.yml
+      - scripts/career/datasets/aggregate-lca.py
+      - scripts/career/datasets/import-oews.py
+      - scripts/career/datasets/fetch-oews-api.py
+      - packages/career-data/datasets/pay-maps.json
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: import-pay-data-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      UA: "UpmoreTrainee-pay-import/1.0 (+https://github.com/${{ github.repository }})"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install openpyxl==3.1.5
+      - name: Download the newest DOL LCA disclosure file
+        id: lca
+        run: |
+          set -u
+          # Each quarter's file is the fiscal year to date, so a Q4 file is a whole year (the most filings, so the most
+          # cells at n >= 5); a later partial year is used only when no whole year is published.
+          for q in FY2026_Q4 FY2025_Q4 FY2026_Q3 FY2026_Q2 FY2026_Q1; do
+            url="https://www.dol.gov/sites/dolgov/files/ETA/oflc/pdfs/LCA_Disclosure_Data_${q}.xlsx"
+            code=$(curl -sS -L -A "$UA" -o lca.xlsx -w '%{http_code}' --retry 3 --retry-delay 5 "$url" || echo 000)
+            echo "LCA $q -> HTTP $code, $(stat -c %s lca.xlsx 2>/dev/null || echo 0) bytes"
+            if [ "$code" = 200 ] && unzip -tq lca.xlsx >/dev/null 2>&1; then
+              echo "period=${q/_/ }" >> "$GITHUB_OUTPUT"; echo "file=$url" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "No LCA disclosure file could be downloaded"; exit 1
+      - name: Aggregate LCA filed wages (aggregates only)
+        run: python3 scripts/career/datasets/aggregate-lca.py --wages lca.xlsx packages/career-data/datasets/dol-lca-wages.json "${{ steps.lca.outputs.period }}"
+      # www.bls.gov answers 403 to automated downloads without a contact email in the request; the BLS Public Data API
+      # is BLS's programmatic route and needs none (BLS_API_KEY, a free registration, only raises the daily limit).
+      - name: OEWS metro wages from the BLS Public Data API
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python3 scripts/career/datasets/fetch-oews-api.py packages/career-data/datasets/bls-oews-metro.json
+      - name: Show what was imported
+        run: |
+          for f in dol-lca-wages bls-oews-metro; do
+            python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[1], d['status'], d.get('period') or d.get('reference_period'), len(d['cells']), 'cells')" packages/career-data/datasets/$f.json
+          done
+          git diff --stat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pay-datasets
+          path: |
+            packages/career-data/datasets/dol-lca-wages.json
+            packages/career-data/datasets/bls-oews-metro.json
+          retention-days: 14
+      - name: Commit the datasets to the pull request branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git add packages/career-data/datasets/dol-lca-wages.json packages/career-data/datasets/bls-oews-metro.json
+          if git diff --cached --quiet; then echo "datasets unchanged"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "WO-036: import ${{ steps.lca.outputs.period }} LCA wages and OEWS metro wages from the BLS API (CI)"
+          git push origin "HEAD:${{ github.head_ref }}"

@@ -151,9 +151,14 @@ done
 # WO-028: the private resume bucket and the tailored tag; idempotent, so it applies cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020130000_career_resume_tailoring.sql"
+# WO-038: WhatsApp and Telegram beside iMessage (contacts per channel, held rows, link tokens); idempotent, so it applies
+# cleanly a second time. Its test runs after the career ledger below (the card push it redefines needs that schema), which
+# also replays it on top of every earlier migration.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -209,4 +214,8 @@ echo "== career_outreach.test.sql (approval is the exact message; 10 a day the f
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
 echo "== career_brief_digest.test.sql (interviews and the weekly digest: own reads, stated starts only, once per key, wiped by an erase)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_brief_digest.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The latest migration re-applied last, as production ends (see the brief/digest re-run above).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
+echo "== channel_parity.test.sql (WhatsApp and Telegram beside iMessage: per channel, held, linked only on a yes or a one-time link)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_parity.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

@@ -4604,7 +4604,11 @@ const CareerRouter = (() => {
       || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
     if (!m) return null;
     const role = m[1].replace(/[\s,]+$/, "").trim();
-    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    // The "i" flag lets the capitalized-words group run on into lowercase words ("at Klaviyo yesterday" was recorded as
+    // the company "Klaviyo yesterday", WO-065 live task battery): the first word is kept as typed, then the name stops
+    // at the first word that does not start like a name.
+    const coWords = m[2].replace(/[?.!,]+$/, "").trim().split(/\s+/);
+    const company = coWords.slice(0, 1).concat(coWords.slice(1).filter((w, i, a) => a.slice(0, i + 1).every((x) => /^[A-Z0-9&(]/.test(x)))).join(" ");
     if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
     return { role, company };
   }

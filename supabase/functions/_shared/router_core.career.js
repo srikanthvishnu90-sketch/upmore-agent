@@ -15868,7 +15868,8 @@ const CareerRouter = (() => {
       || raw.match(new RegExp(`\\bapplied\\s+for\\s+(?:the\\s+)?(.+?)\\s+(?:role|position|job|internship)\\s+at\\s+${co}`, "i"));
     if (!m) return null;
     const role = m[1].replace(/[\s,]+$/, "").trim();
-    const company = m[2].replace(/[?.!,]+$/, "").trim();
+    const coWords = m[2].replace(/[?.!,]+$/, "").trim().split(/\s+/);
+    const company = coWords.slice(0, 1).concat(coWords.slice(1).filter((w, i, a) => a.slice(0, i + 1).every((x) => /^[A-Z0-9&(]/.test(x)))).join(" ");
     if (!role || !company || role.length > 60 || role.length < 3 || /^(a|an|the)$/i.test(role)) return null;
     return { role, company };
   }

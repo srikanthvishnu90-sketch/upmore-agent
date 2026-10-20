@@ -3078,6 +3078,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return null;
   }
+  var ROW_PART_NAME = /^(workExperience|education|languages?|websites?|webAddress(?:es)?)(?:Section)?-\d+--/i;
+  var rowPartName = (f) => ROW_PART_NAME.test(String(f.name ?? ""));
   function nationalNumber(value, dial) {
     const v = value.trim();
     if (!v.startsWith("+")) return v;
@@ -3111,7 +3113,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const rowsOf2 = /* @__PURE__ */ new Map();
       for (const kind of new Set(p.fields.filter((f) => f.section).map((f) => f.section.kind))) {
         const rows = /* @__PURE__ */ new Map();
-        for (const f of p.fields) if (f.section?.kind === kind && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
+        for (const f of p.fields) if (f.section?.kind === kind && f.section.row >= 1 && !rows.has(f.section.row)) rows.set(f.section.row, String(f.section.anchor ?? ""));
         rowsOf2.set(kind, assignRows(kind, [
           ...rows
         ].map(([row, anchor]) => ({
@@ -3123,8 +3125,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       for (const f of p.fields) {
         if (fileAlternative(f, p.fields)) continue;
         if (f.personal) continue;
-        if (f.section) {
-          const s = sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields);
+        if (f.section || rowPartName(f)) {
+          const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
           if (s) {
             filled.push({
               name: f.name,
@@ -4620,18 +4622,78 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return wdText(el?.textContent || control?.getAttribute?.("aria-label") || aidOf(w).replace(/^formField-/, ""));
   }
   var sectionTitle = (g) => {
-    const ref = g.getAttribute("aria-labelledby");
-    const h = ref && doc().getElementById(ref) || g.querySelector("h3, h4, h5");
+    const ref = String(g.getAttribute("aria-labelledby") || "").split(/\s+/)[0];
+    const h = ref && doc().getElementById(ref) || (g.tagName === "FIELDSET" ? g.querySelector(":scope > legend") : null) || g.querySelector("h3, h4, h5");
     return wdText(h?.textContent);
   };
   var sectionKind = (title) => /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language" : /^(websites?|links?|web addresses|online profiles?)$/i.test(title) ? "website" : "other";
-  var isRow = (g) => /-panel$/.test(String(g?.getAttribute?.("aria-labelledby") || ""));
-  function sectionOfRow(rowEl) {
-    let g = rowEl.parentElement?.closest('[role="group"]');
-    while (g && isRow(g)) g = g.parentElement?.closest('[role="group"]');
-    return g ?? null;
+  var PANEL = /^(.+?)-(\d+)-panel$/;
+  function panelOf(el) {
+    for (const t of String(el?.getAttribute?.("aria-labelledby") || "").split(/\s+/)) {
+      const m = PANEL.exec(t);
+      if (m) return {
+        name: wdText(m[1].replace(/[-_]+/g, " ")),
+        n: Number(m[2])
+      };
+    }
+    return null;
   }
-  var rowsOf = (g) => Array.from(g.querySelectorAll('[role="group"]')).filter((r) => isRow(r) && sectionOfRow(r) === g);
+  var isRow = (g) => !!panelOf(g);
+  var SECTION_BOX = '[role="group"], [role="region"], fieldset, section, [data-automation-id$="Section"]';
+  var ID_KINDS = [
+    [
+      /^workExperience/i,
+      "work"
+    ],
+    [
+      /^education/i,
+      "education"
+    ],
+    [
+      /^languages?(?![a-z])/i,
+      "language"
+    ],
+    [
+      /^(websites?|webAddress(es)?)(?![a-z])/i,
+      "website"
+    ]
+  ];
+  function idKind(id) {
+    const m = /^([A-Za-z]+?)(?:Section)?-\d+--/.exec(String(id || "")) ?? /^([A-Za-z]+?)Section$/.exec(String(id || ""));
+    return m ? ID_KINDS.find(([re]) => re.test(m[1]) && m[1].replace(re, "") === "")?.[1] ?? null : null;
+  }
+  var KIND_TITLE = {
+    work: "Work Experience",
+    education: "Education",
+    language: "Languages",
+    website: "Websites"
+  };
+  function ownTitle(g) {
+    const ref = String(g.getAttribute("aria-labelledby") || "").split(/\s+/)[0];
+    const el = ref && doc().getElementById(ref) || (g.tagName === "FIELDSET" ? g.querySelector(":scope > legend") : null) || Array.from(g.querySelectorAll("h2, h3, h4, h5")).find((x) => x.parentElement?.closest(SECTION_BOX) === g && !rowOfField(x));
+    return wdText(el?.textContent);
+  }
+  var boxKind = (g, title = sectionTitle(g)) => {
+    const k = sectionKind(title.replace(/\s+\d+$/, ""));
+    return k !== "other" ? k : idKind(aidOf(g)) ?? "other";
+  };
+  function rowOfField(w) {
+    for (let n = w.parentElement; n && n !== doc().body; n = n.parentElement) if (isRow(n)) return n;
+    return null;
+  }
+  function sectionOfRow(rowEl) {
+    for (let n = rowEl.parentElement; n && n !== doc().body; n = n.parentElement) if (!isRow(n) && n.matches?.(SECTION_BOX)) return n;
+    return null;
+  }
+  var rowsOf = (g) => Array.from(g.querySelectorAll("[aria-labelledby]")).filter((r) => isRow(r) && sectionOfRow(r) === g);
+  function enclosingKind(w) {
+    for (let n = w.parentElement; n && n !== doc().body; n = n.parentElement) {
+      if (!n.matches?.(SECTION_BOX) || isRow(n)) continue;
+      const k = boxKind(n, ownTitle(n));
+      if (k !== "other") return k;
+    }
+    return null;
+  }
   var PARTS = {
     jobTitle: "title",
     companyName: "employer",
@@ -4737,10 +4799,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return "";
   }
-  var sectionGroups = () => Array.from(doc().querySelectorAll('[role="group"]')).filter((g) => !isRow(g) && shown(g) && Array.from(g.querySelectorAll('[data-automation-id="add-button"]')).some((a) => a.closest('[role="group"]') === g));
+  var sectionGroups = () => Array.from(doc().querySelectorAll(SECTION_BOX)).filter((g) => !isRow(g) && shown(g) && Array.from(g.querySelectorAll('[data-automation-id="add-button"]')).some((a) => sectionOfRow(a) === g));
   function workdaySections() {
     return sectionGroups().map((g) => {
-      const title = sectionTitle(g), kind = sectionKind(title);
+      const title = sectionTitle(g), kind = boxKind(g, title);
       return {
         kind,
         title,
@@ -4749,8 +4811,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     });
   }
   async function workdayAddRow(kind) {
-    const g = sectionGroups().find((x) => sectionKind(sectionTitle(x)) === kind);
-    const add = g && Array.from(g.querySelectorAll('[data-automation-id="add-button"]')).find((a) => a.closest('[role="group"]') === g && shown(a));
+    const g = sectionGroups().find((x) => boxKind(x) === kind);
+    const add = g && Array.from(g.querySelectorAll('[data-automation-id="add-button"]')).find((a) => sectionOfRow(a) === g && shown(a));
     if (!add) return false;
     const n = rowsOf(g).length;
     press(add);
@@ -4866,12 +4928,26 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       else continue;
       let label = wdLabelOf(w, control);
       const required = !!w.querySelector('abbr[title="required"]') || Array.from(w.querySelectorAll("abbr")).some((a) => /\*/.test(a.textContent)) || control.getAttribute?.("aria-required") === "true";
-      const rowEl = w.closest('[role="group"][aria-labelledby$="-panel"]');
+      const rowEl = rowOfField(w);
       const g = rowEl ? sectionOfRow(rowEl) : null;
+      const panel = rowEl ? panelOf(rowEl) : null;
       let section = null;
-      if (rowEl && g) {
-        const title = sectionTitle(g), kind = sectionKind(title);
-        const row = Number(/-(\d+)-panel$/.exec(rowEl.getAttribute("aria-labelledby"))?.[1] ?? rowsOf(g).indexOf(rowEl) + 1);
+      const ids = [
+        control.id,
+        control.getAttribute?.("name"),
+        w.querySelector('[data-automation-id="dateInputWrapper"]')?.id
+      ].map((x) => String(x || ""));
+      const marked = (g ? [
+        boxKind(g)
+      ] : []).concat(panel ? [
+        sectionKind(panel.name)
+      ] : [], ids.map((x) => idKind(x) ?? "other"), [
+        enclosingKind(w) ?? "other"
+      ]).find((k) => k !== "other");
+      if (rowEl) {
+        const kind = marked ?? "other";
+        const title = (g ? sectionTitle(g).replace(/\s+\d+$/, "") : "") || KIND_TITLE[kind] || panel.name;
+        const row = panel.n;
         const part = kind === "other" ? "unknown" : partOf(kind, widget === "wd-file" ? "" : String(control.id || ""), label, widget === "wd-list");
         section = {
           kind,
@@ -4883,6 +4959,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           } : {}
         };
         label = `${title} ${row}: ${label}`;
+      } else if (marked) {
+        section = {
+          kind: marked,
+          row: 0,
+          part: "unknown",
+          anchor: ""
+        };
+        label = `${KIND_TITLE[marked]}: ${label}`;
       } else if (widget === "wd-file") {
         const sg = w.closest('[role="group"]');
         const t = sg ? sectionTitle(sg) : "";

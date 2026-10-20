@@ -544,21 +544,65 @@ function wdLabelOf(w: any, control: any): string {
   return wdText(el?.textContent || control?.getAttribute?.("aria-label") || aidOf(w).replace(/^formField-/, ""));
 }
 const sectionTitle = (g: any) => {
-  const ref = g.getAttribute("aria-labelledby");
-  const h = (ref && doc().getElementById(ref)) || g.querySelector("h3, h4, h5");
+  const ref = String(g.getAttribute("aria-labelledby") || "").split(/\s+/)[0];
+  const h = (ref && doc().getElementById(ref)) || (g.tagName === "FIELDSET" ? g.querySelector(":scope > legend") : null) || g.querySelector("h3, h4, h5");
   return wdText(h?.textContent);
 };
 const sectionKind = (title: string) =>
   /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language"
     : /^(websites?|links?|web addresses|online profiles?)$/i.test(title) ? "website" : "other";
-const isRow = (g: any) => /-panel$/.test(String(g?.getAttribute?.("aria-labelledby") || ""));
-// The section group a row belongs to, and the rows of a section group.
-function sectionOfRow(rowEl: any): any {
-  let g = rowEl.parentElement?.closest('[role="group"]');
-  while (g && isRow(g)) g = g.parentElement?.closest('[role="group"]');
-  return g ?? null;
+// WO-048 round 3 (sealed-wd2 t4: a past job's Location took the person's home city): a repeating section is known by any of
+// its marks, not one. A row is any element labelled by a "<Section>-<n>-panel" id (with or without role="group", among
+// other ids); its section box is the nearest group, region, fieldset, section or Workday "...Section" box above it; the
+// kind comes from the box's title, else the row's panel name, else Workday's ids ("workExperience-31--location",
+// "education-7--school", the box's "educationSection"), else a box above whose title names a section.
+const PANEL = /^(.+?)-(\d+)-panel$/;
+function panelOf(el: any): { name: string; n: number } | null {
+  for (const t of String(el?.getAttribute?.("aria-labelledby") || "").split(/\s+/)) {
+    const m = PANEL.exec(t);
+    if (m) return { name: wdText(m[1].replace(/[-_]+/g, " ")), n: Number(m[2]) };
+  }
+  return null;
 }
-const rowsOf = (g: any) => (Array.from(g.querySelectorAll('[role="group"]')) as any[]).filter((r) => isRow(r) && sectionOfRow(r) === g);
+const isRow = (g: any) => !!panelOf(g);
+const SECTION_BOX = '[role="group"], [role="region"], fieldset, section, [data-automation-id$="Section"]';
+const ID_KINDS: [RegExp, string][] = [[/^workExperience/i, "work"], [/^education/i, "education"], [/^languages?(?![a-z])/i, "language"], [/^(websites?|webAddress(es)?)(?![a-z])/i, "website"]];
+function idKind(id: string): string | null {
+  const m = /^([A-Za-z]+?)(?:Section)?-\d+--/.exec(String(id || "")) ?? /^([A-Za-z]+?)Section$/.exec(String(id || ""));
+  return m ? ID_KINDS.find(([re]) => re.test(m[1]) && m[1].replace(re, "") === "")?.[1] ?? null : null;
+}
+const KIND_TITLE: Record<string, string> = { work: "Work Experience", education: "Education", language: "Languages", website: "Websites" };
+// A box's own title only: its label, its legend, or a heading no inner box owns (a page-wide box is not titled by the
+// first section heading inside it).
+function ownTitle(g: any): string {
+  const ref = String(g.getAttribute("aria-labelledby") || "").split(/\s+/)[0];
+  const el = (ref && doc().getElementById(ref)) || (g.tagName === "FIELDSET" ? g.querySelector(":scope > legend") : null) ||
+    (Array.from(g.querySelectorAll("h2, h3, h4, h5")) as any[]).find((x) => x.parentElement?.closest(SECTION_BOX) === g && !rowOfField(x));
+  return wdText(el?.textContent);
+}
+const boxKind = (g: any, title = sectionTitle(g)) => {
+  const k = sectionKind(title.replace(/\s+\d+$/, ""));
+  return k !== "other" ? k : idKind(aidOf(g)) ?? "other";
+};
+function rowOfField(w: any): any {
+  for (let n = w.parentElement; n && n !== doc().body; n = n.parentElement) if (isRow(n)) return n;
+  return null;
+}
+// The section box a row belongs to, and the rows of a section box.
+function sectionOfRow(rowEl: any): any {
+  for (let n = rowEl.parentElement; n && n !== doc().body; n = n.parentElement) if (!isRow(n) && n.matches?.(SECTION_BOX)) return n;
+  return null;
+}
+const rowsOf = (g: any) => (Array.from(g.querySelectorAll("[aria-labelledby]")) as any[]).filter((r) => isRow(r) && sectionOfRow(r) === g);
+// A box above the field (never its own wrapper) whose title or Workday id names a repeating section.
+function enclosingKind(w: any): string | null {
+  for (let n = w.parentElement; n && n !== doc().body; n = n.parentElement) {
+    if (!n.matches?.(SECTION_BOX) || isRow(n)) continue;
+    const k = boxKind(n, ownTitle(n));
+    if (k !== "other") return k;
+  }
+  return null;
+}
 const PARTS: Record<string, string> = {
   jobTitle: "title", companyName: "employer", company: "employer", location: "location", currentlyWorkHere: "current", startDate: "start",
   endDate: "end", roleDescription: "description", schoolName: "school", school: "school", degree: "degree", fieldOfStudy: "major",
@@ -599,19 +643,19 @@ function anchorOf(kind: string, rowEl: any): string {
   }
   return "";
 }
-const sectionGroups = () => (Array.from(doc().querySelectorAll('[role="group"]')) as any[]).filter((g) => !isRow(g) && shown(g) &&
-  (Array.from(g.querySelectorAll('[data-automation-id="add-button"]')) as any[]).some((a) => a.closest('[role="group"]') === g));
+const sectionGroups = () => (Array.from(doc().querySelectorAll(SECTION_BOX)) as any[]).filter((g) => !isRow(g) && shown(g) &&
+  (Array.from(g.querySelectorAll('[data-automation-id="add-button"]')) as any[]).some((a) => sectionOfRow(a) === g));
 // The repeating sections on this step, with each row's anchor (empty for an empty row).
 export function workdaySections(): { kind: string; title: string; anchors: string[] }[] {
   return sectionGroups().map((g) => {
-    const title = sectionTitle(g), kind = sectionKind(title);
+    const title = sectionTitle(g), kind = boxKind(g, title);
     return { kind, title, anchors: rowsOf(g).map((r) => anchorOf(kind, r)) };
   });
 }
 // Workday's own Add (or Add Another) for a section: one more empty row. A page action, not a send.
 export async function workdayAddRow(kind: string): Promise<boolean> {
-  const g = sectionGroups().find((x) => sectionKind(sectionTitle(x)) === kind);
-  const add = g && (Array.from(g.querySelectorAll('[data-automation-id="add-button"]')) as any[]).find((a) => a.closest('[role="group"]') === g && shown(a));
+  const g = sectionGroups().find((x) => boxKind(x) === kind);
+  const add = g && (Array.from(g.querySelectorAll('[data-automation-id="add-button"]')) as any[]).find((a) => sectionOfRow(a) === g && shown(a));
   if (!add) return false;
   const n = rowsOf(g).length;
   press(add);
@@ -693,15 +737,26 @@ export function readWorkday(): Form {
     let label = wdLabelOf(w, control);
     const required = !!w.querySelector('abbr[title="required"]') || (Array.from(w.querySelectorAll("abbr")) as any[]).some((a) => /\*/.test(a.textContent)) ||
       control.getAttribute?.("aria-required") === "true";
-    const rowEl = w.closest('[role="group"][aria-labelledby$="-panel"]');
+    const rowEl = rowOfField(w);
     const g = rowEl ? sectionOfRow(rowEl) : null;
+    const panel = rowEl ? panelOf(rowEl) : null;
     let section: any = null;
-    if (rowEl && g) {
-      const title = sectionTitle(g), kind = sectionKind(title);
-      const row = Number(/-(\d+)-panel$/.exec(rowEl.getAttribute("aria-labelledby"))?.[1] ?? rowsOf(g).indexOf(rowEl) + 1);
+    // The section's kind by its first mark that names one (round 3); "other" when none does (a row of another section).
+    const ids = [control.id, control.getAttribute?.("name"), w.querySelector('[data-automation-id="dateInputWrapper"]')?.id].map((x) => String(x || ""));
+    const marked = (g ? [boxKind(g)] : []).concat(panel ? [sectionKind(panel.name)] : [], ids.map((x) => idKind(x) ?? "other"), [enclosingKind(w) ?? "other"])
+      .find((k) => k !== "other");
+    if (rowEl) {
+      const kind = marked ?? "other";
+      const title = (g ? sectionTitle(g).replace(/\s+\d+$/, "") : "") || KIND_TITLE[kind] || panel!.name;
+      const row = panel!.n;
       const part = kind === "other" ? "unknown" : partOf(kind, widget === "wd-file" ? "" : String(control.id || ""), label, widget === "wd-list");
       section = { kind, row, part, anchor: anchorOf(kind, rowEl), ...(widget === "wd-date" ? { format: wdDateFormat(control) } : {}) };
       label = `${title} ${row}: ${label}`;
+    } else if (marked) {
+      // Inside a repeating section but in no row the reader can tie to one of the person's entries: row 0, part unknown. The
+      // planner leaves it (asked when required) and never answers it from a fact about the person.
+      section = { kind: marked, row: 0, part: "unknown", anchor: "" };
+      label = `${KIND_TITLE[marked]}: ${label}`;
     } else if (widget === "wd-file") {
       // An upload under its section's heading ("Resume/CV: Upload a file"), so the planner knows which document it takes.
       const sg = w.closest('[role="group"]');

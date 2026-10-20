@@ -45212,7 +45212,12 @@ const CareerRouter = (() => {
     if (!clean) return false;
     if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) ctx.statedFacts = { facts: [] };
     const facts = ctx.statedFacts.facts;
-    const k = s(key || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").trim();
+    // FIX LANE T3: a stored key never ends in a bare conjunction —
+    // "northwind ledger and" (live 2026-10-20) was sentence syntax
+    // swallowed into the key, duplicating the "northwind ledger"
+    // fact instead of replacing it. Sanitized here, at the single
+    // store choke point, so every caller inherits the rule.
+    const k = s(key || "").toLowerCase().replace(/\s*\(fictional\)\s*/gi, "").replace(/\s+(?:and|or|&)$/, "").trim();
     const ev = s(evidence || "").slice(0, 200);
     const ex = facts.find((f) => f.kind === kind && s(f.key || "").toLowerCase() === k);
     if (ex) {
@@ -45259,6 +45264,22 @@ const CareerRouter = (() => {
     return true;
   }
   const _cleanFactVal = (v) => s(v).replace(/\b(btw|though|now|mostly|please|thx|thanks)\b.*$/i, "").replace(/[\s,;.]+$/, "").trim();
+  // FIX LANE T3 (live 2026-10-20, same store as FACT-KEY-GARBLE-DUP):
+  // a stated-fact VALUE must be a complete noun phrase, never a
+  // clause fragment. The bounded lazy "X major" span minted
+  // "at fintechs in SF who share my" as a majors fact — the span
+  // STARTS with a preposition, CONTAINS a relative pronoun, and ENDS
+  // on a dangling possessive. A real field-of-study phrase does none
+  // of those three, so any one of them marks the span as a fragment
+  // and the frame records nothing.
+  const _spanIsFragment = (v) => {
+    const t = s(v).trim();
+    if (!t) return true;
+    if (/^(at|in|on|with|for|to|from|by|as|and|&|my|who|that|which)\b/i.test(t)) return true;
+    if (/\b(who|whom|whose|which|that|where)\b/i.test(t)) return true;
+    if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
+    return false;
+  };
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -45274,6 +45295,9 @@ const CareerRouter = (() => {
       const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
       if (clean && statedFactsOf(ctx).some((f) => f.kind === kind && lc(f.value) === lc(clean)) && !restated.some((r) => r.kind === kind)) restated.push({ kind, value: clean });
     };
+    // FIX LANE T3: majors frames record only complete phrases —
+    // a fragment span (see _spanIsFragment) records nothing.
+    const pushMajors = (value, clause) => { const v = _cleanFactVal(value); if (v && !_spanIsFragment(v)) push("majors", v, clause); };
     // (0) Explicit corrections REPLACE the fact they correct — the
     // correction clause itself is the assertion ("make it Chicago
     // not New York", "actually Denver, not Boston").
@@ -45370,7 +45394,24 @@ const CareerRouter = (() => {
       // (BUG-169), so a one-token value slot is safe here.
       const PERSON = "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+){0,2})";
       const DAY = "(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)";
-      const cleanCo = (v) => s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+      const cleanCo = (v) => {
+        let out = s(v).replace(/\s*\(fictional\)\s*/gi, "").replace(/[?.!,]+$/, "").trim();
+        // FIX LANE T3 (FACT-KEY-GARBLE-DUP, live 2026-10-20): a
+        // company span must stop at a conjunction / clause boundary.
+        // The CO pattern runs case-insensitively over the WHOLE turn,
+        // so in "my target firm is Northwind Ledger and my recruiter
+        // contact there is Dana" the greedy span swallowed the
+        // sentence's "and" (keying the contact "northwind ledger
+        // and", a duplicate of the clean key) — and with a one-token
+        // company it swallows on into "Gusto and my". Rules: cut the
+        // span at a conjunction that a clause word follows (a name
+        // token after "and" — "Johnson and Johnson" — is NOT cut),
+        // then strip a trailing bare conjunction token.
+        const cut = out.match(/^(.*?)\s+(?:and|or)\s+(?=(?:my|the|a|an|this|that|there|it|he|she|they|we|you|i|is|was|are|were|who)\b)/i);
+        if (cut) out = cut[1].trim();
+        while (/\s+(?:and|or|&)$/i.test(out)) out = out.replace(/\s+(?:and|or|&)$/i, "").trim();
+        return out;
+      };
       const turnCompany = () => {
         const pats = [
           new RegExp(`\\btarget\\s+(?:company|firm|bank|shop|employer)\\s+is\\s+${CO}`, "i"),
@@ -45442,12 +45483,12 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+a\s+(first|second|third|fourth)[- ]year\b/i))) push("year", { first: "freshman", second: "sophomore", third: "junior", fourth: "senior" }[m[1].toLowerCase()], m[0]);
       else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+)?(?:rising\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
-      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
-      else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) pushMajors(m[1], m[0]);
+      else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) pushMajors(m[1], m[0]);
       // DEPTH LANE A: the inverted statement ("finance and computer
       // science are my majors") names the same fact subject-last.
-      else if ((m = cl.match(/^([a-z][a-z &,]{2,40}?)\s+(?:is|are)\s+my\s+majors?\b/i))) push("majors", _cleanFactVal(m[1]), m[0]);
-      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) push("majors", _cleanFactVal(m[1].replace(/^(a|the|my)\s+/i, "")), m[0]);
+      else if ((m = cl.match(/^([a-z][a-z &,]{2,40}?)\s+(?:is|are)\s+my\s+majors?\b/i))) pushMajors(m[1], m[0]);
+      else if ((m = cl.match(/\b([a-z][a-z &]{2,30}?)\s+major\b/i)) && !/^(what|which|the|a|my)\b/i.test(m[1].trim())) pushMajors(m[1].replace(/^(a|the|my)\s+/i, ""), m[0]);
       // LF-08 (BUG-270 / FR-425): this frame was the one proper-name
       // geography frame with NO city gate — "targeting Meridian
       // Capital" filed a FIRM name as geography (the reply then

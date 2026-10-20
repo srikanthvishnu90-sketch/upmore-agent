@@ -3,6 +3,10 @@
 // and "other" never moves a stage. matchApplication ties a message to one of the person's applications or to none (never
 // a forced match). planUpdates turns a batch into stage changes (forward only), the texts that say them, and follow-up
 // drafts. Drafts are only ever drafts: nothing here sends mail.
+// WO-046: mail in Spanish, Portuguese, French, German, Italian and Dutch is read with the word families in
+// career_mail_langs.ts; a calendar tool's notice and a forward that does not show the employer's own sender are read but
+// marked (via) so planUpdates treats them as evidence only.
+import { type LangReader, LANG_READERS, langOf } from "./career_mail_langs.ts";
 
 export type MailKind = "received" | "rejection" | "interview" | "assessment" | "offer" | "recruiter_reply" | "other";
 export const STATUS_KINDS: MailKind[] = ["received", "rejection", "interview", "assessment", "offer", "recruiter_reply"];
@@ -10,7 +14,11 @@ export const STATUS_KINDS: MailKind[] = ["received", "rejection", "interview", "
 export interface MailMeta { from: string; subject: string; snippet: string; date: string; auth?: string[] }
 // ambiguous (WO-040): the rules found no status phrase, but a step word from a sender that can write one; only these may
 // go to the model's second pass. source "model": the second pass decided it (career_mail_model.ts), never the rules.
-export interface Classified { kind: MailKind; company?: string; role?: string; domain?: string; evidence: string; ambiguous?: boolean; source?: "rules" | "model" }
+// via (WO-046): "calendar" for a calendar or scheduling tool's notice, "forward" for a message the person forwarded (read
+// on its forwarded part); forwarded_from: the original sender's address when the forwarded part shows it. A calendar
+// notice, or a forward without the original sender, is evidence only: planUpdates never moves a stage on it, and
+// fromEmployer never counts either as the employer's own mail.
+export interface Classified { kind: MailKind; company?: string; role?: string; domain?: string; evidence: string; ambiguous?: boolean; source?: "rules" | "model"; via?: "calendar" | "forward"; forwarded_from?: string }
 
 // ------------------------------------------------------------------------------------------------ senders
 // Applicant tracking systems and the vendors they hand steps to: the company is in the display name or the words, never
@@ -21,6 +29,8 @@ const ATS = [
   "workable.com", "bamboohr.com", "avature.net", "breezy.hr", "recruitee.com", "jazzhr.com", "applytojob.com", "paylocity.com",
   "ultipro.com", "eightfold.ai", "phenompeople.com", "brassring.com", "teamtailor.com", "pinpointhq.com", "rippling.com",
   "dayforcehcm.com", "oraclecloud.com", "gem.com", "goodtime.io", "docusign.net", "amazon.jobs",
+  // WO-046: ATSs that Brazilian, French and German employers send through.
+  "gupy.io", "welcomekit.co", "softgarden.io",
 ];
 // WO-040: the vendors' own sending domains too ("hackerrankforwork.com"), and the one-way video vendors.
 const ASSESSMENT_VENDORS = [
@@ -31,15 +41,22 @@ const ASSESSMENT_VENDORS = [
 const JOB_BOARDS = ["linkedin.com", "indeed.com", "glassdoor.com", "ziprecruiter.com", "joinhandshake.com", "wellfound.com", "angel.co", "monster.com", "dice.com", "simplyhired.com", "careerbuilder.com", "builtin.com", "otta.com", "hired.com",
   // WO-043: freelance marketplaces; a client's "invitation to interview" there is a gig, not an application the person made.
   "upwork.com", "fiverr.com", "freelancer.com"];
-const FREE_MAIL = ["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "mail.com", "yandex.com"];
+const FREE_MAIL = ["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com", "gmx.com", "mail.com", "yandex.com",
+  // WO-046: personal mail in the six languages' countries.
+  "gmx.de", "gmx.net", "gmx.at", "gmx.ch", "web.de", "t-online.de", "orange.fr", "free.fr", "laposte.net", "wanadoo.fr", "sfr.fr", "libero.it", "virgilio.it", "alice.it", "tiscali.it",
+  "uol.com.br", "bol.com.br", "terra.com.br", "ig.com.br", "hotmail.es", "hotmail.fr", "hotmail.it", "hotmail.de", "hotmail.co.uk", "yahoo.es", "yahoo.fr", "yahoo.de", "yahoo.it", "yahoo.com.br",
+  "yahoo.com.mx", "yahoo.co.uk", "outlook.es", "outlook.fr", "outlook.de", "outlook.it", "outlook.com.br", "ziggo.nl", "kpnmail.nl", "telenet.be", "skynet.be", "bluewin.ch", "rediffmail.com"];
 // Well-known employers whose mail domain does not spell their name. Matching only; never a guess about the person.
 const DOMAIN_ALIASES: Record<string, string> = {
   jpmchase: "JPMorgan Chase", jpmorgan: "JPMorgan Chase", chase: "JPMorgan Chase", gs: "Goldman Sachs", ms: "Morgan Stanley",
   bofa: "Bank of America", bankofamerica: "Bank of America", datadoghq: "Datadog", fb: "Meta", amazon: "Amazon",
   // WO-045: employers' own mail domains and the short names they sign with.
   lmco: "Lockheed Martin", bswhealth: "Baylor Scott & White", tcs: "Tata Consultancy Services", bah: "Booz Allen Hamilton",
+  // WO-046 (read from blind200's misses, which is spent): the same kind of matching data.
+  pg: "Procter & Gamble", fmr: "Fidelity Investments", chop: "Children's Hospital of Philadelphia", ssa: "Social Security Administration", dhs: "Department of Homeland Security",
 };
-const AUTOMATED_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|notifications?|alerts?|jobs?|careers?|recruiting|recruitment|talent|hr|support|hello|team|info|mail|news|events?|community|crew|press|marketing|scheduling|digest)\b/i;
+// WO-046: and the same desks in the six languages ("naoresponda", "ne-pas-repondre", "karriere", "seleccion").
+const AUTOMATED_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|notifications?|alerts?|jobs?|careers?|recruiting|recruitment|talent|hr|support|hello|team|info|mail|news|events?|community|crew|press|marketing|scheduling|digest|naoresponda|nao-responda|no-?responder|ne-?pas-?repondre|nicht-?antworten|keine-?antwort|non-?rispondere|geen-?antwoord|notificaciones|notificacoes|avisos|talentos?|recrutement|recrutamento|reclutamiento|seleccion|selecao|selezione|selectie|karriere|carrieres|carreiras|werving|empleo|rrhh|rh|vagas|pessoas|gente|werkenbij)\b/i;
 const GENERIC_NAME = /^(greenhouse|lever|ashby|workday|smartrecruiters|icims|taleo|successfactors|jobvite|workable|bamboohr|avature|hackerrank|codesignal|codility|shl|harver|criteria corp|hirevue|spark hire|modern hire|testgorilla|hackerearth|testdome|vervoe|mettl|wonderlic|goodtime|docusign|notifications?|no-?reply|careers?|recruiting|recruiter|talent acquisition|hiring team|hr department|hr|jobs|team)$/i;
 
 interface Sender { name: string; address: string; local: string; domain: string; label: string }
@@ -90,14 +107,16 @@ export function sameCompany(a: unknown, b: unknown): boolean {
 // WO-045: a person or a hiring desk "at" the company ("Sophie at Loom", "Hiring Team at Canva"), a hiring desk named first
 // ("Recruitment Wipro", "Talent Acquisition | Deloitte"), and the desk's other names ("Linear Hiring", "Palantir Interview
 // Coordination") all name the company only.
-const HIRING_DESK = String.raw`university recruiting|campus recruiting|talent acquisition|recruiting team|recruitment team|hiring team|talent team|people team|interview coordination|interview scheduling|recruiting coordination|recruiting|recruitment|recruiter|careers|career|jobs|hiring|interviews|scheduling|coordination|talent|hr team|hr|team|workday`;
+// WO-046: the desks' names in the six languages ("Selección Telefónica", "Santander Talento", "Erste Group Karriere") and
+// "Human Resources" / "Human Capital".
+const HIRING_DESK = String.raw`university recruiting|campus recruiting|talent acquisition|recruiting team|recruitment team|hiring team|talent team|people team|interview coordination|interview scheduling|recruiting coordination|human resources|human capital|recruiting|recruitment|recruiter|careers|career|jobs|hiring|interviews|scheduling|coordination|talent|hr team|hr|team|workday|talento|talentos|selección|seleção|selezione|selectie|recrutement|recrutamento|reclutamiento|karriere|carrières|carreiras|empleo|rrhh|rh|risorse umane|recursos humanos|ressources humaines|werving|gente|pessoas`;
 // A desk's name with no company left in it ("HR Department", "Talent Acquisition") stays as it is (and names nobody).
 const DESK_ONLY = new RegExp(String.raw`^((${HIRING_DESK}|department|acquisition|office|desk|operations|services)\s*)*$`, "i");
 const DESK_LEAD = new RegExp(String.raw`^(${HIRING_DESK})(\s*[-|:,]\s*|\s+)(?=\S)`, "i");
 const DESK_TAIL = new RegExp(String.raw`\s*[-|,:]?\s*\b(${HIRING_DESK})$`, "i");
 function cleanName(name: string): string {
   let n = name.replace(/\s+via\s+.+$/i, "").replace(/^the\s+/i, "").replace(/\s+/g, " ").trim();
-  const at = /^(.+?)\s+(?:at|@)\s+(.+)$/i.exec(n);
+  const at = /^(.+?)\s+(?:at|@|from)\s+(.+)$/i.exec(n);
   if (at && (personName(at[1]) || /^\p{Lu}[\p{Ll}'’-]+$/u.test(at[1]) || DESK_ONLY.test(at[1]))) n = at[2].trim();
   const lead = n.replace(DESK_LEAD, "").trim();
   if (!DESK_ONLY.test(lead)) n = lead;
@@ -108,12 +127,12 @@ function cleanName(name: string): string {
   return n;
 }
 // A hiring desk's name is never a person's ("Karat Scheduling", "Palantir Interview Coordination", "Linear Hiring").
-const DESK_WORD = /\b(recruiting|recruitment|recruiters?|talent|careers?|hiring|interviews?|coordination|coordinator|scheduling|staffing|acquisition|hr|team|jobs|people ops|notifications?)\b/i;
+const DESK_WORD = /\b(recruiting|recruitment|recruiters?|talent|careers?|hiring|interviews?|coordination|coordinator|scheduling|staffing|acquisition|hr|team|jobs|people ops|notifications?|human resources|human capital|talento|talentos|selección|seleção|selezione|selectie|recrutement|recrutamento|reclutamiento|karriere|carrières|carreiras|empleo|rrhh|rh|werving|gente|pessoas)\b/i;
 // Two capitalized words are a person ("Rachel Kim") unless the last is a word companies end in ("Brightline Health").
-const CORP_WORD = /^(health|healthcare|robotics|labs?|systems|technologies|technology|tech|bank|capital|group|partners|solutions|clinic|foods?|energy|motors|airlines?|insurance|media|studios?|software|analytics|consulting|financial|medical|hospital|university|pharma\w*|logistics|networks|security|street|trading|sachs|stanley|permanente|ventures|industries|services|holdings|global|international|corporation|company|bio\w*|therapeutics|games|works|brands|retail|markets|automotive|aerospace|dynamics|careers|recruiting)$/i;
+const CORP_WORD = /^(health|healthcare|robotics|labs?|systems|technologies|technology|tech|bank|capital|group|partners|solutions|clinic|foods?|energy|motors|airlines?|insurance|media|studios?|software|analytics|consulting|financial|medical|hospital|university|pharma\w*|logistics|networks|security|street|trading|sachs|stanley|permanente|ventures|industries|services|holdings|global|international|corporation|company|bio\w*|therapeutics|games|works|brands|retail|markets|automotive|aerospace|dynamics|careers|recruiting|pagamentos|seguros|gruppe|groupe|grupo|unibanco|banco|banque|telecom|energie|energia)$/i;
 // WO-045: letters outside ASCII too ("Sabine Müller"), and never a hiring desk's name.
 const personName = (name: string) =>
-  (/^\p{Lu}[\p{Ll}'’-]+(?: \p{Lu}\.?)?(?: \p{Lu}[\p{Ll}'’-]+){1,2}$/u.test(name) || /^\p{Lu}[\p{Ll}'’-]+ \p{Lu}\.?$/u.test(name)) && !GENERIC_NAME.test(name) && !CORP_WORD.test(name.split(" ").pop() ?? "") && !DESK_WORD.test(name);
+  (/^\p{Lu}[\p{Ll}'’-]+(?: \p{Lu}\.?)?(?: (?:(?:de|da|das|do|dos|di|del|della|van|von|der|den|ter|ten|le|du|y) )*\p{Lu}[\p{Ll}'’-]+){1,2}$/u.test(name) || /^\p{Lu}[\p{Ll}'’-]+ \p{Lu}\.?$/u.test(name)) && !GENERIC_NAME.test(name) && !CORP_WORD.test(name.split(" ").pop() ?? "") && !DESK_WORD.test(name);
 // WO-045: a display name that spells the sender's own domain is the brand, not a person ("Capital One
 // <capitalone@notification.capitalone.com>"); a lone given name that is the address's own local part is a person ("Ollie
 // <ollie@pinecrest.dev>"); "Sophie at Loom" is a person at Loom.
@@ -122,7 +141,7 @@ const brandName = (s: Sender) => {
   return c.length >= 3 && !!l && (l.startsWith(c) || c.startsWith(l));
 };
 const givenName = (s: Sender) => {
-  const at = /^(\p{Lu}[\p{Ll}'’-]+)\s+(?:at|@)\s+\S/u.exec(s.name);
+  const at = /^(\p{Lu}[\p{Ll}'’-]+)\s+(?:at|@|from)\s+\S/u.exec(s.name);
   if (at) return !DESK_WORD.test(at[1]);
   return /^\p{Lu}[\p{Ll}'’-]+$/u.test(s.name) && !GENERIC_NAME.test(s.name) && !DESK_WORD.test(s.name) &&
     s.local.replace(/[^a-z]/g, "").startsWith(s.name.toLowerCase().replace(/[^a-z]/g, "")) && s.local.length <= s.name.length + 12;
@@ -179,9 +198,11 @@ function companyOf(s: Sender, subject: string, snippet: string, vendor: boolean)
   const named = DOMAIN_ALIASES[collapsed(cleaned)] ?? cleaned;
   const ats = atsSender(s);
   // "Sophie at Loom": the person is at the company the name gives.
-  const atForm = /\s(?:at|@)\s/i.test(s.name) && cleaned !== s.name.trim();
+  const atForm = /\s(?:at|@|from)\s/i.test(s.name) && cleaned !== s.name.trim();
   const person = ats ? personName(named) && (AUTOMATED_LOCAL.test(s.local) || !tenantAgrees(s.local, named)) : looksLikePerson(s) && !atForm;
   const nameOk = named && !GENERIC_NAME.test(named) && !DESK_ONLY.test(named) && !person && !/@/.test(named);
+  // WO-046: a forwarded message whose original sender shows only a name ("From: Cognizant Talent Acquisition").
+  if (!s.domain) return nameOk ? named : companyFromText(`${subject}. ${snippet}`);
   if (vendor) return companyFromText(`${subject}. ${snippet}`) ?? (nameOk ? named : undefined);
   if (ats) return nameOk ? named : companyFromText(`${subject}. ${snippet}`);
   if (endsWithDomain(s.domain, JOB_BOARDS)) return companyFromText(`${subject}. ${snippet}`);
@@ -210,7 +231,7 @@ export function roleOf(subject: string, snippet: string): string | undefined {
 // "interview" alone is a newsletter. Listed one phrase family per line so a miss can be found and fixed.
 const phrases = (...p: string[]) => new RegExp(String.raw`\b(` + p.join("|") + String.raw`)\b`, "i");
 // A reference to the person's own application (WO-040 review): its role, the application, an interview, the hiring side.
-export const APP_REF = /\b(your (application|candidacy|resume|cv|portfolio)|you applied|applied (for|to)|(the|this|that)\b[^.]{0,50}?\b(role|position|opening|requisition)\b|interview\w*|hiring (manager|team)|next (step|steps|round|stage)|(phone|recruiter|technical) screen)\b/i;
+export const APP_REF = /\b(your (application|candidacy|resume|cv|portfolio)|you applied|applied (for|to)|(thanks|thank you) for applying|(the|this|that)\b[^.]{0,50}?\b(role|position|opening|requisition)\b|interview\w*|hiring (manager|team)|next (step|steps|round|stage)|(phone|recruiter|technical) screen)\b/i;
 const NOT = String.raw`(will not|won'?t|not|unable to|cannot|can'?t)`;
 // A third element: the phrase counts only when the words also refer to the person's application (WO-040 review).
 const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp, RegExp?][] = [
@@ -265,6 +286,10 @@ const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp, RegExp?][]
     String.raw`interview\b[^.]{0,60}?\b(is|has been) (confirmed|scheduled|set|booked)|(confirmed|scheduled|booked):? (your )?interview|(join|attend)\b[^.]{0,50}\b(for )?(your|the) interview\b`,
     String.raw`move (you )?forward with (an?|the|your) ([\w-]+ ){0,3}(interview|interviews|screen)|(select|share|send) your interview times?`,
     String.raw`(are you|would you be) (available|free)\b[^.?]{0,60}\b(interview|screen)|availability (next week |this week )?for an? ([\w-]+ ){0,2}interview|(pick|choose|select|book) (a|an) interview time|(phone|video|technical|virtual) interview\b`,
+    // WO-046: an employer's own calendar-style subject naming an interview ("Updated invitation: Interview: Final Round -
+    // Capital One @ Thu"; a calendar TOOL's notice never reaches here), an "interview call" (Indian English for an
+    // invitation) and a face-to-face, in-person or walk-in interview.
+    String.raw`^(updated invitation|invitation|rescheduled|confirmed|updated event|new event):\s*[^@\n]{0,80}?\b(interview|phone screen|recruiter screen|technical screen|onsite|on-site|superday|power day|final round)|interview call|(face[- ]to[- ]face|in[- ]person|walk-?in|f2f) interview|(calendar )?(invite|invitation) for your ([\w-]+ ){0,2}interview`,
   )],
   // WO-040: the words anyone uses to ask for a call (a sales rep, a sourcer, a friend) are an invitation only when they
   // are about the person's application: "the Data Analyst role", "your application", the hiring manager, an interview.
@@ -286,12 +311,17 @@ const RULES: [Exclude<MailKind, "other" | "recruiter_reply">, RegExp, RegExp?][]
 ];
 // Words that make a message something other than an application step, checked on the subject and sender first.
 // WO-045: a candidate-experience survey ("How was your interview experience at Lyft?").
-const NOISE_SUBJECT = /\b(job alerts?|new jobs|jobs for you|jobs? (matching|recommended)|recommended (jobs|for you)|is hiring|are hiring|hiring now|great match|top applicant|newsletter|webinar|digest|info session|career fair|events?|conference|registration|rsvp|survey|feedback|statement|receipt|your order|package|shipped|deals?|sale|% off|premium|verify|verification|password|sign[- ]?in|security code|candidate account|viewed your|tips|course|salaries|profile|product update|what'?s new|new features|withdrawn|self-identification|automatic reply|auto-?reply|autoreply|out of (the )?office|ooo|how (was|did) your [^?]{0,40}?(experience|go)|(rate|tell us about|share) your [^?]{0,30}?experience|candidate experience)\b/i;
-const NOISE_TEXT = new RegExp(String.raw`\b(complete your application|finish (applying|your application)|haven'?t (submitted|finished)|isn'?t finished|started an application|pick up where you left off|unsubscribe from (job )?alerts|viewed your (application|profile)|mock interviews?|practice interviews?|interview tips|career coach(es|ing)?|(health|wellness|wellbeing|property|tax|fitness|medical|hearing|vision|skin|home|energy|credit) assessments?|assessor|out of (the )?office|when i return|limited access to (my )?e-?mail|video visit|clinician|telehealth|your (doctor|provider|care team)|mychart|lab results|` +
+const NOISE_SUBJECT = /\b(job alerts?|new jobs|jobs for you|jobs? (matching|recommended)|recommended (jobs|for you)|is hiring|are hiring|hiring now|great match|top applicant|newsletter|webinar|digest|info session|career fair|events?|conference|registration(?! interview)|rsvp|survey|feedback|statement|receipt|your order|package|shipped|deals?|sale|% off|premium|verify|verification|password|sign[- ]?in|security code|candidate account|viewed your|tips|course|salaries|profile(?! (has been |was )?(registered|submitted|received))|product update|what'?s new|new features|withdrawn|self-identification|automatic reply|auto-?reply|autoreply|out of (the )?office|ooo|how (was|did) your [^?]{0,40}?(experience|go)|(rate|tell us about|share) your [^?]{0,30}?experience|candidate experience)\b/i;
+const NOISE_TEXT = new RegExp(String.raw`\b(complete your application|finish (applying|your application)|haven'?t (submitted|finished)|isn'?t finished|started an application|pick up where you left off|unsubscribe from (job )?alerts|viewed your (application|profile)|mock interviews?|practice interviews?|interview tips|career coach(es|ing)?|(health|wellness|wellbeing|property|tax|fitness|medical|hearing|vision|skin|home|energy|credit) assessments?|assessor(?! de )|out of (the )?office|when i return|limited access to (my )?e-?mail|video visit|clinician|telehealth|your (doctor|provider|care team)|mychart|lab results|` +
   // WO-043: a journalist's or podcast's interview, and a test vendor's own marketing ("practice questions", "free trial").
   String.raw`(podcast|press|media|radio|tv|news) interview|(working on|writing) (a|an) (story|article|piece|episode)|for (our|a|an) (story|article|podcast|episode|show)|practice (questions|problems|tests?)|start practicing|interview-ready|free trial|` +
   // WO-045: a practice site's games ("keep your streak alive", "the leaderboard", "your weekly coding challenge").
-  String.raw`leaderboard|(keep|extend|lose|save) your [^.]{0,20}?streak|(weekly|daily) (coding )?challenge|arcade)\b`, "i");
+  String.raw`leaderboard|(keep|extend|lose|save) your [^.]{0,20}?streak|(weekly|daily) (coding )?challenge|arcade|` +
+  // WO-046: interviewing someone else at the person's own job (a debrief, scorecards, a slot in a loop for a candidate), and
+  // an interview-prep class.
+  String.raw`scorecards?|(slot|loop|panel|interview|debrief) for the ([\w-]+ ){0,2}(candidate|hire)|interview prep(aration)? (workshop|webinar|class|course|session)|` +
+  // WO-046: new-hire onboarding after the offer is signed (I-9, direct deposit, onboarding tasks) is not a step.
+  String.raw`onboarding (tasks?|checklist|documents|portal)|i-9|direct deposit)\b`, "i");
 // WO-040 review: a calendar or meeting tool's notice repeats an event's title; it is not the employer's words, and its
 // sender ("Google Calendar") is never the employer.
 const SYSTEM_SENDER = /\b(calendar|calendly)\b|calendar-notification/i;
@@ -319,7 +349,7 @@ const MAYBE_STEP = /\b(if|should|once|when|in case) (you are |you're |you get |y
 // A job word: a company's own domain writing about a step names the application, the role or the process. Without one,
 // "complete your assessment" or "take your test" is the company's product talking.
 const JOB_CUE = /\b(applications?|applied|applying|candidate|candidacy|positions?|roles?|jobs?|openings?|requisition|interview\w*|recruit\w*|hiring|internship|(graduate|internship|leadership|rotational|analyst|trainee|early careers?) program(me)?|resume|cv|portfolio|panel|next (stage|step|round)|employment|start date)\b/i;
-const JOB_SENDER = /(career|recruit|talent|jobs?\b|hiring|\bhr\b|people)/i;
+const JOB_SENDER = /(career|recruit|talent|jobs?\b|hiring|\bhr\b|people|karriere|carreira|carrière|selecci|seleç|selezion|selectie|reclut|empleo|vagas|werving|werkenbij|rrhh|\brh\b|pessoas|gente|campus)/i;
 // Words that make a message worth a second look by the model (WO-040), when the rules found no status phrase.
 const STEP_CUE = /\b(applications?|applied|candidacy|candidate|positions?|roles?|interview\w*|assessment|offer|recruit\w*|hiring|next steps?|update on|status|decision|move forward|moving forward|schedul\w*|availability)\b/i;
 
@@ -366,7 +396,7 @@ const decidingClauses = (t: string) => t.split(/[.;!?\n,]+|\bbut\b|\bhowever\b/i
 const FAMILIES: [string, RegExp, "all" | "live"][] = [
   // rejection
   // A decision verb (going with, hiring, selecting, focusing on, giving the offer to) whose object is someone else.
-  ["rj:other_candidate", re(String.raw`\b((go|going|gone|went|mov(e|ed|ing) (forward|ahead|on)|proceed(ed|ing)?|continu(e|ed|ing)) (forward |ahead )?with|(focus\w*|concentrat\w*) on|(opted|opt|gone|went|go|going|decided) for|decided on|hire|hired|hiring|select(ed|ing)?|chose|chosen|identified|pursu(e|ed|ing)|fill(ed|ing)?( the \w+)?( with)?|offer\w* (the|this) (role|position|job) to|extended the offer to|offer went to|offered to)\b(\s+\S+){0,3}?\s+(another|other|a different|someone (else|whose|who|with)|somebody else|an internal|a more \w+|a stronger|candidates? (who|whose|with|that)|applicants? (who|whose|with|that)|a candidate|an applicant)\b`), "all"],
+  ["rj:other_candidate", re(String.raw`\b((go|going|gone|went|mov(e|ed|ing) (forward|ahead|on)|proceed(ed|ing)?|continu(e|ed|ing)) (forward |ahead )?with|(focus\w*|concentrat\w*) on|(opted|opt|gone|went|go|going|decided) for|decided on|hire|hired|hiring|select(ed|ing)?|chose|chosen|identified|pursu(e|ed|ing)|fill(ed|ing)?( the \w+)?( with)?|offer\w* (the|this) (role|position|job) to|extended the offer to|offer went to|offered to)\b(\s+\S+){0,3}?\s+(another|other|a different|someone (else|whose|who|with)|somebody else|an internal|a more \w+|a stronger|candidates? (who|whose|with|that)|applicants? (who|whose|with|that)|a candidate|an applicant)\b|\b(another|other|a different) (candidates?|applicants?|person)\b(\s+\S+){0,3}?\s+(has|have|was|were) (now |already )?(been )?(selected|chosen|hired|offered)\b`), "all"],
   ["rj:closed", re(String.raw`\b(position|role|opening|openings|requisition|req|vacancy|job|posting)\b(\s+\S+){0,8}?\s+(has|have|was|were|is|are) (now |already |since |just )?(been )?(filled|closed|cancell?ed|withdrawn|put on hold|placed on hold|on hold|no longer (open|available|accepting))|\bfilled (internally|its|the|this|our|all)\b|\b(has|have) (now )?been filled\b|no longer (hiring|recruiting) for`), "all"],
   ["rj:pass", re(String.raw`\b(pass(ing)? on (your|you)|(will|would|going to|decided to|have to|had to) pass\b|end the process|(go|going|gone|went|head\w*|mov\w*|decided to go) (in )?(another|a different) (way|direction)|(keep|continue) (looking|searching|our search)|not (the right|a good|a strong|a) (fit|match)|(looking|look) for someone (with )?more|clos\w* (out )?(your|all|all remaining|remaining) (applications?|candidacy)|no longer (being )?(considered|under consideration|in consideration|in the running)|(will|would) not (be )?(reviewed|considered) further|(has|have|was|were) not (been )?successful|unsuccessful|(application|candidacy|profile)\b[^.]{0,60}? (has been|was|is|have been) (declined|rejected|archived)|not (been )?(selected|chosen|shortlisted)|it (has been|was) (declined|rejected))\b`), "all"],
   ["rj:regret", re(String.raw`\b(unfortunately|regret\w*|sadly|sorry to (say|share|inform|tell|let)|we are sorry|i am sorry|disappoint\w*)\b`), "all"],
@@ -382,7 +412,7 @@ const FAMILIES: [string, RegExp, "all" | "live"][] = [
   ["iv:when", re(String.raw`(^(updated invitation|invitation|rescheduled|confirmed|updated|new time proposed):|\b((is|are|has been|have been) (confirmed|scheduled|booked|set) (for|on)|reminder|new time|(for|on) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(monday|tuesday|wednesday|thursday|friday) (morning|afternoon|evening)|tomorrow at|(on|this|next) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\d{1,2}(:\d\d)? ?(am|pm)|half-day)\b)`), "live"],
   ["iv:who", re(String.raw`\b(with (me and )?(the |our |my |two |\w+ )?(co-?founders?|ceo|cto|coo|vp of \w+|hiring manager|team|recruiter|recruiting team|engineers?|director|lead|head|manager|founder|controller|store manager|nurse manager|practice manager|interviewers?|people)|interviewers?:|live)\b`), "live"],
   // assessment
-  ["as:noun", re(String.raw`\b(assessments?|tests?|challenges?|exercises?|assignments?|take[- ]?home|case study|questionnaire|quiz|simulation|tryout|games|work sample|writing sample|admit card|hall ticket|(written|business|short|take-home|practical|mini) case|(coding|aptitude|online|written) round)\b`), "live"],
+  ["as:noun", re(String.raw`\b(assessments?|tests?|challenges?|exercises?|assignments?|take[- ]?home|case study|questionnaire|quiz|simulation|tryout|games|work sample|writing sample|admit card|hall ticket|(written|business|short|take-home|practical|mini|online) case|(coding|aptitude|online|written) round)\b`), "live"],
   ["as:task", re(String.raw`\b(tasks?|project|critique|problem set)\b`), "live"],
   ["as:do", re(String.raw`\b(complete|completing|take|taking|finish|solve|submit|return|record|play|attempt|sit|build|draft|work through|put together)\b`), "live"],
   ["as:deadline", re(String.raw`\b(within (the next )?\d+ (days?|hours?)|in the next \d+ (days?|hours?)|(\d+|one|two|three|four|five|seven) (days?|hours?) to (complete|finish|submit)|deadline|expires?|time limit|must be completed|one sitting|duration|valid (until|till|for)|(send|return|submit|share) (it|them|this|that|one|your \w+)( back)?( to (us|me))? (by|before|within|no later))\b`), "live"],
@@ -393,9 +423,9 @@ const FAMILIES: [string, RegExp, "all" | "live"][] = [
   ["as:vendor_word", re(String.raw`\b(hackerrank|codesignal|codility|hirevue|pymetrics|karat|testgorilla|shl|criteria|vervoe|modern ?hire|hackerearth|coderpad|wonderlic|harver|prove it|ccat)\b`), "live"],
   // offer
   ["of:noun", re(String.raw`\b(offer (letter|details|package|of employment|for)|(your|an|the|formal|written|verbal|contingent|conditional|job|employment|internship) offer\b(?! (expires|ends|is valid|valid|code|inside|is waiting|waiting|just))|letter of intent|employment (contract|agreement)|(your|the) contract\b|contract (proposal|is attached|for (your )?signature))`), "live"],
-  ["of:extend", re(String.raw`\b(extend\w* (you )?(an? |the |your )?(formal |verbal |written |contingent |conditional )?offer|(make|making|present|presenting) you (with )?an offer|offer you (the|a|an)( [\w-]+){0,5} (position|role|job|place|internship|spot|seat)|offer you employment|offer\w* (has been |is )?released|(have been|were|are|been) offered|pleasure to offer)\b`), "live"],
+  ["of:extend", re(String.raw`\b(extend\w* (you )?(an? |the |your )?(formal |verbal |written |contingent |conditional )?offer|(make|making|present|presenting) you (with )?an offer|offer you (the|a|an)( [\w-]+){0,5} (position|role|job|place|internship|spot|seat)|offer you employment|offer\w* (has been |is )?released|(have been|were|are|been) offered|pleasure to offer|offering (you )?the ([\w-]+ ){0,4}(contract|position|role|job))\b`), "live"],
   ["of:joy", re(String.raw`\b(congratulations|congrats|it is official|it is a yes|welcome aboard|welcome to the team|the role is yours|got the job|(selected|picked|chose) you|you have been selected (as|for the position)|(want|love) (for )?(you )?to (join|have you join)|love to have you join|join (us|the team|\w+) as|welcome you (as|to (the|our) team)|(come|coming) on board|on board as)\b`), "live"],
-  ["of:sign", re(String.raw`\b(accept\w* (your |the )?offer|accept (it|by|within)|sign (the|your|and)|e-sign|signature|compensation|salary|equity|start date|background check|benefits|new hire paperwork)\b`), "live"],
+  ["of:sign", re(String.raw`\b(accept\w* (your |the )?offer|accept (it|by|within)|sign (the|your|and|by)|e-sign|signature|compensation|salary|equity|start date|background check|benefits|new hire paperwork)\b`), "live"],
   // received
   ["rc:got", re(String.raw`\b((received|receipt of|got|have) your (application|submission|resume|cv|profile|candidacy|documents|details)|your (application|submission|candidacy|resume|profile|documents)\b[^.]{0,60}? (has |was |is )?(been )?(received|submitted|complete|registered|in|safely|made it|arrived|reached|landed)\b|submitted successfully|successfully (submitted|applied|registered|received)|made it to us|has arrived|has reached|safely with us|registered (successfully|your)|(have|has) received your|confirm\w* (the )?(receipt|that we|we have)|acknowledg\w*|application (confirmation|complete|received))\b`), "live"],
   ["rc:thanks", re(String.raw`\b(thank(s| you)?( so much| very much)? for (applying|your application|your interest|submitting|taking the time to apply|putting|apply|your submission|the application)|(many|thanks) thanks for your application)`), "live"],
@@ -405,50 +435,50 @@ const FAMILIES: [string, RegExp, "all" | "live"][] = [
 ];
 export const MAIL_KINDS: MailKind[] = ["received", "rejection", "interview", "assessment", "offer", "recruiter_reply", "other"];
 // BEGIN MAIL_WEIGHTS (generated by evals/career/mail-fit.ts from 493 tuning emails; steps 4000, rate 0.5, l2 0.004)
-export const MAIL_BIAS: Partial<Record<MailKind, number>> = { rejection: 0.24, interview: -0.93, assessment: -0.83, offer: -0.43, recruiter_reply: -0.53, other: 2.52 };
+export const MAIL_BIAS: Partial<Record<MailKind, number>> = { received: 0.06, rejection: 0.23, interview: -0.94, assessment: -0.83, offer: -0.44, recruiter_reply: -0.55, other: 2.46 };
 export const MAIL_WEIGHTS: Record<string, Partial<Record<MailKind, number>>> = {
-  "as:deadline": { received: -0.18, rejection: -0.14, interview: -0.11, assessment: 0.67, other: -0.22 },
-  "as:do": { received: -0.35, rejection: -0.52, interview: -0.44, assessment: 1.31, offer: -0.3, recruiter_reply: 0.11, other: 0.19 },
-  "as:noun": { received: -0.44, rejection: -0.41, interview: -0.23, assessment: 1.29, offer: -0.21, recruiter_reply: -0.17, other: 0.15 },
+  "as:deadline": { received: -0.18, rejection: -0.15, interview: -0.12, assessment: 0.66, other: -0.2 },
+  "as:do": { received: -0.35, rejection: -0.48, interview: -0.43, assessment: 1.34, offer: -0.28, recruiter_reply: 0.12, other: 0.08 },
+  "as:noun": { received: -0.45, rejection: -0.41, interview: -0.23, assessment: 1.27, offer: -0.21, recruiter_reply: -0.17, other: 0.2 },
   "as:recorded": { received: -0.05, interview: -0.19, assessment: 0.48, other: -0.16 },
-  "as:task": { received: -0.15, rejection: -0.18, interview: -0.06, assessment: 0.43, offer: -0.06, recruiter_reply: -0.05, other: 0.08 },
+  "as:task": { received: 0.14, rejection: -0.14, interview: -0.05, assessment: 0.49, offer: -0.06, recruiter_reply: -0.05, other: -0.33 },
   "as:vendor_word": { received: -0.09, rejection: -0.08, interview: -0.06, assessment: 0.38, recruiter_reply: -0.05, other: -0.06 },
-  "iv:invite": { received: -0.36, interview: 0.92, assessment: 0.22, recruiter_reply: -0.3, other: -0.52 },
-  "iv:noun": { received: -0.5, rejection: -0.08, interview: 1.26, offer: -0.4, other: -0.3 },
-  "iv:schedule": { received: -0.33, rejection: -0.36, interview: 1.48, assessment: -0.29, recruiter_reply: -0.19, other: -0.29 },
-  "iv:talk": { received: -0.33, rejection: -0.17, interview: 0.9, assessment: -0.19, offer: 0.17, recruiter_reply: -0.47, other: 0.08 },
-  "iv:when": { received: -0.19, rejection: -0.32, interview: 0.86, assessment: -0.16, recruiter_reply: -0.16, other: -0.05 },
-  "iv:who": { received: -0.06, interview: 0.46, assessment: -0.18, offer: -0.1, other: -0.15 },
-  "of:extend": { received: -0.25, rejection: 0.05, interview: -0.13, assessment: -0.09, offer: 0.96, recruiter_reply: -0.22, other: -0.32 },
-  "of:joy": { received: -0.21, rejection: -0.32, interview: 0.14, assessment: -0.16, offer: 0.91, recruiter_reply: -0.15, other: -0.2 },
-  "of:noun": { received: -0.23, rejection: -0.22, interview: -0.35, assessment: -0.13, offer: 1.51, recruiter_reply: -0.23, other: -0.34 },
-  "of:sign": { received: -0.12, rejection: -0.18, interview: -0.08, assessment: -0.13, offer: 0.47, recruiter_reply: 0.14, other: -0.09 },
-  "rc:got": { received: 1.6, rejection: -0.44, interview: -0.27, assessment: -0.2, offer: -0.21, recruiter_reply: 0.11, other: -0.6 },
-  "rc:review": { received: 0.84, rejection: -0.46, interview: -0.17, assessment: -0.17, offer: -0.1, recruiter_reply: 0.1, other: -0.05 },
-  "rc:thanks": { received: 0.77, rejection: 0.45, interview: -0.06, assessment: 0.12, offer: -0.34, recruiter_reply: -0.27, other: -0.68 },
-  "rj:closed": { received: -0.25, rejection: 0.61, interview: -0.05, assessment: -0.05, offer: -0.05, other: -0.19 },
-  "rj:closer": { received: -0.12, rejection: 0.71, offer: -0.05, recruiter_reply: -0.2, other: -0.26 },
+  "iv:invite": { received: -0.37, interview: 0.92, assessment: 0.22, recruiter_reply: -0.3, other: -0.5 },
+  "iv:noun": { received: -0.51, rejection: -0.09, interview: 1.26, offer: -0.4, other: -0.29 },
+  "iv:schedule": { received: -0.33, rejection: -0.37, interview: 1.48, assessment: -0.3, recruiter_reply: -0.19, other: -0.28 },
+  "iv:talk": { received: -0.33, rejection: -0.17, interview: 0.9, assessment: -0.19, offer: 0.17, recruiter_reply: -0.46, other: 0.09 },
+  "iv:when": { received: -0.2, rejection: -0.32, interview: 0.86, assessment: -0.16, recruiter_reply: -0.16 },
+  "iv:who": { received: -0.06, interview: 0.46, assessment: -0.18, offer: -0.1, other: -0.14 },
+  "of:extend": { received: -0.25, rejection: 0.05, interview: -0.13, assessment: -0.1, offer: 0.96, recruiter_reply: -0.22, other: -0.31 },
+  "of:joy": { received: -0.22, rejection: -0.32, interview: 0.14, assessment: -0.17, offer: 0.91, recruiter_reply: -0.15, other: -0.19 },
+  "of:noun": { received: -0.24, rejection: -0.22, interview: -0.35, assessment: -0.13, offer: 1.51, recruiter_reply: -0.23, other: -0.33 },
+  "of:sign": { received: -0.13, rejection: -0.19, interview: -0.08, assessment: -0.14, offer: 0.47, recruiter_reply: 0.13, other: -0.06 },
+  "rc:got": { received: 1.68, rejection: -0.43, interview: -0.27, assessment: -0.21, offer: -0.22, recruiter_reply: 0.1, other: -0.66 },
+  "rc:review": { received: 0.83, rejection: -0.47, interview: -0.17, assessment: -0.17, offer: -0.1, recruiter_reply: 0.11 },
+  "rc:thanks": { received: 0.76, rejection: 0.44, interview: -0.06, assessment: 0.1, offer: -0.34, recruiter_reply: -0.27, other: -0.64 },
+  "rj:closed": { received: -0.26, rejection: 0.62, interview: -0.05, assessment: -0.05, offer: -0.05, other: -0.18 },
+  "rj:closer": { received: -0.12, rejection: 0.7, offer: -0.05, recruiter_reply: -0.2, other: -0.25 },
   "rj:decision": { received: -0.19, rejection: 0.55, interview: -0.1, assessment: -0.06, other: -0.12 },
-  "rj:future": { received: -0.09, rejection: 0.64, interview: -0.05, assessment: -0.05, offer: -0.06, recruiter_reply: -0.12, other: -0.27 },
-  "rj:negated": { received: -0.49, rejection: 1.9, interview: -0.71, assessment: -0.16, offer: -0.21, recruiter_reply: -0.25, other: -0.07 },
-  "rj:other_candidate": { received: -0.48, rejection: 1.38, interview: -0.1, assessment: -0.08, offer: -0.12, recruiter_reply: -0.25, other: -0.34 },
-  "rj:pass": { received: -0.21, rejection: 0.95, interview: -0.23, assessment: -0.1, offer: -0.12, recruiter_reply: -0.26 },
-  "rj:regret": { received: -0.15, rejection: 0.31, interview: -0.14, assessment: -0.07, offer: -0.07, recruiter_reply: -0.18, other: 0.3 },
-  "rr:status": { rejection: -0.34, interview: -0.08, assessment: -0.16, offer: -0.16, recruiter_reply: 1.24, other: -0.53 },
-  "rule:assessment": { received: -0.34, rejection: -0.28, interview: -0.3, assessment: 1.72, offer: -0.15, recruiter_reply: -0.19, other: -0.45 },
-  "rule:interview": { received: -0.32, rejection: -0.15, interview: 1.58, assessment: -0.09, offer: -0.27, recruiter_reply: -0.29, other: -0.46 },
-  "rule:offer": { received: -0.39, rejection: -0.32, interview: -0.23, assessment: -0.17, offer: 1.95, recruiter_reply: -0.19, other: -0.65 },
-  "rule:received": { received: 1.77, rejection: -0.16, assessment: -0.05, offer: -0.31, recruiter_reply: -0.29, other: -0.97 },
-  "rule:recruiter_reply": { received: -0.32, rejection: -0.23, assessment: -0.2, offer: -0.3, recruiter_reply: 1.56, other: -0.54 },
-  "rule:rejection": { received: -0.56, rejection: 1.83, interview: -0.21, assessment: -0.18, offer: -0.21, recruiter_reply: -0.46, other: -0.22 },
-  "s:ats": { received: 0.59, rejection: 0.76, interview: 0.63, assessment: 0.26, offer: 0.05, recruiter_reply: -0.58, other: -1.72 },
-  "s:board": { received: 0.63, rejection: -0.18, interview: -0.32, assessment: -0.12, offer: -0.25, recruiter_reply: -0.1, other: 0.34 },
-  "s:free": { received: -0.06, interview: -0.16, assessment: -0.05, offer: -0.06, recruiter_reply: -0.1, other: 0.4 },
-  "s:person": { received: -0.51, rejection: -0.12, interview: 0.19, assessment: -0.1, offer: 0.15, recruiter_reply: 1.38, other: -0.98 },
-  "s:re": { received: -0.21, rejection: 0.45, interview: -0.39, assessment: -0.13, offer: -0.19, recruiter_reply: 0.68, other: -0.22 },
-  "s:vendor": { received: -0.07, rejection: -0.11, interview: -0.16, assessment: 0.93, offer: -0.07, recruiter_reply: -0.07, other: -0.44 },
-  "x:minutes": { received: -0.22, rejection: -0.24, interview: 0.53, assessment: 0.11, offer: -0.15, recruiter_reply: -0.23, other: 0.2 },
-  "x:next_step": { received: -0.16, rejection: -0.08, interview: -0.08, assessment: 0.75, offer: -0.09, other: -0.38 },
+  "rj:future": { received: -0.09, rejection: 0.64, interview: -0.05, assessment: -0.05, offer: -0.06, recruiter_reply: -0.12, other: -0.26 },
+  "rj:negated": { received: -0.5, rejection: 1.9, interview: -0.71, assessment: -0.17, offer: -0.21, recruiter_reply: -0.25, other: -0.05 },
+  "rj:other_candidate": { received: -0.48, rejection: 1.37, interview: -0.1, assessment: -0.09, offer: -0.12, recruiter_reply: -0.25, other: -0.33 },
+  "rj:pass": { received: -0.21, rejection: 0.95, interview: -0.23, assessment: -0.11, offer: -0.12, recruiter_reply: -0.26 },
+  "rj:regret": { received: -0.16, rejection: 0.3, interview: -0.14, assessment: -0.07, offer: -0.07, recruiter_reply: -0.18, other: 0.31 },
+  "rr:status": { rejection: -0.34, interview: -0.08, assessment: -0.17, offer: -0.16, recruiter_reply: 1.23, other: -0.51 },
+  "rule:assessment": { received: -0.35, rejection: -0.29, interview: -0.3, assessment: 1.69, offer: -0.15, recruiter_reply: -0.19, other: -0.41 },
+  "rule:interview": { received: -0.32, rejection: -0.15, interview: 1.58, assessment: -0.09, offer: -0.27, recruiter_reply: -0.29, other: -0.45 },
+  "rule:offer": { received: -0.39, rejection: -0.32, interview: -0.23, assessment: -0.17, offer: 1.94, recruiter_reply: -0.19, other: -0.63 },
+  "rule:received": { received: 1.72, rejection: -0.16, assessment: -0.05, offer: -0.3, recruiter_reply: -0.29, other: -0.94 },
+  "rule:recruiter_reply": { received: -0.34, rejection: -0.23, assessment: -0.2, offer: -0.3, recruiter_reply: 1.56, other: -0.53 },
+  "rule:rejection": { received: -0.56, rejection: 1.82, interview: -0.21, assessment: -0.18, offer: -0.21, recruiter_reply: -0.46, other: -0.2 },
+  "s:ats": { received: 0.52, rejection: 0.79, interview: 0.64, assessment: 0.31, offer: 0.07, recruiter_reply: -0.55, other: -1.78 },
+  "s:board": { received: 0.6, rejection: -0.18, interview: -0.32, assessment: -0.12, offer: -0.25, recruiter_reply: -0.1, other: 0.37 },
+  "s:free": { received: -0.07, interview: -0.16, assessment: -0.05, offer: -0.06, recruiter_reply: -0.1, other: 0.41 },
+  "s:person": { received: -0.54, rejection: -0.12, interview: 0.19, assessment: -0.1, offer: 0.15, recruiter_reply: 1.38, other: -0.97 },
+  "s:re": { received: -0.22, rejection: 0.46, interview: -0.39, assessment: -0.13, offer: -0.19, recruiter_reply: 0.68, other: -0.21 },
+  "s:vendor": { received: -0.08, rejection: -0.11, interview: -0.17, assessment: 0.91, offer: -0.07, recruiter_reply: -0.07, other: -0.41 },
+  "x:minutes": { received: -0.23, rejection: -0.24, interview: 0.53, assessment: 0.08, offer: -0.15, recruiter_reply: -0.23, other: 0.24 },
+  "x:next_step": { received: -0.17, rejection: -0.08, interview: -0.08, assessment: 0.73, offer: -0.09, other: -0.34 },
 };
 // END MAIL_WEIGHTS
 // The least share of the evidence a kind needs to be said (chosen on the tuning splits by cross-validation, precision
@@ -478,29 +508,47 @@ const OFFER_SAID = ["rule:offer", "of:extend", "of:noun"];
 const FORWARD: MailKind[] = ["interview", "assessment", "offer", "recruiter_reply"];
 // The family prefix that is a kind's own evidence.
 const OWN: Record<MailKind, string> = { received: "rc:", rejection: "rj:", interview: "iv:", assessment: "as:", offer: "of:", recruiter_reply: "rr:", other: "-" };
-function readMail(m: MailMeta): { out: Classified; features: Map<string, string> | null } {
-  const s = parseFrom(m.from), subject = String(m.subject ?? ""), snippet = String(m.snippet ?? "");
+// WO-046: a reply to an invitation the person sent ("Accepted: Coffee chat re: Analyst role", "Declined: ...") is not a
+// step, whoever sends it.
+const RESPONSE = /^\s*(accepted|declined|tentative|tentatively accepted|aceptad[oa]|rechazad[oa]|aceit[oa]|recusad[oa]|accepté|refusé|angenommen|abgelehnt|mit vorbehalt angenommen|zugesagt|accettato|rifiutato|geaccepteerd|afgewezen|geweigerd)\s*:/i;
+// WO-046: a message the person forwarded, by its subject's prefix in the languages mail clients write it.
+const FORWARDED = /^\s*(fwd?|fw|wg|tr|rv|enc|i|doorst|wtr)\s*:\s*/i;
+// WO-046: what a scheduling tool sends (besides SYSTEM_SENDER/SYSTEM_DOMAINS): Teams, Doodle, cal.com and the like.
+const CALENDAR_DOMAINS = [...SYSTEM_DOMAINS, "teams.microsoft.com", "doodle.com", "cal.com", "savvycal.com", "youcanbook.me", "acuityscheduling.com"];
+interface ReadOpts { forwarded?: boolean; anonymous?: string }
+function readMail(m: MailMeta, opts: ReadOpts = {}): { out: Classified; features: Map<string, string> | null } {
+  const anon = opts.anonymous !== undefined;
+  const s: Sender = anon ? { name: opts.anonymous!, address: "", local: "", domain: "", label: "" } : parseFrom(m.from);
+  const subject = String(m.subject ?? ""), snippet = String(m.snippet ?? "");
   const text = `${subject}\n${snippet}`;
   const other = (why: string): Classified => ({ kind: "other", evidence: evidenceLine("other", why, subject, s.domain) });
   const guard = (c: Classified) => ({ out: c, features: null });
-  if (!s.domain) return guard(other("no sender"));
+  if (!s.domain && !anon) return guard(other("no sender"));
+  if (RESPONSE.test(subject)) return guard(other("a reply to an invitation"));
+  if (!opts.forwarded && FORWARDED.test(subject)) return guard(readForward(m, s));
   const scam = SCAM.exec(text);
   if (scam) return guard(other(scam[0]));
-  if (lookAlike(s)) return guard(other(`look-alike domain ${s.domain}`));
-  if (SYSTEM_SENDER.test(`${s.name} ${s.local}`) || endsWithDomain(s.domain, SYSTEM_DOMAINS)) return guard(other("calendar or meeting notice"));
+  if (!anon && lookAlike(s)) return guard(other(`look-alike domain ${s.domain}`));
+  if (SYSTEM_SENDER.test(`${s.name} ${s.local}`) || endsWithDomain(s.domain, CALENDAR_DOMAINS)) return guard(calendarNotice(s, subject, snippet));
   const board = endsWithDomain(s.domain, JOB_BOARDS), vendor = endsWithDomain(s.domain, ASSESSMENT_VENDORS);
-  const free = endsWithDomain(s.domain, FREE_MAIL), ats = atsSender(s);
+  const free = endsWithDomain(s.domain, FREE_MAIL), ats = !anon && atsSender(s);
+  const all = normText(text);
+  // WO-046: the language the message is in besides English, and that language's reader (null: English only).
+  const lang = langOf(all), W: LangReader | null = lang ? LANG_READERS[lang] : null;
+  const jobWord = (t: string) => JOB_CUE.test(t) || !!W?.job.test(normText(t));
   // An ATS or a vendor writes only about jobs; "Your Visa application" from Visa's careers site is one.
-  const notJob = ats || vendor ? null : NOT_A_JOB.exec(text);
+  const notJob = ats || vendor ? null : NOT_A_JOB.exec(text) ?? W?.notJob.exec(all) ?? null;
   // WO-045: a reply in a thread the person is in ("Re: Interview feedback?") is not a feedback form.
-  const noise = NOISE_SUBJECT.exec(REPLY_PREFIX.test(subject) ? subject.replace(/\bfeedback\b/gi, "") : subject) ?? NOISE_TEXT.exec(text) ?? (notJob && ![collapsed(cleanName(s.name)), s.label].includes(collapsed(notJob[0].split(" ")[0])) ? notJob : null);
+  const noise = NOISE_SUBJECT.exec(REPLY_PREFIX.test(subject) ? subject.replace(/\bfeedback\b/gi, "") : subject) ?? NOISE_TEXT.exec(text) ??
+    W?.noiseSubject.exec(normText(subject)) ?? W?.noiseText.exec(all) ??
+    (notJob && ![collapsed(cleanName(s.name)), s.label].includes(collapsed(notJob[0].split(" ")[0])) ? notJob : null);
   if (noise) return guard(other(noise[0]));
   if (!ats && !vendor && ADMISSIONS_SENDER.test(`${s.name} ${s.local}`)) return guard(other("admissions office"));
-  if (/^(job-?alerts?|jobalerts-noreply|alerts?|digest|newsletter|jobs-listings|inmail)/i.test(s.local)) return guard(other(s.local));
+  if (/^(job-?alerts?|jobalerts-noreply|alerts?|digest|newsletter|jobs-listings|inmail|jobagent|alertas|offerte)/i.test(s.local)) return guard(other(s.local));
   const live = text.replace(PAST_STEP, " ").replace(MAYBE_STEP, " ");
   const cold = !ats && !vendor ? COLD.exec(text) : null;
   // A person at a company domain; only such a sender writes a recruiter's reply. Cold outreach is not a reply to anything.
-  const person = !board && !free && !vendor && !ats && looksLikePerson(s) && !COLD.test(text);
+  const person = !anon && !board && !free && !vendor && !ats && looksLikePerson(s) && !COLD.test(text);
   const f = new Map<string, string>();
   for (const [kind, re, needs] of RULES) {
     // WO-043: a rejection phrase counts only in a clause that decides something: not in a condition ("if you are not
@@ -508,8 +556,18 @@ function readMail(m: MailMeta): { out: Classified; features: Map<string, string>
     const hit = kind === "rejection" ? decidingClauses(text).map((c) => re.exec(c)).find((h) => h) ?? null : re.exec(kind === "offer" ? unNegated(live) : live);
     if (hit && (!needs || needs.test(text)) && !f.has(`rule:${kind}`)) f.set(`rule:${kind}`, hit[0]);
   }
+  // WO-046: the text in the message's language, without the steps already done or that may come.
+  let alive = normText(live);
+  if (W) alive = alive.replace(W.past, " ").replace(W.maybe, " ");
+  const foreignDeciding = W ? langSentences(all, W).join(". ") : "";
+  // WO-045: an offer said not to be made ("we won't be extending an offer") is not offer talk; only the rejection reads it.
+  const aliveOffer = W ? langUnNegated(normText(unNegated(live)).replace(W.past, " ").replace(W.maybe, " "), W) : normText(unNegated(live));
+  if (W) for (const [kind, re] of W.rules) {
+    const hit = re.exec(kind === "rejection" ? foreignDeciding : kind === "offer" ? aliveOffer : alive);
+    if (hit && !f.has(`rule:${kind}`)) f.set(`rule:${kind}`, hit[0]);
+  }
   const replied = REPLY_PREFIX.exec(subject);
-  const reply = RECRUITER_TEXT.exec(text) ?? (replied ? [replied[0].trim()] : null);
+  const reply = RECRUITER_TEXT.exec(text) ?? W?.recruiter.exec(all) ?? (replied ? [replied[0].trim()] : null);
   // WO-045: a sender known only by a given name ("Ollie") is a person, but a bare "Re:" from one is not a recruiter's reply
   // (the WO-024 hole for full names, "Re: lunch", is not widened).
   if (person && reply && (personName(s.name) || !replied || reply[0] !== replied[0].trim())) f.set("rule:recruiter_reply", reply[0]);
@@ -519,16 +577,26 @@ function readMail(m: MailMeta): { out: Classified; features: Map<string, string>
   if (free) f.set("s:free", s.domain);
   if (person) f.set("s:person", s.address);
   if (replied) f.set("s:re", replied[0].trim());
-  const all = normText(text), alive = normText(live), deciding = decidingClauses(all).join(". ");
-  // WO-045: an offer said not to be made ("we won't be extending an offer") is not offer talk; only the rejection reads it.
-  const aliveOffer = normText(unNegated(live));
+  const deciding = decidingClauses(all).join(". ");
   for (const [name, rx, on] of FAMILIES) {
     const hit = rx.exec(on === "live" ? (name.startsWith("of:") ? aliveOffer : alive) : name.startsWith("rj:") ? deciding : all);
+    if (hit) f.set(name, hit[0]);
+  }
+  // WO-046: the same families in the message's language; each sets the English family's feature, read on the same text.
+  if (W) for (const [name, rx] of W.families) {
+    if (f.has(name)) continue;
+    const on = FAMILY_ON.get(name) ?? "live";
+    const hit = rx.exec(on === "live" ? (name.startsWith("of:") ? aliveOffer : alive) : name.startsWith("rj:") ? foreignDeciding : all);
     if (hit) f.set(name, hit[0]);
   }
   for (const c of clauses(all)) {
     if (NOT_A_DECISION.test(c)) continue;
     const hit = NEGATED_PROGRESS.exec(c);
+    if (hit) { f.set("rj:negated", hit[0]); break; }
+  }
+  // WO-046: a negator in front of a verb of progress in the message's language ("leider ... nicht", "lamentablemente no").
+  if (W && !f.has("rj:negated")) for (const c of langClauses(all, W)) {
+    const hit = W.negated.exec(c);
     if (hit) { f.set("rj:negated", hit[0]); break; }
   }
   const scores = mailScores(f);
@@ -543,10 +611,10 @@ function readMail(m: MailMeta): { out: Classified; features: Map<string, string>
   // A kind is said only on its own words: a sender, a greeting and a thank-you never say "no" (or anything) by themselves.
   if (kind !== "other" && ![...f.keys()].some((k) => k.startsWith(OWN[kind]) || k === `rule:${kind}`)) kind = "other";
   // A recruiter's reply comes from a person at a company; without the WO-024 reply rule it needs a job word too.
-  if (kind === "recruiter_reply" && (!person || (!f.has("rule:recruiter_reply") && !JOB_CUE.test(text)))) kind = "other";
+  if (kind === "recruiter_reply" && (!person || (!f.has("rule:recruiter_reply") && !jobWord(text)))) kind = "other";
   // A call or a chat is an interview only when the words refer to the person's application (WO-040 review: a sales rep or
   // a sourcer asks for a call too). An interview noun, a rule's phrase or an ATS sender already says it is about one.
-  if (kind === "interview" && !f.has("rule:interview") && !f.has("iv:noun") && !ats && !APP_REF.test(text)) kind = "other";
+  if (kind === "interview" && !f.has("rule:interview") && !f.has("iv:noun") && !ats && !APP_REF.test(text) && !W?.job.test(all)) kind = "other";
   // Words that decide against the person: a rejection when it leads every other status (under the share bar too: these
   // families are written to be decisive), otherwise nothing at all.
   if (DECIDED_AGAINST.some((k) => f.has(k))) kind = FORWARD.every((k) => scores.rejection >= scores[k]) ? "rejection" : "other";
@@ -564,17 +632,141 @@ function readMail(m: MailMeta): { out: Classified; features: Map<string, string>
     if (cold) return said(other(cold[0]));
     // An automated sender that is not an ATS writes about a job only in job words; "we regret that we are unable to ship"
     // is a shop (WO-040 review: rejections too).
-    if (!ats && !vendor && !board && !looksLikePerson(s) && !JOB_SENDER.test(`${s.local} ${s.name}`) && !JOB_CUE.test(text)) return said(other(`no job word: ${phrase}`));
+    if (!ats && !vendor && !board && !looksLikePerson(s) && !JOB_SENDER.test(`${s.local} ${s.name}`) && !jobWord(text)) return said(other(`no job word: ${phrase}`));
     const company = companyOf(s, subject, snippet, vendor);
     if (board && !company) return said(other("job board, no employer named"));
-    return said({ kind, company, role: roleOf(subject, snippet), domain: s.domain, evidence: evidenceLine(kind, phrase, subject, s.domain) });
+    return said({ kind, company, role: roleOf(subject, snippet), domain: s.domain || undefined, evidence: evidenceLine(kind, phrase, subject, s.domain) });
   }
   if (COLD.test(text)) return { out: other(COLD.exec(text)![0]), features: f };
   // Unclear, from an employer's ATS or a vendor, or naming the job, with a step word: "other" by the rules, but worth a
   // second look. A person's "status of your filing" or a shop's "order status" names no job and is never ambiguous.
   const out = other("no status phrase");
-  if (!board && !free && (ats || vendor || JOB_CUE.test(text)) && STEP_CUE.test(text)) out.ambiguous = true;
+  if (!board && !free && !anon && (ats || vendor || jobWord(text)) && STEP_CUE.test(text)) out.ambiguous = true;
   return { out, features: f };
+}
+// WO-046: the mode (whole text or live text) each English family reads in; a language's family reads the same.
+const FAMILY_ON = new Map(FAMILIES.map(([name, , on]) => [name, on]));
+// WO-046: the clauses of a text (split at commas too) that can carry a decision in the message's language: not one that
+// opens with a condition, an instruction, or one about other people. langSentences keeps the rest of each sentence
+// together, so a decision split by a relative clause still reads ("die Position, auf die Sie sich beworben haben, wurde
+// besetzt").
+const langClauses = (n: string, W: LangReader) => n.split(/[.;!?\n,]+/).filter((c) => !CONDITION_FIRST.test(c) && !W.noDecision.test(c.trim()));
+const langSentences = (n: string, W: LangReader) => n.split(/[.;!?\n]+/).map((sentence) => langClauses(sentence, W).join(",")).filter((x) => x.trim());
+// WO-046: the text without the sentences that negate a step in the message's language ("no podemos ofrecerte el puesto").
+const langUnNegated = (n: string, W: LangReader) => n.split(/(?<=[.;!?])/).filter((sentence) => !langClauses(sentence, W).some((c) => W.negated.test(c))).join(" ");
+
+// ------------------------------------------------------------------------------------------------ WO-046: calendar notices
+// A calendar or scheduling tool repeats an event's title; the tool is never the employer (WO-040 review B3) and anyone can
+// title an event. Such a notice reads as an interview only when its event names an interview, an employer (not a person,
+// not the tool) and the job, nothing in it decides against the person, and it is not practice, a debrief or a social
+// event; it is then marked via "calendar", which planUpdates treats as evidence only. Anything else from a calendar is
+// "other", as before.
+const CAL_PREFIX = /^\s*((updated |new )?(invitation|event|invite)( updated)?|rescheduled|confirmed|new event|updated event|meeting invitation|einladung|aktualisierte einladung|neuer termin|invitación|invitación actualizada|nuevo evento|convite|convite atualizado|novo evento|invitation mise à jour|nouvel événement|invito|invito aggiornato|nuovo evento|uitnodiging|bijgewerkte uitnodiging)\s*:\s*/i;
+const CAL_EVENT = [
+  /(?:topic|event type|event|evento|thema|onderwerp|sujet|oggetto)\s*:\s*([^.]+)/i,
+  /invited to the following event[.:]?\s*([^.]+)/i,
+  /(?:has invited you to|is inviting you to|invited you to|eingeladen:|teams meeting:|has been scheduled:)\s*(?:a scheduled zoom meeting\.\s*)?([^.]+)/i,
+];
+const CAL_INTERVIEW = /(?<![\p{L}])(interviews?|phone screen|recruiter screen|technical screen|tech screen|hiring manager (chat|call|conversation|screen)|onsite|on-site|superday|power day|final round|panel|entrevista|entretien|vorstellungsgespräch|bewerbungsgespräch|kennenlerngespräch|colloquio|sollicitatiegesprek|kennismakingsgesprek)(?![\p{L}])/iu;
+const CAL_NOT = /(?<![\p{L}])(mock|practice|prep|preparation|workshop|webinar|info session|training|study|class|course|coaching|debrief|resume review|career (center|centre|fair)|office hours|1:1|one-on-one|sync|standup|offsite|podcast|press|cancel+ed|cancelado|annulé|abgesagt|annullato|geannuleerd|simulacro|simulación|übung|oefen\p{L}*)(?![\p{L}])/iu;
+// A job title in the event ("Software Engineer III", "Payroll Operations Specialist"); "Hiring Manager" is who you meet.
+const CAL_ROLE = /(?<![\p{L}])(engineer|developer|analyst|scientist|designer|(?<!hiring )manager|specialist|associate|consultant|architect|administrator|coordinator|representative|technician|nurse|accountant|intern|internship|director|officer|assistant|attendant|advisor|adviser|banker|programmer|researcher|writer|editor|teacher|pharmacist|therapist|clerk|cashier|driver|operator|executive|strategist|marketer|planner|buyer|auditor|attorney|paralegal|owner|sde|swe|sre|ingenier[oa]|desarrollador[a]?|analista|programador[a]?|\p{L}*ingenieur(in)?|\p{L}*entwickler(in)?|développeu(r|se)|ingénieur(e)?|sviluppatore|ingegnere|ontwikkelaar)(?![\p{L}])/iu;
+// Words in an event's title that are not the employer: the step, the tool, the team.
+const CAL_STRIP = /(?<![\p{L}])(interviews?|phone|screen(ing)?|technical|tech|recruiter|hiring manager|call|chat|conversation|final|round|onsite|on-site|virtual|system design|coding|behaviou?ral|panel|superday|power day|intro(ductory)?|initial|first|second|third|partner|\d+[- ]?min(ute)?s?|minutes?|meeting|invitation|invite|calendar|zoom|teams|microsoft|google meet|webex|calendly|engineering|recruiting|recruitment|talent|hiring|team|careers?|hr|entrevista|entretien|vorstellungsgespräch|bewerbungsgespräch|colloquio|sollicitatiegesprek)(?![\p{L}])/giu;
+// A word a job title starts with: the employer is what comes before it ("Datadog Solutions Engineer" is Datadog).
+const ROLE_LEAD = /^(senior|sr|junior|jr|staff|principal|lead|head|chief|software|data|solutions|product|project|program|sales|marketing|customer|support|backend|frontend|front-end|full-stack|fullstack|mobile|cloud|security|network|systems|site|machine|ml|ai|research|clinical|registered|flight|payroll|operations|ops|business|financial|finance|investment|account|accounting|audit|risk|quality|qa|devops|platform|infrastructure|mechanical|electrical|civil|field|graduate|summer|ux|ui|visual|brand|content|community|legal|supply|logistics|warehouse|retail|store|medical|pharmacy|dental|python|java|ios|android|desarrollador|projektingenieur|ingeniero|analista)$/i;
+function calendarEmployer(events: string[]): string | undefined {
+  for (const ev of events) {
+    // "(Ramp, Software Engineer - Growth)": the employer, then the job.
+    for (const p of ev.matchAll(/\(([^(),]{2,40}),\s*([^()]+)\)/g)) if (!CAL_ROLE.test(p[1]) && CAL_ROLE.test(p[2]) && /^\s*\p{Lu}/u.test(p[1])) return p[1].trim();
+    const parts = ev.replace(/\([^()]*\)/g, " ").split(/\s[-–—|/]\s|\s<>\s|:\s|,\s|\.\s|\s(?=(?:with|w\/|at|bei|chez|con|com|met|presso)\s)/i);
+    for (const raw of parts) {
+      const withPerson = /^\s*(with|w\/)\s/i.test(raw);
+      const seg = raw.replace(/^\s*(with|w\/|at|bei|chez|con|com|met|presso)\s+/i, "").trim();
+      const stripped = seg.replace(CAL_STRIP, " ").replace(/\s+/g, " ").replace(/^[\s,.:;&-]+|[\s,.:;&-]+$/g, "");
+      const words: string[] = [];
+      for (const w of stripped.split(" ")) { if (!w || ROLE_LEAD.test(w) || CAL_ROLE.test(w)) break; words.push(w); }
+      const name = words.join(" ");
+      if (!name || !/^\p{Lu}|^\p{N}/u.test(name) || /^\d/.test(name)) continue;
+      // Who you meet is a person, never the employer ("with Priya Raman"); a team's name is ("with Toast Engineering").
+      if (personName(name) || (withPerson && stripped === seg && /^\p{Lu}[\p{Ll}'’-]+$/u.test(name))) continue;
+      if (/^(google calendar|outlook|zoom|calendly|teams|webex)$/i.test(name)) continue;
+      return name;
+    }
+  }
+  return undefined;
+}
+function calendarNotice(s: Sender, subject: string, snippet: string): Classified {
+  const no = (why: string): Classified => ({ kind: "other", evidence: evidenceLine("other", why, subject, s.domain) });
+  const title = subject.replace(CAL_PREFIX, "").replace(/\s+@\s+.*$/, "").replace(/\s*[-–—]\s*zoom meeting invitation\s*$/i, "").trim();
+  const fromSnippet = CAL_EVENT.map((re) => re.exec(snippet)?.[1]?.trim()).filter((x): x is string => !!x);
+  const events = [title, ...fromSnippet, snippet.split(/(?<=[.!?])\s/)[0]];
+  const ev = events.join(" | ");
+  const text = `${subject}\n${snippet}`;
+  if (!CAL_INTERVIEW.test(ev) || CAL_NOT.test(text)) return no("calendar or meeting notice");
+  if (RULES[0][1].test(text) || NEGATED_PROGRESS.test(normText(text))) return no("calendar or meeting notice");
+  const company = calendarEmployer(events);
+  if (!company || !CAL_ROLE.test(ev)) return no("calendar or meeting notice");
+  const named = cleanName(company);
+  const phrase = CAL_INTERVIEW.exec(ev)![0];
+  return { kind: "interview", company: DOMAIN_ALIASES[collapsed(named)] ?? named, role: roleOf(title, snippet), domain: s.domain || undefined, via: "calendar", evidence: evidenceLine("interview", `calendar: ${phrase}`, subject, s.domain) };
+}
+
+// ------------------------------------------------------------------------------------------------ WO-046: forwarded mail
+// The forwarder is the person; the employer can only come from the forwarded part. Its subject and words are read as the
+// original message's, from the original sender when the forwarded part shows one ("From: Figma <no-reply@ashbyhq.com>"),
+// otherwise from a sender known only by the name shown (or none). Either way the result is marked via "forward"; without
+// the original sender's address it is evidence only (planUpdates), and fromEmployer never counts a forward.
+const FWD_MARK = /-{2,}\s*(forwarded message|original message|mensaje reenviado|mensaje original|mensagem encaminhada|mensagem original|message transféré|message d'origine|weitergeleitete nachricht|ursprüngliche nachricht|messaggio inoltrato|messaggio originale|doorgestuurd bericht|oorspronkelijk bericht)\s*-{2,}|begin forwarded message\s*:|début du message réexpédié\s*:|anfang der weitergeleiteten nachricht\s*:/i;
+const FWD_FIELDS = String.raw`from|de|von|da|van|date|sent|fecha|enviado|data|envoyé|datum|gesendet|inviato|verzonden|to|para|an|aan|cc|subject|asunto|assunto|objet|betreff|oggetto|onderwerp`;
+const FWD_HEAD = new RegExp(String.raw`^\s*(${FWD_FIELDS})\s*:\s*`, "i");
+const FWD_NEXT = new RegExp(String.raw`\s(?:${FWD_FIELDS})\s*:\s`, "i");
+const GREETING = String.raw`hi|hello|dear|hey|hola|bonjour|hallo|ciao|olá|oi|beste|hoi|sehr geehrte\w*|gentile|estimad[oa]|prezad[oa]|buongiorno|guten tag`;
+export function forwardedPart(subject: string, snippet: string): { from?: string; name?: string; subject: string; snippet: string } {
+  const mark = FWD_MARK.exec(snippet);
+  let rest = mark ? snippet.slice(mark.index + mark[0].length) : snippet;
+  let from: string | undefined, name: string | undefined, subj: string | undefined;
+  for (let i = 0; i < 6; i++) {
+    const head = FWD_HEAD.exec(rest);
+    if (!head) break;
+    const field = head[1].toLowerCase();
+    rest = rest.slice(head[0].length);
+    const next = FWD_NEXT.exec(rest);
+    if (/^(from|de|von|da|van)$/.test(field)) {
+      const addr = /^"?([^"<>]*?)"?\s*<([^<>\s]+@[^<>\s]+)>/.exec(rest) ?? /^()([^\s<>]+@[^\s<>]+)/.exec(rest);
+      if (addr) {
+        name = addr[1].trim() || undefined;
+        from = name ? `${name} <${addr[2]}>` : addr[2];
+        rest = rest.slice(addr[0].length);
+        continue;
+      }
+      const nm = new RegExp(String.raw`^([^.<>\n]{1,80}?)(?=\s(?:${FWD_FIELDS})\s*:|[.!?](?:\s|$)|$)`, "i").exec(rest);
+      if (nm) { name = nm[1].trim(); rest = rest.slice(nm[0].length).replace(/^[.!?]/, ""); }
+      continue;
+    }
+    if (/^(subject|asunto|assunto|objet|betreff|oggetto|onderwerp)$/.test(field)) {
+      const upto = next ? rest.slice(0, next.index) : rest;
+      const sm = new RegExp(String.raw`^(.{1,150}?)(?=[.!?]\s|\s(?:${GREETING})\b|$)`, "i").exec(upto);
+      if (sm) { subj = sm[1].trim(); rest = rest.slice(sm[0].length).replace(/^[.!?]/, ""); }
+      continue;
+    }
+    // A date, To or Cc line: up to the next field, else one address, else up to the date's year and time.
+    if (next && next.index < 100) rest = rest.slice(next.index);
+    else if (/^(to|para|an|aan|cc)$/.test(field)) rest = rest.replace(/^\S+/, "");
+    else rest = rest.replace(/^[^.]*?\d{4}(,? (at )?\d{1,2}:\d\d( ?[ap]m)?)?/i, "");
+  }
+  return { from, name, subject: subj ?? subject.replace(/^(\s*(fwd?|fw|wg|tr|rv|enc|i|doorst|wtr)\s*:\s*)+/i, "").trim(), snippet: rest.trim() };
+}
+function readForward(m: MailMeta, outer: Sender): Classified {
+  const part = forwardedPart(String(m.subject ?? ""), String(m.snippet ?? ""));
+  const inner: MailMeta = { from: part.from ?? "", subject: part.subject, snippet: part.snippet, date: m.date };
+  const c = readMail(inner, part.from ? { forwarded: true } : { forwarded: true, anonymous: part.name ?? "" }).out;
+  const evidence = c.evidence.replace(/^(\w+): /, "$1 (forwarded): ");
+  if (c.kind === "other") return { kind: "other", evidence: evidenceLine("other", `forwarded: ${c.evidence}`, String(m.subject ?? ""), outer.domain) };
+  const out: Classified = { ...c, evidence, via: c.via ?? "forward" };
+  delete out.ambiguous;
+  if (part.from && out.via === "forward") out.forwarded_from = parseFrom(part.from).address;
+  return out;
 }
 // A kind's score: its bias plus the weight of every feature present.
 export function mailScores(f: Map<string, string> | Set<string>): Record<MailKind, number> {
@@ -765,6 +957,8 @@ export function authenticated(auth: string[] | undefined, domain: string): boole
   return false;
 }
 export function fromEmployer(mail: Classified, app: { company: string; url?: string }, from = "", auth?: string[]): boolean {
+  // WO-046: a calendar tool's notice and a forwarded message are never the employer's own mail, whatever they show.
+  if (mail.via) return false;
   const domain = (mail.domain ?? "").toLowerCase();
   if (!domain || endsWithDomain(domain, [...ASSESSMENT_VENDORS, ...JOB_BOARDS, ...FREE_MAIL, ...NEVER_CONFIRMS])) return false;
   if (!authenticated(auth, domain)) return false; // a From line alone proves nothing
@@ -831,7 +1025,10 @@ export interface StatusText { key: string; hash: string; ref: string; text: stri
 // default). Both are kind thank_you in the table; only the text that offers them differs.
 export interface Draft { key: string; ref: string; kind: "followup" | "thank_you"; company: string; role?: string; text: string; basis: string; step?: "thanks" | "nudge" }
 // refused (WO-040): matched an application but not from that employer's own mail (an offer, or anything the model decided).
-export interface Plan { events: StatusEvent[]; texts: StatusText[]; drafts: Draft[]; apps: TrackedApp[]; unmatched: number; ambiguous: number; other: number; refused: number }
+// evidence (WO-046): a calendar tool's notice, or a forward that does not show the original sender, read as a status but
+// only recorded: the application it names (ref, null when none), never a stage move, an event, a text or a new application.
+export interface Evidence { hash: string; ref: string | null; kind: Exclude<MailKind, "other">; via: "calendar" | "forward"; company?: string }
+export interface Plan { events: StatusEvent[]; texts: StatusText[]; drafts: Draft[]; apps: TrackedApp[]; unmatched: number; ambiguous: number; other: number; refused: number; evidence: Evidence[] }
 
 export const FOLLOW_UP_DAYS = 14, THANK_YOU_DAYS = 7, DRAFT_WINDOW_DAYS = 30;
 const DAY = 86400000;
@@ -876,12 +1073,19 @@ export function foldEvents(apps: TrackedApp[], events: StatusEvent[]): TrackedAp
 // moves an application the person already has, and only from that employer's own mail.
 export function planUpdates(mails: MailIn[], applications: TrackedApp[], now: number, decided?: Map<string, Classified>): Plan {
   const apps: TrackedApp[] = applications.map((a) => ({ ...a, events: [...(a.events ?? [])] }));
-  const plan: Plan = { events: [], texts: [], drafts: [], apps, unmatched: 0, ambiguous: 0, other: 0, refused: 0 };
+  const plan: Plan = { events: [], texts: [], drafts: [], apps, unmatched: 0, ambiguous: 0, other: 0, refused: 0, evidence: [] };
   const sorted = [...mails].sort((a, b) => String(a.date).localeCompare(String(b.date)));
   for (const m of sorted) {
     const c = decided?.get(m.hash) ?? classifyMail(m);
     if (c.kind === "other") { plan.other++; continue; }
     const hits = candidates(c, apps);
+    // WO-046: a calendar tool's notice, or a forward without the original sender, is evidence only (WO-040 review B3: a
+    // calendar is never the employer; the forwarder is the person). It is recorded against the application it names and
+    // moves nothing: no stage, no event, no text, no new application.
+    if (c.via === "calendar" || (c.via === "forward" && !c.forwarded_from)) {
+      plan.evidence.push({ hash: m.hash, ref: pick(hits, c.role ?? m.subject)?.ref ?? null, kind: c.kind, via: c.via, company: c.company });
+      continue;
+    }
     let app = pick(hits, c.role ?? m.subject);
     let fresh = false;
     if (!app && hits.length) { plan.ambiguous++; continue; } // two applications there and nothing says which
@@ -890,7 +1094,8 @@ export function planUpdates(mails: MailIn[], applications: TrackedApp[], now: nu
       // naming the employer. An offer, interview, test, rejection or reply about nothing the person applied to is not
       // theirs to be told about ("Immediate job offer - virtual assistant" is a scam, not an offer): counted, never texted.
       // The model's reading never starts one (WO-040): only the employer's own words, read by the rules.
-      if (!c.company || c.kind !== "received" || c.source === "model") { plan.unmatched++; continue; }
+      // WO-046: nor does a forward, even one that shows the employer's sender (someone else's receipt can be forwarded).
+      if (!c.company || c.kind !== "received" || c.source === "model" || c.via) { plan.unmatched++; continue; }
       app = { ref: `mail:${slug(c.company)}${c.role ? ":" + slug(c.role) : ""}`, company: c.company, role: c.role, applied_at: m.date, stage: "Submitted", source: "mail", events: [] };
       if (apps.some((a) => a.ref === app!.ref)) { plan.unmatched++; continue; }
       apps.push(app);

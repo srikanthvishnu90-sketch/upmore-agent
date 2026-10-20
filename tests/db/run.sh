@@ -156,6 +156,9 @@ done
 # also replays it on top of every earlier migration.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
+# WO-036: hired-candidate background aggregates and the PDL credit log. Idempotent: applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021030000_career_hired_backgrounds.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" ]]; then continue; fi

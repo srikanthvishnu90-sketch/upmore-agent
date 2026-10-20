@@ -9,8 +9,9 @@ export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
 // the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
 // `show` (WO-033): a tool whose output the person must read exactly (a batch of outreach drafts, each in full) sets it;
-// the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string } } }
+// the reply is then code's text, never the model's retelling, and `intent` makes the next text an answer to it. `parts`
+// (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -26,7 +27,7 @@ export interface TurnResult {
   tool_calls: { name: string; ok: boolean; effect: Effect | null }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error";
-  show?: { intent: string; text: string };
+  show?: { intent: string; text: string; parts?: string[] };
 }
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";

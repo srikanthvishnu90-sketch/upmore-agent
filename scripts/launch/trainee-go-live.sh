@@ -82,12 +82,15 @@ fi
 # Every migration from the Trainee set on, in order, each with its proof on the live schema: one object it creates (a
 # file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
 # 20261019 on is not listed here, so a new one cannot ship without go-live applying it.
+# 20261019020000_site_capture.sql is main's landing-page capture, already live (WO-081): its mark skips it there. Trunk's
+# channel delivery moved to 20261019020001 so the two never share a version.
 MIGRATIONS=(
   20261019000000_channel_threads.sql
   20261019000001_career_postings.sql
   20261019010000_channel_pending_approvals.sql
   20261019010001_career_alerts.sql
-  20261019020000_channel_delivery.sql
+  20261019020000_site_capture.sql
+  20261019020001_channel_delivery.sql
   20261019030000_channel_inbound.sql
   20261020000000_channel_artifacts.sql
   20261020000001_career_apply_jobs.sql
@@ -134,6 +137,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_ingest_state') is not null"
   "to_regclass('public.channel_pending_approvals') is not null"
   "to_regclass('public.career_proactive_runs') is not null"
+  "to_regclass('public.site_waitlist') is not null and to_regclass('public.site_careers_applications') is not null and exists (select 1 from storage.buckets where id = 'careers-resumes')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')"
   "to_regclass('public.channel_artifacts') is not null"

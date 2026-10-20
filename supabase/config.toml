@@ -45,3 +45,12 @@ verify_jwt = true
 
 [functions.career-email-code]
 verify_jwt = true
+
+# Trainee landing page capture: public endpoints (the static page ships no
+# credentials). Handlers write with the service role into RLS-locked tables
+# (site_waitlist, site_careers_applications) and a private storage bucket.
+[functions.site-signup]
+verify_jwt = false
+
+[functions.site-careers]
+verify_jwt = false

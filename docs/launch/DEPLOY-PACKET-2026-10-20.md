@@ -73,11 +73,15 @@ own secret).
 **Schedules** (step 5): the three pg_cron jobs.
 
 ## Risks to settle before the word
-1. **Migration version collision with `main`.**
-   - `main` carries `20261019020000_site_capture.sql`, said to be live. Trunk's `20261019020000_channel_delivery.sql`
-     has the same version.
-   - The go-live script checks by table, so it applies `channel_delivery` correctly.
-   - **A version-based `supabase db push` would skip it.** Use the script, never `db push`, until WO-071 re-versions.
+1. **Migration version collision with `main`: settled by WO-081 (the second half of WO-071).**
+   - `main`'s `20261019020000_site_capture.sql` is treated as live. It is on trunk now with its version and bytes
+     unchanged (sha256 pinned in `tests/architect/wo-081-site-port.test.ts`).
+   - Trunk's channel migration, never deployed, moved to `20261019020001_channel_delivery.sql` (renamed only, content
+     unchanged), so no two migrations share a version (WO-060/2) and a version-based push skips neither.
+   - The go-live script lists both; the site capture's live-schema mark (both tables and the `careers-resumes` bucket)
+     skips it on production. Still use the script, never `db push`: the live version ledger cannot be read from here.
+   - `site-signup` and `site-careers` are live from `main`; trunk's copies are byte-identical, and go-live does not
+     redeploy them.
 2. **Two channel stacks.**
    - Trunk's `trainee-telegram` / `trainee-whatsapp` (`channel_contacts`), and the deployed line's `telegram-inbound` /
      `whatsapp-inbound` (`channel_threads`).

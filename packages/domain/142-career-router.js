@@ -4759,6 +4759,14 @@ const CareerRouter = (() => {
       return null;
     }
     if (!/\bnegotiat|counter|offer\b/.test(t)) return null;
+    // PROBE-D binding rule (FR-PENDING-ALLOCATION (probe-d-binding)):
+    // an ask that NAMES the counter or the extension draft is the
+    // negotiation's in any thread — the user is directing work on the
+    // standing record itself, and the account record is a legitimate
+    // ground for exactly that ask. This gate owns only the SILENT
+    // builds: advice, plans and judgments that would run on the
+    // inherited figure without the user naming the work.
+    if (/\b(counter|extension)\b/.test(t) && /\b(draft|write|compose|email|letter)\b/.test(t)) return null;
     const fig = th.amount ? `$${Number(th.amount).toLocaleString()} base` : th.hourly ? `$${Number(th.hourly)} an hour` : "an offer";
     const reply = compose({ headline: "One check before I build on that offer.", facts: [`In an earlier conversation, an offer went on your account record: ${fig}${th.firm ? ` at ${th.firm}` : th.descriptor ? ` from ${th.descriptor}` : ""}${th.deadline ? `, answer by ${th.deadline}` : ""}. Nothing about an offer has been stated in THIS conversation yet, and I will not quietly adopt the earlier record as this offer's terms — a figure counts as yours here only when you state it here.`], nextStep: "If this is that same offer, say \"same one\" and the counter plan runs on it in this conversation. If it is a new offer, tell me its base figure (and the company, when you are ready) and we build from your words." });
     return { intent: "negotiation_advice", reply, resultStatus: "awaiting_user", sends: 0 };

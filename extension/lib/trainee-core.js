@@ -3830,7 +3830,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function planForm(o) {
     const identity = o.schema.filter((f) => isIdentityField(f));
     const count = /* @__PURE__ */ new Map();
-    for (const f of o.schema) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
+    for (const f of o.schema) if (!fileAlternative(f, o.schema)) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
     const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
     const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
     const posting = (fs) => [

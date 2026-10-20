@@ -32,7 +32,7 @@ test('the reply is one short line and the link alone, and only an exact connect 
   assert.equal(CC.parse('https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca'), 'alpaca');
   assert.equal(CC.parse('  https://preview-1.vercel.app/connect/gmail/ '), 'gmail');
   for (const not of ['http://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca', 'see https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca', 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/outlook', 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca?x=1']) assert.equal(CC.parse(not), null, not);
-  assert.equal(CC.title('alpaca'), 'Connect Alpaca to Upmore');
+  assert.equal(CC.title('alpaca'), 'Connect Alpaca to Trainee');
   assert.equal(CC.host(CC.url('alpaca')), 'upmore-srikanthvishnu90-sketchs-projects.vercel.app');
   // The production app the links point at is the one the brokerage callback returns to.
   assert.ok(read('supabase/functions/_shared/broker_connect.ts').includes(`export const DEFAULT_APP_URL = "${CC.DEFAULT_BASE}";`));
@@ -64,7 +64,7 @@ test('the page behind each link carries the card for iMessage, and the images ar
   execFileSync('node', ['scripts/build-connect-cards.cjs', '--check'], { cwd: root, stdio: 'pipe' });
   for (const p of providers) {
     const html = read(`connect/${p}.html`);
-    assert.ok(html.includes(`<meta property="og:title" content="Connect ${CC.PROVIDERS[p].name} to Upmore">`));
+    assert.ok(html.includes(`<meta property="og:title" content="Connect ${CC.PROVIDERS[p].name} to Trainee">`));
     assert.ok(html.includes(`<meta property="og:image" content="${CC.DEFAULT_BASE}/img/connect/${p}.png">`));
     assert.ok(!/og:description/.test(html), 'title and domain only, as in the reference');
     assert.ok(html.includes(`location.replace("/?connect=${p}");`), 'opening it goes to the app, which starts the connection');
@@ -107,13 +107,13 @@ test('real company icons only: every logo on file is a real mark with its source
   assert.ok(read('index.html').includes('const BRAND_ICONS = [{"slug":"1password"'), 'the manifest is inlined in the built app');
 });
 
-test('the card is dark grey with the Upmore wordmark in Upmore green Libre Baskerville (a finance-style serif) centered below the logo, on the projects domain', () => {
+test('the card is dark grey with the Trainee wordmark in Trainee purple Libre Baskerville (a serif) centered below the logo, on the projects domain', () => {
   const { imageHtml } = require('../scripts/build-connect-cards.cjs');
   const html = imageHtml('alpaca');
   assert.match(html, /html, body \{[^}]*background: linear-gradient\(160deg, #26282B 0%, #161719 100%\);/);
   assert.match(html, /body \{ display: flex; flex-direction: column; align-items: center; justify-content: center;/);
-  assert.ok(html.indexOf('<div class="logo">') < html.indexOf('<div class="word">Upmore</div>'), 'the wordmark sits under the logo');
-  assert.match(html, /\.word \{[^}]*font: 400 72px\/1 "Libre Baskerville", Baskerville, Georgia, serif;[^}]*color: #2E9E6B;/);
+  assert.ok(html.indexOf('<div class="logo">') < html.indexOf('<div class="word">Trainee</div>'), 'the wordmark sits under the logo');
+  assert.match(html, /\.word \{[^}]*font: 400 72px\/1 "Libre Baskerville", Baskerville, Georgia, serif;[^}]*color: #9B7BB8;/);
   assert.ok(fs.existsSync(path.join(root, 'fonts/libre-baskerville-regular.woff2')) && /SIL Open Font License/.test(read('fonts/libre-baskerville-OFL.txt')), 'the font and its license are in the repo');
   const tpl = read('src/upmore-app-template.html');
   assert.ok(tpl.includes('.ccard-img { display: block; background: #1E1F22; }') && /\.amsg a\.ccard \{[^}]*background: #2C2C2E;/.test(tpl), 'the app draws the dark grey card with the dark grey strip');

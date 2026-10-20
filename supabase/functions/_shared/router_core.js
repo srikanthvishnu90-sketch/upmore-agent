@@ -8524,7 +8524,7 @@
 
   /* Connect cards (owner, 2026-10-11): every "connect X" moment looks like the owner's reference screenshot. One short
      line, then the link alone on its own line. In iMessage the link becomes a preview card: dark grey, the company's real logo in
-     the middle with the Upmore wordmark centered below it in green serif, and under it "Connect X to Upmore" with the domain. The card is
+     the middle with the Trainee wordmark centered below it in purple serif, and under it "Connect X to Trainee" with the domain. The card is
      drawn by the page behind the link (connect/<provider>.html: its og:title and og:image, img/connect/<provider>.png),
      and the app's chat draws the same card from the same image when a reply line is exactly that link.
      Real company icons only: a provider is listed here only with its real logo in img/brands/ (SOURCES.md says where each
@@ -8539,7 +8539,7 @@
     });
     const LEAD = "Not connected yet - here's the link.";
     const url = (provider, base) => `${String(base || DEFAULT_BASE).replace(/\/+$/, "")}/connect/${provider}`;
-    const title = provider => `Connect ${PROVIDERS[provider].name} to Upmore`;
+    const title = provider => `Connect ${PROVIDERS[provider].name} to Trainee`;
     // The reply is two bubbles, as in the reference: one short line (what did not happen, said plainly, then "here's the
     // link"), and the link alone, which iMessage and the app draw as the card.
     function message(provider, opts) {

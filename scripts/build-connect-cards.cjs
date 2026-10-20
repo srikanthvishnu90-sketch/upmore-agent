@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Connect cards (owner, 2026-10-11): builds what makes a connect link look like the owner's reference screenshot.
 //   connect/<provider>.html    the page behind https://<app>/connect/<provider>. iMessage reads its og:title
-//                              ("Connect Alpaca to Upmore") and og:image and draws the preview card itself (title and domain
+//                              ("Connect Alpaca to Trainee") and og:image and draws the preview card itself (title and domain
 //                              in the grey strip); a person who opens it is sent on to the app, which starts that connection.
-//   img/connect/<provider>.png 1200x630: dark grey, the company's real logo in the middle and the Upmore wordmark centered
-//                              right below it, in Upmore green, in Libre Baskerville (a Baskerville serif, the banknote and
-//                              financial-print face).
+//   img/connect/<provider>.png 1200x630: dark grey, the company's real logo in the middle and the Trainee wordmark centered
+//                              right below it, in Trainee purple, in Libre Baskerville (a Baskerville serif).
 //                              The app's chat draws the same card from the same image.
 // Providers and their real logos come from packages/domain/76-connect-cards.js and img/brands/ (SOURCES.md).
 //   node scripts/build-connect-cards.cjs            write the pages, and the images (needs Playwright + Chromium)
@@ -26,7 +25,7 @@ function page(p) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Upmore">
+<meta property="og:site_name" content="Trainee">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:url" content="${esc(link)}">
 <meta property="og:image" content="${esc(image)}">
@@ -54,12 +53,14 @@ function page(p) {
 `;
 }
 
-// The image, drawn in Chromium from the real logo file and Upmore's own typeface.
+// The image, drawn in Chromium from the real logo file and the bundled typeface.
 function imageHtml(p) {
   const svg = fs.readFileSync(path.join(root, CC.PROVIDERS[p].icon), "utf8");
-  // Owner, 2026-10-11: a dark grey card, the wordmark in Upmore green (#2E9E6B, the app's --accent) in a serif with a
-  // finance feel: Libre Baskerville (fonts/libre-baskerville-regular.woff2, SIL OFL 1.1, fonts/libre-baskerville-OFL.txt),
-  // bundled so the image renders the same on every machine.
+  // Owner, 2026-10-11: a dark grey card, the wordmark in a serif: Libre Baskerville (fonts/libre-baskerville-regular.woff2,
+  // SIL OFL 1.1, fonts/libre-baskerville-OFL.txt), bundled so the image renders the same on every machine.
+  // Owner, 2026-10-20: the same grey card for Trainee; the wordmark reads Trainee, in purple instead of green. #9B7BB8 is
+  // the mid tone of Trainee's plum scale (site/index.html: --plum #4A2F5E, gradient #7A5A93, --plum-light #D4C2E2), chosen
+  // because the plum itself is unreadable on this grey (1.3:1) and #9B7BB8 matches the old green's contrast (4.2-5.1:1).
   const font = "file://" + path.join(root, "fonts/libre-baskerville-regular.woff2");
   return `<!doctype html><html><head><style>
   @font-face { font-family: "Libre Baskerville"; font-weight: 400; src: url("${font}") format("woff2"); }
@@ -67,8 +68,8 @@ function imageHtml(p) {
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
   .logo { width: 172px; height: 172px; }
   .logo svg { width: 100%; height: 100%; display: block; }
-  .word { font: 400 72px/1 "Libre Baskerville", Baskerville, Georgia, serif; letter-spacing: 0.5px; color: #2E9E6B; }
-  </style></head><body><div class="logo">${svg}</div><div class="word">Upmore</div></body></html>`;
+  .word { font: 400 72px/1 "Libre Baskerville", Baskerville, Georgia, serif; letter-spacing: 0.5px; color: #9B7BB8; }
+  </style></head><body><div class="logo">${svg}</div><div class="word">Trainee</div></body></html>`;
 }
 
 // img/brands/SOURCES.md, from img/brands/brands.json: every real logo in the app, where it came from, under what license.
@@ -134,7 +135,7 @@ if (require.main === module) {
       const browser = await chromium.launch();
       const pg = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
       for (const p of providers) {
-        const tmp = path.join(require("node:os").tmpdir(), `upmore-connect-${p}.html`);
+        const tmp = path.join(require("node:os").tmpdir(), `trainee-connect-${p}.html`);
         fs.writeFileSync(tmp, imageHtml(p));
         await pg.goto("file://" + tmp);
         await pg.evaluate(() => document.fonts.ready);

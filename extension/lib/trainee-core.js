@@ -898,7 +898,16 @@
     ],
     [
       "country",
-      /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/
+      /\b(live|reside|based|located) in (the )?(united states|u\.?s\.?a?|canada|united kingdom)\b\??$/,
+      (q, t) => !/\b(employer|company|organi[sz]ation|team|office|headquarters?|client|manager|referr\w*)\b/.test(t)
+    ],
+    // WO-047: "Do you currently reside in the U.S.?" (no word edge after "U.S.") and "Are you based in the U.S.? We are only
+    // able to hire within the U.S." ask where the person lives, by country; "Are you currently located in Canada or the
+    // U.S?" names two. Only about the person ("you ... located in"), never compound with authorization, a move or a distance.
+    [
+      "country",
+      /\byou (are )?(currently |presently |now )?(live|living|reside|residing|based|located) in (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk)( or (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk))?(?![a-z])/,
+      (q, t) => !/authori|sponsor|visa|able to work|right to work|willing|relocat|commut|eligib|permit|miles|within \d|citizen/.test(t)
     ],
     [
       "country",
@@ -1470,7 +1479,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function yesNoFromFact(fact, value, question) {
     const q = low(question), v = low(value);
     const usAsked = /\bu\.?s\.?a?\b|united states|\bamerica\b/.test(q);
-    if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v ? "no" : null;
+    if ((fact === "citizenship" || fact === "country") && usAsked) return US.test(v) ? "yes" : v && !/\bor\b/.test(q) ? "no" : null;
     if (fact === "education_level") {
       const order = [
         "high_school",
@@ -1503,7 +1512,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (exact.length) return exact[0].value;
     if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
     const derived = question ? yesNoFromFact(fact, value, question) : null;
-    if (derived) return byYesNo(derived, options);
+    if (derived) {
+      const yn2 = byYesNo(derived, options);
+      if (yn2 || options.some((o) => yesNoOf(o.label) === "yes")) return yn2;
+    }
     switch (fact) {
       case "how_heard": {
         const rule = HOW_HEARD.find(([v2]) => v2.test(v));
@@ -1542,7 +1554,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "country":
       case "citizenship":
-        if (US.test(v)) return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+        if (US.test(v)) {
+          const itself = options.filter((o) => US.test(low(o.label)));
+          if (itself.length === 1) return itself[0].value;
+          return only(options.filter((o) => US.test(low(o.label)) || /^united states\b|u\.?s\.? citizen/.test(low(o.label))));
+        }
         return only(options.filter((o) => low(o.label).startsWith(v)));
       case "notice_period":
       case "start_date":

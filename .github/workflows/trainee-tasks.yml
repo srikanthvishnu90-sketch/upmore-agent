@@ -14,6 +14,8 @@ on:
       - evals/career/**
       - supabase/functions/_shared/agent/**
       - supabase/functions/agent-chat/career_brain.ts
+      # WO-073: the battery exercises search and the queue; their code reruns it.
+      - supabase/functions/_shared/career_*.ts
 permissions:
   contents: write
 concurrency: { group: trainee-tasks, cancel-in-progress: false }

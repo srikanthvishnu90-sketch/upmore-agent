@@ -75,16 +75,36 @@ function fnDiscoverFields(includeHidden) {
     for (const control of clone.querySelectorAll("input,select,textarea,button")) control.remove();
     return clone.textContent || "";
   };
+  // WO-031 review: a label that belongs to another control (its `for` names another field, or it wraps another field)
+  // never names this one: "<label for=a>Phone</label><input id=a><input aria-label='Referrer phone number'>" must not
+  // give the referrer's field the person's "Phone". Members of the same radio or checkbox group are not "another".
+  const sameGroup = (x, el) => x === el || (!!el.name && x.name === el.name && /^(radio|checkbox)$/i.test(x.type || ""));
+  const realControl = (x) => x.type !== "hidden" && !(typeof x.className === "string" && /requiredInput/.test(x.className));
+  function foreign(lab, el) {
+    const f = lab.getAttribute && lab.getAttribute("for");
+    if (f) {
+      const target = document.getElementById(f);
+      if (target && !sameGroup(target, el)) return true;
+    }
+    return Array.from(lab.querySelectorAll ? lab.querySelectorAll("input,select,textarea") : []).some((x) => realControl(x) && !sameGroup(x, el));
+  }
   function labelFor(el) {
     let t = "";
     if (el.id) { const l = document.querySelector('label[for="' + esc(el.id) + '"]'); if (l) t = labelText(l); }
-    if (!t) { const wrap = el.closest("label"); if (wrap) t = labelText(wrap); }
+    if (!t) { const wrap = el.closest("label"); if (wrap && !foreign(wrap, el)) t = labelText(wrap); }
+    // The element's own accessible name comes before any label found near it (WO-031 review).
+    if (!t) {
+      const ids = (el.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean);
+      const named = ids.map((i) => document.getElementById(i)).filter(Boolean).map(labelText).join(" ");
+      if (named.trim()) t = named;
+    }
+    if (!t && el.getAttribute("aria-label")) t = el.getAttribute("aria-label");
     if (!t) {
       let node = el;
       for (let i = 0; i < 4 && node; i++) {
         node = node.parentElement; if (!node) break;
         const labs = Array.from(node.querySelectorAll(":scope > label, :scope > .field-label, :scope > .label"));
-        const lab = labs.find((x) => !x.contains(el));
+        const lab = labs.find((x) => !x.contains(el) && !foreign(x, el));
         if (lab) { t = labelText(lab); break; }
       }
     }
@@ -97,8 +117,8 @@ function fnDiscoverFields(includeHidden) {
     }
     return clean(t);
   }
-  // Only an attribute names it (aria-label, a placeholder such as "Type your response"): used when nothing else does.
-  const weakLabelFor = (el) => clean(el.getAttribute("aria-label") || el.getAttribute("placeholder") || "");
+  // Only a placeholder names it ("Type your response"): used when nothing else does.
+  const weakLabelFor = (el) => clean(el.getAttribute("placeholder") || "");
   // A label that names one option of a group (it belongs to its own radio or checkbox) is never the question.
   function optionLabel(x) {
     const id = x.getAttribute && x.getAttribute("for");
@@ -108,7 +128,7 @@ function fnDiscoverFields(includeHidden) {
   function groupLabelFor(el) {
     const fs = el.closest("fieldset");
     if (fs) {
-      const lg = Array.from(fs.querySelectorAll("legend, label")).find((x) => !x.contains(el) && !optionLabel(x) && labelText(x).trim().length > 0);
+      const lg = Array.from(fs.querySelectorAll("legend, label")).find((x) => !x.contains(el) && !optionLabel(x) && !foreign(x, el) && labelText(x).trim().length > 0);
       if (lg) return labelText(lg);
     }
     let node = el;
@@ -116,7 +136,7 @@ function fnDiscoverFields(includeHidden) {
     for (let i = 0; i < 7 && node; i++) {
       node = node.parentElement; if (!node) break;
       const heads = Array.from(node.querySelectorAll(":scope > label, :scope > .application-label, :scope > .question, :scope > h4, :scope > .field-label"));
-      const head = heads.find((x) => !x.contains(el) && !optionLabel(x) && labelText(x).trim().length > 0);
+      const head = heads.find((x) => !x.contains(el) && !optionLabel(x) && !foreign(x, el) && labelText(x).trim().length > 0);
       if (head) return labelText(head);
     }
     return "";

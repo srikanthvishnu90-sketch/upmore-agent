@@ -245,6 +245,21 @@ What changed:
   - Change for run 7: the city is typed once and the list awaited up to 8 s. The probe also times a first lookup of a
     place the page has not been asked for before (`fresh_lookup_ms`).
 
+### WO-031's review round merged in (1902a6ca → this branch; VERIFIED offline)
+
+WO-031's fix round brings:
+- the last look and the click in one task;
+- only an attempt stopped before the click may be retried;
+- what is sent is approved (option values, checked states, file bytes);
+- proof before and after the click.
+
+Merged with this order's driver, chooser and timing marks:
+- **Browser suite 46/46.** Precision 100% in every family; coverage Lever 96.1%, Ashby 95.5% (its label fix gives
+  Crusoe's consent radios their own name), Greenhouse 100% without its widgets.
+- **Architect 208/208, edge 123/123, DB suite passes.**
+- **A 12-posting session:** 12/12 confirmed, 0 wrong, tap → Submit clicked 0.19 s p50, Submit → employer's answer
+  0.78 s p50.
+
 ### Session run: 60 postings, model person (VERIFIED-S: simulated person, reading model ASSUMED; offline)
 
 `node evals/apply/sixty-in-thirty.cjs --n 60 --person model --families lever,ashby --label run1-model-lever-ashby`, on

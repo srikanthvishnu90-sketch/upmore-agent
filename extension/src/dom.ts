@@ -247,6 +247,45 @@ export async function fill(b: any, value: string, resume: Resume | null, choose?
   return el.value === String(value) || String(el.value).length > 0;
 }
 
+// What the browser sends for one field beyond its visible text (WO-031 review: "the hash covers what is shown, not what
+// is sent"): a select's option value, which radios and checkboxes are checked and their values, and for a file the
+// SHA-256 and size of the bytes attached now. A file whose bytes were not hashed yet reads "pending" (a file swapped
+// after the review is a new File: it never matches the reviewed one).
+const fileSha = new WeakMap<object, string>();
+const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((n) => n.toString(16).padStart(2, "0")).join("");
+export async function hashFiles(): Promise<void> {
+  for (const el of Array.from(doc().querySelectorAll("input[type=file]")) as any[]) {
+    for (const f of Array.from(el.files || []) as any[]) {
+      if (!fileSha.has(f)) fileSha.set(f, hex(await W.crypto.subtle.digest("SHA-256", await f.arrayBuffer())));
+    }
+  }
+}
+export function readDetail(b: any): string {
+  const el = firstEl(b);
+  if (!el) return "";
+  if (b.inputType === "file") {
+    return Array.from(el.files || []).map((f: any) => `${fileSha.get(f) ?? "pending"}:${f.size}:${f.type}`).join(",");
+  }
+  if (b.inputType === "select") return `value=${el.value}`;
+  if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
+    return (b.options || []).map((o: any) => element(o.selector)).filter((x: any) => x?.checked).map((x: any) => `checked=${x.value}`).join(",");
+  }
+  if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+  return "";
+}
+// Read-only fields the page set: sent with the form, so shown on the card and bound to the approval.
+export function readFixed(): { name: string; label: string; value: string; selector: string }[] {
+  return (fnDiscoverFields(false) as any[]).filter((f) => f.readOnly && !f.disabled && f.inputType !== "file").map((f) => {
+    const el = element(f.selector, f.domIndex);
+    return { name: f.name || f.id || f.fieldPath || f.selector, label: f.label || f.name, value: String(el?.value ?? ""), selector: f.selector };
+  }).filter((f) => f.value);
+}
+// The error texts visible now: the list taken just before the click is not the employer's answer.
+export function visibleErrors(): string[] {
+  return (Array.from(doc().querySelectorAll("[role=alert],.error,.validation-error,[aria-invalid=true]")) as any[])
+    .filter(visible).map((e) => String(e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 200)).filter(Boolean).slice(0, 20);
+}
+
 // One field's value as the page renders it, as text the person reads ("" when it carries nothing).
 export function readValue(b: any): string {
   const el = firstEl(b);
@@ -310,8 +349,7 @@ export function observe(urlBefore: string, plannedNames: string[]) {
     Array.from(form.elements as any[]).some((e: any) => plannedNames.includes(e.name) || plannedNames.includes(e.id) || e.type === "file")
   ) || !!d.querySelector(".ashby-application-form-submit-button, #application-form, .application-form");
   const fields = fnDiscoverFields(false) as any[];
-  const errors = (Array.from(d.querySelectorAll("[role=alert],.error,.validation-error,[aria-invalid=true]")) as any[])
-    .filter(visible).map((e) => String(e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 200)).filter(Boolean).slice(0, 12);
+  const errors = visibleErrors();
   return {
     url_before: urlBefore,
     url_after: String((globalThis as any).location.href),

@@ -72,11 +72,14 @@ Deno.test("WO-042/4 a place search: the city or the state's name is typed; a sta
 });
 
 Deno.test("WO-042/5 nothing that happens while Trainee fills counts as the person's edit, and no card goes out mid-fill", () => {
-  assert(/document\.addEventListener\(t, \(e\) => \{\s*if \(!e\.isTrusted \|\| !form \|\| submitting \|\| busy\) return;/.test(CONTENT), "input/change ignored while filling");
-  assert(/document\.addEventListener\("mousedown", \(e\) => \{\s*if \(!e\.isTrusted \|\| !form \|\| submitting \|\| busy\) return;/.test(CONTENT), "mousedown ignored while filling");
+  // Every trusted input, change and widget mousedown goes through personEdit, which ignores everything while busy.
+  const edit = CONTENT.slice(CONTENT.indexOf("const personEdit"), CONTENT.indexOf("const personEdit") + 300);
+  assert(/if \(busy\) return;/.test(edit), "personEdit ignores events while Trainee fills");
+  assert(/document\.addEventListener\(t, \(e\) => \{[\s\S]{0,200}personEdit\(/.test(CONTENT), "input/change go through personEdit");
+  assert(/addEventListener\("mousedown"[\s\S]{0,250}personEdit\(n\)/.test(CONTENT), "widget mousedown goes through personEdit");
   assert(/setTimeout\(\(\) => \(busy \? undefined : refresh\(\)/.test(CONTENT), "a scheduled refresh never runs mid-fill");
   // The queue's record before the card says done.
-  const q = BACKGROUND.indexOf("await queueAfter(tabId, outcome.state"), c = BACKGROUND.indexOf('status: "done", result: outcome.state');
+  const q = BACKGROUND.indexOf("await queueAfter(tabId,"), c = BACKGROUND.indexOf('return await withCards(tabId, "finish:"');
   assert(q > 0 && c > 0 && q < c, "queue updated before the done card");
 });
 

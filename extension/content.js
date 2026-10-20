@@ -1,7 +1,8 @@
 // WO-031: the extension on an application page (Greenhouse, Lever, Ashby; Workday basic fields only). It reads every
 // field the way the engine does, runs the apply stack's planner over the person's confirmed facts and saved answers, fills
 // only what the planner answered, and shows the person a card with every answer exactly as it will be sent. The site's
-// own Submit is clicked only after the person's one tap approved that card, and only if the form still matches it.
+// own Submit is clicked only after the person's one tap approved that card, and only if the form still matches it, checked
+// in the same task as the click.
 (() => {
   if (globalThis.__traineeContent) return;
   globalThis.__traineeContent = true;
@@ -11,9 +12,10 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const send = (m) => chrome.runtime.sendMessage(m).catch(() => ({ ok: false }));
   const HANDOFF = "A verification check is showing on the page. Finish it yourself there, then press Approve again. Trainee never answers one.";
+  const NO_UNCHECKED = "No (left unchecked)";
 
   let form = null, ctx = null, plan = null, jobId = null, company = "", expiresAt = null, shownAt = 0;
-  let reviewed = null, busy = false, submitting = false, sent = false, refreshTimer = null;
+  let reviewed = null, busy = false, submitting = false, sent = false, personAbort = false, refreshTimer = null;
   // WO-042: when each step of this application happened (epoch ms), for the 60-in-30 benchmark and the panel's own
   // "where the time went". Never part of the payload or its hash.
   const nav = performance.getEntriesByType("navigation")[0];
@@ -28,28 +30,34 @@
   const chosen = new Map(); // name -> the employer's option text a widget fill clicked, shown while the widget still shows it
   const edited = new Set(); // names the person changed themselves (trusted events only)
 
-  // The person's own edits: a trusted input or change on a field. Trainee's own fills dispatch untrusted events, but a
-  // radio or checkbox Trainee clicks gets a trusted change from the browser itself, so nothing that happens while Trainee
-  // is filling (busy) counts as the person's (WO-042: a fill longer than the refresh delay sent a half-filled card). A
-  // value the person changes meanwhile still differs from what Trainee filled, and the card blocks it as the page's.
+  // The person's own edits: a trusted input or change on a field (Trainee's own fills dispatch untrusted events). A radio
+  // or checkbox Trainee clicks gets a trusted change from the browser itself, so nothing that happens while Trainee is
+  // filling (busy) counts as the person's: no refresh can send a half-filled card. A value the person changes meanwhile
+  // still differs from what Trainee filled, and the card blocks it as the page's. While an approved application is being
+  // checked and recorded, the person's edit stops it: what they approved is no longer what is on the page (WO-031
+  // review). After the click nothing on the page changes the application.
+  const personEdit = (name) => {
+    if (busy) return;
+    if (sent) return;
+    if (submitting) {
+      personAbort = true;
+      return;
+    }
+    edited.add(name);
+    scheduleRefresh();
+  };
   for (const t of ["input", "change"]) {
     document.addEventListener(t, (e) => {
-      if (!e.isTrusted || !form || submitting || busy) return;
+      if (!e.isTrusted || !form) return;
       const n = D.fieldNameFor(e.target, form);
-      if (n) {
-        edited.add(n);
-        scheduleRefresh();
-      }
+      if (n) personEdit(n);
     }, true);
   }
   // A choice picked in a widget menu (no input event on the field itself): the focused field's.
   document.addEventListener("mousedown", (e) => {
-    if (!e.isTrusted || !form || submitting || busy) return;
+    if (!e.isTrusted || !form) return;
     const n = document.activeElement && D.fieldNameFor(document.activeElement, form);
-    if (n && form.bindings[n]?.widget) {
-      edited.add(n);
-      scheduleRefresh();
-    }
+    if (n && form.bindings[n]?.widget) personEdit(n);
   }, true);
 
   const scheduleRefresh = () => {
@@ -58,25 +66,33 @@
     refreshTimer = setTimeout(() => (busy ? undefined : refresh().catch(() => {})), 350);
   };
 
-  // Every non-empty answer on the form now, with where it came from (see apply_core.ts Source).
+  // Every non-empty answer on the form now, with where it came from and what the browser sends for it (apply_core.ts).
   function snapshot() {
     form = D.readForm();
     const out = [];
     for (const s of form.schema) {
       const b = form.bindings[s.name];
       let v = D.readValue(b);
-      if (!v && filled.get(s.name) === "No (left unchecked)" && b.inputType === "checkbox") v = "No (left unchecked)";
+      if (!v && filled.get(s.name) === NO_UNCHECKED && b.inputType === "checkbox") v = NO_UNCHECKED;
       if (!v) continue;
-      if (C.isIdentityField(s)) {
-        out.push({ name: s.name, label: s.label, value: v, source: edited.has(s.name) ? "you" : "page", factId: null, masked: true });
-        continue;
-      }
-      const source = filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you" : "page";
+      const identity = C.isIdentityField(s);
+      const source = !identity && filled.has(s.name) && filled.get(s.name) === v ? "trainee" : edited.has(s.name) ? "you" : "page";
+      // The employer's own option text a widget fill clicked ("United States +1"), while the widget still shows it (WO-042).
       if (source === "trainee" && chosen.has(s.name)) v = chosen.get(s.name);
-      out.push({ name: s.name, label: s.label, value: v, source, factId: source === "trainee" ? factIds.get(s.name) ?? null : null, masked: false });
+      out.push({ name: s.name, label: s.label, value: v, source, factId: source === "trainee" ? factIds.get(s.name) ?? null : null,
+        masked: identity || (source !== "trainee" && C.looksLikeIdNumber(v)), detail: D.readDetail(b), selector: b.selector });
+    }
+    // Read-only fields the page set are sent too: shown and bound to the approval (WO-031 review).
+    for (const f of D.readFixed()) {
+      out.push({ name: "fixed:" + f.name, label: f.label, value: f.value, source: "fixed", factId: null,
+        masked: C.isIdentityField(f) || C.looksLikeIdNumber(f.value), detail: "", selector: f.selector });
     }
     return out;
   }
+  const maskSelectors = (fields) => [
+    ...fields.filter((f) => f.masked).map((f) => f.selector),
+    ...form.schema.filter((s) => C.isIdentityField(s)).map((s) => form.bindings[s.name]?.selector),
+  ].filter(Boolean);
   function openRequired(fields) {
     const have = new Set(fields.map((f) => f.name));
     return form.schema.filter((s) => s.required && !have.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
@@ -91,16 +107,20 @@
   // The card: rebuilt whenever the form changes before the tap, so the person always approves what is there now.
   async function refresh() {
     if (submitting || sent || !ctx) return;
+    await D.hashFiles();
     const fields = snapshot();
     const payload = payloadOf(fields);
     const hash = await C.approvalHash(payload);
+    const ambiguous = plan?.ambiguous || [];
+    const ambiguousNames = new Set(ambiguous.map((a) => a.name));
     const open = openRequired(fields);
     const block = C.blockers({ fields, openRequired: open, challenge: !!D.fnDetectChallenge(), family: portal.family });
     if (!ctx.account) block.push("Your Upmore account has no job settings yet. Text Trainee once so it can record your applications.");
     else if (ctx.account.paused) block.push("Your account is paused, so nothing is sent.");
     const verification = [...new Set((D.fnCaptchaTech() || []).map((t) => t.replace(/-widget$/, "")))];
-    const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open, identity: plan?.identity || [], blockers: block, verification });
-    reviewed = { fields, payload, hash };
+    const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)) });
+    reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;
     await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing },
@@ -151,7 +171,7 @@
         const ok = await D.fill(b, p.value, resume, choose);
         await sleep(20);
         let v = D.readValue(b);
-        if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = "No (left unchecked)";
+        if (ok && !v && b.inputType === "checkbox" && !/^(true|yes|y|on|checked)\b/i.test(String(p.value))) v = NO_UNCHECKED;
         const label = D.takeWidgetChoice();
         if (ok && v) {
           if (label && label !== v) chosen.set(p.name, label);
@@ -176,67 +196,103 @@
   // Nothing was sent. The card says why and stays stopped until the person changes something or presses Fill again.
   async function stop(message, extra = {}) {
     submitting = false;
+    personAbort = false;
     await send({ type: "stopped", message, ...extra });
   }
+  const changedMsg = (changed) =>
+    `A value changed after you reviewed it (${changed.map(C.shortLabel).join("; ") || "the form"}). Nothing was sent. Press Fill this application to read the form again.`;
+  const ABORTED = "You changed the form after approving, so it was not sent. Press Fill this application to read it again.";
 
-  // After the one tap: the form must still be exactly what the person approved, nothing may be asking for a
-  // verification, and the application is recorded before the site's own Submit is clicked.
+  // Is the page still exactly the approved application? Every answer, its source, what the browser sends for it (option
+  // values, checked states, the attached file's bytes), compared as the whole payload. No await: usable next to the click.
+  function stillApproved() {
+    const now = snapshot();
+    const changed = C.changedFields(reviewed.fields, now);
+    return { now, changed, ok: !changed.length && C.payloadText(payloadOf(now)) === reviewed.text };
+  }
+
+  // After the one tap: the form must still be exactly what the person approved, nothing may be asking for a verification,
+  // there must be a picture of it, and the application is recorded before the site's own Submit is clicked.
   async function submit(hash) {
-    if (submitting) return;
+    if (submitting || sent) return;
+    // WO-042: when each step after the tap happened, for the benchmark (never part of the payload or its hash).
     const steps = { submit: Date.now() };
     if (!reviewed || reviewed.hash !== hash) return stop("The card you approved is not the one on this page. Nothing was sent.");
     submitting = true;
-    const now = snapshot();
-    const changed = C.changedFields(reviewed.fields, now);
-    const nowHash = await C.approvalHash(payloadOf(now));
-    if (changed.length || nowHash !== hash) return stop(`A value changed after you reviewed it (${changed.map(C.shortLabel).join("; ") || "the form"}). Nothing was sent. Press Fill this application to read the form again.`);
+    personAbort = false;
+    await D.hashFiles();
+    let s = stillApproved();
+    if (personAbort) return stop(ABORTED);
+    if (!s.ok) return stop(changedMsg(s.changed));
     if (D.fnDetectChallenge()) return stop(HANDOFF);
     const button = D.findSubmit();
     if (!button) return stop("I could not find the site's own Submit button. Nothing was sent.");
     steps.checked = Date.now();
-    const masked = form.schema.filter((s) => C.isIdentityField(s)).map((s) => form.bindings[s.name]?.selector).filter(Boolean);
-    const unmask = D.maskFields(masked);
+    // Proof before the click: the filled form, identity numbers covered while the picture is taken.
+    const unmask = D.maskFields(maskSelectors(s.now));
     await sleep(60);
     const shot = await send({ type: "screenshot" });
     unmask();
+    if (!shot?.ok) return stop("The picture of the filled form could not be taken (keep this tab in front while it sends). Nothing was sent.");
+    await D.hashFiles();
+    s = stillApproved();
+    if (personAbort) return stop(ABORTED);
+    if (!s.ok) return stop(changedMsg(s.changed));
     steps.screenshot = Date.now();
-    // The last look, right before the record and the click.
-    if (C.changedFields(reviewed.fields, snapshot()).length) return stop("A value changed after you reviewed it. Nothing was sent. Press Fill this application to read the form again.");
     const planned = [...filled.keys()];
-    const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, screenshot: shot?.ok ? { sha256: shot.sha256, dataUrl: shot.dataUrl } : null });
+    const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, screenshot: { sha256: shot.sha256, dataUrl: shot.dataUrl } });
     if (!begun?.ok) {
       submitting = false;
       return;
     }
+    // The last look and the click, in one task: no page script and no person can act between them (WO-031 review).
+    const last = stillApproved();
+    const challenge = !!D.fnDetectChallenge();
+    if (personAbort || !last.ok || challenge || !button.isConnected) {
+      const why = personAbort ? ABORTED : challenge ? HANDOFF : last.ok ? "The page's Submit button changed. Nothing was sent." : changedMsg(last.changed);
+      return stop(why, { finishPending: true, reason: C.BEFORE_CLICK, beforeClick: true });
+    }
+    const errorsBefore = D.visibleErrors(), before = location.href;
     steps.begun = Date.now();
-    const before = location.href;
-    await send({ type: "clicked", at: Date.now(), steps });
     sent = true;
     button.click();
+    send({ type: "clicked", at: Date.now(), errorsBefore, steps });
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.
-    for (let i = 0; i < 60; i++) {
+    // The wait ends only when the form is gone, a new error appears, or the page asks for something; otherwise after 30
+    // seconds the outcome is unknown, counted as applied, never resent.
+    const deadline = Date.now() + C.NO_ANSWER_WAIT_MS;
+    let timedOut = true;
+    while (Date.now() < deadline) {
       await sleep(250);
       const o = D.observe(before, planned);
-      if (!o.form_present_after || o.validation_errors.length || o.captcha || o.email_code_prompt) {
-        await sleep(250);
-        await send({ type: "outcome", observation: D.observe(before, planned) });
-        submitting = false;
-        return;
+      const fresh = o.validation_errors.filter((e) => !errorsBefore.includes(e));
+      if (!o.form_present_after || fresh.length || o.captcha || o.email_code_prompt) {
+        timedOut = false;
+        await sleep(300);
+        break;
       }
     }
-    await send({ type: "outcome", observation: D.observe(before, planned) });
+    const obs = D.observe(before, planned);
+    // Proof after the click: what the employer answered (or the form with its errors), identity fields covered.
+    const unmaskAfter = D.maskFields(maskSelectors(last.now));
+    await sleep(60);
+    const after = await send({ type: "screenshot" });
+    unmaskAfter();
+    await send({ type: "outcome", observation: obs, errorsBefore, timedOut, shotAfter: after?.ok ? { sha256: after.sha256, dataUrl: after.dataUrl } : null });
     submitting = false;
   }
 
   chrome.runtime.onMessage.addListener((m, sender, reply) => {
-    if (sender.id !== chrome.runtime.id) return false;
+    if (sender.id !== chrome.runtime.id || sender.tab) return false;
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;
     }
     if (m?.type === "submit") {
-      submit(m.hash).then(() => reply({ ok: true }));
-      return true;
+      // Answered at once: the submit may move the page away, which would close a reply still waiting (WO-031 review).
+      reply({ accepted: true });
+      submit(m.hash);
+      return false;
     }
     return false;
   });

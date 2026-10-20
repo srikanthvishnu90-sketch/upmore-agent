@@ -8,8 +8,10 @@
 -- holds, by calling career_apply_enqueue: one per posting, one per company per 30 days, the person's own daily limit.
 -- The row starts as a drive already claimed (state driving, one attempt, a lease), so no other worker ever drives it; the
 -- extension records the employer's answer with career_apply_finish_own, and a drive it never finishes is marked unknown
--- after 15 minutes by the next own claim, never re-driven. An earlier attempt at the same posting that never reached the
--- employer (not_submitted, failed) is replaced, so a stopped attempt can be tried again.
+-- after 15 minutes by the next own claim, never re-driven. Only an attempt the extension stopped BEFORE the click (state
+-- not_submitted, evidence reason 'stopped before the click') may be replaced and tried again. A row that passed the click
+-- (confirmed, failed, needs_user, submitted_unconfirmed, unknown_outcome, or a not_submitted without that reason) is never
+-- deleted or retried: the employer may already have it (WO-031 review: one posting reached an employer twice).
 create or replace function public.career_apply_extension_begin_own(p_payload jsonb, p_approval text)
 returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare u uuid := auth.uid(); h text; j public.career_apply_jobs;
@@ -20,7 +22,8 @@ begin
  h := encode(sha256(convert_to(public.career_apply_canonical(p_payload), 'UTF8')), 'hex');
  if p_approval is null or p_approval is distinct from h then raise exception 'invalid or stale application approval'; end if;
  perform pg_advisory_xact_lock(hashtextextended(u::text, 0));
- delete from public.career_apply_jobs where user_id = u and job_id = p_payload->>'job_id' and state in ('not_submitted', 'failed');
+ delete from public.career_apply_jobs where user_id = u and job_id = p_payload->>'job_id' and state = 'not_submitted'
+  and evidence->>'reason' = 'stopped before the click';
  j := public.career_apply_enqueue(p_payload, h, h, public.career_apply_daily_limit(u));
  update public.career_apply_jobs set state = 'driving', attempts = 1, claimed_at = clock_timestamp(), lease_token = gen_random_uuid(),
   updated_at = clock_timestamp() where id = j.id returning * into j;

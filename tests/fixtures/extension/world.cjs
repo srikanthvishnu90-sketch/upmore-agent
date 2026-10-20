@@ -38,7 +38,8 @@ const strip = (h) =>
   h.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<link\b[^>]*>/gi, "").replace(/\s(src|srcset)="https?:[^"]*"/gi, "");
 
 // The TEST stand-in for the employer's submit script, removed from every capture.
-function employerScript(form) {
+// Behaviours (?trainee_test=): "silent" posts and never answers (a slow employer); "slowthanks" answers after 1.5 s.
+function employerScript(form, behaviour = "") {
   const thanks = form.family === "lever" ? JSON.stringify(new URL(form.source_url).pathname.replace(/\/apply$/, "/thanks")) : "null";
   return `<script>/* TEST stand-in for ${form.company}'s own submit script (stripped from the capture). */
 (function () {
@@ -59,9 +60,20 @@ function employerScript(form) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     if (sent) return; sent = true;
     fetch("/__employer/submit?form=${form.id}&path=" + encodeURIComponent(location.pathname), { method: "POST", body: collect() }).then(function () {
-      var thanks = ${thanks};
-      if (thanks) { location.href = thanks; return; }
-      document.body.innerHTML = "<h1>Thank you for applying!</h1><p>Your application has been submitted. Application ID: TEST-12345</p>";
+      if (${JSON.stringify(behaviour)}.indexOf("silent") >= 0) return;
+      if (${JSON.stringify(behaviour)}.indexOf("rejects") >= 0) {
+        // TEST: the employer got the application and answered with an error; the form stays.
+        var err = document.createElement("div");
+        err.setAttribute("role", "alert");
+        err.textContent = "TEST: There was a problem submitting your application. Please try again.";
+        (document.querySelector("form, .ashby-application-form-container") || document.body).prepend(err);
+        return;
+      }
+      setTimeout(function () {
+        var thanks = ${thanks};
+        if (thanks) { location.href = thanks; return; }
+        document.body.innerHTML = "<h1>Thank you for applying!</h1><p>Your application has been submitted. Application ID: TEST-12345</p>";
+      }, ${JSON.stringify(behaviour)}.indexOf("slowthanks") >= 0 ? 1500 : 0);
     });
   }
   document.addEventListener("click", function (e) {
@@ -124,7 +136,29 @@ function placeScript(form) {
 }
 
 // TEST variants, by ?trainee_test=: a verification challenge, values the page sets itself, an identity number field.
-function variant(name) {
+function variant(names) {
+  return String(names || "").split(",").map(variantOne).join("");
+}
+const insertField = (html) => `window.addEventListener("DOMContentLoaded", function () {
+      var host = document.querySelector("#application-form, form, .ashby-application-form-container") || document.body;
+      var d = document.createElement("div");
+      d.innerHTML = ${JSON.stringify(html)};
+      host.insertBefore(d, host.firstChild);
+    });`;
+function variantOne(name) {
+  if (name === "banner") return `<div role="alert" style="display:block;padding:4px">TEST: we use cookies on this site.</div>`;
+  if (name === "sin") return `<script>/* TEST: a Canadian identity number */ ${insertField('<label for="sin_test">SIN (Social Insurance Number) *</label><input id="sin_test" name="sin_test" type="text" required>')}</script>`;
+  if (name === "freefield") return `<script>/* TEST: a free field */ ${insertField('<label for="ref_free">Anything else we should know?</label><input id="ref_free" name="ref_free" type="text">')}</script>`;
+  if (name === "readonly") return `<script>/* TEST: a read-only field the page sets */ ${insertField('<label for="ref_test">Posting reference</label><input id="ref_test" name="ref_test" readonly value="TEST-REF-42">')}</script>`;
+  if (name === "race") {
+    // TEST attacker: when the screenshot's covers come off, wait and rewrite the email (WO-031 review, item 1).
+    return `<script>new MutationObserver(function (ms) { ms.forEach(function (m) { m.removedNodes.forEach(function (n) {
+      if (n.getAttribute && n.getAttribute("data-trainee-mask")) setTimeout(function () {
+        var el = document.querySelector("[name='_systemfield_email'], [name='email'], input[type=email]");
+        if (el) { el.value = "planted@attacker.example.test"; }
+      }, 150);
+    }); }); }).observe(document.documentElement, { childList: true });</script>`;
+  }
   if (name === "captcha") {
     return `<iframe title="TEST challenge" src="https://www.google.com/recaptcha/api2/bframe?k=TEST" style="display:block;width:320px;height:200px;border:1px solid #888"></iframe>`;
   }
@@ -144,6 +178,18 @@ function variant(name) {
   }
   return "";
 }
+
+// TEST page with the label traps of the WO-031 review, item 3 (not a captured form): a referrer's phone beside the
+// person's, authorization radios after a sponsorship label in one fieldset, two fields under one label.
+const LABELS_PATH = "/trainee-test/11111111-1111-4111-8111-111111111111/apply";
+const LABELS_PAGE = `<!doctype html><html><head><title>TEST label traps</title></head><body><form id="application-form">
+<div><label for="tp">Phone</label><input id="tp" name="phone" type="tel"><input name="ref_phone" type="tel" aria-label="Referrer phone number"></div>
+<fieldset><label for="sp">Will you now or in the future require visa sponsorship?</label>
+<select id="sp" name="spons"><option value="">Select</option><option>Yes</option><option>No</option></select>
+<div class="q">Are you legally authorized to work in the United States?</div>
+<label><input type="radio" name="auth" value="yes">Yes</label><label><input type="radio" name="auth" value="no">No</label></fieldset>
+<div><label>Email</label><input name="email1" type="text"></div><div><label>Email</label><input name="email2" type="text"></div>
+<button type="submit">Submit application</button></form></body></html>`;
 
 const WORKDAY_PAGE = `<!doctype html><html><head><title>Analyst - Acme (TEST Workday-shaped page)</title></head><body>
 <h1>TEST Workday-shaped page (no captured Workday HTML exists in the repo)</h1>
@@ -258,7 +304,11 @@ async function startWorld(o = {}) {
         if (p.privacy_epoch !== state.account.epoch || p.account_version !== state.account.version || Date.parse(p.expires_at) < Date.now()) {
           return json(res, 400, { message: "invalid or stale application approval" });
         }
+        // The SQL's rule: only a row stopped before the click may be replaced; any other row for the posting is final.
+        const retriable = (j) => j.state === "not_submitted" && j.evidence?.reason === "stopped before the click";
+        if (state.jobs.some((j) => j.job_id === p.job_id && !retriable(j))) return json(res, 400, { message: "duplicate_job" });
         const live = state.jobs.filter((j) => !["not_submitted", "failed"].includes(j.state));
+        if (state.beginDelayMs) await new Promise((r) => setTimeout(r, state.beginDelayMs));
         if (live.some((j) => j.job_id === p.job_id)) return json(res, 400, { message: "duplicate_job" });
         if (live.some((j) => j.company === p.company && Date.now() - j.at < 30 * 86400000)) return json(res, 400, { message: "company_cooldown" });
         if (live.filter((j) => Date.now() - j.at < 86400000).length >= state.dailyLimit) return json(res, 400, { message: "daily_cap" });
@@ -311,13 +361,16 @@ async function startWorld(o = {}) {
         state.submits.push({ form: u.searchParams.get("form"), path: u.searchParams.get("path"), host, fields, files, at: Date.now() });
         return json(res, 200, { ok: true });
       }
+      if (host === "jobs.lever.co" && u.pathname === LABELS_PATH) {
+        return res.writeHead(200, { "content-type": "text/html" }).end(LABELS_PAGE);
+      }
       if (/\/thanks$/.test(u.pathname)) {
         return res.writeHead(200, { "content-type": "text/html" }).end("<!doctype html><h3>Application submitted!</h3><p>Thank you for applying. We've received your application.</p>");
       }
       const form = findForm(u);
       if (form && req.method === "GET") {
         const html = strip(fs.readFileSync(path.join(FORMS, form.html), "utf8"));
-        const extra = variant(u.searchParams.get("trainee_test")) + employerScript(form) + placeScript(form);
+        const extra = variant(u.searchParams.get("trainee_test")) + employerScript(form, u.searchParams.get("trainee_test") || "") + placeScript(form);
         const page = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, extra + "</body>") : html + extra;
         return res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(page);
       }
@@ -347,4 +400,4 @@ async function startWorld(o = {}) {
   };
 }
 
-module.exports = { startWorld, canonical, WORKDAY_HOST, APP_HOST, SUPABASE_HOST };
+module.exports = { startWorld, canonical, WORKDAY_HOST, APP_HOST, SUPABASE_HOST, LABELS_URL: "https://jobs.lever.co" + LABELS_PATH };

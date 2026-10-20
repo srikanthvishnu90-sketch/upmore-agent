@@ -13,16 +13,33 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
   (`scripts/career/page-functions.cjs`, `scripts/career/form-bind.ts`) and answers with the same planner
   (`supabase/functions/_shared/career_apply.ts`). It fills only what the planner answered from your confirmed facts and
   the answers you gave Trainee by text.
-- Never fills an identity number (SSN, passport, license, tax id, bank or card number). The card tells you to type it
-  yourself; its value never leaves the page, is covered in the screenshot, and is never in any record.
+- Never fills an identity number (SSN, SIN, national ID, NI number, passport, driver's license, tax file number, Aadhaar,
+  Personnummer, CPF, government-issued ID, bank or card number). The card tells you to type it yourself; its value never
+  leaves the page, is covered in the screenshots, and is never in any record. Any answer of 8 or more digits that did not
+  come from your confirmed facts is treated the same way.
+- Never takes a label that belongs to another field. When two fields share one label, it fills neither and lists them
+  under "Still needed".
 - Never fills a voluntary self-identification (EEO) answer or a legal statement you have not given.
-- The card shows every answer exactly as it will be sent, what is still needed, and the resume file name. Approve is one
-  tap. After the tap it reads the form again and stops if anything changed since you read it, if a value was set by the
-  page instead of by you or Trainee, or if a verification check (captcha) is showing. It never solves or bypasses a
-  verification: you finish it yourself, then press Approve again.
+- The card shows every answer exactly as it will be sent, what is still needed, the resume file name, and any read-only
+  field the employer's page set itself. Approve is one tap and approves what the browser will actually send: the option
+  values, the checked boxes and the resume file's bytes, not only the text you see. After the tap it reads the form again
+  and stops if anything changed since you read it, if a value was set by the page instead of by you or Trainee, if you edit
+  the form while it is sending, or if a verification check (captcha) is showing. The last of these checks happens right
+  next to the click. It never solves or bypasses a verification: you finish it yourself, then press Approve again.
+- Keep the application's tab in front while it sends: the screenshots are taken of the visible tab.
 - Each application is recorded on your account (the same queue as every other application: one per posting, one per
-  company per 30 days, your daily limit) before the click, and its outcome after. A screenshot of the filled form, the
-  answers, the employer's confirmation text and the times are kept on this computer (chrome.storage.local).
+  company per 30 days, your daily limit) before the click, and its outcome after. Once the Submit has been clicked, that
+  posting is never sent again, whatever the page showed. If the employer's page does not answer within 30 seconds, the
+  application counts as sent ("the employer's answer could not be captured"), never as "not sent". Only an attempt that
+  stopped before the click can be approved again.
+- Proof of every application stays on this computer (chrome.storage.local) until you clear it: the answers as you
+  approved them, the approval time and hash, a screenshot before the click and one after, the employer's confirmation
+  text and number, the final page address, and the times. Your account's record keeps the screenshots' hashes, never the
+  pictures. Press **Proof** on the card or on a queue item to see it. **Clear proof on this computer** removes it after
+  you confirm.
+- "Sent and confirmed by the employer" is said only when the employer's answer was read and the page after the click was
+  photographed. Otherwise the panel says "Sent; the employer's answer could not be captured. Check your email for their
+  confirmation."
 - Questions only you can answer go to Trainee, which asks you once by text. Your answer then fills on every later form.
 - Never runs on LinkedIn or Indeed.
 
@@ -48,7 +65,7 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
 4. Press **Approve and submit** once. The extension checks the form is unchanged and presses the site's own Submit. If a
    verification appears, finish it yourself on the page and press Approve again.
 5. The panel shows the employer's answer ("Sent and confirmed by the employer", or what is missing) and the seconds from
-   card to answer.
+   card to answer. Press **Proof** to see what was sent and what the employer's page showed.
 
 ## Many postings: the queue
 
@@ -64,4 +81,5 @@ from card to the employer's answer.
 - Tests: `deno test -A --no-check tests/architect/wo-031-extension.test.ts` (decisions and wiring),
   `node --test tests/career-extension-browser.test.cjs` (the extension in Chromium against the captured forms, all hosts
   served locally: nothing reaches a real employer), `tests/db/career_apply_extension.test.sql` (the record).
-- The Supabase project and app URL default to the app's own public values (`config.js`).
+- The Supabase project and app URL are fixed in `config.js` (the app's own public values). Nothing in storage can change
+  where your session is sent; to point a build at another project, edit `config.js` and reload the extension.

@@ -86,6 +86,16 @@
           for (const control of clone.querySelectorAll("input,select,textarea,button")) control.remove();
           return clone.textContent || "";
         };
+        const sameGroup = (x, el) => x === el || !!el.name && x.name === el.name && /^(radio|checkbox)$/i.test(x.type || "");
+        const realControl = (x) => x.type !== "hidden" && !(typeof x.className === "string" && /requiredInput/.test(x.className));
+        function foreign(lab, el) {
+          const f = lab.getAttribute && lab.getAttribute("for");
+          if (f) {
+            const target = document.getElementById(f);
+            if (target && !sameGroup(target, el)) return true;
+          }
+          return Array.from(lab.querySelectorAll ? lab.querySelectorAll("input,select,textarea") : []).some((x) => realControl(x) && !sameGroup(x, el));
+        }
         function labelFor(el) {
           let t = "";
           if (el.id) {
@@ -94,15 +104,21 @@
           }
           if (!t) {
             const wrap = el.closest("label");
-            if (wrap) t = labelText(wrap);
+            if (wrap && !foreign(wrap, el)) t = labelText(wrap);
           }
+          if (!t) {
+            const ids = (el.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean);
+            const named = ids.map((i) => document.getElementById(i)).filter(Boolean).map(labelText).join(" ");
+            if (named.trim()) t = named;
+          }
+          if (!t && el.getAttribute("aria-label")) t = el.getAttribute("aria-label");
           if (!t) {
             let node = el;
             for (let i = 0; i < 4 && node; i++) {
               node = node.parentElement;
               if (!node) break;
               const labs = Array.from(node.querySelectorAll(":scope > label, :scope > .field-label, :scope > .label"));
-              const lab = labs.find((x) => !x.contains(el));
+              const lab = labs.find((x) => !x.contains(el) && !foreign(x, el));
               if (lab) {
                 t = labelText(lab);
                 break;
@@ -116,7 +132,7 @@
           }
           return clean(t);
         }
-        const weakLabelFor = (el) => clean(el.getAttribute("aria-label") || el.getAttribute("placeholder") || "");
+        const weakLabelFor = (el) => clean(el.getAttribute("placeholder") || "");
         function optionLabel(x) {
           const id = x.getAttribute && x.getAttribute("for");
           const t = id ? document.getElementById(id) : x.querySelector && x.querySelector("input");
@@ -125,7 +141,7 @@
         function groupLabelFor(el) {
           const fs = el.closest("fieldset");
           if (fs) {
-            const lg = Array.from(fs.querySelectorAll("legend, label")).find((x) => !x.contains(el) && !optionLabel(x) && labelText(x).trim().length > 0);
+            const lg = Array.from(fs.querySelectorAll("legend, label")).find((x) => !x.contains(el) && !optionLabel(x) && !foreign(x, el) && labelText(x).trim().length > 0);
             if (lg) return labelText(lg);
           }
           let node = el;
@@ -133,7 +149,7 @@
             node = node.parentElement;
             if (!node) break;
             const heads = Array.from(node.querySelectorAll(":scope > label, :scope > .application-label, :scope > .question, :scope > h4, :scope > .field-label"));
-            const head = heads.find((x) => !x.contains(el) && !optionLabel(x) && labelText(x).trim().length > 0);
+            const head = heads.find((x) => !x.contains(el) && !optionLabel(x) && !foreign(x, el) && labelText(x).trim().length > 0);
             if (head) return labelText(head);
           }
           return "";
@@ -2131,18 +2147,26 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   // extension/src/apply_core.ts
   var apply_core_exports = {};
   __export(apply_core_exports, {
+    BEFORE_CLICK: () => BEFORE_CLICK,
+    EVIDENCE_LIMIT: () => EVIDENCE_LIMIT,
+    IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
+    NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     applyUrl: () => applyUrl,
     approvalHash: () => approvalHash,
     blockers: () => blockers,
     cardLines: () => cardLines,
+    cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
     detectPortal: () => detectPortal,
     evidenceRecord: () => evidenceRecord,
     isIdentityField: () => isIdentityField,
+    looksLikeIdNumber: () => looksLikeIdNumber,
+    outcomeAfterClick: () => outcomeAfterClick,
     outcomeOf: () => outcomeOf,
+    payloadText: () => payloadText,
     planForm: () => planForm,
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
@@ -2206,7 +2230,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return u.href;
   }
   var tenantOf = (key) => key.split(":")[1] || "";
-  var isIdentityField = (f) => NEVER_BY_TEXT.test(String(f.label || "")) || NEVER_BY_TEXT.test(String(f.name || "").replace(/[_-]+/g, " "));
+  var IDENTITY_EXTRA = /\bsin\b|social insurance|social security|\bssn\b|national (identification|identity|id|insurance)\b|\bnin\b|\bni (number|no\b)|passport\s*(#|no\b|num|number)|driver'?s'? licen[cs]e\s*(#|no\b|num|number)|licen[cs]e\s*(#|number)|tax file number|\btfn\b|aadhaa?r|government[- ]issued( photo)? id|personnummer|\bcpf\b|\bcurp\b|\bpesel\b|\bnric\b|\bbsn\b|\bdni\b|\bnie\b|\bpps\b|\b(id|identity|identification) (card |document )?(number|no\b|#)|\btax (id|identification)|\biban\b|sort code|account number|routing number|card number|\bcvv\b|\bpassword\b|\bpin\b/i;
+  var isIdentityField = (f) => {
+    const label = String(f.label || ""), name = String(f.name || "").replace(/[_\-\[\]]+/g, " ");
+    return NEVER_BY_TEXT.test(label) || NEVER_BY_TEXT.test(name) || IDENTITY_EXTRA.test(label) || IDENTITY_EXTRA.test(name);
+  };
+  var looksLikeIdNumber = (v) => /\d{8,}/.test(String(v || "").replace(/[\s.\-\/()+]/g, ""));
   var WORKDAY_BASIC = /* @__PURE__ */ new Set([
     "first_name",
     "last_name",
@@ -2230,7 +2259,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var WORKDAY_NOTICE = "Workday needs you signed in on the employer's site; I fill the fields I can.";
   function planForm(o) {
     const identity = o.schema.filter((f) => isIdentityField(f));
-    const fields = o.schema.filter((f) => !isIdentityField(f));
+    const count = /* @__PURE__ */ new Map();
+    for (const f of o.schema) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
+    const ambiguous = o.schema.filter((f) => !isIdentityField(f) && (count.get(normLabel(f.label)) ?? 0) > 1);
+    const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f));
     const posting = (fs) => [
       {
         job_id: o.jobId,
@@ -2284,6 +2316,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       fill: fill2,
       needs: questions,
       identity: identity.map((f) => ({
+        name: f.name,
+        label: f.label,
+        required: f.required
+      })),
+      ambiguous: ambiguous.map((f) => ({
         name: f.name,
         label: f.label,
         required: f.required
@@ -2346,7 +2383,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         label: f.label,
         value: f.masked ? MASKED : f.value,
         source: f.source,
-        factId: f.factId
+        factId: f.factId,
+        detail: f.masked ? "" : f.detail ?? ""
       })),
       resume_name: o.resume?.filename ?? null,
       resume_sha256: o.resume?.sha256 ?? null,
@@ -2356,6 +2394,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
   }
   var approvalHash = (p) => hashApplyPayload(p);
+  var payloadText = (p) => JSON.stringify(p);
   function changedFields(reviewed, now) {
     const out = [];
     const at = new Map(now.map((f) => [
@@ -2364,7 +2403,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     ]));
     for (const r of reviewed) {
       const n = at.get(r.name);
-      if (!n || n.value !== r.value || n.source !== r.source) out.push(r.label);
+      if (!n || n.value !== r.value || n.source !== r.source || (n.detail ?? "") !== (r.detail ?? "")) out.push(r.label);
     }
     for (const n of now) if (!reviewed.some((r) => r.name === n.name)) out.push(n.label);
     return out;
@@ -2378,6 +2417,28 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const l of o.openRequired) out.push(`"${l}" is required and not answered yet.`);
     return out;
   }
+  var NO_ANSWER_WAIT_MS = 3e4;
+  function outcomeAfterClick(o, before = [], timedOut = false) {
+    const fresh = o.form_present_after ? (o.validation_errors || []).filter((e) => !before.includes(e)) : [];
+    const r = classifyOutcome({
+      ...o,
+      validation_errors: fresh
+    });
+    if (timedOut && o.form_present_after && !fresh.length && !o.captcha && !o.email_code_prompt) {
+      return {
+        state: "unknown_outcome",
+        reason: "the employer did not answer within 30 seconds; counted as applied, never sent again",
+        confirmation_id: null
+      };
+    }
+    if (r.state === "not_submitted") return {
+      state: "unknown_outcome",
+      reason: `after the click, ${r.reason}; counted as applied, never sent again`,
+      confirmation_id: null
+    };
+    return r;
+  }
+  var BEFORE_CLICK = "stopped before the click";
   var MARK = {
     consent: "You agree: ",
     attestation: "Your statement: ",
@@ -2394,13 +2455,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (o.family === "workday") lines.push(WORKDAY_NOTICE);
     lines.push("Every answer exactly as it will be sent:");
     for (const f of o.payload.fields) {
-      const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : " (set by the page)";
+      const from = f.source === "trainee" ? "" : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)" : " (set by the page)";
       lines.push(`${MARK[mapQuestion({
         label: f.label
       }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
     }
     lines.push(`Resume: ${o.payload.resume_name ?? "none attached"}`);
     for (const l of o.openRequired) lines.push(`Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+    for (const f of o.ambiguous ?? []) lines.push(`Still needed: ${shortLabel(f.label)}. Two fields on this form share that label, so Trainee left both for you.`);
     for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
     if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
     lines.push(`Approve sends it with the site's own Submit at ${new URL(o.payload.url).host}.`);
@@ -2413,17 +2475,37 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function outcomeOf(o) {
     return classifyOutcome(o);
   }
-  function evidenceRecord(o) {
-    return {
+  var sha256Text = async (s) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))).map((n) => n.toString(16).padStart(2, "0")).join("");
+  var EVIDENCE_LIMIT = 6e4;
+  async function evidenceRecord(o) {
+    const answers = [];
+    for (const f of o.payload.fields) {
+      answers.push(f.value.length > 500 ? {
+        label: f.label.slice(0, 300),
+        value: f.value.slice(0, 500),
+        value_length: f.value.length,
+        value_sha256: await sha256Text(f.value),
+        source: f.source
+      } : {
+        label: f.label.slice(0, 300),
+        value: f.value,
+        source: f.source
+      });
+    }
+    const iso = (t) => new Date(t).toISOString();
+    const rec = {
       reason: o.outcome.reason,
       confirmation_id: o.outcome.confirmation_id,
       source: "extension",
       approval_hash: o.hash,
-      answers: o.payload.fields.map((f) => ({
-        label: f.label,
-        value: f.value,
-        source: f.source
-      })),
+      answers,
+      screenshot_after_sha256: o.screenshotAfterSha256,
+      times: {
+        card_shown_at: iso(o.times.card),
+        approved_at: iso(o.times.approved),
+        clicked_at: iso(o.times.clicked),
+        finished_at: iso(o.times.done)
+      },
       resume_name: o.payload.resume_name,
       screenshot_sha256: o.screenshotSha256,
       confirmation_text: scrubIdentity(o.pageText).slice(0, 2e3),
@@ -2433,6 +2515,35 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       clicked_at: new Date(o.times.clicked).toISOString(),
       finished_at: new Date(o.times.done).toISOString(),
       ms_card_to_done: o.times.done - o.times.card
+    };
+    if (JSON.stringify(rec).length > EVIDENCE_LIMIT) {
+      rec.answers = await Promise.all(o.payload.fields.map(async (f) => ({
+        value_sha256: await sha256Text(f.label + "\n" + f.value),
+        source: f.source
+      })));
+    }
+    return rec;
+  }
+  function cardOutcome(o, hasAfterShot) {
+    if (o.state === "confirmed" && hasAfterShot) {
+      return {
+        status: "done",
+        message: `Sent and confirmed by the employer${o.confirmation_id ? ` (${o.confirmation_id})` : ""}.`
+      };
+    }
+    if (o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome") {
+      return {
+        status: "done",
+        message: "Sent; the employer's answer could not be captured. Check your email for their confirmation."
+      };
+    }
+    if (o.state === "needs_user") return {
+      status: "done",
+      message: "Sent, and the page now asks you for something (a check or a code). Finish it yourself on the page."
+    };
+    return {
+      status: "done",
+      message: `Not confirmed: ${o.reason}.`
     };
   }
   function postingLinks(text, max = 100) {
@@ -2457,12 +2568,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     findSubmit: () => findSubmit,
     fnCaptchaTech: () => fnCaptchaTech,
     fnDetectChallenge: () => fnDetectChallenge,
+    hashFiles: () => hashFiles,
     isPlaceSearch: () => isPlaceSearch,
     maskFields: () => maskFields,
     observe: () => observe,
+    readDetail: () => readDetail,
+    readFixed: () => readFixed,
     readForm: () => readForm,
     readValue: () => readValue,
-    takeWidgetChoice: () => takeWidgetChoice
+    takeWidgetChoice: () => takeWidgetChoice,
+    visibleErrors: () => visibleErrors
   });
   var import_page_functions = __toESM(require_page_functions());
   var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech } = import_page_functions.default;
@@ -2708,6 +2823,42 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     fire(el, "blur");
     return el.value === String(value) || String(el.value).length > 0;
   }
+  var fileSha = /* @__PURE__ */ new WeakMap();
+  var hex = (b) => Array.from(new Uint8Array(b)).map((n) => n.toString(16).padStart(2, "0")).join("");
+  async function hashFiles() {
+    for (const el of Array.from(doc().querySelectorAll("input[type=file]"))) {
+      for (const f of Array.from(el.files || [])) {
+        if (!fileSha.has(f)) fileSha.set(f, hex(await W.crypto.subtle.digest("SHA-256", await f.arrayBuffer())));
+      }
+    }
+  }
+  function readDetail(b) {
+    const el = firstEl(b);
+    if (!el) return "";
+    if (b.inputType === "file") {
+      return Array.from(el.files || []).map((f) => `${fileSha.get(f) ?? "pending"}:${f.size}:${f.type}`).join(",");
+    }
+    if (b.inputType === "select") return `value=${el.value}`;
+    if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
+      return (b.options || []).map((o) => element(o.selector)).filter((x) => x?.checked).map((x) => `checked=${x.value}`).join(",");
+    }
+    if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+    return "";
+  }
+  function readFixed() {
+    return fnDiscoverFields(false).filter((f) => f.readOnly && !f.disabled && f.inputType !== "file").map((f) => {
+      const el = element(f.selector, f.domIndex);
+      return {
+        name: f.name || f.id || f.fieldPath || f.selector,
+        label: f.label || f.name,
+        value: String(el?.value ?? ""),
+        selector: f.selector
+      };
+    }).filter((f) => f.value);
+  }
+  function visibleErrors() {
+    return Array.from(doc().querySelectorAll("[role=alert],.error,.validation-error,[aria-invalid=true]")).filter(visible).map((e) => String(e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 200)).filter(Boolean).slice(0, 20);
+  }
   function readValue(b) {
     const el = firstEl(b);
     if (!el) return "";
@@ -2761,7 +2912,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const text = String(d.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6e3);
     const formPresent = Array.from(d.querySelectorAll("form")).some((form) => Array.from(form.elements).some((e) => plannedNames.includes(e.name) || plannedNames.includes(e.id) || e.type === "file")) || !!d.querySelector(".ashby-application-form-submit-button, #application-form, .application-form");
     const fields = fnDiscoverFields(false);
-    const errors = Array.from(d.querySelectorAll("[role=alert],.error,.validation-error,[aria-invalid=true]")).filter(visible).map((e) => String(e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 200)).filter(Boolean).slice(0, 12);
+    const errors = visibleErrors();
     return {
       url_before: urlBefore,
       url_after: String(globalThis.location.href),

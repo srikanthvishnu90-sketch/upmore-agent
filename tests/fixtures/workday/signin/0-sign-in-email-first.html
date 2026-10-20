@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign In - Northwind Test Traders (TEST Workday-shaped page)</title>
+<style>
+body { font-family: sans-serif; margin: 24px; }
+.test-banner { background: #ffe; border: 1px solid #cc9; padding: 6px; margin-bottom: 12px; }
+.css-field { margin: 8px 0; }
+.wrap { position: relative; display: inline-block; }
+[data-automation-id="click_filter"] { position: absolute; inset: 0; cursor: pointer; }
+.robots { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<!-- WO-048 round 2 TEST page, written by the builder (not one of the separate writer's tenants): an email-first sign-in.
+     The first view asks only for the account's email and "Next" (no password box and none of Workday's account markers:
+     no signInContent, no signInSubmitButton, no password automation id); "Next" shows the password view, whose Sign In
+     opens the application's first step. A click_filter overlay lies over each button, as on Workday's own sign-in. It
+     records every click, focus and value read the page can see, for tests/career-extension-workday.test.cjs. No network. -->
+<div class="test-banner" role="note">TEST Workday-shaped page &mdash; synthetic fixture; not a real employer or Workday site</div>
+<div data-automation-id="header"><h1>Careers at Northwind Test Traders</h1></div>
+<main>
+<section id="step-email">
+  <h2>Sign In</h2>
+  <p>Sign in to your candidate account to continue your application.</p>
+  <div class="css-field"><label for="ef-email">Email Address<abbr title="required">*</abbr></label>
+    <input type="email" id="ef-email" autocomplete="username"></div>
+  <div class="robots"><label for="ef-web">Enter website. This input is for robots only, do not enter if you're human.</label>
+    <input type="text" id="ef-web" name="website" tabindex="-1" autocomplete="off"></div>
+  <div class="wrap"><button type="button" id="ef-next">Next</button><div data-automation-id="click_filter" role="button" tabindex="0" aria-label="Next"></div></div>
+</section>
+<section id="step-password" hidden>
+  <h2>Enter your password</h2>
+  <p id="ef-who"></p>
+  <div class="css-field"><label for="ef-password">Password<abbr title="required">*</abbr></label>
+    <input type="password" id="ef-password" autocomplete="current-password"></div>
+  <div class="wrap"><button type="button" id="ef-signin">Sign In</button><div data-automation-id="click_filter" role="button" tabindex="0" aria-label="Sign In"></div></div>
+</section>
+</main>
+<script>
+/* TEST behaviour: Next shows the password view (only with an email typed); Sign In (only with a password) opens the next
+   step. Every click and every focus on the email or password box is recorded. */
+(function () {
+  window.__clicks = [];
+  window.__focus = { email: 0, password: 0 };
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    window.__clicks.push({ id: t.getAttribute("data-automation-id") || t.id || t.tagName, label: t.getAttribute("aria-label") || "", trusted: e.isTrusted });
+    var f = t.closest('[data-automation-id="click_filter"]');
+    if (!f) return;
+    if (f.getAttribute("aria-label") === "Next" && document.getElementById("ef-email").value) {
+      document.getElementById("step-email").hidden = true;
+      document.getElementById("step-password").hidden = false;
+      document.getElementById("ef-who").textContent = document.getElementById("ef-email").value;
+    }
+    if (f.getAttribute("aria-label") === "Sign In" && document.getElementById("ef-password").value) window.location.href = "1-my-information.html";
+  }, true);
+  document.getElementById("ef-email").addEventListener("focus", function () { window.__focus.email++; });
+  document.getElementById("ef-password").addEventListener("focus", function () { window.__focus.password++; });
+})();
+</script>
+</body>
+</html>

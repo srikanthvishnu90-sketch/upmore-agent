@@ -474,14 +474,16 @@ async function handle(m, sender) {
       return { ok: true };
     case "questions": {
       // Ask once: each question that stopped this form goes to Trainee once, to be asked by text.
+      // Once per form; a Workday application asks once per step (each step has its own questions).
       const done = await get(S, "asked", {});
-      if (done[m.jobId]) return { ok: true, stored: 0 };
+      const once = m.step ? `${m.jobId}\n${String(m.step).slice(0, 200)}` : m.jobId;
+      if (done[once]) return { ok: true, stored: 0 };
       const f = await facts((await session())?.user_id);
       const q = C.questionsForTrainee({ jobId: m.jobId, company: m.company, needs: m.needs, answers: f.answers, answered: new Set(f.answered) });
       if (!q.questions.length) return { ok: true, stored: 0 };
       try {
         const n = await rpc("career_apply_questions_put_own", { p_job_id: q.posting, p_questions: q.questions });
-        done[m.jobId] = true;
+        done[once] = true;
         await put(S, "asked", done);
         return { ok: true, stored: n };
       } catch (e) {

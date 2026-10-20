@@ -295,6 +295,8 @@
     const n = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     if (s?.type === "checkbox" && !(s.options || []).length) return yesish(pageValue) === yesish(shownAs);
     if (n(pageValue) === n(shownAs)) return true;
+    // A prompt's option under categories ("Website > Careers Site") shows on the page as its leaf (round 2).
+    if (/ > /.test(shownAs) && n(pageValue) === n(shownAs.split(" > ").pop())) return true;
     const d = (x) => String(x ?? "").replace(/\D/g, "");
     return !/[a-z]/i.test(pageValue + shownAs) && d(pageValue).length >= 4 && d(pageValue) === d(shownAs);
   }
@@ -328,7 +330,7 @@
     }
     // Rows only for the person's own entries (jobs, education, languages they stated), with Workday's own Add.
     for (const s of D.workdaySections()) {
-      const n = Math.min(C.rowsToAdd(s.kind, s.anchors, ctx.answers), 10);
+      const n = Math.min(C.rowsToAdd(s.kind, s.anchors, ctx.answers, form.schema), 10);
       for (let i = 0; i < n; i++) if (!(await D.workdayAddRow(s.kind))) break;
     }
     const tried = new Set();
@@ -361,6 +363,11 @@
     timing.read = timing.plan = timing.fill = Date.now();
     form = D.readForm();
     timing.fields = form.schema.length;
+    // Ask once (round 2), as on every other form: this step's open questions go to Trainee to be asked by text and kept for
+    // later forms. Never a row of a repeating section (its answer is one job's or school's, matched by the page, not by
+    // wording), never the person's disability form, never one the page already shows a value for.
+    const asked = plan.needs.filter((n) => !form.schema.some((s) => s.label === n.label && (s.section || s.personal || D.readValue(form.bindings[s.name]))));
+    if (asked.length) send({ type: "questions", jobId, company, needs: asked, step: step.title });
     // Where Workday's own value and the person's confirmed answer differ: side by side on the card, Workday's left.
     wd.conflicts = plan.fill.filter((p) => pageSet.has(p.name) && !sameAnswer(form.schema.find((s) => s.name === p.name), pageSet.get(p.name), p.value))
       .map((p) => {

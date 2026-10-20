@@ -20,7 +20,9 @@ export interface Form { raw: any[]; bindings: Record<string, any>; schema: any[]
 // The form as the engine reads it (scripts/apply.ts observe): every field, radio and checkbox values from the page.
 // WO-048: a Workday application step is read by its own reader (readWorkday below); a Workday sign-in page is never read.
 export function readForm(): Form {
-  if (isWorkdayFlow()) return workdayAccountPage() ? { raw: [], bindings: {}, schema: [] } : readWorkday();
+  // An account page is never read, with Workday's markers or without them (an email-first sign-in has none; round 2).
+  if (workdayAccountPage()) return { raw: [], bindings: {}, schema: [] };
+  if (isWorkdayFlow()) return readWorkday();
   const raw = fnDiscoverFields(false) as any[];
   const all = Array.from(doc().querySelectorAll("input,select,textarea")) as any[];
   for (const f of raw) {
@@ -448,7 +450,11 @@ const WD_HOST = /(^|\.)(myworkdayjobs\.com|myworkdaysite\.com|myworkday\.com)$/i
 const wdEls = new Map<string, any>(); // "wd:<name>" (and "wd:<name>#<i>" for an option) -> the live element
 const wdOwned = new WeakSet<object>(); // elements that are a Workday field's own element (for the person's edits)
 const wdOptions = new Map<string, string[]>(); // field name -> the option texts its list showed when opened
-const wdPaths = new Map<string, Map<string, string[]>>(); // prompt field name -> leaf text -> the categories above it
+const wdPaths = new Map<string, Map<string, string[]>>(); // prompt field name -> option label -> the categories above its leaf
+// A leaf under categories is offered to the planner with its path ("Website > Litware Careers Website"): the category says
+// what the leaf means, and two leaves of one name under two categories stay two options (WO-048 round 2).
+const PATH_SEP = " > ";
+const leafOf = (label: string) => label.split(PATH_SEP).pop()!;
 const wdText = (t: unknown) => String(t ?? "").replace(/[*✱]/g, "").replace(/\s+/g, " ").trim();
 const aidOf = (el: any) => String(el?.getAttribute?.("data-automation-id") ?? "");
 const onWorkday = () => {
@@ -476,11 +482,33 @@ export function workdayAccountPage(): boolean {
   const d = doc();
   if ((Array.from(d.querySelectorAll("input[type=password]")) as any[]).some(shown)) return true;
   if (ACCOUNT_IDS.some((id) => (Array.from(d.querySelectorAll(`[data-automation-id="${id}"]`)) as any[]).some(shown))) return true;
+  if (emailFirstSignIn()) return true;
   const step = d.querySelector('[data-automation-id="applyFlowPage"], [data-automation-id="applyFlowReviewPage"]');
   if (step) return false;
   const buttons = (Array.from(d.querySelectorAll("button, [role=button], [data-automation-id=click_filter]")) as any[]).filter(shown);
   if (buttons.some((b) => /^(sign in|create account|verify|verify password|send code|resend code)$/i.test(wdText(b.getAttribute("aria-label") || b.textContent)))) return true;
   return /\b(verification|one[- ]time|security) code\b/i.test(String(d.body?.innerText || ""));
+}
+
+// WO-048 round 2: an email-first sign-in (the account's email and "Next"; the password comes on the next view) shows no
+// password box and none of Workday's account markers. It is one: the only box a person can type in is an email or user
+// name box, nothing else on the page asks anything, a button says Next / Continue / Sign In, and the page speaks of
+// signing in or an account. Never filled, never clicked.
+const ROBOT = /\brobots?\b|\bhoneypot\b|do not enter if you'?re human/i;
+function emailFirstSignIn(): boolean {
+  const d = doc();
+  const boxes = (Array.from(d.querySelectorAll("input:not([type=hidden]), textarea, select, button[aria-haspopup=listbox], [role=combobox], [role=spinbutton]")) as any[])
+    .filter((el) => shown(el) && !["submit", "button", "reset", "image"].includes(String(el.type || "").toLowerCase()) && aidOf(el) !== "beecatcher" &&
+      !(el.tabIndex === -1 && ROBOT.test(wdText(el.closest("div, p, label")?.textContent))));
+  if (boxes.length !== 1) return false;
+  const box = boxes[0];
+  if (box.tagName !== "INPUT" || !["text", "email", ""].includes(String(box.getAttribute("type") || "").toLowerCase())) return false;
+  const lab = box.id ? d.querySelector(`label[for="${cssEsc(box.id)}"]`) : box.closest("label");
+  const about = [box.type, aidOf(box), box.getAttribute("autocomplete"), box.name, box.id, box.getAttribute("aria-label"), box.placeholder, lab?.textContent].join(" ");
+  if (box.type !== "email" && !/e-?mail|user ?name|\blogin\b|sign[- ]?in/i.test(about)) return false;
+  const buttons = (Array.from(d.querySelectorAll("button, [role=button], input[type=submit]")) as any[]).filter(shown);
+  if (!buttons.some((b) => /^(next|continue|sign in|log in|sign in with email|continue with email)$/i.test(wdText(b.getAttribute("aria-label") || b.value || b.textContent)))) return false;
+  return /\b(sign[- ]?in|log[- ]?in|account)\b/i.test(String(d.body?.innerText || d.body?.textContent || ""));
 }
 
 // The step the page shows: its title in Workday's progress bar, and whether its footer saves a draft or submits.
@@ -521,7 +549,8 @@ const sectionTitle = (g: any) => {
   return wdText(h?.textContent);
 };
 const sectionKind = (title: string) =>
-  /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language" : "other";
+  /work\s*experience|employment history|work history/i.test(title) ? "work" : /^education/i.test(title) ? "education" : /^languages?$/i.test(title) ? "language"
+    : /^(websites?|links?|web addresses|online profiles?)$/i.test(title) ? "website" : "other";
 const isRow = (g: any) => /-panel$/.test(String(g?.getAttribute?.("aria-labelledby") || ""));
 // The section group a row belongs to, and the rows of a section group.
 function sectionOfRow(rowEl: any): any {
@@ -533,7 +562,7 @@ const rowsOf = (g: any) => (Array.from(g.querySelectorAll('[role="group"]')) as 
 const PARTS: Record<string, string> = {
   jobTitle: "title", companyName: "employer", company: "employer", location: "location", currentlyWorkHere: "current", startDate: "start",
   endDate: "end", roleDescription: "description", schoolName: "school", school: "school", degree: "degree", fieldOfStudy: "major",
-  gradeAverage: "gpa", firstYearAttended: "start", lastYearAttended: "end", language: "language", native: "fluent",
+  gradeAverage: "gpa", firstYearAttended: "start", lastYearAttended: "end", language: "language", native: "fluent", url: "url",
 };
 function partOf(kind: string, id: string, label: string, list: boolean): string {
   const m = /--([A-Za-z0-9]+)$/.exec(String(id || "").replace(/-dateSection\w+-input$/, ""));
@@ -542,6 +571,7 @@ function partOf(kind: string, id: string, label: string, list: boolean): string 
   const byLabel: [RegExp, string][] = [[/job title/, "title"], [/^company/, "employer"], [/^(school|university)/, "school"], [/^degree/, "degree"],
     [/field of study|^major/, "major"], [/gpa|overall result/, "gpa"], [/^from\b/, "start"], [/^to\b/, "end"], [/currently work/, "current"],
     [/^language$/, "language"], [/fluent/, "fluent"], [/^location$/, "location"], [/description/, "description"]];
+  if (kind === "website" && /^(url|website|link|web address)$/.test(l)) return "url";
   for (const [re, p] of byLabel) if (re.test(l)) return p;
   if (kind === "language" && list) return "proficiency";
   return "unknown";
@@ -560,7 +590,7 @@ function wdPills(input: any): string[] {
 }
 // The value a row's anchor shows (its company, school or language), which ties the row to one of the person's entries.
 function anchorOf(kind: string, rowEl: any): string {
-  const part = kind === "work" ? "employer" : kind === "education" ? "school" : kind === "language" ? "language" : "";
+  const part = kind === "work" ? "employer" : kind === "education" ? "school" : kind === "language" ? "language" : kind === "website" ? "url" : "";
   if (!part) return "";
   for (const w of Array.from(rowEl.querySelectorAll('[data-automation-id^="formField-"]')) as any[]) {
     const c = w.querySelector('button[aria-haspopup="listbox"], [data-automation-id="searchBox"], input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea');
@@ -752,9 +782,12 @@ async function wdPromptLeaves(input: any, name: string): Promise<string[]> {
       if (!t) continue;
       if (isCategory(o)) {
         if (path.length < 3) queue.push([...path, t]);
-      } else if (!paths.has(t)) {
-        paths.set(t, path);
-        leaves.push(t);
+      } else {
+        const label = [...path, t].join(PATH_SEP);
+        if (!paths.has(label)) {
+          paths.set(label, path);
+          leaves.push(label);
+        }
       }
     }
   }
@@ -795,26 +828,31 @@ async function wdChooseList(btn: any, wanted: string): Promise<boolean> {
   await wdClose(btn);
   return !!ok;
 }
-async function wdChoosePrompt(input: any, wanted: string, name: string): Promise<boolean> {
+// The option the planner chose, by its label as read (a leaf, or "Category > Leaf"): Workday's own search first, typed as
+// the leaf's text, waiting for its results, and taken only when exactly one result is that leaf (a leaf of the same name
+// under another category makes the search unsure); then the categories it was found under when the list was read.
+async function wdChoosePrompt(input: any, label: string, name: string): Promise<boolean> {
+  const wanted = leafOf(label);
   if (wdPills(input).includes(wanted)) return true;
-  // Workday's own search first (the leaf by its text), then the categories it was found under when the list was read.
+  const twins = [...(wdPaths.get(name)?.keys() ?? [])].filter((l) => leafOf(l) === wanted).length;
   await wdClose(input);
   input.focus?.();
   setNative(input, wanted);
   input.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "insertText", data: wanted }));
   input.dispatchEvent(new W.KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true }));
-  let hit = await until(() => listboxes().flatMap(optionsIn).find((o) => !isCategory(o) && optText(o) === wanted) ?? null, 1500);
+  const results = () => listboxes().flatMap(optionsIn).filter((o) => !isCategory(o) && optText(o) === wanted);
+  let hit = twins > 1 ? null : await until(() => (results().length ? results() : null), 3000).then((r) => (r && r.length === 1 ? r[0] : null));
   if (!hit) {
+    await wdClose(input);
     setNative(input, "");
     input.dispatchEvent(new W.InputEvent("input", { bubbles: true, inputType: "deleteContentBackward" }));
-    const path = wdPaths.get(name)?.get(wanted);
+    const path = wdPaths.get(name)?.get(label);
     if (path) {
       let lb = await wdOpen(input);
       for (const step of path) {
         const o = lb && optionsIn(lb).find((x) => optText(x) === step);
-        if (!o) break;
-        press(o);
-        lb = await wdNext(lb);
+        lb = o ? (press(o), await wdNext(lb)) : null; // a category no longer there: nothing is chosen
+        if (!lb) break;
       }
       hit = lb ? optionsIn(lb).find((o) => !isCategory(o) && optText(o) === wanted) ?? null : null;
     }

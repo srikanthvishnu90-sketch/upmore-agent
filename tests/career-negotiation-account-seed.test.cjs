@@ -1,7 +1,7 @@
 "use strict";
 /* MI-123 RESIDUE (S1, MI-123 account-rebase lane; live on v229
  * ad53453, verified 2026-10-19 — record:
- * ~/workspace/upmore-crewa/docs/gauntlet/ad53453.md).
+ * the deployed line's docs/gauntlet/ad53453.md).
  *
  * The v229 negotiation fix re-based the offer record only when the
  * new report's identity DIFFERED from the record it landed on. The

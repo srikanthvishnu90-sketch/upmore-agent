@@ -2,9 +2,9 @@
 /* PROBE D DRAFT-BINDING (LF-02 class; PROBE D DRAFT-BINDING lane,
  * 2026-10-19, branch fix/probe-d-draft-binding; live on v229
  * ad53453 AND v230 6bc96af — records:
- * ~/workspace/upmore-crewa/docs/gauntlet/ad53453.md +
+ * the deployed line's docs/gauntlet/ad53453.md +
  * docs/gauntlet/6bc96af.md; transcripts
- * ~/workspace/crewa-live/custom-blocks-v229-part2-20261019-183601.json
+ * Crew A's live capture custom-blocks-v229-part2-20261019-183601.json
  * + custom-blocks-v230-20261019-221115.json).
  *
  * The custom battery's Probe D, verbatim:

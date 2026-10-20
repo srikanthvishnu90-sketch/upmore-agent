@@ -190,7 +190,7 @@ function locationNo(question: string, value: string): "no" | null {
 // WO-048 round 2: the careers page by its own name first ("Litware Careers Website"); a plain website option only when none
 // names it, and never "Other Website".
 const HOW_HEARD: [RegExp, RegExp, RegExp?][] = [
-  [/career|company (web)?site|website|direct/, /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^career page$|^careers? site$|direct to careers/, /^website$|web ?site/],
+  [/career|company (web)?site|website|direct/, /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^corporate (careers? )?(web)?site$|^career page$|^careers? site$|direct to careers/, /^website$|web ?site/],
   [/linkedin/, /^linked ?in( jobs)?$|^linkedin$/],
   [/indeed/, /^indeed$/],
   [/glassdoor/, /^glassdoor$/],
@@ -255,6 +255,10 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
   // The person's own words, exactly as an option: always first.
   const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
   if (exact.length) return exact[0].value;
+  // WO-058 (sealed-wd3 t2): a leaf under categories ("Mathematics & Statistics > Statistics", Workday's prompt) is the
+  // person's own words when its leaf is; two leaves of that name under two categories: asked.
+  const leaf = options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
+  if (leaf.length === 1) return leaf[0].value;
   if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
   // A derived yes or no lands only on a yes or no option; a list with no yes ("Master's | Bachelor's | ... | Not
   // applicable", "Canada | US | Other") is answered by the fact itself, below (WO-047).

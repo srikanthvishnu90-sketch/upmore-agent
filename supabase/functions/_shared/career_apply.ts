@@ -386,6 +386,11 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     // period, by its span alone (bySpan): the one span it falls in, else asked. Never a date, never a yes or no.
     const choice = chooseOption("notice_period", String(answers.notice_period.value), f.options);
     return choice === null ? null : { value: choice, factId: answers.notice_period.factId };
+  } else if (m.fact === "employment_status" && !answers.employment_status && answers.current_employer?.value) {
+    // WO-058 (sealed-wd3 t4): a stated current employer answers "Are you currently employed?" yes, on a yes/no question only
+    // (a list of kinds of employment, full-time or part-time, is the person's to pick).
+    if (f.options.length ? !f.options.every((o) => yesNoOf(o.label)) : f.type !== "checkbox" && !/^(radio|boolean)$/.test(f.type)) return null;
+    a = { value: "Yes", factId: answers.current_employer.factId };
   } else if (m.kind === "screen") {
     const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
     // Only a plain yes or no from the person answers a question about this job; "3 days" is not "5 days a week".
@@ -604,8 +609,16 @@ function statedDate(value: string, format = "MM/YYYY"): string | null {
 }
 // A row field with options takes only the option that is the stated value itself (a field of study or a language is never
 // the nearest-sounding option).
-const pick = (_fact: string, value: string, f: FormField) =>
-  f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
+// A list is answered by the stated value exactly as an option, or as the one leaf of that name under a category
+// ("Mathematics & Statistics > Statistics", Workday's prompt; WO-058, sealed-wd3 t2).
+const pick = (_fact: string, value: string, f: FormField) => {
+  if (!f.options.length) return value || null;
+  const v = value.toLowerCase(), say = (o: { label: string }) => o.label.replace(/\s+/g, " ").trim().toLowerCase();
+  const exact = f.options.find((o) => say(o) === v);
+  if (exact) return exact.value;
+  const leaf = f.options.filter((o) => / > /.test(o.label) && say(o).split(/\s+>\s+/).pop() === v);
+  return leaf.length === 1 ? leaf[0].value : null;
+};
 const FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
 function sectionAnswer(f: FormField, entry: number | undefined, answers: Record<string, Answer>, fields: FormField[]): Answer | null {
   const s = f.section!;

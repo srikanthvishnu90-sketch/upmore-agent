@@ -1970,7 +1970,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var HOW_HEARD = [
     [
       /career|company (web)?site|website|direct/,
-      /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^career page$|^careers? site$|direct to careers/,
+      /career(s)? (site|page|website)|careers at|company (careers page|website|site)|^corporate (careers? )?(web)?site$|^career page$|^careers? site$|direct to careers/,
       /^website$|web ?site/
     ],
     [
@@ -2039,6 +2039,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (derived && yesNoOf(v) && derived !== yesNoOf(v)) return byYesNo(derived, options);
     const exact = options.filter((o) => low(o.label) === v || low(o.value) === v);
     if (exact.length) return exact[0].value;
+    const leaf = options.filter((o) => / > /.test(o.label) && low(o.label).split(/\s+>\s+/).pop() === v);
+    if (leaf.length === 1) return leaf[0].value;
     if (DECLINE.test(v) || v === "decline") return only(options.filter((o) => DECLINE.test(low(o.label))));
     if (derived) {
       const yn2 = byYesNo(derived, options);
@@ -2933,6 +2935,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         value: choice2,
         factId: answers.notice_period.factId
       };
+    } else if (m.fact === "employment_status" && !answers.employment_status && answers.current_employer?.value) {
+      if (f.options.length ? !f.options.every((o) => yesNoOf(o.label)) : f.type !== "checkbox" && !/^(radio|boolean)$/.test(f.type)) return null;
+      a = {
+        value: "Yes",
+        factId: answers.current_employer.factId
+      };
     } else if (m.kind === "screen") {
       const pref = PREFERENCE[m.fact] ? answers[PREFERENCE[m.fact]] : answers[m.fact];
       if (pref && yesNoOf(pref.value)) a = pref;
@@ -3164,7 +3172,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (f === "DD/MM/YYYY") return y && mm && dd ? `${dd}/${mm}/${y}` : null;
     return null;
   }
-  var pick = (_fact, value, f) => f.options.length ? f.options.find((o) => o.label.replace(/\s+/g, " ").trim().toLowerCase() === value.toLowerCase())?.value ?? null : value || null;
+  var pick = (_fact, value, f) => {
+    if (!f.options.length) return value || null;
+    const v = value.toLowerCase(), say = (o) => o.label.replace(/\s+/g, " ").trim().toLowerCase();
+    const exact = f.options.find((o) => say(o) === v);
+    if (exact) return exact.value;
+    const leaf = f.options.filter((o) => / > /.test(o.label) && say(o).split(/\s+>\s+/).pop() === v);
+    return leaf.length === 1 ? leaf[0].value : null;
+  };
   var FLUENT = /^(native|fluent|bilingual|mother tongue|first language)$/;
   function sectionAnswer(f, entry, answers, fields) {
     const s = f.section;

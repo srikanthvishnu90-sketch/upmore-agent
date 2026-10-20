@@ -158,7 +158,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -218,4 +218,9 @@ echo "== career_brief_digest.test.sql (interviews and the weekly digest: own rea
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021070000_channel_parity.sql"
 echo "== channel_parity.test.sql (WhatsApp and Telegram beside iMessage: per channel, held, linked only on a yes or a one-time link)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_parity.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Delivered proactive texts join the texting thread; the trigger sits on career_outbox and reads channel_contacts, so the
+# ledger above applied it once; it must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021100000_career_proactive_last_word.sql"
+echo "== career_proactive_last_word.test.sql (a delivered alert or receipt is the thread's last word; queued, held and replies are not written)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_proactive_last_word.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

@@ -44,3 +44,14 @@ Deno.test("WO-068/3 get_posting reads one posting in full; an unknown id says so
   try { await bare.run({ job_id: "greenhouse:figma:1" }, ctx); err = ""; } catch (e) { err = (e as Error).message; }
   assert(/not connected/.test(err), err);
 });
+
+Deno.test("WO-068/4 a search that matches nothing on every word is shortened from the end, and says so", async () => {
+  const { searchWords, matchesWords } = await import("../../supabase/functions/_shared/career_ingest.ts");
+  const pool = async (q: string) => POOL.filter((p) => matchesWords(p, searchWords(q)));
+  const t = careerTools({ postings: pool }).find((x) => x.name === "search_jobs")!;
+  const r: any = await t.run({ query: "content strategist senior python remote" }, { userId: "u", threadId: "t", now: 0, state: {} } as any);
+  eq(r.postings.map((p: any) => p.company), ["Figma"]);
+  eq(r.relaxed_to, "content strategist");
+  const exact: any = await t.run({ query: "content" }, { userId: "u", threadId: "t", now: 0, state: {} } as any);
+  eq(exact.relaxed_to, undefined, "a query that matches is never changed");
+});

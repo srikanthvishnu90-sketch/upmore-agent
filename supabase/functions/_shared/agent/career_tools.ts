@@ -207,8 +207,13 @@ export function careerTools(deps: {
       description: "Search live job postings by keywords (role, skill, place). Returns real postings with their links, when they were first seen, and, when the person has confirmed facts, a fit score with reasons and gaps (ranked best fit first; a posting they are knocked out of ranks last with the reason). An empty pool is reported as source 'none'.",
       input_schema: obj({ query: str("Keywords, e.g. 'data analyst remote'"), limit: { type: "number", description: "Max results, default 10" } }),
       run: async (i, c) => {
-        const query = String(i.query ?? "");
-        const pool = await deps.postings(query);
+        // WO-068: every word must match, so a word the model added ("mid level", "python") can empty a search that has
+        // real postings. With none found, the query is shortened from the end until one matches, and the result says so.
+        const asked = String(i.query ?? "");
+        let query = asked, pool = await deps.postings(query);
+        const words = asked.split(/\s+/).filter(Boolean);
+        while (!pool.length && words.length > 1) { words.pop(); query = words.join(" "); pool = await deps.postings(query); }
+        const relaxed = query !== asked ? { relaxed_to: query, note: `nothing matched every word of "${asked}"; these match "${query}"` } : {};
         if (!pool.length) { await record(c, "search", query, { results: 0, source: "none" }); return { postings: [], total: 0, source: "none" }; }
         // C-04: the person's saved floor (and, always, closed postings and the same job on another board) before any
         // ranking; what was hidden is counted by reason so the reply can say it ("7 senior roles, 5 contract").
@@ -218,7 +223,7 @@ export function careerTools(deps: {
         const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
         const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
         await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5) });
-        return { ...r, filtered, source: "live" };
+        return { ...r, filtered, source: "live", ...relaxed };
       },
     },
     {

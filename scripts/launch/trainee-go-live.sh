@@ -58,11 +58,14 @@ done
 # file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
 # 20261019 on is not listed here, so a new one cannot ship without go-live applying it.
 MIGRATIONS=(
-  20261019000000_career_postings.sql
-  20261019010000_career_alerts.sql
+  20261019000000_channel_threads.sql
+  20261019000001_career_postings.sql
+  20261019010000_channel_pending_approvals.sql
+  20261019010001_career_alerts.sql
   20261019020000_channel_delivery.sql
   20261019030000_channel_inbound.sql
-  20261020000000_career_apply_jobs.sql
+  20261020000000_channel_artifacts.sql
+  20261020000001_career_apply_jobs.sql
   20261020010000_career_apply_own_worker.sql
   20261020020000_career_apply_receipts.sql
   20261020030000_career_apply_cards.sql
@@ -88,12 +91,16 @@ MIGRATIONS=(
   20261021110000_career_board_state.sql
   20261021120000_career_apply_form_answers.sql
   20261021130000_career_mail_model_calls.sql
+  20261022100000_career_apply_wanted.sql
 )
 MIGRATION_MARK=(
+  "to_regclass('public.channel_threads') is not null"
   "to_regclass('public.career_ingest_state') is not null"
+  "to_regclass('public.channel_pending_approvals') is not null"
   "to_regclass('public.career_proactive_runs') is not null"
   "exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')"
+  "to_regclass('public.channel_artifacts') is not null"
   "to_regclass('public.career_apply_jobs') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_claim_own')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'receipts')"
@@ -120,6 +127,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_board_state') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_questions_answer_from_form_own')"
   "exists (select 1 from pg_proc where proname = 'career_mail_model_claim')"
+  "to_regclass('public.career_apply_wanted') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

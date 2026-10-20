@@ -158,15 +158,24 @@ const CareerTrack = (() => {
   // confirmation) beat footer boilerplate; (3) remaining noise patterns;
   // (4) recruiter_other, the weakest signal; (5) unknown.
   const MARKETING_SUBJECT = /\b(newsletter|job alert|webinar|digest)\b/i;
-  // BUG-217: a message arrives on one of two channels. Inbox mail is the
+  // BUG-217: a message arrives on one of three channels. Inbox mail is the
   // default (from/subject/body, second-person). A USER REPORT carries
   // source "user-reported" (msg.source / msg.report_source / msg.via, or
   // the same on opts) and its body/text is the user's own words — the
   // channel decides provenance, the evidence stored, and whether the
   // assertion gate below applies.
+  // MI-121 (Crew A ruling, Registry note 7): a third channel — a PASTE.
+  // A pasted email is user-supplied text, not a system/employer record:
+  // provenance decides, not the document's claimed genre. A message
+  // sourced "user_paste" (msg.source / msg.report_source / msg.via, or
+  // the same on opts) may be PARSED here, but it never creates or
+  // advances tracker state (see the ingest branch); its parsed event
+  // returns as a proposal stamped provenance user_paste, unverified.
   function channelOf(msg, opts) {
     const raw = (msg && (msg.source || msg.report_source || msg.via)) || (opts && (opts.source || opts.report_source)) || "";
-    return ["user-reported", "user_reported", "user", "chat"].includes(lc(raw)) ? "user" : "inbox";
+    const v = lc(raw);
+    if (["user_paste", "user-paste", "paste", "pasted"].includes(v)) return "paste";
+    return ["user-reported", "user_reported", "user", "chat"].includes(v) ? "user" : "inbox";
   }
   // A company NAMED in a user's own report, from the report's words only:
   // "an offer from Quill Finance", "Quill Finance rejected me", "a Stripe
@@ -292,8 +301,21 @@ const CareerTrack = (() => {
     // question, a conditional, a negation, a quoted or third-party
     // report — writes nothing and returns unlinked.
     const channel = channelOf(msg, opts);
-    const eventSource = channel === "user" ? "user-reported" : "inbox";
+    const eventSource = channel === "user" ? "user-reported" : channel === "paste" ? "user_paste" : "inbox";
     let cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
+    // MI-121 (Crew A ruling, Registry note 7): the paste channel stops
+    // here. Classification above IS the parse the relay may use for
+    // review/drafting/analysis — stamped provenance user_paste and
+    // verified: false — but a paste writes NOTHING: no row opens
+    // (neither named nor not-stated), no stage moves, no event lands,
+    // no deadline or intake starts, no side record is produced. A
+    // detected event returns as a proposal (what WOULD land, and at
+    // what stage); it becomes state only via a real connected inbox
+    // or the user's own-words confirmation.
+    if (channel === "paste") {
+      const proposal = cls.is_signal ? { class: cls.class, company: cls.company || null, stage_if_confirmed: CLASS_TO_STAGE[cls.class] || null, decision: !!cls.decision, provenance: "user_paste", verified: false } : null;
+      return { classification: Object.assign({}, cls, { provenance: "user_paste", verified: false }), linked: false, moved: false, alert: null, source: "user_paste", provenance: "user_paste", verified: false, proposal, needs_confirmation: !!proposal, reason: "pasted email (provenance user_paste, unverified): parsed for review only — tracker state changes only from a connected inbox record or the user's own-words confirmation (MI-121)" };
+    }
     let assertion = null;
     if (channel === "user") {
       assertion = userAssertionOf(`${s(msg.subject)}\n${s(msg.body)}\n${s(msg.text)}`);

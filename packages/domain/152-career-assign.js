@@ -49,6 +49,24 @@ const CareerAssign = (() => {
 
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const companyKey = (v) => foldText(v).toLowerCase().replace(/\s+/g, " ").trim();
   const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const termIn = (text, term) => new RegExp(`(^|[^a-z0-9])${esc(term)}([^a-z0-9]|$)`).test(lc(text));
 
@@ -222,9 +240,9 @@ const CareerAssign = (() => {
     const company = s(posting.company);
     if ((f.firms_include || []).length) {
       if (!company) reasons.push("interest is limited to named firms and this posting states no company (cannot verify the firm)");
-      else if (!f.firms_include.some((x) => lc(x) === lc(company))) reasons.push(`${company} is not in this interest's firm list`);
+      else if (!f.firms_include.some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is not in this interest's firm list`);
     }
-    if (company && (f.firms_exclude || []).some((x) => lc(x) === lc(company))) reasons.push(`${company} is excluded by this interest`);
+    if (company && (f.firms_exclude || []).some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is excluded by this interest`);
     let fit = null;
     if (!reasons.length) {
       // A 151 alert record was already gated + scored at the watch tier; its
@@ -599,7 +617,7 @@ const CareerAssign = (() => {
     const candidates = [...(deps.alerts || []), ...(deps.postings || [])].map(normalizeCandidate);
     const queue = createReminderQueue(store, wp.user_id);
     const history = (await store.get(HISTORY_KEY(wp.user_id))) || {};
-    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(lc);
+    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(companyKey);
 
     const reminders = [], suppressed = [], rejected = [];
     const cycleSeats = new Set();
@@ -618,7 +636,7 @@ const CareerAssign = (() => {
       // Opt-out binds before any matching (shared cross-user suppression is a
       // host store; the per-user + per-company opt-outs live on the profile).
       if (wp.opt_out && wp.opt_out.global) { suppressed.push({ job_id: posting.job_id, reason: "opt-out: the user has opted out of job reminders globally" }); continue; }
-      if (posting.company && optedOutCompanies.includes(lc(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
+      if (posting.company && optedOutCompanies.includes(companyKey(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
 
       let best = null;
       for (const interest of wp.interests) {

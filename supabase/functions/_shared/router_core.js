@@ -20616,9 +20616,30 @@ const CareerJobs = (() => {
       .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ").trim();
   }
-  const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  // MI-114 HOLE-2/HOLE-3 (allocation requested from Crew A, 2026-10-16):
+  // identity and detector reads fold employer text canonically — NFKC
+  // (full-width forms), zero-width/format characters stripped, and a
+  // conservative Latin-confusable skeleton (Cyrillic/Greek lookalikes) —
+  // so a respelled company or credential word cannot split an identity
+  // or slip a gate. The fold is CASE-PRESERVING (detectors match
+  // capitalized names) and an identity on pure ASCII, so ordinary text
+  // is untouched. The stored employer text itself is never rewritten;
+  // only comparisons and detector reads pass through here.
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "аa еe оo рp сc хx уy іi јj ѕs кk мm нh тt вb АA ВB ЕE КK МM НH ОO РP СC ТT ХX ІI ЈJ ЅS αa εe ιi κk νv οo ρp τt χx υu ωw ΑA ΒB ΕE ΗH ΙI ΚK ΜM ΝN ΟO ΡP ΤT ΧX ΖZ ΥY".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = s(v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => lc(foldText(v)).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normTitle = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normLoc = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -20741,7 +20762,8 @@ const CareerJobs = (() => {
     const m = s(text).match(re); return m ? m[0].slice(0, 300) : "";
   }
   function detectRestrictions(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const out = [];
     // state residency: "Colorado residents only", "must reside in Colorado", "authorized only from Colorado"
     const resPhrases = [];
@@ -20773,7 +20795,8 @@ const CareerJobs = (() => {
   // authorship/prohibition signal in an application context — a malicious instruction in
   // a JD (AP15) or a generic "we use AI" line is NOT a ban and must not flag.
   function detectAiAuthorshipBan(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const sentences = s(text).split(/(?<=[.;])\s+/);
     for (const sent of sentences) {
       const aiAuthored = /ai[- ](authored|generated|written)/i.test(sent);
@@ -20859,7 +20882,10 @@ const CareerJobs = (() => {
     const seen = new Set();
     const push = (ko) => { const k = `${ko.type}|${ko.credential || ko.level || ko.min_years}`; if (!seen.has(k)) { seen.add(k); out.push(ko); } };
     for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
-      const sent = lc(rawSent);
+      // MI-114 HOLE-3: match on the folded sentence (zero-width /
+      // full-width / confusable smuggling cannot hide a credential
+      // word); `evidence` below keeps the RAW employer sentence.
+      const sent = lc(foldText(rawSent));
       // license / licensure
       const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {
@@ -26132,15 +26158,24 @@ const CareerTrack = (() => {
   // confirmation) beat footer boilerplate; (3) remaining noise patterns;
   // (4) recruiter_other, the weakest signal; (5) unknown.
   const MARKETING_SUBJECT = /\b(newsletter|job alert|webinar|digest)\b/i;
-  // BUG-217: a message arrives on one of two channels. Inbox mail is the
+  // BUG-217: a message arrives on one of three channels. Inbox mail is the
   // default (from/subject/body, second-person). A USER REPORT carries
   // source "user-reported" (msg.source / msg.report_source / msg.via, or
   // the same on opts) and its body/text is the user's own words — the
   // channel decides provenance, the evidence stored, and whether the
   // assertion gate below applies.
+  // MI-121 (Crew A ruling, Registry note 7): a third channel — a PASTE.
+  // A pasted email is user-supplied text, not a system/employer record:
+  // provenance decides, not the document's claimed genre. A message
+  // sourced "user_paste" (msg.source / msg.report_source / msg.via, or
+  // the same on opts) may be PARSED here, but it never creates or
+  // advances tracker state (see the ingest branch); its parsed event
+  // returns as a proposal stamped provenance user_paste, unverified.
   function channelOf(msg, opts) {
     const raw = (msg && (msg.source || msg.report_source || msg.via)) || (opts && (opts.source || opts.report_source)) || "";
-    return ["user-reported", "user_reported", "user", "chat"].includes(lc(raw)) ? "user" : "inbox";
+    const v = lc(raw);
+    if (["user_paste", "user-paste", "paste", "pasted"].includes(v)) return "paste";
+    return ["user-reported", "user_reported", "user", "chat"].includes(v) ? "user" : "inbox";
   }
   // A company NAMED in a user's own report, from the report's words only:
   // "an offer from Quill Finance", "Quill Finance rejected me", "a Stripe
@@ -26266,8 +26301,21 @@ const CareerTrack = (() => {
     // question, a conditional, a negation, a quoted or third-party
     // report — writes nothing and returns unlinked.
     const channel = channelOf(msg, opts);
-    const eventSource = channel === "user" ? "user-reported" : "inbox";
+    const eventSource = channel === "user" ? "user-reported" : channel === "paste" ? "user_paste" : "inbox";
     let cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
+    // MI-121 (Crew A ruling, Registry note 7): the paste channel stops
+    // here. Classification above IS the parse the relay may use for
+    // review/drafting/analysis — stamped provenance user_paste and
+    // verified: false — but a paste writes NOTHING: no row opens
+    // (neither named nor not-stated), no stage moves, no event lands,
+    // no deadline or intake starts, no side record is produced. A
+    // detected event returns as a proposal (what WOULD land, and at
+    // what stage); it becomes state only via a real connected inbox
+    // or the user's own-words confirmation.
+    if (channel === "paste") {
+      const proposal = cls.is_signal ? { class: cls.class, company: cls.company || null, stage_if_confirmed: CLASS_TO_STAGE[cls.class] || null, decision: !!cls.decision, provenance: "user_paste", verified: false } : null;
+      return { classification: Object.assign({}, cls, { provenance: "user_paste", verified: false }), linked: false, moved: false, alert: null, source: "user_paste", provenance: "user_paste", verified: false, proposal, needs_confirmation: !!proposal, reason: "pasted email (provenance user_paste, unverified): parsed for review only — tracker state changes only from a connected inbox record or the user's own-words confirmation (MI-121)" };
+    }
     let assertion = null;
     if (channel === "user") {
       assertion = userAssertionOf(`${s(msg.subject)}\n${s(msg.body)}\n${s(msg.text)}`);
@@ -40478,6 +40526,11 @@ const CareerRouter = (() => {
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
+    // MI-121: a pending pasted-email proposal survives the same
+    // shallow-copy boundary — it must live exactly one confirming
+    // turn, no less (the yes would find nothing) and no more (the
+    // consume path deletes it from BOTH homes, so it never revives).
+    if (!c.pendingPasteProposal && m.proposal) c.pendingPasteProposal = m.proposal; else if (c.pendingPasteProposal) m.proposal = c.pendingPasteProposal;
     if (!c.offer && m.offer) c.offer = m.offer; else if (c.offer && typeof c.offer === "object") m.offer = c.offer;
     if (!Array.isArray(c.intentQueue) && Array.isArray(m.queue)) c.intentQueue = m.queue; else if (Array.isArray(c.intentQueue)) m.queue = c.intentQueue;
     if (!c.discovery && m.discovery) c.discovery = m.discovery; else if (c.discovery) m.discovery = c.discovery;
@@ -40512,6 +40565,7 @@ const CareerRouter = (() => {
     const pairs = [];
     if (c.statedFacts && Array.isArray(c.statedFacts.facts) && c.statedFacts.facts.length) pairs.push(["facts", c.statedFacts]);
     if (c.plan) pairs.push(["plan", c.plan]);
+    if (c.pendingPasteProposal && typeof c.pendingPasteProposal === "object") pairs.push(["proposal", c.pendingPasteProposal]);
     if (c.offer && typeof c.offer === "object" && Object.keys(c.offer).length) pairs.push(["offer", c.offer]);
     if (Array.isArray(c.intentQueue) && c.intentQueue.length) pairs.push(["queue", c.intentQueue]);
     const nt = (c.negotiationThread && typeof c.negotiationThread === "object") ? c.negotiationThread : null;
@@ -40642,16 +40696,59 @@ const CareerRouter = (() => {
   function unquotedText(text) {
     return s(text).replace(/["“][^"”]*["”]/g, " ").replace(/\s+/g, " ");
   }
+  // MI-114 HOLE-4 (allocation requested from Crew A, 2026-10-16): the
+  // user's own words, minus any pasted document. A document the user
+  // SHOWS the agent — introduced by a framing clause ("Here is a
+  // posting I found: <document>") — is third-party text, not the
+  // user's assertion, however it is phrased inside: a "SYSTEM NOTE"
+  // line, a quoted testimonial, a closure or offer claim. State
+  // writers (the BUG-169 law: a write needs the user's own assertion
+  // or a system/employer record — a pasted posting is NEITHER) mine
+  // only what survives here; analysis routes still read the full
+  // text. Quoted spans are already stripped by unquotedText.
+  // MI-121 (Crew A ruling, Registry note 7): the segmentation is by
+  // PROVENANCE, not by the document's claimed genre — HOLE-4's
+  // posting span generalizes to ANY pasted document. A pasted EMAIL
+  // is found two ways: the same framing introducer naming the
+  // document ("Here's the email I got:", "this is the letter:"), or
+  // the document's own structure (an email header block, a forwarded-
+  // message marker, a quoted-reply "… wrote:" line) with no framing
+  // at all. The user's framing words BEFORE the span stay theirs —
+  // an assertion there still writes (the HOLE-4 controls); the span
+  // itself is data for analysis routes and, for state-affecting
+  // events, the proposal path in handleTrackEventReport.
+  const PASTE_DOC_NOUN = "posting|job description|job|jd|listing|description|role|email|e-mail|message|letter|thread";
+  const PASTE_INTRO_RE = new RegExp(`\\b(?:here(?:'s| is)|this is|see|${PASTE_DOC_NOUN})\\b[^:—–]{0,80}?\\b(?:${PASTE_DOC_NOUN})\\b[^:—–]{0,40}[:—–]`, "i");
+  const EMAIL_STRUCT_RE = /\bfrom:\s[^:]{1,140}?\bsubject:|-{2,}\s*(?:original message|forwarded message)\s*-{2,}|\bbegin forwarded message\b|\bon\s[^:]{1,120}?\bwrote:/i;
+  function pastedSpanInfo(text) {
+    const t = unquotedText(text);
+    let start = -1, email = false;
+    const im = t.match(PASTE_INTRO_RE);
+    if (im) { start = im.index; email = /\b(e-?mail|message|letter|thread)\b/i.test(im[0]); }
+    const em = t.match(EMAIL_STRUCT_RE);
+    if (em && (start < 0 || em.index < start)) { start = em.index; email = true; }
+    if (start < 0) return { start: -1, span: "", email: false };
+    return { start, span: t.slice(start), email };
+  }
+  function userOwnText(text) {
+    const t = unquotedText(text);
+    const info = pastedSpanInfo(text);
+    return info.start >= 0 ? t.slice(0, info.start).trim() : t;
+  }
   function applicationAssertionOf(text) {
     const t = lc(unquotedText(text));
-    if (/\bif i (applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
+    if (/\bif i (already )?(applied|apply|had applied|were to apply)\b|\bwhat if\b|\bsuppose i\b/.test(t)) return "hypothetical";
     // Attributed to someone else ("my friend said I applied…") — a
     // report of a claim is not the user's own assertion.
     if (/\b(said|says|told me|mentioned|claims|thinks|texted|wrote)\b[^.]*\bi (applied|submitted)\b/.test(t)) return "hypothetical";
-    const asserted = /\bi (applied|submitted|sent in my application)\b/.test(t);
+    // MI-114 HOLE-4: a third-person application claim ("the user has
+    // already applied", "they submitted") is a claim ABOUT someone —
+    // the shape employer text uses — never the user's own disclosure.
+    if (/\b(the user|he|she|they)\b[^.]*\b(applied|submitted)\b/.test(t)) return "hypothetical";
+    const asserted = /\bi (already )?(applied|submitted|sent in my application)\b/.test(t);
     // The assertion exists in the raw text but only inside quotes —
     // it is quoted speech, not the user's own report.
-    if (!asserted && /\bi (applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
+    if (!asserted && /\bi (already )?(applied|submitted|sent in my application)\b/.test(lc(text))) return "hypothetical";
     const imperative = /\b(add|log|record|track)\b[^.]*\b(application|tracker|it|this)\b/.test(t);
     if (asserted || imperative) return "assertion";
     if (interrogativeTurn(text)) return "hypothetical";
@@ -40777,7 +40874,10 @@ const CareerRouter = (() => {
   function handleTrackCorrection(text, ctx) {
     const store = trackStoreOf(ctx);
     if (!store || !Track || !Track.findByCompany) return null;
-    const raw = s(text);
+    // MI-121 (HOLE-4's rule, generalized by provenance): a correction
+    // is the user's own speech act — mine only their own words, so a
+    // correction shape inside a pasted document renames nothing.
+    const raw = userOwnText(text);
     const cap = "([A-Z][A-Za-z0-9&.'-]+(?:\\s+[A-Z][A-Za-z0-9&.'-]+)?)";
     let newCo = null, oldCo = null;
     let m = raw.match(new RegExp(`\\b(?:it was|that was|i meant|actually it'?s|actually it is)\\s+${cap}\\s*,?\\s+not\\s+${cap}`, "i"));
@@ -40804,7 +40904,14 @@ const CareerRouter = (() => {
   // manualUpdate marks it user-reported).
   const TRACK_STAGE_WORDS = [[/\bonsite\b|\bon-site\b/, "Interview rounds"], [/\binterview\b/, "Interview rounds"], [/\brecruiter screen\b|\bphone screen\b/, "Recruiter screen"], [/\boffer\b/, "Offer"], [/\breject/, "Rejected"], [/\bassessment\b|\boa\b/, "OA/assessment"], [/\bfinal\b/, "Final"], [/\bsubmitted\b|\bapplied\b/, "Submitted"]];
   function handleTrackMove(text, ctx) {
-    const t = lc(text);
+    // MI-121 (found by MI-121's own done-test): this writer mined the
+    // RAW text, so a move verb in a pasted email's subject ("Role
+    // update") plus a stage word in its body ("already applied")
+    // appended a manual_update event to a row — a tracker write from
+    // user-supplied text, stamped as the user's report. It mines the
+    // user's own words like every other state writer (HOLE-4).
+    const own = userOwnText(text);
+    const t = lc(own);
     // LANE A v2 (LF-02): the past-tense report form — "I moved to the
     // onsite round at <Co>" — is the natural way users state a stage
     // move; the old gate knew only the imperative ("move it to…") so
@@ -40829,15 +40936,15 @@ const CareerRouter = (() => {
       const attributed = /\b(said|says|told me|heard|claims?|thinks?|apparently|supposedly|rumou?r)\b/.test(t);
       const eventAssertion = /\bi (got|received|was|have been|just got)\b|\bthey\b[^.]*\b(rejected|offered|emailed|sent|declined|turned)\b|\bemailed me\b|\b(rejection|offer|acceptance)\b[^.]*\b(came|arrived|landed)\b|\bletter (came|arrived|landed)\b|\bgot (a |an |the )?(rejection|offer)\b/.test(t);
       if (attributed || !eventAssertion) {
-        const company0 = companyFromApplicationText(text) || (rows.length === 1 ? rows[0].company : null);
+        const company0 = companyFromApplicationText(own) || (rows.length === 1 ? rows[0].company : null);
         const reply = compose({ headline: `Not moved — ${hit[1] === "Rejected" ? "a rejection" : "an offer"} lands on the tracker only from your own report of it.`, facts: [attributed ? "What you passed on is someone else's word, and an outcome stage is never written from hearsay — the record would claim a result nobody with first-hand knowledge asserted." : "An instruction to mark the stage is not itself the event: outcome stages here change on evidence, and for these the evidence is your own report that it happened.", company0 ? `The ${company0} row still shows ${rows.find((r) => r.company === company0)?.stage || "its recorded stage"}.` : "No row was touched."], nextStep: hit[1] === "Rejected" ? "Did they reject YOUR application? Say \"they rejected me\" (or paste their email) and the row moves on your word, in the same turn." : "Did the offer land for you? Say \"I got the offer\" (or paste the letter) and the row moves on your word, in the same turn." });
         return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
       }
     }
-    const company = companyFromApplicationText(text);
+    const company = companyFromApplicationText(own);
     const row = (company && Track.findByCompany(store, company)) || rows[rows.length - 1];
     if (!row || !row.company) return null;
-    const r = Track.manualUpdate(store, row.company, hit[1], { now: nowOf(ctx), detail: `stage moved on the user's report — "${s(text).slice(0, 120)}"` });
+    const r = Track.manualUpdate(store, row.company, hit[1], { now: nowOf(ctx), detail: `stage moved on the user's report — "${s(own).slice(0, 120)}"` });
     if (!r || !r.ok) return null;
     const back = Track.findByCompany(store, row.company);
     if (!back || back.stage !== hit[1]) return null;
@@ -43962,18 +44069,28 @@ const CareerRouter = (() => {
   // The ownership layer: checked BEFORE every existing route in handleChat.
   function handleStateChangeIntents(text, ctx) {
     const c = ctx || {};
-    return invalidationGate(text, c)
-      || handlePauseControl(text, c)
-      || handleRecipientChange(text, c)
-      || handleOptOut(text, c)
-      || handleUserSuppression(text, c)
-      || handleRoleClosure(text, c)
-      || handlePriorApplication(text, c)
-      || handleSensitiveCorrection(text, c)
-      || handleQueueCancel(text, c)
-      || handleDoorstepCancel(text, c)
-      || handlePacketValidity(text, c)
-      || handleFollowUpStatus(text, c);
+    // MI-114 HOLE-4: every writer in this chain acts on the user's
+    // own assertions, so every one of them reads userOwnText — a
+    // pasted posting's claims (already applied / role closed /
+    // paused / opted out) write NOTHING from inside the document.
+    // MI-121: the same segmentation covers pasted EMAILS (provenance,
+    // not genre), and a pending pasted-email proposal is resolved
+    // here first — a bare yes is the user's own-words assertion that
+    // writes the proposed event; anything else spends the proposal.
+    const own = userOwnText(text);
+    return handlePasteProposalConfirm(own, c)
+      || invalidationGate(own, c)
+      || handlePauseControl(own, c)
+      || handleRecipientChange(own, c)
+      || handleOptOut(own, c)
+      || handleUserSuppression(own, c)
+      || handleRoleClosure(own, c)
+      || handlePriorApplication(own, c)
+      || handleSensitiveCorrection(own, c)
+      || handleQueueCancel(own, c)
+      || handleDoorstepCancel(own, c)
+      || handlePacketValidity(own, c)
+      || handleFollowUpStatus(own, c);
   }
 
   // ---------- main entry: consulted after 120, then 130 ----------
@@ -47455,6 +47572,135 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // ---------- MI-121: pasted-email proposals + confirmations.
+  // A state-affecting event found ONLY inside a pasted email is a
+  // PROPOSAL, never a write (Crew A ruling, Registry note 7): the
+  // parse runs through 126 with paste provenance (which writes
+  // nothing by construction), the turn answers with the proposal and
+  // ONE confirming question, and the proposal pends on ctx for
+  // exactly one turn (pendingPasteProposal — a snapshot state key,
+  // mirrored like the other thread records). The user's own-words
+  // yes is the assertion that writes it, through the same 126 write
+  // machinery as a direct report, with the evidence clause carrying
+  // the paste provenance — the record never poses as an inbox
+  // record, and a later yes can never revive a spent proposal.
+  function clearPendingPasteProposal(ctx) {
+    if (ctx && ctx.pendingPasteProposal) { try { delete ctx.pendingPasteProposal; } catch { ctx.pendingPasteProposal = undefined; } }
+    const m = threadMirrorOf(ctx);
+    if (m && m.proposal) { try { delete m.proposal; } catch { /* the mirror is best-effort */ } }
+  }
+  function pasteConfirmVerdict(own) {
+    const raw = s(own).trim();
+    if (!raw || raw.length > 80 || raw.includes("?")) return null;
+    const t = lc(raw);
+    if (trackEventClassOf(t)) return null; // the turn carries its own event — it routes on its own words
+    if (/^(no|nope|nah|don'?t|do not|not yet|wait|stop)\b/.test(t)) return "no";
+    if (/^(yes|yeah|yep|yup|correct|right|that'?s right|that is right|log it|go ahead|confirm|confirmed|please do|yes please)\b/.test(t)) return "yes";
+    return null;
+  }
+  // The one write path for tracker events reported in chat (126 only):
+  // ingest first (its classifier links and moves the row when the
+  // evidence carries a signal), and where ingest cannot link a named
+  // company's row, 126's own add/move API lands the event on it.
+  // Shared by the direct-report path and the pasted-email
+  // confirmation path — the difference is only the evidence text and
+  // the ingest message's provenance, never the write discipline.
+  function landTrackEvent(ctx, store, ev, company, ingMsg, moveDetail) {
+    let ing = null;
+    try { ing = Track.ingestMessage ? Track.ingestMessage(store, ingMsg, { now: nowOf(ctx) }) : null; } catch { ing = null; }
+    const rows = Array.isArray(store.rows) ? store.rows : [];
+    let row = null;
+    if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
+    if (!row && company) {
+      row = rows.find((r) => r.company && lc(r.company) === lc(company)) || null;
+      if (!row) {
+        try { row = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: STAGE_FOR_126[ev], event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { row = null; }
+      } else if (row.stage !== STAGE_FOR_126[ev] && Track.moveStage) {
+        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: moveDetail.detail, evidence: moveDetail.evidence }, nowOf(ctx)); } catch { /* the read-back decides what is claimed */ }
+      }
+    }
+    return row;
+  }
+  function writeConfirmedPasteEvent(ctx, pending, own) {
+    const store = trackStoreOf(ctx);
+    if (!store || !Track) return null;
+    const ev = pending.ev, company = pending.company;
+    const label = { rejected: "Rejection", interview: "Interview invite", offer: "Offer", oa: "Assessment invite", confirmed: "Confirmation" }[ev];
+    // The user's yes is the assertion; the evidence clause says
+    // exactly that and carries the paste provenance.
+    const clause = `${s(own).trim()} — I confirm the ${lc(label)} from ${company} (first seen in a pasted email, provenance user_paste)`;
+    const ingMsg = { id: `chat-${nowOf(ctx)}`, source: "user-reported", from: "user confirmation in chat", subject: `${ev} confirmed in chat`, body: clause, company };
+    const row = landTrackEvent(ctx, store, ev, company, ingMsg, { detail: `user confirmed a pasted-email proposal in their own words: "${clause.slice(0, 160)}"`, evidence: clause.slice(0, 200) });
+    if (!row) return null;
+    const stageNow = row.stage || STAGE_FOR_126[ev];
+    const facts = ["Recorded from your confirmation just now — the event was first seen in an email you pasted (provenance user_paste, unverified until your yes); your own-words confirmation is the evidence on the row.", "Nothing from the pasted document itself was ever written — the stage moved only when you confirmed it."];
+    if (ev === "offer") facts.push("The offer also starts the negotiation record: its terms get read from the letter itself, and the deadline clock runs from the letter, never from a guess.");
+    if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
+    const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });
+    const res = { intent: "tracking_log", reply, resultStatus: "completed", sends: 0, stage: ev, company: row.company, track_event: { class: ev, stage_after: stageNow, source: "user_confirmed_paste" } };
+    return emitTrack(ctx, res, { company: row.company, stage: stageNow, event_type: EVENT_FOR_126[ev], source: "user_reported", note: `${label} confirmed by the user from a pasted email (provenance user_paste)` });
+  }
+  function handlePasteProposalConfirm(own, ctx) {
+    const c = ctx || {};
+    const pending = c.pendingPasteProposal;
+    if (!pending || typeof pending !== "object" || !pending.ev) return null;
+    const verdict = pasteConfirmVerdict(own);
+    if (verdict === "no") {
+      clearPendingPasteProposal(c);
+      const reply = compose({ headline: "Not logged — the pasted email stays a document, not a record.", facts: ["Nothing moved on your tracker, and the proposal is closed: a later yes will not revive it.", "If the event is real, a connected inbox record or your own-words report (\"I got the rejection from them\") logs it at any time."], nextStep: "Anything else on the tracker?" });
+      return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (verdict === "yes") {
+      if (!pending.company) {
+        // The confirming question was also the company question; a
+        // bare yes cannot bind a stage change to a guessed row, so
+        // the proposal stays pending for the company answer.
+        const reply = compose({ headline: "One thing missing before I log it: the company.", facts: ["The pasted email did not resolve to a company on your tracker, and I will not guess one onto a stage change."], nextStep: "Name the company and I log the event in that turn." });
+        return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      clearPendingPasteProposal(c);
+      return writeConfirmedPasteEvent(c, pending, own);
+    }
+    // A bare company name answers a company-less proposal's question.
+    if (!pending.company && own && s(own).trim().length <= 60 && !own.includes("?")) {
+      const store = trackStoreOf(c);
+      const named = companyFromText(own, c) || (store && Array.isArray(store.rows) ? (store.rows.find((r) => r.company && lc(r.company) === lc(s(own).trim())) || {}).company || null : null);
+      if (named) {
+        const resolved = Object.assign({}, pending, { company: named });
+        clearPendingPasteProposal(c);
+        return writeConfirmedPasteEvent(c, resolved, own);
+      }
+    }
+    // Any other turn spends the proposal — it lives for exactly one
+    // confirming turn — and the new turn routes on its own words.
+    clearPendingPasteProposal(c);
+    return null;
+  }
+  function pastedEmailProposalOf(text, ctx) {
+    const info = pastedSpanInfo(text);
+    if (!info.span || !info.email) return null;
+    if (interrogativeTurn(userOwnText(text))) return null; // a question about the document is analysis, not a log proposal
+    const ev = trackEventClassOf(lc(info.span));
+    if (!ev) return null;
+    const store = trackStoreOf(ctx);
+    if (!store || !Track || !Track.ingestMessage) return null;
+    // The parse runs through 126 with paste provenance — which
+    // writes nothing by construction (MI-121 segmentation there).
+    let ing = null;
+    try { ing = Track.ingestMessage(store, { id: `paste-${nowOf(ctx)}`, source: "user_paste", subject: "", body: info.span }, { now: nowOf(ctx) }); } catch { ing = null; }
+    const prop = ing && ing.proposal ? ing.proposal : null;
+    const company = (prop && prop.company) || companyFromText(info.span, ctx) || companyFromApplicationText(info.span) || null;
+    const noun = { rejected: "a rejection", interview: "an interview invite", offer: "an offer", oa: "an assessment invite", confirmed: "a confirmation" }[ev];
+    const verb = { rejected: "reject your application", interview: "invite you to interview", offer: "send you an offer", oa: "send you an assessment invite", confirmed: "confirm your application" }[ev];
+    ctx.pendingPasteProposal = { ev, class: EVENT_FOR_126[ev], company: company || null, provenance: "user_paste", at: nowOf(ctx) };
+    const reply = compose({
+      headline: company ? `That pasted email carries ${noun} from ${company} — I have not logged it.` : `That pasted email carries ${noun} — I have not logged it.`,
+      facts: ["A pasted email is a document you showed me, not a record from a connected inbox — its claims are unverified (provenance user_paste), so nothing has moved on your tracker.", "It becomes a record only from your own words: confirm it and I log exactly that event, stamped as confirmed from the pasted email."],
+      nextStep: company ? `Did ${company} ${verb}? Answer yes and I will log it now.` : `Which application is this for — and should I log it? Name the company with your yes and the row moves.`,
+    });
+    return { intent: "tracking_status", reply, resultStatus: "awaiting_user", sends: 0, stage: ev, paste_proposal: { class: EVENT_FOR_126[ev], company: company || null, provenance: "user_paste", verified: false } };
+  }
+
   // ---------- DEPTH WAVE, Item C (claim class: track_event_report).
   // A user's plain-words report of an application event — "they just
   // emailed me a rejection, ugh", "got an interview invite from
@@ -47480,10 +47726,15 @@ const CareerRouter = (() => {
     return null;
   }
   function handleTrackEventReport(text, ctx) {
-    const u = unquotedText(text);
+    const u = userOwnText(text); // MI-114 HOLE-4: the report mined is the user's own words only (see userOwnText)
     const t = lc(u);
     const ev = trackEventClassOf(t);
-    if (!ev) return null;
+    if (!ev) {
+      // MI-121: no event in the user's own words — but a
+      // state-affecting event inside a pasted EMAIL becomes a
+      // proposal + one confirming question, never a write.
+      return pastedEmailProposalOf(text, ctx);
+    }
     const store = trackStoreOf(ctx);
     if (!store || !Track) return null;
     // Someone else's event is not the user's tracker record.
@@ -47497,7 +47748,7 @@ const CareerRouter = (() => {
     // question about an event ("did they email me a rejection?")
     // reports nothing at all. Either way this claim stands down and
     // the turn's real owner answers it — nothing is written here.
-    if (interrogativeTurn(text) || s(text).includes("?") || /\bshould i\b/.test(t)) return null;
+    if (interrogativeTurn(u) || u.includes("?") || /\bshould i\b/.test(t)) return null;
     // The report must be framed as the user's own: a first-person
     // marker, a bare event-arrival verb, or a named company acting
     // toward the user. Anything else is left to other routes.
@@ -47506,12 +47757,12 @@ const CareerRouter = (() => {
     // no first-person word, so it fell to the fallback while the
     // offer sat unrecorded. A resolved company + an arrival verb IS
     // the company acting toward the user.
-    const namedCompany0 = companyFromText(text, ctx) || companyFromApplicationText(text);
+    const namedCompany0 = companyFromText(u, ctx) || companyFromApplicationText(u);
     // An event report names its company in the "from X" frame
     // ("an offer just came in from Atlas Freight") — neither general
     // extractor reads that frame, so the event path resolves it
     // itself; the capital gate keeps "from the cold" out.
-    const fromM = !namedCompany0 ? s(text).match(/\bfrom\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/) : null;
+    const fromM = !namedCompany0 ? s(u).match(/\bfrom\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+)?)/) : null;
     const namedCompany = namedCompany0 || (fromM ? fromM[1].replace(/[?.!,]+$/, "").trim() : null);
     const userFramed = /\b(me|my|mine|i|we|us)\b/.test(t) || /^(got|offer came|rejection came|it came|just got)\b/.test(t.trim()) || (!!namedCompany && /\b(came in|just came|arrived|landed|just landed)\b/.test(t));
     if (!userFramed) return null;
@@ -47545,18 +47796,8 @@ const CareerRouter = (() => {
     // through dressed as an inbox detection (the v227 row's events
     // carried source "inbox" and an "offer detected in inbox message"
     // detail for a chat report).
-    let ing = null;
-    try { ing = Track.ingestMessage ? Track.ingestMessage(store, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", source: "user-reported", body: s(text), company: company || undefined }, { now: nowOf(ctx) }) : null; } catch { ing = null; }
-    let row = null;
-    if (ing && ing.linked && company) row = rows.find((r) => lc(r.company) === lc(company)) || null;
-    if (!row && company) {
-      row = rows.find((r) => r.company && lc(r.company) === lc(company)) || null;
-      if (!row) {
-        try { row = Track.addApplication(store, { company, title: "role (user-reported)", source: "user_reported", stage: STAGE_FOR_126[ev], event_source: "user-reported" }, { now: nowOf(ctx) }); } catch { row = null; }
-      } else if (row.stage !== STAGE_FOR_126[ev] && Track.moveStage) {
-        try { Track.moveStage(row, STAGE_FOR_126[ev], { type: EVENT_FOR_126[ev], source: "user-reported", detail: `user reported in chat: "${s(text).slice(0, 120)}"`, evidence: s(text).slice(0, 200) }, nowOf(ctx)); } catch { /* the read-back below decides what is claimed */ }
-      }
-    }
+    // MI-121: the shared write path (landTrackEvent), on the user's own words only (u, HOLE-4).
+    const row = landTrackEvent(ctx, store, ev, company, { id: `chat-${nowOf(ctx)}`, from: "user report in chat", source: "user-reported", body: s(u), company: company || undefined }, { detail: `user reported in chat: "${s(u).slice(0, 120)}"`, evidence: s(u).slice(0, 200) });
     if (!row) {
       // Claimed, but the event cannot be bound to a row yet: one
       // precise question, and (beyond any not-stated row 126 itself
@@ -47587,7 +47828,7 @@ const CareerRouter = (() => {
     // Read-back before the claim: the stage spoken is the row's own.
     const stageNow = row.stage || STAGE_FOR_126[ev];
     const label = { rejected: "Rejection", interview: "Interview invite", offer: "Offer", oa: "Assessment invite", confirmed: "Confirmation" }[ev];
-    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(text).slice(0, 120)}".`];
+    const facts = [`Recorded from your report just now — your words are the evidence on the row: "${s(u).slice(0, 120)}".`];
     if (ev === "offer") facts.push("The offer also starts the negotiation record: its terms get read from the letter itself, and the deadline clock runs from the letter, never from a guess.");
     if (ev === "rejected") facts.push("One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.");
     const reply = compose({ headline: `${label} on the record for ${row.company} — the row now shows ${stageNow}.`, facts, nextStep: ev === "interview" ? "Want the prep pack for it now?" : ev === "offer" ? "Want the offer terms laid out and the counter plan started?" : "Want the status of the rest of the tracker?" });
@@ -49347,7 +49588,25 @@ const CareerPortalApply = (() => {
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
-  const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => foldText(v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
   // ---------- §6.3 target classification ----------
   function classifyTarget(url) {
@@ -51126,6 +51385,24 @@ const CareerAssign = (() => {
 
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
+  // MI-114 HOLE-2 (allocation requested from Crew A, 2026-10-16): one
+  // canonical identity fold — NFKC + zero-width/format strip + a
+  // conservative Latin-confusable skeleton — so a respelled company
+  // name cannot split an identity. Identity on pure ASCII. (Same fold
+  // as 121's foldText; modules are standalone, so it is carried here.)
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "\u0430a \u0435e \u043Eo \u0440p \u0441c \u0445x \u0443y \u0456i \u0458j \u0455s \u043Ak \u043Cm \u043Dh \u0442t \u0432b \u0410A \u0412B \u0415E \u041AK \u041CM \u041DH \u041EO \u0420P \u0421C \u0422T \u0425X \u0406I \u0408J \u0405S \u03B1a \u03B5e \u03B9i \u03BAk \u03BDv \u03BCo \u03C1p \u03C4t \u03C7x \u03C5u \u03C9w \u0391A \u0392B \u0395E \u0397H \u0399I \u039AK \u039CM \u039DN \u039FO \u03A1P \u03A4T \u03A7X \u0396Z \u03A5Y".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = String(v == null ? "" : v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const companyKey = (v) => foldText(v).toLowerCase().replace(/\s+/g, " ").trim();
   const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const termIn = (text, term) => new RegExp(`(^|[^a-z0-9])${esc(term)}([^a-z0-9]|$)`).test(lc(text));
 
@@ -51299,9 +51576,9 @@ const CareerAssign = (() => {
     const company = s(posting.company);
     if ((f.firms_include || []).length) {
       if (!company) reasons.push("interest is limited to named firms and this posting states no company (cannot verify the firm)");
-      else if (!f.firms_include.some((x) => lc(x) === lc(company))) reasons.push(`${company} is not in this interest's firm list`);
+      else if (!f.firms_include.some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is not in this interest's firm list`);
     }
-    if (company && (f.firms_exclude || []).some((x) => lc(x) === lc(company))) reasons.push(`${company} is excluded by this interest`);
+    if (company && (f.firms_exclude || []).some((x) => companyKey(x) === companyKey(company))) reasons.push(`${company} is excluded by this interest`);
     let fit = null;
     if (!reasons.length) {
       // A 151 alert record was already gated + scored at the watch tier; its
@@ -51676,7 +51953,7 @@ const CareerAssign = (() => {
     const candidates = [...(deps.alerts || []), ...(deps.postings || [])].map(normalizeCandidate);
     const queue = createReminderQueue(store, wp.user_id);
     const history = (await store.get(HISTORY_KEY(wp.user_id))) || {};
-    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(lc);
+    const optedOutCompanies = ((wp.opt_out || {}).companies || []).map(companyKey);
 
     const reminders = [], suppressed = [], rejected = [];
     const cycleSeats = new Set();
@@ -51695,7 +51972,7 @@ const CareerAssign = (() => {
       // Opt-out binds before any matching (shared cross-user suppression is a
       // host store; the per-user + per-company opt-outs live on the profile).
       if (wp.opt_out && wp.opt_out.global) { suppressed.push({ job_id: posting.job_id, reason: "opt-out: the user has opted out of job reminders globally" }); continue; }
-      if (posting.company && optedOutCompanies.includes(lc(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
+      if (posting.company && optedOutCompanies.includes(companyKey(posting.company))) { suppressed.push({ job_id: posting.job_id, reason: `opt-out: the user opted out of ${posting.company}` }); continue; }
 
       let best = null;
       for (const interest of wp.interests) {

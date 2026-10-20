@@ -78,9 +78,30 @@ const CareerJobs = (() => {
       .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ").trim();
   }
-  const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
-  const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  // MI-114 HOLE-2/HOLE-3 (allocation requested from Crew A, 2026-10-16):
+  // identity and detector reads fold employer text canonically — NFKC
+  // (full-width forms), zero-width/format characters stripped, and a
+  // conservative Latin-confusable skeleton (Cyrillic/Greek lookalikes) —
+  // so a respelled company or credential word cannot split an identity
+  // or slip a gate. The fold is CASE-PRESERVING (detectors match
+  // capitalized names) and an identity on pure ASCII, so ordinary text
+  // is untouched. The stored employer text itself is never rewritten;
+  // only comparisons and detector reads pass through here.
+  const CONFUSABLES = (() => {
+    const m = {};
+    for (const p of "аa еe оo рp сc хx уy іi јj ѕs кk мm нh тt вb АA ВB ЕE КK МM НH ОO РP СC ТT ХX ІI ЈJ ЅS αa εe ιi κk νv οo ρp τt χx υu ωw ΑA ΒB ΕE ΗH ΙI ΚK ΜM ΝN ΟO ΡP ΤT ΧX ΖZ ΥY".split(" ")) if (p.length === 2) m[p[0]] = p[1];
+    return m;
+  })();
+  function foldText(v) {
+    const t = s(v).normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E]/g, "");
+    if (!/[^\x00-\x7F]/.test(t)) return t;
+    let out = "";
+    for (const ch of t) out += CONFUSABLES[ch] || ch;
+    return out;
+  }
+  const normName = (v) => lc(foldText(v)).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normTitle = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normLoc = (v) => lc(foldText(v)).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -203,7 +224,8 @@ const CareerJobs = (() => {
     const m = s(text).match(re); return m ? m[0].slice(0, 300) : "";
   }
   function detectRestrictions(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const out = [];
     // state residency: "Colorado residents only", "must reside in Colorado", "authorized only from Colorado"
     const resPhrases = [];
@@ -235,7 +257,8 @@ const CareerJobs = (() => {
   // authorship/prohibition signal in an application context — a malicious instruction in
   // a JD (AP15) or a generic "we use AI" line is NOT a ban and must not flag.
   function detectAiAuthorshipBan(posting) {
-    const text = postingText(posting || {});
+    // MI-114 HOLE-3: detectors read the folded text (see foldText).
+    const text = foldText(postingText(posting || {}));
     const sentences = s(text).split(/(?<=[.;])\s+/);
     for (const sent of sentences) {
       const aiAuthored = /ai[- ](authored|generated|written)/i.test(sent);
@@ -321,7 +344,10 @@ const CareerJobs = (() => {
     const seen = new Set();
     const push = (ko) => { const k = `${ko.type}|${ko.credential || ko.level || ko.min_years}`; if (!seen.has(k)) { seen.add(k); out.push(ko); } };
     for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
-      const sent = lc(rawSent);
+      // MI-114 HOLE-3: match on the folded sentence (zero-width /
+      // full-width / confusable smuggling cannot hide a credential
+      // word); `evidence` below keeps the RAW employer sentence.
+      const sent = lc(foldText(rawSent));
       // license / licensure
       const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {

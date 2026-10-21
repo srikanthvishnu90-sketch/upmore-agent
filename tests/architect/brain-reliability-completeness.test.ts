@@ -165,3 +165,9 @@ Deno.test("reliability: a substantive final answer supersedes earlier tool-call 
   const { r, m } = await fixture([use("I will check the details."), text(ANSWER)]);
   eq(r.reply, ANSWER); eq(m.payloads.length, 2);
 });
+
+Deno.test("reliability: a save receipt and contracted confirmation cannot replace an earlier answer", async () => {
+  const { r, m, state } = await fixture([use(ANSWER), text("I've saved your interview plan. Tell me if that's off.")]);
+  ok(r.reply.includes(ANSWER), "only the save receipt survived");
+  eq(state.saves, 1); eq(m.payloads.length, 2);
+});

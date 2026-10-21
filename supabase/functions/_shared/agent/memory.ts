@@ -189,8 +189,7 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const drafts = facts.filter((f: any) => f.needs_confirmation || f.status === "draft");
   const goal = goalLines(o.profile);
   const head = [
-    "WHAT YOU KNOW ABOUT THIS PERSON FROM THEIR ACCOUNT. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
-    "What they told you earlier in this chat is known as well, even where this says none: \"none on file\" means their account has no record, never that you don't know it. Answer from what they said.",
+    "WHAT YOU KNOW ABOUT THIS PERSON. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
     "",
     "Standing instructions (they said these must always hold; follow every one, mention it when it shapes an answer, never ask for it again):",
     ...(o.standing.length ? o.standing.map((s) => `- ${s.id}: ${s.text} (they said: "${s.said}", ${s.at.slice(0, 10)})`) : ["- none yet"]),

@@ -16,7 +16,7 @@ for (const f of args) {
   const judges = [r.judge_model, r.judge_model_2].filter(Boolean).join(" + ") + " (alone; the score is both-pass with Instinct)";
   // A judge that errored scored nothing: the run is not a score (run 39541224991 logged 0/38 when its second judge failed every call).
   const errs = judgeErrors(r);
-  log += `| ${String(r.run_at).slice(0, 19).replace("T", " ")} | ${r.source_commit ?? r.commit} | ${r.set} | ${r.brain} | ${r.total} | ${r.passed} | ${(r.pass_rate * 100).toFixed(1)}% | ${judges} | ${r.stopped ? "STOPPED" : errs ? `NOT A SCORE: ${errs} judge errors` : "no"} | ${run}${r.harness ? `; harness: ${r.harness}` : ""} |\n`;
+  log += `| ${String(r.run_at).slice(0, 19).replace("T", " ")} | ${r.source_commit ?? r.commit} | ${r.set} | ${r.brain} | ${r.total} | ${r.passed} | ${(r.pass_rate * 100).toFixed(1)}% | ${judges} | ${r.stopped ? "STOPPED" : errs ? `NOT A SCORE: ${errs} judge errors` : "no"} | ${run} |\n`;
 }
 await Deno.writeTextFile(file, log);
 console.log(log.trim().split("\n").slice(-args.length).join("\n"));

@@ -81,6 +81,11 @@ export async function evidenceOf(job: CloudJob, run: any, s: ReturnType<typeof s
   const answers = (Array.isArray(job.payload?.fields) ? job.payload.fields : [])
     .filter((f: any) => !(f?.value && typeof f.value === "object"))
     .map((f: any) => ({ label: clip(f.label, 300), value: clip(f.value, 2000), fact: clip(f.factId, 200) }));
+  const why = new Map((Array.isArray(run?.result?.contract) ? run.result.contract : []).map((c: any) => [c?.label, clip(c?.why, 200)]));
+  const questions = (Array.isArray(run?.result?.questions) ? run.result.questions : []).slice(0, 40).map((q: any) => ({
+    label: clip(q?.label, 300), type: clip(q?.type, 40), options: (Array.isArray(q?.options) ? q.options : []).slice(0, 60).map((o: unknown) => clip(o, 200)),
+    ...(why.get(q?.label) ? { why: why.get(q?.label) } : {}),
+  }));
   const out: Record<string, unknown> = {
     reason: s.reason || null,
     confirmation_id: run?.result?.confirmation_id ?? null,
@@ -95,8 +100,12 @@ export async function evidenceOf(job: CloudJob, run: any, s: ReturnType<typeof s
     started_at: new Date(t.started).toISOString(),
     finished_at: new Date(t.finished).toISOString(),
     ...(s.outcome === "bot_check" ? { link: job.url, handed_back: "a verification check appeared; the person finishes it at the link" } : {}),
+    // WO-102: a question the engine stopped on (needs_answers) goes back with the job in the form's own terms, so it is
+    // asked of the person rather than lost. Never an answer.
+    ...(s.reason === "needs_answers" ? { questions } : {}),
   };
   if (JSON.stringify(out).length > 60000) out.answers = answers.map((a: any) => ({ ...a, value: a.value.slice(0, 200) }));
+  if (JSON.stringify(out).length > 60000 && out.questions) out.questions = questions.map((q: any) => ({ ...q, options: [] }));
   return out;
 }
 

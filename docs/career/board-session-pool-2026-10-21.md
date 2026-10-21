@@ -83,9 +83,10 @@ Derived per-piece medians (same navigation in all three rows):
 Chromium launch ≈ 6,252 − 2,409 ≈ **3.8 s**; fresh context ≈ 2,409 −
 1,490 ≈ **0.9 s**; page + navigation ≈ 1.5 s under this load. Even at
 the minima (an unloaded moment), cold launch-to-usable is 3.1 s vs
-0.93 s warm-context — the launch term never disappears. Raw output:
-`bench-micro.json` run of `scripts/career/bench-session-pool.cjs micro`
-(2026-10-21T17:09Z).
+0.93 s warm-context — the launch term never disappears. (Run of
+`scripts/career/bench-session-pool.cjs micro`, 2026-10-21T17:09Z;
+numbers transcribed from the run output — the raw file was lost to a
+/tmp reap, see §4's provenance note. Reproduce with the same command.)
 
 ## 3. Concurrency: RAM/CPU per session (one warm browser)
 
@@ -115,8 +116,10 @@ oversubscribed ~5× (load ~10 on 2 CPUs): the loops were starved, so
 these are NOT per-session CPU demands. What they prove is the ceiling:
 on THIS host, today, extra browser concurrency buys little while the
 other lanes saturate both cores; on a dedicated worker host the same
-script gives the true demand curve. (Raw: `bench-conc.json`,
-`scripts/career/bench-session-pool.cjs conc`, 2026-10-21T17:16Z.)
+script gives the true demand curve. (Run of
+`scripts/career/bench-session-pool.cjs conc`, 2026-10-21T17:16Z;
+numbers transcribed from the run output — raw file lost to the same
+/tmp reap as §4's first run. Reproduce with the same command.)
 
 ## 4. Simulated 50-drive run: launch-per-drive vs pool (the before/after pair)
 
@@ -124,7 +127,45 @@ Workload per drive: open the local form page, fill 11 fields + select +
 radio + checkbox, read back a value, verify the page's fill counter —
 doorstep only, nothing submits. Serial unless the mode says otherwise.
 
-<!-- BENCH:FIFTY -->
+Measured 2026-10-21 12:32–12:36 CDT, one run of 50 drives per mode,
+back-to-back on the same host (load average at each leg's start:
+5.4 / 8.3 / 10.3 — rising contention across legs, which penalizes the
+later pool legs, not the launch leg). Raw outputs committed:
+`docs/career/bench-fifty-launch.json`, `bench-fifty-pool1.json`,
+`bench-fifty-pool4.json`.
+
+| Mode | 50 drives total | Per-drive median | Per-drive p90 | Browser launches |
+|---|---|---|---|---|
+| Launch-per-drive (today's serial semantics) | **125,743 ms** | 2,187 ms | 3,657 ms | 50 |
+| Pool, serial (fresh context per drive) | **91,547 ms** | 1,734 ms | 2,823 ms | **1** |
+| Pool, 4 concurrent leases | **88,419 ms** | — (concurrent) | — | **1** |
+
+**The before/after pair:** pooling removes **34.2 s (−27%)** from a
+50-drive serial run on identical workload — 453 ms/drive at the median,
+834 ms/drive at p90 — and reduces browser launches from 50 to 1
+(pool stats: 50 contexts created, 50 acquired, 50 released, 0
+evictions). Two honest bounds on that number:
+
+- It is a FLOOR for production. The bench's launch mode pays only the
+  Chromium launch; the production serial path ALSO respawns module
+  150's Node helper process and its ready-wait on every last-board
+  close (150:344–369, 701–706), which the pool design eliminates too.
+- The workload here is a local page. Real ATS drives add network time
+  and dozens of file-bridge commands per drive; the launch term the
+  pool removes is additive waste on top of every one of those drives,
+  whatever else they cost. At the §2 micro-run cold cost (launch ≈
+  3.8 s), 50 serial drives would burn ≈ 190 s — over a tenth of the
+  30-minute benchmark budget — on launches alone.
+
+**Concurrency on this host buys ~nothing today:** pool4 beat pool1 by
+only 3.1 s (−3.4%) at load 10–13 on 2 CPUs — the §3 CPU ceiling, not a
+pool defect. The pool's FIFO bound is what makes concurrency SAFE to
+raise on a bigger worker host; it cannot manufacture cores on this one.
+
+(Provenance note: a first combined run completed but its output files
+were lost when /tmp was reaped before capture; the run was repeated
+per-mode with result files written into this repo — the numbers above
+are the second run's, and its raw JSONs are the committed ones.)
 
 ## 5. Safety: session isolation (Spec 2 §6.3) — what survives, what cannot
 
@@ -154,6 +195,15 @@ the browser process starts, never WHAT a drive can see.
   and retries once. A crashed drive can therefore never hand a poisoned
   session to the next drive — the next drive gets a new browser AND a new
   context.
+- **Executed check (2026-10-21, this prototype):** drive 1 wrote
+  `localStorage["probe"]="drive1"` + a cookie on a local test page and
+  released; drive 2 — a fresh context on the SAME warm browser — loaded
+  the same page and read `null` from storage. Off-localhost navigation
+  through the pool's default guard was refused (`POOL_HOST_REFUSED`).
+  Pool stats for the check: 1 launch, 2 contexts, 0 evictions. (A first
+  version of this check planted the value in the page's own script,
+  which rewrites it on every load — the check was corrected to write
+  from drive 1 only, and the null above is from the corrected run.)
 - **Not changed by the pool:** host allowlist (§6.3 gate stays in module
   150 / the caller's gate — the prototype's default guard is localhost
   only), per-user session binding (board-service), captcha handoff,

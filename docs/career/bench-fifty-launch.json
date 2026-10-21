@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-21T17:32:04.623Z",
+  "host": {
+    "cpus": 2,
+    "totalMemMB": 7935
+  },
+  "phase": "fifty",
+  "url": "http://127.0.0.1:41391/apply",
+  "fifty": {
+    "drives": 50,
+    "modes": [
+      "launch"
+    ],
+    "loadStart": {
+      "loadavg": [
+        5.43,
+        2.21,
+        0.82
+      ],
+      "freeMemMB": 2749
+    },
+    "launchPerDrive": {
+      "totalMs": 125743,
+      "perDrive": {
+        "n": 50,
+        "medianMs": 2186.6,
+        "p90Ms": 3657.3,
+        "minMs": 1514.8,
+        "maxMs": 7964.2
+      },
+      "load": {
+        "loadavg": [
+          8.34,
+          4.6,
+          1.89
+        ],
+        "freeMemMB": 2377
+      }
+    },
+    "loadEnd": {
+      "loadavg": [
+        8.34,
+        4.6,
+        1.89
+      ],
+      "freeMemMB": 2377
+    }
+  }
+}

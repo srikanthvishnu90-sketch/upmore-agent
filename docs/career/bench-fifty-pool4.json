@@ -1,0 +1,54 @@
+{
+  "at": "2026-10-21T17:35:45.364Z",
+  "host": {
+    "cpus": 2,
+    "totalMemMB": 7935
+  },
+  "phase": "fifty",
+  "url": "http://127.0.0.1:46551/apply",
+  "fifty": {
+    "drives": 50,
+    "modes": [
+      "pool4"
+    ],
+    "loadStart": {
+      "loadavg": [
+        10.34,
+        6.19,
+        2.72
+      ],
+      "freeMemMB": 2079
+    },
+    "poolConcurrent4": {
+      "totalMs": 88419,
+      "drives": 50,
+      "poolStats": {
+        "launches": 1,
+        "contextsCreated": 50,
+        "acquires": 50,
+        "releases": 50,
+        "evictions": 0,
+        "launchFailures": 0,
+        "active": 0,
+        "waiting": 0,
+        "maxContexts": 4
+      },
+      "load": {
+        "loadavg": [
+          12.65,
+          7.94,
+          3.64
+        ],
+        "freeMemMB": 1408
+      }
+    },
+    "loadEnd": {
+      "loadavg": [
+        12.65,
+        7.94,
+        3.64
+      ],
+      "freeMemMB": 1585
+    }
+  }
+}

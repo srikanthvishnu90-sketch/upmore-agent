@@ -72,7 +72,7 @@ function createSessionPool(opts) {
     else launchOpts.chromiumSandbox = true;
     const b = await pw.chromium.launch(launchOpts);
     stats.launches += 1;
-    b.on("disconnected", () => { if (browser === b) { browserDead = true; stats.evictions += 1; } });
+    b.on("disconnected", () => { if (browser === b) { browserDead = true; if (!closed) stats.evictions += 1; } });
     return b;
   }
 

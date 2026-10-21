@@ -197,3 +197,16 @@ Deno.test("WO-002/11 a turn that saved something and then stopped says it saved;
     assert(/Nothing was sent or submitted/.test(s), "and still nothing went out");
   }
 });
+
+Deno.test("WO-061/R1 code's review of its draft never enters the conversation; the person's message stays last", async () => {
+  // A draft with a tool name in it (a leak) triggers the review; the retry must answer the person, not the review.
+  const m = scripted([text("I used get_profile to check: you're set."), text("You're set.")]);
+  const r = await runAgentTurn(base(m, { message: "is everything set on my profile?" }));
+  eq(m.payloads.length, 2, "one retry");
+  const retry = m.payloads[1];
+  assert(!/REVIEW|check from code|get_profile to check/.test(JSON.stringify(retry.messages)), "no review text or draft in the conversation");
+  eq(retry.messages.at(-1), { role: "user", content: [{ type: "text", text: "is everything set on my profile?" }] }, "the person's message is last");
+  assert(/CODE'S REVIEW OF YOUR DRAFT/.test(retry.system) && /never refuse it/.test(retry.system), "the review is in that call's system prompt");
+  assert(!/REVIEW/.test(m.payloads[0].system), "the first call's system prompt is untouched");
+  eq(r.reply, "You're set.");
+});

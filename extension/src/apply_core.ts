@@ -582,18 +582,19 @@ export interface Manifest {
 export function trustedManifest(o: { owner: string; file: any; rows: { id: string; key: string; kind?: string; answer: string }[]; resume: { sha256: string } | null }): Manifest {
   const excluded: Manifest["excluded"] = [], conflicts: Manifest["conflicts"] = [];
   const kept = new Map<string, TrustedFact>(); // table + key -> fact
-  let file = o.file && typeof o.file === "object" ? o.file : null;
+  const file = o.file && typeof o.file === "object" ? o.file : null;
+  let projectedAnswers: Record<string, unknown> = {};
   // Raw profile facts supply shape only. The existing allowlist below still decides source authority,
   // quarantine, derivation and conflicts; projection cannot create a confirmation event.
   if (Array.isArray(file?.facts)) {
     const projected = typedProfileFile({ owner: o.owner, profile: file });
-    file = projected.file;
+    projectedAnswers = projected.file.answers;
     excluded.push(...projected.needs.map((n) => ({ key: "profile", factId: n.factId, why: n.reason })));
   }
   const fileOwn = !!file && file.user_id === o.owner;
   const candidates: { t: "answers" | "saved"; key: string; a: any }[] = [];
   for (const t of ["answers", "saved"] as const) {
-    for (const [key, a] of Object.entries((file?.[t] ?? {}) as Record<string, any>)) {
+    for (const [key, a] of [...Object.entries((file?.[t] ?? {}) as Record<string, any>), ...Object.entries(t === "answers" ? projectedAnswers : {})] as [string, any][]) {
       const id = String(a?.factId ?? "");
       const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact"
         : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value"
@@ -605,7 +606,16 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
     }
   }
   // Derived facts stand only on kept facts: drop, until nothing changes, any whose sources are not all kept.
-  let live = candidates;
+  const grouped = new Map<string, typeof candidates>();
+  for (const c of candidates) { const key = c.t + "\n" + c.key; grouped.set(key, [...grouped.get(key) ?? [], c]); }
+  const conflicting = new Set<string>();
+  for (const [key, rows] of grouped) {
+    if (new Set(rows.map((c) => c.a.value.trim().replace(/\s+/g, " ").toLowerCase())).size <= 1) continue;
+    conflicting.add(key);
+    conflicts.push({ key: rows[0].key, factIds: rows.map((c) => String(c.a.factId)) });
+    for (const c of rows) excluded.push({ key: c.key, factId: String(c.a.factId), why: "conflicts with another confirmed source for this field" });
+  }
+  let live = candidates.filter((c) => !conflicting.has(c.t + "\n" + c.key));
   for (let changed = true; changed;) {
     changed = false;
     const ids = new Set(live.map((c) => String(c.a.factId)));
@@ -618,6 +628,7 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
     });
   }
   for (const c of live) {
+    if (kept.has(c.t + "\n" + c.key)) continue; // agreeing raw projection does not replace the original canonical source
     kept.set(c.t + "\n" + c.key, { table: c.t, key: c.key, value: c.a.value, factId: String(c.a.factId), event: String(c.a.confirmation_event_id),
       provenance: String(c.a.provenance), authorizes: c.a.authorizes === true });
   }

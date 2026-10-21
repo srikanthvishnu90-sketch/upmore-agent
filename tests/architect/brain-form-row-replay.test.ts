@@ -2,7 +2,7 @@
 import { factsFromPayload, prepare, runApproved } from '../../workers/career-browser/approve-first.ts';
 import { planBatch } from '../../supabase/functions/_shared/career_apply.ts';
 import { hashApplyPayload } from '../../supabase/functions/_shared/career_apply_store.ts';
-import { approvalSources, planApplication, trustedFacts } from '../../scripts/apply.ts';
+import { applicationApprovalHash, approvalSources, planApplication, trustedFacts } from '../../scripts/apply.ts';
 import { contractFill, planForm, trustedManifest } from '../../extension/src/apply_core.ts';
 const OWNER='SYNTHETIC-row-owner', JOB='workday:synthetic.test:R1';
 const ARTIFACT={filename:'synthetic.pdf',sha256:'b'.repeat(64)};
@@ -11,11 +11,11 @@ const SCHEMA=[1,2].flatMap(row=>['employer','title'].map(part=>({name:`work-${ro
 function assert(ok:unknown,why='assertion failed'):asserts ok {if(!ok)throw Error(why)}
 const clone=<T>(x:T):T=>JSON.parse(JSON.stringify(x));
 function planned(file:any,schema=SCHEMA) {const manifest=trustedFacts(file,ARTIFACT);const p=planApplication({manifest,userId:OWNER,jobId:JOB,employer:'Synthetic hiring',schema,artifact:ARTIFACT,now:0});return{manifest,fields:p.ready?p.fields:[],p};}
-async function engineHash(fields:any[],manifest:any,schema=SCHEMA){return hashApplyPayload({user_id:OWNER,posting:JOB,destination:'https://synthetic.test/apply',fields,resume:ARTIFACT.sha256,schema_hash:await hashApplyPayload(schema),page_field_names:[],sources:approvalSources(fields,manifest)});}
-async function fixture(){
- const original=planned({user_id:OWNER,answers:{work_history:SOURCE},saved:{}});assert(original.fields.length===4,'initial two-row plan control');
+async function engineHash(fields:any[],manifest:any,schema=SCHEMA){return applicationApprovalHash({userId:OWNER,posting:JOB,destination:'https://synthetic.test/apply',fields,resumeSha256:ARTIFACT.sha256,schemaHash:await hashApplyPayload(schema),pageFieldNames:[],manifest});}
+async function fixture(extraAnswers:Record<string,unknown>={}){
+ const original=planned({user_id:OWNER,answers:{work_history:SOURCE,...extraAnswers},saved:{}});assert(original.fields.length===4,'initial two-row plan control');
  const approval=await engineHash(original.fields,original.manifest);
- const result=await prepare({url:'https://synthetic.test/apply',factsPath:'unit-facts',resumePath:'unit-resume',account:{epoch:1,version:1},now:0,runEngine:async()=>({result:{state:'not_submitted',reason:'dry_run'},evidence:{approval_hash:approval,fields:original.fields,sources:{[SOURCE.factId]:original.manifest.byFactId[SOURCE.factId]},trust:{quarantine_version:original.manifest.version,manifest_hash:original.manifest.hash},payload:{user_id:OWNER,posting:JOB,company:'Synthetic hiring',destination:'https://synthetic.test/apply',resume:ARTIFACT,page_fields:{},schema_hash:await hashApplyPayload(SCHEMA)}}})});
+ const result=await prepare({url:'https://synthetic.test/apply',factsPath:'unit-facts',resumePath:'unit-resume',account:{epoch:1,version:1},now:0,runEngine:async()=>({result:{state:'not_submitted',reason:'dry_run'},evidence:{approval_hash:approval,fields:original.fields,sources:{[SOURCE.factId]:original.manifest.byFactId[SOURCE.factId]},replay_sources:Object.values(original.manifest.byFactId),trust:{quarantine_version:original.manifest.version,manifest_hash:original.manifest.hash},payload:{user_id:OWNER,posting:JOB,company:'Synthetic hiring',destination:'https://synthetic.test/apply',resume:ARTIFACT,page_fields:{},schema_hash:await hashApplyPayload(SCHEMA)}}})});
  assert(result.ready);return{payload:result.payload,original,approval};
 }
 Deno.test('row replay: prepare binds original structured source and exact schema hash',async()=>{
@@ -56,7 +56,7 @@ Deno.test('row replay: unchanged approved worker run reproduces fields; changed 
 Deno.test('row replay: changed queued value, source event or schema stops before the engine starts',async()=>{
  const{payload}=await fixture();for(const change of [(p:any)=>p.fields[0].value='Changed employer',(p:any)=>p.fields[0].confirmation_event_id='changed-event',(p:any)=>p.schema_hash='0'.repeat(64)]){
   const bad=clone(payload);change(bad);let calls=0,finish:any;await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload:bad}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async()=>{throw Error('should not write facts')},runEngine:async()=>{calls++;return null}});
-  assert(calls===0&&finish.state==='not_submitted'&&finish.evidence.reason==='APPROVED_APPLICATION_CHANGED',JSON.stringify(finish));
+  assert(calls===0&&finish.state==='not_submitted'&&/APPROVED_APPLICATION_CHANGED|APPROVED_MANIFEST_CHANGED|CONFLICTING_APPROVED_SOURCE/.test(finish.evidence.reason),JSON.stringify(finish));
  }
 });
 const profileFact=(id:string,text:string,extra:any={})=>({id,kind:'other',text,user_id:OWNER,source:'user',status:'confirmed',needs_confirmation:false,provenance:'owner stated these exact synthetic words',confirmation_event_id:'evt-'+id,...extra});
@@ -72,4 +72,23 @@ Deno.test('typed profile hook: missing evidence, quarantine and foreign context 
  for(const f of [profileFact('TEST-missing','My phone is +1 202 555 0147.',{confirmation_event_id:undefined}),profileFact('F-033','My phone is +1 202 555 0147.'),profileFact('TEST-foreign','I am authorized to work in the UK.')]){
   const m=trustedManifest({owner:OWNER,file:{user_id:OWNER,facts:[f]},rows:[],resume:null});assert(Object.keys(m.answers).length===0,'unsupported raw fact promoted');assert(m.excluded.some(x=>x.factId===f.id),'projection question was not preserved');
  }
+});
+Deno.test('row source binding: unseen original JSON and manifest mutations stop before any effects',async()=>{
+ const{payload}=await fixture();for(const change of [(p:any)=>{const rows=JSON.parse(SOURCE.value);rows[1].start='1990';for(const f of p.fields)f.source.value=JSON.stringify(rows)},(p:any)=>p.manifest_hash='0'.repeat(64)]){
+  const changed=clone(payload);change(changed);let effects=0,finish:any;
+  await runApproved({claim:async()=>[{id:'SYN-QUEUE',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:changed}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
+  assert(effects===0&&finish.state==='not_submitted','changed original source/manifest reached an effect: '+JSON.stringify(finish));
+ }
+});
+Deno.test('typed profile hook: mixed canonical history survives projection and conflicting phone sources are both excluded',()=>{
+ const file={user_id:OWNER,answers:{work_history:SOURCE},saved:{},facts:[profileFact('TEST-raw-phone','My phone is +1 202 555 0147.')]};
+ const mixed=planned(file);assert(mixed.fields.length===4&&mixed.manifest.answers.phone?.value==='+1 202 555 0147','projection dropped existing history');
+ const conflict=planned({...file,answers:{...file.answers,phone:{...SOURCE,factId:'TEST-canonical-phone',value:'+1 303 555 0148'}}});
+ assert(conflict.fields.length===4&&!conflict.manifest.answers.phone&&conflict.manifest.conflicts.some(x=>x.key==='phone'),'mixed conflict was silently chosen');
+});
+Deno.test('row source binding: unused confirmed sources survive persisted replay so the full original manifest reproduces',async()=>{
+ const{payload,original}=await fixture({country:{...SOURCE,factId:'TEST-unused-country',value:'United States'}});
+ const rebuilt=factsFromPayload(JSON.parse(JSON.stringify(payload))),again=planned(rebuilt);
+ assert(again.manifest.answers.country?.value==='United States'&&again.manifest.hash===original.manifest.hash,'full source manifest lost an unprinted source');
+ assert(await engineHash(again.fields,again.manifest)===payload.engine_approval,'original approval did not reproduce with extra source');
 });

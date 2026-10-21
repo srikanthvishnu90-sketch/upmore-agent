@@ -5281,7 +5281,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       problem: "its answer is not from a fact you gave"
     };
     if (classifyField(f.label, f.type) === "legal_name" || mapQuestion(f).fact === "legal_name") {
-      let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers.legal_name?.factId === tf.factId;
+      let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers?.legal_name?.factId === tf.factId;
       if (!legal && tf.table === "saved") {
         const again = planBatch({
           userId: "contract-legal-name",

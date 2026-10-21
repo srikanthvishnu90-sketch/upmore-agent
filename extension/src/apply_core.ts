@@ -812,7 +812,7 @@ function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], j
   // Equal spelling cannot make a full name a legal-name assertion. Recheck the source's question meaning even
   // when a caller presents a stale/forged plan; a saved answer stands only on this exact legal-name question.
   if (classifyField(f.label, f.type) === "legal_name" || mapQuestion(f).fact === "legal_name") {
-    let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers.legal_name?.factId === tf.factId;
+    let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers?.legal_name?.factId === tf.factId;
     if (!legal && tf.table === "saved") {
       const again = planBatch({ userId: "contract-legal-name", postings: [{ job_id: jobId ?? "contract-legal-name", company: "", title: "", fields: [f] }],
         answers: {}, saved: { [tf.key]: { value: tf.value, factId: tf.factId } }, log: [], now: 0 }).ready[0]?.fields.find(p => p.name === f.name);

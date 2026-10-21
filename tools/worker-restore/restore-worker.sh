@@ -31,7 +31,22 @@
 set -u
 MODE="dry-run"
 LOG=""
-UNITS_DIR="$(cd "$(dirname "$0")" && pwd)/units"
+# Resolve this script's own absolute path ONCE, before anything derives
+# from $0. $0 is invocation-dependent: a bare-name invocation (PATH
+# lookup, or the watchdog running `restore-worker.sh`) carries no slash,
+# so `dirname "$0"` collapses to "." — the caller's CWD — and a later
+# `exec "$0"` PATH-searches and dies `exec: restore-worker.sh: not found`
+# (measured live in restore #4, 2026-10-21: the restore applied, then the
+# self-verify re-exec crashed, exit 127). SELF/SELF_DIR below are the
+# only sanctioned derivations; never re-derive from $0 downstream.
+SELF_SRC="$0"
+case "$SELF_SRC" in
+  */*) : ;;
+  *) SELF_SRC="$(command -v "$SELF_SRC" 2>/dev/null || printf '%s' "$SELF_SRC")" ;;
+esac
+SELF_DIR="$(cd "$(dirname "$SELF_SRC")" && pwd)"
+SELF="$SELF_DIR/$(basename "$SELF_SRC")"
+UNITS_DIR="$SELF_DIR/units"
 CONFIG_DIR="/home/hatch/worker-config"
 SYSTEMD_DIR="/etc/systemd/system"
 while [ $# -gt 0 ]; do
@@ -176,4 +191,4 @@ systemctl start upmore-career-executor.timer || true
 for i in $(seq 1 30); do port_open 8471 && break; sleep 1; done
 say "restore applied; re-running this script in dry-run mode to verify (its probe results decide the final verdict)"
 log_record "restore_applied" "restored"
-exec "$0" --dry-run --log "$LOG" --units "$UNITS_DIR" --config "$CONFIG_DIR"
+exec "$SELF" --dry-run --log "$LOG" --units "$UNITS_DIR" --config "$CONFIG_DIR"

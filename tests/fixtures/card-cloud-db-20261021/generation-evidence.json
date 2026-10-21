@@ -1,0 +1,43 @@
+{
+  "source_pin": "01401cb456bc2982d67316165e183bbd275581c9",
+  "actual_offline_results": {
+    "real_planner_prepare_assertApprovedPayload": 19,
+    "captured_required_fields_per_payload": 6,
+    "raw_id_vs_bank_factId_helper_controls": 2,
+    "typecheck": "PASS"
+  },
+  "sql_runtime": "NOT_RUN; no database connection or migration application",
+  "browser_runtime": "NOT_RUN; actual local browser sandbox failure previously recorded separately",
+  "fresh_expiry": "pg_temp.cc_full_item refreshes P and approved_snapshot.original ONLY before display and computes new Hq; He unaffected by expiry",
+  "unknown_dependencies": [
+    "Claude engine_input raw profile id:F033 normalization (not faked as a canonical bank factId)",
+    "reviewed enrollment table column names approval_ref/user_id pending confirmation",
+    "reviewed source-snapshot digest RPC signature",
+    "future up/down files, maintenance lock key and explicit isolated DB authorization"
+  ],
+  "new_cost_usd": 0,
+  "prior_known_usd": "8.503100",
+  "prior_unresolved_hold_usd": "0.070743",
+  "files": [
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/fixture.sql",
+      "sha256": "9538d517c2e2765510220669de9f4804596e70da3e7b1b2337bfc4f2b99cb5ca",
+      "bytes": 223323
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/prepared-payloads.json",
+      "sha256": "479471de3977e2de5cea22736e4eb2df4d909fded0fcebfa1b755735f6d137a0",
+      "bytes": 356512
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/generate.ts",
+      "sha256": "e60f7aded000c4d3f369cf4ef5290d6710e49dbdd7bbb6878fa26e4d0a4787a4",
+      "bytes": 6915
+    },
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql",
+      "sha256": "6a38507cbe221ce910466d194ac16b8219b941abee1c7ffda75bdb01e63f8468",
+      "bytes": 10497
+    }
+  ]
+}

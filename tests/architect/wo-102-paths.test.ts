@@ -11,6 +11,7 @@ import * as Engine from "../../scripts/apply.ts";
 import * as Own from "../../workers/career-browser/approve-first.ts";
 import { type CloudJob, runCloudJob } from "../../workers/career-cloud/worker.ts";
 import { type Manifest, QUARANTINE_VERSION } from "../../extension/src/apply_core.ts";
+import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 
 // Read as namespaces so each test fails on its own where a path does not enforce the contract yet.
 const { approvalSources, planApplication, trustedFacts } = Engine as unknown as {
@@ -27,7 +28,9 @@ function assert(v: unknown, m = "assertion failed"): asserts v {
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const OWNER = "TEST-owner";
 const NOW = Date.UTC(2026, 9, 21);
-const ARTIFACT = { filename: "TEST-resume.pdf", sha256: "b".repeat(64) };
+const RESUME_BYTES = new TextEncoder().encode("%PDF-1.4 TEST resume");
+const resumeSha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", RESUME_BYTES))).map((n) => n.toString(16).padStart(2, "0")).join("");
+const ARTIFACT = { filename: "TEST-resume.pdf", sha256: resumeSha256 };
 const JOB = "lever:test-co:1111-2222";
 const SPONS = "Will you now or in the future require visa sponsorship?";
 const CERT = "I certify that the information in this application is true and complete";
@@ -156,10 +159,17 @@ async function preparedPayload(facts: unknown = CLEAN, rows: unknown[] = []) {
   const manifest = trustedFacts(engineFacts(facts, rows as any), ARTIFACT);
   const r = planApplication({ manifest, userId: OWNER, jobId: JOB, employer: "test-co", schema: SCHEMA, artifact: ARTIFACT, now: NOW });
   assert(r.ready, JSON.stringify(r));
+  const schemaHash = await hashApplyPayload(SCHEMA);
+  const destination = "https://jobs.lever.co/test-co/1111-2222/apply";
+  const approvalHash = await Engine.applicationApprovalHash({
+    userId: OWNER, posting: JOB, destination, fields: r.fields, resumeSha256: ARTIFACT.sha256,
+    schemaHash, pageFieldNames: [], manifest,
+  });
   const evidence = {
-    approval_hash: "a".repeat(64), readback: {}, fields: r.fields, sources: Object.fromEntries(r.fields.map((x: any) => [x.factId, manifest.byFactId[x.factId]])),
+    approval_hash: approvalHash, schema: SCHEMA, readback: {}, fields: r.fields, sources: Object.fromEntries(r.fields.map((x: any) => [x.factId, manifest.byFactId[x.factId]])),
+    replay_sources: Object.values(manifest.byFactId),
     trust: { quarantine_version: manifest.version, manifest_hash: manifest.hash },
-    payload: { user_id: OWNER, posting: JOB, company: "test-co", destination: "https://jobs.lever.co/test-co/1111-2222/apply", resume: ARTIFACT, page_fields: {} },
+    payload: { user_id: OWNER, posting: JOB, company: "test-co", destination, resume: ARTIFACT, page_fields: {}, schema_hash: schemaHash },
   };
   const p = await prepare({ url: "https://jobs.lever.co/test-co/1111-2222", factsPath: "f", resumePath: "r", account: { epoch: 1, version: 1 }, now: NOW,
     runEngine: async () => ({ result: { state: "not_submitted", reason: "dry_run" }, evidence }) });
@@ -251,13 +261,11 @@ function contractEngine(seen: string[]) {
   };
 }
 async function cloud(payload: any) {
-  const RES = new TextEncoder().encode("%PDF-1.4 TEST resume");
-  const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", RES))).map((n) => n.toString(16).padStart(2, "0")).join("");
-  const job: CloudJob = { id: "c1", lease_token: "l1", user_id: OWNER, company: "test-co", url: payload.url,
-    payload: { ...payload, engine_approval: "a".repeat(64), resume_sha256: sha } };
+  const job: CloudJob = { id: "c1", lease_token: "l1", user_id: OWNER, company: "test-co", url: payload.url, payload };
   const finished: any[] = [], seen: string[] = [];
   await runCloudJob(job, {
-    queue: { claim: async () => [], resume: async () => ({ filename: "r.pdf", sha256: sha, b64: btoa(String.fromCharCode(...RES)) }),
+    queue: { claim: async () => [], resume: async () => ({ filename: ARTIFACT.filename, sha256: ARTIFACT.sha256, b64: btoa(String.fromCharCode(...RESUME_BYTES)) }),
+      ask: async (_j, questions) => questions.length,
       finish: async (_j, state, evidence) => void finished.push({ state, evidence }), gatePresent: async () => true },
     runEngine: contractEngine(seen), log: () => {},
   });

@@ -735,6 +735,6 @@ of private content.
   re-ruled if a 5-pass rerun beats the reference on clean-30.
 - Builder: the workflow now runs five parallel passes; its limit drops from $16.30 to $15.95 so that four other
   passes landing beside the one that reaches it still stay under $16.535 ($1.535 before tonight + the owner's $15).
-  The H009 round (39591xxxxx, launched before this ruling) is a 3-pass run: read for its mechanism only, not a keep.
+  The H009 round (39592260931, launched before this ruling) is a 3-pass run: read for its mechanism only, not a keep.
 - Next measurements, in order: a 5-pass control of the kept brain (the same-night reference for 5-pass rounds), then
   the H006 rewrite (5 passes), then the instability causes.

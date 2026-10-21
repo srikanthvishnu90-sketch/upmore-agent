@@ -487,6 +487,18 @@ export function typedFieldProblem(f: TypedField, value: string): string | null {
   if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return null;
   const v = String(value).trim(), label = normQuestion(f.label);
   if (f.type === "number" && (!/^-?\d+(?:\.\d+)?$/.test(v) || !Number.isFinite(Number(v)))) return "needs a finite number, written as digits";
+  // Some forms split a date into separately labelled components. Those explicit non-native fields take only
+  // their stated component; a native date/month input still requires its complete declared precision.
+  const component = !["date", "month", "year"].includes(f.type) && !f.section?.format
+    ? /\bdate\s+(month|year)\s*[*:]?$/i.exec(label)?.[1] : null;
+  if (component === "year") {
+    const p = calendarParts(v);
+    return /^\d{4}$/.test(v) && p && p.month === null ? null : "needs a valid four-digit year";
+  }
+  if (component === "month") {
+    const valid = MONTHS.some((month) => month.toLowerCase() === v.toLowerCase()) || /^\d{1,2}$/.test(v) && Number(v) >= 1 && Number(v) <= 12;
+    return valid ? null : "needs a valid month only";
+  }
   const format = dateFormat(f);
   const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
   const yearOnly = format === "YYYY" || f.type === "year";

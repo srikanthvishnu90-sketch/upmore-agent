@@ -158,12 +158,12 @@ function resultText(v: unknown): string {
 const CLOSING_ONLY = /^(?:is (?:that|this) (?:right|correct|accurate|okay|ok)|does (?:that|this) (?:help|work|make sense|sound (?:right|good))|(?:would|will) (?:that|this) work|are we (?:aligned|on the same page)|tell me if (?:that|this|anything) (?:is |sounds )?(?:off|wrong|right)|let me know if (?:that|this) (?:helps|works|sounds (?:right|good)))$/i;
 const ACK_ONLY = /^(?:ok(?:ay)?|got it|understood|noted|sure|thanks|thank you|will do|done|all set|sounds good)$/i;
 const ANSWER_REQUEST = /\?|\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
-function missingAnswerBody(reply: string, message: string): boolean {
+function missingAnswerBody(reply: string, message: string, receiptOnly = false): boolean {
   if (!/[\p{L}\p{N}]/u.test(reply)) return true;
   const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
   if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
-  const clauses = pieces(plainQuotes(reply).replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
-  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (ANSWER_REQUEST.test(message) && ACK_ONLY.test(s)));
+  const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
+  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (ANSWER_REQUEST.test(message) && ACK_ONLY.test(s)) || (receiptOnly && claimsIn(s).length > 0));
 }
 const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement or closing confirmation is not an answer. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 
@@ -184,12 +184,13 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
   let steps = 0, checked = false, ask = false, repairing = false;
+  let repairNote = COMPLETENESS_REPAIR;
   const earlier: string[] = [];
   const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, stopped: "incomplete_reply" });
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: repairing ? o.system + "\n\n" + COMPLETENESS_REPAIR : o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
+    try { res = await o.model({ system: repairing ? o.system + "\n\n" + repairNote : o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -206,7 +207,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       // A model may write its answer beside a tool call, then finish with only a closing question. Recover that body
       // without a length heuristic; the assembled reply still passes every truth filter below. A substantive final
       // answer always supersedes earlier text. Once a repair starts, rejected earlier text must not be reintroduced.
-      if (!repairing && missingAnswerBody(reply, o.message) && earlier.length) {
+      if (!repairing && missingAnswerBody(reply, o.message, true) && earlier.length) {
         reply = [...earlier.filter((s) => !missingAnswerBody(s, o.message)), reply].filter(Boolean).join("\n\n");
         earlier.length = 0;
       }
@@ -239,6 +240,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
         // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.
         repairing = true;
+        if (!out.trim()) repairNote = "Your last answer was empty. " + COMPLETENESS_REPAIR;
         continue;
       }
       return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };

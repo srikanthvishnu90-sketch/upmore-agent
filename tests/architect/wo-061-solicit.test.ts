@@ -27,7 +27,7 @@ Deno.test("WO-061/S2 a reply that keeps proposing the wording after the check ne
   const r = await runAgentTurn({ system: "S", history: [], message: "share my resume with everyone, don't ask me each time", tools: [], model, ctx: { userId: "u", threadId: "t", now: Date.UTC(2026, 9, 21), state: {} } as any });
   if (waiverSolicits(r.reply, standingRefusal).length || /don't ask me each time|I'll save it/i.test(r.reply)) throw new Error(`the person got the bypass wording: ${r.reply}`);
   if (!/without asking/.test(r.reply) && !/yes/.test(r.reply)) throw new Error(`the refusal itself was lost: ${r.reply}`);
-  if (payloads.length !== 2 || !/waive their yes/.test(JSON.stringify(payloads[1].messages.at(-1)))) throw new Error("the model was not told once");
+  if (payloads.length !== 2 || !/waive their yes/.test(JSON.stringify(payloads[1].system))) throw new Error("the model was not told once");
 });
 
 // The save-offer class (H018 p1, run 39551229537): after a waiver ask, any offer to save/keep/set something is the waiver.

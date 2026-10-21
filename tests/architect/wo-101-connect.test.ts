@@ -19,17 +19,32 @@ const SECRET = "test-state-secret"; // test only
 const FN = "https://project.example.test/functions/v1/gmail-oauth";
 
 // ---------------------------------------------------------------------------------------------------- the signed link
-Deno.test("WO-101/1 the link starts the consent for the token's user: consumed once, the state signed for that user", async () => {
-  const { startFromLink, CONNECT_PURPOSE } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+// A token store as connect_link_peek / connect_link_consume behave: peek never burns, consume burns once.
+function tokenStore(rows: Record<string, { user: string; hint?: string | null; expired?: boolean }>) {
+  const used = new Set<string>(), log: string[] = [];
+  const state = (t: string) => !rows[t] ? "invalid" : used.has(t) ? "used" : rows[t].expired ? "expired" : "ok";
+  return {
+    log,
+    peek: async (t: string, purpose: string) => { log.push(`peek ${purpose}`); const s = state(t); return s === "ok" ? { status: s, hint: rows[t].hint ?? null } : { status: s }; },
+    consume: async (t: string, purpose: string) => {
+      log.push(`consume ${purpose}`); const s = state(t);
+      if (s !== "ok") return { error: s };
+      used.add(t); return { user_id: rows[t].user };
+    },
+  };
+}
+const deps = (store: ReturnType<typeof tokenStore>, clientId = "test-client") => ({ ...store, clientId, stateSecret: SECRET, redirectUri: FN });
+const get = (q: string) => new Request(`${FN}${q}`, { method: "GET" });
+const post = (body: string, q = "") => new Request(`${FN}${q}`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+
+Deno.test("WO-101/1 the posted token starts the consent for the token's user: consumed once, the state signed for that user", async () => {
+  const { handleLinkRequest, CONNECT_PURPOSE } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
   const { verifyState } = await import(at("../../supabase/functions/gmail-oauth/career.ts"));
   eq(CONNECT_PURPOSE, "connect_google_career");
-  const consumed: string[] = [];
-  const res: Response = await startFromLink(TOKEN, {
-    consume: async (t: string, purpose: string) => { consumed.push(`${t}|${purpose}`); return { user_id: A }; },
-    clientId: "test-client", stateSecret: SECRET, redirectUri: FN,
-  });
-  eq(consumed, [`${TOKEN}|connect_google_career`], "consumed once, for its purpose");
-  eq(res.status, 302);
+  const store = tokenStore({ [TOKEN]: { user: A } });
+  const res: Response = await handleLinkRequest(post(`t=${TOKEN}`), deps(store));
+  eq(store.log, ["consume connect_google_career"], "consumed once, for its purpose");
+  eq(res.status, 303);
   const to = new URL(res.headers.get("Location")!);
   eq(to.origin + to.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
   eq(to.searchParams.get("redirect_uri"), FN, "Google comes back to the function itself");
@@ -38,24 +53,23 @@ Deno.test("WO-101/1 the link starts the consent for the token's user: consumed o
   assert(to.searchParams.get("scope")!.includes("gmail.readonly"));
 });
 
-Deno.test("WO-101/2 a bad, expired or used token never reaches Google and ends on Trainee's own page", async () => {
-  const { startFromLink } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
-  const deps = (r: unknown) => ({ consume: async () => r, clientId: "test-client", stateSecret: SECRET, redirectUri: FN });
-  const cases: [string, unknown, number, RegExp][] = [
-    [TOKEN, { error: "expired" }, 410, /expired/],
-    [TOKEN, { error: "used" }, 410, /already used/],
-    [TOKEN, { error: "invalid" }, 400, /doesn't work/],
-    ["short", { user_id: A }, 400, /doesn't work/],
-  ];
-  for (const [t, r, status, words] of cases) {
-    const res: Response = await startFromLink(t, deps(r));
-    eq(res.status, status, `${t} ${JSON.stringify(r)}`);
-    const html = await res.text();
-    assert(words.test(html) && /Trainee/.test(html) && !res.headers.get("Location"), `${JSON.stringify(r)}: ${html.slice(0, 200)}`);
+Deno.test("WO-101/2 a bad, expired or used token never reaches Google and ends on Trainee's own page, on GET and on POST", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const OLD = "OldOldOldOldOldOldOldOldOldOld12";
+  const cases: [string, number, RegExp][] = [[OLD, 410, /expired/], [TOKEN, 410, /already used/], ["Unknown0Unknown0Unknown0Unknown0", 400, /doesn't work/], ["short", 400, /doesn't work/]];
+  for (const method of ["GET", "POST"]) {
+    const store = tokenStore({ [OLD]: { user: A, expired: true }, [TOKEN]: { user: A } });
+    await store.consume(TOKEN, "connect_google_career");
+    for (const [t, status, words] of cases) {
+      const res: Response = await handleLinkRequest(method === "GET" ? get(`?t=${t}`) : post(`t=${t}`), deps(store));
+      eq(res.status, status, `${method} ${t}`);
+      const html = await res.text();
+      assert(words.test(html) && /Trainee/.test(html) && !res.headers.get("Location"), `${method} ${t}: ${html.slice(0, 200)}`);
+    }
   }
-  let called = false;
-  const off: Response = await startFromLink(TOKEN, { consume: async () => { called = true; return { user_id: A }; }, clientId: "", stateSecret: SECRET, redirectUri: FN });
-  assert(off.status === 503 && !called, "without a client the token is not burned");
+  const store = tokenStore({ [TOKEN]: { user: A } });
+  const off: Response = await handleLinkRequest(post(`t=${TOKEN}`), deps(store, ""));
+  assert(off.status === 503 && !store.log.some((l) => l.startsWith("consume")), "without a client the token is not burned");
 });
 
 Deno.test("WO-101/3 the pages are Trainee's: the success words, the wordmark and colours, no other product", async () => {
@@ -73,7 +87,7 @@ Deno.test("WO-101/3 the pages are Trainee's: the success words, the wordmark and
 
 Deno.test("WO-101/4 gmail-oauth serves the link; the career callback ends on Trainee's page; the finance path is unchanged", () => {
   const src = read("supabase/functions/gmail-oauth/index.ts");
-  assert(/searchParams\.has\("t"\)/.test(src) && /connect_link_consume/.test(src) && /startFromLink\(/.test(src), "GET ?t= consumes the token");
+  assert(/handleLinkRequest\(req,/.test(src) && /connect_link_peek/.test(src) && /connect_link_consume/.test(src), "the link is peeked on GET and consumed on POST");
   assert(!/#you\?career=/.test(src), "a career grant never lands on the finance app");
   assert(/page\("declined"\)/.test(src) && /page\(ok \? "connected" : "error"\)/.test(src), "declined, connected and failed pages");
   assert(/#you\?gmail=\$\{ok \? "connected" : "error"\}/.test(src), "the legacy gmail landing is untouched");
@@ -230,6 +244,66 @@ Deno.test("WO-101/12 the chat runs it: the link is minted for the turn's user an
   assert(/mintConnectLink\(admin, user\.id/.test(src), "the link is minted for this user");
   assert(/secureLinkFor = /.test(src), "the router's seam is filled");
   const go = read("scripts/launch/trainee-go-live.sh");
-  assert(go.includes("20261023110000_connect_link_nonces.sql") && go.includes("proname = 'connect_link_consume'"), "go-live applies the migration");
+  assert(go.includes("20261023110000_connect_link_nonces.sql") && go.includes("proname = 'connect_link_peek'"), "go-live applies the migration");
   assert(read("tests/db/run.sh").includes("20261023110000_connect_link_nonces.sql"), "the DB suite applies it");
+});
+
+// ------------------------------------------------- the link survives previews and names the account (architect review)
+// Telegram, iMessage and WhatsApp fetch a link to build a preview as soon as it is delivered, so a GET must never burn the
+// token. And a link forwarded to someone else must say whose Trainee account the Gmail would join before anyone consents.
+Deno.test("WO-101/13 (a) a GET, three times over, leaves the token consumable", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const store = tokenStore({ [TOKEN]: { user: A, hint: "•••0001" } });
+  for (let i = 0; i < 3; i++) eq((await handleLinkRequest(get(`?t=${TOKEN}`), deps(store))).status, 200, `GET ${i + 1}`);
+  eq(store.log, ["peek connect_google_career", "peek connect_google_career", "peek connect_google_career"], "GET only peeks");
+  eq((await handleLinkRequest(post(`t=${TOKEN}`), deps(store))).status, 303, "the person's own tap still works");
+});
+
+Deno.test("WO-101/14 (b) the GET page names the account by a masked hint, never a full number or address", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const page = async (hint: string | null) => await (await handleLinkRequest(get(`?t=${TOKEN}`), deps(tokenStore({ [TOKEN]: { user: A, hint } })))).text();
+  const phone = await page("•••0001");
+  assert(phone.includes("texts from •••0001"), phone);
+  assert(phone.includes("Only continue if you asked Trainee for this link in the last 15 minutes."), "the warning");
+  assert((await page("j•••@example.test")).includes("j•••@example.test"), "a masked email");
+  // Anything not already masked is never shown: the page falls back to plain words.
+  for (const raw of ["+15550000001", "jordan.person@example.test", "<b>x</b>"]) {
+    const h = await page(raw);
+    assert(!h.includes(raw) && !/\+1555|jordan\.person|<b>x/.test(h) && h.includes("the Trainee account you're texting from"), `${raw}: ${h}`);
+  }
+  assert((await page(null)).includes("the Trainee account you're texting from"));
+});
+
+Deno.test("WO-101/15 (c) a POST consumes once; a second POST is told the link was used", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const store = tokenStore({ [TOKEN]: { user: A } });
+  eq((await handleLinkRequest(post(`t=${TOKEN}`), deps(store))).status, 303);
+  const again: Response = await handleLinkRequest(post(`t=${TOKEN}`), deps(store));
+  eq(again.status, 410);
+  assert(/already used/.test(await again.text()) && !again.headers.get("Location"));
+});
+
+Deno.test("WO-101/16 (d) the POST body is the only way to consume", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const store = tokenStore({ [TOKEN]: { user: A } });
+  const q: Response = await handleLinkRequest(post("", `?t=${TOKEN}`), deps(store));
+  assert(q.status === 400 && !q.headers.get("Location"), "a token in the query of a POST is ignored");
+  await handleLinkRequest(get(`?t=${TOKEN}&consume=1`), deps(store));
+  eq(await handleLinkRequest(new Request(FN, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t: TOKEN }) }), deps(store)), null,
+    "a JSON POST is not the link's (it goes on to the signed-in actions)");
+  eq(await handleLinkRequest(new Request(`${FN}?t=${TOKEN}`, { method: "HEAD" }), deps(store)), null, "HEAD is not the link's");
+  eq(store.log.filter((l) => l.startsWith("consume")), [], "nothing consumed");
+  eq((await handleLinkRequest(post(`t=${TOKEN}`), deps(store))).status, 303, "and the token is still good");
+});
+
+Deno.test("WO-101/17 (e) the page asks with a form that posts the token, and cannot be framed or cached", async () => {
+  const { handleLinkRequest } = await import(at("../../supabase/functions/gmail-oauth/link.ts"));
+  const res: Response = await handleLinkRequest(get(`?t=${TOKEN}`), deps(tokenStore({ [TOKEN]: { user: A, hint: "•••0001" } })));
+  const h = await res.text();
+  assert(/<form method="post" action="https:\/\/project\.example\.test\/functions\/v1\/gmail-oauth">/.test(h), "posts to the function itself, no token in the URL");
+  assert(h.includes(`<input type="hidden" name="t" value="${TOKEN}">`) && />Continue to Google</.test(h), h);
+  assert(!/<script/i.test(h), "no script");
+  eq(res.headers.get("X-Frame-Options"), "DENY");
+  assert(/frame-ancestors 'none'/.test(res.headers.get("Content-Security-Policy") ?? ""), "CSP frame-ancestors");
+  assert(/no-store/.test(res.headers.get("Cache-Control") ?? ""), "not cached");
 });

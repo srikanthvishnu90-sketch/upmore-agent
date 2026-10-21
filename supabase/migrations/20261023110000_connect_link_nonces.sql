@@ -1,7 +1,8 @@
 -- WO-101: a signed, single-use connect link bound to the person. Telegram's link token (channel_link_nonces, 20261021070000)
 -- generalised by purpose: the service mints a token for the user of the current turn, the link carries it, and the
--- connect page (gmail-oauth GET ?t=) consumes it once and starts that user's consent. Without it a connect link carries
--- nobody, so a grant would land on whoever is signed in to the page, or on no one.
+-- connect page (gmail-oauth GET ?t=) only peeks at it and shows whose account it is; the person's "Continue" (a POST)
+-- consumes it once and starts that user's consent. Without it a connect link carries nobody, so a grant would land on
+-- whoever is signed in to the page, or on no one.
 --
 -- A table of its own rather than a purpose column on channel_link_nonces: channel_link_nonce_redeem burns any row by its
 -- hash, so a connect token would also redeem as a Telegram link, and the parity migration that defines it is replayed.
@@ -48,9 +49,35 @@ begin
   return jsonb_build_object('user_id', r.user_id);
 end $$;
 
+-- The link's GET: what a token would do, without using it. Message previews (Telegram, iMessage, WhatsApp) fetch a link
+-- the moment it is delivered, so only the person's own POST may consume. {"status": ok|used|expired|invalid}, and with
+-- ok a masked hint naming the account the Gmail would join, so a forwarded link shows whose account it is before anyone
+-- consents: the last four digits of the person's most recent number, else the first letter and domain of their email,
+-- else null. Never the user id, a full number or a full address.
+create or replace function public.connect_link_peek(p_nonce text, p_purpose text, p_now timestamptz) returns jsonb
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare r public.connect_link_nonces; ph text; em text; hint text;
+begin
+  if p_nonce is null or p_nonce !~ '^[A-Za-z0-9_-]{32}$' or p_now is null then return jsonb_build_object('status', 'invalid'); end if;
+  select * into r from public.connect_link_nonces where nonce_hash = encode(sha256(convert_to(p_nonce, 'UTF8')), 'hex');
+  if r.nonce_hash is null or r.purpose is distinct from p_purpose then return jsonb_build_object('status', 'invalid'); end if;
+  if r.used_at is not null then return jsonb_build_object('status', 'used'); end if;
+  if r.expires_at <= p_now then return jsonb_build_object('status', 'expired'); end if;
+  select c.phone into ph from public.channel_contacts c where c.user_id = r.user_id and c.phone ~ '^\+[0-9]{8,15}$'
+  order by c.last_inbound_at desc nulls last limit 1;
+  if ph is not null then hint := '•••' || right(ph, 4);
+  else
+    select u.email into em from auth.users u where u.id = r.user_id;
+    if em ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$' then hint := left(em, 1) || '•••@' || split_part(em, '@', 2); end if;
+  end if;
+  return jsonb_build_object('status', 'ok', 'hint', hint);
+end $$;
+
 alter table public.connect_link_nonces enable row level security;
 revoke all on public.connect_link_nonces from public, anon, authenticated;
-revoke all on function public.connect_link_issue(uuid, text, timestamptz), public.connect_link_consume(text, text, timestamptz)
+revoke all on function public.connect_link_issue(uuid, text, timestamptz), public.connect_link_consume(text, text, timestamptz),
+  public.connect_link_peek(text, text, timestamptz)
   from public, anon, authenticated;
-grant execute on function public.connect_link_issue(uuid, text, timestamptz), public.connect_link_consume(text, text, timestamptz)
+grant execute on function public.connect_link_issue(uuid, text, timestamptz), public.connect_link_consume(text, text, timestamptz),
+  public.connect_link_peek(text, text, timestamptz)
   to service_role;

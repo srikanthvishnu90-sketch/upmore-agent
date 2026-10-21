@@ -17,10 +17,12 @@
 //       tokens in Supabase Vault under the purpose's name, upsert that
 //       purpose's connection row, redirect to the app. Tokens NEVER touch
 //       the client.
-//   GET ?t=<token>                       WO-101: a Trainee connect link. Consumes the single-use token once
-//       (connect_link_consume) and redirects to the career consent for the token's user; a bad, expired or used
-//       token ends on Trainee's own page (./link.ts). A career consent's callback ends on Trainee's own page too;
-//       the legacy gmail grant still lands on the app.
+//   GET ?t=<token>                       WO-101: a Trainee connect link. Peeks at the single-use token without
+//       using it (connect_link_peek; message previews fetch links too) and shows whose account the Gmail would join,
+//       with a "Continue to Google" form.
+//   POST t=<token> (form body, no JWT)   consumes it once (connect_link_consume) and 303s to the career consent for
+//       the token's user. A bad, expired or used token ends on Trainee's own page (./link.ts); so does a career
+//       consent's callback. The legacy gmail grant still lands on the app.
 //   POST {action:"status"}       (JWT) -> legacy {connected, email} plus
 //       per-source detail (gmail scope set, calendar connected, granted
 //       scope list, connected email) — see career.ts buildStatus.
@@ -44,7 +46,7 @@ import {
   vaultNameFor,
   verifyState,
 } from "./career.ts";
-import { consentUrl, page, startFromLink } from "./link.ts";
+import { consentUrl, handleLinkRequest, page } from "./link.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -87,18 +89,17 @@ serve(async (req) => {
 
     // ---- Google callback (GET, no JWT — trust comes from signed state) ----
     const url = new URL(req.url);
-    // ---- WO-101: a Trainee connect link (GET ?t=<token>, no JWT — trust comes from the single-use token) ----
-    if (req.method === "GET" && url.searchParams.has("t") && !url.searchParams.has("code") && !url.searchParams.has("error")) {
-      const admin = createClient(supabaseUrl, serviceKey);
-      return await startFromLink(url.searchParams.get("t") || "", {
-        consume: async (t, purpose) => {
-          const { data, error } = await admin.rpc("connect_link_consume", { p_nonce: t, p_purpose: purpose, p_now: new Date().toISOString() });
-          if (error) throw new Error("connect link unreadable");
-          return data ?? {};
-        },
-        clientId, stateSecret, redirectUri: redirectUri(),
-      });
-    }
+    // ---- WO-101: a Trainee connect link, no JWT — trust comes from the single-use token. GET ?t= only peeks (message
+    // previews fetch it too) and shows whose account it is; the person's form POST consumes it and goes to Google. ----
+    const rpc = (fn: string) => async (t: string, purpose: string) => {
+      const { data, error } = await createClient(supabaseUrl, serviceKey).rpc(fn, { p_nonce: t, p_purpose: purpose, p_now: new Date().toISOString() });
+      if (error) throw new Error("connect link unreadable");
+      return data ?? {};
+    };
+    const linked = await handleLinkRequest(req, {
+      peek: rpc("connect_link_peek"), consume: rpc("connect_link_consume"), clientId, stateSecret, redirectUri: redirectUri(),
+    });
+    if (linked) return linked;
     if (req.method === "GET" && (url.searchParams.has("code") || url.searchParams.has("error"))) {
       // Legacy landings keep ?gmail=.. on the app. A career grant (started only from a Trainee link) ends on Trainee's
       // own page, never on the finance app.

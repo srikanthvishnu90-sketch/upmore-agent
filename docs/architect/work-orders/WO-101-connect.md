@@ -31,16 +31,37 @@ Root: no order owned "the same person on text and on a web page". The nonce patt
    - `connect_link_issue(p_user uuid, p_purpose text, p_now timestamptz) returns text` (the token).
    - `connect_link_consume(p_nonce text, p_purpose text, p_now timestamptz) returns jsonb`: `{user_id}` once, otherwise
      `{error: used|expired|invalid}`. Another purpose is `invalid` and does not burn the token.
+   - `connect_link_peek(p_nonce text, p_purpose text, p_now timestamptz) returns jsonb`: the same statuses
+     (`{status: ok|used|expired|invalid}`) without ever setting `used_at`. With `ok` it adds a masked `hint` for the
+     account: `•••` plus the last four digits of the person's most recent number in `channel_contacts`; else the first
+     letter and domain of the `auth.users` email (`c•••@domain`); else null. Never the user id, a full number or an address.
    - Service role only; RLS on, nothing granted to anon or authenticated.
    - Why a table of its own and not a purpose column on `channel_link_nonces`: `channel_link_nonce_redeem` burns any row by
      hash, so a connect token would also redeem as a Telegram link, and the parity migration that defines it is replayed.
      The pattern is the same: hash only, short-lived, burned on first use, a cap on live tokens.
    - Purposes today: `connect_google_career`.
-   - Added to `trainee-go-live.sh` (MIGRATIONS and MIGRATION_MARK `connect_link_consume`) and `tests/db/run.sh`.
-2. **`gmail-oauth` GET `?t=<token>`** (`gmail-oauth/link.ts`, wired in `index.ts`):
-   - Consumes the token once, then 302s to Google's career consent. The signed OAuth state names the user the token
-     named; no query parameter can name a user. The consent URL is built by one function (`consentUrl`), which the POST
-     `start`/`start_career` actions now use too: same parameters as before.
+   - Added to `trainee-go-live.sh` (MIGRATIONS and MIGRATION_MARK `connect_link_peek`) and `tests/db/run.sh`.
+2. **`gmail-oauth`: GET `?t=` shows, POST uses** (`gmail-oauth/link.ts` `handleLinkRequest`, wired in `index.ts`).
+   Architect review of the first version found two defects in a GET that consumed:
+   - Message previews burned the token: Telegram, iMessage and WhatsApp fetch a link server-side when it is delivered, so
+     the person's own tap found "already used".
+   - Account-linking CSRF: a link forwarded to someone else would join their Gmail to the sender's Trainee account, and
+     Google's consent page never says whose account that is.
+
+   Now:
+   - **GET `?t=<token>`** only peeks. It renders a Trainee page: "This connects Gmail to the Trainee account that texts
+     from •••0001. Only continue if you asked Trainee for this link in the last 15 minutes.", with a "Continue to Google"
+     button. The button is a `<form method="post">` to the function's own URL with the token in a hidden field.
+     - With no hint the page says "the Trainee account you're texting from".
+     - Only an already-masked hint is ever shown.
+     - Expired, used and invalid tokens get their pages.
+   - **POST** (a form body; a token in the query is ignored) consumes once, then 303s to Google's career consent. The
+     signed OAuth state names the user the token named; no query parameter can name a user. A JSON POST or a HEAD is not
+     the link's and goes on to the signed-in actions.
+   - Every Trainee page: `Cache-Control: no-store`, `X-Frame-Options: DENY`, and
+     `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'`.
+   - The consent URL is built by one function (`consentUrl`), which the POST `start`/`start_career` actions now use too:
+     same parameters as before.
    - No PKCE: `gmail-oauth` is a confidential server-side client (code exchanged with the client secret), and nothing
      here changes that.
    - A bad, expired or used token ends on Trainee's own page and never reaches Google. A missing client ID or state
@@ -49,9 +70,9 @@ Root: no order owned "the same person on text and on a web page". The nonce patt
      chat."), or on "declined" (Google's `error`, with a state that verifies as career) or "error". The legacy gmail grant
      still redirects to the app exactly as before.
    - Pages: a light grey card #F2F2F4, the wordmark "Trainee" in #9B7BB8, text in plum #4A2F5E, no script, no other
-     product's name, `no-store`, `no-referrer`, `DENY` framing.
-   - CORS and redirect allowlists: unchanged. The link is a top-level navigation (no CORS), and Google returns to the
-     function itself.
+     product's name.
+   - CORS and redirect allowlists: unchanged. The link is a top-level navigation, the form posts to the function's own
+     URL (no CORS), and Google returns to the function itself.
 3. **The chat mints it for the person of the turn.**
    - `integrations.ts`: `CONNECT_PURPOSE`, `connectLinkUrl(supabaseUrl, token)`, `mintConnectLink(admin, userId,
      supabaseUrl, now?)` (null when nothing could be minted), and `missingIntegration(kind, { link })` to carry a signed
@@ -101,13 +122,28 @@ Not touched, WO-100's: `_shared/career_capabilities.ts`, `readConnections`, `ctx
   - wiring: 12.
   - Trunk: 0 passed, 12 failed, each for its defect: the modules are missing; the trunk reply promises send, Calendar and
     a self-test; LinkedIn offers a session and even carries the Gmail link.
-  - Branch: 12 passed.
-- `tests/db/connect_link_nonces.test.sql`, 19 checks:
+  - First version (0fda69c5): 12 passed.
+- After the architect review, 5 more (13-17), and 1, 2, 4 and 12 rewritten for peek-then-POST:
+  - (a) three GETs leave the token consumable;
+  - (b) the GET shows a masked hint, never a full number or address;
+  - (c) a POST consumes once, and a second POST gets "used";
+  - (d) only the POST body consumes: not a query token, a GET, a JSON POST or a HEAD;
+  - (e) the page posts the token in a form and can't be framed or cached.
+  - Against the first version (merged with trunk 98531004): 9 passed, 8 failed (1, 2, 4, 13-17).
+  - Now: 17 passed.
+- `tests/db/connect_link_nonces.test.sql`, 30 checks:
   - minted for A, consumed once and naming A; a second consume `used`; expired `expired`; another purpose `invalid`
     (not burned, not redeemable as a Telegram link);
-  - three live at most; authenticated and anon can neither read, mint nor consume; an account's deletion leaves none.
-  - Trunk: fails at its first statement (`connect_link_issue` does not exist).
-  - Branch: 19 ok, and the suite ends with "db tests passed".
+  - three live at most; authenticated and anon can neither read, mint, peek nor consume; an account's deletion leaves
+    none.
+  - Peek:
+    - three peeks never set `used_at`;
+    - it returns the same statuses;
+    - the hint is `•••0101` from the number, `c•••@example.test` from the email, or null;
+    - it never returns the full number, the user id or the email.
+  - Trunk: fails at its first statement (`connect_link_issue` does not exist). First version: fails at the first peek
+    (`connect_link_peek` does not exist).
+  - Now: 30 ok, and the suite ends with "db tests passed".
 
 ## Demo (the owner can run it)
 `deno run -A scripts/text.ts --brain router --fresh`, then type: `connect my gmail`, `/connected gmail`,
@@ -122,14 +158,16 @@ nothing consumes).
   `calendar.events`) must be on it. Gmail scopes are restricted: until Google verifies the app, only listed test users can
   grant them. The consent screen shows that client's app name; today that is the existing client's name, not "Trainee".
   - Decision: rename it or create a Trainee client.
-  - Decision: narrow the link's scopes to `gmail.readonly` while sending stays off. Today the consent screen asks for
-    send and Calendar, which the reply no longer mentions.
+  - Decision (least privilege): the consent asks for `gmail.send` and Calendar while sends stay disabled. Least
+    privilege would be `gmail.readonly` only until sends reopen. The scopes are left as they are here; this is the
+    owner's call.
 - **Function secrets** (already used by `gmail-oauth`): `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
   `OAUTH_STATE_SECRET`.
 - **Deploy:**
   - apply the migration (`trainee-go-live.sh` lists it);
   - deploy `agent-chat`;
-  - deploy `gmail-oauth` with `--no-verify-jwt` (its GET routes carry no JWT; it is not in `trainee-go-live.sh`).
+  - deploy `gmail-oauth` with `--no-verify-jwt` (the link's GET and form POST and Google's callback carry no JWT; it is
+    not in `trainee-go-live.sh`).
 
 ## Out of scope
 - The read side ("what's connected", `statusRecords`, WO-100).

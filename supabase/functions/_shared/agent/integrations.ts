@@ -16,8 +16,8 @@ export const LINKEDIN_ASK = "LinkedIn isn't connected, so this uses only public 
 export type Integration = "email" | "gmail" | "linkedin" | "calendar";
 
 // WO-101: a connect link bound to one person. The service mints a single-use token for the user of the current turn
-// (connect_link_issue: 15 minutes, stored only as its hash), and the link opens gmail-oauth with it, which consumes it
-// once and starts that user's Google consent. The unsigned /connect/gmail link above carries nobody, so a grant made from
+// (connect_link_issue: 15 minutes, stored only as its hash). The link opens gmail-oauth with it: the page shows whose
+// account it is without using the token, and the person's "Continue" consumes it once and starts that user's consent. The unsigned /connect/gmail link above carries nobody, so a grant made from
 // it would land on whoever is signed in to that page. Null when no token could be minted: say so, never a link.
 export const CONNECT_PURPOSE = "connect_google_career";
 export const connectLinkUrl = (supabaseUrl: string, token: string) =>

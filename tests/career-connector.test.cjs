@@ -4,8 +4,9 @@
    (cea914fe) every people-matching ask ends in the honest stop
    (people_matching_stop, 142) and no connector records exist —
    these guards fail there. On the build they pass through the
-   REAL career host with the composition-root deps installed
-   (connectorAllowlist + connectorPool, the boardFor pattern):
+   REAL career host with the composition-root wiring installed
+   (a per-turn connectorGate decision from module 156 +
+   connectorPool, the boardFor pattern):
    per-thread snapshots, per-user account records, the
    career_host_commit patch whitelist, and an in-memory pool over
    the account store implementing the design's pool interface.
@@ -23,6 +24,7 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
 const D = (n) => require(path.join(ROOT, "packages/domain", n));
 const { CareerHost } = require(path.join(ROOT, "supabase/functions/_shared/career_host.js"));
+const ConnectorGate = D("156-career-connector-gate.js");
 
 const NOW = Date.parse("2026-10-21T12:00:00.000Z");
 const WHITELIST = ["paused", "preferred_locations", "erase", "stated_facts"];
@@ -83,17 +85,22 @@ function makeWorld(opts) {
   const o = opts || {};
   const store = { accounts: new Map(), threads: new Map(), watches: new Map() };
   const pool = makePool(store);
+  // The gate (module 156) is decided PER TURN from a mutable
+  // allowlist, the way the production composition root decides from
+  // env each turn — a test can flip an account's gate mid-flow
+  // (setAllowlist) and the very next turn must honor it (guard 18).
+  let allowlist = (o.allowlist === undefined ? ["u-ana", "u-ben", "u-eve"] : o.allowlist).slice();
   const host = CareerHost.createCareerHost({
     CareerAccess: D("120-career-access.js"), CareerOnboarding: D("130-career-onboarding.js"),
     CareerRouter: D("142-career-router.js"), CareerDoorstep: D("141-career-doorstep.js"),
     CareerReply: D("140-career-reply.js"), CareerContainment: D("143-career-containment.js"),
-    connectorAllowlist: o.allowlist === undefined ? ["u-ana", "u-ben", "u-eve"] : o.allowlist,
     connectorPool: o.pool === null ? undefined : pool,
   });
   let n = 0;
   const say = (userId, threadId, text, sopts) => {
     n += 1;
-    const ctx = host.createTurnCtx({ userId, threadId, now: NOW + n * 60000, accountPersistence: true, snapshot: store.threads.get(threadId) || null, account: clone(store.accounts.get(userId) || {}), watchState: clone(store.watches.get(userId) || {}), postings: (sopts || {}).postings || [] });
+    const connectorGate = ConnectorGate.decide({ CONNECTOR_ENABLED: "true", CONNECTOR_ALLOWLIST: allowlist.join(",") }, userId);
+    const ctx = host.createTurnCtx({ userId, threadId, now: NOW + n * 60000, accountPersistence: true, snapshot: store.threads.get(threadId) || null, account: clone(store.accounts.get(userId) || {}), watchState: clone(store.watches.get(userId) || {}), postings: (sopts || {}).postings || [], connectorGate });
     const out = host.runTurn(text, ctx);
     store.threads.set(threadId, host.extractSnapshot(ctx));
     if (ctx._hostPatch) {
@@ -103,7 +110,7 @@ function makeWorld(opts) {
     }
     return { out, ctx };
   };
-  return { host, store, pool, say };
+  return { host, store, pool, say, setAllowlist: (list) => { allowlist = (list || []).slice(); } };
 }
 
 // ---- record readers (the committed account record, folded) ----

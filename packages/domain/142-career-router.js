@@ -69,6 +69,23 @@ const CareerRouter = (() => {
   const Season = typeof CareerSeason !== "undefined" ? CareerSeason : req("./136-career-season.js");
   const Safety = typeof CareerSafety !== "undefined" ? CareerSafety : req("./139-career-safety.js");
   const Guidance = typeof CareerGuidance !== "undefined" ? CareerGuidance : req("./144-career-guidance.js");
+  // LANE B CONNECTOR (assembled 2026-10-21): the four connector
+  // packages (156 gate, 157 consent, 158 match, 159 intro) sit BEFORE
+  // this file in the router bundle's names list, so the in-bundle
+  // reads resolve; the req() fallback covers standalone Node use.
+  // Same degrade posture as every load above: a module that fails to
+  // load is null here, and the connector claim stands down rather
+  // than throwing (integration design SS2). The gate decision itself
+  // is computed at the composition root with module 156 and rides
+  // the turn as ctx.connectorGate; package 159's FOLLOW_UP_AFTER_MS
+  // is consumed at the fire point below. Each package's delegation
+  // status in the claim is recorded in
+  // docs/connector/assembly-2026-10-21.md.
+  const ConnectorGate = typeof CareerConnectorGate !== "undefined" ? CareerConnectorGate : req("./156-career-connector-gate.js");
+  const ConnectorConsent = typeof CareerConnectorConsent !== "undefined" ? CareerConnectorConsent : req("./157-career-connector-consent.js");
+  const ConnectorMatch = typeof CareerConnectorMatch !== "undefined" ? CareerConnectorMatch : req("./158-career-connector-match.js");
+  const ConnectorIntro = typeof CareerConnectorIntro !== "undefined" ? CareerConnectorIntro : req("./159-career-connector-intro.js");
+  void ConnectorGate; void ConnectorConsent; void ConnectorMatch;
   // 146 sits AFTER this file in the router bundle's concatenation order, so
   // an eager top-level read hits the const TDZ inside the bundle. Resolve
   // lazily at call time instead (post-initialization in every host).
@@ -1250,11 +1267,13 @@ const CareerRouter = (() => {
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
   }
 
-  // ---------- CONNECTOR v1 (Lane B): consent capture, matching,
-  // double opt-in, the intro — behind the allowlist gate ----------
+  // ---------- CONNECTOR (Lane B): consent capture, matching,
+  // double opt-in, the intro — behind the connector gate ----------
   // Design: docs/connector/connector-v1-design.md. The claim runs
   // ahead of the people-matching stop and stands down (null) unless
-  // the account is on the composition root's connector allowlist —
+  // the gate module's per-turn decision (ctx.connectorGate, computed
+  // at the composition root from CONNECTOR_ENABLED +
+  // CONNECTOR_ALLOWLIST) allows the account —
   // for everyone else the stop below answers byte-identically, and
   // this family writes nothing. Per-user records (match profile,
   // consent, intro artifacts) ride the account stated-facts keyed
@@ -1273,6 +1292,10 @@ const CareerRouter = (() => {
   const CONN_YES = /^(yes|yeah|yep)[.!]?$|\byes to the match\b|\bintroduce us\b|\baccept the match\b/;
   const CONN_NO = /^(no|nope|pass)[.!]?$|\bno thanks\b|\bpass on (this|the) match\b|\bdecline( the match)?\b/;
   const CONN_MARKER = /\bmatch(ing)?\b|\bpool\b|\bmentor\b|\bintroduce\b|\bintros?\b|\bconnector\b/;
+  // The 72h follow-up marker is package 159's constant — its spec
+  // owns the follow-up, so the duration lives there exactly once.
+  // The literal is the fail-soft fallback if the module did not load.
+  const CONN_FOLLOW_UP_MS = ConnectorIntro && typeof ConnectorIntro.FOLLOW_UP_AFTER_MS === "number" ? ConnectorIntro.FOLLOW_UP_AFTER_MS : 72 * 3600 * 1000;
   function connectorRecordRead(ctx, kind, key) {
     const f = statedFactsOf(ctx).find((x) => x.kind === kind && s(x.key || "").toLowerCase() === s(key || "").toLowerCase());
     if (!f) return null;
@@ -1335,8 +1358,15 @@ const CareerRouter = (() => {
   function connectorProfileComplete(p) { return !!(p && p.name && p.needs && p.offers); }
   function handleConnector(text, ctx, rawText) {
     if (!ctx || !ctx.userId) return null;
-    const allow = Array.isArray(ctx.connectorAllowlist) ? ctx.connectorAllowlist : null;
-    if (!allow || !allow.includes(ctx.userId)) return null; // the gate: zero behavior change for everyone else
+    // THE GATE (module 156, assembled): the decision rides the turn
+    // as ctx.connectorGate — CareerConnectorGate.decide(env, user.id),
+    // computed by the composition root (handler-career.ts). No
+    // decision, or not allowed: stand down BEFORE anything is read
+    // or written — zero behavior change for everyone else (dispatch
+    // also only calls in when allowed; this check keeps the claim
+    // itself honest for any other caller).
+    const gate = ctx.connectorGate;
+    if (!gate || gate.allowed !== true) return null;
     const t = lc(text);
     const raw = s(rawText || text);
     const pool = ctx.connectorPool && typeof ctx.connectorPool === "object" ? ctx.connectorPool : null;
@@ -1400,7 +1430,7 @@ const CareerRouter = (() => {
       const aProf = pool.getProfile(open.aId);
       const bProf = pool.getProfile(open.bId);
       if (!aProf || !bProf) return null;
-      const dueIso = new Date(nowOf(ctx) + 72 * 3600 * 1000).toISOString();
+      const dueIso = new Date(nowOf(ctx) + CONN_FOLLOW_UP_MS).toISOString();
       const introText = connectorIntroText(aProf, bProf);
       const introWhy = connectorIntroWhy(aProf, bProf);
       pool.updateProposal(open.id, { state: "intro_sent", introAt: nowIso });
@@ -8735,16 +8765,20 @@ const CareerRouter = (() => {
     // can read it as list-building.
     const singleDraft = handleSingleDraftAsk(text, c);
     if (singleDraft) return singleDraft;
-    // LANE B CONNECTOR v1: for ALLOWLISTED accounts the connector
-    // claim runs the real flow (consent capture, matching, double
-    // opt-in, intro) — it stands down (null) for everyone else and
-    // for every non-connector shape, so the stop below keeps its
+    // LANE B CONNECTOR (assembled): for accounts the gate module
+    // allows (ctx.connectorGate, decided per turn at the composition
+    // root), the connector claim runs the real flow (consent
+    // capture, matching, double opt-in, intro) — it stands down
+    // (null) for every non-connector shape, and an account the gate
+    // does not allow never reaches it, so the stop below keeps its
     // exact behavior for the rest of the world. Shapes route on the
     // detypo'd copy like every claim; the CAPTURE parses rawText —
     // records keep the user's original words (the CB-0441 doctrine
     // above: detypo rewrote "intros" to "intro" on the record).
-    const connectorTurn = handleConnector(text, c, rawText);
-    if (connectorTurn) return connectorTurn;
+    if (c.connectorGate && c.connectorGate.allowed) {
+      const connectorTurn = handleConnector(text, c, rawText);
+      if (connectorTurn) return connectorTurn;
+    }
     // LANE A v2 ITEM 5: people-matching asks end in the plain honest
     // stop here, before recommendations/fallback can claim them.
     const pmStop = handlePeopleMatchingStop(text, c);

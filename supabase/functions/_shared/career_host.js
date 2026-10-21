@@ -259,17 +259,20 @@ const CareerHost = (() => {
     // asynchronous worker execution, not a wired in-turn drive, and
     // no WIRED claim is made for it.
     const delegateBatch = !!(deps && deps.delegateBatch === true);
-    // LANE B CONNECTOR v1 (docs/connector/connector-v1-design.md):
-    // the composition root may install the connector gate + pool —
-    // connectorAllowlist (account user ids admitted to the flow) and
-    // connectorPool (the pool service: proposals single-authority,
-    // opted-in profile reads, intro writes). Like boardFor they are
-    // RUNTIME wiring only: createTurnCtx attaches them per turn,
-    // neither is a STATE_KEYS entry, and no snapshot can carry or
-    // resurrect them. Absent both, the router's connector claim
-    // stands down and people-matching keeps today's honest stop.
+    // LANE B CONNECTOR (docs/connector/connector-v1-design.md;
+    // assembly: docs/connector/assembly-2026-10-21.md): the
+    // composition root may install connectorPool (the pool service:
+    // proposals single-authority, opted-in profile reads, intro
+    // writes). Like boardFor it is RUNTIME wiring only: createTurnCtx
+    // attaches it per turn, it is not a STATE_KEYS entry, and no
+    // snapshot can carry or resurrect it. The GATE is not a host dep:
+    // the per-turn decision (module 156, CareerConnectorGate.decide,
+    // computed by the handler from env) rides createTurnCtx opts as
+    // connectorGate and lands on the ctx literal below — also never
+    // a STATE_KEYS entry. Absent the pool or an allowing decision,
+    // the router's connector claim stands down and people-matching
+    // keeps today's honest stop.
     const connectorPool = deps && deps.connectorPool && typeof deps.connectorPool === "object" ? deps.connectorPool : null;
-    const connectorAllowlist = deps && Array.isArray(deps.connectorAllowlist) ? deps.connectorAllowlist.slice() : null;
     const workerCapabilities = boardFor
       ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
           portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
@@ -283,6 +286,7 @@ const CareerHost = (() => {
       const ctx = {
         now: typeof o.now === "number" ? o.now : Date.now(),
         userId: o.userId || null,
+        connectorGate: o.connectorGate || null,
         threadId: o.threadId || null,
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
@@ -322,7 +326,6 @@ const CareerHost = (() => {
         ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {});
       }
       if (connectorPool) ctx.connectorPool = connectorPool;
-      if (connectorAllowlist) ctx.connectorAllowlist = connectorAllowlist.slice();
       // DEPTH LANE A (MI-013): seed the account's stated facts into
       // the turn. ROUND 2 (PR #151): the account record is
       // authoritative per identity; the thread's own record

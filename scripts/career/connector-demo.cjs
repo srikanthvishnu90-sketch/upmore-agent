@@ -11,6 +11,7 @@ const path = require("node:path");
 const ROOT = path.join(__dirname, "..", "..");
 const D = (n) => require(path.join(ROOT, "packages/domain", n));
 const { CareerHost } = require(path.join(ROOT, "supabase/functions/_shared/career_host.js"));
+const ConnectorGate = D("156-career-connector-gate.js");
 
 const NOW = Date.parse("2026-10-21T14:00:00.000Z");
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -72,13 +73,13 @@ const host = CareerHost.createCareerHost({
   CareerAccess: D("120-career-access.js"), CareerOnboarding: D("130-career-onboarding.js"),
   CareerRouter: D("142-career-router.js"), CareerDoorstep: D("141-career-doorstep.js"),
   CareerReply: D("140-career-reply.js"), CareerContainment: D("143-career-containment.js"),
-  connectorAllowlist: [ANA, BEN], connectorPool: pool,
+  connectorPool: pool,
 });
 let n = 0;
 const lines = [];
 function say(userId, threadId, text) {
   n += 1;
-  const ctx = host.createTurnCtx({ userId, threadId, now: NOW + n * 60000, accountPersistence: true, snapshot: store.threads.get(threadId) || null, account: clone(store.accounts.get(userId) || {}), watchState: {} });
+  const ctx = host.createTurnCtx({ userId, threadId, now: NOW + n * 60000, accountPersistence: true, snapshot: store.threads.get(threadId) || null, account: clone(store.accounts.get(userId) || {}), watchState: {}, connectorGate: ConnectorGate.decide({ CONNECTOR_ENABLED: "true", CONNECTOR_ALLOWLIST: ANA + "," + BEN }, userId) });
   const out = host.runTurn(text, ctx);
   store.threads.set(threadId, host.extractSnapshot(ctx));
   if (ctx._hostPatch) { const a = store.accounts.get(userId) || {}; for (const k of Object.keys(ctx._hostPatch)) a[k] = clone(ctx._hostPatch[k]); store.accounts.set(userId, a); }

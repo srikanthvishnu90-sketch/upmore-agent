@@ -30,7 +30,7 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs } from "../_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerConnectorGate } from "../_shared/router_core.career.js";
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
@@ -197,17 +197,19 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const workerSecret = Deno.env.get("UPMORE_CAREER_WORKER_SECRET") ?? "";
     const boardFor = createCareerBoardFor(createWorkerBoardProvider({ workerUrl, secret: workerSecret, userId: user.id }));
     const delegateBatch = workerUrl !== "" && workerSecret !== "";
-    // LANE B CONNECTOR v1: the allowlist gate is env configuration
-    // (CONNECTOR_ALLOWED_USER_IDS, comma-separated account ids — the
-    // resolveTestUser env-allowlist shape). No connectorPool is
-    // installed in this runtime this round: the production pool over
-    // the account store is the connections-registry seam (design
-    // note, docs/connector/connector-v1-design.md), so allowlisted
+    // LANE B CONNECTOR (assembled): the gate is module 156 —
+    // CareerConnectorGate.decide reads CONNECTOR_ENABLED +
+    // CONNECTOR_ALLOWLIST from env, computed per turn below at
+    // createTurnCtx from the authenticated user.id; the host carries
+    // the decision as ctx.connectorGate and the router's connector
+    // claim runs only when it allows. No connectorPool is installed
+    // in this runtime this round: the production pool over the
+    // account store is the connections-registry seam (design note,
+    // docs/connector/connector-v1-design.md), so gate-allowed
     // accounts get the router's honest not-wired reply and every
     // other account keeps the unchanged people-matching stop. No
     // WIRED claim is made for a pool that is not installed.
-    const connectorAllowlist = (Deno.env.get("CONNECTOR_ALLOWED_USER_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch, connectorAllowlist });
+    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }
@@ -273,7 +275,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           }
         }
       } catch { /* the window pool stands on its own */ }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings });
+      // The connector gate decision is computed ONCE per turn from
+      // the authenticated request's user id — never from a channel
+      // bridge's resolved test identity (gate integration note,
+      // docs/connector/gate-integration-note-2026-10-21.md).
+      const connectorGate = CareerConnectorGate.decide((name: string) => Deno.env.get(name), user.id);
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, connectorGate });
       let out = host.runTurn(message, ctx);
       let taskIntent = null;
       let batchIntent = null;

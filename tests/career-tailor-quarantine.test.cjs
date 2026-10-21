@@ -57,9 +57,8 @@ test("tailoring quarantine: negative metadata agrees with canonical policy witho
  const mod=new Module('synthetic-source-parity',module);mod.filename=__filename;mod._compile(code,__filename);const {personalSourceDenied,personalSourceGuard}=mod.exports;
  const cases=[{source:'agent'},{source:'assistant'},{origin:'model'},{source:'AI generated'},{provenance:'answer-all'},{provenance:'owner-delegated'},{provenance:{source:'agent'}},{rejected:true},{quarantined:true},{unproven:true},{source:'user',provenance:'owner stated SQL directly'},{text:'Built SQL dashboards while working as an AI engineer.'}];
  for(const extra of cases){const f=fact('SYN-POLICY',extra),p=profile([f]);const kept=Tailor.selectFacts(p,Tailor.parseJD(JD)).some(x=>x.fact.id===f.id);assert.equal(kept,!personalSourceDenied(f),JSON.stringify(extra));}
- const original=[own,fact('F-033'),fact('SYN-CAMEL',{derivedFrom:['F-033']}),fact('SYN-TRANSITIVE',{derived_from:['SYN-CAMEL']}),fact('SYN-MISSING',{derivedFrom:['SYN-ABSENT']}),fact('SYN-OWN-DERIVED',{derivedFrom:[own.id]})];
- // Domain stores camel-case dependencies too. Normalize its declarations for the canonical graph (which currently
- // accepts snake-case); this comparison makes no claim that the canonical graph itself accepts camel case yet.
- const normalized=original.map(f=>({...f,...(Object.hasOwn(f,'derivedFrom')?{derived_from:f.derivedFrom}:{})})),denied=personalSourceGuard(normalized);
- const selectedIds=new Set(Tailor.selectFacts(profile(original),Tailor.parseJD(JD)).map(x=>x.fact.id));for(const f of normalized)assert.equal(selectedIds.has(f.id),!denied(f),f.id);
+ const original=[own,fact('F-033'),fact('SYN-CAMEL',{derivedFrom:['F-033']}),fact('SYN-TRANSITIVE',{derived_from:['SYN-CAMEL']}),fact('SYN-MISSING',{derivedFrom:['SYN-ABSENT']}),fact('SYN-OWN-DERIVED',{derivedFrom:[own.id]}),fact('SYN-MIXED',{derivedFrom:[own.id],derived_from:['F-033']}),fact('SYN-BAD-ALIAS',{derived_from:[own.id],derivedFrom:'F-033'})];
+ // Compare original stored metadata directly: neither alias can mask the other's excluded/malformed dependency.
+ const denied=personalSourceGuard(original);
+ const selectedIds=new Set(Tailor.selectFacts(profile(original),Tailor.parseJD(JD)).map(x=>x.fact.id));for(const f of original)assert.equal(selectedIds.has(f.id),!denied(f),f.id);
 });

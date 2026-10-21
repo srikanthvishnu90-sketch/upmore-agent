@@ -142,6 +142,34 @@ jobs:
           else
             echo 'NOT_RUN: no provider-call reservation journal exists'
           fi
+      - name: Paired aggregate comparison for complete reconciled arms
+        if: always() && env.BRAIN320_MODEL == 'gpt-5'
+        env:
+          OPENAI_API_KEY: ""
+        run: |
+          cat > "$RUNNER_TEMP/brain320-compare.ts" <<'TS'
+          const {armSummary,compareArms}=await import("file://"+Deno.cwd()+"/evals/brain-reliability/run-comparison.ts");
+          const folder=Deno.env.get("RUNNER_TEMP")!;
+          let firstRaw:string,secondRaw:string;
+          try {
+            firstRaw=await Deno.readTextFile(folder+"/mini-proof/brain320-result.json");
+            secondRaw=await Deno.readTextFile(folder+"/brain320-result.json");
+          } catch(e) {
+            if(!(e instanceof Deno.errors.NotFound))throw e;
+            console.log(JSON.stringify({status:"NOT_COMPARABLE",reason:"Complete result evidence is missing"}));
+            Deno.exit(0);
+          }
+          const first=JSON.parse(firstRaw),second=JSON.parse(secondRaw);
+          const mini=armSummary(first),higher=armSummary(second);
+          const result=mini.status==="SCORED"&&higher.status==="SCORED"
+            ?{status:"COMPARABLE",...compareArms(first,second)}
+            :{status:"NOT_COMPARABLE",mini_status:mini.status,higher_status:higher.status,
+              mini_cost_usd:mini.cost_usd,higher_cost_usd:higher.cost_usd};
+          await Deno.writeTextFile(folder+"/brain320-comparison.json",JSON.stringify(result));
+          console.log(JSON.stringify(result,null,2));
+          TS
+          deno run --cached-only --no-remote --deny-net --allow-read="$GITHUB_WORKSPACE,$RUNNER_TEMP" \
+            --allow-env=RUNNER_TEMP --allow-write="$RUNNER_TEMP/brain320-comparison.json" --no-prompt "$RUNNER_TEMP/brain320-compare.ts"
       - name: Preserve private packets, per-call usage, exact metered costs and diagnostic log
         if: always()
         uses: actions/upload-artifact@v4
@@ -154,4 +182,5 @@ jobs:
             ${{ runner.temp }}/brain320-result.json
             ${{ runner.temp }}/brain320-result.journal.jsonl
             ${{ runner.temp }}/brain320-diagnostic.log
+            ${{ runner.temp }}/brain320-comparison.json
 

@@ -36,17 +36,6 @@ import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
-// A resume called by a name of its own ("my fintech resume", "the PM version of my resume"), as a saved persona would be;
-// words that only describe their one resume ("my updated resume", "my resume") name nothing.
-const NOT_A_RESUME_NAME = new Set(["new", "current", "latest", "updated", "old", "original", "own", "full", "whole", "last", "same", "this", "that", "one page", "one-page", "1 page", "two page", "2 page", "tailored", "existing", "real", "actual", "master", "complete", "uploaded", "saved", "plain", "best", "final", "other", "right", "correct", "appropriate", "relevant", "most relevant", "matching", "proper", "specific", "good", "better", "strongest", "strong", "short", "long", "generic", "general", "standard", "same old", "entire", "official", "a", "an", "my", "the", "your", "their", "pdf", "word"]);
-export function resumeNamedIn(text: string): string | null {
-  const re = /\b(?:my|the|use|using)\s+((?:[a-z0-9&+-]+\s+){0,2}?[a-z0-9&+-]+)\s+(?:resume|cv|persona|version of my resume)\b/gi;
-  for (const m of String(text ?? "").matchAll(re)) {
-    const name = validPersonaName(m[1].replace(/^(?:(?:my|the|a|an|your|their)\s+)+/i, ""));
-    if (name && !NOT_A_RESUME_NAME.has(name)) return name;
-  }
-  return null;
-}
 // A confirmation is the person's own yes, in this turn's message, to a fact they saw in an earlier turn (D-007): the
 // model can never confirm a fact it just wrote, or one the person has not answered.
 const AFFIRM = /\b(yes|yep|yeah|yup|correct|right|confirm(?:ed)?|accurate|exactly|true|looks (?:good|right)|that'?s (?:right|correct|it))\b/i;
@@ -133,15 +122,6 @@ export function careerTools(deps: {
       input_schema: obj({ instruction: str("The instruction, short and plain, e.g. 'Needs visa sponsorship (F-1 OPT)'"), quote: str("Their exact words from this message that say it") }, ["instruction", "quote"]),
       run: async (i, c) => {
         if (!c.turn || !quotedFrom(c.turn.message, String(i.quote ?? ""))) throw new Error("not kept: the quote is not in the person's message this turn; only what they said is kept");
-        // WO-061/H031: a rule about a resume they name is about a record; when that resume is not on file, that is what
-        // they need to hear, first, before anything about keeping the rule.
-        const named = resumeNamedIn(`${i.quote ?? ""} ${i.instruction ?? ""}`);
-        if (named) {
-          const saved = deps.tailor ? (await deps.tailor.personas.get(c.userId)).items.map((p) => p.name) : [];
-          if (!saved.includes(named)) {
-            throw new Error(`not kept: they have no resume named "${named}" on file (saved: ${saved.join(", ") || "none"}); say that in your first sentence and ask them to add it (paste or upload it, or say what it should lead with); keep the rule only once that resume exists`);
-          }
-        }
         const store = memoryOf(), had = await store.standing(c.userId);
         const r = addStanding(had, { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
         if (!r.ok) throw new Error(r.error);

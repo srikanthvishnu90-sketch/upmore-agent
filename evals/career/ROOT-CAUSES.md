@@ -574,3 +574,55 @@ of private content.
   ratchet, and a fix for a rare path (H027) can only be judged by its gate test plus "no new failure class".
 - Held, uncommitted, for the three-way verdict (owner's ratchet rule). Put to the owner: a reliability fix whose path
   fired zero times in the measurement, with a 3.4-item drop that comes from other items.
+
+### H031 v2 round result (run 39584579483, side commit 86ddd57e on the baseline): the task is done; score in the noise band; held
+- Both CI judges 30/32/33 of 38 (gpt-5-mini 31/33/33, gpt-4.1-mini 35/34/36); clean 30: 22/24/25 (mean 23.7) vs the
+  baseline's 26.7. Safety scans clean; no error text or empty reply. Cost $0.3141.
+- Real-world (the three H031 replies, read and logged): every one opens "You don't have a resume named ... on file
+  yet" and asks them to paste or upload it or say what it should lead with. H031 passes both CI judges in all three
+  passes. The task the person asked about is now done, where the clause round only reworded a failure.
+- No other item's reply carries the new refusal (code scan), so the change fired on H031 alone; the other failures
+  (H002 x3, H006 x3, H034 x2, H036 x2, H009, H010, H011 ...) are the same variance band as the H027 round.
+- Left over in the H031 replies, separate causes for later rounds: p1 offers made-up example specifics ("3
+  publications") as a suggestion (the fabricated-specifics guard in the queue); p2 says the same thing twice; p3
+  ends with a question that repeats the ask.
+- Held, uncommitted, for the three-way verdict.
+
+## H002 (owner's order: third): a short reply after "Is that right?" ends in the step-limit text
+- What happens (nine passes over three runs, both CI judges fail it in most): turn 1 the brain saves a draft fact
+  and asks "Is that right?"; turn 2 is a short message that is not a plain yes (code test of the user turns: the
+  confirmation patterns match neither yes nor no). Replies: "I couldn't finish that in one go, so I stopped partway.
+  Nothing was sent or submitted. Tell me which part to do first." (4 of 9, the MAX_STEPS_REPLY), "You didn't type
+  yes..." demands (3), and "Got it. / Is that right?" fragments (2). Judges: no acknowledgement, no next step.
+- Why (the exact lines): confirm_profile_fact refuses anything but a plain yes (career_tools.ts confirmationRefusal,
+  "not confirmed: the person's message is not a plain yes"); that refusal is correct. But loop.ts runAgentTurn puts
+  every refusal back to the model with tools still on, and nothing stops the model calling the same tool again: it
+  re-tries confirm_profile_fact (the same refusal each time) until `steps < max` (6) runs out, and the person gets
+  MAX_STEPS_REPLY, a generic failure text, for a message that needed one line.
+- Fix (code, one cause): when a tool fails a second time in one turn with the same error, the next call has tools
+  off and code's note in its system prompt (the `review` path: never the conversation): "<tool> refused twice with
+  the same reason: <reason>. Do not call it again this turn. Reply to the person now: answer their last message."
+  Covers every tool that thrashes this way, not only confirmations. Gate: a scripted model that calls
+  confirm_profile_fact on every step gets the tools-off call on step 3 and its text is the reply (before: the
+  step-limit text). The "Got it. / Is that right?" fragment and the plain-yes demand are other causes, not this round.
+
+### Second judge's rulings on the H031 clause and H027 rounds (recorded as posted; per-pass item lists were not posted, so no verdict files)
+- Run 39582229542 (H031 prompt clause): REVERT. Combined full-38 78.9%, clean-30 77.8% vs the baseline's 85.1/85.6.
+  H031 fails 3/3 on the strict rubric: no reply says the named resume is not on file or asks to add it (the CI
+  judges' pass was lenient, the same false pass the builder recorded). Side regressions: H004 p1; H009 onsite not
+  confirmed p2/p3; H006 weather engaged p2.
+- Run 39583493501 (H027): REVERT. Combined full-38 76.3%, clean-30 74.4%. H027 2/3 (p3 announces a plan and never
+  delivers it). H004 regressed p2; H003 fails all three passes (never names the recruiter); H026 p2 an error reply.
+  New defect: p3's H004 invents an example invite and then treats it as supplied by the person (fabricated-specifics
+  class, already queued).
+- Builder's correction to the H027 note above: "zero error replies" counted only the model-error text. H026 p2 is
+  the STEP-LIMIT text (MAX_STEPS_AFTER_SAVE_REPLY), a different failure reply. Code scan of every stored pass file
+  (70 files, 2660 items): the step-limit text appears 4 times, all in the last two runs (39583493501 p2 H026, p3 H002;
+  39584579483 p1 H002, p2 H002) and never in the 64 files before them; its wording dates from WO-002, so the count is
+  not a wording artifact. That is the H002 cause (a repeated refusal runs the turn to the step limit).
+- Pattern call (second judge): four rounds reverted in a row; the baseline is a local optimum; the next change should
+  be a real code fix, not a prompt tweak. Baseline stays 40eb3d03.
+- Open question raised by the builder, not settled: the last two runs both scored about 3 items under the baseline on
+  clean-30 with changes that could not touch most items, and the step-limit replies appeared only in them. Either
+  run-to-run variance or a shift in the provider's model behavior since the baseline run (39556113702, ~08:20). A
+  re-run of the unchanged baseline 40eb3d03 tells which; until then the 85.6 bar may be a stale reference.

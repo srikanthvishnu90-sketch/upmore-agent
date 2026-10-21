@@ -401,8 +401,8 @@ test("surfacing: decline reads differently for the decliner and the other side; 
   const p1 = proposeOk(machine);
   const p2 = proposeOk(machine, { aId: "user-c", bId: "user-d", aPitch: PITCH_C, bPitch: PITCH_D, why: "model-test swap" });
   machine.answer(p1.id, "a", "no");
-  machine.answer(p2.id, "c", "yes");
-  machine.answer(p2.id, "d", "yes");
+  machine.answer(p2.id, "a", "yes"); // user-c is side a of p2
+  machine.answer(p2.id, "b", "yes"); // user-d is side b of p2
   const s = persistOk(h, store, machine);
   const decliner = H.currentProposalText(s, "user-a", h.now());
   assert.equal(decliner.status, "declined_self");

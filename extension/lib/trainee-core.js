@@ -2655,7 +2655,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       "last_name"
     ],
     [
-      /^(full\s*)?name$|^legal\s*name/i,
+      /^legal\s*name\b|^full\s+legal\s+name\b/i,
+      "legal_name"
+    ],
+    [
+      /^(full\s*)?name$/i,
       "full_name"
     ],
     [
@@ -5276,6 +5280,37 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (!tf) return {
       problem: "its answer is not from a fact you gave"
     };
+    if (classifyField(f.label, f.type) === "legal_name" || mapQuestion(f).fact === "legal_name") {
+      let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers.legal_name?.factId === tf.factId;
+      if (!legal && tf.table === "saved") {
+        const again = planBatch({
+          userId: "contract-legal-name",
+          postings: [
+            {
+              job_id: jobId ?? "contract-legal-name",
+              company: "",
+              title: "",
+              fields: [
+                f
+              ]
+            }
+          ],
+          answers: {},
+          saved: {
+            [tf.key]: {
+              value: tf.value,
+              factId: tf.factId
+            }
+          },
+          log: [],
+          now: 0
+        }).ready[0]?.fields.find((p) => p.name === f.name);
+        legal = !!again && again.factId === a.factId && again.label === a.label && again.value === a.value;
+      }
+      if (!legal) return {
+        problem: "a legal name needs your stated legal name or your own answer to this exact question"
+      };
+    }
     if (ownAnswerOnly(f.label) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };

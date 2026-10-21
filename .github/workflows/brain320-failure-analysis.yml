@@ -1,0 +1,22 @@
+name: brain320-existing-mini-failure-analysis
+on:
+  push:
+    branches: [ci/brain320-failure-analysis-20261021]
+    paths: [.github/workflows/brain320-failure-analysis.yml, evals/brain-reliability/analysis/mini-failures.py]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: brain320-39666739440-1
+          run-id: 39666739440
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/mini
+      - name: Analyze immutable saved evidence with Python stdlib only
+        run: python3 evals/brain-reliability/analysis/mini-failures.py "$RUNNER_TEMP/mini/brain320-result.json"

@@ -50,7 +50,7 @@ const MIGRATIONS = fs.readdirSync(path.join(root, 'supabase/migrations')).filter
 test('dry run: the live bridges deploy without a JWT; the extension\'s own-session functions keep it', () => {
   const { code, out } = dry();
   assert.equal(code, 0, out);
-  for (const fn of ['telegram-inbound', 'whatsapp-inbound']) {
+  for (const fn of ['telegram-inbound', 'whatsapp-inbound', 'gmail-oauth']) {
     assert.match(out, new RegExp(`supabase functions deploy ${fn} --project-ref abcdefghijklmnopqrst --no-verify-jwt`), `${fn} is deployed`);
   }
   for (const fn of ['career-essay-draft', 'career-email-code']) {

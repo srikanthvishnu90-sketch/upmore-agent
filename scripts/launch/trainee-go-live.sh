@@ -194,8 +194,12 @@ BRIDGE_FNS=(telegram-inbound whatsapp-inbound)
 # Called with the person's own session (verify_jwt = true in supabase/config.toml): the extension's "Draft from my
 # facts" (WO-049) and the employer's emailed code (WO-096). Without them the extension's calls answer 404.
 JWT_FNS=(career-essay-draft career-email-code)
+# WO-101: the signed connect link the chat sends ("connect my gmail") opens gmail-oauth's GET ?t= page and its form POST;
+# neither carries a Supabase session (the single-use token is the authority). The finance app's own paths in the same
+# function are unchanged by WO-101.
+LINK_FNS=(gmail-oauth)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api "${JWT_FNS[@]}")
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api "${LINK_FNS[@]}" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -664,7 +668,7 @@ else
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   # trainee-agent-api (WO-097) authorizes each call with the agent token the person minted (hashed, checked in the database).
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api; do
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api "${LINK_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi

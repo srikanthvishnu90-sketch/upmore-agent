@@ -29,7 +29,7 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
-import { queueWants, refusal, resolvePicks, screenPicks, type Pick, type Refusal, type WantStore } from "../career_apply_want.ts";
+import { queueWants, refusal, resolvePicks, screenPicks, type Pick as WantPick, type Refusal, type WantStore } from "../career_apply_want.ts";
 import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
 import { type Situation, statusText } from "../career_situation.ts";
@@ -64,13 +64,13 @@ export function factRefusal(text: string, message: string | undefined): string |
 // Legal and Real Estate Analyst): when the person names a role, every posting queued must carry the role's words in its
 // title, place or employer. A pick by reference ("the first one", "both") names no role and is not screened here.
 const ASK_FILLER = new Set(["apply", "applying", "submit", "send", "queue", "application", "applications", "jobs", "job", "roles", "role", "positions", "position", "openings", "them", "these", "those", "all", "for", "the", "to", "of", "please", "now", "today", "first", "second", "third", "last", "one", "ones", "both", "top", "best", "any", "some", "more", "few", "fit", "fits", "match", "matching"]);
-export function offRole(picks: Pick[], message: string | undefined): { ok: Pick[]; refused: Refusal[] } {
+export function offRole(picks: WantPick[], message: string | undefined): { ok: WantPick[]; refused: Refusal[] } {
   // The role is the words right before "jobs", "roles", "positions" or "openings" ("15 data analyst jobs"): never the rest
   // of the message ("remote is fine"), and none at all for a pick by reference.
   const phrase = /((?:[A-Za-z][A-Za-z+#.&-]*\s+){1,4})(?:jobs?|roles?|positions?|openings?)\b/i.exec(String(message ?? ""));
   const words = phrase ? searchWords(phrase[1]).filter((w) => !ASK_FILLER.has(w) && !/^\d+$/.test(w) && !/^(?:inc|llc|ltd|corp|co|company)$/.test(w)) : [];
   if (!words.length) return { ok: picks, refused: [] };
-  const ok: Pick[] = [], refused: Refusal[] = [];
+  const ok: WantPick[] = [], refused: Refusal[] = [];
   for (const p of picks) {
     const hay = searchWords(`${p.title ?? ""} ${(p as any).location ?? ""} ${p.company ?? ""}`).map(wordStem);
     const missing = words.filter((w) => !hay.includes(wordStem(w)));

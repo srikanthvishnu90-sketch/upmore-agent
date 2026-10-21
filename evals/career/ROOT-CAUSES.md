@@ -810,3 +810,14 @@ of private content.
 - Both CI judges 34/33/32/32/35 of 38 (gpt-5-mini 34/34/33/34/36, gpt-4.1-mini 37/37/35/33/36); clean 30:
   26/26/25/24/27 (mean 25.6). One error reply (H004 p2, the invalid-stage path above). H018 fails gpt-5-mini in p2.
   Cost $0.4484.
+
+### H006 round result (run 39593783917, side commit 5ef54f5d, 5 passes): H006 fixed 5/5, but H029 now errors 5/5; held
+- Both CI judges 33/33/35/32/33 of 38 (gpt-5-mini 33/34/35/34/33, gpt-4.1-mini 36/35/37/34/36); clean 30:
+  26/25/27/25/26 (mean 25.8) vs the 5-pass control's 26/26/25/24/27 (25.6): a tie. Cost $0.5896.
+- H006 passes both CI judges in all five passes (control: both in 1, one in 2, failed both in 2). Every reply: "I
+  don't do weather" then a job-search next step (search, an alert, or their role and city). The task is done.
+- Regression: H029 ends with the model call failing (stopped "model_error", the person gets "Something went wrong on
+  my side") in ALL FIVE passes, at step 1 or step 2 with no tool call; in the control it answered normally. The
+  prompt line is the only difference. The eval does not record the provider's error, so the cause is not visible:
+  the harness now records it (trace errors), and H006 is re-measured after that. Not kept: an error for a class of
+  real messages is worse than the off-topic reply it fixes.

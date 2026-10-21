@@ -95,6 +95,7 @@ MIGRATIONS=(
   20261022110000_career_postings_pay.sql
   20261022120000_career_control_state.sql
   20261022150000_career_apply_authority.sql
+  20261023110000_connect_link_nonces.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -134,6 +135,7 @@ MIGRATION_MARK=(
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
   "exists (select 1 from pg_proc where proname = 'career_quiet_users')"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
+  "exists (select 1 from pg_proc where proname = 'connect_link_consume')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

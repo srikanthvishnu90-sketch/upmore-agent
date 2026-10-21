@@ -17,6 +17,10 @@
 //       tokens in Supabase Vault under the purpose's name, upsert that
 //       purpose's connection row, redirect to the app. Tokens NEVER touch
 //       the client.
+//   GET ?t=<token>                       WO-101: a Trainee connect link. Consumes the single-use token once
+//       (connect_link_consume) and redirects to the career consent for the token's user; a bad, expired or used
+//       token ends on Trainee's own page (./link.ts). A career consent's callback ends on Trainee's own page too;
+//       the legacy gmail grant still lands on the app.
 //   POST {action:"status"}       (JWT) -> legacy {connected, email} plus
 //       per-source detail (gmail scope set, calendar connected, granted
 //       scope list, connected email) — see career.ts buildStatus.
@@ -39,8 +43,8 @@ import {
   scopesForPurpose,
   vaultNameFor,
   verifyState,
-  issueState,
 } from "./career.ts";
+import { consentUrl, page, startFromLink } from "./link.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -83,18 +87,32 @@ serve(async (req) => {
 
     // ---- Google callback (GET, no JWT — trust comes from signed state) ----
     const url = new URL(req.url);
+    // ---- WO-101: a Trainee connect link (GET ?t=<token>, no JWT — trust comes from the single-use token) ----
+    if (req.method === "GET" && url.searchParams.has("t") && !url.searchParams.has("code") && !url.searchParams.has("error")) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      return await startFromLink(url.searchParams.get("t") || "", {
+        consume: async (t, purpose) => {
+          const { data, error } = await admin.rpc("connect_link_consume", { p_nonce: t, p_purpose: purpose, p_now: new Date().toISOString() });
+          if (error) throw new Error("connect link unreadable");
+          return data ?? {};
+        },
+        clientId, stateSecret, redirectUri: redirectUri(),
+      });
+    }
     if (req.method === "GET" && (url.searchParams.has("code") || url.searchParams.has("error"))) {
-      // Legacy landings keep ?gmail=..; a career grant lands on ?career=.. so the app can tell them apart.
+      // Legacy landings keep ?gmail=.. on the app. A career grant (started only from a Trainee link) ends on Trainee's
+      // own page, never on the finance app.
       let purpose: "gmail" | "career" = "gmail";
       const done = (ok: boolean) =>
-        Response.redirect(
-          purpose === "career"
-            ? `${APP_URL}/#you?career=${ok ? "connected" : "error"}`
-            : `${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`,
-          302,
-        );
+        purpose === "career"
+          ? page(ok ? "connected" : "error")
+          : Response.redirect(`${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`, 302);
       try {
-        if (url.searchParams.get("error")) return done(false);
+        if (url.searchParams.get("error")) {
+          // Declined on Google's page: the signed state, when it verifies, says which grant was asked for.
+          const v = await verifyState(url.searchParams.get("state") || "", stateSecret).catch(() => null);
+          return v?.purpose === "career" ? page("declined") : done(false);
+        }
         const code = url.searchParams.get("code") || "";
         const state = url.searchParams.get("state") || "";
         const verified = await verifyState(state, stateSecret);
@@ -162,17 +180,7 @@ serve(async (req) => {
     const startPurpose = purposeForAction(action);
     if (startPurpose) {
       if (!clientId) return json({ error: startPurpose === "career" ? "Google connect is not configured yet" : "Gmail connect is not configured yet" }, 503);
-      const state = await issueState(user.id, startPurpose, stateSecret);
-      const q = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri(),
-        response_type: "code",
-        scope: scopesForPurpose(startPurpose).join(" "),
-        access_type: "offline",
-        prompt: "consent",
-        state,
-      });
-      return json({ url: "https://accounts.google.com/o/oauth2/v2/auth?" + q.toString() });
+      return json({ url: await consentUrl({ userId: user.id, purpose: startPurpose, clientId, stateSecret, redirectUri: redirectUri() }) });
     }
 
     if (action === "status") {

@@ -20299,18 +20299,24 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       const c = ctx || {};
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
       // SC-286 (A5): the result must be TYPED with a doorstep payload — the
-      // consent card plus the self-test plan — not a bare reply with
-      // resultStatus null. The connection itself is the user's tap on
-      // Google's page; nothing here claims it happened.
+      // consent card — not a bare reply with resultStatus null. The
+      // connection itself is the user's tap on Google's page; nothing here
+      // claims it happened.
+      // WO-101: the reply claims only what Trainee does today with the grant:
+      // read job mail and draft replies the person approves. Email sending is
+      // disabled (SEND_DISABLED), so no self-test that sends is promised or
+      // planned. The link is the host's signed, single-use link for this
+      // person (gmail-oauth ?t=), or none: then the reply says so.
       const doorstepPayload = {
         kind: "connect_google_doorstep", edge_action: "start_career", scopes: [...CAREER_SCOPES],
-        send_rail: "user_gmail_oauth", requires_user_tap: true, committed: false,
-        self_test: { test_email: "one test email to your own inbox", test_event: "one test calendar event", runs_after: "the consent tap lands" },
+        requires_user_tap: true, committed: false, link_ready: !!link,
       };
       return {
-        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES],
         resultStatus: "awaiting_user", artifact: doorstepPayload, payload: doorstepPayload, sends: 0,
-        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy plus events). One consent click on Google's own page, and no password ever in chat.${link ? ` ${link}` : ""} Next step — approve on Google's page and I will run the self-test: one test email to your own inbox and one test event on your calendar.`,
+        reply: link
+          ? `Connect Gmail and Trainee can read the job mail in your own Gmail and draft replies for you to approve. Nothing goes out from your Gmail. You allow access on Google's own page, and I never see your password. ${link} Next step — open the link and allow access; it works once, for 15 minutes.`
+          : "I couldn't make a connect link just now, so nothing changed. Next step — say \"connect my gmail\" again in a minute.",
       };
     }
     // SC-287 (A4): a LinkedIn connection asked for the ZERO-RISK way — the
@@ -20358,7 +20364,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         artifact: payload, payload, sends: 0,
         reply: records
           ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths. Tell me a firm and I will rank who you know there.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — tell me when the file is uploaded and I will show you exactly what it adds.",
+          // WO-101: no channel hands the export file to this handler yet, so an upload is not offered.
+          : "Reading a LinkedIn data export file isn't available here yet, so nothing was imported. Trainee never logs in to LinkedIn for you, and no LinkedIn password ever passes through me. Next step — tell me about your experience here instead.",
       };
     }
     function handleConnected(_text, ctx) {
@@ -20415,12 +20422,18 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       const r = portalList((ctx || {}).portalRecords);
       return { intent: "portal_accounts", family: "access", resultStatus: "completed", sends: 0, companies: r.companies, reply: r.text };
     }
-    function handleConnectBrowser(text, ctx) {
-      const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
-      const plan = browserConnectPlan(source);
-      const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
-      const payload = { kind: "connect_browser_doorstep", source, committed: false, plan };
-      return { intent: "connect_browser_source", family: "access", resultStatus: "awaiting_user", sends: 0, ...plan, artifact: payload, payload, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""} Next step — sign in once in the shown session and the agent reuses it from there; shall I open the session now?` : plan.text };
+    // WO-101: no browser session is offered for LinkedIn, Indeed or Handshake.
+    // Trainee never signs in to LinkedIn or Indeed for the person and never
+    // automates them (owner rule), and it keeps no reusable session for any
+    // site. Reading a LinkedIn data export is not wired to any channel yet
+    // (no host fills the export fields), so it is not offered either.
+    function handleConnectBrowser(text, _ctx) {
+      const source = /handshake/i.test(text || "") ? "handshake" : /indeed/i.test(text || "") ? "indeed" : "linkedin";
+      const payload = { kind: "connect_browser_refused", source, committed: false, signs_in: false, session_offered: false };
+      return {
+        intent: "connect_browser_source", family: "access", resultStatus: "completed", sends: 0, source, method: "none", artifact: payload, payload,
+        reply: `Trainee never signs in to ${source === "handshake" ? "Handshake, LinkedIn or Indeed" : "LinkedIn or Indeed"} for you and never automates ${source === "handshake" ? "them" : "either site"}, so there is nothing to connect there. Importing a LinkedIn data export file isn't available yet. Gmail is the account you can connect: say "connect my gmail" and I'll send you a link.`,
+      };
     }
     function handleSessionHealth(_text, ctx) {
       const c = ctx || {};
@@ -20513,7 +20526,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       // The data-EXPORT path must win over the browser-source path whenever
       // the turn names it (SC-287): LinkedIn + export + a bring-it-in verb.
       if (/\b(linkedin|handshake)\b/.test(t) && /\bexport\b/.test(t) && /\b(connect|link|upload|uploaded|import|parse|parsed|add|bring)\b/.test(t)) return chatHandlers.profile_export(text, ctx);
-      if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
+      if (/\b(connect|link)\b.*\b(linkedin|handshake|indeed)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       // "I sign in once to Handshake; the agent reuses that session" — the
       // user's own signed-in session IS the browser-source plan (SC-288).
       if (/\bcloud[ -]?browser\b|\bsign in once\b|\bi sign in\b[^.]*\b(handshake|linkedin)\b|\breuse (that|the|my) session\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);

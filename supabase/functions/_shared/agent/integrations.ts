@@ -15,9 +15,28 @@ export const LINKEDIN_ASK = "LinkedIn isn't connected, so this uses only public 
 
 export type Integration = "email" | "gmail" | "linkedin" | "calendar";
 
-export function missingIntegration(kind: string, opts?: { base?: string }): string {
+// WO-101: a connect link bound to one person. The service mints a single-use token for the user of the current turn
+// (connect_link_issue: 15 minutes, stored only as its hash), and the link opens gmail-oauth with it, which consumes it
+// once and starts that user's Google consent. The unsigned /connect/gmail link above carries nobody, so a grant made from
+// it would land on whoever is signed in to that page. Null when no token could be minted: say so, never a link.
+export const CONNECT_PURPOSE = "connect_google_career";
+export const connectLinkUrl = (supabaseUrl: string, token: string) =>
+  `${String(supabaseUrl).replace(/\/+$/, "")}/functions/v1/gmail-oauth?t=${encodeURIComponent(token)}`;
+// deno-lint-ignore no-explicit-any
+export async function mintConnectLink(admin: any, userId: string, supabaseUrl: string, now: number = Date.now()): Promise<string | null> {
+  if (!userId || !supabaseUrl) return null;
+  try {
+    const { data, error } = await admin.rpc("connect_link_issue", { p_user: userId, p_purpose: CONNECT_PURPOSE, p_now: new Date(now).toISOString() });
+    return !error && typeof data === "string" && /^[A-Za-z0-9_-]{32}$/.test(data) ? connectLinkUrl(supabaseUrl, data) : null;
+  } catch {
+    return null;
+  }
+}
+
+// opts.link: a signed link from mintConnectLink, used in place of the unsigned one.
+export function missingIntegration(kind: string, opts?: { base?: string; link?: string | null }): string {
   const k = String(kind || "").toLowerCase();
-  if (k === "email" || k === "gmail") return `${EMAIL_LEAD}\n\n${connectUrl("gmail", opts?.base)}`;
+  if (k === "email" || k === "gmail") return `${EMAIL_LEAD}\n\n${opts?.link || connectUrl("gmail", opts?.base)}`;
   if (k === "linkedin") return LINKEDIN_ASK;
   if (k === "calendar") return "Your calendar isn't connected. Tell me the date and time and I'll work from that.";
   const name = String(kind || "That").replace(/\s+/g, " ").trim().slice(0, 40) || "That";

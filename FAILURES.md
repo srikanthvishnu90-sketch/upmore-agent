@@ -126,3 +126,15 @@ Priority: P1
 Root cause: PARTIALLY PINNED — established: the proactive/alerts engine's quiet-hours behavior contradicts its own registry contract ("everything but safety is held until the window ends, with the time it will be delivered") — it announced texting ONLY inside the window. The exact responsible line in the proactive/alerts engine is NOT YET PINNED — diagnosis owed before any fix.
 Fix: unfilled — the quiet-hours logic + wording live in the proactive/alerts engine (brain side; NOT in Muse's surface lanes — ownership probed 2026-10-20: no quiet-hours logic exists in the link/pool/serving code).
 Verified by: unfilled (the battery scenario below catches this class from the next run on).
+
+[ID: MUSE-F-010] [Status: OPEN]
+Found: 2026-10-20, Muse link audit.
+Area: surface
+Input: job links served from the shelf (career_kb_postings) to a user.
+Expected: every served link is the actual job posting.
+Actual: some shelf rows carry non-posting URLs — nyc-open-data rows carry Socrata API endpoints as their url, hn-algolia rows carry Hacker News thread URLs — and the serving paths pass them through unchecked, so a "job link" can land on an API endpoint or a forum thread.
+Evidence: the audit's per-row classifications — ~/workspace/your_files/job-link-audit-2026-10-20.md and ~/workspace/your_files/job-link-audit-2026-10-20.json (kept out of the repo per privacy rules; the audit's counts: 60 sampled shelf links = 31 resolve / 3 dead / 26 uncheckable).
+Priority: P1 (wrong links are the "wrong is worse than empty" class on the slice's step 3)
+Root cause: PINNED — career_pool.js loadPool reads each row's url verbatim and no load/serve path validates that the URL is a posting for its source; the junk entered at shelf ingest and nothing downstream filters it.
+Fix: a load-side URL-shape guard in career_pool.js — drop postings whose URL is an API endpoint or aggregator thread for their source, counted in an excluded counter alongside deadExcluded, guard-tested against the audit's actual junk rows (surface lane, one round, NOT yet started — owner tempo rule 2026-10-21: one root-cause fix per lane per round, verified by a measured re-run, no bundling; the note precedes the fix).
+Verified by: unfilled — CI (guard + sweep delta) first, then the battery's link scenarios after deploy.

@@ -999,12 +999,14 @@
     ],
     "now": "2026-10-21T05:40:00.000Z",
     "posting": {
-     "id": "policyme-jse-test",
-     "corpus_id": "policyme-jse-test",
+     "id": "jobicy:https://jobicy.com/jobs/153164-junior-software-engineer-2",
+     "corpus_id": "jobicy:https://jobicy.com/jobs/153164-junior-software-engineer-2",
      "title": "Junior Software Engineer",
      "company": "PolicyMe",
-     "jd_text": "Junior Software Engineer — PolicyMe (TEST posting, synthetic stand-in: the production KB row's text is not in this repo; the defect is in the render byte layer and is JD-independent)\nPolicyMe is hiring a Junior Software Engineer to build APIs and internal tools.\nRequired: Python, JavaScript, React, SQL, PostgreSQL, Git.\nNice to have: Kubernetes, Docker, AWS.\nYou will build APIs and deploy services, write tests, and ship with a senior mentor.",
-     "source": "fixture"
+     "jd_text": "Overview of the role We’re on a mission to modernize insurance, making it simpler, more accessible, and customer-first. The insurance industry is a $1T market that’s remained largely untouched by the digital revolution, and PolicyMe is here to change that. As a remote-first, Toronto-based startup with big ambitions, we’re building the future of insurance in Canada and beyond. We're building a groundbreaking new product line that will transform the insurance broker experience through AI and machine learning. As an AI-Driven Full Stack Engineer, you'll be part of a team charting new territory - designing and implementing intelligent systems that automate manual processes and unlock powerful data-driven insights. You will work across the stack, contributing to front end, back end, and AI/ML initiatives, while also participating in architecture discussions, release planning, and company-wide engineering initiatives. Our core stack includes Python, React, Redux, PostgreSQL, n8n, LangChain/LangGraph and AWS , and we are always open to adopting new tools and technologies that help us deliver better results. What you'll be doing: Develop full stack features for our AI-powered web application using Python, React, Redux, PostgreSQL and AWS Integrate AI models and APIs for tasks like document processing, data extraction, recommendation engines etc. Work closely with Sr. Engineers experienced in AI to seamlessly integrate models into production Stay current on emerging AI technologies/fr",
+     "source": "jobicy (hired-research corpus pull2-nonats.jsonl, fetched 2026-10-14)",
+     "location": "Canada",
+     "url": "https://jobicy.com/jobs/153164-junior-software-engineer-2"
     }
    },
    "triage": {

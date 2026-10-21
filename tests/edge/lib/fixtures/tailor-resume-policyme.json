@@ -20,18 +20,18 @@
    "heading": "Skills",
    "lines": [
     {
-     "text": "Python, JavaScript, React, Kubernetes, PostgreSQL, Docker, Go, SQL, AWS, Data Structures, Algorithms",
+     "text": "Python, JavaScript, React, Kubernetes, PostgreSQL, Go, Docker, Data Structures, Algorithms, SQL, AWS",
      "factIds": [
       "F-010",
       "F-011",
       "F-012",
       "F-013",
       "F-016",
-      "F-019",
       "F-018",
+      "F-019",
+      "F-001",
       "F-002",
-      "F-003",
-      "F-001"
+      "F-003"
      ],
      "type": "skills"
     }
@@ -60,13 +60,6 @@
       "F-002"
      ],
      "type": "bullet"
-    },
-    {
-     "text": "Used JavaScript, React, Python and PostgreSQL.",
-     "factIds": [
-      "F-002"
-     ],
-     "type": "bullet"
     }
    ]
   },
@@ -82,13 +75,6 @@
     },
     {
      "text": "Built DeployBoard in Go to deploy containerised apps on Kubernetes, deployed on AWS EKS for 12 student teams",
-     "factIds": [
-      "F-003"
-     ],
-     "type": "bullet"
-    },
-    {
-     "text": "Used Kubernetes, Docker, Go and AWS EKS.",
      "factIds": [
       "F-003"
      ],
@@ -133,7 +119,7 @@
      "type": "bullet"
     },
     {
-     "text": "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.",
+     "text": "Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting.",
      "type": "note",
      "factIds": [],
      "section": "Leadership"
@@ -143,18 +129,18 @@
  ],
  "lines": [
   {
-   "text": "Python, JavaScript, React, Kubernetes, PostgreSQL, Docker, Go, SQL, AWS, Data Structures, Algorithms",
+   "text": "Python, JavaScript, React, Kubernetes, PostgreSQL, Go, Docker, Data Structures, Algorithms, SQL, AWS",
    "factIds": [
     "F-010",
     "F-011",
     "F-012",
     "F-013",
     "F-016",
-    "F-019",
     "F-018",
+    "F-019",
+    "F-001",
     "F-002",
-    "F-003",
-    "F-001"
+    "F-003"
    ],
    "type": "skills",
    "section": "Skills"
@@ -184,14 +170,6 @@
    "section": "Experience"
   },
   {
-   "text": "Used JavaScript, React, Python and PostgreSQL.",
-   "factIds": [
-    "F-002"
-   ],
-   "type": "bullet",
-   "section": "Experience"
-  },
-  {
    "text": "DeployBoard (TEST project)",
    "factIds": [
     "F-003"
@@ -201,14 +179,6 @@
   },
   {
    "text": "Built DeployBoard in Go to deploy containerised apps on Kubernetes, deployed on AWS EKS for 12 student teams",
-   "factIds": [
-    "F-003"
-   ],
-   "type": "bullet",
-   "section": "Projects"
-  },
-  {
-   "text": "Used Kubernetes, Docker, Go and AWS EKS.",
    "factIds": [
     "F-003"
    ],
@@ -251,47 +221,16 @@
  "deduped": [],
  "selectedFactIds": [
   "F-002",
-  "F-003",
+  "F-005",
   "F-001",
-  "F-005"
+  "F-003"
  ],
- "gaps": [
-  {
-   "requirement": "Git",
-   "kind": "skill",
-   "tier": "must-have",
-   "gapClass": "required",
-   "reasonClass": "no-evidence",
-   "reason": "posting requires Git; no proven fact on your record evidences it",
-   "evidence": null
-  }
- ],
- "requiredGaps": [
-  {
-   "requirement": "Git",
-   "kind": "skill",
-   "tier": "must-have",
-   "gapClass": "required",
-   "reasonClass": "no-evidence",
-   "reason": "posting requires Git; no proven fact on your record evidences it",
-   "evidence": null
-  }
- ],
+ "gaps": [],
+ "requiredGaps": [],
  "preferredGaps": [],
- "gapSection": {
-  "heading": "Not covered by your record",
-  "lines": [
-   {
-    "text": "Git — posting requires Git; no proven fact on your record evidences it",
-    "type": "gap",
-    "kind": "skill",
-    "reasonClass": "no-evidence"
-   }
-  ],
-  "text": "Not covered by your record: Git"
- },
+ "gapSection": null,
  "eligibilityVerdict": {
-  "status": "eligible_with_required_gaps",
-  "line": "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet."
+  "status": "eligible",
+  "line": "Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting."
  }
 }

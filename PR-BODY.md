@@ -40,5 +40,5 @@ The node sweep's 8 base failures are the known, pre-classified set (PR #147 base
 
 ## Notes
 
-- The PolicyMe Junior Software Engineer JD text is not in this repo (workspace-wide search found no JD row for it); fixture F-011-T1 carries a synthetic stand-in JD labeled as such in its own `jd_text`. The defect is in the render byte layer and is JD-independent. F-011-T2 uses tonight's pasted-posting shape as the product actually accepts it: a quoted posting paste (module 142 stages pasted postings from quoted blocks, BUG-173 behavior) followed by "tailor my resume for this posting" — the fixture's `reasons` field documents this.
+- F-011-T1's posting is the real PolicyMe Junior Software Engineer corpus posting (hired-research corpus `pull2-nonats.jsonl`, source jobicy, posted 2026-10-14, https://jobicy.com/jobs/153164-junior-software-engineer-2); its `jd_text` is the corpus's stored text (1,500 chars) verbatim, and the tailored-resume fixture is module 123's output for the 15-fact persona against that JD, frozen. F-011-T2 uses tonight's pasted-posting shape as the product actually accepts it: a quoted posting paste (module 142 stages pasted postings from quoted blocks, BUG-173 behavior) followed by "tailor my resume for this posting" — the fixture's `reasons` field documents this.
 - Not deployed. PR opened by the parent lane.

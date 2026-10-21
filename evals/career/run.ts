@@ -13,7 +13,7 @@
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
 export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
-export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string }
+export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
 export interface EvalResult { total: number; passed: number; pass_rate: number; items: EvalItemResult[]; planned: number; stopped: string | null }
 
 // stop: asked before each item; a reason ends the run there (the spend cap), and the items not run are not scored.
@@ -28,13 +28,28 @@ export async function runEval(items: EvalItem[], brain: Brain, judge: Judge, sto
     catch (e) { out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `brain error: ${e instanceof Error ? e.message : String(e)}` }); continue; }
     try {
       const j = await judge(it, replies[replies.length - 1] ?? "", state);
-      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "" });
+      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}) });
     } catch (e) {
       out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `judge error: ${e instanceof Error ? e.message : String(e)}` });
     }
   }
   const passed = out.filter((x) => x.pass).length;
   return { total: out.length, passed, pass_rate: out.length ? passed / out.length : 0, items: out, planned: items.length, stopped };
+}
+
+// WO-061 (owner, 2026-10-21: "Two independent judges score each item. One judge's reading never decides an item alone;
+// when judges disagree, the item counts as a failure until both pass it."): both verdicts are kept, and the item passes
+// only when every judge passes it. A judge that errors fails the item.
+export type Verdict = { pass: boolean; failed: string[]; score: number; note: string };
+export function bothJudges(verdicts: { model: string; v: Verdict }[]): Verdict & { judges: { model: string; pass: boolean; failed: string[]; note: string }[] } {
+  const judges = verdicts.map(({ model, v }) => ({ model, pass: !!v.pass, failed: v.failed || [], note: v.note || "" }));
+  return {
+    pass: judges.length > 0 && judges.every((j) => j.pass),
+    failed: [...new Set(judges.flatMap((j) => j.failed))],
+    score: Math.min(...verdicts.map(({ v }) => Number(v.score) || 1)),
+    note: judges.map((j) => `[${j.model}: ${j.pass ? "pass" : "FAIL"}] ${j.note}`).join(" "),
+    judges,
+  };
 }
 
 // The spend already recorded: every result file's brain and judge cost, except the label being written now.
@@ -89,6 +104,8 @@ if (import.meta.main) {
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
+  const judge2Model = Deno.env.get("EVAL_JUDGE_MODEL_2") || null;
+  const judge2Cfg = judge2Model ? { ...modelConfig(Deno.env, "chat"), model: judge2Model } : null;
   const T0 = Date.UTC(2026, 9, 19, 15);
   const brain: Brain = async (turns) => {
     const store = memoryStore();
@@ -118,9 +135,15 @@ if (import.meta.main) {
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
     return { replies, state: snap ? snap.stores : null };
   };
-  const judge: Judge = async (item, reply, state) => {
-    const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
+  const oneJudge = async (cfg: any, item: EvalItem, reply: string, state: unknown) => {
+    const res = await callModel(cfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
     return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));
+  };
+  const judge: Judge = async (item, reply, state) => {
+    if (!judge2Cfg) return oneJudge(judgeCfg, item, reply, state);
+    const settle = async (cfg: any) => { try { return await oneJudge(cfg, item, reply, state); } catch (e) { return { pass: false, failed: item.must, score: 1, note: `judge error: ${e instanceof Error ? e.message : String(e)}` }; } };
+    const [a, b] = await Promise.all([settle(judgeCfg), settle(judge2Cfg)]);
+    return bothJudges([{ model: judgeCfg.model, v: a }, { model: judge2Cfg.model, v: b }]);
   };
   // --set heldout: the held-out live phrasings (WO-059), reported beside the official set; D-008's bar is the official set's.
   const setName = opt("--set") || "official";
@@ -129,7 +152,7 @@ if (import.meta.main) {
   const items: EvalItem[] = set.items.filter((i: EvalItem) => !only || only.split(",").includes(i.id));
   const budgetArg = opt("--budget-usd") ?? Deno.env.get("EVAL_BUDGET_USD") ?? null;
   const budget = budgetArg === null ? null : Number(budgetArg);
-  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (brainName === "agent" && !PRICES[brainCfg.model]))) {
+  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (judge2Cfg && !PRICES[judge2Cfg.model]) || (brainName === "agent" && !PRICES[brainCfg.model]))) {
     console.log(`NOT RUN: a budget needs a positive number and a priced model (judge ${judgeCfg.model}, brain ${brainCfg.model}); an unpriced call cannot be capped.`);
     Deno.exit(2);
   }
@@ -143,9 +166,12 @@ if (import.meta.main) {
   const now$ = () => before + (meter.usd_micros + judgeMeter.usd_micros) / 1e6;
   if (budget !== null) console.log(`budget $${budget.toFixed(2)} · already spent $${before.toFixed(3)} (${prior.length} result files)`);
   const r = await runEval(items, brain, judge, budgetStop(budget, now$));
+  // The brain's own commit: a measurement commit on ci/brain-eval merges the branch measured as its second parent.
+  let source = "unknown";
+  try { const o = await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD^2"] }).output(); if (o.success) source = new TextDecoder().decode(o.stdout).trim(); } catch { /* no second parent */ }
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
-  const result = { label, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
+  const result = { label, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before, ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });

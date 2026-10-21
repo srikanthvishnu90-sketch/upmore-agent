@@ -109,6 +109,9 @@ export const PRICES: Record<string, { input: number; cached: number; cache_write
   "gpt-5-nano": { input: 0.05, cached: 0.005, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
   "gpt-5-mini": { input: 0.25, cached: 0.025, cache_write: 0, output: 2.00, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
   "gpt-4.1-nano": { input: 0.10, cached: 0.025, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
+  // WO-061: the second, independent eval judge (owner, 2026-10-21: two judges, both must pass). OpenAI's published
+  // gpt-4.1-mini rates as known at its launch; not re-checked from here (OpenAI's page is unreachable from this sandbox).
+  "gpt-4.1-mini": { input: 0.40, cached: 0.10, cache_write: 0, output: 1.60, source: "OpenAI published pricing at gpt-4.1 launch (not re-checked 2026-10-21)" },
   "claude-haiku-4-5-20251001": { input: 1.00, cached: 0.10, cache_write: 1.25, output: 5.00, source: "Anthropic published pricing" },
 };
 // Cost of one call in micro-dollars (1e-6 USD), from the tokens the provider reported. null when the model has no price.

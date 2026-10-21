@@ -439,3 +439,19 @@ of private content.
   draft, a list, a match); anything the person told you in this conversation (a person, a company, a day, a stage)
   is known and is answered from what they said, never with "not on file". "a contact" leaves the rule's list.
   Prompt only; measured re-run.
+- Second judge's ruling on v1 (run 39557753503): HOLD. Three-way full-38 mean 78.1 vs 85.1; clean-30 76.7 vs 85.6.
+  H004 fixed in all three passes; regressions: H006 (all three passes), H003 (p1, p2), H034 (p1, p2), H037 (p3),
+  H036 (p3).
+
+### Defects the second judge called out in run 39557753503 (notes before any fix)
+- H004 p1, FABRICATION INSIDE A CONFIRMATION (worse than "not on file"): the reply proposes saving the interview with
+  specifics the person never gave (a time and zone, a format, a job title, two interviewer names). Likely cause:
+  v1's clause ("record it as they said it and confirm in their words") pushes the model to build a complete record;
+  add_profile_fact's code check (factRefusal) passes a text when half its words were in the message, so invented
+  details riding next to the real day pass, and nothing checks a PROPOSED record in the reply text at all. Fix
+  direction: the reply guard for untraced facts (reply_guards.untracedFacts) must cover times, dates, titles and
+  names inside a proposed or saved record, and factRefusal must refuse any number or capitalised name the person
+  did not say. To build as its own round with a gate test; v2 must be checked for the same.
+- H005 p3: "You didn't tell me anything earlier today" while quoting the rule from the same thread. Likely the same
+  family as H037/H003: a rule that says "not on file / nothing earlier" fires on content that IS in the chat. To
+  confirm against the reply before a fix.

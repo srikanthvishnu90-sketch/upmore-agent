@@ -499,14 +499,23 @@ export function typedFieldProblem(f: TypedField, value: string): string | null {
   return null;
 }
 // Native date/month inputs require ISO, even when the person stated an equivalent named or slash-separated date.
-// Only a fully validated, already-stated precision is reformatted. Custom section formats are emitted by sectionAnswer.
+// Only a fully validated, already-stated precision is reformatted. Segmented date widgets receive their declared
+// part order, while the source and saved answer retain the person's exact words.
 export function canonicalTypedValue(f: TypedField, value: string): string | null {
   if (typedFieldProblem(f, value)) return null;
-  if (f.options.length || f.section?.format || !["date", "month"].includes(f.type)) return value;
-  const p = calendarParts(String(value).trim(), /^DD/.test(dateFormat(f)));
-  if (!p || p.month === null || (f.type === "date" && p.day === null)) return null;
-  const year = String(p.year).padStart(4, "0"), month = String(p.month).padStart(2, "0");
-  return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${String(p.day).padStart(2, "0")}`;
+  if (f.options.length) return value;
+  const format = dateFormat(f);
+  if (!f.section?.format && !["date", "month"].includes(f.type)) return value;
+  const p = calendarParts(String(value).trim(), /^DD/.test(format));
+  if (!p) return null;
+  const year = String(p.year).padStart(4, "0"), month = p.month === null ? null : String(p.month).padStart(2, "0"), day = p.day === null ? null : String(p.day).padStart(2, "0");
+  if (f.section?.format) {
+    if (!/^(?:YYYY|MM[\/.-]YYYY|YYYY[\/.-]MM|YYYY[\/.-]MM[\/.-]DD|MM[\/.-]DD[\/.-]YYYY|DD[\/.-]MM[\/.-]YYYY)$/.test(format)) return null;
+    if ((format.includes("MM") && month === null) || (format.includes("DD") && day === null)) return null;
+    return format.replace(/YYYY|MM|DD/g, (part) => part === "YYYY" ? year : part === "MM" ? month! : day!);
+  }
+  if (month === null || (f.type === "date" && day === null)) return null;
+  return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${day}`;
 }
 const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
 // WO-052 (an independent review of every fill on samples A and B):

@@ -75,3 +75,10 @@ Deno.test('bound row answers: unrelated first-person statements never assert a r
   for(const value of ['Yes','No','yup','nope'])eq(checkAnswer(q,value).ok,true,'explicit decision control');
  }
 });
+
+Deno.test('bound row answers: equivalent saved dates use the explicit segmented widget format',()=>{
+ for(const [format,value,want]of[['MM/YYYY','February 2028','02/2028'],['MM/YYYY','2028-02','02/2028'],['DD/MM/YYYY','February 29, 2028','29/02/2028'],['MM/DD/YYYY','2028-02-29','02/29/2028']]){
+  const f=field({section:{kind:'work',row:1,part:'start',anchor:'Synthetic Employer',format}});eq(checkAnswer(question(f),value),{ok:true,value},'stored wording remains exact');eq(run([f],own(f,value)).ready[0]?.fields[0]?.value,want,'widget gets its declared part order');
+ }
+ const unknown=field({section:{kind:'work',row:1,part:'start',anchor:'Synthetic Employer',format:'UNSPECIFIED'}});eq(run([unknown],own(unknown,'2028-02-29')).ready.length,0,'unknown widget date representation stays open');
+});

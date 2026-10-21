@@ -168,12 +168,22 @@ const STATE: Record<string, string> = {
 };
 
 export const BLOCK_BUDGET = 4500;
+// Match the reply guard's explicit source exclusions before assigning memory eligibility. A stale confirmed flag
+// cannot make generated/quarantined content the person's own fact; a denied account container covers its children.
+// This only excludes recorded negative provenance. Legacy rows still need the existing confirmation flags below.
+const NOT_PERSONAL_EVIDENCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
+function memorySourceDenied(value: any): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if ([value, value.provenance].some((v) => v && typeof v === "object" && !Array.isArray(v) && (v.unproven === true || v.quarantined === true || v.rejected === true))) return true;
+  return [value.source, value.origin, value.provenance?.source, value.provenance?.origin].some((origin) =>
+    typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-")));
+}
 // Rendering is not a confirmation operation. A missing/unknown status cannot become confirmed merely because a
 // flag is absent, and a rejected row must not return as either a goal or a pending fact. Ignore malformed stored rows
 // rather than letting one row prevent the entire context block from being built.
-const factRows = (profile: any): any[] => (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) =>
+const factRows = (profile: any): any[] => (Array.isArray(profile?.facts) && !memorySourceDenied(profile) ? profile.facts : []).filter((f: any) =>
   f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && typeof f.kind === "string" && !!f.kind.trim() &&
-  typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected"
+  typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected" && !memorySourceDenied(f)
 );
 const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
 // A stored value is one row's data, never another prompt heading. Preserve its words while making embedded line and
@@ -193,6 +203,7 @@ function standingLine(s: Standing): string {
 // turn and never cut for length. Facts they have not confirmed yet count here (a goal steers search; it is never put in an
 // application unconfirmed), and say so.
 export function goalLines(profile: any): string[] {
+  if (memorySourceDenied(profile)) return [];
   const p = profile ?? {}, pref = p.preferences ?? {}, out: string[] = [];
   const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
   if (list(pref.roles).length) out.push(`- Roles: ${list(pref.roles).join(", ")}`);

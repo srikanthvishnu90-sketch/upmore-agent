@@ -512,3 +512,15 @@ of private content.
   its base number was wrong. Both are corrected here.
 - At the owner's stop order the limit is set to $6.00, below the recorded total, so any run stops before its first
   item. No further eval spend tonight: H031 and every other measured round are not launched.
+
+### Shared-root-cause round (run 39560112467): REVERTED (second judge's ruling)
+- Three-way full-38 79.8 (31/29/31); clean-30 80.0 per the second judge vs the baseline 85.1 / 85.6. The builder's
+  recount from the recorded verdict files gives clean-30 26/22/25 = 81.1; the one-item difference is unexplained and
+  recorded, not changed. Its uncommitted changes are reverted; the branch brain equals 40eb3d03.
+- Second judge's drag breakdown: model-only fails on H010/H011 (all three passes), H026, H033, H036, H009, H027;
+  second-judge-only fails on H025 and H031. Lesson: the targets moved (15/15 on both CI judges) but the precedence
+  wording shifted unrelated items under gpt-5-mini; next time this cause is attacked, measure the precedence clause
+  alone, without v2's scope change, to separate their effects.
+- Correction (second judge): H004 v2 (run 39558487629) p3 rescored 31/38 combined; that round ties the baseline on
+  clean-30 (85.6) and is -0.9 on full-38. Still not kept. The per-item flip was not posted; its verdict file keeps
+  the original list.

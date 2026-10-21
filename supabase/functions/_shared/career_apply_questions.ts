@@ -63,10 +63,11 @@ export const isAsk = (text: string) => ASK.test(plain(text));
 // The few words a person uses for yes and no that the option matcher does not know.
 const YES_WORDS = /^(yup|yea|ya|yes yes|sure|of course|absolutely|correct|definitely|affirmative|i do|i am|i will|i can|i have)$/;
 const NO_WORDS = /^(nope|nah|no no|negative|never|i don'?t|i'?m not|i won'?t|i can'?t|i haven'?t|not at all)$/;
-function yesNoWord(raw: string): "yes" | "no" | null {
+function yesNoWord(raw: string, explicit = false): "yes" | "no" | null {
   const t = plain(raw);
   if (YES_WORDS.test(t)) return "yes";
   if (NO_WORDS.test(t)) return "no";
+  if (explicit && !/^(yes|no|y|n|true|false)$/.test(t)) return null;
   return yesNoOf(t);
 }
 const REMOVED = /\[(?:SSN|card number|number|password|code|security code) removed\]/;
@@ -95,14 +96,14 @@ export function checkAnswer(q: OpenQuestion, raw: string): Check {
     // Never chosen from the question's wording (no derivation here): the person's own answer, onto the form's own option.
     // A yes or a no is read as one only where the choices are yeses and noes ("I have a bachelor's" is not a yes).
     const opts = q.options.map((l) => ({ label: l, value: l }));
-    const yn = q.options.some((l) => yesNoOf(l) !== null) ? yesNoWord(value) : null;
+    const yn = q.options.some((l) => yesNoOf(l) !== null) ? yesNoWord(value, !!row) : null;
     const choice = matchOption(value, opts) ?? (yn ? matchOption(yn, opts) ?? chooseOption("", yn, opts) : null) ??
-      chooseOption(fact, value, opts);
+      (row ? null : chooseOption(fact, value, opts));
     if (choice === null) return { ok: false, why: `needs one of: ${choiceList(q.options, 8)}` };
     return { ok: true, value: shared && yn ? cap(yn) : choice };
   }
   if (YES_NO_TYPE.test(type) || q.kind === "consent" || (shared && factType(fact) === "yesno")) {
-    const yn = yesNoWord(value);
+    const yn = yesNoWord(value, !!row);
     return yn ? { ok: true, value: cap(yn) } : { ok: false, why: "needs a yes or a no" };
   }
   const typedProblem = typedFieldProblem({ type, label: q.label, options: [] }, value);

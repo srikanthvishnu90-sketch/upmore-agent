@@ -68,3 +68,10 @@ Deno.test('bound row answers: an unclear saved checkbox cannot become an uncheck
  for(const value of ['unclear','I have experience elsewhere','not specified'])eq(run([f],own(f,value)).ready.length,0,'not a literal yes/no answer');
  for(const [value,want]of[['Yes','yes'],['No','no'],['true','yes'],['false','no']])eq(run([f],own(f,value)).ready[0]?.fields[0]?.value,want,'literal checkbox control');
 });
+
+Deno.test('bound row answers: unrelated first-person statements never assert a row yes-no answer',()=>{
+ for(const f of [field({name:'workExperience-1--current',type:'checkbox',label:'Currently work here',section:{kind:'work',row:1,part:'current',anchor:'Synthetic Employer'}}),field({name:'workExperience-1--current',type:'select',label:'Currently work here',options:[{label:'Yes',value:'y'},{label:'No',value:'n'}],section:{kind:'work',row:1,part:'current',anchor:'Synthetic Employer'}})]){
+  const q=question(f);for(const value of ['I have experience elsewhere','I am looking for work','I do other things'])eq(checkAnswer(q,value).ok,false,'unrelated assertion is not a decision');
+  for(const value of ['Yes','No','yup','nope'])eq(checkAnswer(q,value).ok,true,'explicit decision control');
+ }
+});

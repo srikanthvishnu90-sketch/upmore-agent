@@ -197,3 +197,75 @@ test('a cover-letter-only attachment cannot impersonate a resume through its fil
   assert.equal(await button.count(),0);
   assert.equal(await page.evaluate(()=>window.approvals.length),0);
 });
+
+test('the actual built Messages history adapter reaches the own RPC only through a bound native card tap',async t=>{
+  const html=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
+  const renderer=scripts.find(block=>block.trim()===SOURCE.trim());
+  assert.ok(renderer,'the built page must contain the exact renderer module under test');
+  const controller=scripts.find(block=>block.includes('globalThis.UpmoreChatRequests = function'));
+  const main=scripts.find(block=>block.includes('  const supa = window.supabase.createClient('));
+  assert.ok(controller&&main,'actual built conversation controller and app script are required');
+  const authStart=main.indexOf('  const supa = window.supabase.createClient(');
+  const chatStart=main.indexOf('  const chatRequests=',authStart);
+  const chatEnd=main.indexOf('  function resetPrivateChat(',chatStart);
+  const historyStart=main.indexOf('  function histBubble(');
+  const historyEnd=main.indexOf('  async function openGuideChat(',historyStart);
+  assert.ok(authStart>=0&&chatStart>authStart&&chatEnd>chatStart&&historyStart>=0&&historyEnd>historyStart,'actual app boundaries must remain identifiable');
+  const auth=main.slice(authStart,chatStart);
+  assert.ok(auth.includes('const CAREER_APPROVAL_TEST_USER_ID = "";'),'ordinary builds must keep approval cards disabled');
+  // Only the fixture copy selects an invented TEST actor. Adapter functions stay byte-for-byte built source.
+  const fixtureAuth=auth.replace('const CAREER_APPROVAL_TEST_USER_ID = "";','const CAREER_APPROVAL_TEST_USER_ID = '+JSON.stringify(OWNER)+';');
+  const {page,card}=await fixture(t);
+  const second=await envelope();second.id='55555555-5555-4555-8555-555555555555';second.payload.card_id=second.id;second.hash=await Cards.hash(second.payload,webcrypto);
+  await page.evaluate(({cards,owner,now,day})=>{
+    document.querySelector('#card').replaceChildren();
+    window.messageCards=Object.fromEntries(cards.map(card=>[card.id,card]));window.messageCalls=[];window.messageAuthReads=0;window.messageNativeClicks=[];
+    Date.now=()=>now+10;
+    window.syntheticClient={
+      auth:{getUser:async()=>{window.messageAuthReads++;return {data:{user:{id:owner}},error:null};}},
+      rpc:async(name,args)=>{
+        window.messageCalls.push({name,args});
+        const stored=window.messageCards[args.p_card];
+        if(name==='career_apply_message_card_read_own')return {data:structuredClone(stored),error:null};
+        if(name==='career_apply_message_card_approve_own'&&stored&&args.p_hash===stored.hash&&stored.state==='open'){
+          stored.state='approved';return {data:{card_id:stored.id,card_hash:stored.hash,approved_count:stored.payload.items.length,approved_at:new Date(Date.now()).toISOString(),approval_expires_at:new Date(Date.now()+day).toISOString()},error:null};
+        }
+        throw Error('unexpected synthetic RPC');
+      }
+    };
+    window.supabase={createClient:()=>window.syntheticClient};
+    document.addEventListener('click',event=>{if(event.target.tagName==='BUTTON')window.messageNativeClicks.push(event.isTrusted);});
+  },{cards:[card,second],owner:OWNER,now:NOW,day:DAY});
+  await page.addScriptTag({content:renderer});
+  await page.addScriptTag({content:controller});
+  const setup='const UPMORE_BACKEND_URL="https://messages.approval.test";const UPMORE_ANON_KEY="synthetic-only";let upmoreThread='+JSON.stringify(THREAD)+';let chatMode="agent";function getSessionToken(){return Promise.resolve("synthetic-only");}function md(text){return String(text);}';
+  await page.addScriptTag({content:setup+fixtureAuth+main.slice(chatStart,chatEnd)+main.slice(historyStart,historyEnd)});
+  await page.evaluate(({owner,cardId})=>{
+    session={user:{id:owner},access_token:'synthetic-only'};
+    histBubble(document.querySelector('#card'),'assistant','Review these exact answers.',{intent:'career_message_approval',career_approval_card_id:cardId});
+  },{owner:OWNER,cardId:CARD});
+  const button=page.getByRole('button',{name:/Approve these exact answers/});await button.waitFor({state:'visible'});
+  assert.deepEqual(await page.evaluate(()=>window.messageCalls),[{name:'career_apply_message_card_read_own',args:{p_card:CARD}}]);
+  await button.click();await page.waitForFunction(()=>document.querySelector('#card [role=status]')?.textContent.startsWith('Approved exactly'));
+  assert.deepEqual(await page.evaluate(()=>window.messageCalls),[
+    {name:'career_apply_message_card_read_own',args:{p_card:CARD}},
+    {name:'career_apply_message_card_read_own',args:{p_card:CARD}},
+    {name:'career_apply_message_card_approve_own',args:{p_card:CARD,p_hash:card.hash}}
+  ]);
+  assert.equal(await page.evaluate(()=>window.messageAuthReads),1);
+  assert.deepEqual(await page.evaluate(()=>window.messageNativeClicks),[true]);
+  assert.match(await page.locator('#card [role=status]').innerText(),/Nothing has been submitted to an employer/);
+  await page.evaluate(cardId=>{
+    histBubble(document.querySelector('#card'),'user','yes',{intent:'career_message_approval',career_approval_card_id:cardId});
+    histBubble(document.querySelector('#card'),'assistant','yes',{});
+  },CARD);
+  assert.equal(await page.evaluate(()=>window.messageCalls.length),3,'plain words and user metadata cannot trigger an approval RPC');
+  await page.evaluate(cardId=>histBubble(document.querySelector('#card'),'assistant','Review the next exact card.',{intent:'career_message_approval',career_approval_card_id:cardId}),second.id);
+  const next=page.getByRole('button',{name:/Approve these exact answers/}).last();await next.waitFor({state:'visible'});
+  await page.evaluate(()=>{chatRequests.invalidate();upmoreThread='66666666-6666-4666-8666-666666666666';});
+  await next.click();
+  assert.equal(await page.evaluate(()=>window.messageCalls.filter(call=>call.name==='career_apply_message_card_approve_own').length),1,'a changed conversation invalidates the native tap before any second authorization');
+  assert.deepEqual(await page.evaluate(()=>window.messageNativeClicks),[true,true]);
+  assert.equal(await page.evaluate(()=>window.approvals.length),0,'the independent renderer fixture callback is never used by the built app adapter');
+});

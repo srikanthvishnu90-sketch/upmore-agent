@@ -18,6 +18,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
+// Where each ATS's resume upload lives and what the form shows once the employer took the file (docs/apply/RESUME-UPLOAD.md).
+const { NEVER_THE_RESUME, fnFileSlot, fnFindSlotInput, fnSlotTookFile, fnMarkSlotAttach } = require("./resume-upload.cjs");
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -343,6 +345,7 @@ async function resolveFieldHandle(page, f) {
 
 async function cmdDiscover(board) {
   const fields = await board.page.evaluate(fnDiscoverFields);
+  await readFileSlots(board, fields);
   const version = crypto.randomUUID();
   const handles = board.handles || new Map(); // retained only for rechecking prior steps before commit
   for (const f of fields) {
@@ -674,17 +677,46 @@ function widgetPersisted(got, driven) {
     || (normPersist(got).length >= 4 && normPersist(driven.chosenText).startsWith(normPersist(got)));
 }
 
-/* Re-discover the form's live file input and return a selector for
- * it: prefer its id; otherwise mark the element itself — a positional
- * selector breaks whenever the board remounts siblings around it. */
-async function rediscoverFileSelector(page) {
-  return await page.evaluate(() => {
-    const inp = document.querySelector('input[type="file"]');
-    if (!inp) return null;
-    if (inp.id) return "#" + inp.id;
-    inp.setAttribute("data-upmore-file", "1");
-    return '[data-upmore-file="1"]';
-  }).catch(() => null);
+/* Re-discover the resume's own live file input and return a selector for
+ * it (its id, else a data marker — a positional selector breaks whenever
+ * the board remounts siblings around it). Only the input in the bound
+ * input's own place (its upload group, id, name or label: resume-upload.cjs),
+ * never "the first file input on the page": that was Ashby's autofill parser
+ * on every Ashby form, and a cover letter or another question's upload on a
+ * Greenhouse form whose resume input the employer had already taken. */
+async function rediscoverFileSelector(page, slot) {
+  return await page.evaluate(fnFindSlotInput, { slot: slot || null, never: NEVER_THE_RESUME }).catch(() => null);
+}
+const slotKey = (b) => b.selector;
+/* Every file input's place, read at discovery while the inputs are all on
+ * the page (a board may take one away before its fill: BUG-207/237). */
+async function readFileSlots(board, fields) {
+  board.fileSlots = board.fileSlots || new Map();
+  for (const f of fields) {
+    if (f.inputType !== "file" || !f.selector || board.fileSlots.has(f.selector)) continue;
+    const slot = await board.page.evaluate(fnFileSlot, { selector: f.selector, never: NEVER_THE_RESUME }).catch(() => null);
+    if (slot) board.fileSlots.set(f.selector, slot);
+  }
+}
+/* The bound file input's place: read at discovery, else now. */
+async function fileSlot(board, b) {
+  board.fileSlots = board.fileSlots || new Map();
+  if (!board.fileSlots.has(slotKey(b))) {
+    const slot = await board.page.evaluate(fnFileSlot, { selector: b.selector, never: NEVER_THE_RESUME }).catch(() => null);
+    if (slot) board.fileSlots.set(slotKey(b), slot);
+  }
+  return board.fileSlots.get(slotKey(b)) || null;
+}
+/* The employer took the file this helper attached: the resume's upload group
+ * holds no input any more and shows the attached file's name (Greenhouse,
+ * live). Returns the attached {filename, sha256} — bytes sha-verified before
+ * the attach — or undefined. */
+async function takenFile(board, b) {
+  const taken = board.takenFiles && board.takenFiles.get(slotKey(b));
+  const slot = board.fileSlots && board.fileSlots.get(slotKey(b));
+  if (!taken || !slot) return undefined;
+  const shows = await board.page.evaluate(fnSlotTookFile, { slot, filename: taken.filename }).catch(() => false);
+  return shows ? { filename: taken.filename, sha256: taken.sha256 } : undefined;
 }
 /* Page-level file attach for when the discovered handle cannot be
  * used — the current boards mount their file inputs late, hide them
@@ -697,7 +729,7 @@ async function rediscoverFileSelector(page) {
  * mechanism the browser's own file picker uses). Returns
  * { ok, selectorUsed } — only a board that still shows no input after
  * all of that earns a not-mounted report. */
-async function attachFilePageLevel(board, cmd) {
+async function attachFilePageLevel(board, cmd, slot) {
   const page = board.page;
   const b = cmd.binding;
   let selector = b.selector;
@@ -708,29 +740,31 @@ async function attachFilePageLevel(board, cmd) {
   await page.waitForTimeout(400);
   let attached = await page.waitForSelector(selector, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
   if (!attached) {
-    const fresh = await rediscoverFileSelector(page);
+    const fresh = await rediscoverFileSelector(page, slot);
     if (fresh && fresh !== selector) {
       attached = await page.waitForSelector(fresh, { state: "attached", timeout: 5000 }).then(() => true).catch(() => false);
       if (attached) selector = fresh;
     }
   }
   if (!attached) {
-    const marked = await page.evaluate(() => {
+    // The attach control in the resume's own upload group when it has one (another upload's Attach is never pressed);
+    // else the page's, outside Ashby's autofill parser.
+    const marked = (slot && slot.group) ? await page.evaluate(fnMarkSlotAttach, { slot }).catch(() => false) : await page.evaluate((never) => {
       const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
       const textOf = (el) => ((el.innerText || el.textContent || "") + " " + (el.getAttribute("aria-label") || "")).replace(/\s+/g, " ").trim();
       const pools = ['button, label, [role="button"]', 'a, div, span'];
       for (const pool of pools) {
         const cand = Array.from(document.querySelectorAll(pool))
-          .find((el) => vis(el) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
+          .find((el) => vis(el) && !never.some((s) => el.closest(s)) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
         if (cand) { cand.setAttribute("data-upmore-attach", "1"); return true; }
       }
       return false;
-    }).catch(() => false);
+    }, NEVER_THE_RESUME).catch(() => false);
     if (marked) {
       await page.click('[data-upmore-attach="1"]', { timeout: 8000 }).catch(() => {});
       for (let t = 0; t < 10 && !attached; t++) {
         await page.waitForTimeout(600);
-        const fresh2 = await rediscoverFileSelector(page);
+        const fresh2 = await rediscoverFileSelector(page, slot);
         if (fresh2) {
           attached = await page.waitForSelector(fresh2, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
           if (attached) selector = fresh2;
@@ -778,6 +812,7 @@ async function cmdFill(board, cmd) {
   if (b.inputType === "file") {
     const bytes = fs.readFileSync(cmd.filePath);
     if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
+    const slot = await fileSlot(board, b);
     for (let attempt = 1; attempt <= 3; attempt++) {
       let attached = false;
       let selectorUsed = b.selector;
@@ -790,7 +825,7 @@ async function cmdFill(board, cmd) {
         }
       } catch (e) { if (e.code !== "STALE_OBSERVATION") throw e; }
       if (!attached) {
-        const rec = await attachFilePageLevel(board, cmd);
+        const rec = await attachFilePageLevel(board, cmd, slot);
         attached = rec.ok; selectorUsed = rec.selectorUsed;
         // The ladder IS the recovery budget (scroll into view,
         // re-discovery, attach-control engagement, mount poll, long
@@ -818,6 +853,15 @@ async function cmdFill(board, cmd) {
           return !!(el && el.files && el.files.length > 0);
         }, selectorUsed).catch(() => false);
         if (present) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
+        // The employer took the file (Greenhouse, live): it uploaded what was
+        // just attached and took the input out of the form, leaving the
+        // file's name in the resume's own upload group. That is the attach
+        // succeeding, not a missing input — attaching again would send the
+        // resume a second time, or into the next upload on the page.
+        board.takenFiles = board.takenFiles || new Map();
+        board.takenFiles.set(slotKey(b), { filename: value.filename, sha256: value.sha256 });
+        if (await takenFile(board, b)) return { filled: true, verified: true, attempts: attempt, via: "employer_took_file" };
+        board.takenFiles.delete(slotKey(b));
       }
     }
     return { filled: false, reason: "value_did_not_persist", wanted: value.filename };
@@ -887,13 +931,17 @@ async function reresolveBinding(board, b) {
 // verdict triggers one re-resolution and one retry; a field that is
 // gone reads back absent; a second stale verdict propagates.
 async function readbackBindingFresh(board, b) {
-  try { return await readbackBinding(board, b); }
+  let value;
+  try { value = await readbackBinding(board, b); }
   catch (e) {
     if (!e || e.code !== "STALE_OBSERVATION") throw e;
     const fresh = await reresolveBinding(board, b);
-    if (!fresh) return undefined;
-    return await readbackBinding(board, fresh);
+    value = fresh ? await readbackBinding(board, fresh) : undefined;
   }
+  // A resume the employer took (its input gone, its name shown in the
+  // resume's own upload group) reads back as the file this helper attached.
+  if (value === undefined && b.inputType === "file") value = await takenFile(board, b);
+  return value;
 }
 
 async function cmdReadback(board, cmd) {

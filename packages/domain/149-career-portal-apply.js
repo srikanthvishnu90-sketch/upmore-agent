@@ -353,6 +353,145 @@ const CareerPortalApply = (() => {
     return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
   }
 
+  // ---------- the executor's input writer: bank -> portal inputs (LOOP-INPUT) ----------
+  // The batch executor (and the in-turn batch seam) drives 149 from a
+  // 149-shaped profile + an attestations map. Until this composition
+  // existed, NO product code produced either from the user's record:
+  // the stored master carried basics null / answers null /
+  // attestations null on the live account, every prepare stopped at
+  // the same uncovered questions, and the loop could not move
+  // (LOOP-INPUT-NO-WRITER, final set Doc 1 A3). This is the missing
+  // pipeline stage — derivation, built once, keyed only to the
+  // user's own stored bank. Its layers mirror the saved-answers
+  // composition the extension serves (extension_sync.js
+  // composeSavedAnswers — the same layers in the same order, so the
+  // surfaces cannot disagree about what a bank answers):
+  //   1. identity from the bank's basics, verbatim (no derivation);
+  //   2. the bank's stored answers with confirmed === true, verbatim;
+  //   3. deriveAnswers over the bank (confirmed facts only, each
+  //      entry carrying its factId trace);
+  //   4. the constraints/defaults seam for keys still unanswered
+  //      (sponsorship / work authorization from the constraints the
+  //      sensitive-correction path writes; pronouns from defaults;
+  //      located_in_us from the residence the bank carries);
+  //   5. the resume as { filename, sha256 } metadata, only when the
+  //      record carries one with its sha256.
+  // Attestations are NEVER derived from facts. They come from exactly
+  // two sources, both the user's own explicit acts: an attestation
+  // already stored on the record (explicit === true, passed through
+  // verbatim), and — for certify_true — the batch approval act
+  // itself, passed in as opts.approvalAct { runId, cardSha256 } by
+  // the caller that holds the user's committed "Approve batch
+  // <runId>" intent. No approval act, no certify_true: the field
+  // stays an ask at prepare and the batch waits at its card.
+  function workAuthorizationToken(text) {
+    const t = String(text || "").trim();
+    if (/^yes\b/i.test(t)) return "Yes";
+    if (/^no\b/i.test(t)) return "No";
+    if (/not authorized|not eligible to work|no work authorization/i.test(t)) return "No";
+    if (/citizen|permanent resident|green card|lawful permanent|authorized to work|eligible to work|employment authorization|work permit/i.test(t)) return "Yes";
+    return t;
+  }
+  function portalInputsFromBank(bank, opts) {
+    const o = opts || {};
+    const out = { profile: null, attestations: {}, traces: {} };
+    if (!bank || typeof bank !== "object") return out;
+    const nowMs = tsMs(o.now != null ? o.now : Date.now());
+    // Derivation reads the 122 fact shape (status / needs_confirmation).
+    // A looser stored shape (confirmed: true, no status) is normalized
+    // on a CLONE — the stored record is never mutated, and a fact that
+    // carries an explicit draft status is never promoted.
+    const normBank = cloneBankForDerivation(bank);
+    const b = (bank.basics && typeof bank.basics === "object") ? bank.basics : {};
+    const links = (b.links && typeof b.links === "object") ? b.links : {};
+    const profile = { answers: {} };
+    const setP = (k, v) => { if (v !== undefined && v !== null && String(v) !== "") profile[k] = v; };
+    setP("name", b.name || b.full_name || bank.name);
+    setP("email", b.email || bank.email);
+    setP("phone", b.phone);
+    setP("location", b.location);
+    setP("linkedin", links.linkedin || b.linkedin);
+    setP("github", links.github || b.github);
+    setP("website", links.portfolio || links.website || b.website);
+    setP("current_company", b.current_company || b.currentCompany);
+    const derived = deriveAnswers(normBank, Number.isFinite(nowMs) ? nowMs : Date.now());
+    for (const [k, v] of Object.entries(derived.profileFields || {})) setP(k, v);
+    for (const [k, t] of Object.entries(derived.traces || {})) out.traces[k] = t;
+    const r = bank.resume || b.resume || null;
+    if (r && r.sha256) profile.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+
+    const answers = {};
+    const stored = (bank.answers && typeof bank.answers === "object") ? bank.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        answers[k] = JSON.parse(JSON.stringify(a));
+        if (a.factId) out.traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
+      }
+    }
+    for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = a;
+
+    const c = (bank.constraints && typeof bank.constraints === "object") ? bank.constraints : {};
+    const dfl = (bank.defaults && typeof bank.defaults === "object") ? bank.defaults : {};
+    const seam = (key, value, factId, how) => {
+      if (answers[key] || value === undefined || value === null || String(value) === "") return;
+      answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
+      seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");
+    }
+    if (!answers.located_in_us) {
+      const hometown = (normBank.facts || []).find((f) => f.kind === "profile" && /hometown/i.test(f.name || f.title || "") && f.status === "confirmed" && f.needs_confirmation !== true);
+      const residence = (hometown && hometown.value) || b.location || "";
+      const tail = String(residence).split(",").pop().trim().replace(/\s*\(.*?\)\s*$/, "");
+      const isUs = (/^[A-Za-z]{2}$/.test(tail) && US_STATE_CODES.has(tail.toUpperCase()))
+        || US_STATE_NAMES_LOWER.has(tail.toLowerCase());
+      if (isUs || /^united states$/i.test(String(profile.country || ""))) {
+        seam("located_in_us", "Yes", hometown ? hometown.id : "basics.location",
+          "the residence the record carries is in a US state (the same source deriveAnswers reads for state_of_residence)");
+      }
+    }
+    profile.answers = answers;
+    out.profile = profile;
+
+    const storedAtt = (bank.attestations && typeof bank.attestations === "object") ? bank.attestations : {};
+    for (const [k, a] of Object.entries(storedAtt)) {
+      if (a && a.explicit === true && a.value !== undefined) {
+        out.attestations[k] = JSON.parse(JSON.stringify(a));
+        out.traces[`attestation:${k}`] = { factId: "profile.attestations", how: "the user's own stored explicit attestation, passed through verbatim" };
+      }
+    }
+    if (o.approvalAct && o.approvalAct.runId) {
+      out.attestations.certify_true = {
+        value: true, explicit: true, source: "batch_approval",
+        runId: o.approvalAct.runId, cardSha256: o.approvalAct.cardSha256 || null,
+      };
+      out.traces["attestation:certify_true"] = { factId: "batch_approval", how: "the user's own approval of this batch's card is the attestation act — derived only under a committed approve intent for this run and card" };
+    }
+    return out;
+  }
+  const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+  const US_STATE_NAMES_LOWER = new Set(Object.values(US_STATE_NAMES).map((n) => n.toLowerCase()).concat(["district of columbia"]));
+  function cloneBankForDerivation(bank) {
+    const clone = JSON.parse(JSON.stringify(bank));
+    if (Array.isArray(clone.facts)) {
+      for (const f of clone.facts) {
+        if (!f || typeof f !== "object") continue;
+        if (f.status == null && f.confirmed === true) f.status = "confirmed";
+        if (f.needs_confirmation == null && typeof f.needsConfirmation === "boolean") f.needs_confirmation = f.needsConfirmation;
+      }
+    }
+    return clone;
+  }
+
   // ---------- §6.1 step 3: form analysis ----------
   function analyzeForm(formDef) {
     return (formDef.fields || []).map((f) => ({
@@ -1126,6 +1265,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, portalInputsFromBank, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

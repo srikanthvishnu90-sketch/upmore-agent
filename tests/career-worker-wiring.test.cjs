@@ -290,7 +290,7 @@ test("sources: profileFor resolves the pack from the user's stored record — ve
   const state = seededState();
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
-  const sources = createProductionSources({ transport, jobs: CareerJobs });
+  const sources = createProductionSources({ transport, jobs: CareerJobs, probeUrl: async () => 200 });
   const pack = await sources.profileFor(USER);
   assert.equal(pack.profileMaster.basics.name, "Alex Testcase (TEST)", "the master is the stored record");
   assert.equal(pack.profile.name, "Alex Testcase (TEST)");
@@ -307,7 +307,7 @@ test("sources: a user with no stored profile gets the named stop, and postingsFo
   state.tables.agent_flow_state = [];
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
-  const sources = createProductionSources({ transport, jobs: CareerJobs });
+  const sources = createProductionSources({ transport, jobs: CareerJobs, probeUrl: async () => 200 });
   await assert.rejects(() => sources.profileFor(USER), (e) => e.code === "BATCH_PROFILE_NOT_FOUND");
   const pool = await sources.postingsFor(USER, "software engineering intern", 15);
   assert.equal(pool.length, 20, "the pool is the KB market, mapped");
@@ -324,7 +324,7 @@ test("cycle over Lane D's file-backed stand-in: prepare -> approve -> 13 submitt
   const store = createBatchRpcStore({ call: standIn.call });
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
-  const sources = createProductionSources({ transport, jobs: CareerJobs });
+  const sources = createProductionSources({ transport, jobs: CareerJobs, probeUrl: async () => 200 });
   await runCycle(test, store, sources, state);
   const onDisk = JSON.parse(fs.readFileSync(path.join(dir, "batch-state.json"), "utf8"));
   assert.ok(onDisk.intents.find((i) => i.intent_id === "intent-approve-1" && i.state === "completed"), "the stand-in's file holds the completed cycle");
@@ -336,7 +336,7 @@ test("cycle over the production transport (PostgREST, SQL claim semantics): iden
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
   const store = createBatchRpcStore({ call: transport.call });
-  const sources = createProductionSources({ transport, jobs: CareerJobs });
+  const sources = createProductionSources({ transport, jobs: CareerJobs, probeUrl: async () => 200 });
   await runCycle(test, store, sources, state);
 });
 
@@ -347,7 +347,7 @@ test("executor: a missing stored profile finishes the prepare intent blocked wit
   const store = createBatchRpcStore({ call: standIn.call });
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
-  const sources = createProductionSources({ transport, jobs: CareerJobs });
+  const sources = createProductionSources({ transport, jobs: CareerJobs, probeUrl: async () => 200 });
   const skeleton = Batch.serializeRun(Batch.createRun({ userId: USER, familyText: "software engineering intern", count: 15, now: NOW }));
   seedIntent(state, { userId: USER, intentId: "intent-prepare-noprofile", binding: { action: "prepare", run_id: skeleton.id, family_text: "software engineering intern" }, run: skeleton });
   const executor = createBatchExecutor({ store, postingsFor: sources.postingsFor, profileFor: sources.profileFor, boardForFor: () => boardFor, now: () => NOW });

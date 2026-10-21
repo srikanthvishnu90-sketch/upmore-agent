@@ -89,6 +89,11 @@ function createProductionSources(deps) {
     readRows: (spec) => transport.readRows(spec),
     jobs,
     limit: d.poolLimit,
+    // LINK LIVENESS (MUSE-F-003): same discipline as the Edge
+    // handler — the shared loader probes the served window and
+    // excludes only CONFIRMED-dead postings (404/410); a host may
+    // inject its own probeUrl (tests stub it — no live network).
+    probeUrl: typeof d.probeUrl === "function" ? d.probeUrl : CareerPool.createFetchProbe(),
   });
 
   async function postingsFor(/* userId, familyText, count */) {

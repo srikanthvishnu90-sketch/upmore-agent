@@ -267,7 +267,7 @@
        return { ok: true };
      // ---- from the panel (the person)
      case "status": {
-@@ -1029,27 +1117,46 @@
+@@ -1029,27 +1117,48 @@
        }
      }
      case "queue-start": {
@@ -287,14 +287,16 @@
 +        q.tabId = m.tabId ?? q.tabId ?? null;
 +        await put(S, "queue", q);
 +        // The person's own tab is the first lane; the others are windows of their own (kept from the last start if open).
++        // Only the agent sends on several lanes: a card the person taps is read in the panel beside its one tab.
++        const want = Math.max(1, Math.min((await config()).agentSubmits ? SEND_LANES : 1, waiting));
 +        const lanes = [];
 +        if (q.tabId !== null) lanes.push(q.tabId);
 +        for (const t of lanesOf(q)) if (!lanes.includes(t) && (await chrome.tabs.get(t).catch(() => null))) lanes.push(t);
-+        while (lanes.length < Math.min(SEND_LANES, waiting)) {
++        while (lanes.length < want) {
 +          const w = await chrome.windows.create({ url: "about:blank", focused: false, width: 1280, height: 900 });
 +          lanes.push(w.tabs[0].id);
 +        }
-+        q.lanes = lanes.slice(0, Math.max(1, Math.min(SEND_LANES, waiting)));
++        q.lanes = lanes.slice(0, want);
 +        if (q.tabId === null) q.tabId = q.lanes[0];
 +        await put(S, "queue", q);
 +        for (const t of q.lanes) await openNext(await queueState(), t);
@@ -331,7 +333,7 @@
      }
      case "queue-clear":
        await put(S, "queue", { items: [], index: -1, tabId: null, running: false });
-@@ -1087,13 +1194,16 @@
+@@ -1087,13 +1196,16 @@
      case "batch-stop": {
        // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
        // send in progress stops at its next check before the click.

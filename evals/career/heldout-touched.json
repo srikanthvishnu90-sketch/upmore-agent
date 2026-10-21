@@ -230,6 +230,29 @@
    "run": "prompt pass 188d8116 (2026-10-20)",
    "read": "FLAG: the words 'check the weather' in prompt.ts came from this held-out item before the read rule; removed in the H006 fix",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H005",
+    "H006",
+    "H012",
+    "H018",
+    "H023",
+    "H025",
+    "H026",
+    "H027",
+    "H028",
+    "H029",
+    "H030",
+    "H031",
+    "H032",
+    "H034",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39545335380, 39545926640, 39546674445 (p1-p3)",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

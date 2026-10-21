@@ -79,11 +79,15 @@ const STORED_MASTER = {
     { id: "F-T-001", kind: "skill", text: "JavaScript and Node.js development", confirmed: true },
     { id: "F-T-002", kind: "experience", text: "Built web applications as a student developer", confirmed: true },
     { id: "F-T-003", kind: "education", text: "Computer Science student", confirmed: true },
+    // WO-094: screening answers are DERIVED from confirmed facts (149's
+    // deriveAnswers), not copied from a stored `answers` block.
+    { id: "F-T-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
+    { id: "F-T-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No" },
   ],
   resume: { filename: "alex-testcase-resume.pdf", sha256: "a".repeat(64) },
+  // A stored answers block and a standing attestation: WO-094 reads neither.
   answers: {
     work_authorization: { value: "Yes — authorized to work in the US", confirmed: true },
-    sponsorship: { value: "No", confirmed: true },
     cover_note: { value: "I am excited to apply for the intern role.", confirmed: true, draft: true },
   },
   attestations: { certify_true: { value: true, explicit: true } },
@@ -286,7 +290,7 @@ test("transport: an HTTP failure throws coded and never leaks the key", async ()
 
 // ---------------- wired sources units ----------------
 
-test("sources: profileFor resolves the pack from the user's stored record — verbatim, nothing fabricated", async () => {
+test("sources: profileFor resolves the pack from the user's stored record — derived from confirmed facts, nothing fabricated", async () => {
   const state = seededState();
   const { fetchImpl } = createFakePostgrestFetch(state);
   const transport = createSupabaseTransport({ baseUrl: BASE, serviceRoleKey: KEY, fetchImpl });
@@ -298,8 +302,10 @@ test("sources: profileFor resolves the pack from the user's stored record — ve
   assert.equal(pack.profile.phone, "+1 000 555 0100");
   assert.equal(pack.profile.location, "Chicago, IL");
   assert.deepEqual(pack.profile.resume, { filename: "alex-testcase-resume.pdf", sha256: "a".repeat(64) });
-  assert.equal(pack.profile.answers.work_authorization.value, "Yes — authorized to work in the US", "stored answers ride verbatim");
-  assert.deepEqual(pack.attestations, { certify_true: { value: true, explicit: true } }, "stored attestations ride verbatim");
+  assert.equal(pack.profile.answers.work_authorization.value, "Yes", "derived from the confirmed fact, not the stored answers block (WO-094)");
+  assert.equal(pack.profile.answers.work_authorization.factId, "F-T-020");
+  assert.equal(pack.profile.answers.cover_note, undefined, "a stored note never rides (WO-094)");
+  assert.deepEqual(pack.attestations, {}, "a stored standing attestation never rides — the card attests (WO-094)");
 });
 
 test("sources: a user with no stored profile gets the named stop, and postingsFor serves the KB pool", async () => {

@@ -22,7 +22,11 @@ export interface EngineResult {
   };
   evidence: any;
 }
-export type RunEngine = (args: string[]) => Promise<EngineResult | null>;
+// env: extra environment for this one run (WO-096: the drive's queue row and lease, for reading the emailed code).
+export type RunEngine = (args: string[], env?: Record<string, string>) => Promise<EngineResult | null>;
+// WO-096: what the engine needs to read the code an employer emails for this approved drive through the person's own
+// session (the career-email-code function checks the row is theirs, being driven, under this lease). null: not offered.
+export type EmailCodeEnv = (job: Job) => Promise<Record<string, string> | null>;
 
 export interface Job {
   id: string;
@@ -153,6 +157,7 @@ export async function runApproved(d: {
   resumeFor: (job: Job) => Promise<{ path: string; sha256: string }>;
   writeFacts: (job: Job, facts: unknown) => Promise<string>;
   runEngine: RunEngine;
+  emailCode?: EmailCodeEnv;
 }) {
   const done: { id: string; state: string; reason?: string }[] = [];
   for (const job of await d.claim()) {
@@ -164,6 +169,8 @@ export async function runApproved(d: {
       const resume = await d.resumeFor(job);
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));
+      // WO-096: this drive is the person's approved application, so the code its employer emails may be read for it.
+      const codeEnv = d.emailCode ? await d.emailCode(job) : null;
       started = true;
       const run = await d.runEngine([
         "--url",
@@ -175,7 +182,8 @@ export async function runApproved(d: {
         "--submit",
         "--approved",
         p.engine_approval,
-      ]);
+        ...(codeEnv ? ["--email-code", "account"] : []),
+      ], codeEnv ?? undefined);
       if (!run || !OUTCOMES.has(run.result.state)) {
         state = "unknown_outcome";
         evidence = { reason: "the engine gave no result after it started; not retried" };
@@ -241,6 +249,7 @@ export async function runLoop(o: {
   idleMs?: number;
   sleep?: (ms: number) => Promise<void>;
   log?: (line: string) => void;
+  emailCode?: EmailCodeEnv;
 }) {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const log = o.log ?? ((l: string) => console.log(l));
@@ -278,6 +287,7 @@ export async function runLoop(o: {
       resumeFor: async () => o.resume,
       writeFacts: o.writeFacts,
       runEngine: o.runEngine,
+      emailCode: o.emailCode,
     });
     for (const d of done) {
       ran.push({ ...d, recorded });
@@ -295,11 +305,12 @@ export async function runLoop(o: {
 // that is theirs (a verification at the click, a code the employer emails): the engine's lines reach them as they are
 // printed and their Enter reaches the engine.
 export function engineRunner(o: { root: string; extra?: string[]; deno?: string }): RunEngine {
-  return async (args) => {
+  return async (args, env) => {
     const evidenceDir = await Deno.makeTempDir({ prefix: "trainee-evidence-" });
     await Deno.remove(evidenceDir);
     const child = new Deno.Command(o.deno || Deno.execPath(), {
       args: ["run", "-A", o.root + "/scripts/apply.ts", ...args, ...(o.extra || []), "--evidence-dir", evidenceDir],
+      ...(env ? { env } : {}),
       stdin: "inherit",
       stdout: "piped",
       stderr: "piped",
@@ -524,6 +535,14 @@ if (import.meta.main) {
       },
       runEngine: engineRunner({ root, extra }),
       stop: () => stopping,
+      // WO-096: the code an employer emails after the approved submit is read from the person's own Gmail through the
+      // career-email-code function, as them, for this drive only. Their current session (refreshed by the client); the
+      // engine gets it in its environment, never on its command line.
+      emailCode: async (job) => {
+        const { data } = await client.auth.getSession();
+        const access = data?.session?.access_token;
+        return access ? { UPMORE_ACCESS_TOKEN: access, UPMORE_APPLY_JOB_ID: job.id, UPMORE_APPLY_LEASE: job.lease_token } : null;
+      },
     });
   } else if (cmd === "prepare-batch") {
     // WO-022: the engine's dry run on each posting in a file (one https link a line), on this computer, signed in as the

@@ -1,21 +1,43 @@
 # Trainee go-live (owner only)
 
-One command, from the repo on your own machine, on the exact commit you want live. No agent runs it: agents never
-deploy, apply migrations to the live project or create credentials (AGENTS.md).
+One command, from the repo on your own machine, checked out at the exact commit you want live, named again with `--sha`.
+No agent runs it: agents never deploy, apply migrations to the live project or create credentials (AGENTS.md).
 
 ```bash
-supabase login                                            # once
-bash scripts/launch/trainee-go-live.sh --dry-run          # prints every command, secrets as ***, touches nothing
-bash scripts/launch/trainee-go-live.sh                    # the real run (asks for what is not in the environment)
+supabase login                                                 # once
+git fetch origin && git checkout --detach <sha>                # the full 40-character commit you worded
+git status --porcelain                                         # must print nothing
+bash scripts/launch/trainee-go-live.sh --sha <sha> --dry-run   # stages the commit, checks it, prints the manifest; nothing live
+bash scripts/launch/trainee-go-live.sh --sha <sha>             # the real run (asks for what is not in the environment)
+bash scripts/launch/trainee-go-live.sh --verify <sha>          # afterwards, any time: does the live project match <sha>?
 ```
 
-Needs `supabase`, `psql`, `node`, `deno`, `git` (`brew install supabase/tap/supabase libpq node deno`). Every value is
+**Provenance (WO-093).** The run ships exactly `<sha>` and nothing else. It refuses to start when the tree has any change
+or untracked file, when `--sha` is missing, short or not `HEAD`, or when the commit's router bundle is stale
+(`python3 scripts/build-router-core.py --check` and `--career-only --check`, run in the staged commit). It then stages
+only `git archive <sha>` (`supabase scripts packages corpus`) into a fresh temp dir and does everything from there:
+migrations, deploys, schedules and the smoke never read this checkout. It prints a **provenance manifest**: the sha, each
+function's entry and bundle sha256 (the sha256 of the sorted list of every file in its import graph with its own sha256,
+plus its remote imports; the same sha gives the same hashes on any machine), each migration with its sha256 and live
+mark, the time and the tool versions; a copy is kept in `~/trainee-provenance/manifest-<sha>-<UTC>.json`. Each migration
+mark read true and each function deployed gets a row in `public.career_deploy_ledger` (service role only, RLS on, no
+client access, append-only), labelled `--label <who>` (default `owner`). `--verify <sha>` reads only: it rebuilds the
+manifest of `<sha>`, reads the latest ledger row per function and per migration, every mark on the live schema and (with
+`SUPABASE_PROJECT_REF`) `supabase functions list`, prints one line per check and exits 1 listing each mismatch: a function
+last deployed from another commit or with another bundle, a function with no row (deployed outside go-live), a platform
+version other than the one the ledger recorded, a missing mark, a migration whose file changed after it was recorded.
+Why: `docs/architect/work-orders/WO-093-deploy-provenance.md`.
+
+Needs `supabase`, `psql`, `node`, `deno`, `git`, `python3`, `tar` (`brew install supabase/tap/supabase libpq node deno`). Every value is
 read from the environment or asked on a hidden prompt; none is echoed, written to a file or put in the log
 (`~/trainee-go-live-<UTC>.log`). The run stops at the first `STEP … FAILED`.
 
 | Flag | Effect |
 |---|---|
-| `--dry-run` | print the plan, run nothing |
+| `--sha <sha>` | **required** for every run but `--only-smoke`: the full 40-character commit, which must be `HEAD` |
+| `--verify <sha>` | read only: compare the deploy ledger and every live migration mark to the manifest of `<sha>`; exit 1 on any mismatch |
+| `--label <who>` | the ledger rows' `deployed_by_label` (letters, digits, space, `. _ @ : + -`; default `owner`; never a secret) |
+| `--dry-run` | print the plan, run nothing live (with `--sha` it still stages the commit, runs the two bundle checks and prints the manifest) |
 | `--skip-migrations` / `--skip-deploy` | skip step 2 / step 4 |
 | `--only-smoke` | only preflight and the smoke checks |
 | `--brain agent` | sets `CAREER_BRAIN=agent` (the agent brain answers career turns). Without it the brain is not touched; `--brain router` unsets it |
@@ -47,7 +69,9 @@ Function secrets are project-wide in Supabase: every function sees every one.
 
 ## The steps and what each changes
 
-1. **preflight**: tools, inputs, a clean tree, `deno check` of the seven entry points. Changes nothing.
+1. **preflight**: tools, inputs, a clean tree at `HEAD` = `--sha`, the commit staged from `git archive <sha>`, the two
+   router bundle checks and `deno check` of the seven entry points in the staged commit, the provenance manifest printed
+   and kept. Changes nothing live.
 2. **migrations**: applies, in order and each once, every migration from the Trainee set on (the `MIGRATIONS` list in
    `scripts/launch/trainee-go-live.sh`; `tests/trainee-go-live.test.cjs` fails if a migration file from `20261019` on is
    missing from it). Today: `20261019000001_career_postings.sql`, `20261019010001_career_alerts.sql`,
@@ -57,22 +81,29 @@ Function secrets are project-wide in Supabase: every function sees every one.
    `20261020040000_career_apply_card_push.sql`, `20261020050000_career_apply_daily_limit.sql` (the approved-application
    queue, the person's own computer claiming its own applications, receipts, prepared applications and their card, the
    card pushed into the thread, the daily limit), and `20261020060000_career_apply_questions.sql` (the questions only the person can answer, asked once by text), `20261020070000_career_apply_questions_ai_policy.sql` (the employer's own words about AI help, kept with each written question so Trainee reads them before it drafts one, WO-030), `20261020100000_career_mail_tracking.sql` (status changes read from the person's own mail, drafts never sent), `20261020110000_career_connector.sql` (the Connector's profiles, introductions and blocks; nothing is proposed until 500 people opt in), `20261020120000_career_events.sql` and `20261020120100_career_events_erase.sql` (the account's timeline, cleared by an erase), and `20261020130000_career_resume_tailoring.sql` (the private
-   `career-resumes` bucket for tailored resumes and the tailored/untailored tag on every application), and `20261021020000_career_voice_mock.sql` (the voice mock's single-use links and its debrief into the thread; the voice itself stays off until you deploy `career-voice` and set `CAREER_VOICE=on`, see WO-035), and `20261021010000_career_outreach.sql` (outreach drafts approved by their exact text, the do-not-contact list, Hunter's cached checks, and the send claim: 10 a day the first week, 20 by default, 30 at most, 90 seconds apart), and `20261021050000_career_brief_digest.sql` (interview invites and their briefs, the weekly digest's settings, both cleared by an erase; turned on with `CAREER_BRIEF_DIGEST=on` on career-proactive after it applies, WO-034), and `20261021070000_channel_parity.sql` (WhatsApp and Telegram beside iMessage: a contact per channel, the home channel, messages held for WhatsApp's window, Telegram link tokens and WhatsApp link questions, WO-038), and `20261021030000_career_hired_backgrounds.sql` (aggregate hired-candidate backgrounds from People Data Labs, never a named person, and the log of every PDL call's credits), and `20261021075000_career_apply_ops.sql` (WO-032: who drove each application, confirmed only by the employer's email, the PR #16 gate count `select * from career_apply_gate_status()`, applying by email from the person's Gmail on their yes, the open questions texted once, and no card pushed while the thread waits on something else), and `20261021080000_career_apply_cloud.sql` (the cloud worker's gate, opt-in, claim, telemetry and throttle; the kill switch `CAREER_CLOUD_APPLY` stays off until the owner turns it on, `docs/launch/CLOUD-WORKER.md`), and `20261021090000_career_mail_erase.sql` (an erase also deletes the mail-tracking events and drafts), and `20261021100000_career_proactive_last_word.sql` (a delivered alert, receipt or other text Trainee starts joins the texting thread, so a later "yes" is never read as the answer to an older prompt). Each runs in one transaction with its row in
+   `career-resumes` bucket for tailored resumes and the tailored/untailored tag on every application), and `20261021020000_career_voice_mock.sql` (the voice mock's single-use links and its debrief into the thread; the voice itself stays off until you deploy `career-voice` and set `CAREER_VOICE=on`, see WO-035), and `20261021010000_career_outreach.sql` (outreach drafts approved by their exact text, the do-not-contact list, Hunter's cached checks, and the send claim: 10 a day the first week, 20 by default, 30 at most, 90 seconds apart), and `20261021050000_career_brief_digest.sql` (interview invites and their briefs, the weekly digest's settings, both cleared by an erase; turned on with `CAREER_BRIEF_DIGEST=on` on career-proactive after it applies, WO-034), and `20261021070000_channel_parity.sql` (WhatsApp and Telegram beside iMessage: a contact per channel, the home channel, messages held for WhatsApp's window, Telegram link tokens and WhatsApp link questions, WO-038), and `20261021030000_career_hired_backgrounds.sql` (aggregate hired-candidate backgrounds from People Data Labs, never a named person, and the log of every PDL call's credits), and `20261021075000_career_apply_ops.sql` (WO-032: who drove each application, confirmed only by the employer's email, the PR #16 gate count `select * from career_apply_gate_status()`, applying by email from the person's Gmail on their yes, which sends only once you set `CAREER_EMAIL_SEND=on` on agent-chat (off by default: the yes is told sending is not switched on and the email is kept as a draft; outreach's own switch is `CAREER_OUTREACH_SEND=on` on career-proactive), the open questions texted once, and no card pushed while the thread waits on something else), and `20261021080000_career_apply_cloud.sql` (the cloud worker's gate, opt-in, claim, telemetry and throttle; the kill switch `CAREER_CLOUD_APPLY` stays off until the owner turns it on, `docs/launch/CLOUD-WORKER.md`), and `20261021090000_career_mail_erase.sql` (an erase also deletes the mail-tracking events and drafts), and `20261021100000_career_proactive_last_word.sql` (a delivered alert, receipt or other text Trainee starts joins the texting thread, so a later "yes" is never read as the answer to an older prompt). Each runs in one transaction with its row in
    WO-037 adds `20261021110000_career_board_state.sql` (each watched board's read state for the 6-hour sharded refresh, the alert latency report and the weekly alert count).
     WO-031 adds `20261021000000_career_apply_extension.sql` (the browser extension records each application the person approved in it on the same queue, as them), and WO-042 adds `20261021120000_career_apply_form_answers.sql` (an answer the person typed on the form and approved is kept for later forms, so it is asked once; the extension's applications carry source `extension`, so the gate counts them).
+    WO-091c adds `20261022120000_career_control_state.sql` (one predicate, `career_user_quiet`, true while the person is paused, has texted STOP on any channel, or erased their profile; the scheduled run starts nothing for them and a text queued before the pause is not delivered; outreach approvals expire after 7 days and a quiet account's are held; `career_proactive_runs.errors` records each rail's failure by rail).
    `public.upmore_migration_ledger` (when that ledger is in use; an empty or missing one is left for
    `apply-rails-and-seed.sh --pending` to backfill). A file whose objects are already live is not run again. The earlier
    career migrations (`20261015*`, `20261016*`) are only **checked**: they use plain `create table`, so a missing one stops
    the run and you apply it by hand after looking. Every applied one is additive (new tables, columns, constraints and
    functions; `create ... if not exists` and `create or replace`) and is applied twice in a row by `tests/db/run.sh` to
-   prove a second run changes nothing.
+   prove a second run changes nothing. Then **every mark is read again** (`MIGRATION_MARK` and the earlier ones), and a
+   single missing one fails the step, each named: a ledger row saying "applied" is never taken for the schema (a
+   packet's migrations once never landed). The marks read true get their rows in `public.career_deploy_ledger`
+   (`20261022120500_career_deploy_ledger.sql`, applied by this step). With `--skip-migrations` the same marks are read at
+   the start of step 4, and nothing is deployed on a schema without them.
 3. **secrets**: one `supabase secrets set --env-file` from a 0600 temp file that is removed at once.
 4. **deploy**: first downloads the live `agent-chat` to `~/trainee-rollback/agent-chat-<UTC>` (best effort), then deploys
    `agent-chat` from the career-only staged tree (`node scripts/career/stage-career.cjs`: `index-career.ts` as
    `agent-chat/index.ts`, JWT on; deploying it from the repo tree would ship the shelved finance entry), then
    `career-ingest`, `career-proactive`, `trainee-deliver`, `trainee-inbound`, `trainee-telegram`, `trainee-whatsapp`
    with `--no-verify-jwt` (pg_cron, LoopMessage, Telegram and Meta send no JWT; each function checks its own secret).
-   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`.
+   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`. Every deploy
+   runs from the staged commit, and right after each one its row goes into `public.career_deploy_ledger`: the sha, the
+   function, its bundle sha256 from the manifest, the platform's version number (`supabase functions list`), the label.
 5. **schedules**: runs `schedule-career-ingest.sql` (every 5 min), `schedule-career-proactive.sql` (every 5 min) and
    `schedule-trainee-deliver.sql` (every minute), each with its secret passed by env as the script's header says. Each
    stores the secret in Vault and replaces its pg_cron job. **From here texts go out** to people with a linked contact.
@@ -211,6 +242,9 @@ its rows is a separate decision of yours, never part of a rollback.
   alone: unset only its token.
 - **Stop the schedules**: `psql "$SUPABASE_DB_URL" -c "select cron.unschedule(j) from unnest(array['trainee-deliver','trainee-career-proactive','trainee-career-ingest']) j"`.
   Re-running step 5 brings them back. Their Vault secrets (`trainee_*_secret`) can stay.
+- **Everything back to an earlier commit that has WO-093**: `git checkout --detach <earlier sha>`, then
+  `bash scripts/launch/trainee-go-live.sh --sha <earlier sha> --skip-migrations`, then `--verify <earlier sha>`. The
+  ledger then names that commit for every function. A hand deploy (below) writes no row, so `--verify` reports it.
 - **agent-chat back to the previous version**: `cd ~/trainee-rollback/agent-chat-<UTC> && supabase functions deploy agent-chat --project-ref <ref>`.
   If the download failed: `git checkout <previous commit>`, `node scripts/career/stage-career.cjs /tmp/rb/supabase/functions`,
   write `[functions.agent-chat]` / `verify_jwt = true` to `/tmp/rb/supabase/config.toml`, then

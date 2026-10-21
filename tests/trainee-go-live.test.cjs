@@ -287,14 +287,19 @@ test('main: one line per check and a summary, waits for the schedules when asked
 
 // A real (not dry) run over stub tools, without a terminal: pressing Enter for the inbound secret must not replace one
 // LoopMessage's webhook URL already carries, unless the owner asks for the rotation.
+const REAL_GIT = execFileSync('bash', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
+const HEAD_SHA = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 function stubbed(env) {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-bin-'));
   const calls = path.join(bin, 'calls.log');
   const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
   stub('supabase', 'if [[ "$1 $2" == "secrets list" ]]; then printf "NAME | DIGEST\\nTRAINEE_INBOUND_SECRET | 0f0f\\n"; fi; exit 0');
-  stub('psql', 'exit 0'); stub('deno', 'exit 0'); stub('node', 'exit 0');
-  stub('git', 'if [[ "$1" == rev-parse ]]; then echo abc1234; fi; exit 0');
-  const res = spawnSync('bash', [SCRIPT], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  stub('psql', 'exit 0'); stub('deno', 'exit 0');
+  // WO-093: a real run ships exactly --sha (HEAD here) from git archive, so git and node are the real ones, but for a
+  // clean tree (this checkout may have edits) and the smoke (no network in a test).
+  stub('node', `if [[ "$1" == *trainee-smoke.cjs ]]; then exit 0; fi\nexec "${process.execPath}" "$@"`);
+  stub('git', `if [[ "$1" == status ]]; then exit 0; fi\nexec "${REAL_GIT}" "$@"`);
+  const res = spawnSync('bash', [SCRIPT, '--sha', HEAD_SHA], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
     env: { PATH: `${bin}:${process.env.PATH}`, HOME: home, TRAINEE_GO_LIVE_LOG: path.join(bin, 'run.log'), ...env } });
   return { code: res.status, out: res.stdout + res.stderr, calls: fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8') : '' };
 }

@@ -182,6 +182,10 @@ const names = (list: string[], max = 5) => {
   const uniq = [...new Set(list.filter(Boolean))];
   return uniq.length > max ? `${uniq.slice(0, max).join(", ")} and ${uniq.length - max} more` : uniq.join(", ");
 };
+// Names, search text and stored details are data. Keep each generated bullet on one line so those values cannot
+// create a new system-prompt section. Escape here, after composition, without rewriting the event or task record.
+const summaryLine = (text: string) => text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g,
+  (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
 
 // Past the 40-message window: what happened, written in code from the account's own events (counts and names, with
 // dates), never a model's paraphrase of the person's words. Bounded; newest kept when over.
@@ -190,7 +194,7 @@ export function threadSummary(events: CareerEvent[], now: number, tz?: string): 
   const all = [...events].sort((a, b) => a.at.localeCompare(b.at));
   const of = (...k: EventKind[]) => all.filter((e) => k.includes(e.kind));
   const lines: { text: string; at: string }[] = [];
-  const add = (text: string, rows: CareerEvent[]) => lines.push({ text, at: rows[rows.length - 1].at });
+  const add = (text: string, rows: CareerEvent[]) => lines.push({ text: summaryLine(text), at: rows[rows.length - 1].at });
   const searches = of("search");
   if (searches.length) add(`- Searches: ${searches.length}, latest ${searches.slice(-3).reverse().map((e) => `"${e.subject}" (${on(e)})`).join(", ")}.`, searches);
   const alerts = of("alert_set", "alert_changed", "alert_stopped");

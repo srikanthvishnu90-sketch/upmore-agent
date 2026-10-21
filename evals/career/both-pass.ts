@@ -30,7 +30,7 @@ const unscored = (m: string) => ids.filter((id) => verdicts[m].get(id) == null).
 const all = ids.filter((id) => Object.values(verdicts).every((v) => v.get(id) === true));
 const judges = Object.keys(verdicts).map((m) => `${m} ${count(m)}${unscored(m) ? ` (${unscored(m)} unscored)` : ""}`).join(", ");
 const label = ins.pass_label ?? r.label;
-// Owner, 2026-10-21: H019-H026 are burned (heldout-burned.json); the clean items are scored apart, and the burned ones
+// Second judge's ruling (2026-10-21, in effect, reversible): H019-H026 are burned (heldout-burned.json); the clean items are scored apart, and the burned ones
 // only as contaminated, never in the ratchet.
 const burned = new Set<string>(JSON.parse(await Deno.readTextFile(new URL("./heldout-burned.json", import.meta.url))).items);
 const cleanIds = ids.filter((id) => !burned.has(id)), cleanPass = all.filter((id) => !burned.has(id)).length;

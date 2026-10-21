@@ -36,6 +36,7 @@ export interface Job {
   id: string;
   lease_token: string;
   url: string;
+  user_id?: string;
   payload: any;
 }
 
@@ -260,11 +261,13 @@ export function payloadTrust(payload: any): string[] {
 }
 // Shared before-effects boundary for the desktop and cloud workers. Replaying original source values is safe only
 // after the queued printed answers, source manifest and schema have been checked against the approved identity.
-export async function assertApprovedPayload(payload: any): Promise<void> {
+export async function assertApprovedPayload(payload: any, context?: { url: string; user_id?: string }): Promise<void> {
   if (!/^[0-9a-f]{64}$/.test(String(payload?.engine_approval))) throw Error("NO_ENGINE_APPROVAL");
   const untrusted = payloadTrust(payload);
   if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
   const expected = await engineApprovalFromPayload(payload);
+  if (expected !== null && context && (context.url !== payload.url ||
+    (Object.hasOwn(context, "user_id") && context.user_id !== payload.user_id))) throw Error("APPROVED_APPLICATION_CHANGED");
   if (expected !== null && expected !== payload.engine_approval) throw Error("APPROVED_APPLICATION_CHANGED");
 }
 // What the engine reads for the desktop prepare (WO-102): the person's facts file as it is, and their texted answers
@@ -292,7 +295,7 @@ export async function runApproved(d: {
     let started = false;
     try {
       const p = job.payload;
-      await assertApprovedPayload(p);
+      await assertApprovedPayload(p, job);
       const resume = await d.resumeFor(job);
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));

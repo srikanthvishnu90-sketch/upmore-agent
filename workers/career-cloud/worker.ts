@@ -131,7 +131,7 @@ export async function runCloudJob(job: CloudJob, d: {
   try {
     await Deno.chmod(dir, 0o700);
     const p = job.payload;
-    await assertApprovedPayload(p);
+    await assertApprovedPayload(p, { url: job.url, user_id: job.user_id });
     const r = await d.queue.resume(job);
     if (!r) throw Object.assign(Error("RESUME_NOT_IN_CLOUD"), { code: "RESUME_NOT_IN_CLOUD" });
     const bytes = b64bytes(r.b64);

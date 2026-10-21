@@ -133,16 +133,39 @@ export function createSupabaseStore(opts) {
     throw err;
   }
   const table = o.table || "career_watch_kv";
+  // The fenced RPCs (career_watch_write, career_watch_cycle_commit,
+  // career_reminder_enqueue) raise this exact exception when the live
+  // career:account (version, epoch) differs from the caller's fence or
+  // the account is paused (migration 20261015020000_career_watch_kv.sql).
+  const FENCE_RAISE = "stale or paused career worker";
   const rpc = async (name, args) => {
     if (typeof o.client.rpc !== "function") throw Object.assign(new Error("Atomic reminder RPCs are NOT_WIRED"), {code:"NOT_WIRED"});
-    const r = await o.client.rpc(name, {...args, p_user:o.userId});
+    let r;
+    try { r = await o.client.rpc(name, {...args, p_user:o.userId}); }
+    catch (e) { r = { data: null, error: { code: (e && e.code) || "TRANSPORT", message: String((e && e.message) || e) } }; }
     if (r.error && isMissingTableError(r.error,table)) throw notWiredTableError(table,r.error);
     if (r.error && r.error.code === "PGRST202") throw Object.assign(new Error("Atomic career RPCs are NOT_WIRED; owner-run migration "+WATCH_KV_MIGRATION),{code:"NOT_WIRED"});
-    if (r.error || !r.data || r.data.error) throw Object.assign(new Error("Reminder storage could not be confirmed"), {code:"reminder_storage_unavailable"});
+    if (r.error || !r.data || r.data.error) {
+      // Fence repair (2026-10-21): the underlying error used to be erased
+      // here, so ~10% of scheduler cycles crashed with only this opaque
+      // message in the log and no code anywhere. Carry the cause (bounded)
+      // and flag the fence raise so fenced() can attempt its one repair.
+      const src = r.error || (r.data && r.data.error);
+      const msg = typeof src === "string" ? src : String((src && src.message) || src || "");
+      const err = Object.assign(new Error("Reminder storage could not be confirmed"), {code:"reminder_storage_unavailable"});
+      if (src) err.rpcCause = { code: (typeof src === "object" && src.code) || null, message: msg.slice(0, 200) };
+      if (msg.includes(FENCE_RAISE)) err.fenceStale = true;
+      throw err;
+    }
     return r.data;
   };
-  // One store instance is one cycle. Never refresh this fence after reads:
-  // otherwise a stale watch/profile read could overwrite a concurrent turn.
+  // One store instance is one cycle. The fence is captured at the first
+  // read and advanced by this store's own successful writes; reads never
+  // refresh it (a stale read must never arm a write that overwrites a
+  // concurrent turn). The ONLY refresh happens in fenced() below, after
+  // the database itself has rejected a write as stale — and even then
+  // the same buffered write is replayed at most once, only when the
+  // account is not paused and the fence actually moved.
   let fence;
   async function read(k) {
     const r=await rpc("career_watch_read",{p_key:k});
@@ -150,9 +173,32 @@ export function createSupabaseStore(opts) {
     return r;
   }
   async function currentFence(){if(!fence)await read("career:watch-profile:"+o.userId);return fence;}
+  async function refreshFence(){
+    const r=await rpc("career_watch_read",{p_key:"career:account"});
+    fence={version:r.version,epoch:r.epoch};
+    return { fence, paused: r.paused === true || !!(r.value && r.value.paused === true) };
+  }
+  // A fenced write with exactly one stale-fence repair. The write set a
+  // cycle commits is scheduler-owned keys (board snapshots, reminder
+  // queue/history, delivery state — the watch profile is never written
+  // in-cycle), enqueue is deduplicated by reminder_id in SQL, and the
+  // commit re-validates the fence under the advisory lock, so replaying
+  // once against the fresh fence cannot clobber a concurrent turn: if
+  // the fence moved again, the retry raises and propagates.
+  async function fenced(name, buildArgs){
+    const before = await currentFence();
+    try { return await rpc(name, buildArgs(before)); }
+    catch (e) {
+      if (!e || e.fenceStale !== true) throw e;
+      const now = await refreshFence();
+      if (now.paused) throw Object.assign(new Error("career account is paused — the fenced write stops here and is never retried"), {code:"career_paused", rpcCause: e.rpcCause || null});
+      if (now.fence.version === before.version && now.fence.epoch === before.epoch) throw e;
+      return rpc(name, buildArgs(now.fence));
+    }
+  }
   const owner = userId => {if(userId!==o.userId)throw Error("reminder_owner_mismatch");};
   const delivery = {
-    async enqueue(reminder){owner(reminder.user_id);const f=await currentFence();return rpc("career_reminder_enqueue",{p_reminder:reminder,p_version:f.version,p_epoch:f.epoch});},
+    async enqueue(reminder){owner(reminder.user_id);return fenced("career_reminder_enqueue",(f)=>({p_reminder:reminder,p_version:f.version,p_epoch:f.epoch}));},
     async claim(userId,id){owner(userId);return rpc("career_reminder_claim",{p_id:id});},
     async ack(userId,id,lease,record){owner(userId);return rpc("career_reminder_ack",{p_id:id,p_lease:lease,p_record:record});},
     async status(userId,id){owner(userId);return rpc("career_reminder_status",{p_id:id});},
@@ -167,8 +213,7 @@ export function createSupabaseStore(opts) {
         async set(k,v){writes.set(k,structuredClone(v));}
       };
       return {store:cycleStore,async commit(reminders){
-        const f=await currentFence();
-        const saved=await rpc("career_watch_cycle_commit",{p_version:f.version,p_epoch:f.epoch,p_writes:Object.fromEntries(writes),p_reminders:reminders});
+        const saved=await fenced("career_watch_cycle_commit",(f)=>({p_version:f.version,p_epoch:f.epoch,p_writes:Object.fromEntries(writes),p_reminders:reminders}));
         fence={version:saved.version,epoch:saved.epoch};
       }};
     },
@@ -177,8 +222,7 @@ export function createSupabaseStore(opts) {
     user_id: o.userId,
     async get(k) { return (await read(k)).value; },
     async set(k,v) {
-      const f=await currentFence();
-      const saved=await rpc("career_watch_write",{p_key:k,p_value:v,p_version:f.version,p_epoch:f.epoch});
+      const saved=await fenced("career_watch_write",(f)=>({p_key:k,p_value:v,p_version:f.version,p_epoch:f.epoch}));
       fence={version:saved.version,epoch:saved.epoch};
     },
   };
@@ -437,7 +481,7 @@ export async function runSchedulerPass(userIds, deps) {
   const out = [];
   for (const userId of userIds || []) {
     try { out.push(await runUserAlertCycle(userId, deps)); }
-    catch (e) { out.push({ type: "career_alert_host_cycle", user_id: userId, status: "error", errors: [{ error: s(e && e.message || e) }], delivered: [] }); }
+    catch (e) { out.push({ type: "career_alert_host_cycle", user_id: userId, status: "error", errors: [{ error: s(e && e.message || e), code: (e && e.code) || null, rpcCause: (e && e.rpcCause) || null }], delivered: [] }); }
   }
   return { type: "career_alert_scheduler_pass", at: new Date((deps && deps.now) || Date.now()).toISOString(), users: out,
     delivered_total: out.reduce((a, u) => a + ((u.delivered || []).length), 0) };

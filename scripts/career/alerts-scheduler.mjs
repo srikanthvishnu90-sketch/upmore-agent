@@ -174,7 +174,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((e) => {
-    logLine({ type: "career_alert_scheduler_cycle", at: new Date().toISOString(), status: "crashed", error: String((e && e.message) || e) });
+    logLine({ type: "career_alert_scheduler_cycle", at: new Date().toISOString(), status: "crashed", error: String((e && e.message) || e), code: (e && e.code) || null, rpc_cause: (e && e.rpcCause) || null });
     console.error(e);
     process.exit(1);
   });

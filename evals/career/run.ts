@@ -101,6 +101,11 @@ if (import.meta.main) {
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
   const { situationFrom } = await import("../../supabase/functions/_shared/career_situation.ts");
+  const { memoryStandingStore } = await import("../../supabase/functions/_shared/agent/memory.ts");
+  const { memoryWantStore } = await import("../../supabase/functions/_shared/career_apply_want.ts");
+  const { memoryEventStore } = await import("../../supabase/functions/_shared/agent/timeline.ts");
+  const { memoryMailStore } = await import("../../supabase/functions/_shared/career_mail_store.ts");
+  const { edgeRenderer, memoryPersonaStore, memoryResumeStore } = await import("../../supabase/functions/_shared/career_tailor.ts");
   const meter = newMeter(), judgeMeter = newMeter();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -113,6 +118,11 @@ if (import.meta.main) {
     // WO-061: the agent gets an alert store, as agent-chat gives it in production; without one every alert request
     // failed with "job alerts are not configured here", a harness artifact the router (its own state) never paid.
     const alerts = memoryAlertStore();
+    // WO-061 fix (c1) (production parity): agent-chat gives the brain the person's standing instructions, apply queue,
+    // event log, mail and resume stores; the harness gave none, so those tools threw "not kept here" / "not configured
+    // here" and the brain narrated a failure where production finds an empty account. Each persona starts empty.
+    const memory = memoryStandingStore(), wants = memoryWantStore(), events = memoryEventStore(), mail = memoryMailStore();
+    const tailor = { posting: async () => null, personas: memoryPersonaStore(), resumes: memoryResumeStore(), render: edgeRenderer() };
     let now = T0;
     const replies: string[] = [];
     const turnFn = async (a: any) => {
@@ -122,11 +132,12 @@ if (import.meta.main) {
         // WO-061 fix 2 (production parity): agent-chat reads the person's situation from their account every turn
         // (readSituation) and passes it; the harness passed none, so every records question met "could not be read this
         // turn". An eval persona's account holds nothing but the alerts it set in this chat: that is its situation.
-        const row = await alerts.get(a.userId);
-        const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [],
-          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [], threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
+        const row = await alerts.get(a.userId), standing = await memory.standing(a.userId);
+        const situation = situationFrom({ jobs: [], wanted: await wants.list(a.userId), prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [],
+          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: standing.map((x: any) => ({ text: x.text })), threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
         const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }),
-          known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
+          memory, wants, events, mail, tailor, posting: async () => null,
+          known: { standing, alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {
@@ -180,7 +191,7 @@ if (import.meta.main) {
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
   // WO-061 (owner, 2026-10-21): every score from fix (b) on carries this label, so the harness gain is never read as a brain gain.
-  const harness = "situation parity since f265092a (production parity, not brain improvement)";
+  const harness = "situation parity since f265092a; stores parity (standing, apply queue, events, mail, resumes) since fix (c1) (production parity, not brain improvement)";
   const result = { label, harness, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before, ...r };

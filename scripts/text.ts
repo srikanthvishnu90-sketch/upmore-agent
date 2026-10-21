@@ -10,12 +10,14 @@
 //           /clock +2h|+1d|+30m  advance the clock, run the job-alerts planner (WO-007), deliver what is due
 //           /alerts data analyst, analyst | new york, remote   turn alerts on without the brain (a test shortcut)
 //           /post Data Analyst | Stripe | Remote - US   add a TEST posting first seen now (example.test link)
-//           /state           print this person's stored state          /quit
+//           /state           print this person's stored state          /queue  this person's apply queue          /quit
 // --brain agent needs OPENAI_API_KEY (model: CAREER_MODEL, default gpt-5-mini); nothing is sent anywhere else.
 // State lives in .simulator/state.json (gitignored) so a session resumes; --fresh starts over.
 import { handleInbound, memoryStore, type Brain, type Attachment, type MemoryState } from "../supabase/functions/_shared/conversation.ts";
 import { memoryChannel } from "../supabase/functions/_shared/channel.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerJobs } from "../supabase/functions/_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerJobs, CareerProfile } from "../supabase/functions/_shared/router_core.career.js";
+import { applyPickTurn } from "../supabase/functions/_shared/career_apply_pick.ts";
+import { memoryWantStore } from "../supabase/functions/_shared/career_apply_want.ts";
 import { CareerPool } from "../supabase/functions/_shared/career_pool.js";
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
@@ -60,26 +62,26 @@ if (postingsFile) {
 }
 
 const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
-// The router's discovery pool, loaded per turn the way agent-chat loads it (handler-career.ts: CareerPool's KB loader,
-// then the named-company supplement), but over the simulator's postings, each given the KB row shape the loader maps.
-// Without it the router's searches always answered "the current list is empty", whatever /post or --postings held.
-const kbRow = (p: Posting) => ({ posting_key: p.job_id, title: p.title, company: p.company, location: p.location ?? "", url: p.url ?? "",
-  text_excerpt: String(p.description ?? "").slice(0, 4000), source: p.provider, posted_at: p.posted_at ?? p.first_seen_at, board: p.board,
-  fetched_on: String(p.last_seen_at ?? p.first_seen_at ?? "").slice(0, 10) || null, corpus_vintage: null });
-const pool = CareerPool.createKbPoolLoader({
+// The router's discovery pool, loaded per turn the way agent-chat loads it (handler-career.ts: CareerPool's live loader
+// over career_postings, open only, then the named-company supplement), over the simulator's postings.
+const pool = CareerPool.createLivePoolLoader({
   readRows: async (spec: any) => {
-    let rows = (await jobs.open()).map(kbRow);
+    let rows: any[] = await jobs.all();
     for (const f of spec.filters ?? []) {
-      const v = String(f.value).toLowerCase();
+      const v = f.value === null ? null : String(f.value).toLowerCase();
       rows = rows.filter((r: any) => {
+        if (f.op === "is") return (r[f.column] ?? null) === v;
         const x = String(r[f.column] ?? "").toLowerCase();
-        return f.op === "eq" ? x === v : f.op === "ilike" ? x.includes(v.replace(/^%|%$/g, "")) : true;
+        return f.op === "eq" ? x === v : f.op === "ilike" ? x.includes(String(v).replace(/^%|%$/g, "")) : true;
       });
     }
-    return rows.slice(0, spec.limit);
+    return rows.sort((a, b) => String(b.last_seen_at ?? "").localeCompare(String(a.last_seen_at ?? ""))).slice(0, spec.limit);
   },
   jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
 });
+// WO-105: "apply to the second one" goes to the person's apply queue here exactly as in agent-chat (career_apply_pick.ts);
+// the queue is the simulator's memory, printed by /state.
+const wants = memoryWantStore();
 async function routerPostings(message: string) {
   let postings: any[] = (await pool.loadPool()).postings;
   const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
@@ -98,6 +100,12 @@ function withFiles(message: string, files: { name: string; mime: string; text: s
 }
 const routerBrain: Brain = async (a) => {
   const ctx = turnCtx(a.userId, a.stores, await routerPostings(a.message));
+  const shown = (ctx as any).discovery?.lastShown ?? null;
+  const pick = shown && !host.isHostControlled(a.message, ctx)
+    ? await applyPickTurn({ message: a.message, userId: a.userId, now, shown, deps: { wants, posting: (id) => jobs.get(id), apps: [],
+      facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}) } })
+    : null;
+  if (pick) return { reply: pick.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
   const out = host.runTurn(withFiles(a.message, a.attachments), ctx);
   return { reply: out.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
 };
@@ -200,13 +208,19 @@ async function line(input: string): Promise<boolean> {
   }
   if (t === "/alerts-off") { const p = await mem.userFor(as); const r = p ? await alerts.get(p.id) : null; if (r) await alerts.save({ ...r, prefs: { ...r.prefs, on: false } }); log(`  (simulator: alerts off for ${as})`); return true; }
   if (t.startsWith("/post ")) {
-    const [title, company, location] = t.slice(6).split("|").map((x) => x.trim());
-    if (!title || !company) { log("  (use /post Title | Company | Location)"); return true; }
+    const [title, company, location, link] = t.slice(6).split("|").map((x) => x.trim());
+    if (!title || !company) { log("  (use /post Title | Company | Location [| its form link])"); return true; }
     const id = `${Math.floor(now / 1000)}-${Math.random().toString(36).slice(2, 6)}`, iso = new Date(now).toISOString();
-    await jobs.putMany([{ job_id: `lever:simtest:${id}`, provider: "lever", board: "simtest", company, title, location: location || "", url: `https://example.test/jobs/${id}`, description: "", first_seen_at: iso, last_seen_at: iso, closed_at: null }]);
+    // An optional fourth field gives the posting its form link (a Greenhouse, Lever, Ashby or Workday address), so "apply to
+    // the second one" can queue it; without one the link is an example.test address the apply queue refuses.
+    const url = /^https:\/\//.test(link ?? "") ? link : `https://example.test/jobs/${id}`;
+    // A provider no ATS uses: a "lever:" id whose random tail happened to be hex read as a real Lever posting, and its
+    // derived jobs.lever.co address replaced the link given here (WO-105/10 failed one run in about 25).
+    await jobs.putMany([{ job_id: `sim:simtest:${id}`, provider: "sim", board: "simtest", company, title, location: location || "", url, description: "", first_seen_at: iso, last_seen_at: iso, closed_at: null }]);
     log(`  (test posting added: ${title} at ${company}${location ? `, ${location}` : ""})`);
     return true;
   }
+  if (t === "/queue") { const p = await mem.userFor(as); const q = p ? await wants.list(p.id) : []; log(q.length ? q.map((w, i) => `  (apply queue ${i + 1}: ${w.title} at ${w.company}, ${w.url}, ${w.state})`).join("\n") : "  (apply queue: empty)"); return true; }
   if (t === "/state") { const p = await mem.userFor(as); log(JSON.stringify(p ? await mem.stores(p.id) : {}, null, 1)); return true; }
   if (t.startsWith("/clock")) {
     const d = parseDelta(t.slice(6)); if (d === null) { log("  (use /clock +30m, +2h or +1d)"); return true; }

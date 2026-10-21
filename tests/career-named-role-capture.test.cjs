@@ -42,6 +42,11 @@ const root = path.resolve(__dirname, "..");
 const persistenceFake = require(path.join(root, "tests/helpers/career-persistence-fake.cjs"));
 
 const recent = (days) => new Date(Date.now() - days * 864e5).toISOString();
+// WO-105: agent-chat reads the live career_postings (open only); the fixture's rows, kept in the snapshot's shape, are
+// served in the live table's shape.
+const toLive = (r) => ({ job_id: r.posting_key, provider: r.source, board: r.board, company: r.company, title: r.title, location: r.location,
+  url: r.url, description: r.text_excerpt || "", posted_at: r.posted_at || null, first_seen_at: r.posted_at || "2026-10-01T00:00:00Z",
+  last_seen_at: r.fetched_on ? `${r.fetched_on}T00:00:00Z` : (r.posted_at || "2026-10-01T00:00:00Z"), closed_at: null });
 function kbRow(over = {}) {
   return Object.assign({
     posting_key: "greenhouse:https://boards.greenhouse.io/northwind/jobs/101",
@@ -87,13 +92,13 @@ async function stagedApp(db, user) {
     auth: { getUser: async () => ({ data: { user: { id: user } } }) },
     rpc: (name, args) => persistenceFake(db, user, THREAD, name, args),
     from(table) {
-      if (table === "career_kb_postings") {
+      if (table === "career_postings") {
         db.kbCalls++;
         const query = {
-          select() { return query; }, order() { return query; }, limit() { return query; },
+          select() { return query; }, order() { return query; }, limit() { return query; }, is() { return query; }, ilike() { return query; },
           then(resolve) {
             if (db.kbMode === "error") return resolve({ data: null, error: { message: "kb read failed (fixture)" } });
-            return resolve({ data: clone(db.kbRows), error: null });
+            return resolve({ data: clone(db.kbRows.map(toLive)), error: null });
           },
         };
         return query;

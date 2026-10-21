@@ -47,6 +47,14 @@ function kbRow(over = {}) {
   }, over);
 }
 
+// WO-105: the same posting as career_postings holds it (what career-ingest reads from the boards; closed_at once a board
+// stops listing it).
+function liveRow(over = {}) {
+  const k = kbRow(over);
+  return Object.assign({ job_id: k.posting_key, provider: k.source, board: k.board, company: k.company, title: k.title, location: k.location,
+    url: k.url, description: k.text_excerpt, posted_at: k.posted_at, first_seen_at: k.posted_at, last_seen_at: recent(0), closed_at: null }, over.live || {});
+}
+
 // ---------------- mapper / loader units ----------------
 
 test("mapper: a KB row becomes the corpus shape rankedShortlist consumes", () => {
@@ -101,6 +109,34 @@ test("loader: reads career_kb_postings bounded + recency-ordered and reports the
   assert.equal(pool.postings[1].atsFamily, "ashby");
 });
 
+test("WO-105 live loader: reads only open career_postings, newest seen first, mapped to the same corpus shape", async () => {
+  let spec = null;
+  const loader = CareerPool.createLivePoolLoader({ jobs: JOBS, limit: 40, readRows: async (sp) => { spec = sp; return [liveRow(), liveRow({ title: "" })]; } });
+  const pool = await loader.loadPool();
+  assert.equal(spec.table, "career_postings");
+  assert.ok(spec.filters.some((f) => f.column === "closed_at" && f.op === "is" && f.value === null), "only postings a board still lists");
+  assert.equal(spec.order.column, "last_seen_at");
+  assert.equal(spec.limit, 40);
+  assert.equal(pool.error, null);
+  assert.equal(pool.postings.length, 1, "a row with no title is dropped, never repaired");
+  const p = pool.postings[0];
+  assert.equal(p.id, "greenhouse:https://boards.greenhouse.io/northwind/jobs/101");
+  assert.equal(p.url, "https://boards.greenhouse.io/northwind/jobs/101");
+  assert.equal(p.company, "Northwind Ledger");
+  const t = await loader.loadTargeted({ company: "Northwind" });
+  assert.ok(spec.filters.some((f) => f.column === "closed_at" && f.op === "is") && spec.filters.some((f) => f.op === "ilike" && f.value === "%Northwind%"));
+  assert.equal(t.postings.length, 2 - 1);
+});
+
+test("WO-105 live loader: a failed read is an empty pool and a named error, never the snapshot", async () => {
+  const tables = [];
+  const loader = CareerPool.createLivePoolLoader({ jobs: JOBS, readRows: async (sp) => { tables.push(sp.table); throw new Error("down"); } });
+  const pool = await loader.loadPool();
+  assert.deepEqual(pool.postings, []);
+  assert.equal(pool.error, "LIVE_POOL_READ_FAILED");
+  assert.deepEqual(tables, ["career_postings"], "the October snapshot is never read as a fallback");
+});
+
 test("loader: a failing KB read degrades to an empty pool — never a throw, never an invented role", async () => {
   const loader = CareerPool.createKbPoolLoader({ jobs: JOBS, readRows: async () => { throw new Error("kb down"); } });
   const pool = await loader.loadPool();
@@ -145,15 +181,19 @@ async function stagedApp(db, user) {
     auth: { getUser: async () => ({ data: { user: { id: user } } }) },
     rpc: (name, args) => persistenceFake(db, user, THREAD, name, args),
     from(table) {
-      if (table === "career_kb_postings") {
+      // WO-105: the pool is the live table; career_kb_postings is no longer read (it fails the table assertion below).
+      if (table === "career_postings") {
         db.kbCalls++;
+        let openOnly = false;
         const query = {
           select() { return query; },
           order() { return query; },
           limit() { return query; },
+          ilike() { return query; },
+          is(col, val) { if (col === "closed_at" && val === null) openOnly = true; return query; },
           then(resolve, reject) {
-            if (db.kbMode === "error") return resolve({ data: null, error: { message: "kb read failed (fixture)" } });
-            return resolve({ data: clone(db.kbRows), error: null });
+            if (db.kbMode === "error") return resolve({ data: null, error: { message: "postings read failed (fixture)" } });
+            return resolve({ data: clone(db.kbRows.map((r) => liveRow(r)).filter((r) => !openOnly || !r.closed_at)), error: null });
           },
         };
         return query;
@@ -239,7 +279,7 @@ if (!vm.SourceTextModule) {
     try {
       const turn = await app.chat("Find me software engineering intern roles", "pool-ask-1");
       assert.equal(turn.status, 200);
-      assert.ok(db.kbCalls >= 1, "the handler read career_kb_postings");
+      assert.ok(db.kbCalls >= 1, "the handler read the live career_postings");
       assert.ok(!turn.body.reply.includes("holds no roles at all"), `reply must not be the honest-empty text: ${turn.body.reply}`);
       assert.ok(turn.body.reply.includes("Northwind Ledger"), `reply names a role from the pool: ${turn.body.reply}`);
       assert.ok(turn.body.reply.includes("Software Engineering Intern"), `reply names the ranked role: ${turn.body.reply}`);

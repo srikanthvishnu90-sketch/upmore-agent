@@ -213,6 +213,11 @@ test("probe i witness (isolates the recall miss): a two-token name captures on t
 const USER = "00000000-0000-4000-8000-000000000001";
 const THREAD = "00000000-0000-4000-8000-000000000002";
 const recent = (days) => new Date(Date.now() - days * 864e5).toISOString();
+// WO-105: agent-chat reads the live career_postings (open only); the fixture's rows, kept in the snapshot's shape, are
+// served in the live table's shape.
+const toLive = (r) => ({ job_id: r.posting_key, provider: r.source, board: r.board, company: r.company, title: r.title, location: r.location,
+  url: r.url, description: r.text_excerpt || "", posted_at: r.posted_at || null, first_seen_at: r.posted_at || "2026-10-01T00:00:00Z",
+  last_seen_at: r.fetched_on ? `${r.fetched_on}T00:00:00Z` : (r.posted_at || "2026-10-01T00:00:00Z"), closed_at: null });
 function kbRow(over = {}) {
   return Object.assign({
     posting_key: "greenhouse:https://boards.greenhouse.io/natera/jobs/501",
@@ -248,11 +253,12 @@ async function stagedApp(db, user) {
     auth: { getUser: async () => ({ data: { user: { id: user } } }) },
     rpc: (name, args) => persistenceFake(db, user, THREAD, name, args),
     from(table) {
-      if (table === "career_kb_postings") {
+      if (table === "career_postings") {
         const query = {
           _ilike: null, _limit: null,
           select() { return query; },
           order() { return query; },
+          is() { return query; },
           limit(n) { query._limit = n; return query; },
           ilike(col, pattern) { query._ilike = { col, pattern }; return query; },
           then(resolve) {
@@ -263,10 +269,10 @@ async function stagedApp(db, user) {
               if (db.kbMode === "targeted-error") return resolve({ data: null, error: { message: "kb targeted read failed (fixture)" } });
               const shelf = db.kbShelf || db.kbRows;
               const needle = String(query._ilike.pattern || "").replace(/%/g, "").toLowerCase();
-              const hits = shelf.filter((r) => String(r[query._ilike.col] || "").toLowerCase().includes(needle));
+              const hits = shelf.map(toLive).filter((r) => String(r[query._ilike.col] || "").toLowerCase().includes(needle));
               return resolve({ data: clone(query._limit ? hits.slice(0, query._limit) : hits), error: null });
             }
-            return resolve({ data: clone(db.kbRows), error: null });
+            return resolve({ data: clone(db.kbRows.map(toLive)), error: null });
           },
         };
         return query;

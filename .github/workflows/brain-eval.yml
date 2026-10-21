@@ -12,6 +12,7 @@ on:
     paths:
       - .github/workflows/brain-eval.yml
       - evals/career/**
+      - supabase/functions/_shared/**
       - supabase/functions/_shared/agent/**
       - supabase/functions/agent-chat/career_brain.ts
   workflow_dispatch: {}
@@ -29,6 +30,8 @@ jobs:
       EVAL_BUDGET_USD: "15"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
       - name: The key is present
@@ -42,6 +45,12 @@ jobs:
         run: |
           deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
           deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
+      - name: Slice transcripts on the agent brain (WO-106; real model, today's boards, every link fetched)
+        if: always()
+        run: deno run -A evals/career/slice.ts --out "evals/career/results/slice-${{ github.run_id }}.md" | tail -5
+      - name: F5 on the real handler (staged) - a batch ask is never "handed" to a worker that nothing runs
+        if: always()
+        run: node --experimental-vm-modules --test --test-name-pattern "WO-106/F5|degradation|delegation" tests/career-batch-delegation.test.cjs 2>&1 | tee "evals/career/results/f5-${{ github.run_id }}.txt" | grep -E "^(ok|not ok)|^# person:"
       - name: The D-008 verdict
         run: |
           deno eval '

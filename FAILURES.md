@@ -59,3 +59,14 @@ Evidence: slice-drive transcript in the loop ledger (~/workspace/your_files/real
 Priority: P0 (blocks slice steps 1–3; stale conversation state hijacks new intent)
 Fix:
 Verified by:
+
+[ID: MUSE-F-005] [Status: OPEN]
+Found: 2026-10-20 20:13 CDT, Muse (worker recovery lane)
+Area: shared
+Input: live batch run batch-fnv1a-631b08, ask "apply to 3 software engineering intern roles", executed by the production executor against the real pool.
+Expected: the family screen keeps the pool's SWE-intern postings (the 2026-10-20 flip run on older code kept 591 eligible with the same family text).
+Actual: family filter kept 0 of 595 deduped postings (families ["SWE"], intern=true) → eligible 0, selected 0, run completed with doorsteps 0. The filter lives in the UNCOMMITTED Fix 2 (155 prepareRun, branch work/loop-task1) whose guard selected 3 from a fixture pool — fixture/reality mismatch.
+Evidence: loop ledger Iteration 1 server-side result (~/workspace/your_files/real-world-actions/loop-ledger.md) + the run record for batch-fnv1a-631b08.
+Priority: P0
+Fix:
+Verified by:

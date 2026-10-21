@@ -682,3 +682,19 @@ of private content.
   removing it would leave nothing. Gate tests: the guard alone, and the loop with a scripted model.
 - Not this round: H009's "onsite" said back as "Interview rounds" (no Onsite stage; separate cause), H006 (prompt
   line 69, a prompt fix the second judge advised against; queued with that caveat), H025 (prompt-level, burned item).
+
+### Stray-confirm round result (run 39589683291, side commit c1dc40da on the kept brain e41d1723): target fixed; held
+- Both CI judges 35/29/31 of 38 (gpt-5-mini 35/29/32, gpt-4.1-mini 37/36/35); clean 30: 27/22/23 (mean 24.0) vs the
+  same-night reference 39588330975's 23/27/26 (25.3). Not a consistent gain across passes (the second judge's keep
+  rule). Safety scans clean; no step-limit reply. Cost $0.3182.
+- The mechanism, counted by code over every reply: short confirm questions asked with no draft saved that turn went
+  from 27 (reference) to 0. H002 passes both CI judges in all three passes (reference: failed p1 and p2 on both).
+  H009 passes both in p1 and p3.
+- The failures that moved are not this change (traces): H027 p3 is the EMPTY-ANSWER bug itself (one step, no tool,
+  reply = the conversation layer's error text "Something went wrong on my side"); H027 p2 says "no application on
+  file" (the record-check rule, fix (c2)); H003 p2 "no confirmed recruiter contact on file" (same rule); H036 p2 asks
+  for one basic instead of listing them. None of them had a confirm question for the guard to touch.
+- Evidence for the reverted H027 fix, which three passes could not show before: the trace shows the empty answer
+  happening on the kept brain (39589683291 p3). Per the second judge's ruling it comes back only through a fresh
+  measured run.
+- Held, uncommitted, for the three-way verdict.

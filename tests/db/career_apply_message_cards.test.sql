@@ -15,11 +15,11 @@ create function pg_temp.mc_entry(job text default 'lever:synthetic:message-card'
  select jsonb_build_object('version',1,'kind','agent-batch','jobId',job,'company','Synthetic card employer','url','https://jobs.lever.co/synthetic/'||job||'/apply',
   'answers',jsonb_build_array(
    jsonb_build_object('name','name','label','Full name','value','TEST Person','shown','TEST Person','kind','text','factId','TEST-NAME','file',null),
-   jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','shown','synthetic.pdf','kind','file','factId','TEST-RESUME','file',repeat('a',64))),
+   jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','shown','synthetic.pdf','kind','file','factId','approved-local-resume:'||repeat('a',64),'file',repeat('a',64))),
   'blank',jsonb_build_array('Optional comments'),
   'ledger',jsonb_build_array(
    jsonb_build_object('application_id',job,'field_id','name','question_hash',repeat('1',64),'answer_hash',repeat('2',64),'fact_refs',jsonb_build_array('TEST-NAME'),'source_refs',jsonb_build_array('own synthetic statement'),'confirmation_event_id','synthetic:confirmed:name','derivation_rule','verbatim'),
-   jsonb_build_object('application_id',job,'field_id','resume','question_hash',repeat('3',64),'answer_hash',repeat('4',64),'fact_refs',jsonb_build_array('TEST-RESUME'),'source_refs',jsonb_build_array('own synthetic attachment'),'confirmation_event_id','synthetic:confirmed:resume','derivation_rule','attachment')),
+   jsonb_build_object('application_id',job,'field_id','resume','question_hash',repeat('3',64),'answer_hash',repeat('4',64),'fact_refs',jsonb_build_array('approved-local-resume:'||repeat('a',64)),'source_refs',jsonb_build_array('own synthetic attachment'),'confirmation_event_id','synthetic:confirmed:resume','derivation_rule','attachment')),
   'question_set_hash',repeat('5',64),'manifest_hash',repeat('6',64),'quarantine_version','d007-v1')
 $$;
 create function pg_temp.mc_items(e jsonb) returns jsonb language sql as $$ select jsonb_build_array(jsonb_build_object('entry',e,'hash',pg_temp.mc_hash(e))) $$;
@@ -36,6 +36,14 @@ select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-400
 select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_entry())||pg_temp.mc_items(pg_temp.mc_entry()))$$,'duplicate posting','one posting cannot be hidden twice');
 select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_entry()||'{"hidden_answer":"not shown"}'::jsonb))$$,'stale message approval entry','unknown entry fields cannot carry hidden answers');
 select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(jsonb_set(pg_temp.mc_entry(),'{answers,1,file}','"not-a-fingerprint"')))$$,'invalid message approval answer','resume requires its exact fingerprint');
+select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(jsonb_set(pg_temp.mc_entry(),'{answers,1,factId}','"TEST-ATTACHMENT"')))$$,'prepared resume','an attachment alone cannot impersonate the prepared resume');
+insert into mc_state values('resume-and-attachment',career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(
+ jsonb_set(pg_temp.mc_entry('lever:synthetic:resume-and-attachment'),'{answers}',(pg_temp.mc_entry('lever:synthetic:resume-and-attachment')->'answers')||jsonb_build_array(jsonb_build_object('name','portfolio','label','Supporting document','value','portfolio.pdf','shown','portfolio.pdf','kind','file','factId','TEST-PORTFOLIO','file',repeat('b',64)))))));
+select t.ok((select jsonb_array_length(v->'payload'->'items'->0->'entry'->'answers')=3 from mc_state where k='resume-and-attachment'),'the prepared resume plus another fingerprinted attachment is retained exactly');
+select t.must_fail($$select career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(
+ jsonb_set(pg_temp.mc_entry(),'{answers}',(pg_temp.mc_entry()->'answers')||jsonb_build_array(jsonb_build_object('name','other-resume','label','Other resume','value','other.pdf','shown','other.pdf','kind','file','factId','approved-local-resume:'||repeat('b',64),'file',repeat('b',64))))))$$,'one prepared resume fingerprint','conflicting prepared resume identities are refused');
+select t.ok((career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(
+ jsonb_set(pg_temp.mc_entry(),'{answers}',(pg_temp.mc_entry()->'answers')||jsonb_build_array((pg_temp.mc_entry()->'answers'->1)||'{"name":"same-resume-second-field"}'::jsonb)))))->>'state'='open','the same prepared resume can satisfy two distinct form fields');
 insert into mc_state values('card',career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_entry())));
 reset role;
 select t.ok((select c.payload=v->'payload' and c.payload_hash=v->>'hash' and c.payload_hash=pg_temp.mc_hash(c.payload)
@@ -101,7 +109,7 @@ create temp table mc_payload as select jsonb_build_object('version',1,'source','
  'company','Synthetic card employer','url',pg_temp.mc_entry()->>'url','family','lever',
  'fields',jsonb_build_array(
   jsonb_build_object('name','name','label','Full name','value','TEST Person','source','trainee','factId','TEST-NAME','detail',''),
-  jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','source','trainee','factId','TEST-RESUME','detail','')),
+  jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','source','trainee','factId','approved-local-resume:'||repeat('a',64),'detail','')),
  'resume_name','synthetic.pdf','resume_sha256',repeat('a',64),'privacy_epoch',2,'account_version',3,
  'expires_at',(clock_timestamp()+interval '2 hours')::text) p;
 grant select on mc_payload to authenticated;

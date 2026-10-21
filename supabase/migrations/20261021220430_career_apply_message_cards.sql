@@ -60,7 +60,7 @@ create trigger career_apply_message_cards_immutable before update on public.care
 
 create or replace function career_message_approval_private.validate_items(p_items jsonb) returns void
 language plpgsql set search_path = public, pg_temp as $$
-declare it jsonb; e jsonb; a jsonb; seen text[] := '{}';
+declare it jsonb; e jsonb; a jsonb; seen text[] := '{}'; resume_count integer; resume_hash text;
 begin
  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) not between 1 and 100 then
   raise exception 'invalid message approval items'; end if;
@@ -83,6 +83,8 @@ begin
   seen := array_append(seen,e->>'jobId');
   if exists (select 1 from jsonb_array_elements(e->'blank') x where jsonb_typeof(x) <> 'string') then
    raise exception 'invalid message approval blanks'; end if;
+  resume_count := 0;
+  resume_hash := null;
   for a in select value from jsonb_array_elements(e->'answers') loop
    if jsonb_typeof(a) is distinct from 'object' or coalesce(a->>'name','') = '' or coalesce(a->>'label','') = ''
     or jsonb_typeof(a->'value') is distinct from 'string' or jsonb_typeof(a->'shown') is distinct from 'string'
@@ -91,7 +93,15 @@ begin
     or (a->>'kind' = 'file' and coalesce(a->>'file','') !~ '^[0-9a-f]{64}$')
     or (a->>'kind' <> 'file' and a->'file' is distinct from 'null'::jsonb)
    then raise exception 'invalid message approval answer'; end if;
+   -- This is the extension's actual prepared-resume identity, not a filename or generic attachment guess.
+   if a->>'kind'='file' and a->>'factId'='approved-local-resume:'||(a->>'file') then
+    if resume_hash is not null and resume_hash is distinct from a->>'file' then
+     raise exception 'message approval requires one prepared resume fingerprint'; end if;
+    resume_hash := a->>'file';
+    resume_count := resume_count+1;
+   end if;
   end loop;
+  if resume_count<1 then raise exception 'message approval requires a prepared resume'; end if;
   if (select count(*) from jsonb_array_elements(e->'answers')) <>
      (select count(distinct x->>'name') from jsonb_array_elements(e->'answers') x) then
    raise exception 'duplicate answer on message approval card'; end if;
@@ -158,6 +168,7 @@ begin
  perform career_message_approval_private.validate_items(c.payload->'items');
  -- Resolved at invocation after the WO-101 migration. No alternative enqueue or submission path is introduced.
  stamp := clock_timestamp();
+ if stamp>=c.expires_at then raise exception 'message approval card expired'; end if;
  n := public.career_apply_batch_approve_own(c.payload->'items');
  -- The existing mint's default now() is the transaction start. Use the same actual tap stamp for its new rows and
  -- this receipt, so a long transaction cannot shorten the permission or make the card promise a later deadline.

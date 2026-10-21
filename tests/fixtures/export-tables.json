@@ -520,6 +520,10 @@
    "order": ["queued_at", "posting_key"]
   },
   {
+   "table": "career_apply_batch_approvals",
+   "order": ["approved_at", "id"]
+  },
+  {
    "table": "career_apply_questions",
    "order": ["created_at", "id"]
   },

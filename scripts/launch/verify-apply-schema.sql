@@ -1,11 +1,13 @@
 -- Read-only proof that the browser extension's apply path has its schema on a database (docs/apply/DEPLOY-LIVE-APPLY.md).
 --   psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/launch/verify-apply-schema.sql
--- One row per check: area | check | ok. Then three verdicts:
+-- One row per check: area | check | ok. Then four verdicts:
 --   apply path ready     every precondition, RPC, helper, table, column, constraint and grant the extension's apply path
 --                        needs (the 16-file closure in DEPLOY-LIVE-APPLY.md), and each of those files' go-live mark
 --   full go-live set     all 40 MIGRATION_MARK entries of scripts/launch/trainee-go-live.sh and its 5 EARLIER marks, with
 --                        everything above (the recommended option)
 --   switches at rest     CAREER_AGENT_SUBMIT and CAREER_CLOUD_APPLY are both not 'on' (anything but 'on' is off)
+--   go-live ledger read  public.upmore_migration_ledger exists, so trainee-go-live.sh step 2's first read works (not
+--                        needed by the apply path or by the psql loop in DEPLOY-LIVE-APPLY.md)
 -- It runs inside a READ ONLY transaction and ends with rollback: it cannot change anything. No secret is read or printed;
 -- the switch values are shown, and nothing else from any table.
 \set ON_ERROR_STOP on
@@ -29,6 +31,9 @@ c(area, req, name, ok) as (values
   ('pre', 'full',  'EARLIER 20261016010000_career_batch_intents_v1', to_regclass('public.career_batch_ledgers_v1') is not null),
   ('pre', 'full',  'EARLIER 20261016120000_career_account_stated_facts', exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%stated_facts%')),
   ('pre', 'apply', 'career_watch_kv exists (the account the apply RPCs read)', to_regclass('public.career_watch_kv') is not null),
+  -- Not the schema's: trainee-go-live.sh step 2's first read names public.upmore_migration_ledger inside a CASE, and
+  -- Postgres resolves the name before it runs, so without the table that read fails and the run stops (applying nothing).
+  ('pre', 'golive', 'upmore_migration_ledger exists (trainee-go-live.sh step 2 reads it first)', to_regclass('public.upmore_migration_ledger') is not null),
 
   -- The RPCs the extension calls (extension/background.js): exact signature, security definer, signed-in callers only.
   ('rpc', 'apply', 'career_apply_extension_begin_own(jsonb,text)', to_regprocedure('public.career_apply_extension_begin_own(jsonb,text)') is not null),
@@ -165,5 +170,6 @@ c(area, req, name, ok) as (values
 select area, name as check, ok from c
 union all select '==', 'apply path ready', bool_and(ok) from c where req = 'apply'
 union all select '==', 'full go-live set present (' || count(*) filter (where ok) || ' of ' || count(*) || ' checks)', bool_and(ok) from c where req in ('apply', 'full')
-union all select '==', 'switches at rest', bool_and(ok) from c where req = 'rest';
+union all select '==', 'switches at rest', bool_and(ok) from c where req = 'rest'
+union all select '==', 'trainee-go-live.sh step 2 can read its ledger', bool_and(ok) from c where req = 'golive';
 rollback;

@@ -46,11 +46,11 @@ function entry() {
   return { version: 1, kind: 'agent-batch', jobId: 'synthetic-job-1', company: 'Invented Workshop', url: 'https://example.test/jobs/1',
     answers: [
       { name: 'motivation', label: 'Why this role?', value: 'I enjoy careful work.', shown: 'I enjoy careful work.', kind: 'text', factId: 'F-001', file: null },
-      { name: 'resume', label: 'Resume', value: 'resume.pdf', shown: 'Synthetic Resume.pdf', kind: 'file', factId: 'F-002', file: HASH },
+      { name: 'resume', label: 'Resume', value: 'resume.pdf', shown: 'Synthetic Resume.pdf', kind: 'file', factId: 'approved-local-resume:' + HASH, file: HASH },
     ], blank: ['Optional website'],
     ledger: [
       { application_id: 'synthetic-job-1', field_id: 'motivation', question_hash: HASH, answer_hash: HASH, fact_refs: ['F-001'], source_refs: ['user-stated'], confirmation_event_id: 'event-1', derivation_rule: 'verbatim' },
-      { application_id: 'synthetic-job-1', field_id: 'resume', question_hash: HASH, answer_hash: HASH, fact_refs: ['F-002'], source_refs: ['user-upload'], confirmation_event_id: 'event-2', derivation_rule: 'attachment' },
+      { application_id: 'synthetic-job-1', field_id: 'resume', question_hash: HASH, answer_hash: HASH, fact_refs: ['approved-local-resume:' + HASH], source_refs: ['user-upload'], confirmation_event_id: 'event-2', derivation_rule: 'attachment' },
     ], question_set_hash: HASH, manifest_hash: HASH, quarantine_version: 'd007-v1' };
 }
 async function envelope(change = () => {}) {
@@ -220,4 +220,22 @@ test('an admitted fixture tap refuses zero-area answer geometry and zero-area co
     node.getClientRects = () => [{ width: 0, height: 0 }];
     await tap(f.handle); assert.equal(f.approvals.length, 0);
   }
+});
+
+test('a non-resume attachment cannot satisfy first-TEST resume readiness by filename or label guessing', async () => {
+  const f = await fixture({ change: e => {
+    e.answers[1] = { ...e.answers[1], label: 'Resume-like attachment', shown: 'resume.pdf', factId: 'cover-letter-file' };
+    e.ledger[1].fact_refs = ['cover-letter-file'];
+  } });
+  await tap(f.handle); assert.equal(f.approvals.length, 0); assert.notEqual(f.handle.getState(), 'open');
+});
+
+test('other attachments retain their exact file fingerprints without being relabelled as the resume', async () => {
+  const f = await fixture({ change: e => {
+    e.answers.push({ ...e.answers[1], name: 'cover', label: 'Cover letter', shown: 'Letter.pdf', factId: 'cover-letter-file' });
+    e.ledger.push({ ...e.ledger[1], field_id: 'cover', fact_refs: ['cover-letter-file'] });
+  } });
+  const field = descendants(f.handle.disclosure).find(node => node.tagName === 'SECTION' && node.children.some(child => child.tagName === 'H5' && child.textContent.startsWith('Cover letter')));
+  assert.ok(field.textContent.includes('File SHA-256: ' + HASH)); assert.ok(!field.textContent.includes('Resume SHA-256:'));
+  await tap(f.handle); assert.equal(f.approvals.length, 1);
 });

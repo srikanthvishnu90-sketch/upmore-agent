@@ -55,7 +55,12 @@
       insist(text(answer.name) && text(answer.label) && typeof answer.value === 'string' && typeof answer.shown === 'string' && text(answer.factId));
       insist(!names.has(answer.name)); names.add(answer.name);
       insist(['text', 'select', 'choice', 'checkbox', 'file', 'listed'].includes(answer.kind));
-      if (answer.kind === 'file') { insist(SHA.test(answer.file) && text(answer.shown)); files++; }
+      if (answer.kind === 'file') {
+        insist(SHA.test(answer.file) && text(answer.shown));
+        // The canonical producer names its approved local resume this way. This distinguishes attachments;
+        // it does not replace the manifest/event checks enforced by the submission contract.
+        if (answer.factId === 'approved-local-resume:' + answer.file) files++;
+      }
       else insist(answer.file === null);
     }
     // This first TEST delivery is explicitly resume-bound. Fileless cards are not enabled.
@@ -142,7 +147,7 @@
             const field = node('section', undefined, application);
             node('h5', answer.label + ' [' + answer.name + ']', field);
             const shown = node('pre', answer.shown, field); shown.style.whiteSpace = 'pre-wrap'; shown.style.overflowWrap = 'anywhere';
-            if (answer.kind === 'file') node('p', 'Resume SHA-256: ' + answer.file, field);
+            if (answer.kind === 'file') node('p', (answer.factId === 'approved-local-resume:' + answer.file ? 'Resume' : 'File') + ' SHA-256: ' + answer.file, field);
             if (answer.value !== answer.shown) { node('p', 'Exact value sent:', field); const value = node('pre', answer.value, field); value.style.whiteSpace = 'pre-wrap'; value.style.overflowWrap = 'anywhere'; }
           }
           node('p', entry.blank.length ? 'Left blank: ' + entry.blank.join('; ') : 'No listed fields are left blank.', application);

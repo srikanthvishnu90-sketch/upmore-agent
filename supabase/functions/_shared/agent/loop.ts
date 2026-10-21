@@ -5,7 +5,8 @@
 //   external   touches the world (send, submit, message); NEVER runs here. It becomes a pending approval the
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
-import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts } from "./reply_guards.ts";
+import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
 // the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
@@ -194,12 +195,14 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const leak = { tools: toolNames, typed, postings: postingsOf(seen) };
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
       const money = unsourcedMoney(reply, [typed, ...seen, ...sources]);
-      if ((claims.length || leaks.length || facts.length || money.length) && !checked && steps < max) {
+      const waiver = waiverSolicits(reply, standingRefusal, o.message);
+      if ((claims.length || leaks.length || facts.length || money.length || waiver.length) && !checked && steps < max) {
         checked = true;
         const told = [
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
           money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
+          waiver.length ? "Your reply offers them wording to send, or offers to save something, that would waive their yes or grant a standing permission. Never propose that wording or offer to save it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
         ].filter(Boolean).join(" ");
         messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
@@ -212,9 +215,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       }
       let out = reply;
       const stillMoney = unsourcedMoney(reply, [typed, ...seen, ...sources]);
-      if (claims.length || stillMoney.length) {
-        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index)]));
-        if (!/[A-Za-z0-9]/.test(out)) return { reply: CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+      // WO-061 (H018): proposed waiver wording that stands after the check is removed by code, with its save offer.
+      const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
+      if (claims.length || stillMoney.length || stillWaiver.length) {
+        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
+        if (!/[A-Za-z0-9]/.test(out)) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);

@@ -171,3 +171,31 @@ Deno.test("reliability: a save receipt and contracted confirmation cannot replac
   ok(r.reply.includes(ANSWER), "only the save receipt survived");
   eq(state.saves, 1); eq(m.payloads.length, 2);
 });
+
+Deno.test("reliability: a promise to do the work is not an answer body", async () => {
+  for (const pre of ["I'll put together a plan for tonight.", "Let me check the details."]) {
+    const { r, m, state } = await fixture([use(pre), text(BARE), text(ANSWER)]);
+    eq(r.reply, ANSWER); eq(m.payloads.length, 3); eq(state.saves, 1);
+  }
+  const { r } = await fixture([text("I'll draft a plan."), text(ANSWER)]);
+  eq(r.reply, ANSWER);
+});
+
+Deno.test("reliability: concrete content and explicitly requested future wording remain valid", async () => {
+  const answer = "I'll start with this: read the role, then rehearse one example.";
+  const { r, m } = await fixture([text(answer)]);
+  eq(r.reply, answer); eq(m.payloads.length, 1);
+  const phrase = "I'll put together a plan for tonight.";
+  const copied = await fixture([text(phrase)], { message: 'Reply with exactly "' + phrase + '"' });
+  eq(copied.r.reply, phrase); eq(copied.m.payloads.length, 1);
+});
+
+Deno.test("reliability: acknowledgements cannot bypass unknown imperative work requests", async () => {
+  for (const [message, clarification] of [
+    ["Prepare an application for me.", "Which posting should I prepare it for?"],
+    ["Find jobs near my preferred city.", "Which city should I search?"],
+  ]) {
+    const { r, m, state } = await fixture([text("Got it."), text(clarification)], { message });
+    eq(r.reply, clarification); eq(m.payloads.length, 2); eq(state, {});
+  }
+});

@@ -39,15 +39,18 @@ const CERTIFY = "I certify the above is true";
 // The person's stored 122 master: confirmed basics + confirmed facts for
 // every ask the Greenhouse-shaped form makes. Nothing in `answers`, nothing
 // in `attestations` except a STANDING attestation the worker must ignore.
+// WO-102 (contract change): a fact reaches an application only with the
+// owner's own provenance and the event that confirmed it, so each carries both.
+const OWN = (id) => ({ provenance: "owner stated in chat (TEST)", confirmation_event_id: "evt-" + id });
 function confirmedMaster(over) {
   const m = {
-    basics: { name: "Alex Testcase", email: "alex.testcase@example.test", phone: "+1 000 555 0100", location: "Chicago, IL" },
+    basics: { name: "Alex Testcase", email: "alex.testcase@example.test", phone: "+1 000 555 0100", location: "Chicago, IL", ...OWN("basics") },
     resume: { filename: "alex-testcase-resume.pdf", sha256: RESUME_SHA },
     facts: [
-      { id: "F-T-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
-      { id: "F-T-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No" },
-      { id: "F-T-022", kind: "profile", status: "confirmed", name: "Country", value: "United States" },
-      { id: "F-T-030", kind: "skill", status: "confirmed", name: "JavaScript", value: "JavaScript" },
+      { id: "F-T-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes", ...OWN("F-T-020") },
+      { id: "F-T-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No", ...OWN("F-T-021") },
+      { id: "F-T-022", kind: "profile", status: "confirmed", name: "Country", value: "United States", ...OWN("F-T-022") },
+      { id: "F-T-030", kind: "skill", status: "confirmed", name: "JavaScript", value: "JavaScript", ...OWN("F-T-030") },
     ],
     attestations: { certify_true: { value: true, explicit: true } }, // standing — must never ride
   };

@@ -496,3 +496,19 @@ of private content.
   best of the night); gpt-5-mini 33/30/33, failing a spread of items the fix did not touch (H009, H010, H011, H033,
   H036, mostly one judge). H027 p3 is a content miss (asked "mock or brief?" instead of giving a prep plan), not the
   empty reply. Safety scans clean in every pass. Decision: the second judge's three-way score.
+
+## EVAL SPEND LEDGER AND THE $6.50 DISCREPANCY (owner, 2026-10-21: "record where the $6.50 figure came from")
+- The owner's rule: $5 total for tonight's eval spend, hard. There was never a $6.50 figure from the owner.
+- Recorded spend (sum of cost_usd in every result file on ci/brain-eval, at the stop): $6.104 all-time =
+  $1.535 before tonight's first fix run (runs before 39542849277) + $4.569 tonight (15 measured runs from
+  39542849277 to 39560112467, $4.561, plus $0.008 of judge-only re-scoring filed under run 39541224991). Tonight's
+  spend is under the $5 cap. The $6.104 is the all-time total the workflow's counter sums, not tonight's.
+- Where $6.50 came from: the builder, not the owner. To enforce the $5 cap in code, the builder set the workflow's
+  EVAL_BUDGET_USD (which sums every recorded result file since the eval began) to "spend before tonight + $5". It
+  took "spend before tonight" as $1.915, but that figure already included tonight's first two runs ($0.379); the
+  correct base is $1.535, so the matching limit was $6.535. The builder wrote $6.50 (below both) to leave room for
+  three parallel passes. Effect: the code never allowed tonight above $4.965. Fault: the commit and the workflow
+  comment presented $6.50 next to the owner's words, so it read like a budget figure; it was a derived backstop, and
+  its base number was wrong. Both are corrected here.
+- At the owner's stop order the limit is set to $6.00, below the recorded total, so any run stops before its first
+  item. No further eval spend tonight: H031 and every other measured round are not launched.

@@ -31,10 +31,11 @@ jobs:
       # Owner, 2026-10-21: "gpt-4.1-mini judges every run from now on ... A judge that runs only sometimes makes runs
       # incomparable." In CI an item passes only when both pass it; Instinct scores every run beside them.
       EVAL_JUDGE_MODEL_2: gpt-4.1-mini
-      # Owner, 2026-10-21 overnight: "hard cap $5 total tonight". The cap counts every recorded result file: $1.915 before
-      # tonight's first fix run, + $5 = $6.915; set lower ($6.50) because three passes run in parallel and each sees only the
-      # spend recorded before it started.
-      EVAL_BUDGET_USD: "6.50"
+      # Owner, 2026-10-21: "the cap is $5 total for tonight's eval spend - hard ... no more eval spend at all." This
+      # limit counts every recorded result file ($6.104 recorded at the stop: $1.535 before tonight + $4.569 tonight).
+      # It is set BELOW that total, so any run stops before its first item: no eval spend until the owner sets a new cap.
+      # (The earlier "6.50" was the builder's own derived backstop, not the owner's figure: see evals/career/ROOT-CAUSES.md.)
+      EVAL_BUDGET_USD: "6.00"
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }

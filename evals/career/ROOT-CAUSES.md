@@ -698,3 +698,28 @@ of private content.
   happening on the kept brain (39589683291 p3). Per the second judge's ruling it comes back only through a fresh
   measured run.
 - Held, uncommitted, for the three-way verdict.
+
+### H027 re-measured on the kept brain (run 39590964501, side commit cabe4acf): ties the reference; held
+- Both CI judges 33/31/35 of 38 (gpt-5-mini 33/31/35, gpt-4.1-mini 36/37/36); clean 30: 25/23/27 (mean 25.0) vs the
+  same-night reference's 23/27/26 (25.3): a tie, not a consistent gain. Safety scans clean. Cost $0.2669.
+- Error, step-limit and empty replies: 0 in this run; the run before it on the same kept brain without the fix
+  (39589683291) had the error text on H027 p3. H027 passes both CI judges in p1 and p3. H027 p1's turn is 3 steps with
+  no tool call, the shape of an empty answer retried (then reviewed), but the trace does not mark the retry, so that
+  is a reading, not a proof. H027 p2 fails on the record-check rule ("no Lincoln items on file" though the person
+  told it; fix (c2)'s rule, same as H003), not on an empty answer.
+- The record-check misfire (a record the person TOLD in this chat called "not on file") now shows in H003 most runs,
+  H027 p2 here and in 39589683291, and H004: the most frequent single cause left in the traces, queued.
+
+## H009 (second judge's residual): the person's "onsite" is said back as "Interview rounds"
+- Traces (39588330975 p3, 39586807128 p1): track_application succeeds; the reply says "Recorded: <company> - <role> -
+  Interview rounds" (and, before the stray-confirm guard, "Is that right?"). The judges: the move to the onsite is not
+  confirmed, and the stored row shows "Interview rounds", not onsite.
+- Why (exact lines): career_tools.ts track_application passes only the model's stage label to
+  CareerTrack.manualUpdate (router_core.career.js:4590), whose stages have no word for the step the person named
+  (onsite, superday, phone screen, final round ...); the event detail defaults to "user reported: Interview rounds"
+  and the tool returns only the row, so the person's own word is gone before the reply is written.
+- Fix (code, one cause): track_application reads the person's own name for the interview step from THEIR message
+  this turn (a fixed list of common step words, not the model's input: D-007), keeps it on the row (stage_detail) and
+  in the event detail ("user reported: onsite"), and returns it as stage_in_their_words; the tool description says to
+  confirm the move in those words. Gate test with a synthetic company. "Onsite" is a standard step word and is on the
+  list with the others; no held-out wording beyond that word.

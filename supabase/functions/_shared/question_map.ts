@@ -50,6 +50,11 @@ function ackShaped(q: Question, t: string): boolean {
   return (onlyAck || statement || (q.type === "checkbox" && t.length > 100 && !t.includes("?"))) && !/on-?site|in-?office|in office|relocat|days (a|per) week/.test(t);
 }
 
+// Where the person lives, as a location question asks it.
+const RESIDENCE = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+// The same sentence asking where the person is and their right to work there (FRS QA bug 4).
+const RESIDENCE_ASKED = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+const WORK_RIGHTS = /\bright to work\b|\bauthori[sz](ed|ation)\b|\beligib\w*\b|\bwork permit\b|\bvisa\b|\bsponsor/;
 // Ordered: files, then identity and contact, address, links, work, availability, pay, education, skills, authorization,
 // legal, consent, application, job screens, essays. A rule's `when` narrows it (a type, a shape of options).
 const RULES: Rule[] = [
@@ -111,7 +116,10 @@ const RULES: Rule[] = [
   // U.S?" names two. Only about the person ("you ... located in"), never compound with authorization, a move or a distance.
   ["country", /\byou (are )?(currently |presently |now )?(live|living|reside|residing|based|located) in (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk)( or (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk))?(?![a-z])/, (q, t) => !/authori|sponsor|visa|able to work|right to work|willing|relocat|commut|eligib|permit|miles|within \d|citizen/.test(t)],
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
-  ["location", /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
+  // FRS QA bug 4 (Prolific): "Are you currently based in and can verify right to work from one of the following
+  // countries?" asks where the person is AND their right to work there: never the location fact alone (one half). Asked.
+  ["unknown", RESIDENCE, (q, t) => t.split(/(?<=[.?!])\s+/).some((x) => RESIDENCE_ASKED.test(x) && WORK_RIGHTS.test(x))],
+  ["location", RESIDENCE, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
 
   ["how_heard", /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/, (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)],
   ["unknown", /\bconsecutive weeks\b|\binternship\/co-?op duration\b/],

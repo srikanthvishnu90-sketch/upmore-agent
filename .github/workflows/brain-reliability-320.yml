@@ -19,13 +19,13 @@ jobs:
       SOURCE_COMMIT: 1ec88f3cca4b21200be5c4f16ba2a948a72614b0
       CORPUS_SHA256: 91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc
       MINI_APPROVAL_REF: OWNER_20261021_MINI_22671697_0cb4b980_CAP5
-      HIGHER_APPROVAL_REF: NOT_APPROVED
+      HIGHER_APPROVAL_REF: OWNER_EXPLICIT_OVER_10:20261021_BOTH_MODELS_TOTAL20
       OWNER_POOL_REF: OWNER_20261021_DUAL_MODEL_TOTAL20_NEW_BUDGET35
       # The owner allocated $20 across both runs; the earlier $0.139984 is separate.
       COMPARISON_CAP_USD: "20"
-      FIRST_ARM_RUN_ID: NOT_RUN
-      FIRST_ARM_RESULT_SHA256: NOT_RUN
-      FIRST_ARM_VERIFY_REF: NOT_VERIFIED
+      FIRST_ARM_RUN_ID: "39666739440"
+      FIRST_ARM_RESULT_SHA256: 72539f4b441f29c9a35e3f68385e2d15b01cb91aca57979a7bdbe08472ddd927
+      FIRST_ARM_VERIFY_REF: CODEX_RECOVERY_39669772205_LEDGER_2181_CALLS
       HIGHER_RECHECK_APPROVAL_REF: NOT_APPROVED
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
@@ -121,9 +121,9 @@ jobs:
         if: always()
         run: |
           if test -f "$RUNNER_TEMP/brain320-result.json"; then
-            deno eval 'import {armSummary} from "./evals/brain-reliability/run-comparison.ts"; const raw=Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.json"); const a=JSON.parse(raw); const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw)); const result_sha256=[...new Uint8Array(hash)].map(n=>n.toString(16).padStart(2,"0")).join(""); console.log(JSON.stringify({result_sha256,...armSummary(a)},null,2));'
+            deno eval 'import {armSummary} from "./evals/brain-reliability/run-comparison.ts"; const raw=await Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.json"); const a=JSON.parse(raw); const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(raw)); const result_sha256=[...new Uint8Array(hash)].map(n=>n.toString(16).padStart(2,"0")).join(""); console.log(JSON.stringify({result_sha256,...armSummary(a)},null,2));'
           elif test -f "$RUNNER_TEMP/brain320-result.journal.jsonl"; then
-            deno eval 'import {recoverJournal} from "./evals/brain-reliability/run-comparison.ts"; const r=recoverJournal(Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.journal.jsonl")); console.log(JSON.stringify({status:"NOT_SCORED",ledger:r},null,2));'
+            deno eval 'import {recoverJournal} from "./evals/brain-reliability/run-comparison.ts"; const r=recoverJournal(await Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.journal.jsonl")); console.log(JSON.stringify({status:"NOT_SCORED",ledger:r},null,2));'
           else
             echo 'NOT_RUN: no provider-call reservation journal exists'
           fi

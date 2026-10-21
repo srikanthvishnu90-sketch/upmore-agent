@@ -1,4 +1,4 @@
-# Owner-approved mini arm. Source, corpus and spend controls are pinned below.
+# Owner-approved comparison. Higher arm stays held until failure analysis is reported.
 # Publishing this on a wo/ branch does not trigger any paid job.
 name: brain-reliability-320
 on:
@@ -19,14 +19,18 @@ jobs:
       SOURCE_COMMIT: 1ec88f3cca4b21200be5c4f16ba2a948a72614b0
       CORPUS_SHA256: 91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc
       MINI_APPROVAL_REF: OWNER_20261021_MINI_22671697_0cb4b980_CAP5
-      HIGHER_APPROVAL_REF: OWNER_EXPLICIT_OVER_10:20261021_BOTH_MODELS_TOTAL20
+      HIGHER_APPROVAL_REF: OWNER_20261021_ANALYSIS_FIRST_HIGHER_CAP8
       OWNER_POOL_REF: OWNER_20261021_DUAL_MODEL_TOTAL20_NEW_BUDGET35
       # The owner allocated $20 across both runs; the earlier $0.139984 is separate.
       COMPARISON_CAP_USD: "20"
+      HIGHER_CAP_USD: "8"
       FIRST_ARM_RUN_ID: "39666739440"
       FIRST_ARM_RESULT_SHA256: 72539f4b441f29c9a35e3f68385e2d15b01cb91aca57979a7bdbe08472ddd927
       FIRST_ARM_VERIFY_REF: CODEX_RECOVERY_39669772205_LEDGER_2181_CALLS
-      HIGHER_RECHECK_APPROVAL_REF: NOT_APPROVED
+      HIGHER_RECHECK_APPROVAL_REF: OWNER_20261021_POST_MINI_RECHECK_ANALYSIS_FIRST_CAP8
+      FAILURE_ANALYSIS_RUN_ID: NOT_REPORTED
+      FAILURE_ANALYSIS_REPORT_SHA256: NOT_REPORTED
+      FAILURE_ANALYSIS_REPORTED_REF: NOT_REPORTED
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Reject retries and unapproved proposals before checkout or provider access
@@ -43,6 +47,11 @@ jobs:
               [[ "$FIRST_ARM_RUN_ID" =~ ^[0-9]+$ ]]
               [[ "$FIRST_ARM_RESULT_SHA256" =~ ^[a-f0-9]{64}$ ]]
               test "$FIRST_ARM_VERIFY_REF" != "NOT_VERIFIED"
+              [[ "$FAILURE_ANALYSIS_RUN_ID" =~ ^[0-9]+$ ]]
+              [[ "$FAILURE_ANALYSIS_REPORT_SHA256" =~ ^[a-f0-9]{64}$ ]]
+              test -n "$FAILURE_ANALYSIS_REPORTED_REF"
+              test "$FAILURE_ANALYSIS_REPORTED_REF" != "NOT_REPORTED"
+              test "$HIGHER_CAP_USD" = "8"
               ;;
             *) exit 2 ;;
           esac
@@ -93,10 +102,16 @@ jobs:
               spent=mini["ledger"]["usd_micros"]
               assert isinstance(spent,int) and 0<=spent<=5_000_000
               assert mini["model"]=="gpt-5-mini" and mini["status"]=="SCORED"
+              assert os.environ["HIGHER_CAP_USD"]=="8"
+              higher_cap_micros=min(8_000_000,20_000_000-spent)
+              assert higher_cap_micros>0
               # The runner verifies all result, usage, rubric and same-source identities again before any call.
               approval.update({"comparison_spent_usd":spent/1_000_000,
-                "cap_usd":(20_000_000-spent)/1_000_000,
-                "approved_over_ten":20_000_000-spent>10_000_000,
+                "cap_usd":higher_cap_micros/1_000_000,
+                "approved_over_ten":False,
+                "failure_analysis":{"run_id":os.environ["FAILURE_ANALYSIS_RUN_ID"],
+                  "report_sha256":os.environ["FAILURE_ANALYSIS_REPORT_SHA256"],
+                  "reported_ref":os.environ["FAILURE_ANALYSIS_REPORTED_REF"]},
                 "first_arm_evidence":{"result_path":str(first),"sha256":digest,
                   "verified_by":"Codex from the first CI arm and its complete artifact",
                   "verification_ref":os.environ["FIRST_ARM_VERIFY_REF"]}})

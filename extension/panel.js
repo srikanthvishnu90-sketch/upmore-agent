@@ -27,7 +27,7 @@ async function render() {
   await targetTab();
   const st = await send({ type: "status", tabId });
   if (mine !== renderSeq) return;
-  if (factImport && (!st.signedIn || st.email !== factImport.account)) clearFactImport();
+  if (factImport && (!st.signedIn || st.email !== factImport.account || st.user_id !== factImport.actor)) clearFactImport();
   last = st;
   $("signin").hidden = st.signedIn;
   $("setup").hidden = !st.signedIn;
@@ -396,7 +396,7 @@ $("facts").onchange = async (e) => {
     if (!account) throw Error("Sign in before reviewing your answers.");
     const parsed = parseFactImport(await f.text());
     if (mine !== factImportSeq || !last?.signedIn || last.email !== account) return;
-    factImport = { ...parsed, account, file: f.name, confirmed: new Set(), busy: false };
+    factImport = { ...parsed, account, actor: last.user_id, file: f.name, confirmed: new Set(), receipts: new Map(), rejected: new Map(), attempts: new Map(), busy: false };
     renderFactImport();
     text($("fact-import-msg"), `${parsed.items.length} draft answer${parsed.items.length === 1 ? "" : "s"} ready to review. Nothing is imported yet.`);
   } catch (error) {
@@ -408,6 +408,7 @@ $("facts").onchange = async (e) => {
 function parseFactImport(raw) {
   const doc = JSON.parse(raw), record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
   if (!record(doc) || (!Object.hasOwn(doc, "answers") && !Object.hasOwn(doc, "saved"))) throw Error("Choose an answers/saved facts JSON file. Raw profiles and resumes are not supported here. Nothing was imported.");
+  if ((doc.format !== undefined && doc.format !== "trainee-facts") || (doc.version !== undefined && doc.version !== 1)) throw Error("That facts format or version is not supported. Nothing was imported.");
   const owners = new Set(), items = [];
   const owner = (v) => {
     if (v === undefined || v === null || v === "") return;
@@ -421,7 +422,7 @@ function parseFactImport(raw) {
     for (const [key, a] of Object.entries(values)) {
       if (["__proto__", "constructor", "prototype"].includes(key) || !record(a) || typeof a.value !== "string" || !a.value.trim() || typeof a.factId !== "string" || !a.factId.trim() || a.factId.length > 200) throw Error("Every answer needs text and a valid file fact reference. Nothing was imported.");
       owner(a.user_id);
-      items.push({ group, key, value: a.value, factId: a.factId, ...(a.user_id ? { user_id: a.user_id } : {}) });
+      items.push({ group, key, value: a.value, factId: a.factId, raw: structuredClone(a), ...(a.user_id ? { user_id: a.user_id } : {}) });
     }
   }
   if (owners.size > 1) throw Error("That file contains answers from different accounts. Nothing was imported.");
@@ -448,7 +449,8 @@ function renderFactImport() {
   preview.items.forEach((item, index) => {
     const li = document.createElement("li"), label = document.createElement("b"), value = document.createElement("p"), reference = document.createElement("p");
     const confirmed = preview.confirmed.has(index);
-    li.dataset.state = confirmed ? "confirmed" : "draft";
+    const rejection = preview.rejected.get(index);
+    li.dataset.state = confirmed ? "confirmed" : rejection ? "rejected" : "draft";
     label.textContent = `${item.group === "saved" ? "Saved answer" : "Answer"}: ${item.key}`;
     value.className = "fact-import-value";
     value.textContent = item.value;
@@ -458,8 +460,13 @@ function renderFactImport() {
     if (confirmed) {
       const done = document.createElement("span");
       done.dataset.importState = "confirmed";
-      done.textContent = "Confirmed for this browser session.";
+      done.textContent = `Confirmed for this browser session. Receipt: ${preview.receipts.get(index).confirmation_event_id}`;
       li.append(done);
+    } else if (rejection) {
+      const why = document.createElement("p");
+      why.className = "msg warn";
+      why.textContent = `Not imported: ${rejection}`;
+      li.append(why);
     } else {
       const button = document.createElement("button");
       button.textContent = preview.uncertain === index ? "Retry this exact answer" : "Confirm this answer";
@@ -477,19 +484,39 @@ async function confirmImportedAnswer(e, preview, index) {
   try {
     const active = await send({ type: "status", tabId: await targetTab() });
     if (factImport !== preview) return;
-    if (!active.signedIn || active.email !== preview.account) { clearFactImport(); return; }
-    const confirmed = new Set([...preview.confirmed, index]);
-    const doc = { ...(preview.owner ? { user_id: preview.owner } : {}), answers: {}, saved: {} };
-    for (const n of confirmed) {
-      const item = preview.items[n];
-      doc[item.group][item.key] = { value: item.value, factId: item.factId, confirmed: true, ...(item.user_id ? { user_id: item.user_id } : {}) };
+    if (!active.signedIn || active.email !== preview.account || !active.user_id || active.user_id !== preview.actor) { clearFactImport(); return; }
+    const item = preview.items[index];
+    let attempt = preview.attempts.get(index);
+    if (!attempt) {
+      const doc = { format: "trainee-facts", version: 1, user_id: preview.owner || active.user_id, answers: {}, saved: {} };
+      doc[item.group][item.key] = item.raw;
+      const json = JSON.stringify(doc), offered = await send({ type: "import-facts", phase: "preview", json });
+      if (factImport !== preview) return;
+      const receipt = offered?.receipt;
+      const candidate = receipt?.needs_review?.find((r) => r.table === item.group && r.key === item.key && r.factId === item.factId);
+      if (!offered?.ok || receipt?.actor_id !== active.user_id || !receipt?.review_token || !candidate) {
+        const why = receipt?.rejected?.find((r) => r.table === item.group && r.key === item.key)?.reason;
+        if (why) preview.rejected.set(index, why);
+        text($("fact-import-msg"), why || offered?.message || "No exact-row review receipt was returned. Nothing was confirmed.", true);
+        return;
+      }
+      attempt = { type: "import-facts", phase: "confirm", json, actor_id: active.user_id, review_token: receipt.review_token, payload_hash: receipt.payload_hash,
+        row: { table: candidate.table, key: candidate.key, factId: candidate.factId, value_hash: candidate.value_hash } };
+      preview.attempts.set(index, attempt);
     }
-    const r = await send({ type: "import-facts", json: JSON.stringify(doc) });
+    const r = await send(attempt);
     if (factImport !== preview) return;
-    if (!r?.ok) { text($("fact-import-msg"), r?.message || "The answer was not imported. Try again.", true); return; }
-    preview.confirmed = confirmed;
+    const accepted = r?.receipt?.accepted?.find((a) => a.table === item.group && a.key === item.key && a.factId === item.factId && a.value_hash === attempt.row.value_hash && a.actor_id === active.user_id && a.confirmation_event_id);
+    if (!r?.ok || !accepted) {
+      preview.attempts.delete(index);
+      const why = r?.receipt?.rejected?.find((a) => a.table === item.group && a.key === item.key)?.reason;
+      if (why) preview.rejected.set(index, why);
+      text($("fact-import-msg"), why || r?.message || "The server did not confirm this exact answer. Nothing was marked confirmed.", true); return;
+    }
+    preview.confirmed.add(index);
+    preview.receipts.set(index, accepted);
     delete preview.uncertain;
-    text($("fact-import-msg"), `${confirmed.size} answer${confirmed.size === 1 ? "" : "s"} confirmed for this browser session. No application was approved.`);
+    text($("fact-import-msg"), `${preview.confirmed.size} answer${preview.confirmed.size === 1 ? "" : "s"} confirmed for this browser session. No application was approved.`);
     render();
   } catch {
     if (factImport === preview) {

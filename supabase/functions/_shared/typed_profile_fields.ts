@@ -2,7 +2,7 @@
 // the owner, positive provenance and confirmation event must already exist and pass trustedManifest unchanged.
 import { FACT_SCHEMA } from './fact_schema.ts';
 
-type Key = 'country' | 'work_authorization' | 'phone' | 'full_name' | 'email';
+type Key = 'country' | 'work_authorization' | 'phone' | 'full_name' | 'first_name' | 'last_name' | 'email';
 interface FieldRow {
   value: string; factId: string; confirmed: true; user_id: string;
   provenance: string; confirmation_event_id: string; derived_from?: string[];
@@ -16,10 +16,10 @@ const clean = (v: unknown) => typeof v === 'string' ? v.trim().replace(/[.!]+$/,
 const US = /^(?:the )?(?:US|U\.S\.?|USA|United States(?: of America)?)$/i;
 const countryValue = (s: string) => /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(s) && !/\b(?:not|unknown|maybe|perhaps|or|unsure)\b/i.test(s) ? s : null;
 const phoneValue = (s: string) => /^\+?[\d ()-]+$/.test(s) && s.replace(/\D/g, '').length >= 7 && s.replace(/\D/g, '').length <= 15 ? s : null;
-// Project only an explicit full-name clause. A whole name cannot identify a first name, last name, legal name or
-// signature; those stay separate questions. Controls (including invisible formatting) cannot be trimmed into values.
+// Each name field needs its own explicit clause: do not split a full name or combine parts into an unstated one.
+// Legal name and signature stay separate questions. Controls cannot be trimmed into values.
 const controls = (s: unknown) => typeof s === 'string' && /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(s);
-const fullNameValue = (s: string) => s.length <= 120 && /^\p{L}[\p{L}\p{M} .'-]*$/u.test(s) &&
+const nameValue = (s: string) => s.length <= 120 && /^\p{L}[\p{L}\p{M} .'-]*$/u.test(s) &&
   !/\b(?:not|unknown|maybe|perhaps|and|or|unsure)\b/i.test(s) ? s : null;
 const emailValue = (s: string) => s.length <= 254 && /^[A-Za-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(s) &&
   !s.startsWith('.') && !s.includes('..') && !s.includes('.@') && s.split('@')[0].length <= 64 &&
@@ -43,8 +43,12 @@ function fieldOf(f: any): { key: Key; value: string } | null {
   if ([f.text, f.name, f.title, f.value].some(controls)) return null;
   const t = clean(f.text), name = clean(f.name || f.title);
   let m: RegExpMatchArray | null;
+  if ((m = t.match(/^my (first|last) name is (.+)$/i))) {
+    const value = nameValue(clean(m[2]));
+    return value ? { key: m[1].toLowerCase() === 'first' ? 'first_name' : 'last_name', value } : null;
+  }
   if ((f.kind === 'profile' && /^full name$/i.test(name)) || (m = t.match(/^my full name is (.+)$/i))) {
-    const value = fullNameValue(clean(f.kind === 'profile' && /^full name$/i.test(name) ? f.value : m![1]));
+    const value = nameValue(clean(f.kind === 'profile' && /^full name$/i.test(name) ? f.value : m![1]));
     return value ? { key: 'full_name', value } : null;
   }
   if ((f.kind === 'profile' && /^email(?: address)?$/i.test(name)) || (m = t.match(/^my email(?: address)? is (.+)$/i))) {

@@ -56,6 +56,35 @@ Deno.test("typed writer flow: a full name never supplies guessed first or last n
   eq(r.plan.needs.length, 2, "missing names were not asked");
 });
 
+Deno.test("typed writer flow: separately confirmed first and last names fill their exact fields without re-asking", async () => {
+  const { profile, rows } = await write(["My first name is Anne Marie.", "My last name is de la Cruz."]);
+  const fields = [
+    { name: "first_name", label: "First name", type: "input_text", required: true, options: [] },
+    { name: "last_name", label: "Last name", type: "input_text", required: true, options: [] },
+  ];
+  const before = JSON.stringify(profile), r = application(profile, fields);
+  eq(Object.fromEntries(r.checked.fill.map(f => [f.name, f.value])), { first_name: "Anne Marie", last_name: "de la Cruz" }, "stated name parts were not filled exactly");
+  eq(r.plan.needs, [], "confirmed name parts were asked again");
+  eq(r.checked.asks, [], "canonical contract rejected confirmed name parts");
+  for (const f of r.checked.fill) {
+    const event = rows.find(e => e.kind === "fact_confirmed" && e.detail.id === f.factId);
+    assert(event?.user_id === OWNER, "name part lacks an actual writer event");
+    eq(r.manifest.byFactId[f.factId]?.event, event.detail.confirmation_event_id, "name part lost its writer event");
+  }
+  eq(JSON.stringify(profile), before, "projection rewrote name parts");
+  eq(application(profile, schema.slice(0, 1)).plan.needs.length, 1, "separate parts guessed an unstated full name");
+});
+
+Deno.test("typed writer flow: an explicitly confirmed first name leaves an unstated last name open", async () => {
+  const { profile } = await write(["My first name is Test."]);
+  const r = application(profile, [
+    { name: "first_name", label: "First name", type: "input_text", required: true, options: [] },
+    { name: "last_name", label: "Last name", type: "input_text", required: true, options: [] },
+  ]);
+  eq(r.checked.fill.map(f => f.name), ["first_name"], "first name authorized another name field");
+  eq(r.plan.needs.map(f => f.label), ["Last name"], "unstated last name was not asked");
+});
+
 Deno.test("typed writer flow: existing country, phone and US authorization also retain the real writer event", async () => {
   const { profile, rows } = await write(["My country is United States.", "My phone is +1 202 555 0147.", "I am authorized to work in the US."]);
   const fields = [
@@ -105,6 +134,7 @@ for (const [label, change] of [
 
 Deno.test("typed writer flow: ambiguous identity and control characters are asked without guessing", async () => {
   for (const text of ["My full name is Test Person or Other Person.", "My full name is Test Person and Other Person.", "My full name is unknown.", "My full name is Test\nPerson.",
+    "My first name is Test or Other.", "My first name is Test\u200b.", "My last name is unknown.", "My last name is de\nla Cruz.",
     "My email is test@example.invalid or other@example.invalid.", "My email is test\u200b@example.invalid.", "My email is test@example.invalid\n.",
     "My email is test..person@example.invalid.", "My email is " + "a".repeat(65) + "@example.invalid."]) {
     const { profile } = await write([text]), projected = typedProfileFile({ owner: OWNER, profile });

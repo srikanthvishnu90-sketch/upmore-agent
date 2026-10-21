@@ -70,3 +70,4 @@ Evidence: loop ledger Iteration 1 server-side result (~/workspace/your_files/rea
 Priority: P0
 Fix:
 Verified by:
+Follow-up (2026-10-20, Muse read-only diagnosis): the mechanism — the filter never had a chance. The executor's recency-ordered 600-posting window holds 246 SWE postings but ZERO intern-banded ones (bands in window: mid 224, senior 148, manager 113, staff 73, director 29, junior 5, intern 2 — both Operations; new_grad 1), so (family=SWE ∧ band=intern) is empty against the window, while the full shelf holds ~197 engineering-intern postings outside it. Classifiers, stamps, and filter all agree (counterfactual with fresh classifier output: still 0). Reproduced exactly by replaying the production path (600/5/0).

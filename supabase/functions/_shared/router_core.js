@@ -24406,6 +24406,7 @@ const CareerOutreach = (() => {
   function exportState(campaign) { return JSON.stringify(campaign); }
   function importState(json) { const c = typeof json === "string" ? JSON.parse(json) : JSON.parse(JSON.stringify(json)); return c; }
   // Gmail transport shape: wraps a caller-supplied Gmail API client (OAuth held by the host, never here).
+  // C1 Buffer sweep: global Buffer, absent on the hosted edge — unreachable there (no edge caller; sends are disabled).
   function buildGmailRaw(msg) {
     const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
     return Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -48414,11 +48415,58 @@ const CareerRender = (() => {
   // vendored pure-JS codec below, so a render reached without an injected runtime (the router's own tailor turn inside
   // the bundle) still produces a valid PDF. `runtime.zlib`/`runtime.crypto` keep reporting what the HOST provided (the
   // WO-028 contract: renderWith refuses on a host without them); `runtime.codec` says which codec actually runs.
+  // C1 (tests/edge/edge-tailor-no-buffer.test.ts): the hosted Supabase edge runtime has NO global Buffer (Deno
+  // exposes one only from 2.4 on; the local deno 2.9 CLI and Node both do, so every local run passed). Without one the
+  // default instance refused every render, so the router's own tailor turn produced no PDF on the edge. EdgeBuffer is
+  // a Uint8Array-backed stand-in covering exactly the Buffer surface this module calls; make(rt) uses it only when the
+  // host provides no Buffer, and the bytes are identical to the Node path (same sha256).
+  const EdgeBuffer = (() => {
+    const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    class EdgeBuffer extends Uint8Array {
+      static isBuffer(v) { return v instanceof EdgeBuffer; }
+      static alloc(n) { return new EdgeBuffer(n); }
+      static from(v, enc) {
+        if (typeof v !== "string") return EdgeBuffer._of(v instanceof ArrayBuffer ? new Uint8Array(v) : v);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { const b = new EdgeBuffer(v.length); for (let i = 0; i < v.length; i++) b[i] = v.charCodeAt(i) & 0xff; return b; }
+        if (e === "hex") { const b = new EdgeBuffer(v.length >> 1); for (let i = 0; i < b.length; i++) b[i] = parseInt(v.substr(i * 2, 2), 16); return b; }
+        return EdgeBuffer._of(new TextEncoder().encode(v));
+      }
+      static _of(src) { const b = new EdgeBuffer(src.length); for (let i = 0; i < src.length; i++) b[i] = src[i]; return b; }
+      static concat(list) {
+        const b = new EdgeBuffer(list.reduce((n, x) => n + x.length, 0));
+        let o = 0; for (const x of list) { b.set(x, o); o += x.length; }
+        return b;
+      }
+      toString(enc, start, end) {
+        const v = this.subarray(start || 0, end === undefined ? this.length : end);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { let s = ""; for (let i = 0; i < v.length; i++) s += String.fromCharCode(v[i]); return s; }
+        if (e === "hex") { let s = ""; for (let i = 0; i < v.length; i++) s += v[i].toString(16).padStart(2, "0"); return s; }
+        if (e === "base64") {
+          let s = "";
+          for (let i = 0; i < v.length; i += 3) {
+            const n = (v[i] << 16) | ((v[i + 1] || 0) << 8) | (v[i + 2] || 0);
+            s += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (i + 1 < v.length ? B64[(n >> 6) & 63] : "=") + (i + 2 < v.length ? B64[n & 63] : "=");
+          }
+          return s;
+        }
+        return new TextDecoder().decode(v);
+      }
+      copy(target, at) { target.set(this, at || 0); return this.length; }
+      readUInt16LE(o) { return this[o] | (this[o + 1] << 8); }
+      readUInt32LE(o) { return (this[o] | (this[o + 1] << 8) | (this[o + 2] << 16)) + this[o + 3] * 0x1000000; }
+      writeUInt16LE(v, o) { this[o] = v & 0xff; this[o + 1] = (v >>> 8) & 0xff; return o + 2; }
+      writeUInt32LE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (8 * i)) & 0xff; return o + 4; }
+      writeUInt32BE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (24 - 8 * i)) & 0xff; return o + 4; }
+    }
+    return EdgeBuffer;
+  })();
   const nodeReq = (m) => (typeof require !== "undefined" ? (() => { try { return require(m); } catch { return null; } })() : null);
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+  const Buffer = rt.Buffer || EdgeBuffer;
   // ================= pure-JS zlib + SHA-256 (edge fallback) =================
   // LANE F (the CHANNEL-DOC-1 blocker; Lane B record
   // docs/career/channel-doc-1-record-2026-10-20.md §5): in the Deno ESM
@@ -48628,10 +48676,10 @@ const CareerRender = (() => {
 
   // The renderers below read these two names. With the host's modules (Node, or Deno's node: built-ins via
   // withRuntime) they are the platform codec (byte-identical output); otherwise they are the vendored pure-JS
-  // implementations above (they need a Buffer). The `if (!zlib)` refusal branches in the renderers stay as defense
-  // in depth — they fire only when there is no Buffer either.
-  const zlib = rt.zlib || (Buffer ? pureZlib : null);
-  const crypto = rt.crypto || (Buffer ? pureCrypto : null);
+  // implementations above (over EdgeBuffer when the host has no Buffer). The `if (!zlib)` refusal branches in the
+  // renderers stay as defense in depth.
+  const zlib = rt.zlib || pureZlib;
+  const crypto = rt.crypto || pureCrypto;
 
   const PDF_CONTENT_TYPE = "application/pdf";
   const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -49281,8 +49329,8 @@ const CareerRender = (() => {
     return { format, filename: rendered.filename, contentType: rendered.contentType, bytes: rendered.buffer.length, sha256: sha256(rendered.buffer), base64: rendered.buffer.toString("base64") };
   }
 
-  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!Buffer, codec: rt.zlib && rt.crypto ? "platform" : zlib && crypto ? "vendored" : "none" };
-  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => (Buffer ? Buffer.from(bytes) : null), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
+  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!rt.Buffer, codec: rt.zlib && rt.crypto ? "platform" : "vendored" };
+  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => Buffer.from(bytes), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
   }
   return make(NODE_RUNTIME);
 })();

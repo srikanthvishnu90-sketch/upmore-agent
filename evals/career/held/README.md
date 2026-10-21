@@ -12,3 +12,8 @@
   - 1fcbaccf shared root cause, in-thread precedence (run 39560112467): targets H002/H003/H004/H005/H037 15/15 on
     both CI judges; three-way 79.8 / clean-30 80.0 (second judge) or 81.1 (builder's recount from the verdict files).
     REVERTED.
+
+- 7ec6edb8: H027 empty-answer retry (run 39583493501). REVERTED (second judge's ruling); diff kept in this note's
+  history only. Not resurrected without a fresh measured run against a same-night control.
+- 7fea2d65: H002 repeated-refusal stop (run 39586807128). Awaiting the second judge's verdict.
+- 86ddd57e: H031 v2. KEPT (second judge's ruling, run 39584579483); on wo/agent-slice.

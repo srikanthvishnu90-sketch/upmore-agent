@@ -11,9 +11,12 @@
 // Needs OPENAI_API_KEY (the judge; and the agent brain). Without it: NOT RUN, exit 2. A score is never faked.
 // Results: evals/career/results/<label>.json, plus the pass rate and failing ids on stdout.
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
-export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown }>;
+// `trace` (WO-061): per turn, how the agent loop ended and every tool it called (name, ok, error). Never shown to a judge;
+// it is there so a failure reply (the step-limit text) can be traced to its cause instead of guessed.
+export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[] }[];
+export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown; trace?: Trace }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
-export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
+export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; trace?: Trace; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
 export interface EvalResult { total: number; passed: number; pass_rate: number; items: EvalItemResult[]; planned: number; stopped: string | null }
 
 // stop: asked before each item; a reason ends the run there (the spend cap), and the items not run are not scored.
@@ -23,13 +26,13 @@ export async function runEval(items: EvalItem[], brain: Brain, judge: Judge, sto
   for (const it of items) {
     stopped = stop ? stop() : null;
     if (stopped) break;
-    let replies: string[] = [], state: unknown = null;
-    try { const r = await brain(it.turns); replies = r.replies; state = r.state; }
+    let replies: string[] = [], state: unknown = null, trace: Trace | undefined;
+    try { const r = await brain(it.turns); replies = r.replies; state = r.state; trace = r.trace; }
     catch (e) { out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `brain error: ${e instanceof Error ? e.message : String(e)}` }); continue; }
     try {
       const j = await judge(it, replies[replies.length - 1] ?? "", state);
       // The end state the judges saw is kept, so a later re-score (rejudge.ts) grades exactly what they graded.
-      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}), state: state ?? null });
+      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}), state: state ?? null, ...(trace ? { trace } : {}) });
     } catch (e) {
       out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `judge error: ${e instanceof Error ? e.message : String(e)}` });
     }
@@ -115,7 +118,7 @@ if (import.meta.main) {
     // failed with "job alerts are not configured here", a harness artifact the router (its own state) never paid.
     const alerts = memoryAlertStore();
     let now = T0;
-    const replies: string[] = [];
+    const replies: string[] = [], trace: Trace = [];
     const turnFn = async (a: any) => {
       const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: a.userId, now, snapshot: a.stores.snapshot ?? null });
       let reply: string;
@@ -128,6 +131,7 @@ if (import.meta.main) {
           alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [], threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
         const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }),
           known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
+        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })) });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {
@@ -142,7 +146,7 @@ if (import.meta.main) {
     }
     const p = await store.userFor("+15550001000");
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
-    return { replies, state: snap ? snap.stores : null };
+    return { replies, state: snap ? snap.stores : null, ...(brainName === "agent" ? { trace } : {}) };
   };
   const oneJudge = async (cfg: any, item: EvalItem, reply: string, state: unknown) => {
     const res = await callModel(cfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });

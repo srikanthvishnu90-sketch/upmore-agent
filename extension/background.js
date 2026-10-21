@@ -544,7 +544,7 @@ async function prepareQueue() {
   const more = waiting.length - workday - pick.length;
   if (more > 0) notes.push(`Only the next ${PREPARE_MAX} postings are read ahead (${more} more wait): each is a whole page held open in a hidden tab. Press Prepare again after them.`);
   if (!pick.length) return { ok: false, message: notes[0] || "Add some posting links first." };
-  const base = { status: "reading", total: pick.length, read: 0, notes, failed: [], questions: [], left: {}, open: 0, skipped: [], saved: [], refused: [] };
+  const base = { status: "reading", total: pick.length, read: 0, notes, failed: [], questions: [], standing: [], left: {}, open: 0, skipped: [], saved: [], refused: [] };
   await put(S, "answer_once", base);
   const results = new Array(pick.length);
   let next = 0, read = 0;
@@ -562,7 +562,7 @@ async function prepareQueue() {
     answers: f.answers, answered: new Set(f.answered) });
   const left = {};
   for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;
-  await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
+  await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, standing: merged.standing, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
     failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
   return { ok: true, questions: merged.questions.length };
 }
@@ -572,7 +572,8 @@ async function prepareQueue() {
 async function saveAnswerOnce(picks) {
   const st = await get(S, "answer_once", null);
   if (!st || st.status !== "ready") return { ok: false, message: "Press Prepare first." };
-  const live = st.questions.filter((q) => !st.skipped.includes(q.key) && !st.saved.includes(q.key));
+  // WO-074: a standing answer is saved by this same Save, beside the questions.
+  const live = [...(st.standing || []), ...st.questions].filter((q) => !st.skipped.includes(q.key) && !st.saved.includes(q.key));
   const r = C.answerOnceRows({ questions: live, picks: Array.isArray(picks) ? picks : [] });
   const saved = [];
   let failed = false;
@@ -589,7 +590,9 @@ async function saveAnswerOnce(picks) {
     }
   }
   await put(S, "answered_before", [...new Set([...(await get(S, "answered_before", [])), ...saved])]);
-  await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused });
+  // WO-074: a standing answer saved shows again, in this panel, the questions it covered and does not settle.
+  const reopen = (r.reopen || []).filter((x) => saved.includes(x.key)).flatMap((x) => x.keys);
+  await put(S, "answer_once", { ...st, saved: [...st.saved, ...saved], refused: r.refused, reopen: [...new Set([...(st.reopen || []), ...reopen])] });
   return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
 }
 

@@ -182,6 +182,9 @@ done
 # WO-069: the pay a board states for a posting, a column on career_postings (applied twice: idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
+# WO-074: standing answers kept under their class keys (applied twice: idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120200_career_apply_standing_answers.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120200_career_apply_standing_answers.sql"
 # WO-093: the deploy ledger (RLS on, no client access, the service role reads and appends, append-only for everyone).
 # Applied twice: idempotent. Its test, career_deploy_ledger.test.sql, runs in the loop below.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"

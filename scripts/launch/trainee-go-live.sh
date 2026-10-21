@@ -119,6 +119,7 @@ MIGRATIONS=(
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
   20261022120000_career_control_state.sql
+  20261022120200_career_apply_standing_answers.sql
   20261022120500_career_deploy_ledger.sql
   20261022150000_career_apply_authority.sql
   20261023100000_career_events_apply_queued.sql
@@ -160,6 +161,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_wanted') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
   "exists (select 1 from pg_proc where proname = 'career_quiet_users')"
+  "exists (select 1 from pg_constraint where conname = 'career_apply_questions_key_check' and pg_get_constraintdef(oid) like '%standing:%')"
   "to_regclass('public.career_deploy_ledger') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"

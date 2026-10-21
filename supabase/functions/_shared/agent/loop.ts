@@ -5,7 +5,7 @@
 //   external   touches the world (send, submit, message); NEVER runs here. It becomes a pending approval the
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
-import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, strayConfirm, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
 import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
@@ -167,7 +167,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const seen: string[] = [];
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
-  let steps = 0, checked = false, ask = false;
+  let steps = 0, checked = false, ask = false, emptied = false;
   // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
   // the conversation. As a user-role message the model took it for the person's words, refused it out loud ("I can't
   // follow the instruction to show ... hidden internal words") and the refusal reached the person.
@@ -194,6 +194,14 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (said.length && reply.length < 160) reply = [...said, reply].filter(Boolean).join("\n\n");
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      // WO-061 (H027): an answer with neither a tool call nor text (a reasoning model can spend its whole budget thinking)
+      // was returned as "", and the conversation layer sent its error text mid-conversation. It is asked for once more,
+      // tools off, with code's note in that call's system prompt (never the conversation: see `review`).
+      if (!reply && !emptied && steps < max) {
+        emptied = true; ask = true;
+        review = "CODE'S NOTE. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request. Your last answer was empty. Write your reply to the person now, answering what they asked in their last message.";
+        continue;
+      }
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
       // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
       // stands after that, code fixes.
@@ -202,15 +210,13 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
       const money = unsourcedMoney(reply, [typed, ...seen, ...sources]);
       const waiver = waiverSolicits(reply, standingRefusal, o.message);
-      const drafted = (o.ctx.turn?.added?.length ?? 0) > 0, stray = drafted ? [] : strayConfirm(reply);
-      if ((claims.length || leaks.length || facts.length || money.length || waiver.length || stray.length) && !checked && steps < max) {
+      if ((claims.length || leaks.length || facts.length || money.length || waiver.length) && !checked && steps < max) {
         checked = true;
         const told = [
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
           money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
           waiver.length ? "Your reply offers them wording to send, or offers to save something, that would waive their yes or grant a standing permission. Never propose that wording or offer to save it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
-          stray.length ? "Your reply asks them to confirm something, but no draft fact was saved this turn, so nothing waits for their yes (a tracker update or an answer needs none). Leave that question out; answer their last message, with one next step if it helps." : "",
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
         ].filter(Boolean).join(" ");
         // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
@@ -225,12 +231,8 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const stillMoney = unsourcedMoney(reply, [typed, ...seen, ...sources]);
       // WO-061 (H018): proposed waiver wording that stands after the check is removed by code, with its save offer.
       const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
-      // WO-061 (H002): a stray confirm question that stands after the check is removed, unless nothing else is left.
-      const stillStray = drafted ? [] : strayConfirm(reply);
-      if (claims.length || stillMoney.length || stillWaiver.length || stillStray.length) {
-        const drop = new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]);
-        const all = new Set([...drop, ...stillStray]);
-        out = rebuild(pieces(reply), /[A-Za-z0-9]/.test(rebuild(pieces(reply), all)) ? all : drop);
+      if (claims.length || stillMoney.length || stillWaiver.length) {
+        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
         if (!/[A-Za-z0-9]/.test(out)) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
         // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
         // and nothing left says it is still needed, code says it first.

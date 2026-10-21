@@ -669,6 +669,27 @@
    "run": "39588330975 (kept-brain reference, traced)",
    "read": "failing ids per judge; H009 and H002 traces (tool names, ok, errors) and failing last replies (250 chars)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H014",
+    "H026",
+    "H027",
+    "H033",
+    "H036",
+    "H038"
+   ],
+   "run": "39589683291",
+   "read": "failing ids per judge; traces, judge notes and last replies (260 chars) of H027 p2/p3, H036 p2, H003 p2; every reply in this run and in 39588330975 scanned by code for short confirm questions (counts only)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

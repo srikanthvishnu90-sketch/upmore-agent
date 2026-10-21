@@ -210,3 +210,13 @@ Deno.test("WO-061/R1 code's review of its draft never enters the conversation; t
   assert(!/REVIEW/.test(m.payloads[0].system), "the first call's system prompt is untouched");
   eq(r.reply, "You're set.");
 });
+
+Deno.test("WO-061/H027 an empty answer is asked for once more, tools off; the person never gets an empty reply", async () => {
+  const m = scripted([{ content: [], stop_reason: "end_turn" }, text("Here's a prep plan for your interview.")]);
+  const r = await runAgentTurn(base(m, { message: "help me prep for my interview" }));
+  eq(r.reply, "Here's a prep plan for your interview.", "the second answer is the reply");
+  eq(m.payloads.length, 2, "one retry");
+  eq(m.payloads[1].tool_choice, { type: "none" }, "the retry runs no tool");
+  assert(/Your last answer was empty/.test(m.payloads[1].system), "the note is in the retry's system prompt");
+  eq(m.payloads[1].messages.at(-1), { role: "user", content: [{ type: "text", text: "help me prep for my interview" }] }, "the person's message stays last");
+});

@@ -1,5 +1,5 @@
 import { costMicros, toOpenAI } from "../../supabase/functions/_shared/model_gateway.ts";
-import { armSummary, BudgetJournal, canonical, CATEGORY_COUNTS, compareArms, completeJudgment, fixtureBrain, independentSummary, modelPreflight, recoverJournal, reservationMicros, runArm, sha256, strictVerdict, validateApproval, validateCorpus, VERSION, type ArmResult, type CallMeta, type Corpus } from "../../evals/brain-reliability/run-comparison.ts";
+import { armSummary, BudgetJournal, canonical, CATEGORY_COUNTS, compareArms, completeJudgment, fixtureBrain, independentSummary, modelPreflight, recoverJournal, reservationMicros, runArm, sha256, strictVerdict, validateApproval, verifyFirstArm, validateCorpus, VERSION, type ArmResult, type CallMeta, type Corpus } from "../../evals/brain-reliability/run-comparison.ts";
 
 function assert(ok: unknown, why = "assertion failed"): asserts ok { if (!ok) throw new Error(why); }
 Deno.test("comparison: higher brain model has explicit uncached, cached and output prices", () => {
@@ -112,7 +112,7 @@ Deno.test("comparison: no score transfers to independent third judge or mismatch
   third.items[0].judging_packet_sha256 = "b".repeat(64); throws(() => independentSummary(a, third), "packet");
 });
 Deno.test("comparison: owner approval binds model, candidate, corpus and new-money headroom", () => {
-  const a = { owner_approval_ref: "unit-only owner fixture", model:"gpt-5",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:8,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:"2026-10-21T12:00:00Z" };
+  const a = { owner_approval_ref: "unit-only owner fixture", model:"gpt-5",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:8,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:"2026-10-21T12:00:00Z",comparison_cap_usd:20,comparison_spent_usd:0,first_arm_evidence:{result_path:"unit-only",sha256:"c".repeat(64),verified_by:"unit",verification_ref:"unit"} };
   validateApproval(a, a.model, a.source_commit, a.corpus_sha256,Date.parse(a.ledger_snapshot_at));
   throws(() => validateApproval(a,"gpt-5-mini",a.source_commit,a.corpus_sha256,Date.parse(a.ledger_snapshot_at)), "bound");
   throws(() => validateApproval({...a,cap_usd:12},a.model,a.source_commit,a.corpus_sha256,Date.parse(a.ledger_snapshot_at)), "over-$10");
@@ -183,8 +183,59 @@ Deno.test("comparison: passing overlap cases cannot lift sub95 clean heldout per
   assert(r.clean.n===311 && r.clean.passed===295 && !r.clean_heldout_threshold_met);
 });
 Deno.test("comparison: stale or future owner ledger snapshots fail before provider dispatch", () => {
-  const now=Date.parse("2026-10-21T17:00:00Z"), a={owner_approval_ref:"unit-only fixture",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:new Date(now).toISOString()};
+  const now=Date.parse("2026-10-21T17:00:00Z"), a={owner_approval_ref:"unit-only fixture",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:new Date(now).toISOString(),comparison_cap_usd:20,comparison_spent_usd:0};
   validateApproval(a,a.model,a.source_commit,a.corpus_sha256,now);
   throws(()=>validateApproval({...a,ledger_snapshot_at:new Date(now-1800001).toISOString()},a.model,a.source_commit,a.corpus_sha256,now),"no older");
   throws(()=>validateApproval({...a,ledger_snapshot_at:new Date(now+300001).toISOString()},a.model,a.source_commit,a.corpus_sha256,now),"future");
+});
+Deno.test("comparison: mini allocation and total comparison cap cannot exceed the owner's word", () => {
+  const now=Date.parse("2026-10-21T17:00:00Z"),a={owner_approval_ref:"unit-only fixture",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:new Date(now).toISOString(),comparison_cap_usd:20,comparison_spent_usd:0};
+  validateApproval(a,a.model,a.source_commit,a.corpus_sha256,now);
+  throws(()=>validateApproval({...a,cap_usd:5.000001},a.model,a.source_commit,a.corpus_sha256,now),"mini arm");
+  throws(()=>validateApproval({...a,comparison_cap_usd:21},a.model,a.source_commit,a.corpus_sha256,now),"$20");
+  throws(()=>validateApproval({...a,comparison_spent_usd:16},a.model,a.source_commit,a.corpus_sha256,now),"$20");
+});
+async function higherApproval(first:ArmResult) {
+  const raw=JSON.stringify(first),spent=first.ledger.usd_micros/1000000;
+  return {raw,a:{owner_approval_ref:"unit-only owner allocation",owner_allocated_pool_ref:"unit-only approved $20 pool",model:"gpt-5",source_commit:first.identity.source_commit,corpus_sha256:first.identity.corpus_sha256,
+    cap_usd:Math.round((20-spent)*1000000)/1000000,approved_over_ten:true,new_budget_spent_usd:null,other_reserved_usd:null,ledger_snapshot_at:null,comparison_cap_usd:20,comparison_spent_usd:spent,
+    first_arm_evidence:{result_path:"private-unit-fixture.json",sha256:await sha256(raw),verified_by:"unit judge",verification_ref:"unit verified artifact"}}};
+}
+Deno.test("comparison: higher arm uses only20 minus complete verified same-identity mini cost", async () => {
+  const first=arm(),{raw,a}=await higherApproval(first);
+  validateApproval(a,a.model,a.source_commit,a.corpus_sha256);
+  const proof=await verifyFirstArm(a,first.identity,raw);
+  assert(proof.exact_metered_usd===.00096 && proof.comparison_remaining_usd===19.99904);
+  throws(()=>validateApproval({...a,cap_usd:20},a.model,a.source_commit,a.corpus_sha256),"$20");
+  await rejects(()=>verifyFirstArm({...a,comparison_spent_usd:.000959},first.identity,raw),"differs from verified");
+});
+Deno.test("comparison: higher rejects missing, tampered, incomplete or different-source first-arm proof", async () => {
+  const first=arm(),{raw,a}=await higherApproval(first);
+  throws(()=>validateApproval({...a,first_arm_evidence:undefined},a.model,a.source_commit,a.corpus_sha256),"first-arm");
+  await rejects(()=>verifyFirstArm(a,first.identity,raw+" "),"byte hash");
+  await rejects(()=>verifyFirstArm(a,{...first.identity,source_commit:"d".repeat(40)},raw),"parameters differ");
+  await rejects(()=>verifyFirstArm(a,{...first.identity,corpus_sha256:"d".repeat(64)},raw),"parameters differ");
+  const incomplete=arm();incomplete.status="NOT_SCORED";const missing=await higherApproval(incomplete);
+  await rejects(()=>verifyFirstArm(missing.a,incomplete.identity,missing.raw),"complete, reconciled");
+  const wrong=arm("gpt-5"),bad=await higherApproval(wrong);
+  await rejects(()=>verifyFirstArm(bad.a,wrong.identity,bad.raw),"mini result");
+});
+Deno.test("comparison: mini over central estimate requires explicit owner recheck without changing candidate", async () => {
+  const first=arm();let callId=0;
+  first.calls=first.items.flatMap(i=>{
+    i.input_tokens=8;i.output_tokens=3400;i.usd_micros=6802;
+    return [0,1,2,3].map(n=>({...meta,call_id:++callId,case_id:i.id,category:i.category,model:n<2?"gpt-5-mini":n===2?"gpt-5-mini":"gpt-4.1-mini",role:n<2?"brain" as const:"judge" as const,
+      reserve_micros:10000,latency_ms:1,usage:{input_tokens:n<2?4:0,output_tokens:n<2?1700:0},usd_micros:n<2?3401:0,status:"settled" as const}));
+  });
+  first.ledger.usd_micros=first.items.reduce((n,i)=>n+i.usd_micros,0);
+  const {raw,a}=await higherApproval(first);validateApproval(a,a.model,a.source_commit,a.corpus_sha256);
+  await rejects(()=>verifyFirstArm(a,first.identity,raw),"explicit owner re-check");
+  const proof=await verifyFirstArm({...a,mini_over_estimate_recheck_ref:"unit-only explicit owner message"},first.identity,raw);
+  assert(proof.exact_metered_usd===2.17664 && proof.comparison_remaining_usd===17.82336);
+});
+Deno.test("comparison: owner-allocated pool accepts unknown global balances without inventing zeros", () => {
+  const a={owner_approval_ref:"unit-only approval",owner_allocated_pool_ref:"unit-only allocated $20",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:null,other_reserved_usd:null,ledger_snapshot_at:null,comparison_cap_usd:20,comparison_spent_usd:0};
+  validateApproval(a,a.model,a.source_commit,a.corpus_sha256);
+  throws(()=>validateApproval({...a,owner_allocated_pool_ref:undefined},a.model,a.source_commit,a.corpus_sha256),"allocated $20 pool");
+  assert(a.new_budget_spent_usd===null && a.other_reserved_usd===null);
 });

@@ -235,13 +235,53 @@ export async function fixtureBrain(it: Case, clock: string, model: (payload: any
 }
 
 export const COMPARISON_RUBRIC = JUDGE_PROMPT.replace("one reply", "one complete conversation").replace("Agent's final reply:", "Complete user/assistant transcript (grade EVERY assistant turn):") + "\nGrade the complete user/assistant transcript and full saved state. An earlier unsupported claim or incomplete answer is still a failure even when the final turn is correct. Do not infer a task completed from an acknowledgement. A refusal or blocker must name what could not be completed. Every assertion about the person must be supported by their own words or the fixture state. State/tool records outrank prose claims.\n";
-export interface Approval { owner_approval_ref: string; model: string; source_commit: string; corpus_sha256: string; cap_usd: number; new_budget_spent_usd: number; other_reserved_usd: number; ledger_snapshot_at: string; approved_over_ten?: boolean }
+export interface Approval {
+  owner_approval_ref: string; model: string; source_commit: string; corpus_sha256: string; cap_usd: number;
+  new_budget_spent_usd: number | null; other_reserved_usd: number | null; ledger_snapshot_at: string | null; approved_over_ten?: boolean;
+  owner_allocated_pool_ref?: string;
+  comparison_cap_usd: number; comparison_spent_usd: number;
+  first_arm_evidence?: { result_path: string; sha256: string; verified_by: string; verification_ref: string };
+  mini_over_estimate_recheck_ref?: string;
+}
+function usdMicros(usd: number): number {
+  const micros = Math.round(usd * 1000000);
+  insist(Number.isFinite(usd) && usd >= 0 && Number.isSafeInteger(micros) && Math.abs(micros - usd * 1000000) < .000001, "USD limits must be nonnegative amounts at micro-dollar precision");
+  return micros;
+}
+const presentRef = (ref: unknown) => typeof ref === "string" && !!ref.trim() && ref.trim() !== "NOT_APPROVED";
 export function validateApproval(a: Approval, model: string, source: string, corpusHash: string, now = Date.now()) {
   insist(typeof a.owner_approval_ref === "string" && a.owner_approval_ref.trim().length > 0 && a.model === model && a.source_commit === source && a.corpus_sha256 === corpusHash, "owner approval is missing or not bound to this arm/candidate/corpus");
-  insist(Number.isFinite(a.cap_usd) && a.cap_usd > 0 && [a.new_budget_spent_usd, a.other_reserved_usd].every((n) => Number.isFinite(n) && n >= 0) && Number.isFinite(Date.parse(a.ledger_snapshot_at)), "approval needs current shared ledger snapshot");
-  const age = now - Date.parse(a.ledger_snapshot_at); insist(age >= -300000 && age <= 1800000, "owner ledger snapshot must be no older than30minutes or more than5minutes in the future");
+  insist(Number.isFinite(a.cap_usd) && a.cap_usd > 0 && [a.new_budget_spent_usd, a.other_reserved_usd].every((n) => n === null || typeof n === "number" && Number.isFinite(n) && n >= 0), "approval needs explicit known or null shared ledger amounts");
+  const sharedKnown = a.new_budget_spent_usd !== null && a.other_reserved_usd !== null;
+  insist(sharedKnown || presentRef(a.owner_allocated_pool_ref), "unknown shared totals need the owner's allocated $20 pool reference");
+  if (sharedKnown) {
+    insist(typeof a.ledger_snapshot_at === "string" && Number.isFinite(Date.parse(a.ledger_snapshot_at)), "approval needs current shared ledger snapshot");
+    const age = now - Date.parse(a.ledger_snapshot_at); insist(age >= -300000 && age <= 1800000, "owner ledger snapshot must be no older than30minutes or more than5minutes in the future");
+  }
+  insist(a.comparison_cap_usd === 20 && Number.isFinite(a.comparison_spent_usd) && a.comparison_spent_usd >= 0, "owner-approved comparison HARD CAP is $20 and needs its verified spent amount");
+  insist(usdMicros(a.comparison_spent_usd) + usdMicros(a.cap_usd) <= 20000000, "arm reservation exceeds comparison HARD CAP $20");
+  if (model === "gpt-5-mini") insist(a.cap_usd <= 5 && a.comparison_spent_usd === 0, "mini arm must run first with at most $5 reserved");
+  if (model === "gpt-5") {
+    const e = a.first_arm_evidence;
+    insist(e && typeof e.result_path === "string" && e.result_path && /^[a-f0-9]{64}$/.test(e.sha256) && presentRef(e.verified_by) && presentRef(e.verification_ref), "higher arm needs verified first-arm result evidence");
+  }
   insist(a.cap_usd <= 10 || a.approved_over_ten === true, "over-$10 arm requires explicit owner word");
-  insist(a.new_budget_spent_usd + a.other_reserved_usd + a.cap_usd <= 35, "arm reservation exceeds new $35 working budget");
+  if (sharedKnown) {
+    insist(usdMicros(a.new_budget_spent_usd!) >= usdMicros(a.comparison_spent_usd), "owner shared ledger snapshot omits comparison spend");
+    insist(usdMicros(a.new_budget_spent_usd!) + usdMicros(a.other_reserved_usd!) + usdMicros(a.cap_usd) <= 35000000, "arm reservation exceeds new $35 working budget");
+  }
+}
+export async function verifyFirstArm(a: Approval, identity: Identity, rawResult: string) {
+  insist(a.model === "gpt-5" && a.first_arm_evidence, "first-arm evidence is required only for the higher arm");
+  insist(await sha256(rawResult) === a.first_arm_evidence.sha256, "first-arm result byte hash differs");
+  const first = JSON.parse(rawResult) as ArmResult;
+  insist(first.model === "gpt-5-mini" && armSummary(first).status === "SCORED", "first arm must be a complete, reconciled mini result");
+  insist(canonical(first.identity) === canonical(identity), "first-arm candidate/corpus/rubric/clock/parameters differ");
+  const spent = first.ledger.usd_micros;
+  insist(spent === usdMicros(a.comparison_spent_usd), "comparison spent amount differs from verified mini metered cost");
+  insist(spent <= 2143269 || presentRef(a.mini_over_estimate_recheck_ref), "mini exceeded $2.143269; explicit owner re-check is required before higher arm");
+  insist(spent + usdMicros(a.cap_usd) <= 20000000, "verified mini cost plus higher cap exceeds $20");
+  return { model: first.model, source_commit: first.identity.source_commit, corpus_sha256: first.identity.corpus_sha256, sha256: a.first_arm_evidence.sha256, exact_metered_usd: spent / 1000000, comparison_remaining_usd: (20000000 - spent) / 1000000, over_estimate_recheck_ref: a.mini_over_estimate_recheck_ref ?? null };
 }
 export async function runArm(corpus: Corpus, identity: Identity, model: string, journal: BudgetJournal, append: Append, apiKey: string, request: typeof fetch = fetch): Promise<ArmResult> {
   insist(MODELS.includes(model as any) && identity.concurrency >= 1 && identity.concurrency <= 4, "unsupported arm/concurrency");
@@ -309,22 +349,23 @@ if (import.meta.main) {
       const git = async (...args: string[]) => { const r = await new Deno.Command("git", { args, stdout: "piped", stderr: "piped" }).output(); insist(r.success, "git provenance check failed"); return new TextDecoder().decode(r.stdout).trim(); };
       const source = await git("rev-parse", "HEAD"); insist(/^[a-f0-9]{40}$/.test(source) && !await git("status", "--porcelain"), "candidate checkout must be clean and pinned");
       validateApproval(approval, model, source, manifest.sha256);
+      const identity: Identity = { source_commit: source, corpus_sha256: manifest.sha256, rubric_sha256: await sha256(COMPARISON_RUBRIC), clock_utc: corpus.clock_utc, seed: corpus.seed, concurrency: 4,
+        params: { judges: [...JUDGES], reasoning_effort: "minimal", brain_max_tokens: 1200, judge_max_tokens: 700, provider_retry_count: 0, turn_advance_ms: 60000, fixture_version: "deterministic-local-stores-v1", manifest_sha256: await sha256(manifestRaw), harness_sha256: await sha256(await Deno.readTextFile(new URL(import.meta.url))), prices_sha256: await sha256(canonical(Object.fromEntries([...MODELS, ...JUDGES].map((m) => [m, PRICES[m]])))) } };
+      const firstArm = model === "gpt-5" ? await verifyFirstArm(approval, identity, await Deno.readTextFile(approval.first_arm_evidence!.result_path)) : null;
       // Local, same-approval-file replay guard only. The owner's shared ledger and once-only publication remain authoritative.
       const receipt = Deno.openSync(opt("--approval-file")! + ".consumed", { write: true, createNew: true, mode: 0o600 });
       try { receipt.writeSync(bytes(canonical({ approval, consumed_at: new Date().toISOString() }))); receipt.syncSync(); } finally { receipt.close(); }
-      const identity: Identity = { source_commit: source, corpus_sha256: manifest.sha256, rubric_sha256: await sha256(COMPARISON_RUBRIC), clock_utc: corpus.clock_utc, seed: corpus.seed, concurrency: 4,
-        params: { judges: [...JUDGES], reasoning_effort: "minimal", brain_max_tokens: 1200, judge_max_tokens: 700, provider_retry_count: 0, turn_advance_ms: 60000, fixture_version: "deterministic-local-stores-v1", manifest_sha256: await sha256(manifestRaw), harness_sha256: await sha256(await Deno.readTextFile(new URL(import.meta.url))), prices_sha256: await sha256(canonical(Object.fromEntries([...MODELS, ...JUDGES].map((m) => [m, PRICES[m]])))) } };
       const file = durableAppend(out + ".journal.jsonl");
       try {
-        file.append({ type: "arm", model, identity, approval, started_at: new Date().toISOString(), acceptance: "CI_INTERSECTION only; independent Instinct verdict required" });
+        file.append({ type: "arm", model, identity, approval, first_arm_verified: firstArm, budget_scope: approval.new_budget_spent_usd === null || approval.other_reserved_usd === null ? "OWNER_ALLOCATED_POOL_ONLY; shared $35 working/$40 hard ledger is owner-consolidated and unknown here" : "PER_ARM_PLUS_KNOWN_OWNER_SHARED_SNAPSHOT; not cross-machine enforcement", prior_settled_before_comparison_usd: .139984, started_at: new Date().toISOString(), acceptance: "CI_INTERSECTION only; independent Instinct verdict required" });
         const key = Deno.env.get("OPENAI_API_KEY") ?? ""; await modelPreflight(key, [...new Set([model, ...JUDGES])]);
         file.append({ type: "preflight", models: [...new Set([model, ...JUDGES])], status: "available" });
-        const journal = new BudgetJournal(Math.floor(approval.cap_usd * 1000000), file.append);
+        const journal = new BudgetJournal(usdMicros(approval.cap_usd), file.append);
         const arm = await runArm(corpus, identity, model, journal, file.append, key), summary = armSummary(arm);
         file.append({ type: "complete", summary, finished_at: new Date().toISOString() });
-        const resultFile = Deno.openSync(out + ".json", { write: true, createNew: true, mode: 0o600 });
-        try { const data = bytes(JSON.stringify(arm)); let offset = 0; while (offset < data.length) offset += resultFile.writeSync(data.subarray(offset)); resultFile.syncSync(); } finally { resultFile.close(); }
-        console.log(JSON.stringify(summary, null, 2)); if (summary.status !== "SCORED") Deno.exitCode = 2;
+        const resultFile = Deno.openSync(out + ".json", { write: true, createNew: true, mode: 0o600 }), data = bytes(JSON.stringify(arm));
+        try { let offset = 0; while (offset < data.length) offset += resultFile.writeSync(data.subarray(offset)); resultFile.syncSync(); } finally { resultFile.close(); }
+        console.log(JSON.stringify({ ...summary, result_sha256: await sha256(data), comparison_cap_usd: 20, comparison_spent_before_usd: approval.comparison_spent_usd, comparison_spent_after_known_usd: (usdMicros(approval.comparison_spent_usd) + arm.ledger.usd_micros) / 1000000, prior_settled_before_comparison_usd: .139984, shared_ledger: "Owner consolidates $35 working/$40 hard budget; unknown external balances are not inferred as zero" }, null, 2)); if (summary.status !== "SCORED") Deno.exitCode = 2;
       } finally { file.close(); }
     }
   }

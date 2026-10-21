@@ -102,7 +102,7 @@ export function githubMeterPublisher(binding: MeterBinding, token: string, reque
 }
 
 export class LiveCostMeter {
-  private raw = ""; private progress = journalProgress(""); private sequence = 0;
+  private raw = ""; private progress = journalProgress(""); private sequence = 0; private publishedSequence = 0;
   private lastQueuedAt = -Infinity; private queue: Promise<void> = Promise.resolve(); private failed = false;
   private thresholdAt: string | null = null; private header = false; private receipt: PublishReceipt | null = null;
   readonly binding: MeterBinding;
@@ -126,7 +126,8 @@ export class LiveCostMeter {
     const snapshot = this.snapshot(); this.lastQueuedAt = this.now();
     this.queue = this.queue.then(async () => {
       require(!this.failed); const receipt = await this.publish(snapshot);
-      require(/^[a-f0-9]{40}$/.test(receipt.commit_sha) && /^[a-f0-9]{40}$/.test(receipt.content_sha)); this.receipt = receipt;
+      require(/^[a-f0-9]{40}$/.test(receipt.commit_sha) && /^[a-f0-9]{40}$/.test(receipt.content_sha));
+      this.receipt = receipt; this.publishedSequence = snapshot.sequence;
     }).catch(() => { this.failed = true; });
   }
   // Call this only after the same event has been durably appended/fsynced. Raw bytes remain in this process.
@@ -148,13 +149,23 @@ export class LiveCostMeter {
   async flush(force = false) {
     require(this.header && !this.failed);
     if (force || this.now() - this.lastQueuedAt >= this.intervalMs) this.enqueue();
-    await this.queue; require(!this.failed); return this.receipt;
+    // A concurrent settlement can enqueue a threshold snapshot while this await is pending.
+    // Drain through the latest barrier, rather than accepting acknowledgement of an older snapshot.
+    for (;;) { const barrier = this.queue; await barrier; require(!this.failed); if (barrier === this.queue) break; }
+    return this.receipt;
   }
   async beforeDispatch() {
     await this.flush(); require(!this.failed && this.progress.status === "RUNNING" && this.progress.unknown_charges === 0);
   }
   wrapRequest(request: typeof fetch = fetch): typeof fetch {
-    return (async (...args: Parameters<typeof fetch>) => { await this.beforeDispatch(); return await request(...args); }) as typeof fetch;
+    return (async (...args: Parameters<typeof fetch>) => {
+      for (;;) {
+        await this.beforeDispatch();
+        // Check and dispatch in the same continuation: another settlement may have run between
+        // beforeDispatch resolving and this request resuming. Never pass an unacknowledged crossing.
+        if (this.publishedSequence === this.sequence) return await request(...args);
+      }
+    }) as typeof fetch;
   }
 }
 

@@ -58,6 +58,30 @@ Deno.test("live meter: before-dispatch awaits publication acknowledgement", asyn
   const pending = request("https://provider.example.test"); await Promise.resolve(); await Promise.resolve(); assert(paid === 0);
   acknowledge(receipt()); await pending; assert(paid === 1);
 });
+Deno.test("live meter: concurrent crossing behind an older publication must also be acknowledged before dispatch", async () => {
+  const acknowledgements: Array<(r: ReturnType<typeof receipt>) => void> = []; let publications = 0, paid = 0;
+  const f = fixture(async () => ++publications === 1 ? receipt() : await new Promise(resolve => acknowledgements.push(resolve)));
+  await f.meter.flush(true); f.advance(15000);
+  const earlier = f.reserve(6e6); f.reserve(1000);
+  const pending = f.meter.wrapRequest((async () => { paid++; return new Response("{}"); }) as typeof fetch)("https://provider.example.test");
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  earlier.settle({ input_tokens: 4800000, output_tokens: 0 });
+  acknowledgements.shift()!(receipt()); await new Promise(resolve => setTimeout(resolve, 0));
+  const beforeCrossingAck = paid, crossingStillPending = acknowledgements.length;
+  acknowledgements.shift()!(receipt()); await pending;
+  assert(beforeCrossingAck === 0 && crossingStillPending === 1 && paid === 1 && publications === 3);
+});
+Deno.test("live meter: a failed concurrent crossing cannot release a request on the older acknowledgement", async () => {
+  const acknowledgements: Array<(r: ReturnType<typeof receipt>) => void> = []; let publications = 0, paid = 0;
+  const f = fixture(async () => { const n = ++publications; if (n === 1) return receipt(); if (n === 3) throw Error("Synthetic threshold publication failure");
+    return await new Promise(resolve => acknowledgements.push(resolve)); });
+  await f.meter.flush(true); f.advance(15000); const earlier = f.reserve(6e6); f.reserve(1000);
+  const pending = f.meter.wrapRequest((async () => { paid++; return new Response("{}"); }) as typeof fetch)("https://provider.example.test");
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  earlier.settle({ input_tokens: 4800000, output_tokens: 0 }); acknowledgements.shift()!(receipt());
+  await refuses(() => pending); await refuses(() => f.meter.beforeDispatch());
+  assert(paid === 0 && publications === 3 && recoverJournal(f.raw()).reserved_micros === 1000);
+});
 Deno.test("live meter: publication failure poisons every future dispatch and preserves reservation", async () => {
   let paid = 0, publishes = 0; const f = fixture(async () => { publishes++; throw new Error(SECRET + TOKEN); }); f.reserve(20000);
   const request = f.meter.wrapRequest((async () => { paid++; return new Response("{}"); }) as typeof fetch);

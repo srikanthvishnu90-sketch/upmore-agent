@@ -60,6 +60,12 @@ test('Workday actual source reader controls: custom list/prompt/date keep widget
   assert.equal(form.schema.find((s) => s.name === date.id).type, 'date'); assert.equal(form.bindings[date.id].widget, 'wd-date'); assert.equal(form.schema.find((s) => s.name === date.id).section.format, 'MM/YYYY');
   assert.equal(form.schema.find((s) => s.name === 'list').type, 'select'); assert.equal(form.bindings.list.widget, 'wd-list'); assert.equal(form.schema.find((s) => s.name === 'prompt').type, 'select'); assert.equal(form.bindings.prompt.widget, 'wd-prompt');
 });
+test('Workday actual source reader control: native telephone keeps its separate country dial code', () => {
+  const country = new Element('div', { 'data-automation-id': 'formField-countryPhoneCode' }, [new Element('label', {}, [], 'Country phone code'), new Element('button', { id: 'country-code', 'aria-haspopup': 'listbox' }, [], 'United States (+1)')]);
+  const phone = new Element('div', { 'data-automation-id': 'formField-phoneNumber' }, [new Element('label', { for: 'contact--phoneNumber' }, [], 'Phone Number'), new Element('input', { id: 'contact--phoneNumber', type: 'tel' })]);
+  runtime.document = documentOf([country, phone]); const form = reader.readWorkday(), schema = form.schema.find((s) => s.name === 'contact--phoneNumber');
+  assert.equal(schema.type, 'tel'); assert.equal(schema.dial, '+1'); assert.equal(form.bindings['contact--phoneNumber'].inputType, 'tel');
+});
 for (const c of cases) test('Workday strict sandbox DOM: ' + c.name, async (t) => {
   if (blocked) { if (process.env.CI === 'true') assert.fail('NOT_RUN: strict sandbox browser unavailable: ' + blocked); t.skip('NOT_RUN: strict sandbox browser unavailable: ' + blocked); return; }
   const page = await context.newPage(); let requests = 0; page.on('request', () => { requests++; });

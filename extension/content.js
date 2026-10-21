@@ -168,7 +168,9 @@
   }
   function openRequired(fields) {
     const have = new Set(fields.map((f) => f.name));
-    return form.schema.filter((s) => s.required && !have.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
+    // FRS: a cover letter pasted (or drafted and used) in the upload's own text box answers the upload.
+    const pasted = new Set(C.coverLetterFiles({ schema: form.schema, fields }).filter((c) => c.pasted).map((c) => c.name));
+    return form.schema.filter((s) => s.required && !have.has(s.name) && !pasted.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
   }
   const payloadOf = (fields) =>
     C.reviewPayload({
@@ -198,7 +200,8 @@
     // WO-054: what Trainee filled from an answer the person gave in the panel before the session is marked on the card.
     const before = C.beforeSession(fields, ctx.before || []);
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
-      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday, before });
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday,
+      coverFiles: C.coverLetterFiles({ schema: form.schema, fields }), before });
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;

@@ -789,6 +789,12 @@
         "group": "essay",
         "note": "describe a project, a hard problem, an achievement, fit"
       },
+      "essay_cover_letter": {
+        "kind": "essay",
+        "type": "text",
+        "group": "essay",
+        "note": "a cover letter typed into a text box; an upload is cover_letter"
+      },
       "essay_other": {
         "kind": "essay",
         "type": "text",
@@ -898,6 +904,13 @@
     [
       "resume",
       /^(resume|résumé|cv)( ?\/ ?(cv|resume))?$/
+    ],
+    // FRS: a cover letter typed into a text box is a written answer (drafted on the card from confirmed facts, kept for
+    // this posting only); "in lieu of a cover letter, share ..." is read by the essay rules below.
+    [
+      "essay_cover_letter",
+      /\bcover letter|lettre de motivation|motivatiebrief\b/,
+      (q, t) => LONG_TYPES.has(String(q.type)) && !/\b(in lieu of|instead of)\b/.test(t)
     ],
     // A statement the person accepts (its only answers are acknowledgements, or a long checkbox with no question) is a
     // consent only when it is one a standing consent covers: privacy and data, certifying the answers are true, the
@@ -3740,6 +3753,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
     contractFill: () => contractFill,
+    coverLetterFiles: () => coverLetterFiles,
+    coverLetterLine: () => coverLetterLine,
     detectPortal: () => detectPortal,
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
@@ -3747,6 +3762,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     essayQuestions: () => essayQuestions,
     evidenceRecord: () => evidenceRecord,
     formAnswersToKeep: () => formAnswersToKeep,
+    isCoverLetterFile: () => isCoverLetterFile,
     isIdentityField: () => isIdentityField,
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
@@ -4268,7 +4284,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
     }
     lines.push(`Resume: ${o.payload.resume_name ?? "none attached"}`);
-    for (const l of o.openRequired) lines.push(`Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+    const covers = (o.coverFiles ?? []).filter((c) => !c.attached && !c.pasted);
+    for (const l of o.openRequired) {
+      const c = covers.find((x) => x.required && shortLabel(x.label) === l);
+      lines.push(c ? coverLetterLine(c) : `Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+    }
+    for (const c of covers.filter((x) => !x.required)) lines.push(coverLetterLine(c));
     for (const f of o.ambiguous ?? []) lines.push(`Still needed: ${shortLabel(f.label)}. Two fields on this form share that label, so Trainee left both for you.`);
     for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
     if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
@@ -4435,11 +4456,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       f.name,
       f
     ]));
-    return o.schema.filter((f) => f.required && !isIdentityField(f) && mapQuestion({
+    const mapped = (f) => mapQuestion({
       label: f.label,
       type: f.type,
       options: f.options || []
-    }).kind === "essay").filter((f) => !by.has(f.name) || by.get(f.name).source === "drafted").map((f) => {
+    });
+    return o.schema.filter((f) => !isIdentityField(f) && mapped(f).kind === "essay" && (f.required || mapped(f).fact === "essay_cover_letter")).filter((f) => !by.has(f.name) || by.get(f.name).source === "drafted").map((f) => {
       const n = Number(o.maxLength?.[f.name]);
       const policy = readAiPolicy([
         f.label,
@@ -4459,6 +4481,21 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const x = r;
     return !!x && x.ok === true && typeof x.text === "string" && x.text.trim().length > 0 && x.text.length <= 2e3 && /[.!?]["”')\]]?$/.test(x.text.trim()) && Array.isArray(x.fact_ids) && x.fact_ids.every((i) => typeof i === "string");
   }
+  var isCoverLetterFile = (f) => /file/.test(String(f.type)) && mapQuestion({
+    label: f.label,
+    type: "file"
+  }).fact === "cover_letter";
+  function coverLetterFiles(o) {
+    const have = new Set(o.fields.map((f) => f.name));
+    return o.schema.filter(isCoverLetterFile).map((f) => ({
+      name: f.name,
+      label: f.label,
+      required: !!f.required,
+      attached: have.has(f.name),
+      pasted: o.schema.some((x) => x.name === `${f.name}_text` && fileAlternative(x, o.schema) && have.has(x.name))
+    }));
+  }
+  var coverLetterLine = (c) => c.required ? `Still needed: ${shortLabel(c.label)}. Attach your cover letter on the form yourself; Trainee never attaches your resume as a cover letter.` : `Left empty: ${shortLabel(c.label)} (optional). Trainee doesn't attach a cover letter, and never your resume as one; attach one yourself if you want to send it.`;
   function draftProvenance(fields, drafts) {
     const out = {};
     const flat = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
@@ -4746,7 +4783,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (!o.schema.length) why.push("No application form was read on this posting.");
     if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
     if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
-    for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
+    for (const n of o.plan.needs) {
+      why.push(o.schema.some((f) => f.label === n.label && isCoverLetterFile(f)) ? `"${n.label}" asks for a cover letter file: only you attach one (Trainee never sends your resume as one), so this one is yours to send.` : `"${n.label}" needs your answer first.`);
+    }
     for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
     for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
     const answers = [], ledger = [];
@@ -4846,6 +4885,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   function judge(f, a, m) {
     const tf = m.byFactId[a.factId];
+    if (a.kind === "file" && isCoverLetterFile(f)) return {
+      problem: "it asks for a cover letter, and Trainee never attaches your resume as one"
+    };
     if (!tf) return {
       problem: "its answer is not from a fact you gave"
     };
@@ -4867,7 +4909,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const f = o.schema.find((x) => x.name === p.name);
       if (!f) continue;
       const kind = kindOf2(f, listed);
-      if (kind === "file" && !o.resume) {
+      if (kind === "file" && !o.resume && !isCoverLetterFile(f)) {
         fill2.push(p);
         continue;
       }

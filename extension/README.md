@@ -82,6 +82,13 @@ Trainee's alert texts to you). Press **Start**: each posting opens, fills and sh
 the next one opens. **Skip this one** moves on without sending. The panel shows how many are done and the average time
 from card to the employer's answer.
 
+Agent submits (`agentSubmits` in config.js, OFF by default; switching it on is the owner's call, and the owner's own
+CAREER_AGENT_SUBMIT must also be 'on' in the database): after **Prepare**, the panel lists, per posting, every answer
+Trainee would send, what it leaves blank, and the postings left out because something needs you first. **Approve these
+answers** approves that batch once; press **Start** and Trainee sends each posting itself with the site's own Submit,
+only when the page holds exactly the approved answers. A posting that differs waits for you and the queue goes on. A
+receipt line after each. **Stop applying** stops the queue and withdraws the approval at once (WO-101).
+
 ## For developers
 
 - `deno run -A extension/build.ts` rebuilds `lib/trainee-core.js` (the planner and the form reader, bundled from their

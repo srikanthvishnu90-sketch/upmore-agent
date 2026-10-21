@@ -61,6 +61,15 @@ real people without the owner's explicit word. Blocked means said same day, with
   deploy/env change and his call.
 
 ## Status (newest first)
+- 2026-10-21: WO-101 agent-submits built, OFF (extension/config.js agentSubmits: false; the owner's CAREER_AGENT_SUBMIT
+  in a migration NOT applied). Prepare shows every answer per posting; one tap approves the batch of exact answers (stored
+  on the account under the database's own hash); Trainee sends each posting only on an exact match; a posting that
+  differs waits and the queue goes on; Stop applying withdraws everything; a receipt line after each. Real Chromium
+  against the captured forms 5/5, unit 8/8, DB 25/25 (VERIFIED, local; nothing reached a real employer). Flag off: 54/54,
+  4/4, 722/722 (VERIFIED). One reading for the owner: fields whose options exist only on the employer's page (place
+  search, dropdown widgets) are approved as the answer and sent as the employer's own entry for it (WO-101, "Open for the
+  owner"). Real submissions: 0. Still OPEN: the first user and posting, the 47 facts, mail confirmation; each real
+  submission needs the owner's word.
 - 2026-10-21: the owner answered question 2 (his words): "the agent should be submitting them. Not me, nobody should
   manually do it. It's your personal career agent." Target: agent-submits. Coordinator's ruling around it: batch approved
   up front, a receipt after each, a kill switch. Work order WO-101 written (docs/architect/work-orders/WO-101-agent-submits.md);

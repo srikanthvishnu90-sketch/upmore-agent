@@ -1,6 +1,6 @@
 # WO-101: the agent submits (batch approved up front, a receipt after each, a kill switch)
 
-Status: in build on wo/first-real-submission · Flags: OFF (`agentSubmits` in extension/config.js; the owner's server
+Status: built on wo/first-real-submission, all flags OFF (results below) · Flags: OFF (`agentSubmits` in extension/config.js; the owner's server
 kill switch CAREER_AGENT_SUBMIT, anything but 'on' is off) · Owner: real submissions to real employers each need his
 per-action word; nothing here fires one.
 
@@ -26,7 +26,13 @@ payload". Approving a list of job names would not meet it. So the batch approval
    open, nothing was set by the page, and no verification shows. Then the existing send path runs unchanged (the
    unchanged-form check next to the click, the screenshot, the recorded start, the site's own Submit). Any difference:
    that posting stops and waits for the person (its card shows what differs); the batch goes on with the next.
-Open for the owner to confirm: that a batch approval of exact answers meets the rule, as above.
+Open for the owner to confirm: that a batch approval of exact answers meets the rule, as above. One case in particular,
+found by the browser run: a field whose options exist only on the employer's page (a place search such as Lever's
+"Current location", a dropdown widget such as Ashby's state list) cannot be read ahead without typing into the page.
+The batch shows the person's answer ("Chicago, IL") marked "Trainee picks the employer's own entry for this from their
+list"; at the send, the planner's answer must still be the approved one and the page value must be Trainee's own pick
+(WO-042's chooser, which never picks what the planner would not), and the proof records the exact entry sent ("Chicago,
+Illinois, United States"). If the owner reads the rule as the exact text, these postings instead wait for the person.
 
 ## The kill switch
 - The owner's: CAREER_AGENT_SUBMIT in career_cloud_settings (the cloud kill switch's table); anything but 'on' is off.
@@ -52,6 +58,18 @@ them too, newest first.
 - A6 the owner's kill switch off: the start of an agent-approved application is refused (DB test).
 - A7 flag off (shipped): nothing changes (the existing extension suite 54/54).
 - A8 a receipt line per finished agent submission, with the posting link.
+
+## Results (2026-10-21, local; nothing reached a real employer)
+- A1-A3, A8 (tests/architect/wo-101-agent-submits.test.ts): 8/8, written first. VERIFIED.
+- A6 (tests/db/career_apply_agent_submit.test.sql, migration 20261024090000, NOT applied anywhere): 25/25; full DB suite
+  green on a local Postgres 16. VERIFIED.
+- A2, A4, A5, A6, A8 in a real Chromium against the captured forms (tests/career-extension-agent-submits.test.cjs): 5/5.
+  Prepare: 2 of 6 captures answered whole by the TEST persona, 4 left out with their exact open questions. A batch of 3
+  approved in one tap: 2 Ashby postings sent by the agent (confirmed on the page), the Lever one changed after approval
+  waits ('"Anything else we should know?" is new'), a receipt each. Stop applying: nothing more sent, approvals withdrawn.
+  The owner's switch off: refused, nothing sent. VERIFIED.
+- A7 flag off (shipped): extension suite 54/54, person-submits 4/4, architect 722/722. VERIFIED.
+- Real submissions: 0. Turning on agentSubmits or CAREER_AGENT_SUBMIT, and any real submission, is the owner's word.
 
 ## Out of scope
 Turning any flag on; a real submission; the cloud worker; Workday; the 47 invented facts (D-007); mail confirmation.

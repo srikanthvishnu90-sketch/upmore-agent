@@ -168,6 +168,14 @@ const STATE: Record<string, string> = {
 };
 
 export const BLOCK_BUDGET = 4500;
+// Rendering is not a confirmation operation. A missing/unknown status cannot become confirmed merely because a
+// flag is absent, and a rejected row must not return as either a goal or a pending fact. Ignore malformed stored rows
+// rather than letting one row prevent the entire context block from being built.
+const factRows = (profile: any): any[] => (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) =>
+  f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && typeof f.kind === "string" && !!f.kind.trim() &&
+  typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected"
+);
+const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
 // WO-100: with the situation, its block (every task by name, its blocker, who acts and how; the next steps; what Trainee
 // can do) replaces the pipeline counts and is kept whole, outside this budget (it has its own).
 // WO-106 (F2, live 2026-10-21: the bot could not say back the goal it had saved): what they want, from their account, every
@@ -181,18 +189,19 @@ export function goalLines(profile: any): string[] {
   if (pref.remote) out.push(`- Remote: ${pref.remote}`);
   if (pref.compFloor) out.push(`- Pay floor: ${pref.compFloor}`);
   if (list(pref.targetCompanies).length) out.push(`- Companies they want: ${list(pref.targetCompanies).join(", ")}`);
-  for (const f of Array.isArray(p.facts) ? p.facts : []) {
+  for (const f of factRows(p)) {
     if (!["goal", "location", "preference"].includes(String(f?.kind))) continue;
-    const draft = f.needs_confirmation || f.status === "draft";
+    const draft = !confirmedRow(f);
     out.push(`- ${f.id} [${f.kind}] ${f.text}${draft ? " (said, not confirmed yet)" : ""}`);
   }
   return out;
 }
 
 export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null; budget?: number }): string {
-  const facts = Array.isArray(o.profile?.facts) ? o.profile.facts : [];
-  const confirmed = facts.filter((f: any) => !f.needs_confirmation && f.status !== "draft");
-  const drafts = facts.filter((f: any) => f.needs_confirmation || f.status === "draft");
+  const facts = factRows(o.profile);
+  // Facts are appended to the profile; when space is short the newest must survive before the oldest.
+  const confirmed = facts.filter(confirmedRow).reverse();
+  const drafts = facts.filter((f: any) => !confirmedRow(f)).reverse();
   const goal = goalLines(o.profile);
   const head = [
     "WHAT YOU KNOW ABOUT THIS PERSON FROM THEIR ACCOUNT. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
@@ -205,32 +214,40 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
     ...(goal.length ? goal : ["- none on file yet"]),
   ];
   const p = o.pipeline;
-  const pipeline = o.situation ? [] : p
+  type Section = { heading?: string; lines: string[] };
+  const pipeline: Section[] = o.situation ? [] : p
     ? [
-      `Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`,
-      ...(p.questions === null ? ["Questions only they can answer: could not be read this turn; never guess."]
-        : p.questions ? [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] : []),
-      ...(p.needs.length ? ["Stopped until they help:", ...p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`)] : []),
+      { lines: [`Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`] },
+      ...(p.questions === null ? [{ lines: ["Questions only they can answer: could not be read this turn; never guess."] }]
+        : p.questions ? [{ lines: [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] }] : []),
+      ...(p.needs.length ? [{ heading: "Stopped until they help:", lines: p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`) }] : []),
       // WO-100: finished ones under their own heading (they printed under "Stopped until they help:").
-      ...(p.recent.length ? ["Finished or failed:", ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`)] : []),
+      ...(p.recent.length ? [{ heading: "Finished or failed:", lines: p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`) }] : []),
     ]
-    : ["Applications: could not be read this turn; say so if they ask, never guess."];
-  const optional = [
-    alertLine(o.alerts),
+    : [{ lines: ["Applications: could not be read this turn; say so if they ask, never guess."] }];
+  const optional: Section[] = [
+    { lines: [alertLine(o.alerts)] },
     ...pipeline,
-    "Confirmed facts (usable in applications):",
-    ...(confirmed.length ? confirmed.map((f: any) => `- [${f.kind}] ${f.text}`) : ["- none yet"]),
-    "Facts waiting for their yes (never use these in an application until they confirm):",
-    ...(drafts.length ? drafts.map((f: any) => `- ${f.id} [${f.kind}] ${f.text}`) : ["- none"]),
+    { heading: "Confirmed facts (usable in applications):", lines: confirmed.length ? confirmed.map((f: any) => `- [${f.kind}] ${f.text}`) : ["- none yet"] },
+    { heading: "Facts waiting for their yes (never use these in an application until they confirm):", lines: drafts.length ? drafts.map((f: any) => `- ${f.id} [${f.kind}] ${f.text}`) : ["- none"] },
   ];
   const budget = o.budget ?? BLOCK_BUDGET;
   const out = [...head, ""];
   let used = out.join("\n").length, dropped = 0;
   if (o.situation) out.push(situationBlock(o.situation), "");
-  for (const line of optional) {
-    if (used + line.length + 1 > budget) { dropped++; continue; }
-    out.push(line);
-    used += line.length + 1;
+  for (const section of optional) {
+    const kept: string[] = [];
+    let size = section.heading ? section.heading.length + 1 : 0;
+    for (const line of section.lines) {
+      if (used + size + line.length + 1 > budget) { dropped++; continue; }
+      kept.push(line);
+      size += line.length + 1;
+    }
+    // A line's meaning depends on its section. Never retain a draft or application record without its heading.
+    if (!kept.length) { if (section.heading) dropped++; continue; }
+    if (section.heading) out.push(section.heading);
+    out.push(...kept);
+    used += size;
   }
   if (dropped) out.push(`(${dropped} more lines left out for length; read them with a tool if needed.)`);
   return out.join("\n");

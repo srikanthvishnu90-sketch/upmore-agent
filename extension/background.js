@@ -1165,6 +1165,9 @@ async function handle(m, sender) {
       await put(S, "answer_once", { ...st, skipped: [...new Set([...st.skipped, String(m.key)])] });
       return { ok: true };
     }
+    case "import-text":
+    case "confirm-stated":
+      return await statedStep(m);
     default:
       return { ok: false, message: "unknown request" };
   }
@@ -1199,3 +1202,29 @@ chrome.runtime.onMessage.addListener((m, sender, reply) => {
   handle(m || {}, sender).then(reply, (e) => reply({ ok: false, message: String(e?.message || e) }));
   return true;
 });
+
+// ------------------------------------------------------------------------------------------------ stated facts (FRS)
+// A block of facts the person typed or pasted (TraineeCore.parseStatedFacts, pure): "import-text" keeps the drafts and
+// shows them back with what was not read; "confirm-stated", on the person's own tap in the panel, mints the confirmation
+// event, stamps the checked drafts "owner stated (...)" and puts them into the confirmed-facts file facts() builds the
+// manifest from (the "imported_file" import-facts writes). Drafts alone never fill anything.
+async function statedStep(m) {
+  if (m.type === "import-text") {
+    const r = C.parseStatedFacts(String(m.text || "").slice(0, 20000), { source: "typed in the Trainee panel", now: Date.now() });
+    const id = crypto.randomUUID();
+    await put(S, "stated_drafts", { id, facts: r.facts, leftover: r.leftover, source: "typed in the Trainee panel" });
+    return { ok: true, id, facts: r.facts, leftover: r.leftover };
+  }
+  const a = await session();
+  if (!a) return { ok: false, message: say.signedOut };
+  const d = await get(S, "stated_drafts", null);
+  if (!d || d.id !== m.id) return { ok: false, message: "Those facts changed; press Read again." };
+  const keep = (Array.isArray(m.keep) ? m.keep : []).map(Number).filter(Number.isInteger);
+  if (!keep.length) return { ok: false, message: "Check the facts that are right first." };
+  const confirmed = C.confirmStatedFacts({ owner: a.user_id, drafts: d.facts, keep, source: d.source, now: Date.now(), eventId: "stated-confirm:" + crypto.randomUUID() });
+  await put(S, "imported_file", C.withStatedFacts(await get(S, "imported_file", null), a.user_id, confirmed));
+  await S.remove("stated_drafts");
+  return { ok: true, kept: Object.keys(confirmed).length };
+}
+PANEL_ONLY.add("import-text");
+PANEL_ONLY.add("confirm-stated");

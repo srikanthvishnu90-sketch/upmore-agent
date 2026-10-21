@@ -65,6 +65,6 @@ Deno.test("WO-097/D the tools are the six operations of the order; it ships thro
   ok(/\[functions\.trainee-agent-api\]\nverify_jwt = false/.test(read("supabase/config.toml")), "an agent token is not a JWT; the handler checks it");
   const live = read("scripts/launch/trainee-go-live.sh");
   ok(live.includes("20261023090700_trainee_agent_api.sql") && live.includes("to_regclass('public.trainee_agent_grants') is not null"), "go-live applies the migration, with its mark");
-  ok(/"\$\{CHANNEL_FNS\[@\]\}" trainee-agent-api; do/.test(live), "go-live deploys the function (the owner's run)");
+  ok(/for fn in [^\n]*"\$\{CHANNEL_FNS\[@\]\}"[^\n]* trainee-agent-api[ ;][^\n]*do/.test(live) && /DEPLOY_FNS=\([^)]*trainee-agent-api/.test(live), "go-live deploys the function without a JWT and records it (the owner's run)");
   ok(read("tests/db/run.sh").includes("trainee_agent_api.test.sql"), "the database suite runs the order's test");
 });

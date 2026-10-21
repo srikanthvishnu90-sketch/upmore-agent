@@ -210,7 +210,8 @@ export function threadSummary(events: CareerEvent[], now: number, tz?: string): 
   // turning retry no-ops into applications or treating an earlier queue action as a submission receipt.
   const queued = of("apply_queued").filter((e) => typeof e.detail?.queued === "number" && Number.isSafeInteger(e.detail.queued) && e.detail.queued > 0);
   if (queued.length) {
-    const companies = queued.flatMap((e) => Array.isArray(e.detail.companies) ? e.detail.companies.filter((x): x is string => typeof x === "string") : []);
+    // The display cap must retain the newest employers; totals and the immutable source history still cover all.
+    const companies = queued.slice().reverse().flatMap((e) => Array.isArray(e.detail.companies) ? e.detail.companies.filter((x): x is string => typeof x === "string") : []);
     add(`- Postings queued: ${queued.reduce((n, e) => n + Number(e.detail.queued), 0)}${companies.length ? ` (${names(companies)})` : ""}, latest ${on(queued[queued.length - 1])}. Not sent by these queue actions; later receipts, if any, are separate.`, queued);
   }
   const prepared = of("application_prepared");

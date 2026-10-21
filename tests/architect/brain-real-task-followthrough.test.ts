@@ -3,6 +3,7 @@ import { agentTurn, historyWindow, summaryFor } from "../../supabase/functions/a
 import { handleInbound, memoryStore } from "../../supabase/functions/_shared/conversation.ts";
 import { memoryEventStore, normalizeEvent, SUMMARY_MAX, threadSummary, type CareerEvent } from "../../supabase/functions/_shared/agent/timeline.ts";
 import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
+import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 
 function ok(v: unknown, why: string): asserts v { if (!v) throw new Error(why); }
 function eq(a: unknown, b: unknown, why = "") {
@@ -127,6 +128,40 @@ Deno.test("follow-through: queue summary counts actual additions and does not pr
   ok(/not sent/i.test(summary), "the historical queue action must not become a submission receipt");
   ok(summary.includes(POSTING.company), "the return context must identify the task's employer");
   ok(!summary.includes("Postings queued: 2"), "retry no-op was counted as a task");
+});
+
+Deno.test("follow-through: newest employers survive the name cap after six real queue additions, persistence and a history cut", async () => {
+  const companies = ["Older Cedar Fixture", "Older Aspen Fixture", "Older Birch Fixture", "Older Elm Fixture", "Older Fir Fixture", "Latest Juniper Fixture"];
+  const pool = companies.map((company, n) => ({ ...POSTING, company, job_id: `greenhouse:followthrough:${9000 + n}` }));
+  const events = memoryEventStore(), wants = memoryWantStore();
+  const queue = careerTools({ postings: async () => pool, posting: async (id) => pool.find((p) => p.job_id === id) ?? null, events, wants })
+    .find((t) => t.name === "queue_applications")!;
+  for (let n = 0; n < pool.length; n++) {
+    const added: any = await queue.run({ postings: [pool[n]] }, { userId: USER, threadId: "SYNTHETIC-ORIGINAL", now: NOW + n * 1000, state: {},
+      turn: { message: `Queue the application at ${companies[n]}.`, added: [], before: "" } });
+    eq(added.queued, 1, "the fixture must make a real queue addition");
+  }
+  const retry: any = await queue.run({ postings: [pool[0]] }, { userId: USER, threadId: "SYNTHETIC-ORIGINAL", now: NOW + 10000, state: {},
+    turn: { message: `Queue the application at ${companies[0]}.`, added: [], before: "" } });
+  eq([retry.queued, retry.already], [0, 1], "retry must not be another application");
+  const raw = JSON.stringify(events.dump()), queueRaw = JSON.stringify(wants.dump());
+  const restarted = memoryEventStore(JSON.parse(raw));
+  const old = [{ role: "user", content: `Queue the application at ${companies[5]}.` },
+    ...Array.from({ length: 45 }, (_, n) => ({ role: n % 2 ? "assistant" : "user", content: `Synthetic unrelated turn ${n}.` }))];
+  const window = historyWindow([...old].reverse());
+  eq(window.cut, true); ok(!JSON.stringify(window.history).includes(companies[5]), "latest task must be outside the history window");
+  const summary = summaryFor(window.cut, await restarted.recall(USER, {}), NOW + 86400000, "America/Chicago");
+  ok(summary !== null, "persisted tasks need a return summary");
+  ok(summary.includes(companies[5]), "the five-name cap discarded the newest employer");
+  ok(!summary.includes(companies[0]), "a zero-add retry made the oldest employer recent");
+  ok(summary.includes("Postings queued: 6") && summary.includes("and 1 more"), "the name cap changed the actual queue total");
+  ok(summary.includes("Not sent by these queue actions"), "the queue summary claimed a submission");
+  let prompt = "";
+  await agentTurn({ message: "Where did we leave my latest application?", history: window.history, stores: {}, userId: USER,
+    threadId: "SYNTHETIC-RETURN", now: NOW + 86400000, events: restarted, wants, summary,
+    model: async (p) => { prompt = p.system; return text("Which queued application should we review next?"); } });
+  ok(prompt.includes(companies[5]), "the return prompt lost the newest employer");
+  eq((await wants.list(USER)).length, 6); eq(JSON.stringify(events.dump()), raw); eq(JSON.stringify(wants.dump()), queueRaw);
 });
 
 Deno.test("follow-through: a newer employer receipt survives summary pressure from older long search and alert groups", () => {

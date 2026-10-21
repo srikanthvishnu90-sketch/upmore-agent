@@ -3751,6 +3751,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     looksLikeIdNumber: () => looksLikeIdNumber,
     outcomeAfterClick: () => outcomeAfterClick,
     outcomeOf: () => outcomeOf,
+    ownAnswerOnly: () => ownAnswerOnly,
     payloadText: () => payloadText,
     planForm: () => planForm,
     postingKey: () => postingKey,
@@ -4611,6 +4612,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var ATTESTATION = /\b(certify|certif(y|ies)|attest|acknowledg\w*|i agree|agree to|consent|i understand|truthful|true and (complete|correct|accurate)|privacy (policy|notice))\b/i;
   var PERSONAL = /\b(gender|pronoun|race|ethnic\w*|hispanic|latin[oax]?|veteran|disabilit\w*|sexual orientation|transgender|lgbt\w*)\b/i;
+  var ownAnswerOnly = (label) => ATTESTATION.test(label) || PERSONAL.test(label);
   function canonicalJson(v) {
     if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
     if (Array.isArray(v)) return "[" + v.map(canonicalJson).join(",") + "]";
@@ -4847,7 +4849,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (!tf) return {
       problem: "its answer is not from a fact you gave"
     };
-    if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return {
+    if (ownAnswerOnly(f.label) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
     const rule = derivation(a.kind, a, tf);

@@ -34,6 +34,11 @@ const page = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
   .replace(/<link\b[^>]*>/gi, "").replace(/\s(src|srcset)="https?:[^"]*"/gi, "")
   .replace(/<\/body>/i, `<script>document.getElementById("btn-submit").addEventListener("click",()=>document.getElementById("application-form").requestSubmit())</script></body>`);
 const acknowledgement = "I understand that next steps will be sent via email and I have marked the sender address above as safe.";
+const acknowledgementName = "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]";
+const acknowledgementKey = acknowledgement.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const acknowledgementSchema = fixture.required.find((f: any) =>
+  f.name === acknowledgementName && f.label === acknowledgement && f.type === "checkbox");
+if (!acknowledgementSchema) throw Error("CAPTURED_ACKNOWLEDGEMENT_CHANGED");
 const own = (factId: string, value: string, authorizes = false) => ({
   value, factId, confirmed: true, provenance: "owner stated in chat (TEST)",
   confirmation_event_id: `evt-${factId}`, ...(authorizes ? { authorizes: true } : {}),
@@ -45,8 +50,7 @@ const facts = {
     sponsorship: own("TEST-F-3", "No"), work_authorization: own("TEST-F-4", "Yes"),
   },
   saved: {
-    [acknowledgement.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim()]:
-      own("TEST-F-5", "Yes", true),
+    [acknowledgementKey]: own("TEST-F-5", "Yes", true),
   },
 };
 const resume = new TextEncoder().encode("%PDF-1.4 SYNTHETIC TEST RESUME");
@@ -107,12 +111,31 @@ try {
   const result = finished[0];
   const sent = received[0]?.entries ?? [];
   const values = new Map(sent);
-  const answerMatch = prepared.payload.fields.every((f: any) => {
-    const got = values.get(f.name);
+  const wireMatches = (f: any, got: unknown) => {
+    // Only this captured checkbox has a distinct wire value. The canonical engine encodes its planned Yes
+    // as the checkbox's optionValue (apply.ts), while the approved card shows Yes (checked).
+    if (f.name === acknowledgementName) {
+      return f.label === acknowledgementSchema.label && f.value === "Yes" && f.authorizes === true &&
+        f.source?.table === "saved" && f.source?.key === acknowledgementKey && f.source?.value === "Yes" &&
+        got === acknowledgement;
+    }
     return f.name === "resume"
       ? typeof got === "object" && got !== null && (got as any).sha256 === prepared.payload.resume_sha256
       : got === f.value;
-  });
+  };
+  const approvedAck = prepared.payload.fields.find((f: any) => f.name === acknowledgementName);
+  const approvedEmail = prepared.payload.fields.find((f: any) => f.name === "email");
+  if (!approvedAck || !approvedEmail) throw Error("CAPTURED_APPROVED_CONTROL_FIELDS_MISSING");
+  const oracleControls = {
+    wrong_ack_wire_rejected: !wireMatches(approvedAck, "Yes"),
+    missing_ack_authority_rejected: !wireMatches({ ...approvedAck, authorizes: false }, acknowledgement),
+    changed_ack_meaning_rejected: !wireMatches({ ...approvedAck, label: "a different agreement" }, acknowledgement),
+    changed_non_ack_answer_rejected: !wireMatches(approvedEmail, "changed@example.test"),
+  };
+  const comparisons = prepared.payload.fields.map((f: any) => ({
+    name: f.name, approved: f.value, received: values.get(f.name), matches: wireMatches(f, values.get(f.name)),
+  }));
+  const answerMatch = comparisons.every((f: any) => f.matches);
   const nonempty = sent.filter(([, value]) => value !== "");
   const allowed = new Set([...prepared.payload.fields.map((f: any) => f.name), ...prepared.payload.page_field_names]);
   const wireKeys = new Set(sent.map(([name]) => name));
@@ -120,6 +143,7 @@ try {
     prepared: prepared.ready, one_engine_submission: engineRuns === 1,
     one_employer_post: received.length === 1, one_final_record: finished.length === 1,
     approved_answers_and_resume_received: answerMatch,
+    wire_oracle_negative_controls: Object.values(oracleControls).every(Boolean),
     no_extra_nonempty_fields: nonempty.every(([name]) => allowed.has(name)),
     no_repeated_wire_fields: wireKeys.size === sent.length,
     page_confirmation_captured: result?.state === "confirmed" && result?.outcome === "submitted",
@@ -135,12 +159,13 @@ try {
     source_sha: source, captured_fixture: fixtureId, fixture_sha256: await sha256(new TextEncoder().encode(html)),
     canonical_path: ["approve-first.prepare", "cloudLoop", "cloudEngineRunner", "scripts/apply.ts --submit --approved"],
     approved_payload_hash: prepared.hash, engine_approval: prepared.payload.engine_approval,
-    local_url: url, received, finished, checks, receipt,
+    local_url: url, received, finished, checks, oracle_controls: oracleControls, wire_comparisons: comparisons, receipt,
     elapsed_ms: Date.now() - started,
     live_gate: "NOT_RUN: three approved gate-tester hand submissions on Lever confirmed by employer email; cloud switch and personal opt-in remain owner-controlled",
   };
   await write("receipt.json", proof);
-  console.log(JSON.stringify({ proof: `${out}/receipt.json`, checks, receipt, elapsed_ms: proof.elapsed_ms }));
+  console.log(JSON.stringify({ proof: `${out}/receipt.json`, checks, oracle_controls: oracleControls,
+    mismatched_fields: comparisons.filter((f: any) => !f.matches).map((f: any) => f.name), receipt, elapsed_ms: proof.elapsed_ms }));
   if (Object.values(checks).some((ok) => !ok)) Deno.exitCode = 1;
 } catch (e) {
   await write("stopped.json", { source_sha: source, reason: String(e), received, finished, elapsed_ms: Date.now() - started });

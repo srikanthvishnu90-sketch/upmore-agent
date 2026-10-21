@@ -801,7 +801,8 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         const rowKey = rowAnswerKey(f, p.job_id);
         const scoped: Answer | undefined = rowKey ? o.saved[rowKey] : undefined;
         const s = scoped ?? (f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null);
-        const value = s ? (f.options.length && scoped ? matchOption(String(s.value), f.options) : String(s.value)) : null;
+        const value = s ? (f.options.length && scoped ? matchOption(String(s.value), f.options)
+          : scoped && f.type === "checkbox" ? yesNo(String(s.value)) : String(s.value)) : null;
         const shaped = value !== null && fitsField(f, value, !!scoped) ? canonicalTypedValue(f, value) : null;
         if (s && shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: s.factId }); continue; }
         if (!f.required) continue;

@@ -62,3 +62,9 @@ Deno.test('bound row answers: binding refusal precedes choice and yes-no accepta
  for(const [f,answer]of[[choice,'Masters'],[yesno,'Yes']] as const){const q=question(f);eq(checkAnswer(q,answer).ok,true,'supported choice');for(const bad of [{...q,key:'job:0000000000000000'},{...q,type:'row:unbound'},{...q,type:q.type+':junk'}])eq(checkAnswer(bad,answer).ok,false,'no early choice/yes-no bypass');}
  const year=question(field({section:{kind:'work',row:1,part:'start',anchor:'Synthetic Employer',format:'YYYY'}}));eq(checkAnswer({...year,label:'From'},'2028').ok,true,'encoded year precision does not depend on a displayed hint');
 });
+
+Deno.test('bound row answers: an unclear saved checkbox cannot become an unchecked answer',()=>{
+ const f=field({name:'workExperience-1--current',type:'checkbox',label:'Currently work here',section:{kind:'work',row:1,part:'current',anchor:'Synthetic Employer'}});
+ for(const value of ['unclear','I have experience elsewhere','not specified'])eq(run([f],own(f,value)).ready.length,0,'not a literal yes/no answer');
+ for(const [value,want]of[['Yes','yes'],['No','no'],['true','yes'],['false','no']])eq(run([f],own(f,value)).ready[0]?.fields[0]?.value,want,'literal checkbox control');
+});

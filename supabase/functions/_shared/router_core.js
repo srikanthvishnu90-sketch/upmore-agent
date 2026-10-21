@@ -40087,7 +40087,24 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      // ROUND 2 (judge blocker, PR #151): the union is by IDENTITY,
+      // not by kind+value. A keyed fact (kind+key) or a single-value
+      // kind whose identity the working set already holds is a
+      // REPLACED fact — the mirror's older value is a stale copy of
+      // the same fact, and pushing it re-enters the replaced value
+      // as a second fact under the same identity (the old thread's
+      // mirror resurrecting the goal another thread replaced, from
+      // where the write-back would commit it as a duplicate slot).
+      // Mirror facts whose identity the working set lacks entirely
+      // still join (the shallow-copy harness case the mirror exists
+      // for); multi-value kinds keep the kind+value union.
+      const factIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${lc(f.key)}` : (f && FACT_SINGLE_KINDS.has(f.kind) ? `kind:${f.kind}` : null);
+      for (const f of mirrored.facts) {
+        if (!f) continue;
+        const id = factIdOf(f);
+        if (id) { if (!primary.facts.some((x) => x && factIdOf(x) === id)) primary.facts.push(f); }
+        else if (!primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      }
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;

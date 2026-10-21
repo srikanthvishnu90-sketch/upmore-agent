@@ -229,6 +229,60 @@ const CareerPortalBrowser = (() => {
     }
     return { defs, bindings };
   }
+  // State-of-residence binding (form-inventory finding, 2026-10-21;
+  // F-007-class — a form stopping although a confirmed fact covers the
+  // field). The old rule was a phrase list whose question shapes
+  // assumed "which/what state" ADJACENT ("which state do you…",
+  // "in which state…", "state of residence"). Affirm's live Greenhouse
+  // label — "Which U.S. State or Canadian Province do you reside in?"
+  // — interposes "U.S." after "Which" and an "or Canadian Province"
+  // clause before the verb, so every alternative missed and the field
+  // stopped as an ask while module 149 derived state_of_residence from
+  // the confirmed residence fact. The binding is now STRUCTURAL —
+  // subject + residence frame, disqualifiers first — fail-closed:
+  //   subject: the word state or province;
+  //   frame:   the noun frame ("state of residence", "province of
+  //            current residence") OR a second-person residence verb
+  //            (reside / live / located / dwell) — the question must
+  //            ask where the APPLICANT lives;
+  //   never:   birth/origin frames (state of birth, where were you
+  //            born, where did you grow up — a DIFFERENT fact), entity
+  //            frames (state of incorporation / formation — an
+  //            entity's fact, not the applicant's), job-side frames
+  //            (where your office / the position is located);
+  //   options: when the field's OBSERVED option universe is
+  //            exclusively Canadian provinces/territories, a US-state
+  //            value cannot fit it, so the binding does not fire —
+  //            the field stays an honest ask instead of a forced fill.
+  //            (The drive's own option match + readback are unchanged
+  //            and still guard every other shape; a widget whose
+  //            options are not observed at classify time is guarded
+  //            there.) No token is both a Canadian province/territory
+  //            and a US state, so province-membership alone decides
+  //            exclusivity.
+  const CA_PROVINCE_TOKENS = ["alberta", "british columbia", "manitoba", "new brunswick", "newfoundland and labrador", "nova scotia", "ontario", "prince edward island", "quebec", "saskatchewan", "northwest territories", "nunavut", "yukon", "ab", "bc", "mb", "nb", "nl", "ns", "nt", "nu", "on", "pe", "qc", "sk", "yt"];
+  function optionUniverseIsProvinceOnly(f) {
+    const opts = f && Array.isArray(f.options) ? f.options : null;
+    if (!opts || !opts.length) return false;
+    const texts = opts
+      .map((o) => String((o && (o.label || o.value)) || (typeof o === "string" ? o : "")).toLowerCase().replace(/[^a-z]+/g, " ").replace(/\s+/g, " ").trim())
+      .filter((t) => t && !/^(select|choose|please)\b/.test(t));
+    if (!texts.length) return false;
+    return texts.every((t) => CA_PROVINCE_TOKENS.includes(t));
+  }
+  function isStateOfResidenceLabel(eff, f) {
+    const e = String(eff || "");
+    if (!/\b(state|province)\b/.test(e)) return false;
+    if (/\bborn\b|\bbirth\b|grew up|grow up|\braised\b/.test(e)) return false; // birthplace / origin: a different fact
+    if (/incorporat|formation|organi[sz]ed under|registered agent/.test(e)) return false; // an entity's state, not the applicant's
+    const nounFrame = /(state|province) of (current\s+)?(residence|residency)/.test(e) || /\bresiden(ce|cy) (state|province)\b/.test(e);
+    const verbFrame = /\b(reside|resides|residing|live|lives|living|located|dwell|dwelling)\b/.test(e)
+      && /\byou\b|\byour\b/.test(e)
+      && !/\b(office|position|job|role|worksite|business|company|employer)\b/.test(e); // job-side subjects are not the applicant's residence
+    if (!nounFrame && !verbFrame) return false;
+    if (optionUniverseIsProvinceOnly(f)) return false;
+    return true;
+  }
   function classifyKind(hay, inputType, f) {
     // D7 (BUG-065): a profile value binds ONLY when the field's LABEL
     // belongs to that value's class. The DOM name/id is a fallback for
@@ -301,7 +355,7 @@ const CareerPortalBrowser = (() => {
     // BUG-238: residence facts the bank carries (F-024 hometown /
     // basics.location) — state, time zone, date of birth get standard
     // keys so deriveAnswers' profile fields can fill them.
-    if (/state of residence|in which (u\.s\. )?state.*(reside|live|located)|which state do you.*(reside|live)|what state.*(reside|live)|province of residence/.test(eff)) return { kind: "standard", profile_key: "state_of_residence" };
+    if (isStateOfResidenceLabel(eff, f)) return { kind: "standard", profile_key: "state_of_residence" };
     if (/time ?zone/.test(eff)) return { kind: "standard", profile_key: "time_zone" };
     if (/date of birth|birth ?date|\bdob\b/.test(eff)) return { kind: "standard", profile_key: "date_of_birth" };
     if (/\bcountry\b/.test(eff)) return { kind: "standard", profile_key: "country" };

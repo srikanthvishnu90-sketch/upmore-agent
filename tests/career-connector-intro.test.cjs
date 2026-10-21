@@ -1,4 +1,4 @@
-// Career connector INTRO COMPOSER (module 156): warm double-opt-in intro text,
+// Career connector INTRO COMPOSER (module 159): warm double-opt-in intro text,
 // booking offer (never a booking claim), and the 72h follow-up + due marker.
 // Check: node --test tests/career-connector-intro.test.cjs
 // Pure composition: no LLM, no clock, no I/O. All people below are TEST FIXTURES.
@@ -9,7 +9,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const C = require(path.join(root, 'packages/domain/156-career-connector-intro.js'));
+const C = require(path.join(root, 'packages/domain/159-career-connector-intro.js'));
 
 const H72 = 72 * 60 * 60 * 1000;
 

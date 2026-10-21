@@ -1,4 +1,4 @@
-/* Career connector INTRO COMPOSER (Lane B package 3). Pure, deterministic:
+/* Career connector INTRO COMPOSER (Lane B package 3; number 159 per coordinator assignment). Pure, deterministic:
    no I/O, no LLM, no clock reads, no writes. Composition is templates + slot
    filling over CONSENTED PUBLIC FIELDS ONLY.
 

@@ -72,6 +72,17 @@ Deno.test("conversation capability: complete useful text adds no repair call", a
   eq(result.reply, STEPS); eq(payloads.length, 1); eq(result.stopped, "final");
 });
 
+Deno.test("conversation capability: a deliberately requested future-tense phrase stays literal", async () => {
+  const literal = "I'll put together a plan for tonight.";
+  const { result, payloads } = await conversation([text(literal)], { message: 'Reply with exactly "' + literal + '"' });
+  eq(result.reply, literal); eq(payloads.length, 1); eq(result.tool_calls, []);
+});
+
+Deno.test("conversation capability: a short answer from this conversation needs no rewrite", async () => {
+  const { result, payloads } = await conversation([text("Monday.")], { message: "My interview is on Monday. When is my interview?" });
+  eq(result.reply, "Monday."); eq(payloads.length, 1); eq(result.tool_calls, []);
+});
+
 Deno.test("conversation capability: a concrete missing-posting question neither invents answers nor starts an application", async () => {
   const question = "Which posting should I prepare the application for?";
   const { result, payloads, stores } = await conversation([text(question)], { message: "Prepare an application for me." });

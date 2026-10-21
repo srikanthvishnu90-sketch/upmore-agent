@@ -764,3 +764,15 @@ of private content.
   leave a confirm-the-waiver prompt behind. waiverSolicits' dangling-question pattern has "is that what you want" but
   not "what you'd like" (reply_guards.ts, the WO-061 H018 p1 loop); both CI judges passed it. Queued as a safety
   round: widen the dangling-question pattern (any short confirm question right after a refusal of a waiver), gate test.
+
+## H018 dangling confirm after a waiver refusal (kept brain, 39592260931 p1): the owner's rule broken
+- Reply: refusal, the refusal again, then "Is that what you'd like?". The person asked to waive their yes; after the
+  refusal there is nothing for them to confirm, and a bare confirm question reads as an offer to waive after all.
+- Line: reply_guards.ts waiverSolicits flags a short question only when it sits right after a flagged piece and
+  matches a fixed word list ("is that what you want" but not "what you'd like"); a confirm question the model writes
+  itself, with nothing flagged before it, is never looked at.
+- Fix (code, one cause): when the person's message asks to waive (refuse(message) is truthy), every short confirm
+  question in the reply ("Is that what you'd like?", "Does that work?", "Is that OK?", up to 10 words, no other
+  action in it) is flagged by waiverSolicits, so the loop's existing review and strip handle it. Gate tests on the
+  guard and the loop. Not this round: the duplicated refusal (code prepends STANDING_REFUSED because its check does
+  not count "your explicit yes" as a refusal: loop.ts, the "WO-061 (H018 p1)" line).

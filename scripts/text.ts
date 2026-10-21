@@ -191,7 +191,8 @@ async function line(input: string): Promise<boolean> {
 
 log(`Trainee text simulator · brain: ${brainName} · you are ${as} · ${new Date(now).toISOString()}${saved ? " (resumed)" : ""}`);
 if (script) {
-  for (const l of Deno.readTextFileSync(script).split("\n")) { if (!(await line(l))) break; }
+  // A script line starting with "# " is a comment, never texted.
+  for (const l of Deno.readTextFileSync(script).split("\n")) { if (l.startsWith("# ")) continue; if (!(await line(l))) break; }
 } else {
   while (true) { const l = prompt(">"); if (l === null || !(await line(l))) break; }
 }

@@ -73,6 +73,64 @@
    "run": "39541224991",
    "read": "gpt-5-mini failure reason only: says Fieldnote Software",
    "at": "2026-10-21"
+  },
+  {
+   "id": "H011",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: gives honest feedback on that answer, with at least one concrete improvement",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H014",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says no applications have been attempted for them yet, or asks which ones they mean",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H026",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: confirms it will track it, or says exactly what it needs",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H029",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says nothing has been prepared yet",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H036",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: names the few things it needs (e.g. resume, target roles, work rights) plainly",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H006",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: offers career help instead",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H030",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says honestly there is no match to book with",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H031",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says no research resume is on file and asks them to add it",
+   "at": "2026-10-21"
+  }
+ ],
+ "ids_only": [
+  {
+   "runs": [
+    "39542849277",
+    "39543405447"
+   ],
+   "read": "pass/fail ids and scores only, no item text, no failure reasons",
+   "at": "2026-10-21"
   }
  ]
 }

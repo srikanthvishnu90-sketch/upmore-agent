@@ -218,6 +218,8 @@ export function situationBlock(s: Situation, budget = SITUATION_BUDGET): string 
     ["Next steps, in order (how is the exact step):", true], ...(s.next.length ? s.next.map(nextLine) : ["- nothing in flight"]).map((x): [string, boolean] => [x, true]),
     ...(ls ? [[`Last list shown (${day(ls.at)}, "${ls.query}"): ${ls.items.map((x, i) => `${i + 1}. ${x.company}, ${x.title} (${x.job_id})`).join("; ")}`, false] as [string, boolean]] : []),
     ["Tasks:", true],
+    // WO-061 fix (b): an empty account says so in words the brain can repeat, never a bare heading it reads as unknown.
+    ...(s.tasks.some((t) => t.kind !== "question") ? [] : [["- none on file: no applications (queued, prepared, sent or failed), no postings saved to apply to, no drafts, no interviews. Asked about any of these, say plainly there are none yet and the one step that starts one.", true] as [string, boolean]]),
     ...s.tasks.filter((t) => t.kind !== "question" && t.blocker?.who === "person").map((t): [string, boolean] => [line(t), true]),
     ...s.tasks.filter((t) => t.kind !== "question" && t.blocker?.who !== "person").map((t): [string, boolean] => [line(t), false]),
     ["What Trainee can and cannot do right now:", true],

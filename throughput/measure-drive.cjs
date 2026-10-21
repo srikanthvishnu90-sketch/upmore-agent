@@ -43,6 +43,13 @@ const now = () => Number(process.hrtime.bigint() / 1000000n);
   console.log(JSON.stringify({ tag, step: "profileFor ok", hasProfile: !!pack.profile }));
 
   const rawBoard = cfg.boardForFor(GAUNTLET)(posting);
+  if (!rawBoard) {
+    // createCareerBoardFor fails closed to null when session creation
+    // is refused (e.g. DRIVER_HOST_REFUSED for an employer-site URL) —
+    // module 155 records that as BOARD_NOT_WIRED; report it named.
+    console.log(JSON.stringify({ tag, step: "drive complete", totalMs: 0, boardCalls: 0, resultStatus: "blocked", code: "BOARD_NOT_WIRED (session creation refused — host gate or service)" }));
+    process.exit(0);
+  }
   const calls = [];
   const board = {};
   for (const k of Object.keys(rawBoard)) {
@@ -63,6 +70,7 @@ const now = () => Number(process.hrtime.bigint() / 1000000n);
   const totalMs = now() - a;
   const byMethod = {};
   for (const c of calls) { byMethod[c.method] = byMethod[c.method] || { n: 0, ms: 0 }; byMethod[c.method].n += 1; byMethod[c.method].ms += c.ms; }
+  console.log(JSON.stringify({ tag, step: "per-call", calls }));
   console.log(JSON.stringify({
     tag, step: "drive complete", totalMs, boardCalls: calls.length, byMethod,
     resultStatus: res && res.resultStatus, code: res && res.code,

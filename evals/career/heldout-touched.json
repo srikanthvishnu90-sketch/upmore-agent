@@ -605,6 +605,14 @@
    "run": "39584579483",
    "read": "failing ids per judge; the three H031 replies (420 chars each) to check the fix did the task; every reply scanned by code for the new refusal's wording, error text and empty replies (ids only)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002"
+   ],
+   "run": "39584579483, 39583493501, 39556113702",
+   "read": "H002 failure reasons (both CI judges, three passes); H002 last replies (400 chars) in three runs; H002's two user turns tested by code against the confirmation yes/no patterns (lengths and booleans only, no text printed)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

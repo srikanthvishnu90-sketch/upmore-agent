@@ -587,3 +587,21 @@ of private content.
   publications") as a suggestion (the fabricated-specifics guard in the queue); p2 says the same thing twice; p3
   ends with a question that repeats the ask.
 - Held, uncommitted, for the three-way verdict.
+
+## H002 (owner's order: third): a short reply after "Is that right?" ends in the step-limit text
+- What happens (nine passes over three runs, both CI judges fail it in most): turn 1 the brain saves a draft fact
+  and asks "Is that right?"; turn 2 is a short message that is not a plain yes (code test of the user turns: the
+  confirmation patterns match neither yes nor no). Replies: "I couldn't finish that in one go, so I stopped partway.
+  Nothing was sent or submitted. Tell me which part to do first." (4 of 9, the MAX_STEPS_REPLY), "You didn't type
+  yes..." demands (3), and "Got it. / Is that right?" fragments (2). Judges: no acknowledgement, no next step.
+- Why (the exact lines): confirm_profile_fact refuses anything but a plain yes (career_tools.ts confirmationRefusal,
+  "not confirmed: the person's message is not a plain yes"); that refusal is correct. But loop.ts runAgentTurn puts
+  every refusal back to the model with tools still on, and nothing stops the model calling the same tool again: it
+  re-tries confirm_profile_fact (the same refusal each time) until `steps < max` (6) runs out, and the person gets
+  MAX_STEPS_REPLY, a generic failure text, for a message that needed one line.
+- Fix (code, one cause): when a tool fails a second time in one turn with the same error, the next call has tools
+  off and code's note in its system prompt (the `review` path: never the conversation): "<tool> refused twice with
+  the same reason: <reason>. Do not call it again this turn. Reply to the person now: answer their last message."
+  Covers every tool that thrashes this way, not only confirmations. Gate: a scripted model that calls
+  confirm_profile_fact on every step gets the tools-off call on step 3 and its text is the reply (before: the
+  step-limit text). The "Got it. / Is that right?" fragment and the plain-yes demand are other causes, not this round.

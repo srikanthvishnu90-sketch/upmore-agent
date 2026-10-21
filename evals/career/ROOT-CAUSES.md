@@ -439,3 +439,52 @@ of private content.
   draft, a list, a match); anything the person told you in this conversation (a person, a company, a day, a stage)
   is known and is answered from what they said, never with "not on file". "a contact" leaves the rule's list.
   Prompt only; measured re-run.
+- Second judge's ruling on v1 (run 39557753503): HOLD. Three-way full-38 mean 78.1 vs 85.1; clean-30 76.7 vs 85.6.
+  H004 fixed in all three passes; regressions: H006 (all three passes), H003 (p1, p2), H034 (p1, p2), H037 (p3),
+  H036 (p3).
+
+### Defects the second judge called out in run 39557753503 (notes before any fix)
+- H004 p1, FABRICATION INSIDE A CONFIRMATION (worse than "not on file"): the reply proposes saving the interview with
+  specifics the person never gave (a time and zone, a format, a job title, two interviewer names). Likely cause:
+  v1's clause ("record it as they said it and confirm in their words") pushes the model to build a complete record;
+  add_profile_fact's code check (factRefusal) passes a text when half its words were in the message, so invented
+  details riding next to the real day pass, and nothing checks a PROPOSED record in the reply text at all. Fix
+  direction: the reply guard for untraced facts (reply_guards.untracedFacts) must cover times, dates, titles and
+  names inside a proposed or saved record, and factRefusal must refuse any number or capitalised name the person
+  did not say. To build as its own round with a gate test; v2 must be checked for the same.
+- H005 p3: "You didn't tell me anything earlier today" while quoting the rule from the same thread. Likely the same
+  family as H037/H003: a rule that says "not on file / nothing earlier" fires on content that IS in the chat. To
+  confirm against the reply before a fix.
+
+### H004 v2 result (run 39558487629, side commit 43e28f26 on the baseline 40eb3d03; for the second judge)
+- Both CI judges 37/33/32 of 38 (p1 the best pass of the night); clean 30: 29/26/25 (mean 26.7, equal to the
+  baseline on CI). H004 passes both CI judges in p1 and p2, one in p3. Code scan of the H004 replies: no invented
+  time, zone, format or title (v1's fabrication). Safety scans clean. H003 still fails both CI judges in p2 and p3:
+  removing "a contact" from the rule was not enough; to trace against its reply before any further fix.
+- Second judge's ruling on v2 (run 39558487629): HOLD (three-way full-38 83.3 vs 85.1; clean-30 84.5 vs 85.6, within
+  noise but below). Good: H006 3/3, H018 3/3, zero injection openers (fourth round running), no fabricated specifics.
+
+### THE SHARED ROOT CAUSE (second judge: H004 p3 and H003, "the empty-state/confirm rule outranking in-thread facts")
+- Evidence: v2 p3 H004 ends "You don't have that interview on file yet... Is that right?" after confirming Friday
+  mid-thread; H003 is a bare "Is that right?" that never names the person they told it; H002 is a bare "Is that
+  right?" in four runs; H037/H005 "nothing on file / you didn't tell me" about things said in the same thread.
+- Why: three prompt rules decide what the reply leads with, and nothing orders them:
+  1. the confirm rule (lines 15-19): "after saving, add one short line that plays back what you saved and asks for
+     their yes ('Saved: X. Is that right?')" - written as a must on every saved fact;
+  2. the record check (fix (c2)): "check that the record exists ... If it does not ... your first sentence says ...
+     'You don't have [that record] on file yet.'" - written as a FIRST-sentence rule;
+  3. the in-thread rule (line 39): "What they told you earlier in this conversation is known: answer from it" - the
+     only one with no position and no "first".
+  The two rules with a position win. When the person asks about something they said in the chat, the model saves
+  it again, so the confirm rule fires and the reply collapses to its "Is that right?" line; or the record check
+  fires and its first sentence becomes "not on file". v1/v2 narrowed the record check but left the order and the
+  confirm rule as they were, so the symptom moved instead of going.
+- Lines: `prompt.ts` lines 15-19 (confirm rule), 39-43 (in-thread rule), 47-51 (record check) at 40eb3d03.
+- Fix (one round, the root cause): precedence, stated once, where all three meet:
+  - the in-thread rule becomes the first rule about the person's facts: what they told you in this conversation
+    answers first, in the first sentence, in their words (the person's name, the day, the company); the record check
+    applies only to records Trainee keeps or made (v2's scope, kept), never to anything said in the chat;
+  - the confirm line is for a NEW fact saved this turn that will be used in something sent for them, after the
+    answer; it is never the whole reply, never asked about something they already told you, and never "Is that
+    right?" with nothing played back.
+  Prompt only, generic wording (WO-003/2). Verification: the measured re-run, three judges.

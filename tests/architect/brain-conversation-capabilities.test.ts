@@ -83,6 +83,28 @@ Deno.test("conversation capability: a short answer from this conversation needs 
   eq(result.reply, "Monday."); eq(payloads.length, 1); eq(result.tool_calls, []);
 });
 
+Deno.test("conversation capability: a promise beside a read cannot replace the actual requested plan", async () => {
+  const { result, payloads } = await conversation([
+    call("read-before-plan", "get_profile", {}, "I'll put together a plan for tonight."),
+    text("Is that right?"), text(STEPS),
+  ], { message: "I have twenty minutes to prepare tonight. Give me two concrete interview preparation steps now." });
+  eq(result.reply, STEPS); eq(payloads.length, 3); eq(result.stopped, "final");
+  eq(result.tool_calls.map((c) => [c.name, c.ok]), [["get_profile", true]]);
+  eq(payloads[2].tool_choice, { type: "none" });
+});
+
+for (const [message, question] of [
+  ["Prepare an application for me.", "Which posting should I prepare?"],
+  ["Find jobs near my preferred city.", "Which city should I search in?"],
+]) {
+  Deno.test("conversation capability: an acknowledgement cannot complete the command: " + message, async () => {
+    const { result, payloads } = await conversation([text("Got it."), text(question)], { message });
+    eq(result.reply, question); eq(payloads.length, 2); eq(result.stopped, "final");
+    eq(result.tool_calls, []); eq(result.pending_approvals, []);
+    eq(payloads[1].tool_choice, { type: "none" });
+  });
+}
+
 Deno.test("conversation capability: a concrete missing-posting question neither invents answers nor starts an application", async () => {
   const question = "Which posting should I prepare the application for?";
   const { result, payloads, stores } = await conversation([text(question)], { message: "Prepare an application for me." });

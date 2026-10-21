@@ -488,3 +488,11 @@ of private content.
     answer; it is never the whole reply, never asked about something they already told you, and never "Is that
     right?" with nothing played back.
   Prompt only, generic wording (WO-003/2). Verification: the measured re-run, three judges.
+
+### Shared-root-cause round result (run 39560112467, side commit 1fcbaccf on the baseline; for the second judge)
+- Targets: H002, H003, H004, H005 and H037 pass BOTH CI judges in ALL THREE passes (15/15); code scan finds no bare
+  "Is that right?" reply and no "not on file" among them.
+- Both CI judges 33/30/33 of 38; clean 30: 27/22/26 (mean 25.0) vs the baseline's 26.7. gpt-4.1-mini 38/36/36 (its
+  best of the night); gpt-5-mini 33/30/33, failing a spread of items the fix did not touch (H009, H010, H011, H033,
+  H036, mostly one judge). H027 p3 is a content miss (asked "mock or brief?" instead of giving a prep plan), not the
+  empty reply. Safety scans clean in every pass. Decision: the second judge's three-way score.

@@ -30,7 +30,7 @@ export interface TurnResult {
   // WO-080: a failed call carries `error`, its reason cleaned by scrubError; a call that ran carries none.
   tool_calls: { name: string; ok: boolean; effect: Effect | null; error?: string }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
-  stopped: "final" | "max_steps" | "model_error";
+  stopped: "final" | "max_steps" | "model_error" | "incomplete_reply";
   show?: { intent: string; text: string; parts?: string[] };
 }
 
@@ -39,6 +39,8 @@ export const MODEL_ERROR_REPLY = "I can't answer right now because the AI servic
 // When a turn saved something before it stopped, it says so: "nothing saved" would be false.
 export const MAX_STEPS_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't finish the rest in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do next.";
 export const MODEL_ERROR_AFTER_SAVE_REPLY = "I saved what you told me, but the AI service stopped responding before I could finish. Nothing was sent or submitted. Try again in a minute.";
+export const INCOMPLETE_REPLY = "I couldn't produce a complete answer, so I stopped. Nothing was sent, saved or submitted. Please try again.";
+export const INCOMPLETE_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't produce a complete answer. Nothing was sent or submitted. Please try again.";
 // WO-077: a reply never claims a change that did not happen this turn (battery run 39485101366, T12: "Kept for good" after
 // only a read). Each kind of claim names the tools that make it true. WO-091a (audit chat-brain F5; battery run
 // 39500971945, BR-062/036/042): a claim is first-person past or present-perfect action language ("I've set…", "I saved…",
@@ -150,6 +152,21 @@ function resultText(v: unknown): string {
   return s.length > RESULT_CHARS ? `${s.slice(0, RESULT_CHARS)}… [cut: ${s.length - RESULT_CHARS} more characters]` : s;
 }
 
+// A structural check, not a semantic judge: a deictic closing question or an acknowledgement cannot stand in for
+// the requested answer. Check AFTER the truth filters, which may have removed the entire answer body. Concrete
+// clarification questions, short factual answers and a phrase the person explicitly asked to copy remain valid.
+const CLOSING_ONLY = /^(?:is (?:that|this) (?:right|correct|accurate|okay|ok)|does (?:that|this) (?:help|work|make sense|sound (?:right|good))|(?:would|will) (?:that|this) work|are we (?:aligned|on the same page)|tell me if (?:that|this|anything) (?:is |sounds )?(?:off|wrong|right)|let me know if (?:that|this) (?:helps|works|sounds (?:right|good)))$/i;
+const ACK_ONLY = /^(?:ok(?:ay)?|got it|understood|noted|sure|thanks|thank you|will do|done|all set|sounds good)$/i;
+const ANSWER_REQUEST = /\?|\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
+function missingAnswerBody(reply: string, message: string): boolean {
+  if (!/[\p{L}\p{N}]/u.test(reply)) return true;
+  const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
+  if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
+  const clauses = pieces(plainQuotes(reply).replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
+  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (ANSWER_REQUEST.test(message) && ACK_ONLY.test(s)));
+}
+const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement or closing confirmation is not an answer. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
+
 export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
   const byName = new Map(o.tools.map((t) => [t.name, t]));
@@ -166,11 +183,13 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const seen: string[] = [];
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
-  let steps = 0, checked = false, ask = false;
+  let steps = 0, checked = false, ask = false, repairing = false;
+  const earlier: string[] = [];
+  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, stopped: "incomplete_reply" });
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
+    try { res = await o.model({ system: repairing ? o.system + "\n\n" + COMPLETENESS_REPAIR : o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -178,17 +197,26 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
+    // Enforce text-only recovery even if a provider ignores tool_choice. Never repeat effects or enqueue approvals.
+    if (repairing && uses.length) return incomplete();
     if (!uses.length) {
-      const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+      let reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      // A model may write its answer beside a tool call, then finish with only a closing question. Recover that body
+      // without a length heuristic; the assembled reply still passes every truth filter below. A substantive final
+      // answer always supersedes earlier text. Once a repair starts, rejected earlier text must not be reintroduced.
+      if (!repairing && missingAnswerBody(reply, o.message) && earlier.length) {
+        reply = [...earlier.filter((s) => !missingAnswerBody(s, o.message)), reply].filter(Boolean).join("\n\n");
+        earlier.length = 0;
+      }
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
       // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
       // stands after that, code fixes.
       const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
       const leak = { tools: toolNames, typed, postings: postingsOf(seen) };
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
-      if ((claims.length || leaks.length || facts.length) && !checked && steps < max) {
+      if ((claims.length || leaks.length || facts.length) && !checked && !repairing && steps < max) {
         checked = true;
         const told = [
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
@@ -202,12 +230,21 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       let out = reply;
       if (claims.length) {
         out = rebuild(pieces(reply), new Set(claims.map((c) => c.index)));
-        if (!/[A-Za-z0-9]/.test(out)) return { reply: CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+        if (!/[A-Za-z0-9]/.test(out) && !ANSWER_REQUEST.test(o.message)) return { reply: CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
+      if (missingAnswerBody(out, o.message)) {
+        if (repairing || steps >= max) return incomplete();
+        // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
+        // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.
+        repairing = true;
+        continue;
+      }
       return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
     }
+    const pre = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+    if (pre) earlier.push(pre);
     messages.push({ role: "assistant", content });
     const results: any[] = [];
     for (const u of uses) {

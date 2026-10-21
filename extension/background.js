@@ -140,23 +140,34 @@ async function selectOwn(path) {
 // The person's confirmed facts: what they answered Trainee by text (career_apply_answers_own; a fact for every employer,
 // or one wording, or one posting) plus, if they chose, the same confirmed-facts file the desktop runner reads (only
 // entries marked confirmed, only theirs). Read fresh for each form, so an answer texted a minute ago fills now.
+// WO-102: only what the trusted fact manifest keeps (TraineeCore.trustedManifest): a positive allowlist of the facts the
+// person gave, the D-007 quarantine applied, conflicts excluded so they are asked again. Its hash and quarantine version
+// are bound into every approval and checked again, fresh, at the start of every application ("begin").
 async function facts(userId) {
-  const imported = await get(S, "imported_facts", { answers: {}, saved: {} });
+  const file = await get(S, "imported_file", null);
   let rows = [];
   try {
     rows = (await rpc("career_apply_answers_own", {})) || [];
   } catch (e) {
     if (e.message === "SIGNED_OUT") throw e;
   }
-  const merged = C.factsWithTextAnswers(imported, rows);
   const resume = await get(L, "resume", null);
-  if (resume) merged.answers.resume = { value: resume.sha256, factId: "approved-local-resume:" + resume.sha256 };
+  const m = C.trustedManifest({ owner: userId, file, rows, resume: resume ? { sha256: resume.sha256 } : null });
   // WO-054: the stored rows of answers the person gave in the panel before the session, for the card's mark.
   const beforeKeys = new Set(await get(S, "answered_before", []));
-  return { answers: merged.answers, saved: merged.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id) };
+  return { answers: m.answers, saved: m.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id),
+    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
 }
-// D-007: the import is TraineeCore.confirmedFacts: only the person's own confirmed facts, the quarantined ones left out.
-const confirmedOnly = (input, owner) => C.confirmedFacts(input, owner);
+// The facts behind an application's answers must all still be in the person's manifest now (WO-102: revalidated at the
+// boundary): the trusted fact behind each answer Trainee filled, and the facts behind each drafted answer.
+function factsStillGiven(payload, manifest) {
+  const gone = [];
+  for (const f of payload?.fields || []) {
+    const ids = f.source === "trainee" ? [f.factId] : f.source === "drafted" ? C.draftFactIds(f.factId) : [];
+    if (ids.some((id) => !id || !manifest.byFactId[id])) gone.push(f.label);
+  }
+  return gone;
+}
 
 // ------------------------------------------------------------------------------------------------ cards, queue, evidence
 const cards = async () => await get(S, "cards", {});
@@ -783,6 +794,22 @@ async function handle(m, sender) {
           return { ok: false, message: "withdrawn" };
         }
       }
+      // WO-102: revalidated here, at the boundary every path passes before its click, from the facts as they are now: each
+      // fact behind an answer is still one the person gave, the approval was made under this fact manifest and this
+      // quarantine version. Anything changed, withdrawn or unverifiable stops it; nothing was sent.
+      const sess = await session();
+      const now = sess ? (await facts(sess.user_id)).manifest : null;
+      const gone = now ? factsStillGiven(m.payload, now) : ["(signed out)"];
+      const approvedUnder = agent ? (await agentApproved())[card.jobId]?.posting : null;
+      const stale = !now || gone.length || (m.payload?.manifest_hash !== undefined && m.payload.manifest_hash !== now.hash)
+        || (m.payload?.quarantine_version !== undefined && m.payload.quarantine_version !== now.version)
+        || (agent && (!approvedUnder || approvedUnder.manifest_hash !== now.hash || approvedUnder.quarantine_version !== now.version));
+      if (stale) {
+        const why = `The facts behind this application changed since it was approved${gone.length ? ` (${gone.slice(0, 5).map((l) => `"${l}"`).join(", ")})` : ""}. Nothing was sent.`;
+        if (agent) await agentStopped(tabId, card, why);
+        else await setCard(tabId, { status: "stopped", message: why, approved: false }, "refused");
+        return { ok: false, message: why };
+      }
       try {
         const row = agent
           ? await rpc("career_apply_extension_begin_agent_own", { p_payload: m.payload, p_approval: m.hash, p_batch_hash: card.batch_hash })
@@ -879,7 +906,7 @@ async function handle(m, sender) {
         signedIn: !!a, email: a?.email || "", resume: resume ? { name: resume.name, sha256: resume.sha256 } : null,
         card, drafts: card ? await draftsFor(m.tabId, card.jobId) : {}, queue: await queueState(),
         timing: { n: timing.length, avg_ms: timing.length ? Math.round(timing.reduce((x, y) => x + y, 0) / timing.length) : null },
-        importedFacts: Object.keys((await get(S, "imported_facts", { answers: {} })).answers).length,
+        importedFacts: Object.keys((await get(S, "imported_file", { answers: {} })).answers || {}).length,
         answerOnce: await get(S, "answer_once", null),
         agent: (await config()).agentSubmits
           ? { batch: await get(S, "agent_batch", null), approved: Object.keys(await agentApproved()).length, receipts: (await get(L, "agent_receipts", [])).slice(0, 20) }
@@ -891,7 +918,7 @@ async function handle(m, sender) {
     case "signin-magic":
       return await magicLink(m.email);
     case "signout":
-      await S.remove(["auth", "imported_facts"]);
+      await S.remove(["auth", "imported_file"]);
       return { ok: true };
     case "set-resume": {
       const bytes = b64ToBytes(m.base64);
@@ -904,10 +931,12 @@ async function handle(m, sender) {
       if (!a) return { ok: false, message: say.signedOut };
       try {
         const j = JSON.parse(m.json);
-        if (j.user_id && j.user_id !== a.user_id) return { ok: false, message: "That facts file belongs to another account." };
-        const answers = confirmedOnly(j.answers, a.user_id), saved = confirmedOnly(j.saved, a.user_id);
-        await put(S, "imported_facts", { answers: answers.kept, saved: saved.kept, quarantined: answers.quarantined + saved.quarantined });
-        return { ok: true, quarantined: answers.quarantined + saved.quarantined };
+        if (j.user_id !== a.user_id) return { ok: false, message: "That facts file does not name your account, so none of it is used." };
+        // Kept as given; what may be used is decided each time by the trusted fact manifest (WO-102).
+        await put(S, "imported_file", { user_id: j.user_id, answers: j.answers || {}, saved: j.saved || {} });
+        const mf = C.trustedManifest({ owner: a.user_id, file: j, rows: [], resume: null });
+        const quarantined = mf.excluded.filter((x) => /quarantined/.test(x.why)).length;
+        return { ok: true, kept: Object.keys(mf.answers).length + Object.keys(mf.saved).length, excluded: mf.excluded.length, quarantined };
       } catch {
         return { ok: false, message: "That file is not a confirmed-facts file." };
       }

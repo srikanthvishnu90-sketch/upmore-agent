@@ -368,7 +368,7 @@ $("facts").onchange = async (e) => {
   const f = e.target.files[0];
   if (!f) return;
   const r = await send({ type: "import-facts", json: await f.text() });
-  text($("status"), r.ok ? `Your confirmed facts are loaded for this browser session.${r.quarantined ? ` ${r.quarantined} facts Trainee wrote for you (not stated by you) were left out and are never used (D-007).` : ""}` : r.message, !r.ok);
+  text($("status"), r.ok ? `${r.kept} of your facts can be used for this browser session.${r.excluded ? ` ${r.excluded} are not used: not stated by you, not confirmed, or derived from those${r.quarantined ? ` (${r.quarantined} of them Trainee wrote for you, D-007)` : ""}. What they would answer is asked instead.` : ""}` : r.message, !r.ok);
   render();
 };
 $("fill").onclick = async () => {

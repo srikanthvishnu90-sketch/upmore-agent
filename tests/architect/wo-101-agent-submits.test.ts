@@ -144,7 +144,9 @@ Deno.test("WO-101/A8 one receipt line per agent submission: the company, what th
 });
 
 Deno.test("WO-101/A1 options are shown as the page shows them: a checkbox group and a radio by their option text", () => {
-  const schema = [...SCHEMA,
+  // Only these two fields are planned here; the rest are optional so the rule that every required question is answered
+  // (WO-102) does not stand in the way of what this test reads.
+  const schema = [...SCHEMA.map((x) => ({ ...x, required: false })),
     f("pronouns", "Pronouns", "checkbox", false, [{ label: "He/him", value: "he" }, { label: "They/them", value: "they" }]),
     f("sms", "Yes - I consent to receiving text messages", "multi_value_single_select", false, [{ label: "Yes - I consent", value: "given" }, { label: "No - I do not consent to receiving text messages", value: "notGiven" }])];
   const plan = { fill: [{ name: "pronouns", label: "Pronouns", value: "they", factId: "TEST-p" }, { name: "sms", label: schema[7].label, value: "notGiven", factId: "TEST-s" }], needs: [], identity: [], ambiguous: [] };

@@ -3720,6 +3720,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     NO_UNCHECKED: () => NO_UNCHECKED,
     OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
     OWN_WORDS_UNREAD: () => OWN_WORDS_UNREAD,
+    QUARANTINE_VERSION: () => QUARANTINE_VERSION,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     WORKDAY_PAGE_SET: () => WORKDAY_PAGE_SET,
     WORKDAY_PERSONAL: () => WORKDAY_PERSONAL,
@@ -3733,11 +3734,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     batchPlan: () => batchPlan,
     beforeSession: () => beforeSession,
     blockers: () => blockers,
+    canonicalJson: () => canonicalJson,
     cardLines: () => cardLines,
     cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
-    confirmedFacts: () => confirmedFacts,
+    contractFill: () => contractFill,
     detectPortal: () => detectPortal,
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
@@ -3757,9 +3759,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
+    sha256Hex: () => sha256Hex,
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
     tenantOf: () => tenantOf,
+    trustedManifest: () => trustedManifest,
     workdayDraftLine: () => workdayDraftLine,
     workdayEmployer: () => workdayEmployer,
     workdaySignIn: () => workdaySignIn,
@@ -4166,6 +4170,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var MASKED = "[typed by you on the form; never kept by Trainee]";
   function reviewPayload(o) {
     return {
+      // WO-102: the approval binds the trusted fact manifest and the quarantine version it was made under.
+      ...o.manifest ? {
+        manifest_hash: o.manifest.hash,
+        quarantine_version: o.manifest.version
+      } : {},
       version: 1,
       source: "extension",
       user_id: o.userId,
@@ -4465,6 +4474,253 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return out;
   }
+  var QUARANTINE_VERSION = "d007-v1";
+  var POSITIVE = /^owner (stated|confirmed|typed|answered|gave|provided|picked)\b/i;
+  var RESERVED = /^(text-answer:|approved-local-resume:|essay-draft:)/;
+  function trustedManifest(o) {
+    const excluded = [], conflicts = [];
+    const kept = /* @__PURE__ */ new Map();
+    const file = o.file && typeof o.file === "object" ? o.file : null;
+    const fileOwn = !!file && file.user_id === o.owner;
+    const candidates = [];
+    for (const t of [
+      "answers",
+      "saved"
+    ]) {
+      for (const [key, a] of Object.entries(file?.[t] ?? {})) {
+        const id = String(a?.factId ?? "");
+        const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact" : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value" : !id || id.length > 200 ? "no fact id" : RESERVED.test(id) ? "an id reserved for another source (forged)" : quarantinedFact(a) ? `quarantined (D-007, ${QUARANTINE_VERSION})` : !POSITIVE.test(String(a?.provenance ?? "")) ? "no positive provenance (not stated by the owner)" : typeof a?.confirmation_event_id !== "string" || !a.confirmation_event_id.trim() ? "no confirmation event" : "";
+        if (why) excluded.push({
+          key,
+          factId: id,
+          why
+        });
+        else candidates.push({
+          t,
+          key,
+          a
+        });
+      }
+    }
+    let live = candidates;
+    for (let changed = true; changed; ) {
+      changed = false;
+      const ids = new Set(live.map((c) => String(c.a.factId)));
+      live = live.filter((c) => {
+        const from = Array.isArray(c.a.derived_from) ? c.a.derived_from.map(String) : [];
+        if (from.every((x) => ids.has(x))) return true;
+        excluded.push({
+          key: c.key,
+          factId: String(c.a.factId),
+          why: "derived from an excluded or unknown fact"
+        });
+        changed = true;
+        return false;
+      });
+    }
+    for (const c of live) {
+      kept.set(c.t + "\n" + c.key, {
+        table: c.t,
+        key: c.key,
+        value: c.a.value,
+        factId: String(c.a.factId),
+        event: String(c.a.confirmation_event_id),
+        provenance: String(c.a.provenance),
+        authorizes: c.a.authorizes === true
+      });
+    }
+    const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    for (const r of o.rows || []) {
+      if (!r || typeof r.answer !== "string" || !r.answer.trim() || typeof r.key !== "string") continue;
+      const t = r.key.startsWith("fact:") ? "answers" : /^(label|job):[0-9a-f]{16}$/.test(r.key) ? "saved" : null;
+      if (!t) continue;
+      const key = t === "answers" ? r.key.slice(5) : r.key;
+      const tf = {
+        table: t,
+        key,
+        value: r.answer,
+        factId: `text-answer:${r.id}`,
+        event: `text-answer:${r.id}`,
+        provenance: `owner answered this question (text-answer:${r.id})`,
+        authorizes: t === "saved"
+      };
+      const prior = kept.get(t + "\n" + key);
+      if (!prior) kept.set(t + "\n" + key, tf);
+      else if (n(prior.value) !== n(tf.value)) {
+        kept.delete(t + "\n" + key);
+        conflicts.push({
+          key,
+          factIds: [
+            prior.factId,
+            tf.factId
+          ]
+        });
+        excluded.push({
+          key,
+          factId: prior.factId,
+          why: `conflicts with ${tf.factId}`
+        }, {
+          key,
+          factId: tf.factId,
+          why: `conflicts with ${prior.factId}`
+        });
+      }
+    }
+    if (o.resume?.sha256) {
+      kept.set("answers\nresume", {
+        table: "answers",
+        key: "resume",
+        value: o.resume.sha256,
+        factId: "approved-local-resume:" + o.resume.sha256,
+        event: "resume:" + o.resume.sha256,
+        provenance: "owner picked this file in the panel",
+        authorizes: false
+      });
+    }
+    const answers = {}, saved = {}, byFactId = {};
+    for (const tf of kept.values()) {
+      (tf.table === "answers" ? answers : saved)[tf.key] = {
+        value: tf.value,
+        factId: tf.factId
+      };
+      byFactId[tf.factId] = tf;
+    }
+    const rows = [
+      ...kept.values()
+    ].map((x) => [
+      x.table,
+      x.key,
+      x.factId,
+      x.value,
+      x.event,
+      x.provenance,
+      x.authorizes
+    ]).sort((a, b) => String(a) < String(b) ? -1 : 1);
+    return {
+      answers,
+      saved,
+      byFactId,
+      excluded,
+      conflicts,
+      version: QUARANTINE_VERSION,
+      hash: sha256Hex(canonicalJson({
+        version: QUARANTINE_VERSION,
+        rows
+      }))
+    };
+  }
+  var ATTESTATION = /\b(certify|certif(y|ies)|attest|acknowledg\w*|i agree|agree to|consent|i understand|truthful|true and (complete|correct|accurate)|privacy (policy|notice))\b/i;
+  var PERSONAL = /\b(gender|pronoun|race|ethnic\w*|hispanic|latin[oax]?|veteran|disabilit\w*|sexual orientation|transgender|lgbt\w*)\b/i;
+  function canonicalJson(v) {
+    if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
+    if (Array.isArray(v)) return "[" + v.map(canonicalJson).join(",") + "]";
+    return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonicalJson(v[k])).join(",") + "}";
+  }
+  function sha256Hex(text) {
+    const K = [
+      1116352408,
+      1899447441,
+      3049323471,
+      3921009573,
+      961987163,
+      1508970993,
+      2453635748,
+      2870763221,
+      3624381080,
+      310598401,
+      607225278,
+      1426881987,
+      1925078388,
+      2162078206,
+      2614888103,
+      3248222580,
+      3835390401,
+      4022224774,
+      264347078,
+      604807628,
+      770255983,
+      1249150122,
+      1555081692,
+      1996064986,
+      2554220882,
+      2821834349,
+      2952996808,
+      3210313671,
+      3336571891,
+      3584528711,
+      113926993,
+      338241895,
+      666307205,
+      773529912,
+      1294757372,
+      1396182291,
+      1695183700,
+      1986661051,
+      2177026350,
+      2456956037,
+      2730485921,
+      2820302411,
+      3259730800,
+      3345764771,
+      3516065817,
+      3600352804,
+      4094571909,
+      275423344,
+      430227734,
+      506948616,
+      659060556,
+      883997877,
+      958139571,
+      1322822218,
+      1537002063,
+      1747873779,
+      1955562222,
+      2024104815,
+      2227730452,
+      2361852424,
+      2428436474,
+      2756734187,
+      3204031479,
+      3329325298
+    ];
+    const bytes2 = new TextEncoder().encode(text);
+    const len = bytes2.length, total = len + 9 + 63 >> 6 << 6;
+    const m = new Uint8Array(total);
+    m.set(bytes2);
+    m[len] = 128;
+    const bits = len * 8;
+    const dv = new DataView(m.buffer);
+    dv.setUint32(total - 4, bits >>> 0);
+    dv.setUint32(total - 8, Math.floor(bits / 4294967296));
+    const h = [
+      1779033703,
+      3144134277,
+      1013904242,
+      2773480762,
+      1359893119,
+      2600822924,
+      528734635,
+      1541459225
+    ];
+    const w = new Uint32Array(64);
+    const r = (x, n) => x >>> n | x << 32 - n;
+    for (let i = 0; i < total; i += 64) {
+      for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+      for (let t = 16; t < 64; t++) {
+        const s0 = r(w[t - 15], 7) ^ r(w[t - 15], 18) ^ w[t - 15] >>> 3, s1 = r(w[t - 2], 17) ^ r(w[t - 2], 19) ^ w[t - 2] >>> 10;
+        w[t] = w[t - 16] + s0 + w[t - 7] + s1 >>> 0;
+      }
+      let [a, b, c, d, e, f, g, hh] = h;
+      for (let t = 0; t < 64; t++) {
+        const t1 = hh + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + (e & f ^ ~e & g) + K[t] + w[t] >>> 0;
+        const t2 = (r(a, 2) ^ r(a, 13) ^ r(a, 22)) + (a & b ^ a & c ^ b & c) >>> 0;
+        hh = g, g = f, f = e, e = d + t1 >>> 0, d = c, c = b, b = a, a = t1 + t2 >>> 0;
+      }
+      h[0] = h[0] + a >>> 0, h[1] = h[1] + b >>> 0, h[2] = h[2] + c >>> 0, h[3] = h[3] + d >>> 0;
+      h[4] = h[4] + e >>> 0, h[5] = h[5] + f >>> 0, h[6] = h[6] + g >>> 0, h[7] = h[7] + hh >>> 0;
+    }
+    return h.map((x) => x.toString(16).padStart(8, "0")).join("");
+  }
   var NO_UNCHECKED = "No (left unchecked)";
   var YES2 = /^(true|yes|y|on|checked)\b/i;
   var kindOf2 = (f, listed) => /file/.test(f.type) ? "file" : listed.has(f.name) || f.widget ? "listed" : f.type === "checkbox" && f.options.length < 2 ? "checkbox" : f.type === "checkbox" || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
@@ -4483,6 +4739,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   };
   function batchPlan(o) {
     const listed = new Set(o.listed ?? []);
+    const m = o.manifest ?? null;
     const why = [];
     if (!o.schema.length) why.push("No application form was read on this posting.");
     if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
@@ -4490,7 +4747,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
     for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
     for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
-    const answers = [];
+    const answers = [], ledger = [];
     for (const p of o.plan.fill) {
       const f = o.schema.find((x) => x.name === p.name);
       if (!f) continue;
@@ -4499,17 +4756,44 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         why.push(`"${p.label}" needs your resume file in Trainee first.`);
         continue;
       }
-      const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
-      const shown2 = kind === "file" ? o.resume.filename : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? opt.shown : p.value;
-      answers.push({
-        name: p.name,
-        label: p.label,
-        value: opt ? opt.value : p.value,
-        shown: shown2,
-        kind,
-        factId: p.factId,
-        file: kind === "file" ? o.resume.sha256 : null
-      });
+      const a = answerOf(f, p, kind, o.resume);
+      if (m) {
+        const j = judge(f, a, m);
+        if ("problem" in j) {
+          if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
+          continue;
+        }
+        ledger.push({
+          application_id: o.jobId,
+          field_id: p.name,
+          question_hash: sha256Hex(canonicalJson({
+            name: f.name,
+            label: f.label,
+            type: f.type,
+            required: f.required,
+            options: f.options
+          })),
+          answer_hash: sha256Hex(canonicalJson({
+            value: a.value,
+            shown: a.shown,
+            file: a.file
+          })),
+          fact_refs: [
+            j.tf.factId
+          ],
+          source_refs: [
+            j.tf.provenance
+          ],
+          confirmation_event_id: j.tf.event,
+          derivation_rule: j.rule
+        });
+      }
+      answers.push(a);
+    }
+    const said = new Set(why.join("\n").match(/"[^"]+"/g) ?? []);
+    for (const f of o.schema) {
+      if (!f.required || answers.some((a) => a.name === f.name) || fileAlternative(f, o.schema) || isIdentityField(f) || f.personal) continue;
+      if (!said.has(`"${f.label}"`) && !why.some((w) => w.startsWith(`"${f.label}"`))) why.push(`"${f.label}" needs your answer first.`);
     }
     if (why.length) return {
       ok: false,
@@ -4520,6 +4804,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const blank = [
       ...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))
     ].sort();
+    ledger.sort((a, b) => a.field_id < b.field_id ? -1 : a.field_id > b.field_id ? 1 : 0);
+    const question_set_hash = sha256Hex(canonicalJson([
+      ...o.schema
+    ].sort((a, b) => a.name < b.name ? -1 : 1).map((f) => ({
+      name: f.name,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      options: f.options
+    }))));
     return {
       ok: true,
       posting: {
@@ -4527,9 +4821,82 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         company: o.company,
         url: o.url,
         answers,
-        blank
+        blank,
+        ledger,
+        question_set_hash,
+        manifest_hash: m ? m.hash : null,
+        quarantine_version: m ? m.version : null
       }
     };
+  }
+  function answerOf(f, p, kind, resume) {
+    const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+    const shown2 = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? opt.shown : p.value;
+    return {
+      name: p.name,
+      label: p.label,
+      value: opt ? opt.value : p.value,
+      shown: shown2,
+      kind,
+      factId: p.factId,
+      file: kind === "file" ? resume?.sha256 ?? null : null
+    };
+  }
+  function judge(f, a, m) {
+    const tf = m.byFactId[a.factId];
+    if (!tf) return {
+      problem: "its answer is not from a fact you gave"
+    };
+    if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return {
+      problem: "it is an attestation or a personal choice, so it takes your own answer to it"
+    };
+    const rule = derivation(a.kind, a, tf);
+    return rule ? {
+      rule,
+      tf
+    } : {
+      problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")`
+    };
+  }
+  function contractFill(o) {
+    const listed = new Set(o.listed ?? []);
+    const fill2 = [], asks = [], dropped = [];
+    for (const p of o.plan.fill) {
+      const f = o.schema.find((x) => x.name === p.name);
+      if (!f) continue;
+      const kind = kindOf2(f, listed);
+      if (kind === "file" && !o.resume) {
+        fill2.push(p);
+        continue;
+      }
+      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest);
+      if (!("problem" in j)) fill2.push(p);
+      else if (f.required) {
+        const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+        asks.push({
+          label: f.label,
+          type: String(f.type || "input_text"),
+          options: opts2.length <= 60 ? opts2.map((x) => String(x.label)) : [],
+          why: j.problem
+        });
+      } else dropped.push(f.label);
+    }
+    return {
+      fill: fill2,
+      asks,
+      dropped
+    };
+  }
+  function derivation(kind, a, tf) {
+    const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+    const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
+    if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
+    if (kind === "checkbox") return yn && yn === "yes" === YES2.test(a.value) ? "checkbox-yes-no" : null;
+    if (kind === "select" || kind === "choice") {
+      if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
+      return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
+    }
+    return n(a.value) === n(tf.value) ? "verbatim" : null;
   }
   var batchHash = (p) => hashApplyPayload({
     version: 1,
@@ -4541,6 +4908,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const diffs = [];
     if (!o.now.ok) diffs.push(...o.now.why);
     else {
+      if (o.now.posting.manifest_hash !== o.approved.manifest_hash) diffs.push("The facts behind your answers changed since you approved (a fact was added, changed or withdrawn).");
+      if (o.now.posting.quarantine_version !== o.approved.quarantine_version) diffs.push("The quarantine rules changed since you approved.");
+      if (o.now.posting.question_set_hash !== o.approved.question_set_hash) diffs.push("The form's questions changed since you approved.");
+      if (canonicalJson(o.now.posting.ledger ?? []) !== canonicalJson(o.approved.ledger ?? [])) diffs.push("The sources behind your answers changed since you approved.");
       const at = new Map(o.now.posting.answers.map((a) => [
         a.name,
         a
@@ -4585,7 +4956,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         continue;
       }
       const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",") : a.kind === "select" ? c.detail === `value=${a.value}` : true;
-      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" : norm2(c.value) === norm2(a.shown);
+      const word = norm2(a.shown).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? norm2(a.shown);
+      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" && norm2(c.value).includes(word) : norm2(c.value) === norm2(a.shown);
       if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
         diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
       }
@@ -4608,26 +4980,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
     if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
     return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
-  }
-  function confirmedFacts(input, owner) {
-    const kept = {};
-    let quarantined = 0;
-    for (const [k, a] of Object.entries(input || {})) {
-      if (a?.user_id && a.user_id !== owner) continue;
-      if (!(a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 && a.factId.length <= 200)) continue;
-      if (quarantinedFact(a)) {
-        quarantined++;
-        continue;
-      }
-      kept[k] = {
-        value: a.value,
-        factId: a.factId
-      };
-    }
-    return {
-      kept,
-      quarantined
-    };
   }
 
   // extension/src/dom.ts

@@ -100,13 +100,29 @@ async function session(ids) {
   await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
   return { page, tabId, panel, urls };
 }
-async function prepare(s) {
+async function prepareOnce(s) {
+  await sw.evaluate(() => chrome.storage.session.remove("agent_batch"));
   await s.panel.click("#q-prepare");
-  const b = await waitFor(async () => {
+  return await waitFor(async () => {
     const x = await store("session", "agent_batch");
     return x && x.status === "ready" && x.ready.length + x.out.length === s.urls.length ? x : null;
   }, 90000, "the batch");
-  return b;
+}
+// WO-102: what the TEST person's facts do not support is asked in the panel first, never guessed. The TEST person answers
+// each question there ("No" where the employer offers it), then Prepare reads the postings again.
+async function prepare(s, log = false) {
+  const first = await prepareOnce(s);
+  const asked = (await s.panel.evaluate(() => chrome.runtime.sendMessage({ type: "status" }))).answerOnce;
+  if (log) console.log(`asked first: ${asked.questions.length} questions (${asked.questions.map((q) => q.label.slice(0, 50)).join(" | ")}); ready before answering: ${first.ready.length}`);
+  if (!asked.questions.length) return first;
+  for (const q of asked.questions) {
+    const el = s.panel.locator(`#ao-list li[data-key="${q.key}"] .ao-answer`);
+    if (q.options.length) await el.selectOption(q.options.find((o) => /^no\b/i.test(o)) ?? q.options.at(-1));
+    else await el.fill("TEST answer given in the panel");
+  }
+  await s.panel.click("#ao-save");
+  await s.panel.waitForFunction(() => document.querySelectorAll("#ao-list li").length === 0, null, { timeout: 10000 });
+  return await prepareOnce(s);
 }
 async function end(s) {
   await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
@@ -179,7 +195,7 @@ test("A2: Prepare shows every answer per posting exactly as it will be sent; a p
   fresh();
   const s = await session(CANDIDATES);
   try {
-    const b = await prepare(s);
+    const b = await prepare(s, true);
     console.log(`batch: ${b.ready.length} ready (${b.ready.map((e) => `${e.company}: ${e.posting.answers.length} answers`).join("; ")}); ` +
       `${b.out.length} left out (${b.out.map((o) => `${o.company || o.url}: ${o.why.slice(0, 2).join(" ")}`).join("; ")})`);
     for (const o of b.out) assert.ok(o.why.length && o.why.every((w) => typeof w === "string" && w.length > 10), JSON.stringify(o));
@@ -212,7 +228,7 @@ test("A4 + A8: an approved batch is sent by the agent, one each, no tap per card
   world.state.agentSubmit = "on";
   // Three postings at three companies (each its own clone): the first and last of one form, the middle of the other, so
   // the one changed after the approval is a different form from the two that go.
-  const ids = [ready[1], ready[0], ready[1]];
+  const ids = [ready[0], ready[1], ready[0]];
   const s = await session(ids);
   try {
     const b = await prepare(s);

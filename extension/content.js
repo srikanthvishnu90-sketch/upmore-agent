@@ -151,6 +151,14 @@
     const b = f.bindings[s.name];
     return b && (b.widget || D.isPlaceSearch(D.element(b.selector)));
   }).map((s) => s.name);
+  // WO-102: the planner's answers through the contract (TraineeCore.contractFill): unsupported required answers become
+  // questions (asked once, and open on the card); unsupported optional ones are left empty.
+  function contractPlan(plan, f, c = ctx) {
+    if (!c?.manifest) return { ...plan, fill: [] }; // no manifest, no trusted facts: nothing is filled
+    const r = C.contractFill({ schema: f.schema, plan, manifest: c.manifest, listed: listedNames(f), resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null });
+    const asked = new Set(plan.needs.map((n) => n.label));
+    return { ...plan, fill: r.fill, needs: [...plan.needs, ...r.asks.filter((q) => !asked.has(q.label)).map((q) => ({ label: q.label, type: q.type, options: q.options }))] };
+  }
   function openRequired(fields) {
     const have = new Set(fields.map((f) => f.name));
     return form.schema.filter((s) => s.required && !have.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
@@ -160,6 +168,7 @@
       userId: ctx.userId, jobId, company, url: location.href, family: portal.family, fields,
       resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null,
       account: { epoch: Number(ctx.account?.epoch ?? 0), version: Number(ctx.account?.version ?? 0) }, expiresAt,
+      manifest: ctx.manifest ? { hash: ctx.manifest.hash, version: ctx.manifest.version } : null,
     });
 
   // The card: rebuilt whenever the form changes before the tap, so the person always approves what is there now.
@@ -199,7 +208,7 @@
     const batch = ctx.agentSubmits && ctx.queued && !wd && portal.family !== "workday"
       ? C.batchPlan({ jobId, company, url: location.href, family: portal.family, schema: form.schema, challenge: !!D.fnDetectChallenge(),
         plan: C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }),
-        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null, listed: listedNames(form) })
+        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null, listed: listedNames(form), manifest: ctx.manifest })
       : undefined;
     await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before, batch,
       ...(workday ? { action: workday.action, step: workday.step } : {}),
@@ -245,6 +254,8 @@
       where = D.fnPostingLocation(); // WO-053: where the job is, as its page shows it
       expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
       plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where });
+      // WO-102: only answers the submission-quality contract allows are filled; the rest go back to the person as questions.
+      plan = contractPlan(plan, form);
       timing.plan = Date.now();
       timing.fields = form.schema.length;
       timing.widgets = Object.values(form.bindings).filter((b) => b.widget).length;
@@ -311,11 +322,11 @@
     if (!f.schema.length) return send({ type: "survey", ok: false, why: "no application form on the page" });
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
-    const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
+    const p = contractPlan(C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at }), f, c);
     // WO-101: with agent submits on, this posting's batch entry: every answer exactly as the fill will send it, or why it
     // is left out of a batch (anything the person must answer or do first).
     const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
-      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f) }) : undefined;
+      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f), manifest: c.manifest }) : undefined;
     return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch });
   }
   function formReady(ms) {

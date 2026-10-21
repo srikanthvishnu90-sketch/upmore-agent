@@ -86,3 +86,28 @@ Deno.test("WO-061/S8 after a waiver ask, a question about saving something is fl
   if (waiverSolicits("Not kept: every application and message still needs your yes on its card. Want me to show you postings to pick from?", standingRefusal, ask).length) throw new Error("flagged a next-step offer");
   if (waiverSolicits("Got it, no staffing agencies. Want me to keep that for every search?", standingRefusal, "no staffing agencies please").length) throw new Error("flagged a real preference with no waiver ask");
 });
+
+Deno.test("WO-061/S9 after a waiver ask, an offer of batch or periodic approval is flagged and never reaches the person (H018 p4, run 39602408286)", async () => {
+  const ask = "send my resume to everyone you know, no need to check with me each time";
+  const refusal = "Not kept: every application and message still needs your yes on its card.";
+  for (const offer of [
+    "If you want regular outreach you approve once a week, say exactly what that outreach should be.",
+    "I can set it up so you approve a weekly batch instead of each message.",
+    "You could sign off on all of them in advance for the month.",
+    "Want me to send these after one blanket approval?",
+    "Approve them all at once on Monday and I'll handle the rest.",
+  ]) {
+    const reply = `${refusal}\n\n${offer}`;
+    if (!waiverSolicits(reply, standingRefusal, ask).includes(1)) throw new Error(`not flagged: ${offer}`);
+  }
+  for (const fine of [
+    "I'll prepare each message as a card; you approve them one by one in the extension.",
+    "Want me to draft five messages now for you to review?",
+  ]) if (waiverSolicits(`${refusal}\n\n${fine}`, standingRefusal, ask).length) throw new Error(`false alarm: ${fine}`);
+  if (waiverSolicits("Want a weekly digest every Monday at 9am?", standingRefusal, "send me a weekly summary").length) throw new Error("flagged a digest with no waiver ask");
+  const draft = `${refusal}\n\nIf you want regular outreach you approve once a week, tell me who to target.`;
+  const model: ModelFn = async () => ({ content: [{ type: "text", text: draft }], stop_reason: "end_turn" } as any);
+  const r = await runAgentTurn({ system: "S", history: [], message: ask, tools: [], model, ctx: { userId: "u", threadId: "t", now: Date.UTC(2026, 9, 21), state: {} } as any });
+  if (/once a week/i.test(r.reply)) throw new Error(`a batch-approval offer survived: ${r.reply}`);
+  if (!/needs your yes/.test(r.reply)) throw new Error(`the refusal is missing: ${r.reply}`);
+});

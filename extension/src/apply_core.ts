@@ -809,6 +809,17 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
 function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], jobId?: string): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
+  // Equal spelling cannot make a full name a legal-name assertion. Recheck the source's question meaning even
+  // when a caller presents a stale/forged plan; a saved answer stands only on this exact legal-name question.
+  if (classifyField(f.label, f.type) === "legal_name" || mapQuestion(f).fact === "legal_name") {
+    let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers.legal_name?.factId === tf.factId;
+    if (!legal && tf.table === "saved") {
+      const again = planBatch({ userId: "contract-legal-name", postings: [{ job_id: jobId ?? "contract-legal-name", company: "", title: "", fields: [f] }],
+        answers: {}, saved: { [tf.key]: { value: tf.value, factId: tf.factId } }, log: [], now: 0 }).ready[0]?.fields.find(p => p.name === f.name);
+      legal = !!again && again.factId === a.factId && again.label === a.label && again.value === a.value;
+    }
+    if (!legal) return { problem: "a legal name needs your stated legal name or your own answer to this exact question" };
+  }
   if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
   const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
     (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);

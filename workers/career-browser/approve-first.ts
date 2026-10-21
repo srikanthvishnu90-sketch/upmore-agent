@@ -224,7 +224,12 @@ function sourceOf(tf: any) {
 // The engine's canonical approval identity (scripts/apply.ts): validate the queued field/source/schema binding
 // before reconstructing facts. Otherwise a changed payload could silently re-create an older approved answer.
 export async function engineApprovalFromPayload(payload: any): Promise<string | null> {
-  if (payload.schema_hash === undefined) return null; // legacy approvals are still re-judged by the engine
+  if (payload.schema_hash === undefined) {
+    const modern = payload.manifest_hash !== undefined || payload.quarantine_version !== undefined || payload.replay_sources !== undefined ||
+      (Array.isArray(payload.fields) && payload.fields.some((f: any) => f?.source && Object.hasOwn(f.source, "value")));
+    if (modern) throw Error("INVALID_APPROVED_SCHEMA");
+    return null; // genuinely legacy approvals are still re-judged by the engine
+  }
   if (!/^[a-f0-9]{64}$/.test(String(payload.schema_hash))) throw Error("INVALID_APPROVED_SCHEMA");
   const facts = factsFromPayload(payload);
   const manifest = trustedManifest({ owner: payload.user_id, file: facts, rows: facts.text_answers ?? [], resume: { sha256: payload.resume_sha256 } });

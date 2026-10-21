@@ -92,6 +92,13 @@ Deno.test('row source binding: unused confirmed sources survive persisted replay
  assert(again.manifest.answers.country?.value==='United States'&&again.manifest.hash===original.manifest.hash,'full source manifest lost an unprinted source');
  assert(await engineHash(again.fields,again.manifest)===payload.engine_approval,'original approval did not reproduce with extra source');
 });
+Deno.test('row source binding: missing modern schema cannot downgrade to the legacy path before effects',async()=>{
+ const{payload}=await fixture();for(const strip of [false,true]){
+  const p=clone(payload) as any;delete p.schema_hash;if(strip){delete p.manifest_hash;delete p.quarantine_version;delete p.replay_sources;}
+  let effects=0,finish:any;await runApproved({claim:async()=>[{id:'SYN-QUEUE',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:p}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
+  assert(effects===0&&finish.state==='not_submitted'&&finish.evidence.reason==='INVALID_APPROVED_SCHEMA','modern schema omission reached effects: '+JSON.stringify(finish));
+ }
+});
 Deno.test('calendar producers: actual open questions preserve section month/year precision',()=>{
  for(const[format,type]of[['MM/YYYY','month'],['YYYY','year']]){
   const schema=[{name:'work-1--start',label:'From',type:'date',required:true,options:[],section:{kind:'work',row:1,part:'start',anchor:'',format}}];

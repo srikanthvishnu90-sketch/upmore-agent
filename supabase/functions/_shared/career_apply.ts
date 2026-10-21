@@ -7,6 +7,7 @@
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
 import { answerKey, AUTH_FACTS, FOREIGN, mapQuestion, NAMES_US, norm as normQuestion, RELATIVE_PLACE } from "./question_map.ts";
+import { rowAnswerKey } from "./row_answer.ts";
 import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 import { type PlacePart, postingAtHome, postingCountry, postingPlaces, STATE_NAMES } from "./posting_place.ts";
 
@@ -770,7 +771,7 @@ function nationalNumber(value: string, dial: string): string | null {
 }
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
-  const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[] }>();
+  const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[]; field_name?: string }>();
   const skipped: { job_id: string; reason: string }[] = [];
   const log = o.log.slice();
   for (const p of o.postings) {
@@ -794,13 +795,19 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         // WO-048 round 3: a field the form names as one part of a repeating section's row is answered only from the person's
         // own list, by the row the reader tied it to; with no row it is left (asked when required). Never a fact about the
         // person as a whole (their city, phone, email, name, current employer), never an answer saved under its wording.
-        const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-        const shaped = s && fitsField(f, s.value) ? canonicalTypedValue(f, s.value) : null;
+        // A direct answer belongs only to this exact posting/field/row snapshot. Neither its displayed wording nor a
+        // global date fact may stand in for that binding. An invalid newer answer stays open instead of restoring an
+        // older history value; absent a scoped answer, the original structured-history derivation remains unchanged.
+        const rowKey = rowAnswerKey(f, p.job_id);
+        const scoped: Answer | undefined = rowKey ? o.saved[rowKey] : undefined;
+        const s = scoped ?? (f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null);
+        const value = s ? (f.options.length && scoped ? matchOption(String(s.value), f.options) : String(s.value)) : null;
+        const shaped = value !== null && fitsField(f, value, !!scoped) ? canonicalTypedValue(f, value) : null;
         if (s && shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;
-        const k = normLabel(f.label);
-        const n = needs.get(k) ?? { label: f.label, key: "unknown", required: true, job_ids: [] };
+        const k = rowKey ?? normLabel(f.label);
+        const n = needs.get(k) ?? { label: f.label, key: "unknown", required: true, job_ids: [], field_name: f.name };
         if (!n.job_ids.includes(p.job_id)) n.job_ids.push(p.job_id);
         needs.set(k, n);
         continue;
@@ -851,5 +858,5 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     ready.push({ job_id: p.job_id, company: p.company, title: p.title, fields: filled });
     log.push({ user_id: o.userId, job_id: p.job_id, company: p.company, at: o.now, state: "planned" });
   }
-  return { ready, needs: [...needs.values()].map(({ label, key, job_ids }) => ({ label, key, job_ids })), skipped };
+  return { ready, needs: [...needs.values()].map(({ label, key, job_ids, field_name }) => ({ label, key, job_ids, ...(field_name !== undefined ? { field_name } : {}) })), skipped };
 }

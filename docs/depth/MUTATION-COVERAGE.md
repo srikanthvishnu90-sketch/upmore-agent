@@ -1707,3 +1707,5 @@ Their own unit tests still run in `node --test tests/*.cjs`; what is missing is 
 - 167-career-trusted-facts.js
 - 170-career-facts-parser.js
 - 172-career-missing-fact-ask.js
+- 173-career-reprepare-card.js
+- 175-career-approval-ui.js

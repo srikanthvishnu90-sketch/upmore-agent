@@ -199,7 +199,7 @@ function missingAnswerBody(reply: string, message: string, receiptOnly = false, 
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
   return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }
-const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, closing confirmation or unresolved fill-in field is not an answer to an informational question. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
+const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, action receipt, closing confirmation or unresolved fill-in field is not the requested answer. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 
 export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
@@ -303,7 +303,9 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
-      if (missingAnswerBody(out, o.message, false, sources)) {
+      // A successful write backs its receipt, but does not answer a request for content. A plain fact statement
+      // can still end with a backed receipt; use the existing answer-request check rather than grading its prose.
+      if (missingAnswerBody(out, o.message, ANSWER_REQUEST.test(o.message), sources)) {
         if (repairing || steps >= max) return incomplete();
         // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
         // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.

@@ -9,12 +9,13 @@
 // result is recorded unknown_outcome and never retried.
 import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { createRequire } from "node:module";
-import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
+import { normLabel, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 // WO-102: the submission-quality contract, the extension's own functions (never copied).
 import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../extension/src/apply_core.ts";
 import { applicationApprovalHash } from "../../scripts/apply.ts";
 import { factDependencies } from "../../supabase/functions/_shared/fact_quarantine.ts";
+import { rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
 
 export interface EngineResult {
   result: {
@@ -135,7 +136,14 @@ export async function prepare(o: {
       : []),
     `Sends to ${payload.destination}`,
   ];
-  return { ready: true as const, payload, hash: await hashApplyPayload(payload), card };
+  let approved_snapshot: { schema: any[]; original: typeof payload } | undefined;
+  if (Array.isArray(ev.schema)) {
+    if (await hashApplyPayload(ev.schema) !== payload.schema_hash) throw Error("INVALID_APPROVED_SCHEMA");
+    await assertApprovedPayload(payload, { url: o.url, user_id: payload.user_id });
+    approved_snapshot = JSON.parse(JSON.stringify({ schema: ev.schema, original: payload }));
+  }
+  const queued = { ...payload, ...(approved_snapshot ? { approved_snapshot } : {}) };
+  return { ready: true as const, payload: queued, hash: await hashApplyPayload(queued), card };
 }
 
 // On the card, an answer the person must read as theirs says so: a consent they give, a legal statement they make, an
@@ -263,12 +271,45 @@ export function payloadTrust(payload: any): string[] {
 // after the queued printed answers, source manifest and schema have been checked against the approved identity.
 export async function assertApprovedPayload(payload: any, context?: { url: string; user_id?: string }): Promise<void> {
   if (!/^[0-9a-f]{64}$/.test(String(payload?.engine_approval))) throw Error("NO_ENGINE_APPROVAL");
+  if ((Array.isArray(payload.fields) ? payload.fields : []).some((f: any) => f?.user_id !== undefined && f.user_id !== payload.user_id)) throw Error("FACT_OWNER_MISMATCH");
   const untrusted = payloadTrust(payload);
   if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
   const expected = await engineApprovalFromPayload(payload);
   if (expected !== null && context && (context.url !== payload.url ||
     (Object.hasOwn(context, "user_id") && context.user_id !== payload.user_id))) throw Error("APPROVED_APPLICATION_CHANGED");
   if (expected !== null && expected !== payload.engine_approval) throw Error("APPROVED_APPLICATION_CHANGED");
+}
+// A refused drive never runs to discover its questions. Only an intact original approval + hash-bound schema can
+// supply them. This helper never repairs an approval or returns answers; changed values and contexts stay refused.
+export async function approvedQuestionsAfterRefusal(payload: any, context: { url: string; user_id?: string }) {
+  try {
+    const snapshot = payload?.approved_snapshot, original = snapshot?.original, schema = snapshot?.schema;
+    if (!original || original.approved_snapshot || !Array.isArray(schema) || !Array.isArray(original.fields) || !Array.isArray(payload.fields) ||
+      original.engine_approval !== payload.engine_approval || await hashApplyPayload(schema) !== original.schema_hash) return null;
+    if (new Set(schema.map((f: any) => f?.name)).size !== schema.length || !schema.every((f: any) =>
+      typeof f?.name === "string" && typeof f.label === "string" && typeof f.type === "string" && Array.isArray(f.options) &&
+      f.options.every((o: any) => typeof o?.label === "string" && typeof o.value === "string"))) return null;
+    await assertApprovedPayload(original, context);
+    const unchanged = (p: any) => Object.fromEntries(Object.entries(p).filter(([key]) => !["fields", "approved_snapshot"].includes(key)));
+    if (await hashApplyPayload(unchanged(original)) !== await hashApplyPayload(unchanged(payload))) return null;
+    const prior = new Map(original.fields.map((f: any) => [f.name, f])), now = new Map(payload.fields.map((f: any) => [f.name, f]));
+    if (prior.size !== original.fields.length || now.size !== payload.fields.length || [...now.keys()].some(name => !prior.has(name))) return null;
+    const questions = [];
+    for (const [name, old] of prior as Map<string, any>) {
+      const f: any = now.get(name), field = schema.find((x: any) => x.name === name);
+      if (f && await hashApplyPayload(f) === await hashApplyPayload(old)) continue;
+      if (!field?.required || field.label !== old.label) return null;
+      if (f) {
+        const fixed = (x: any) => ({ name: x.name, label: x.label, value: x.value, source: x.source ?? null });
+        if (await hashApplyPayload(fixed(f)) !== await hashApplyPayload(fixed(old)) || !payloadTrust({ fields: [f] }).length ||
+          (f.user_id !== undefined && f.user_id !== payload.user_id)) return null;
+      }
+      const options = (Array.isArray(field.options) ? field.options : []).map((o: any) => String(o.label));
+      questions.push({ label: rowQuestionLabel(field), type: rowQuestionType(field, original.job_id, questionFieldType(field)), options: options.length <= 60 ? options : [] });
+    }
+    return questions.length ? { state: "not_submitted", reason: "needs_answers", posting: original.job_id, company: original.company,
+      fields: questions.map(q => q.label), questions } : null;
+  } catch { return null; }
 }
 // What the engine reads for the desktop prepare (WO-102): the person's facts file as it is, and their texted answers
 // beside it as their own answer rows. Never merged under the file's facts (factsWithTextAnswers lets the file silently

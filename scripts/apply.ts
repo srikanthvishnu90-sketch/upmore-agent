@@ -904,6 +904,7 @@ export async function runApply(args: string[]) {
       if (!bound && !personSubmits) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
       destination = bound ? action.url : "";
       evidence.fields = Object.values(planned);
+      evidence.schema = current.schema; // Exact schema bytes already bound by `before`, for refusal-only question recovery.
       evidence.payload = {
         user_id: facts.user_id,
         posting: target.key,

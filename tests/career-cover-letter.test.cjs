@@ -87,7 +87,7 @@ test("D-007 quarantine proof (stub reader): marker strings in uncleared facts ap
   };
   const r = CL.buildCoverLetter(p, { title: "Software Engineering Intern", company: "Example Systems Inc", skills: ["Python"] });
   assert.equal(r.ok, true);
-  assert.equal(r.readerSource, "stub167", "this proof runs against the labeled stub until 167 lands");
+  assert.equal(r.readerSource, "module167", "this proof runs against the real module 167");
   assert.equal(r.clearedFactCount, 1, "only the one cleared fact is visible to the drafter");
   assert.equal(r.quarantinedFactCount, 3);
   for (const [label, hay] of [["text", r.text], ["sentences", JSON.stringify(r.sentences)], ["gaps", JSON.stringify(r.gaps)]]) {

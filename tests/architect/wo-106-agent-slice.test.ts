@@ -195,3 +195,31 @@ Deno.test("WO-106/S1 a resume sent as a file on Telegram gets an answer (paste i
   await runInbound({ ...sticker.message!, messageId: "3" } as any, c.d as any);
   assert(c.sent.length === before, "a sticker gets no reply");
 });
+
+Deno.test("WO-106/S2 a pasted resume is read by code into draft facts from the person's own message, never from text the model writes", async () => {
+  const msg = "here's my resume:\nMaya Chen\nExperience\nData Analyst, Northbridge Logistics, 2022-2025: built SQL and Tableau dashboards\nSkills\nSQL, Tableau, Python\nEducation\nBS Economics, University of Illinois Chicago, 2022";
+  const t = tools(), state: Record<string, unknown> = {};
+  const r = await t.read_resume.run({ text: "PhD, Stanford" }, ctxFor(msg, state)) as any;
+  const facts = (state.profile as any).facts;
+  assert(r.saved >= 5 && facts.every((f: any) => f.needs_confirmation), JSON.stringify(r));
+  assert(facts.some((f: any) => f.kind === "experience" && /Northbridge/.test(f.text)) && facts.some((f: any) => f.kind === "education" && /Illinois/.test(f.text)), JSON.stringify(facts));
+  assert(!JSON.stringify(facts).includes("Stanford"), "the model's own text is never read");
+  const none = await t.read_resume.run({}, ctxFor("I am a data analyst with three years of SQL experience in Chicago", {})) as any;
+  assert(none.saved === 0 && /add_profile_fact/.test(none.next), JSON.stringify(none));
+});
+
+Deno.test("WO-106/B1 the answer the model writes beside a tool call is kept when its last message is only a trailer (eval E010 lost it)", async () => {
+  const { runAgentTurn } = await import("../../supabase/functions/_shared/agent/loop.ts");
+  const answer = "The usual path is an apprenticeship (a union program or a non-union one), often after a short trade-school course; licensing rules vary by state.";
+  let n = 0;
+  const model = async () => (++n === 1
+    ? { content: [{ type: "text", text: answer }, { type: "tool_use", id: "t1", name: "add_profile_fact", input: { kind: "goal", text: "be an electrician" } }] }
+    : { content: [{ type: "text", text: "Saved: you want to be an electrician. Tell me if that's off." }] }) as any;
+  const r = await runAgentTurn({ system: "s", history: [], message: "I want to be an electrician, how do I start", tools: careerTools({ postings: async () => [] }), model, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(r.reply.startsWith(answer) && /Tell me if that's off/.test(r.reply), r.reply);
+  let m = 0;
+  const long = "Here is the full answer, which already covers everything the person asked for in detail, with the steps and the trade-offs for their state laid out in order.";
+  const model2 = async () => (++m === 1 ? { content: [{ type: "text", text: "Let me save that." }, { type: "tool_use", id: "t1", name: "add_profile_fact", input: { kind: "goal", text: "be an electrician" } }] } : { content: [{ type: "text", text: long }] }) as any;
+  const r2 = await runAgentTurn({ system: "s", history: [], message: "I want to be an electrician, how do I start", tools: careerTools({ postings: async () => [] }), model: model2, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(r2.reply === long, `a full final answer is left alone, and a short preamble is never added: ${r2.reply}`);
+});

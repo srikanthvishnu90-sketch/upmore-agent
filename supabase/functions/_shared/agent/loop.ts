@@ -167,6 +167,9 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
   let steps = 0, checked = false, ask = false;
+  // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
+  // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
+  const earlier: string[] = [];
   while (steps < max) {
     steps++;
     let res;
@@ -179,7 +182,9 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
     if (!uses.length) {
-      const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+      let reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+      const said = earlier.filter((e) => e.length >= 60 && !reply.includes(e));
+      if (said.length && reply.length < 160) reply = [...said, reply].filter(Boolean).join("\n\n");
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
@@ -208,6 +213,8 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
       return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
     }
+    const pre = content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("").trim();
+    if (pre) earlier.push(pre);
     messages.push({ role: "assistant", content });
     const results: any[] = [];
     for (const u of uses) {

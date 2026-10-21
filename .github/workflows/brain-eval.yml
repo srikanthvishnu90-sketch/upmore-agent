@@ -12,6 +12,7 @@ on:
     paths:
       - .github/workflows/brain-eval.yml
       - evals/career/**
+      - evals/apply/live-fill.cjs
       - supabase/functions/_shared/**
       - supabase/functions/_shared/agent/**
       - supabase/functions/agent-chat/career_brain.ts
@@ -48,6 +49,21 @@ jobs:
       - name: Slice transcripts on the agent brain (WO-106; real model, today's boards, every link fetched)
         if: always()
         run: deno run -A evals/career/slice.ts --out "evals/career/results/slice-${{ github.run_id }}.md" | tail -5
+      - name: Playwright's Chromium for the extension (the one-application fill below)
+        if: always()
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
+          (cd "$RUNNER_TEMP/tools" && npx --no-install playwright install chromium)
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: The application the agent queued, filled by the real extension and never sent (WO-106)
+        if: always()
+        run: |
+          f="evals/career/results/slice-${{ github.run_id }}.md"
+          url=$(sed -n '/^## The apply queue after the run/,$p' "$f" 2>/dev/null | grep -oE 'https://[^ ]+' | head -1 || true)
+          if [ -z "$url" ]; then echo "NOT RUN: the slice transcript queued no application, so there is nothing to fill" | tee "evals/career/results/fill-${{ github.run_id }}.txt"; exit 0; fi
+          echo "filling (never sending): $url"
+          node evals/apply/live-fill.cjs --url "$url" --out "evals/career/results/fill-${{ github.run_id }}.json" | tail -30
       - name: F5 on the real handler (staged) - a batch ask is never "handed" to a worker that nothing runs
         if: always()
         run: node --experimental-vm-modules --test --test-name-pattern "WO-106/F5|degradation|delegation" tests/career-batch-delegation.test.cjs 2>&1 | tee "evals/career/results/f5-${{ github.run_id }}.txt" | grep -E "^(ok|not ok)|^# person:"

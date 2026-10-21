@@ -165,6 +165,24 @@ export function careerTools(deps: {
       },
     },
     {
+      // WO-106 (slice step 1): a pasted resume read by code, every entry a draft fact in its own words, instead of one
+      // add_profile_fact call per line. It reads only the person's own message in this turn, never text the model writes,
+      // so nothing can be put in their mouth. A resume without section headings (Experience, Skills, Education) says so,
+      // and then the facts are saved one by one with add_profile_fact.
+      name: "read_resume", effect: "write_own",
+      description: "Read the resume the person pasted in this message: every entry under its section heading (Experience, Skills, Education, Projects) is saved as a draft fact in their words. Use it whenever their message is a resume.",
+      input_schema: obj(),
+      run: async (_i, c) => {
+        const text = String(c.turn?.message ?? "");
+        if (text.trim().length < 40) throw new Error("this message holds no resume text; ask them to paste it");
+        const r = CareerProfile.ingestResume(profileOf(c), { text, fileName: "pasted-in-chat.txt", mimeType: "text/plain" }, { now: new Date(c.now).toISOString() });
+        if (!r.ok) return { saved: 0, reason: r.failure?.reason ?? "nothing could be read", next: "save what they said with add_profile_fact, in their words" };
+        for (const id of r.added_fact_ids) c.turn?.added.push(id);
+        await record(c, "resume_read", `${r.drafts.length} entries`, { kinds: [...new Set(r.drafts.map((f: any) => f.kind))] });
+        return { saved: r.drafts.length, drafts: r.drafts.map((f: any) => ({ id: f.id, kind: f.kind, text: f.text })), skipped_duplicates: r.skipped_duplicates.length };
+      },
+    },
+    {
       // WO-106 (F2; eval E044: a move to a new state left the old one on file): a correction replaces the fact it corrects,
       // so the profile never holds both. The new words must be theirs from this message, and it waits for their yes again.
       name: "correct_profile_fact", effect: "write_own",

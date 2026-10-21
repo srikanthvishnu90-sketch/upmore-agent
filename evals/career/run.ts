@@ -128,7 +128,13 @@ if (import.meta.main) {
         // turn". An eval persona's account holds nothing but the alerts it set in this chat: that is its situation.
         const row = await alerts.get(a.userId);
         const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [],
-          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [], threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
+          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [],
+          // WO-061 (production parity, H004 traces; second judge's ruling 2026-10-21): readSituation reads every thread's
+          // tracker rows from agent_flow_state (career_situation.ts: state->career->trackStore->rows), as saved after each
+          // earlier turn; the harness passed none, so a row recorded earlier in the same chat was "not on file" by the next
+          // turn. The eval persona's one thread is this chat: its own rows as saved after the last turn, nothing added.
+          threads: [{ thread_id: a.userId, rows: a.stores?.snapshot?.stores?.trackStore?.rows ?? null }],
+          connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
         // WO-061 (H029, run 39593783917: the model call failed in all five passes and the reason was not recorded): a failed
         // model call's provider status and message go in the trace, never to a judge.
         const errors: string[] = [];

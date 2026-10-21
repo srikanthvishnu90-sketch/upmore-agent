@@ -2,11 +2,11 @@
 // in full and put on the form only by their own Use, or (a file) attached by them; never a silent skip, never the resume
 // as a cover letter, never an invented claim. Labels are the captured forms' own (tests/fixtures/forms-ci, and the CI
 // question sets). Synthetic TEST facts; a fake model; no network.
-import { essayCardDraft, type EssayCardDeps } from "../../../supabase/functions/_shared/career_essay_card.ts";
-import * as AC from "../../../extension/src/apply_core.ts";
-import type { SnapField } from "../../../extension/src/apply_core.ts";
-import { mapQuestion } from "../../../supabase/functions/_shared/question_map.ts";
-import CONTENT from "../../../extension/content.js" with { type: "text" };
+import { essayCardDraft, type EssayCardDeps } from "../../supabase/functions/_shared/career_essay_card.ts";
+import * as AC from "../../extension/src/apply_core.ts";
+import type { SnapField } from "../../extension/src/apply_core.ts";
+import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+import CONTENT from "../../extension/content.js" with { type: "text" };
 
 const {
   answerOnceQuestions, batchPlan, cardLines, contractFill, draftFactId, essayQuestions, evidenceRecord, OWN_WORDS_BANNED, planForm, questionsForTrainee,

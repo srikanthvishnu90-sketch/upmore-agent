@@ -359,7 +359,7 @@ export interface WorkdayCard {
 }
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
-  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[];
+  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[]; coverFiles?: CoverFile[];
 }) {
   if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
@@ -373,7 +373,13 @@ export function cardLines(o: {
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }
   lines.push(`Resume: ${o.payload.resume_name ?? "none attached"}`);
-  for (const l of o.openRequired) lines.push(`Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+  // FRS: a cover-letter upload is the person's to attach (never asked by text, never the resume); an optional one left empty says so.
+  const covers = (o.coverFiles ?? []).filter((c) => !c.attached && !c.pasted);
+  for (const l of o.openRequired) {
+    const c = covers.find((x) => x.required && shortLabel(x.label) === l);
+    lines.push(c ? coverLetterLine(c) : `Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+  }
+  for (const c of covers.filter((x) => !x.required)) lines.push(coverLetterLine(c));
   for (const f of o.ambiguous ?? []) lines.push(`Still needed: ${shortLabel(f.label)}. Two fields on this form share that label, so Trainee left both for you.`);
   for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
   if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
@@ -528,10 +534,12 @@ export const OWN_WORDS_UNREAD = "This form names its own AI policy without sayin
 // The written questions the card offers to draft: required, not an identity number, a written answer by the question map,
 // and not answered yet, or answered with a draft the person used (so its text stays editable on the card). One the person
 // typed themselves, or that Trainee filled from a saved answer, is theirs and not offered.
+// FRS: a cover letter typed into a text box is offered too when it is optional (the person may send one or not).
 export function essayQuestions(o: { schema: FormField[]; fields: { name: string; source: string }[]; maxLength?: Record<string, number> }): EssayAsk[] {
   const by = new Map(o.fields.map((f) => [f.name, f]));
+  const mapped = (f: FormField) => mapQuestion({ label: f.label, type: f.type, options: f.options || [] });
   return o.schema
-    .filter((f) => f.required && !isIdentityField(f) && mapQuestion({ label: f.label, type: f.type, options: f.options || [] }).kind === "essay")
+    .filter((f) => !isIdentityField(f) && mapped(f).kind === "essay" && (f.required || mapped(f).fact === "essay_cover_letter"))
     .filter((f) => !by.has(f.name) || by.get(f.name)!.source === "drafted")
     .map((f) => {
       const n = Number(o.maxLength?.[f.name]);
@@ -547,6 +555,20 @@ export function showableDraft(r: unknown): boolean {
   return !!x && x.ok === true && typeof x.text === "string" && x.text.trim().length > 0 && x.text.length <= 2000 &&
     /[.!?]["”')\]]?$/.test(x.text.trim()) && Array.isArray(x.fact_ids) && x.fact_ids.every((i: unknown) => typeof i === "string");
 }
+// FRS: the form's cover-letter uploads (a file whose label names a cover letter and not a resume), whether the person
+// attached one, and whether its paste box (Greenhouse's cover_letter_text, a fileAlternative) holds one instead. Trainee
+// never attaches one: it makes no cover-letter file, and never sends the resume as one (judge).
+export interface CoverFile { name: string; label: string; required: boolean; attached: boolean; pasted: boolean }
+export const isCoverLetterFile = (f: { label: string; type: string }) => /file/.test(String(f.type)) && mapQuestion({ label: f.label, type: "file" }).fact === "cover_letter";
+export function coverLetterFiles(o: { schema: FormField[]; fields: { name: string }[] }): CoverFile[] {
+  const have = new Set(o.fields.map((f) => f.name));
+  return o.schema.filter(isCoverLetterFile).map((f) => ({ name: f.name, label: f.label, required: !!f.required, attached: have.has(f.name),
+    pasted: o.schema.some((x) => x.name === `${f.name}_text` && fileAlternative(x, o.schema) && have.has(x.name)) }));
+}
+export const coverLetterLine = (c: { label: string; required: boolean }) => c.required
+  ? `Still needed: ${shortLabel(c.label)}. Attach your cover letter on the form yourself; Trainee never attaches your resume as a cover letter.`
+  : `Left empty: ${shortLabel(c.label)} (optional). Trainee doesn't attach a cover letter, and never your resume as one; attach one yourself if you want to send it.`;
+
 // For the proof (D-024): each drafted answer, the facts it came from and whether the person edited it before it went.
 export function draftProvenance(fields: { name: string; value: string; source: string; factId: string | null }[],
   drafts: Record<string, { original: string; factIds: string[] }>) {
@@ -734,7 +756,11 @@ export function batchPlan(o: {
   if (!o.schema.length) why.push("No application form was read on this posting.");
   if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
   if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
-  for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
+  for (const n of o.plan.needs) {
+    why.push(o.schema.some((f) => f.label === n.label && isCoverLetterFile(f))
+      ? `"${n.label}" asks for a cover letter file: only you attach one (Trainee never sends your resume as one), so this one is yours to send.`
+      : `"${n.label}" needs your answer first.`);
+  }
   for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
   for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
   const answers: BatchAnswer[] = [], ledger: LedgerRow[] = [];
@@ -784,6 +810,7 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
 }
 function judge(f: FormField, a: BatchAnswer, m: Manifest): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
+  if (a.kind === "file" && isCoverLetterFile(f)) return { problem: "it asks for a cover letter, and Trainee never attaches your resume as one" };
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
   const rule = derivation(a.kind, a, tf);
@@ -798,7 +825,7 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
     const f = o.schema.find((x) => x.name === p.name);
     if (!f) continue;
     const kind = kindOf(f, listed);
-    if (kind === "file" && !o.resume) {
+    if (kind === "file" && !o.resume && !isCoverLetterFile(f)) {
       fill.push(p);
       continue;
     }

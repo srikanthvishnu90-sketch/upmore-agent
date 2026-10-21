@@ -61,6 +61,9 @@ const RULES: Rule[] = [
   ["writing_sample", /\bwriting sample\b/, isFile],
   ["unknown", /.*/, isFile],
   ["resume", /^(resume|résumé|cv)( ?\/ ?(cv|resume))?$/],
+  // FRS: a cover letter typed into a text box is a written answer (drafted on the card from confirmed facts, kept for
+  // this posting only); "in lieu of a cover letter, share ..." is read by the essay rules below.
+  ["essay_cover_letter", /\bcover letter|lettre de motivation|motivatiebrief\b/, (q, t) => LONG_TYPES.has(String(q.type)) && !/\b(in lieu of|instead of)\b/.test(t)],
 
   // A statement the person accepts (its only answers are acknowledgements, or a long checkbox with no question) is a
   // consent only when it is one a standing consent covers: privacy and data, certifying the answers are true, the

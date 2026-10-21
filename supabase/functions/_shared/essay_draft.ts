@@ -240,7 +240,8 @@ export async function draftEssay(o: {
   let all: unknown[];
   try { all = await o.deps.facts(); }
   catch (e) { return { ok: false, why: "model", policy, detail: [`could not read your facts: ${e instanceof Error ? e.message : String(e)}`], tries: 0 }; }
-  const facts = relevantFacts(all, { label: o.q.label, company: o.q.company, why: WHY.test(o.q.label) });
+  // A cover letter says what the person wants next too (FRS), as a "why us" answer does.
+  const facts = relevantFacts(all, { label: o.q.label, company: o.q.company, why: WHY.test(o.q.label) || /\bcover letter\b/i.test(o.q.label) });
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
   const sources = [...facts.map(factText), o.q.company ?? "", o.q.label];

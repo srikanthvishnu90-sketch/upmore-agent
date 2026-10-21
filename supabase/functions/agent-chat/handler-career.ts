@@ -197,7 +197,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const workerSecret = Deno.env.get("UPMORE_CAREER_WORKER_SECRET") ?? "";
     const boardFor = createCareerBoardFor(createWorkerBoardProvider({ workerUrl, secret: workerSecret, userId: user.id }));
     const delegateBatch = workerUrl !== "" && workerSecret !== "";
-    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch });
+    // LANE B CONNECTOR v1: the allowlist gate is env configuration
+    // (CONNECTOR_ALLOWED_USER_IDS, comma-separated account ids — the
+    // resolveTestUser env-allowlist shape). No connectorPool is
+    // installed in this runtime this round: the production pool over
+    // the account store is the connections-registry seam (design
+    // note, docs/connector/connector-v1-design.md), so allowlisted
+    // accounts get the router's honest not-wired reply and every
+    // other account keeps the unchanged people-matching stop. No
+    // WIRED claim is made for a pool that is not installed.
+    const connectorAllowlist = (Deno.env.get("CONNECTOR_ALLOWED_USER_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch, connectorAllowlist });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }
     catch (_) { return json(cors, { error: "invalid_career_task", action: null, turn_key: turnKey }, 400); }

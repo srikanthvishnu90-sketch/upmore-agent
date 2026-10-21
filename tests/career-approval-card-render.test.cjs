@@ -90,6 +90,7 @@ test('actual card render discloses exact answers, wire values, blank fields, des
   const f = await fixture();
   assert.equal(f.handle.getState(), 'open'); assert.equal(f.approvals.length, 0);
   for (const text of ['Why this role?', 'I enjoy careful work.', 'resume.pdf', 'Synthetic Resume.pdf', HASH, 'Optional website', 'https://example.test/jobs/1']) assert.ok(f.container.textContent.includes(text), text);
+  assert.ok(f.container.textContent.includes('Prepared input value:')); assert.ok(!f.container.textContent.includes('Exact value sent:'));
   await tap(f.handle);
   assert.deepEqual(f.approvals, [{ card_id: CARD, card_hash: f.getStored().hash }]);
   assert.equal(f.handle.getState(), 'approved'); assert.match(f.handle.status.textContent, /Nothing has been submitted/);

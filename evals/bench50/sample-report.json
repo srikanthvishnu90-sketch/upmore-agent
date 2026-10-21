@@ -1,0 +1,127 @@
+{
+  "bench": "BENCH-50 (50-in-30 stopwatch)",
+  "started_at": "2026-10-21T17:16:15.834Z",
+  "inputs": {
+    "count": 50,
+    "family": "greenhouse",
+    "market": "default",
+    "mode": "full",
+    "family_text": "software engineering intern",
+    "persona": "Alex Testcase (TEST) — synthetic stored record"
+  },
+  "world": "TEST (stand-in batch RPC store, real executor + production sources over a fake PostgREST; boards SYNTHETIC sandbox)",
+  "legs": {
+    "leg1_discovery": {
+      "label": "TEST",
+      "seconds": 0.291,
+      "pool_postings_served": 92,
+      "postings_per_min": 18994,
+      "note": "the worker's own postingsFor over the shared KB pool loader (600-row recency window); served = rows the window yielded, before screening"
+    },
+    "leg2_prepare": {
+      "label": "TEST (ends DOORSTEP by design)",
+      "seconds": 2.93,
+      "residual_note": "prepare drain wall − leg 1 − wrapped store/profile seams; includes 155 screen + tailor and the per-posting doorstep drives",
+      "found": 92,
+      "duplicates_removed": 1,
+      "screened_out": 1,
+      "eligible": 90,
+      "selected": 50,
+      "selected_matching_family": 50,
+      "selected_off_family": 0,
+      "prepare_stops": [],
+      "doorstep": 50,
+      "per_posting_prepare_s": 0.059,
+      "prepare_doorstep_drives_s": 0.008,
+      "card_sha256": "40ee0df6e5818f471c1162b9cba76160e54ec19ab8eccd5e349115eefbe5594e",
+      "run_status": "awaiting_approval"
+    },
+    "leg3_approval": {
+      "label": "TEST (stand-in store, real RPC shape + real 155 hash re-verification)",
+      "seconds": 0.006,
+      "attribution": "pending+claim+readRun seams in the approve drain + approveRun's card-hash re-verification and approval mint timed directly on a restored clone of the stored run (the recorded approval is the executor's own, in the same drain)",
+      "mint_measured_s": 0,
+      "mint_ok": true,
+      "approvals_recorded": 50,
+      "approval_ref": "batch:batch-87252f7f703f:40ee0df6e5818f471c1162b9cba76160e54ec19ab8eccd5e349115eefbe5594e",
+      "drain_result": "completed"
+    },
+    "leg4_drain_batch": {
+      "label": "TEST + SYNTHETIC boards (policy outcome — caps enforced by real 149, unmodified)",
+      "seconds": 0.024,
+      "board_time_s": 0,
+      "execution_overhead_s": 0.019,
+      "execution_overhead_note": "approve drain wall − board calls − store/profile seams − the approval mint: executeRun's in-process loop cost (per-posting session rebuild + runApply payload rebuild + cap check) across ALL selected postings, including the ones the caps then deferred",
+      "prepared_plus_approved": 50,
+      "submitted": 5,
+      "submitted_cap_bound": true,
+      "deferred_cap": 45,
+      "cap_stops": {},
+      "confirmations_synthetic": 5,
+      "ledger_submitted_records": 5,
+      "per_drive_board_time": {
+        "n": 5,
+        "min_ms": 0.004,
+        "median_ms": 0.006,
+        "max_ms": 0.016,
+        "mean_ms": 0.008
+      },
+      "run_status": "completed_with_stops",
+      "note": "executeRun's loop is serial: one posting's drive completes before the next begins; drives re-run the doorstep drive before submitting (sessions do not survive between the prepare and approve invocations). Board-call time here is in-process (µs-scale against the sandbox board) — the per-drive cost that matters is measured whole in the CAPACITY drain."
+    }
+  },
+  "not_run": [
+    {
+      "leg": "approval via the LIVE career_batch_* RPCs",
+      "label": "NOT_RUN",
+      "missing": "an operator env + a chat-committed intent for a real user — this harness never writes live intents; the approval leg runs at the identical wire shape against the stand-in store and is labeled TEST"
+    },
+    {
+      "leg": "drain against LIVE boards via the worker host board service",
+      "label": "NOT_RUN",
+      "missing": "the board-service binding on the worker host (the throughput lane's live drives own that seam); this harness's drain is SYNTHETIC (sandbox boards) inside the submit gate, or DOORSTEP in --mode doorstep"
+    },
+    {
+      "leg": "agent-submit approval RPC (career_apply_batch_approve_own, WO-101)",
+      "label": "NOT_RUN",
+      "missing": "the closure schema (career_apply_* stack) is not live on the project yet; the batch approval measured here is the live 20261016010000 intent + card-hash path"
+    }
+  ],
+  "capacity_drain": {
+    "label": "CAPACITY (per-drive marginals through the real 149 submit gate; boards SYNTHETIC)",
+    "drives": 50,
+    "submitted_synthetic": 50,
+    "total_drive_s": 0.105,
+    "per_drive": {
+      "n": 50,
+      "min_ms": 0.075,
+      "median_ms": 0.115,
+      "max_ms": 23.437,
+      "mean_ms": 2.096
+    },
+    "outcomes": {
+      "submitted_synthetic": 50
+    }
+  },
+  "totals": {
+    "end_to_end_s": 3.594,
+    "prepared_plus_approved": 50,
+    "submitted_batch": 5,
+    "submitted_batch_cap_bound": true
+  },
+  "projection": {
+    "label": "PROJECTION from measured marginals (TEST world, SYNTHETIC boards)",
+    "basis_note": "the per-drive marginal is IN-PROCESS cost (149 payload build, gates, sandbox board) — it excludes live-board latency (browser launch, page loads, network), which is the NOT_RUN live-board leg owned by the throughput lane. Read this projection as the pipeline's CPU-side ceiling, never as a live submission rate.",
+    "fixed_cost_s": 3.227,
+    "per_drive_mean_s": 0.002,
+    "projected_in_30min": 857239,
+    "batch_of_count_capacity_s": 3.332,
+    "note": "capacity projection — what the pipeline can physically drive in 30 min; the policy outcome for one user's batch is leg 4's submitted (cap-bound) number, reported separately and never merged with this one"
+  },
+  "binding_constraint": "product caps (by design, owner ruling): the batch drain stopped at 5 submitted with 45 deferred CAP_REACHED — caps are the binding constraint on single-user submissions in any world; throughput is not",
+  "all_constraints": [
+    "product caps (by design, owner ruling): the batch drain stopped at 5 submitted with 45 deferred CAP_REACHED — caps are the binding constraint on single-user submissions in any world; throughput is not",
+    "prepare dominates: fixed legs (discovery+prepare+approval) 3.227s exceed total drive time 0.105s — per-posting tailor + doorstep drives in prepare, plus the execute phase re-driving every doorstep, are the throughput cost"
+  ],
+  "finished_at": "2026-10-21T17:16:19.489Z"
+}

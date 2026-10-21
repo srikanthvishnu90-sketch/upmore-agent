@@ -1,0 +1,31 @@
+running 5 tests from ./tests/architect/pending/typed-writer-owner-legal-name.test.ts
+typed writer owner gate: a fresh authenticated writer creates usable owned data with actual confirmation events ... FAILED (17ms)
+typed legal-name gate: full name alone cannot answer a distinct required legal-name question ... FAILED (13ms)
+typed identity control: explicit owned full name and email retain their actual source events ... ok (2ms)
+typed identity control: full name is not guessed into first or last names ... ok (5ms)
+typed identity control: another profile owner is never replaced by projection ... ok (1ms)
+
+ ERRORS 
+
+typed writer owner gate: a fresh authenticated writer creates usable owned data with actual confirmation events => ./tests/architect/pending/typed-writer-owner-legal-name.test.ts:21:6
+error: Error: fresh authenticated profile lacks its explicit owner
+const OWNER='SYN-QA-TYPED',assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};
+                                                                     ^
+    at assert (file:///workspace/upmore-qa-typed-writer-boundaries-20261021/tests/architect/pending/typed-writer-owner-legal-name.test.ts:4:70)
+    at file:///workspace/upmore-qa-typed-writer-boundaries-20261021/tests/architect/pending/typed-writer-owner-legal-name.test.ts:23:2
+
+typed legal-name gate: full name alone cannot answer a distinct required legal-name question => ./tests/architect/pending/typed-writer-owner-legal-name.test.ts:26:6
+error: Error: a full-name statement was treated as a legal-name assertion
+const OWNER='SYN-QA-TYPED',assert=(v:unknown,m:string)=>{if(!v)throw Error(m)};
+                                                                     ^
+    at assert (file:///workspace/upmore-qa-typed-writer-boundaries-20261021/tests/architect/pending/typed-writer-owner-legal-name.test.ts:4:70)
+    at file:///workspace/upmore-qa-typed-writer-boundaries-20261021/tests/architect/pending/typed-writer-owner-legal-name.test.ts:28:2
+
+ FAILURES 
+
+typed writer owner gate: a fresh authenticated writer creates usable owned data with actual confirmation events => ./tests/architect/pending/typed-writer-owner-legal-name.test.ts:21:6
+typed legal-name gate: full name alone cannot answer a distinct required legal-name question => ./tests/architect/pending/typed-writer-owner-legal-name.test.ts:26:6
+
+FAILED | 3 passed | 2 failed (45ms)
+
+error: Test failed

@@ -1,0 +1,12 @@
+diff --git a/supabase/functions/_shared/agent/career_tools.ts b/supabase/functions/_shared/agent/career_tools.ts
+--- a/supabase/functions/_shared/agent/career_tools.ts
++++ b/supabase/functions/_shared/agent/career_tools.ts
+@@ -116,7 +116,7 @@
+   }
+   return { ok, refused };
+ }
+-const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
++const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({ user_id: c.userId }));
+ const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
+ const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
+ 

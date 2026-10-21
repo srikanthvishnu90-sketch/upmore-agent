@@ -1,0 +1,40 @@
+{
+  "source_base": "ebd80005af8c1d38c2669f57ea45c0b1a743b62c",
+  "pending_gate_commit": "339c6ac1db7704868067adf281c4817a2b7d58cf",
+  "canonical_product_modified": false,
+  "proposed_patch_applied": false,
+  "recorded_baseline": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "log": "baseline.log",
+    "failures": [
+      "fresh authenticated profile lacks its explicit owner",
+      "a full-name statement was treated as a legal-name assertion"
+    ]
+  },
+  "recorded_synthetic_observation": {
+    "file": "typed-writer-boundaries.jsonl",
+    "rows": 6,
+    "fresh_profile_rows": 3,
+    "explicitly_owned_profile_rows": 3,
+    "data": "invented local writer events; no provider or database"
+  },
+  "patch_scope": "Set user_id from authenticated ToolCtx only when profileOf creates a fresh profile. Existing profile identity is retained.",
+  "after_patch_verification": "Not run. This is an unapplied proposal; separate legal-name behavior remains outside its scope.",
+  "artifact_sha256": {
+    "tests/architect/pending/typed-writer-owner-legal-name.test.ts": "91cd4c2d740373eaedaa7764448c96016f69b7fbc1557e860c35fb00aac8193a",
+    "review/fresh-profile-owner/writer.patch": "70602200e40c120ba325fc490e389546c2a2d93fa68325bb8de4f164f4abf5fa",
+    "review/fresh-profile-owner/typed-writer-boundaries.jsonl": "112292f2f536f74199f8be38eba3b303c759aaa845245295541ee51b018d60d1",
+    "review/fresh-profile-owner/baseline.log": "b077920356693d4402f9b0cb79d8ce1c91e6069ea83d4eb28507cbbead9450c7"
+  },
+  "packaging_checks": {
+    "canonical_source_matches_base": true,
+    "pending_gate_matches_339c6ac1": true,
+    "all_gate_imports_repository_relative_and_resolve": true,
+    "runner_shell_syntax_valid": true,
+    "proposed_patch_apply_check_passed": true,
+    "existing_test_suites_repeated": false,
+    "whitespace_check": "Authored README, runner, and metadata pass. Raw writer.patch and baseline.log retain their original trailing whitespace to preserve exact artifact hashes."
+  }
+}

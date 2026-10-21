@@ -202,7 +202,7 @@ test('INTRO-009 booking payload: offered, no calendar event, real booking gated 
   assert.equal(r.booking.payload.calendar_event_created, false);
   assert.equal(r.booking.payload.requires, 'google_connect');
   assert.deepEqual(r.booking.payload.proposed_times, FIX1.proposedTimes);
-  assert.ok(!/is booked|I've booked|you're booked|has been booked/i.test(r.message), 'message never claims a booking');
+  assert.ok(!/(?<!Nothing )is booked|I've booked|you're booked|has been booked/i.test(r.message), 'message never claims a booking (the one "is booked" is the required negation, asserted next)');
   assert.ok(r.message.includes('Nothing is booked yet'));
 });
 

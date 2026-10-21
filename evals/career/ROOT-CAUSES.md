@@ -938,3 +938,9 @@ of private content.
   harness one.
 - The instrument changed: numbers before and after are not comparable. The stacked rerun is the same brain as stacked
   build 2 (run 39601021457), so the difference between the two is the harness alone.
+
+### Second judge's ruling: stacked build 2 KEPT (85.8 / 86.0); 95% not met
+- The H018 waiver-class fix is on the branch as 9a4fdbaf. The kept stack is now H031 v2 + H006 + H027 + stage labels + H018.
+- Recoverable gaps named: H004 (parity harness, rerun running), H034 (ask WHICH route; 4/5 fail), H025 (brief
+  acknowledgement), H037 p5, the mid-thread "Trainee career agent" re-introduction. Order: H034 next, then the stacked
+  build on 5 passes.

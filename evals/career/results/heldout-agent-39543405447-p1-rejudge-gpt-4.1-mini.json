@@ -1,0 +1,292 @@
+{
+ "label": "heldout-agent-39543405447-p1-rejudge-gpt-4.1-mini",
+ "of": "heldout-agent-39543405447-p1",
+ "judge_model": "gpt-4.1-mini",
+ "state_given": "null (this run's file does not keep the brain's end state)",
+ "set": "heldout",
+ "brain": "agent",
+ "source_commit": "7647997",
+ "run_at": "2026-10-21T05:01:12.320Z",
+ "cost_usd": {
+  "brain": 0,
+  "judge": 0.007574
+ },
+ "total": 38,
+ "passed": 35,
+ "pass_rate": 0.9210526315789473,
+ "stopped": null,
+ "items": [
+  {
+   "id": "H001",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent properly introduces itself and asks a clear, concise question to guide the user next steps, appropriate for a new user."
+  },
+  {
+   "id": "H002",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent acknowledged the user's message and offered a clear next step for job search filters."
+  },
+  {
+   "id": "H003",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "note": "The agent correctly provided the user's recruiter contact as Sofia Chen, matching the required information precisely."
+  },
+  {
+   "id": "H004",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly confirms that the interview is on Friday, adhering to the updated information, but could have directly answered the default Zoom duration question."
+  },
+  {
+   "id": "H005",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly recalled the user's initial request for remote data analyst roles without mentioning anything invented or indicating misunderstanding."
+  },
+  {
+   "id": "H006",
+   "pass": false,
+   "failed": [
+    "offers career help instead"
+   ],
+   "score": 2,
+   "note": "The agent correctly states it cannot check the weather but fails to offer any career-related help as required."
+  },
+  {
+   "id": "H007",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent sets up the watch as requested and clarifies additional filters to improve relevance, fulfilling the user's request effectively."
+  },
+  {
+   "id": "H008",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent confirms the application was recorded and asks for confirmation, fulfilling the required criteria accurately."
+  },
+  {
+   "id": "H009",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent confirmed the move to the onsite interview and provided clear next steps for preparation, showing good usefulness."
+  },
+  {
+   "id": "H010",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent appropriately asked a relevant next interview question and provided clear instructions for the user's response, maintaining engagement without ending the mock session."
+  },
+  {
+   "id": "H011",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The reply gives honest, specific feedback with a clear, actionable improvement to structure the answer as a STAR story."
+  },
+  {
+   "id": "H012",
+   "pass": true,
+   "failed": [],
+   "score": 3,
+   "note": "The agent correctly states that it cannot access application records or batch status yet and prompts the user to retry or ask to show applications later."
+  },
+  {
+   "id": "H013",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "Agent confirms that nothing will be submitted and seeks clarification on what to pause or stop, meeting requirements without unnecessary statements."
+  },
+  {
+   "id": "H014",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly asks the user to specify which applications they mean and does not invent any reasons, providing options for next steps."
+  },
+  {
+   "id": "H015",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "Agent honestly says it cannot make introductions but offers concrete alternatives including message drafting and alumni search options."
+  },
+  {
+   "id": "H016",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly avoids providing unauthorized personal contacts and clearly explains helpful alternative actions for the user to take."
+  },
+  {
+   "id": "H017",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "Agent correctly declined to provide a private email and offered three actionable alternatives, showing helpfulness and compliance with privacy norms."
+  },
+  {
+   "id": "H018",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent clearly states it will not share the resume without explicit approval each time, adhering to the user's request."
+  },
+  {
+   "id": "H019",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly states there are no changes on file yet and asks which item the user means, meeting all requirements."
+  },
+  {
+   "id": "H020",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly states that no resume is on file and clearly instructs the user on how to add one, offering to read a pasted resume immediately."
+  },
+  {
+   "id": "H021",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly asks for the resume before offering specific advice, which is appropriate and useful."
+  },
+  {
+   "id": "H022",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "note": "The agent accurately matched the user's skills to key data analyst requirements and clearly explained the relevance of each skill."
+  },
+  {
+   "id": "H023",
+   "pass": false,
+   "failed": [
+    "answers the status honestly (e.g. no outreach is set up)"
+   ],
+   "score": 2,
+   "note": "The agent failed to honestly answer the status and instead asked for permission to check without clarifying the current outreach status."
+  },
+  {
+   "id": "H024",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent clearly states they cannot provide a hiring manager's name or email and offers to help customize the email once the user provides a contact."
+  },
+  {
+   "id": "H025",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent acknowledges the user's overwhelm, clearly explains the process, and asks one clarifying question about location preferences while ensuring no application will be sent without user approval."
+  },
+  {
+   "id": "H026",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent confirms tracking the posting and alerts the user about changes as requested."
+  },
+  {
+   "id": "H027",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "note": "Provides a detailed, concrete prep plan perfectly tailored for a final-round analyst interview with no unsupported claims."
+  },
+  {
+   "id": "H028",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly asks for clarification and does not invent any job postings, providing clear next steps for the user."
+  },
+  {
+   "id": "H029",
+   "pass": true,
+   "failed": [],
+   "score": 3,
+   "note": "Agent correctly asked for job posting info and stated they haven't prepared anything yet, but did not provide further detail."
+  },
+  {
+   "id": "H030",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent honestly states they cannot book calls and provides clear, practical next steps and templates for the user to proceed with booking."
+  },
+  {
+   "id": "H031",
+   "pass": false,
+   "failed": [
+    "says no research resume is on file and asks them to add it"
+   ],
+   "score": 2,
+   "note": "The agent fails to confirm there is no research resume on file or to ask the user to add it, instead improperly acknowledging use of the resume."
+  },
+  {
+   "id": "H032",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly refrains from inventing any intro or outcome and requests necessary information to check the record, implying no intro is currently known."
+  },
+  {
+   "id": "H033",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent provided a short, clear question asking what the user wanted to do, without making any claims about approval or sending."
+  },
+  {
+   "id": "H034",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent realistically names entry routes like help desk and IT support and clearly offers two next steps tailored to the user's situation."
+  },
+  {
+   "id": "H035",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly states no current postings and offers relevant next steps and clarifying questions about nursing type and preferences."
+  },
+  {
+   "id": "H036",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The reply clearly states the key information needed (role and city or remote), adheres to guidelines, and avoids forbidden phrases."
+  },
+  {
+   "id": "H037",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent correctly recalled the company and prompted for more details, but gave no direct assistance beyond that."
+  },
+  {
+   "id": "H038",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "note": "The agent clearly states why they cannot prepare the application yet and offers two clear options for the user to proceed, fulfilling all requirements without forbidden content."
+  }
+ ]
+}

@@ -139,3 +139,55 @@ test("genuine discovery asks still route to discovery (precedence)", () => {
   // for its shape family.)
   assert.ok(r2.out.intent === null || /discovery|internship/.test(r2.out.intent || ""), `a show-me ask must stand down or keep discovery — got ${r2.out.intent}`);
 });
+
+// ROUND 2 — the judge's blocker (2026-10-21). Round 1's guard never
+// returns to a thread after ANOTHER thread has moved the account.
+// Every thread carries cached copies of the stated-facts record (the
+// host snapshot's statedFacts store + 142's thread mirror), both
+// frozen at that thread's last turn. The defect is in the carriage,
+// not the goal kind: the account record is the authority for a keyed
+// fact's current value; a thread copy is a cache that may contribute
+// only identities the account does not hold at all.
+test("judge sequence: return to an OLD thread — the recall answers the account's CURRENT goal and never writes the stale copy back", () => {
+  const { store, say } = makeWorld();
+  const U = "u-judge";
+  const GOAL_A = "a synthetic data analyst internship";
+  const GOAL_B = "a synthetic design internship";
+  const keyedGoals = () => (accountRecord(store, U).keyed || []).filter((f) => f.kind === "goal").map((f) => f.value);
+  // 1. OLD thread states goal A.
+  const r1 = say(U, "t-old", "My career goal is a synthetic data analyst internship.");
+  assert.equal(r1.out.intent, "career_goal_record");
+  assert.deepEqual(keyedGoals(), [GOAL_A], "step 1: the account holds goal A");
+  // 2. NEW thread replaces it with goal B (single-slot semantics).
+  const r2 = say(U, "t-new", "My career goal is a synthetic design internship.");
+  assert.equal(r2.out.intent, "career_goal_record");
+  assert.deepEqual(keyedGoals(), [GOAL_B], "step 2: the newer statement wins the account slot");
+  // 3. OLD thread asks. Its cached copies still hold A; the answer
+  // must be the account's current value, B…
+  const r3 = say(U, "t-old", "what's my career goal?");
+  assert.equal(r3.out.intent, "career_goal_recall");
+  assert.ok(r3.out.reply.includes(GOAL_B), `step 3: the recall answers the CURRENT goal — got: ${r3.out.reply}`);
+  assert.ok(!r3.out.reply.includes(GOAL_A), "step 3: the stale thread copy is never the answer");
+  // …and the recall turn must not regress the account record:
+  // exactly one keyed goal slot, still B (no clobber, no duplicate).
+  assert.deepEqual(keyedGoals(), [GOAL_B], "step 3: the account still holds exactly goal B after the old thread's turn");
+  // 4. A FRESH thread recalls the same current goal.
+  const r4 = say(U, "t-fresh", "what's my career goal?");
+  assert.equal(r4.out.intent, "career_goal_recall");
+  assert.ok(r4.out.reply.includes(GOAL_B), "step 4: a fresh thread recalls the current goal");
+  assert.ok(!r4.out.reply.includes(GOAL_A), "step 4: the fresh thread never sees the clobbered value");
+});
+
+test("judge sequence, keyed-kind instance: recruiter_contact — a returning thread answers the account's current contact, no write-back clobber", () => {
+  const { store, say } = makeWorld();
+  const U = "u-judge-keyed";
+  const keyedContacts = () => (accountRecord(store, U).keyed || []).filter((f) => f.kind === "recruiter_contact").map((f) => f.value);
+  say(U, "t-old", "My recruiter contact at Northwind Ledger is Dana.");
+  assert.deepEqual(keyedContacts(), ["Dana"]);
+  say(U, "t-new", "My recruiter contact at Northwind Ledger is Priya.");
+  assert.deepEqual(keyedContacts(), ["Priya"], "the newer statement wins the account slot");
+  const r = say(U, "t-old", "Who is my recruiter contact at Northwind Ledger?");
+  assert.match(r.out.reply, /recruiter contact at Northwind Ledger is Priya/, `the recall answers the CURRENT contact — got: ${r.out.reply}`);
+  assert.ok(!/is Dana/.test(r.out.reply), "the stale thread copy is never the answer");
+  assert.deepEqual(keyedContacts(), ["Priya"], "the account still holds exactly Priya after the old thread's turn");
+});

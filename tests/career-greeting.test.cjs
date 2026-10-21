@@ -57,7 +57,13 @@ test('a later substantive turn on a reused context retains its normal write path
 const substantive=['/start a-link-token','/start@AnotherBot','start applying','hi, apply to three jobs','hello, forget my career profile','What can you do for my resume?','What can you do for me? Apply to three jobs.','yes','use the new one, old resume\'s wrong','What firm did I say I am targeting?','asdf qwer zzz blorp'];
 for(const text of substantive)test(`greeting gate leaves substantive or unsupported input to its existing owner: ${text}`,()=>{
  const ctx=host.createTurnCtx(options());assert.equal(host.isHostControlled(text,ctx),false);
- assert.notEqual(host.runTurn(text,ctx).intent,'career_greeting');
+ const out=host.runTurn(text,ctx);assert.notEqual(out.handler,'CareerHostGreeting');
+ if(text==='/start a-link-token'){
+  // The integrated router owns Telegram start payloads and may itself greet.
+  // Assert exact delegation, rather than forbidding that owner's intent name.
+  assert.equal(out.handler,'CareerRouter');
+  assert.deepEqual(out.result,D('142-career-router.js').handleChat(text,host.createTurnCtx(options())));
+ }else assert.notEqual(out.intent,'career_greeting');
 });
 test('greeting prefix does not swallow an internship search',()=>{
  const out=host.runTurn('Hi! Find me internships I can apply to this week.',host.createTurnCtx(options()));

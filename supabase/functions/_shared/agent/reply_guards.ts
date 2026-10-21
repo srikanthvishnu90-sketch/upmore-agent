@@ -175,8 +175,12 @@ export function leakedWords(reply: string, o: { tools: string[]; typed: string; 
   for (const id of o.postings.keys()) if (idLike(id) && t.includes(id)) add(id);
   for (const re of [RAW_ID, UUID, SNAKE]) for (const m of t.matchAll(re)) add(m[0]);
   for (const name of o.tools) if (/_/.test(name) && new RegExp(`\\b${esc(name)}\\b`).test(t)) add(name);
+  // WO-061 (second judge, run 39603731114 p3: "You don't have that interview on file yet: SITUATION shows nothing"):
+  // the name of the system prompt's block is internal; only the all-caps block name, never the ordinary word.
+  if (BLOCK_NAME.test(t) && !/\bSITUATION\b/.test(o.typed)) add("SITUATION");
   return out;
 }
+const BLOCK_NAME = /\bSITUATION\b/;
 // Code's last resort: a known job id becomes "title at company" (or goes, when the sentence already names it), any other
 // id goes, and a field or tool name becomes plain words.
 export function stripLeaks(reply: string, o: { tools: string[]; typed: string; postings: Map<string, Posting> }): string {
@@ -194,7 +198,7 @@ export function stripLeaks(reply: string, o: { tools: string[]; typed: string; p
         const say = known && !named ? [known.title, known.company].filter(Boolean).join(" at ") : "";
         s = s.split(id).join(say);
       }
-      return s.replace(SNAKE, (w) => own.has(w.toLowerCase()) ? w : w.replace(/_/g, " "));
+      return s.replace(SNAKE, (w) => own.has(w.toLowerCase()) ? w : w.replace(/_/g, " ")).replace(/\bSITUATION\b/g, (w) => /\bSITUATION\b/.test(o.typed) ? w : "your account");
     }));
   }
   return rebuild(ps);

@@ -557,3 +557,20 @@ of private content.
   WO-061/H027 (fails without the fix; the person's message stays last). Architect 748/0, edge 887/0.
 - Real-world check after the run: count replies that are the conversation layer's error text ("Something went wrong
   on my side") across the three passes; before: H027 (39546674445 p1), H018-round p1, c2 p1 per the second judge.
+
+### H027 round result (run 39583493501, side commit 7ec6edb8 on the baseline): measured below the baseline; held
+- Both CI judges 32/31/30 of 38 (gpt-5-mini 34/31/32, gpt-4.1-mini 36/34/34); clean 30: 24/24/22 (mean 23.3) vs the
+  baseline's 26.7. Safety scans clean (no injection opener; H018 passes both CI judges in all three passes, refusal
+  present, no waiver wording, no dangling confirm). Cost $0.3896 (three passes and the router).
+- Real-world check: zero replies with the conversation layer's error text and zero empty replies across the three
+  passes. Base rate, every stored run (code scan, ids only): the error text appears in 4 of 67 stored pass files
+  (39458269838 H022, 39546674445 p1 H027, 39548093320 p1 H004, 39582229542 p2 H004), about one item in 600. Three
+  clean passes cannot show the fix works; the gate test (WO-061/H027) is the evidence that it does what it says.
+- Why the score moved: the change acts only on an answer with no text and no tool call; nothing else in the turn is
+  different. None of the failing items (H002, H003, H010, H011, H031, H038 and the rest) had an empty answer, so the
+  drop is run-to-run variance, not this change. Measured spread for brains whose change cannot touch most items:
+  30 to 36 both-CI passes per pass (baseline run 39556113702: 34/36/33; H031 clause run: 34/32/35; this run: 32/31/30).
+  One pass varies by about two items; a three-pass mean, by about one. A one-item real gain is not visible to this
+  ratchet, and a fix for a rare path (H027) can only be judged by its gate test plus "no new failure class".
+- Held, uncommitted, for the three-way verdict (owner's ratchet rule). Put to the owner: a reliability fix whose path
+  fired zero times in the measurement, with a 3.4-item drop that comes from other items.

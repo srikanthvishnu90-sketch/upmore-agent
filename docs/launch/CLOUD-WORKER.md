@@ -25,6 +25,46 @@ What the worker never does:
 - run for a person who did not say yes to the exact terms in chat;
 - go over the person's daily limit (25 by default, 50 at most), or send to the same company twice within 30 days.
 
+## Captured Lever handoff before a live application
+
+The delivery path is `workers/career-browser/approve-first.ts` (`prepare`), the approved `career_apply_jobs` queue,
+`workers/career-cloud/worker.ts` (`cloudLoop`), and `scripts/apply.ts --submit --approved <engine approval>`.
+Preparation shows every answer and its source on the card. The later drive reconstructs those approved sources,
+checks the queued owner, posting, schema and approval, and reads back the employer's form before its one submission.
+A changed application stops. A required answer without support goes back as a question, never a guess.
+
+For a retained handoff proof using the captured Veeva Lever form, an invented TEST person, and a loopback employer:
+
+```sh
+deno run -A evals/apply/lever-driver-readiness.ts --out /tmp/lever-readiness-proof
+```
+
+Use the same sandboxed Chromium and Playwright environment as the gate. The output folder must be new. The command
+accepts no employer URL, account, credential or person's facts. It runs the canonical engine twice: preparation without
+`--submit`, then one approved submission through the cloud loop. The in-memory queue is only a local stand-in for the
+already-gated database queue; it cannot open or exercise the production gate.
+The `Captured Lever driver receipt` workflow runs the same command in CI and retains its synthetic artifact for seven
+days. It has read-only repository access and receives no application or provider credentials.
+
+The private folder retains `prepared.json` (card and exact payload), `approval.json` (the invented owner's approval),
+the engine's masked screenshots and evidence, and `receipt.json`. The receipt includes the source revision, captured
+fixture hash, approval hashes, received multipart fields and resume hash, worker result, screenshot hashes and timing.
+Every check must be true: one engine submission, one employer POST, one final record, exactly the approved nonempty
+answers and resume, a captured page confirmation, retained screenshots, and removal of the worker's temporary files.
+This command supplies the clean handoff artifact. The captured-form negative controls remain in
+`tests/career-cloud-worker-lever.test.cjs` for QA: quarantined, changed, cross-owner and unsupported answers must stop,
+and unsupported answers must return their questions. Both judge approvals and green CI remain release requirements.
+
+Lever's scripts and Submit-time hCaptcha are absent in the local capture; the button is wired only to its existing
+form. A local success therefore proves the approved application and receipt path, not live acceptance or challenge rate.
+The receipt uses the canonical `receiptText` and says the page reported receipt while the employer's email is pending.
+Production `career_apply_cloud_finish` similarly stores a page confirmation as `submitted_unconfirmed`; only the
+employer-email matcher changes it to `confirmed`.
+
+The next live gate remains three approved hand submissions by listed gate testers on Lever, each matched to the
+employer's confirmation email (section 6). Real submissions need the owner's approval of each exact payload. The owner
+then controls the cloud kill switch and each person's explicit cloud opt-in. A local artifact changes none of these.
+
 ## 1. Set up the VM (once)
 
 As root on a fresh Ubuntu 24.04 VM:

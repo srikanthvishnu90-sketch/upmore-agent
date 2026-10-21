@@ -1,0 +1,35 @@
+name: Captured Lever driver receipt
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - evals/apply/lever-driver-readiness.ts
+      - .github/workflows/lever-driver-readiness.yml
+permissions:
+  contents: read
+jobs:
+  captured-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Install the gate's pinned Playwright and use sandboxed Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lever-tools" --no-audit --no-fund playwright@1.64.1
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/lever-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Retain the canonical captured-form receipt
+        run: deno run -A evals/apply/lever-driver-readiness.ts --out "$RUNNER_TEMP/lever-proof"
+      - name: Upload synthetic receipt and masked evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captured-lever-receipt-${{ github.sha }}
+          path: ${{ runner.temp }}/lever-proof
+          if-no-files-found: error
+          retention-days: 7

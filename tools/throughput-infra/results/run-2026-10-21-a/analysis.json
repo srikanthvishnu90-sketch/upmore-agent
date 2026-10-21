@@ -1,0 +1,232 @@
+{
+  "target": {
+    "company": "greenhouse",
+    "title": "Growth Account Executive",
+    "url": "https://job-boards.greenhouse.io/greenhouse/jobs/8168227?gh_jid=8168227"
+  },
+  "totalMs": 108062,
+  "resultStatus": "blocked",
+  "code": "ANSWER_OBSERVATION_MISMATCH",
+  "byMethod": {
+    "open": {
+      "n": 1,
+      "wallMs": 11994,
+      "chromeCpuMs": 2890,
+      "residualMs": 7914
+    },
+    "form": {
+      "n": 1,
+      "wallMs": 830,
+      "chromeCpuMs": 300,
+      "residualMs": 250
+    },
+    "fill": {
+      "n": 5,
+      "wallMs": 94137,
+      "chromeCpuMs": 15450,
+      "residualMs": 76147
+    },
+    "answers": {
+      "n": 1,
+      "wallMs": 1093,
+      "chromeCpuMs": 270,
+      "residualMs": 493
+    },
+    "close": {
+      "n": 1,
+      "wallMs": 279,
+      "chromeCpuMs": 60,
+      "residualMs": 159
+    }
+  },
+  "fillAggregate": {
+    "fills": 5,
+    "wallMs": 94137,
+    "chromeCpuMs": 15450,
+    "rendererCpuMs": 6910,
+    "hostCpuMs": 2540,
+    "residualMs": 76147,
+    "loBytes": 3472288,
+    "chromePctOfWall": 16.4,
+    "hostPctOfWall": 2.7,
+    "residualPctOfWall": 80.9
+  },
+  "fills": [
+    {
+      "method": "fill",
+      "fieldId": "29665",
+      "valueLen": 24,
+      "ms": 23208,
+      "chromeCpuMs": 5030,
+      "rendererCpuMs": 2890,
+      "hostCpuMs": 800,
+      "helperCpuMs": 550,
+      "loBytes": 3426712,
+      "residualMs": 17378,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29666",
+      "valueLen": 24,
+      "ms": 12489,
+      "chromeCpuMs": 2450,
+      "rendererCpuMs": 890,
+      "hostCpuMs": 340,
+      "helperCpuMs": 220,
+      "loBytes": 8232,
+      "residualMs": 9699,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29667",
+      "valueLen": 24,
+      "ms": 24014,
+      "chromeCpuMs": 2970,
+      "rendererCpuMs": 1230,
+      "hostCpuMs": 580,
+      "helperCpuMs": 390,
+      "loBytes": 19040,
+      "residualMs": 20464,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29668",
+      "valueLen": 24,
+      "ms": 22175,
+      "chromeCpuMs": 2730,
+      "rendererCpuMs": 1100,
+      "hostCpuMs": 490,
+      "helperCpuMs": 320,
+      "loBytes": 9480,
+      "residualMs": 18955,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29669",
+      "valueLen": 24,
+      "ms": 12251,
+      "chromeCpuMs": 2270,
+      "rendererCpuMs": 800,
+      "hostCpuMs": 330,
+      "helperCpuMs": 230,
+      "loBytes": 8824,
+      "residualMs": 9651,
+      "fieldType": "?"
+    }
+  ],
+  "allCalls": [
+    {
+      "method": "open",
+      "fieldId": null,
+      "ms": 11994,
+      "chromeCpuMs": 2890,
+      "rendererCpuMs": 1150,
+      "hostCpuMs": 1190,
+      "helperCpuMs": 1020,
+      "loBytes": 1275094,
+      "residualMs": 7914
+    },
+    {
+      "method": "form",
+      "fieldId": null,
+      "ms": 830,
+      "chromeCpuMs": 300,
+      "rendererCpuMs": 180,
+      "hostCpuMs": 280,
+      "helperCpuMs": 250,
+      "loBytes": 30838,
+      "residualMs": 250
+    },
+    {
+      "method": "fill",
+      "fieldId": "29665",
+      "valueLen": 24,
+      "ms": 23208,
+      "chromeCpuMs": 5030,
+      "rendererCpuMs": 2890,
+      "hostCpuMs": 800,
+      "helperCpuMs": 550,
+      "loBytes": 3426712,
+      "residualMs": 17378,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29666",
+      "valueLen": 24,
+      "ms": 12489,
+      "chromeCpuMs": 2450,
+      "rendererCpuMs": 890,
+      "hostCpuMs": 340,
+      "helperCpuMs": 220,
+      "loBytes": 8232,
+      "residualMs": 9699,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29667",
+      "valueLen": 24,
+      "ms": 24014,
+      "chromeCpuMs": 2970,
+      "rendererCpuMs": 1230,
+      "hostCpuMs": 580,
+      "helperCpuMs": 390,
+      "loBytes": 19040,
+      "residualMs": 20464,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29668",
+      "valueLen": 24,
+      "ms": 22175,
+      "chromeCpuMs": 2730,
+      "rendererCpuMs": 1100,
+      "hostCpuMs": 490,
+      "helperCpuMs": 320,
+      "loBytes": 9480,
+      "residualMs": 18955,
+      "fieldType": "?"
+    },
+    {
+      "method": "fill",
+      "fieldId": "29669",
+      "valueLen": 24,
+      "ms": 12251,
+      "chromeCpuMs": 2270,
+      "rendererCpuMs": 800,
+      "hostCpuMs": 330,
+      "helperCpuMs": 230,
+      "loBytes": 8824,
+      "residualMs": 9651,
+      "fieldType": "?"
+    },
+    {
+      "method": "answers",
+      "fieldId": null,
+      "ms": 1093,
+      "chromeCpuMs": 270,
+      "rendererCpuMs": 200,
+      "hostCpuMs": 330,
+      "helperCpuMs": 290,
+      "loBytes": 2924,
+      "residualMs": 493
+    },
+    {
+      "method": "close",
+      "fieldId": null,
+      "ms": 279,
+      "chromeCpuMs": 60,
+      "rendererCpuMs": 0,
+      "hostCpuMs": 60,
+      "helperCpuMs": 40,
+      "loBytes": 1834,
+      "residualMs": 159
+    }
+  ]
+}

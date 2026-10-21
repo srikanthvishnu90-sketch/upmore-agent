@@ -1,0 +1,187 @@
+{
+  "lane": "TP-INFRA per-fill profile",
+  "when": "2026-10-21T18:17:01.096Z",
+  "target": {
+    "company": "gusto",
+    "title": "Finance Intern (Summer 2027)",
+    "url": "https://job-boards.greenhouse.io/gusto/jobs/8257115"
+  },
+  "boardPid": 16223,
+  "relayPid": 8327,
+  "totalMs": 94687,
+  "err": null,
+  "resultStatus": "blocked",
+  "code": "ANSWER_OBSERVATION_MISMATCH",
+  "filledCount": null,
+  "formFields": [
+    {
+      "field_id": "full_name",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Full name"
+    },
+    {
+      "field_id": "preferred_name",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Preferred First Name"
+    },
+    {
+      "field_id": "email",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Email"
+    },
+    {
+      "field_id": "country",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Country"
+    },
+    {
+      "field_id": "phone",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Phone"
+    },
+    {
+      "field_id": "candidate_location",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Location (City)"
+    },
+    {
+      "field_id": "resume",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Attach"
+    },
+    {
+      "field_id": "cover_letter",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "Attach"
+    },
+    {
+      "field_id": "question_69649385",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "Zip Code / Postal Code (Non-U.S. based candidates, please enter \"00000\")"
+    },
+    {
+      "field_id": "question_69649386",
+      "inputType": "standard",
+      "widget": null,
+      "label": "LinkedIn Profile"
+    },
+    {
+      "field_id": "how_did_you_hear_about_this_opportunity_select_a",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "How did you hear about this opportunity? (select all that apply)"
+    },
+    {
+      "field_id": "question_69649388",
+      "inputType": "screening",
+      "widget": null,
+      "label": "Are you legally authorized to work in the country where you are applying?"
+    },
+    {
+      "field_id": "question_69649389",
+      "inputType": "screening",
+      "widget": null,
+      "label": "Will you now or in the future require visa sponsorship for employment?"
+    },
+    {
+      "field_id": "question_69649390",
+      "inputType": "standard",
+      "widget": null,
+      "label": "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?"
+    },
+    {
+      "field_id": "question_69847997",
+      "inputType": "free_text",
+      "widget": null,
+      "label": "Tell us a little bit about yourself and why you think you would be a good fit at Gusto."
+    },
+    {
+      "field_id": "question_69847998",
+      "inputType": "standard",
+      "widget": null,
+      "label": "When do you graduate?"
+    },
+    {
+      "field_id": "question_69847999",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "Are you willing to relocate to New York for the duration of this internship?"
+    },
+    {
+      "field_id": "question_69848000",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "This internship is from May 17, 2027 to August 6, 2027 (12 weeks). Are you available for the full duration of this cohort?"
+    },
+    {
+      "field_id": "question_69848001",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "To help make sure everyone has the same experience, we are not able to adjust the internship start or end dates. Are you able to acknowledge and agree to this requirement?"
+    },
+    {
+      "field_id": "question_69848002",
+      "inputType": "free_text",
+      "widget": null,
+      "label": "Do you have any upcoming offer deadlines or recruiting timelines we should be aware of?"
+    },
+    {
+      "field_id": "question_69848003",
+      "inputType": "free_text",
+      "widget": null,
+      "label": "As Gusto grows, we are always aiming to expand our recruitment presence at conferences, gatherings, or other partnerships. Please let us know of any you're planning to take part in or have taken part in to help inform our team about future recruitment opportunities."
+    },
+    {
+      "field_id": "605",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "How would you describe your gender identity (please select one)?"
+    },
+    {
+      "field_id": "606",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "I identify as transgender (please select one):"
+    },
+    {
+      "field_id": "607",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "I identify my sexual orientation as (please select one):"
+    },
+    {
+      "field_id": "608",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "I identify my race/ethnicity as (mark all that apply):"
+    },
+    {
+      "field_id": "609",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "Veteran Status (please select one):"
+    },
+    {
+      "field_id": "610",
+      "inputType": "eeo",
+      "widget": null,
+      "label": "I have a disability (please select one):"
+    },
+    {
+      "field_id": "1012",
+      "inputType": "unknown",
+      "widget": null,
+      "label": "I identify as a first-generation professional (please select one):"
+    }
+  ],
+  "boardCalls": 10
+}

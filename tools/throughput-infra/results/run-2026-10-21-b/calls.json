@@ -1,0 +1,98 @@
+[
+  {
+    "method": "open",
+    "t0": 1792606526341,
+    "t1": 1792606537600,
+    "ms": 11259
+  },
+  {
+    "method": "form",
+    "t0": 1792606537600,
+    "t1": 1792606538411,
+    "ms": 811,
+    "formFieldSamples": [
+      {
+        "field_id": "full_name",
+        "label": "Full name",
+        "kind": "standard",
+        "profile_key": "name",
+        "required": true
+      },
+      {
+        "field_id": "preferred_name",
+        "label": "Preferred First Name",
+        "kind": "standard",
+        "required": false,
+        "profile_key": "preferred_name"
+      },
+      {
+        "field_id": "email",
+        "label": "Email",
+        "kind": "standard",
+        "required": true,
+        "profile_key": "email"
+      }
+    ],
+    "fieldCount": 28
+  },
+  {
+    "method": "fill",
+    "t0": 1792606538411,
+    "t1": 1792606552132,
+    "ms": 13721,
+    "fieldId": "605",
+    "valueLen": 24
+  },
+  {
+    "method": "fill",
+    "t0": 1792606552132,
+    "t1": 1792606563817,
+    "ms": 11685,
+    "fieldId": "606",
+    "valueLen": 24
+  },
+  {
+    "method": "fill",
+    "t0": 1792606563817,
+    "t1": 1792606575420,
+    "ms": 11602,
+    "fieldId": "607",
+    "valueLen": 24
+  },
+  {
+    "method": "fill",
+    "t0": 1792606575420,
+    "t1": 1792606596766,
+    "ms": 21347,
+    "fieldId": "608",
+    "valueLen": 24
+  },
+  {
+    "method": "fill",
+    "t0": 1792606596766,
+    "t1": 1792606608389,
+    "ms": 11622,
+    "fieldId": "609",
+    "valueLen": 24
+  },
+  {
+    "method": "fill",
+    "t0": 1792606608389,
+    "t1": 1792606620299,
+    "ms": 11911,
+    "fieldId": "610",
+    "valueLen": 24
+  },
+  {
+    "method": "answers",
+    "t0": 1792606620300,
+    "t1": 1792606621019,
+    "ms": 719
+  },
+  {
+    "method": "close",
+    "t0": 1792606621020,
+    "t1": 1792606621095,
+    "ms": 74
+  }
+]

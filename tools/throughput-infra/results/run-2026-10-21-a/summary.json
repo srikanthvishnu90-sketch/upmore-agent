@@ -1,0 +1,187 @@
+{
+  "lane": "TP-INFRA per-fill profile",
+  "when": "2026-10-21T18:14:42.725Z",
+  "target": {
+    "company": "greenhouse",
+    "title": "Growth Account Executive",
+    "url": "https://job-boards.greenhouse.io/greenhouse/jobs/8168227?gh_jid=8168227"
+  },
+  "boardPid": 16223,
+  "relayPid": 8327,
+  "totalMs": 108062,
+  "err": null,
+  "resultStatus": "blocked",
+  "code": "ANSWER_OBSERVATION_MISMATCH",
+  "filledCount": null,
+  "formFields": [
+    {
+      "field_id": "full_name",
+      "inputType": null,
+      "widget": null,
+      "label": "Full name"
+    },
+    {
+      "field_id": "preferred_name",
+      "inputType": null,
+      "widget": null,
+      "label": "Preferred First Name"
+    },
+    {
+      "field_id": "email",
+      "inputType": null,
+      "widget": null,
+      "label": "Email"
+    },
+    {
+      "field_id": "country",
+      "inputType": null,
+      "widget": null,
+      "label": "Country"
+    },
+    {
+      "field_id": "phone",
+      "inputType": null,
+      "widget": null,
+      "label": "Phone"
+    },
+    {
+      "field_id": "candidate_location",
+      "inputType": null,
+      "widget": null,
+      "label": "Location (City)"
+    },
+    {
+      "field_id": "resume",
+      "inputType": null,
+      "widget": null,
+      "label": "Attach"
+    },
+    {
+      "field_id": "cover_letter",
+      "inputType": null,
+      "widget": null,
+      "label": "Attach"
+    },
+    {
+      "field_id": "question_68910733",
+      "inputType": null,
+      "widget": null,
+      "label": "In 2-3 sentences, what excites you about this position at Greenhouse, and how does it align with your long-term career goals?"
+    },
+    {
+      "field_id": "question_68910736",
+      "inputType": null,
+      "widget": null,
+      "label": "\"Growth\" and \"SMB\" mean something different at every company. Rather than assume we're speaking the same language, tell us in your own terms: who did you sell to, how did you find them, and what would your manager say you owned end-to-end versus handed off? Deal size, cycle length, and how much of y"
+    },
+    {
+      "field_id": "question_68910734",
+      "inputType": null,
+      "widget": null,
+      "label": "LinkedIn Profile"
+    },
+    {
+      "field_id": "question_68910735",
+      "inputType": null,
+      "widget": null,
+      "label": "Due to current team needs, we are only considering candidates based in Ireland. Please confirm you're based in Ireland."
+    },
+    {
+      "field_id": "question_68910737",
+      "inputType": null,
+      "widget": null,
+      "label": "Do you require immigration permission/an employment permit to work in the Republic of Ireland?"
+    },
+    {
+      "field_id": "question_68910738",
+      "inputType": null,
+      "widget": null,
+      "label": "If yes, please confirm what immigration permission/employment permit you hold and when this is to expire."
+    },
+    {
+      "field_id": "question_68910739",
+      "inputType": null,
+      "widget": null,
+      "label": "Are you subject to any non-compete, non-solicitation, or confidentiality agreements with your current or former employers that would impact your employment at Greenhouse?"
+    },
+    {
+      "field_id": "question_68910740",
+      "inputType": null,
+      "widget": null,
+      "label": "How did you initially hear about this job?"
+    },
+    {
+      "field_id": "question_68910741",
+      "inputType": null,
+      "widget": null,
+      "label": "If you chose Greenhouse Employee, Greenhouse Event, or Other, please specify here:"
+    },
+    {
+      "field_id": "question_68910742",
+      "inputType": null,
+      "widget": null,
+      "label": "Acknowledge/Confirm"
+    },
+    {
+      "field_id": "question_68910743",
+      "inputType": null,
+      "widget": null,
+      "label": "Point of Data Transfer"
+    },
+    {
+      "field_id": "question_68910744",
+      "inputType": null,
+      "widget": null,
+      "label": "Greenhouse Interview Recording Policy (Fraud Detection)"
+    },
+    {
+      "field_id": "question_68910745",
+      "inputType": null,
+      "widget": null,
+      "label": "Greenhouse Interview Recording Policy (Candidate Evaluation and Training)"
+    },
+    {
+      "field_id": "29665",
+      "inputType": null,
+      "widget": null,
+      "label": "I identify my gender as:"
+    },
+    {
+      "field_id": "29666",
+      "inputType": null,
+      "widget": null,
+      "label": "I identify as transgender:"
+    },
+    {
+      "field_id": "29667",
+      "inputType": null,
+      "widget": null,
+      "label": "I identify my sexual orientation as:"
+    },
+    {
+      "field_id": "29668",
+      "inputType": null,
+      "widget": null,
+      "label": "I identify my ethnicity as (mark all that apply):"
+    },
+    {
+      "field_id": "29669",
+      "inputType": null,
+      "widget": null,
+      "label": "I have a physical disability:"
+    },
+    {
+      "field_id": "29670",
+      "inputType": null,
+      "widget": null,
+      "label": "I identify my nationality as"
+    },
+    {
+      "field_id": "gdpr_demographic_data_consent_given",
+      "inputType": null,
+      "widget": null,
+      "label": "By checking this box, I consent to Greenhouse collecting, storing, and processing my responses to the demographic data surveys above."
+    }
+  ],
+  "boardCalls": 9
+}

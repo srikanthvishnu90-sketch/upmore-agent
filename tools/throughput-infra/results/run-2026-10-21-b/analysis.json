@@ -1,0 +1,258 @@
+{
+  "target": {
+    "company": "gusto",
+    "title": "Finance Intern (Summer 2027)",
+    "url": "https://job-boards.greenhouse.io/gusto/jobs/8257115"
+  },
+  "totalMs": 94687,
+  "resultStatus": "blocked",
+  "code": "ANSWER_OBSERVATION_MISMATCH",
+  "byMethod": {
+    "open": {
+      "n": 1,
+      "wallMs": 11259,
+      "chromeCpuMs": 2840,
+      "residualMs": 7249
+    },
+    "form": {
+      "n": 1,
+      "wallMs": 811,
+      "chromeCpuMs": 320,
+      "residualMs": 221
+    },
+    "fill": {
+      "n": 6,
+      "wallMs": 81888,
+      "chromeCpuMs": 14600,
+      "residualMs": 65108
+    },
+    "answers": {
+      "n": 1,
+      "wallMs": 719,
+      "chromeCpuMs": 130,
+      "residualMs": 139
+    },
+    "close": {
+      "n": 1,
+      "wallMs": 74,
+      "chromeCpuMs": 40,
+      "residualMs": -6
+    }
+  },
+  "fillAggregate": {
+    "fills": 6,
+    "wallMs": 81888,
+    "chromeCpuMs": 14600,
+    "rendererCpuMs": 5020,
+    "hostCpuMs": 2180,
+    "residualMs": 65108,
+    "loBytes": 884636,
+    "chromePctOfWall": 17.8,
+    "hostPctOfWall": 2.7,
+    "residualPctOfWall": 79.5
+  },
+  "fills": [
+    {
+      "method": "fill",
+      "fieldId": "605",
+      "valueLen": 24,
+      "ms": 13721,
+      "chromeCpuMs": 2750,
+      "rendererCpuMs": 1000,
+      "hostCpuMs": 460,
+      "helperCpuMs": 310,
+      "loBytes": 844724,
+      "residualMs": 10511,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "606",
+      "valueLen": 24,
+      "ms": 11685,
+      "chromeCpuMs": 2270,
+      "rendererCpuMs": 720,
+      "hostCpuMs": 310,
+      "helperCpuMs": 220,
+      "loBytes": 5128,
+      "residualMs": 9105,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "607",
+      "valueLen": 24,
+      "ms": 11602,
+      "chromeCpuMs": 2310,
+      "rendererCpuMs": 770,
+      "hostCpuMs": 310,
+      "helperCpuMs": 200,
+      "loBytes": 6636,
+      "residualMs": 8982,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "608",
+      "valueLen": 24,
+      "ms": 21347,
+      "chromeCpuMs": 2660,
+      "rendererCpuMs": 1020,
+      "hostCpuMs": 480,
+      "helperCpuMs": 320,
+      "loBytes": 15682,
+      "residualMs": 18207,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "609",
+      "valueLen": 24,
+      "ms": 11622,
+      "chromeCpuMs": 2250,
+      "rendererCpuMs": 720,
+      "hostCpuMs": 300,
+      "helperCpuMs": 210,
+      "loBytes": 5292,
+      "residualMs": 9072,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "610",
+      "valueLen": 24,
+      "ms": 11911,
+      "chromeCpuMs": 2360,
+      "rendererCpuMs": 790,
+      "hostCpuMs": 320,
+      "helperCpuMs": 230,
+      "loBytes": 7174,
+      "residualMs": 9231,
+      "fieldType": "eeo"
+    }
+  ],
+  "allCalls": [
+    {
+      "method": "open",
+      "fieldId": null,
+      "ms": 11259,
+      "chromeCpuMs": 2840,
+      "rendererCpuMs": 1130,
+      "hostCpuMs": 1170,
+      "helperCpuMs": 960,
+      "loBytes": 1377818,
+      "residualMs": 7249
+    },
+    {
+      "method": "form",
+      "fieldId": null,
+      "ms": 811,
+      "chromeCpuMs": 320,
+      "rendererCpuMs": 200,
+      "hostCpuMs": 270,
+      "helperCpuMs": 250,
+      "loBytes": 18514,
+      "residualMs": 221
+    },
+    {
+      "method": "fill",
+      "fieldId": "605",
+      "valueLen": 24,
+      "ms": 13721,
+      "chromeCpuMs": 2750,
+      "rendererCpuMs": 1000,
+      "hostCpuMs": 460,
+      "helperCpuMs": 310,
+      "loBytes": 844724,
+      "residualMs": 10511,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "606",
+      "valueLen": 24,
+      "ms": 11685,
+      "chromeCpuMs": 2270,
+      "rendererCpuMs": 720,
+      "hostCpuMs": 310,
+      "helperCpuMs": 220,
+      "loBytes": 5128,
+      "residualMs": 9105,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "607",
+      "valueLen": 24,
+      "ms": 11602,
+      "chromeCpuMs": 2310,
+      "rendererCpuMs": 770,
+      "hostCpuMs": 310,
+      "helperCpuMs": 200,
+      "loBytes": 6636,
+      "residualMs": 8982,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "608",
+      "valueLen": 24,
+      "ms": 21347,
+      "chromeCpuMs": 2660,
+      "rendererCpuMs": 1020,
+      "hostCpuMs": 480,
+      "helperCpuMs": 320,
+      "loBytes": 15682,
+      "residualMs": 18207,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "609",
+      "valueLen": 24,
+      "ms": 11622,
+      "chromeCpuMs": 2250,
+      "rendererCpuMs": 720,
+      "hostCpuMs": 300,
+      "helperCpuMs": 210,
+      "loBytes": 5292,
+      "residualMs": 9072,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "fill",
+      "fieldId": "610",
+      "valueLen": 24,
+      "ms": 11911,
+      "chromeCpuMs": 2360,
+      "rendererCpuMs": 790,
+      "hostCpuMs": 320,
+      "helperCpuMs": 230,
+      "loBytes": 7174,
+      "residualMs": 9231,
+      "fieldType": "eeo"
+    },
+    {
+      "method": "answers",
+      "fieldId": null,
+      "ms": 719,
+      "chromeCpuMs": 130,
+      "rendererCpuMs": 0,
+      "hostCpuMs": 450,
+      "helperCpuMs": 430,
+      "loBytes": 3616,
+      "residualMs": 139
+    },
+    {
+      "method": "close",
+      "fieldId": null,
+      "ms": 74,
+      "chromeCpuMs": 40,
+      "rendererCpuMs": 0,
+      "hostCpuMs": 40,
+      "helperCpuMs": 30,
+      "loBytes": 1980,
+      "residualMs": -6
+    }
+  ]
+}

@@ -262,6 +262,11 @@ begin
  if e is null or h is distinct from encode(sha256(convert_to(public.career_apply_canonical(e),'UTF8')),'hex') then
   raise exception 'message approval boundary: canonical approval missing or changed'; end if;
  p:=new.payload;
+ if jsonb_typeof(p) is distinct from 'object' or p->'version' is distinct from '1'::jsonb
+  or exists(select 1 from jsonb_object_keys(p) k where k not in
+   ('manifest_hash','quarantine_version','version','source','user_id','job_id','company','url','family','fields',
+    'resume_name','resume_sha256','privacy_epoch','account_version','expires_at')) then
+  raise exception 'message approval boundary: unknown or malformed payload parameter'; end if;
  if new.job_id is distinct from marker.job_id or p->>'job_id' is distinct from marker.job_id
   or p->>'user_id' is distinct from new.user_id::text or p->>'source' is distinct from 'extension'
   or p->>'company' is distinct from e->>'company' or new.company is distinct from e->>'company'
@@ -277,8 +282,11 @@ begin
   raise exception 'message approval boundary: fields changed'; end if;
  for a in select value from jsonb_array_elements(e->'answers') loop
   select value into f from jsonb_array_elements(p->'fields') where value->>'name'=a->>'name';
-  if f->>'source' is distinct from 'trainee' or f->>'label' is distinct from a->>'label'
-   or f->>'factId' is distinct from a->>'factId' or jsonb_typeof(f->'detail') is distinct from 'string' then
+  if jsonb_typeof(f) is distinct from 'object' or exists(select 1 from jsonb_object_keys(f) k where k not in
+    ('name','label','value','source','factId','detail'))
+   or exists(select 1 from unnest(array['name','label','value','source','factId','detail']) k where jsonb_typeof(f->k) is distinct from 'string')
+   or f->>'source' is distinct from 'trainee' or f->>'label' is distinct from a->>'label'
+   or f->>'factId' is distinct from a->>'factId' then
    raise exception 'message approval boundary: field provenance changed'; end if;
   d:=f->>'detail';
   if a->>'kind'='checkbox' then

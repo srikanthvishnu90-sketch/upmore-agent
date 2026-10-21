@@ -136,6 +136,8 @@ select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('a',64
 select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('a',64)||':1234:not-a-mime')),'malformed attachment MIME') from mc_payload;
 select pg_temp.mc_refuses(p||'{"resume_name":"different.pdf"}'::jsonb,'changed prepared resume name') from mc_payload;
 select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,value}','"different.pdf"'),'changed attached filename') from mc_payload;
+select pg_temp.mc_refuses(p||'{"future_hidden_parameter":"not shown"}'::jsonb,'unknown payload parameter') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,0,future_hidden_parameter}','"not shown"'),'unknown field parameter') from mc_payload;
 insert into mc_state select 'consumer',career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_entry())) from mc_payload;
 select t.ok((select (v->>'id') is not null and (v->>'lease') is not null from mc_state where k='consumer'),'the actual consumer accepts the exact card-authorized payload');
 select t.ok((select count(*)=1 and bool_and(used_at is not null) from career_apply_batch_approvals),'the actual consumer marks the card-minted authorization used');

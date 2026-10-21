@@ -117,6 +117,31 @@ the smoke unit file is absent — stopped-by-design when present, so
 operations are unaffected; a full restore would rewrite it and still
 never start it. No real restore was executed in this lane.
 
-## 3. K=2 install prep — see docs/career/k2-install-checklist-2026-10-21.md
+## 3. K=2 install prep — docs/career/k2-install-checklist-2026-10-21.md
 
-(section added with deliverable 3)
+The drain lane's staged units (worker-drain @ 3774d0bf) were verified
+line-by-line against today's live config. The package's shape is sound
+(board pinning via `WORKER_BOARD_URL` Environment-after-EnvironmentFile
+verified; claim-once makes concurrent drains safe; ports 8481/8482
+verified free). Eight deltas are named in the checklist; the three
+that would bite at install:
+
+- **D-1** the staged timer still carries `OnUnitActiveSec=60s` — live
+  cadence is 20 s today; installing as-is triples drain-start lag.
+- **D-2** board@ ships without the Chromium egress wrapper — no
+  `UPMORE_CHROMIUM_PATH`, no drop-in staged; instances would fail at
+  open exactly as the whole stack did on the morning of 2026-10-21.
+  Both instances share the one live relay (:8474).
+- **D-3** the per-instance configs don't exist, and they must be copied
+  from TODAY's board-config.cjs — a flip-doc-shaped copy silently
+  drops `maxSessionsPerUser: 64` and a 50-batch dies again at posting 33.
+
+Plus the honest frame (checklist's expectation reset): the staged
+26.1 min figure rests on the simulator's placeholder distribution;
+with drives measured at 157–171 s (×2 legs), the drain design's own
+§5.1 gate (≥ ~85 s mean -> escalate host size) is triggered. K=2 buys
+~2× on multi-batch queues; the one-batch benchmark additionally needs
+S-1, F2, and the per-fill fix from section 1. Also flagged (D-6): an
+F8 restore of a K=2 host reverts it to K=1 — safe, silent, and to be
+decided on the record before K=2 is called standing. **S-2 remains
+the hard gate; nothing was installed.**

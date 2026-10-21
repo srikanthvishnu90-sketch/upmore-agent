@@ -82,3 +82,25 @@ Evidence: battery transcript (evidence/battery-14-2026-10-20.md) + F-005's famil
 Priority: P0
 Fix:
 Verified by:
+
+[ID: MUSE-F-007] [Status: OPEN]
+Found: 2026-10-20 23:40 CDT, Muse (base-repair lane, branch muse/2026-10-20-ci-base-repair @ 8f003533; source name BASE-F-001).
+Area: brain
+Input: the owner's real fact bank, which the answer-map suite loads by design, carrying confirmed application_answer facts (~45, F-033…F-083) and application_text facts (~11).
+Expected: every bank kind is consumed by module 149's derivation or exempted with a reason (the suite's BUG-238 contract).
+Actual: answerMapCoverage reports both kinds uncovered; a repo-wide grep on the candidate base finds no consumer and no exemption — application drives stop on questions these facts already answer. The consumer exists only on trunk (WO-074, PR #108).
+Evidence: tests/career-portal-answer-map.test.cjs failures (coverage + forcing function) at 6b6551cf; record docs/career/ci-base-repair-record-2026-10-20.md on the repair branch.
+Priority: P1
+Fix: unfilled (brain lane's call — wire a consumer or declare reasoned exemptions in module 149; an exemption whose reason is "nothing consumes this yet" would defeat the forcing function, so none was declared).
+Verified by:
+
+[ID: MUSE-F-008] [Status: OPEN]
+Found: 2026-10-20 23:40 CDT, Muse (base-repair lane; source name BASE-F-002).
+Area: brain
+Input: testing-agent flow check ALRT-012 (standard fixture + $899 Best Buy charge + $35 overdraft fee).
+Expected: exactly 1 finding delivered per day per the map; the rest daily_budget-suppressed.
+Actual: 2 findings delivered (finding:unusual:chk-1:b1 and the rent upcoming_large finding) — the rent finding rides the urgent/deadline exemption at proactive.ts:305 while both save items are budget-suppressed; the stale committed report said PASS, the regenerated report says FAIL (behavior drifted).
+Evidence: commit bc12cb87 on the repair branch; proactive.ts:305-306 + :313.
+Priority: P1
+Fix: unfilled (product lane's call — either the budget counts exempt findings, or the map is amended to bless the exemption).
+Verified by:

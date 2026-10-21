@@ -175,6 +175,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
   // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
   const earlier: string[] = [];
+  // WO-061 (H002): a tool that refuses twice in one turn for the same reason refuses every time; the model kept calling it
+  // until the step limit, and the person got the step-limit text for a message that needed one line. The second time,
+  // the next call has tools off and code's note says why (in that call's system prompt, like `review`).
+  const refusals = new Map<string, number>();
+  let twice: { name: string; why: string } | null = null, stopped = false;
   while (steps < max) {
     steps++;
     let res;
@@ -240,7 +245,13 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     const results: any[] = [];
     for (const u of uses) {
       const t = byName.get(u.name);
-      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => { tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
+      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => {
+        tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) });
+        results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg });
+        const k = `${u.name}\n${msg}`, n = (refusals.get(k) ?? 0) + 1;
+        refusals.set(k, n);
+        if (n >= 2 && !twice) twice = { name: u.name, why: msg };
+      };
       if (!t) { fail(null, `unknown tool: ${u.name}`); continue; }
       const input = u.input && typeof u.input === "object" ? u.input : {};
       const missing = (t.input_schema.required || []).filter((k) => input[k] === undefined || input[k] === null || input[k] === "");
@@ -259,6 +270,10 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
+    if (twice && !stopped) {
+      stopped = true; ask = true;
+      review = `CODE'S NOTE. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request. ${twice.name} refused twice with the same reason: ${twice.why}. Do not call it again this turn. Reply to the person now: answer their last message.`;
+    }
   }
   const show = o.ctx.turn?.show;
   if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };

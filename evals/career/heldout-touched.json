@@ -831,6 +831,26 @@
    "run": "39596499844",
    "read": "failing ids per judge; H004 p2 trace, judge notes and replies (130 chars); every reply and trace scanned by code for error, step-limit and empty replies",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H018",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39597370231",
+   "read": "failing ids per judge; H018 p1 last reply (600 chars, flagged by the dangling scan); H004 p1/p3/p4 traces and last replies (100 chars); every trace scanned for stage refusals and error replies",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

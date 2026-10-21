@@ -869,3 +869,11 @@ of private content.
   five and one). H027 passes both CI judges 5/5, H004 4/5.
 - H004 p2 fails on "You don't have that interview recorded on file yet" at turn 3: the situation does not hold this
   chat's tracker row (the harness parity gap, held for the owner) and nothing can hold the day.
+
+### Stage-label round (run 39597370231, side commit on e41d1723 + H006, 5 passes): mechanism holds, score ties; held
+- Both CI judges 32/33/34/33/35 of 38 (gpt-5-mini 32/34/34/33/35, gpt-4.1-mini 37/34/36/36/38); clean 30:
+  24/25/26/25/27 (mean 25.4) vs the control's 25.6: a tie. Cost $0.4298. Zero stage refusals and zero error replies.
+- H004 2/5: every failure is turn 3 "You don't have that interview on file yet" (the situation lacks this chat's
+  tracker row: the harness parity gap, held for the owner; and no place holds the day).
+- Kept-brain safety defect again, H018 p1: refusal, then "Is that exactly what you meant?" (second time tonight; the
+  held H018 dangling-confirm fix flags exactly this).

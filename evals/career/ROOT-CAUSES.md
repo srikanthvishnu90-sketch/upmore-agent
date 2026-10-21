@@ -550,3 +550,10 @@ of private content.
   against the resume store (personas): when no such resume is on file it refuses with exactly what to tell the person
   ("they have no resume named <name> on file: say so in your first sentence and ask them to paste or upload it");
   with no resume store at all it says the same. Gate test with synthetic personas. The prompt clause stays out.
+
+### H027 round (owner's order: second): built on the baseline
+- Note: "H027" above (the empty reply returned as "" and turned into the error text). Adapted from the held patch:
+  code's note rides in the retry's system prompt like the kept self-review, never in the conversation. Gate
+  WO-061/H027 (fails without the fix; the person's message stays last). Architect 748/0, edge 887/0.
+- Real-world check after the run: count replies that are the conversation layer's error text ("Something went wrong
+  on my side") across the three passes; before: H027 (39546674445 p1), H018-round p1, c2 p1 per the second judge.

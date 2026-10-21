@@ -2,7 +2,7 @@
 import { personBlock } from "../../supabase/functions/_shared/agent/memory.ts";
 import { factSources, untracedFacts } from "../../supabase/functions/_shared/agent/reply_guards.ts";
 import { agentTurn } from "../../supabase/functions/agent-chat/career_brain.ts";
-import { quarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
+import { factDependencies, quarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
 const assert = (v: unknown, why: string) => { if (!v) throw new Error(why); };
 const row = (id: string, text: string, extra: any = {}) => ({ id, kind: "skill", text, source: "user", status: "confirmed", needs_confirmation: false, provenance: "owner stated synthetic words", ...extra });
 const block = (facts: any[]) => personBlock({ profile: { facts }, standing: [], alerts: null, pipeline: null });
@@ -66,4 +66,25 @@ Deno.test("quarantine control: historical audit ids and old provenance cannot er
   const before = JSON.stringify(facts), s = sources(facts), text = block(facts);
   assert(supported("SQL", s) && !supported("Excel", s), "historical data became evidence or current source was erased");
   assert(text.includes("[skill] SQL") && !text.includes("[skill] Excel"), "memory rendered history as current");assert(JSON.stringify(facts) === before, "audit was mutated");
+});
+Deno.test("quarantine closure: camel dependencies and mixed aliases cannot mask a reserved source", () => {
+  for (const metadata of [{ derivedFrom: ["F-033"] }, { derived_from: ["SYN-OWN"], derivedFrom: ["F-033"] }, { derivedFrom: ["SYN-FIRST"] }]) {
+    const facts = [row("SYN-OWN", "SQL"), row("SYN-FIRST", "Java", { derivedFrom: ["F-033"] }), row("SYN-DERIVED", "Python", metadata)], before = JSON.stringify(facts);
+    assert(!block(facts).includes("[skill] Python") && !supported("Python", sources(facts)), "camel dependency was ignored or masked");
+    assert(block(facts).includes("[skill] SQL") && supported("SQL", sources(facts)), "independent own source lost");assert(JSON.stringify(facts) === before, "alias read changed facts");
+  }
+});
+Deno.test("quarantine closure: malformed dependency alias fails closed even beside a valid other alias", () => {
+  for (const key of ["derivedFrom", "derived_from"]) for (const malformed of [null, "SYN-OWN", [null], [""], [{}]]) {
+    const other = key === "derivedFrom" ? "derived_from" : "derivedFrom", facts = [row("SYN-OWN", "SQL"), row("SYN-DERIVED", "Python", { [key]: malformed, [other]: ["SYN-OWN"] })];
+    assert(!block(facts).includes("[skill] Python") && !supported("Python", sources(facts)), "malformed alias was masked by valid alias");
+  }
+});
+Deno.test("quarantine alias control: own camel and mixed valid derivations remain usable without reading historical evidence", () => {
+  const facts = [row("SYN-OWN", "SQL"), row("SYN-FIRST", "Java", { derivedFrom: ["SYN-OWN"] }), row("SYN-DERIVED", "Python", { derived_from: ["SYN-OWN"], derivedFrom: ["SYN-FIRST"], evidence: [{ id: "F-033", provenance: "answer-all" }] })];
+  assert(supported("SQL", sources(facts)) && supported("Java", sources(facts)) && supported("Python", sources(facts)), "valid alias chain or historical evidence was misread");
+  assert(block(facts).includes("[skill] Python"), "valid mixed-alias derivation disappeared from memory");
+  assert(JSON.stringify(factDependencies({ derived_from: ["SYN-OWN"], derivedFrom: ["SYN-FIRST", "SYN-OWN"] })) === '["SYN-OWN","SYN-FIRST"]', "dependency union or deduplication differs across consumers");
+  assert(factDependencies({ derived_from: [], derivedFrom: null }) === null, "valid empty alias hid malformed other alias");
+  assert(JSON.stringify(factDependencies({ text: "derivedFrom F-033", evidence: ["F-033"] })) === "[]", "untyped body/evidence was read as dependency metadata");
 });

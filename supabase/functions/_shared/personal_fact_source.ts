@@ -1,6 +1,6 @@
 // Negative provenance only. A false result is not confirmation or application authorization.
 // Inspect metadata, never the person's text/title/value/evidence: "AI engineer" can be their own stated goal.
-import { quarantinedFact } from "./fact_quarantine.ts";
+import { factDependencies, quarantinedFact } from "./fact_quarantine.ts";
 const DENIED_LABELS = new Set([
   "agent", "assistant", "model", "llm", "ai", "inferred", "generated", "agent-generated", "assistant-generated",
   "model-generated", "ai-generated", "quarantined", "rejected",
@@ -44,9 +44,10 @@ export function personalSourceGuard(roots: readonly unknown[]): (value: unknown)
     if (denied.has(row)) idsOf(row).forEach(id => deniedIds.add(id));
     if (row.needs_confirmation === true || row.status !== undefined && row.status !== "confirmed") idsOf(row).forEach(id => unavailable.add(id));
   }
-  const badDependencies = (row: Record<string, unknown>) => Object.hasOwn(row, "derived_from") && (
-    !Array.isArray(row.derived_from) || row.derived_from.some(id => typeof id !== "string" || !id.trim() ||
-      quarantinedFact({ factId: id }) || !allIds.has(id) || deniedIds.has(id) || unavailable.has(id)));
+  const badDependencies = (row: Record<string, unknown>) => {
+    const ids = factDependencies(row);
+    return ids === null || ids.some(id => quarantinedFact({ factId: id }) || !allIds.has(id) || deniedIds.has(id) || unavailable.has(id));
+  };
   for (let changed = true; changed;) {
     changed = false;
     for (const node of nodes) if (!denied.has(node) && [...parents.get(node) ?? []].some(parent => denied.has(parent))) {

@@ -8,7 +8,7 @@ import { payFrom } from "./posting_pay.ts";
 import { formUrlFor } from "./posting_key.ts";
 
 export interface Fit { score: number | null; bucket: string | null; excluded: boolean; reasons: string[]; gaps: string[] }
-export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null; pay: string | null }
+export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null; pay: string | null; role_match: boolean }
 
 // WO-106 (F3, live 2026-10-21: results ignored the goal the bot had saved): the person's goal, from their account, as words
 // to rank by. Said-but-unconfirmed goals count: ranking sends nothing anywhere, so D-007's confirmation is not needed for it.
@@ -17,9 +17,11 @@ const GOAL_FILLER = new Set(["want", "wants", "looking", "role", "roles", "job",
 const goalWords = (t: unknown) => searchWords(t).filter((w) => !GOAL_FILLER.has(w));
 export function goalOf(profile: any): Goal | null {
   const p = profile ?? {}, pref = p.preferences ?? {}, facts: any[] = Array.isArray(p.facts) ? p.facts : [];
-  const roles = [...new Set([...(pref.roles ?? []), ...facts.filter((f) => f?.kind === "goal").map((f) => f.text)].flatMap(goalWords))];
-  const places = [...new Set([...(pref.locations ?? []), p.basics?.location, ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
-    .filter((w) => w !== "remote");
+  // A goal said in one breath ("senior data analyst role in Chicago or remote"): the role before "in", the place after.
+  const goals = facts.filter((f) => f?.kind === "goal").map((f) => String(f.text ?? "").split(/\b(?:in|near|around|based in|based out of|located in)\b/i));
+  const roles = [...new Set([...(pref.roles ?? []), ...goals.map((g) => g[0])].flatMap(goalWords))].filter((w) => w !== "remote");
+  const places = [...new Set([...(pref.locations ?? []), p.basics?.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
+    .filter((w) => w !== "remote" && w !== "or" && w !== "and");
   const remote = /remote/i.test(String(pref.remote ?? "")) || facts.some((f) => (f?.kind === "goal" || f?.kind === "location" || f?.kind === "preference") && /\bremote\b/i.test(String(f.text)));
   return roles.length || places.length || remote ? { roles, places, remote } : null;
 }
@@ -78,7 +80,11 @@ export function searchPostings(pool: any[], query: unknown, profile: any, limit 
   const n = Math.max(1, Math.min(50, Math.floor(Number(limit) || 10)));
   return {
     // WO-068: the pay the posting itself states (posting_pay.ts), or null: never an estimate.
-    postings: scored.slice(0, n).map(({ p, fit }) => ({ job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url || formUrlFor(String(p.job_id ?? "")) || "", first_seen_at: p.first_seen_at ?? null, fit, pay: p.pay ?? payFrom(p.description) })),
+    // WO-106 (run 39538248995 called a Credit Risk Analyst one of "two that match" a senior data analyst search): whether the
+    // title itself is the role asked for (every role word of the query, or of their goal, in the title), so a related role
+    // is said to be related.
+    postings: scored.slice(0, n).map(({ p, fit, tier }) => ({ job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url || formUrlFor(String(p.job_id ?? "")) || "", first_seen_at: p.first_seen_at ?? null, fit, pay: p.pay ?? payFrom(p.description),
+      role_match: goal && goal.roles.length ? goal.roles.every((w) => searchWords(p.title).map(wordStem).includes(wordStem(w))) : tier === 0 })),
     total: hits.length, title_matches: scored.filter((x) => x.tier === 0).length, ranked_by: goal ? "goal" : sp ? "fit" : "newest",
     goal: goal ? { roles: goal.roles, places: goal.places, remote: goal.remote } : null,
   };

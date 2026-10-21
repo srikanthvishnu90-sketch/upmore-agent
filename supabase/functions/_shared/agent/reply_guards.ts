@@ -199,3 +199,28 @@ export function stripLeaks(reply: string, o: { tools: string[]; typed: string; p
   }
   return rebuild(ps);
 }
+
+// ------------------------------------------------------------------------------------------------ money
+// WO-106 (eval run 39538248995, E038: "postings ... list about $65k–$95k" with no tool call): a pay or money figure is said
+// only when this turn's tool results or the person's own words hold it. The sentences that carry one are returned.
+const MONEY = /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|K|m|M)?\b|\b\d{2,3}(?:\.\d)?\s?[kK]\b/g;
+const moneyKey = (m: string) => {
+  const t = m.replace(/[$,\s]/g, "").toLowerCase();
+  const n = /k$/.test(t) ? Math.round(parseFloat(t) * 1000) : /m$/.test(t) ? Math.round(parseFloat(t) * 1e6) : Math.round(parseFloat(t));
+  return Number.isFinite(n) ? String(n) : t;
+};
+function moneyIn(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of String(text ?? "").matchAll(MONEY)) out.add(moneyKey(m[0]));
+  for (const m of String(text ?? "").matchAll(/\b\d{4,7}\b/g)) out.add(String(Number(m[0])));
+  return out;
+}
+export function unsourcedMoney(reply: string, sources: string[]): { index: number; figure: string }[] {
+  const known = new Set<string>();
+  for (const s of sources) for (const k of moneyIn(s)) known.add(k);
+  const out: { index: number; figure: string }[] = [];
+  pieces(reply).forEach((p, index) => {
+    for (const m of p.text.matchAll(MONEY)) if (!known.has(moneyKey(m[0]))) { out.push({ index, figure: m[0].trim() }); break; }
+  });
+  return out;
+}

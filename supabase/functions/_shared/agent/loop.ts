@@ -165,7 +165,24 @@ const SOCIAL_MESSAGE = /^(?:hi|hello|hey(?: there)?|thanks(?: a lot)?|thank you(
 // suppress repair when the last text is only a closing question. A colon or another substantive sentence can carry
 // actual content, and is left alone; this does not attempt to grade the semantic quality of a plan.
 const PROGRESS_ONLY = /^(?:let me|i(?:'ll| will| am going to|'m going to))\s+(?:(?:just|first|now)\s+)?(?:check|look|search|find|read|review|save|record|prepare|draft|write|create|build|make|put together|work on|gather|think)\b[^:\n]*$/i;
-const ANSWER_REQUEST = /\?|\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
+const ANSWER_WORDS = /\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
+const ANSWER_REQUEST = new RegExp("\\?|" + ANSWER_WORDS.source, "i");
+const RECEIPT_REQUEST = /^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:save|remember|keep|store|record|note)\b/i;
+const QUESTION_LEAD = /^\s*(?:am|is|are|was|were|do|does|did|can|could|should|would|will|have|has|had)\b/i;
+function requestsAnswerBody(message: string): boolean {
+  return pieces(plainQuotes(message)).some(({ text }) => {
+    const request = text.trim();
+    const receipt = RECEIPT_REQUEST.exec(request);
+    if (!receipt) return ANSWER_REQUEST.test(request);
+    const note = request.slice(receipt[0].length);
+    // "Can you remember which..." asks for recall; an instruction to remember a supplied note asks for a write.
+    if (/\byou\s+(?:please\s+)?remember$/i.test(receipt[0]) && /^\s*(?:what|why|how|which|when|where|who)\b/i.test(note)) return true;
+    // The saved note can contain words such as "plan" or "how". Check additional coordinated requests and
+    // independent questions, rather than treating the note or its question mark as another requested answer.
+    return note.split(/[,;—–]|\b(?:and|then|also|but)\b/i).slice(1).some((clause) =>
+      ANSWER_WORDS.test(clause) || (QUESTION_LEAD.test(clause) && /\?/.test(clause)));
+  });
+}
 // These are the fact guard's fill-in fields. They are useful in requested drafts, but cannot stand in for a fact
 // when answering a question. This authorizes an output format, never chooses an answer or a tool by topic.
 const FACT_PLACEHOLDER = /\[(?:your (?:skill|title|degree)|number|result|month|employer or school)\]/gi;
@@ -305,7 +322,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
       // A successful write backs its receipt, but does not answer a request for content. A plain fact statement
       // can still end with a backed receipt; use the existing answer-request check rather than grading its prose.
-      if (missingAnswerBody(out, o.message, ANSWER_REQUEST.test(o.message), sources)) {
+      if (missingAnswerBody(out, o.message, requestsAnswerBody(o.message), sources)) {
         if (repairing || steps >= max) return incomplete();
         // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
         // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.

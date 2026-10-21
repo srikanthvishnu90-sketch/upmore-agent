@@ -55,6 +55,49 @@ Deno.test("receipt completeness: a plain fact statement still accepts a backed r
   eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
 });
 
+Deno.test("receipt completeness: a save-only question accepts its backed receipt", async () => {
+  const { result, payloads, saves } = await turn(`${FACT} Can you save that?`, [save(), text(RECEIPT)]);
+  eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
+});
+
+Deno.test("receipt completeness: a remember-only question accepts its backed receipt", async () => {
+  const { result, payloads, saves } = await turn(`Please remember that ${FACT.replace(/\.$/, "")}?`, [save(), text(RECEIPT)]);
+  eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
+});
+
+Deno.test("receipt completeness: words in the note being saved are not additional requests", async () => {
+  for (const message of [
+    "Please save my plan for how to welcome volunteers?",
+    "Please remember that I explain repair steps to new volunteers?",
+  ]) {
+    const { result, payloads, saves } = await turn(message, [save(), text(RECEIPT)]);
+    eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
+  }
+});
+
+Deno.test("receipt completeness: a persistence question with an additional content request still needs the answer", async () => {
+  for (const message of [
+    `${FACT} Could you save that and compare a hands-on workshop with a short demonstration?`,
+    `${FACT} Please remember that and draft an invitation to a Saturday session?`,
+  ]) {
+    const answer = message.includes("compare") ? COMPARISON : "Would you like to join our repair club this Saturday?";
+    const { result, payloads, saves } = await turn(message, [save(), text(RECEIPT), text(answer)]);
+    eq(result.reply, answer); eq(result.stopped, "final"); eq(payloads.length, 3); eq(saves, 1);
+    eq(payloads[2].tool_choice, { type: "none" });
+  }
+});
+
+Deno.test("receipt completeness: recall and separate polar questions still need their requested answer", async () => {
+  for (const [message, answer] of [
+    [`${FACT} What do you remember about my volunteering?`, "You coordinate a neighborhood repair club."],
+    [`${FACT} Can you remember which club I coordinate?`, "You coordinate a neighborhood repair club."],
+    [`${FACT} Can you save that? Is a short demonstration quicker than a hands-on workshop?`, COMPARISON],
+  ]) {
+    const { result, payloads, saves } = await turn(message, [save(), text(RECEIPT), text(answer)]);
+    eq(result.reply, answer); eq(result.stopped, "final"); eq(payloads.length, 3); eq(saves, 1);
+  }
+});
+
 Deno.test("receipt completeness: a concrete question for missing information remains valid after a save", async () => {
   const clarification = "Which two session formats should I compare?";
   const { result, payloads, saves } = await turn(`${FACT} Save that and compare the two session formats.`, [save(), text(clarification)]);
